@@ -3,7 +3,7 @@
 #include <cstring>
 
 #include "rtp_hevc.hh"
-#include "rtpconn.hh"
+#include "conn.hh"
 
 using RTPGeneric::GenericFrame;
 

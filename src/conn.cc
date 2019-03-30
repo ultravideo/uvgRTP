@@ -4,8 +4,8 @@
 #include <cstring>
 #include <iostream>
 
-#include "rtpconn.hh"
-#include "rtputil.hh"
+#include "conn.hh"
+#include "util.hh"
 #include "rtp_hevc.hh"
 #include "rtp_opus.hh"
 

@@ -5,8 +5,8 @@
 #include <iostream>
 #include <cstring>
 
-#include "rtputil.hh"
-#include "rtpconn.hh"
+#include "util.hh"
+#include "conn.hh"
 #include "rtp_generic.hh"
 
 uint64_t rtpGetUniqueId()

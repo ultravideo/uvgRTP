@@ -11,7 +11,7 @@
 #include <thread>
 #include <mutex>
 
-#include "rtputil.hh"
+#include "util.hh"
 #include "rtp_generic.hh"
 
 class RTPPayload {

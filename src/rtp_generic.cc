@@ -9,8 +9,7 @@
 #include <iostream>
 
 #include "rtp_generic.hh"
-#include "rtputil.hh"
-#include "rtpconn.hh"
+#include "conn.hh"
 
 RTPGeneric::GenericFrame *RTPGeneric::createGenericFrame()
 {

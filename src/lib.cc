@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "rtplib.hh"
-#include "rtpconn.hh"
+#include "lib.hh"
+#include "conn.hh"
 
 RTPContext::RTPContext()
 {
