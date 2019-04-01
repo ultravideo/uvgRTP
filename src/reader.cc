@@ -65,7 +65,6 @@ RTPReader::RTPReader(std::string srcAddr, int srcPort):
 RTPReader::~RTPReader()
 {
     active_ = false;
-    runner_->join();
 
     // TODO how to stop thread???
     //      private global variable set here from true to false and thread exist???
@@ -101,7 +100,9 @@ int RTPReader::start()
 
     active_ = true;
     id_     = rtpGetUniqueId();
+
     runner_ = new std::thread(frameReceiver, this);
+    runner_->detach();
 
     return 0;
 }

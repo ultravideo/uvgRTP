@@ -16,8 +16,6 @@ RTPContext::~RTPContext()
         delete it->second;
         conns_.erase(it);
     }
-
-    std::terminate();
 }
 
 RTPReader *RTPContext::createReader(std::string srcAddr, int srcPort)
