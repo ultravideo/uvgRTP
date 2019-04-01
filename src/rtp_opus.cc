@@ -14,7 +14,7 @@ int RTPOpus::pushOpusFrame(RTPConnection *conn, uint8_t *data, uint32_t dataLen,
                 (config->channels > 1 ? (1 << 2) : 0) | 0;
 
     memcpy(&buffer[1], data, dataLen);
-    conn->setPayload(RTP_FORMAT_OPUS);
+    conn->setPayloadType(RTP_FORMAT_OPUS);
 
     return RTPGeneric::pushGenericFrame(conn, buffer, dataLen + 1, 0);
 }

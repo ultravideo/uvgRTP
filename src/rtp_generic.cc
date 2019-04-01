@@ -10,6 +10,7 @@
 
 #include "rtp_generic.hh"
 #include "conn.hh"
+#include "writer.hh"
 
 RTPGeneric::GenericFrame *RTPGeneric::createGenericFrame()
 {
@@ -76,10 +77,13 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, RTPGeneric::GenericFrame *
     if (frame->data)
         memcpy(&buffer[12], frame->data, frame->dataLen);
 
-    sockaddr_in outAddr = conn->getOutAddress();
+    RTPWriter *writer   = dynamic_cast<RTPWriter *>(conn);
+    sockaddr_in outAddr = writer->getOutAddress();
 
-    if (sendto(conn->getSocket(), buffer, frame->dataLen + 12, 0, (struct sockaddr *)&outAddr, sizeof(outAddr)) == -1)
+    if (sendto(conn->getSocket(), buffer, frame->dataLen + 12, 0, (struct sockaddr *)&outAddr, sizeof(outAddr)) == -1) {
+        perror("pushGenericFrame");
         return -errno;
+    }
 
     conn->incRTPSequence(1);
     frame->rtp_sequence++;
@@ -103,7 +107,7 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, uint8_t *data, uint32_t da
     uint8_t buffer[MAX_PACKET] = { 0 };
 
     buffer[0] = 2 << 6; // RTP version
-    buffer[1] = (conn->getPayload() & 0x7f) | (0 << 7);
+    buffer[1] = (conn->getPayloadType() & 0x7f) | (0 << 7);
 
     *(uint16_t *)&buffer[2] = htons(conn->getSequence());
     *(uint32_t *)&buffer[4] = htonl(conn->getTimestamp());
@@ -111,10 +115,13 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, uint8_t *data, uint32_t da
 
     memcpy(&buffer[12], data, dataLen);
 
-    sockaddr_in outAddr = conn->getOutAddress();
+    RTPWriter *writer   = dynamic_cast<RTPWriter *>(conn);
+    sockaddr_in outAddr = writer->getOutAddress();
 
-    if (sendto(conn->getSocket(), buffer, dataLen + 12, 0, (struct sockaddr *)&outAddr, sizeof(outAddr)) == -1)
+    if (sendto(conn->getSocket(), buffer, dataLen + 12, 0, (struct sockaddr *)&outAddr, sizeof(outAddr)) == -1) {
+        perror("pushGenericFrame");
         return -errno;
+    }
 
     conn->incRTPSequence(1);
 

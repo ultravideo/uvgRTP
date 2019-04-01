@@ -20,36 +20,50 @@ RTPContext::~RTPContext()
     std::terminate();
 }
 
-RTPConnection *RTPContext::openConnection(std::string dstAddr, int dstPort, int srcPort)
+RTPReader *RTPContext::createReader(std::string srcAddr, int srcPort)
 {
-    RTPConnection *conn = new RTPConnection(dstAddr, dstPort, srcPort);
+    RTPReader *reader = new RTPReader(srcAddr, srcPort);
 
-    if (!conn) {
-        std::cerr << "Failed to create RTP connection!" << std::endl;
+    if (!reader) {
+        std::cerr << "Failed to create RTPReader for " << srcAddr << ":" << srcPort << "!" << std::endl;
         return nullptr;
     }
 
-    if (conn->open() < 0) {
-        std::cerr << "Failed to open RTP connection!" << std::endl;
-        delete conn;
-        return nullptr;
-    }
-
-    conns_.insert(std::pair<int, RTPConnection *>(conn->getId(), conn));
-    return conn;
+    conns_.insert(std::pair<int, RTPConnection *>(reader->getId(), reader));
+    return reader;
 }
 
-int RTPContext::closeConnection(int id)
+RTPReader *RTPContext::createReader(std::string srcAddr, int srcPort, rtp_format_t fmt)
 {
-    std::map<uint32_t, RTPConnection *>::iterator it;
+    RTPReader *reader = nullptr;
 
-    if ((it = conns_.find(id)) == conns_.end()) {
-        std::cerr << "Connection with id " << id << " does not exist!" << std::endl;
-        return -1;
+    if ((reader = createReader(srcAddr, srcPort)) == nullptr)
+        return nullptr;
+
+    reader->setPayloadType(fmt);
+    return reader;
+}
+
+RTPWriter *RTPContext::createWriter(std::string dstAddr, int dstPort)
+{
+    RTPWriter *writer = new RTPWriter(dstAddr, dstPort);
+
+    if (!writer) {
+        std::cerr << "Failed to create RTPWriter for " << dstAddr << ":" << dstPort << "!" << std::endl;
+        return nullptr;
     }
 
-    delete it->second;
-    conns_.erase(it);
+    conns_.insert(std::pair<int, RTPConnection *>(writer->getId(), writer));
+    return writer;
+}
 
-    return 0;
+RTPWriter *RTPContext::createWriter(std::string dstAddr, int dstPort, rtp_format_t fmt)
+{
+    RTPWriter *writer = nullptr;
+
+    if ((writer = createWriter(dstAddr, dstPort)) == nullptr)
+        return nullptr;
+
+    writer->setPayloadType(fmt);
+    return writer;
 }
