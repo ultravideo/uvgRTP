@@ -14,10 +14,6 @@
 #include "util.hh"
 #include "rtp_generic.hh"
 
-class RTPPayload {
-
-};
-
 class RTPConnection {
 
 public:
@@ -38,6 +34,8 @@ public:
     uint8_t *getInPacketBuffer() const;
     uint32_t getInPacketBufferLength() const;
 
+    void setPayload(rtp_format_t fmt);
+
     void incRTPSequence(uint16_t seq);
     void incProcessedBytes(uint32_t nbytes);
     void incOverheadBytes(uint32_t nbytes);
@@ -48,8 +46,10 @@ public:
     RTPGeneric::GenericFrame *pullFrame();
 
     void fillFrame(RTPGeneric::GenericFrame *frame);
-
     void addOutgoingFrame(RTPGeneric::GenericFrame *frame);
+
+    void setConfig(uint8_t *config);
+    uint8_t *getConfig();
 
 private:
     std::string dstAddr_;
@@ -88,5 +88,5 @@ private:
     uint32_t totalBytes_;
     uint32_t processedPackets_;
 
-    uint8_t *config;
+    uint8_t *config_;
 };

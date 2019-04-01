@@ -90,6 +90,21 @@ RTPGeneric::GenericFrame *RTPConnection::pullFrame()
     return nextFrame;
 }
 
+void RTPConnection::setPayload(rtp_format_t fmt)
+{
+    rtp_payload_ = fmt;
+}
+
+void RTPConnection::setConfig(uint8_t *config)
+{
+    config_ = config;
+}
+
+uint8_t *RTPConnection::getConfig()
+{
+    return config_;
+}
+
 uint32_t RTPConnection::getId() const
 {
     return id_;
