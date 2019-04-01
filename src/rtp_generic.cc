@@ -103,7 +103,7 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, uint8_t *data, uint32_t da
     uint8_t buffer[MAX_PACKET] = { 0 };
 
     buffer[0] = 2 << 6; // RTP version
-    buffer[1] = (96 & 0x7f) | (0 << 7);
+    buffer[1] = (conn->getPayload() & 0x7f) | (0 << 7);
 
     *(uint16_t *)&buffer[2] = htons(conn->getSequence());
     *(uint32_t *)&buffer[4] = htonl(conn->getTimestamp());
