@@ -107,6 +107,36 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, uint8_t *data, uint32_t da
     if (!conn || !data)
         return RTP_INVALID_VALUE;
 
+    RTPWriter *writer   = dynamic_cast<RTPWriter *>(conn);
+    sockaddr_in outAddr = writer->getOutAddress();
+
+#ifdef __linux__
+    uint8_t header[RTP_HEADER_SIZE] = { 0 };
+
+    header[0] = 2 << 6; // RTP version
+    header[1] = (conn->getPayloadType() & 0x7f) | (0 << 7);
+
+    *(uint16_t *)&header[2] = htons(conn->getSequence());
+    *(uint32_t *)&header[4] = htonl(conn->getTimestamp());
+    *(uint32_t *)&header[8] = htonl(conn->getSSRC());
+
+    if (sendto(conn->getSocket(), header, RTP_HEADER_SIZE, MSG_MORE, (struct sockaddr *)&outAddr, sizeof(outAddr)) == -1) {
+        perror("pushGenericFrame");
+        return RTP_GENERIC_ERROR;
+    }
+
+    if (sendto(conn->getSocket(), data, dataLen, 0, (struct sockaddr *)&outAddr, sizeof(outAddr)) == -1) {
+        perror("pushGenericFrame");
+        return RTP_GENERIC_ERROR;
+    }
+#else
+    /* TODO:
+     *
+     *
+     * winsock API supports MSG_PARTIAL with WSASend, use that!
+     *
+     * */
+
     uint8_t buffer[MAX_PACKET] = { 0 };
 
     buffer[0] = 2 << 6; // RTP version
@@ -118,13 +148,11 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, uint8_t *data, uint32_t da
 
     memcpy(&buffer[12], data, dataLen);
 
-    RTPWriter *writer   = dynamic_cast<RTPWriter *>(conn);
-    sockaddr_in outAddr = writer->getOutAddress();
-
     if (sendto(conn->getSocket(), buffer, dataLen + 12, 0, (struct sockaddr *)&outAddr, sizeof(outAddr)) == -1) {
         perror("pushGenericFrame");
         return RTP_GENERIC_ERROR;
     }
+#endif
 
     conn->incRTPSequence(1);
 
