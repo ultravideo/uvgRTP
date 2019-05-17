@@ -27,12 +27,12 @@ void RTPConnection::setPayloadType(rtp_format_t fmt)
     rtp_payload_ = fmt;
 }
 
-void RTPConnection::setConfig(uint8_t *config)
+void RTPConnection::setConfig(void *config)
 {
-    config_ = config;
+    config_ = static_cast<void *>(config);
 }
 
-uint8_t *RTPConnection::getConfig()
+void *RTPConnection::getConfig()
 {
     return config_;
 }

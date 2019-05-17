@@ -42,11 +42,11 @@ public:
 
     void fillFrame(RTPGeneric::GenericFrame *frame);
 
-    void setConfig(uint8_t *config);
-    uint8_t *getConfig();
+    void setConfig(void *config);
+    void *getConfig();
 
 protected:
-    uint8_t *config_;
+    void *config_;
     uint32_t id_;
     int socket_;
 
