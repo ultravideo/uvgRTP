@@ -45,6 +45,8 @@ int RTPSender::writePayload(RTPConnection *conn, uint8_t *payload, size_t payloa
     conn->incProcessedPackets(1);
 #endif
 
+    conn->incRTPSequence(1);
+
     return __internalWrite(conn, payload, payloadLen, 0);
 }
 
