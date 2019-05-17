@@ -1,5 +1,5 @@
 #ifdef _WIN32
-
+// TODO
 #else
 #include <arpa/inet.h>
 #endif
@@ -8,8 +8,10 @@
 #include <cstring>
 #include <iostream>
 
-#include "rtp_generic.hh"
+#include "debug.hh"
 #include "conn.hh"
+#include "rtp_generic.hh"
+#include "util.hh"
 #include "writer.hh"
 
 RTPGeneric::GenericFrame *RTPGeneric::createGenericFrame()
@@ -40,12 +42,14 @@ RTPGeneric::GenericFrame *RTPGeneric::createGenericFrame(uint32_t dataLen)
     if (!frame)
         return nullptr;
 
-    if ((frame->data = new uint8_t[dataLen]) == nullptr) {
+    if ((frame->data = new uint8_t[dataLen + RTP_HEADER_SIZE]) == nullptr) {
         delete frame;
         return nullptr;
     }
 
-    frame->dataLen = dataLen;
+    frame->dataLen = dataLen + RTP_HEADER_SIZE;
+    frame->data   += RTP_HEADER_SIZE;
+
     return frame;
 }
 
@@ -55,7 +59,7 @@ void RTPGeneric::destroyGenericFrame(RTPGeneric::GenericFrame *frame)
         return;
 
     if (frame->data)
-        delete frame->data;
+        delete (frame->data - RTP_HEADER_SIZE);
 
     delete frame;
 }
@@ -65,7 +69,7 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, RTPGeneric::GenericFrame *
     if (!conn || !frame)
         return RTP_INVALID_VALUE;
 
-    uint8_t buffer[MAX_PACKET] = { 0 };
+    uint8_t *buffer = frame->data - RTP_HEADER_SIZE;
 
     buffer[0] = 2 << 6; /* RTP version */
     buffer[1] = (frame->rtp_format & 0x7f) | (0 << 7);
@@ -74,13 +78,10 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, RTPGeneric::GenericFrame *
     *(uint32_t *)&buffer[4] = htonl(frame->rtp_timestamp);
     *(uint32_t *)&buffer[8] = htonl(frame->rtp_ssrc);
 
-    if (frame->data)
-        memcpy(&buffer[12], frame->data, frame->dataLen);
-
     RTPWriter *writer   = dynamic_cast<RTPWriter *>(conn);
     sockaddr_in outAddr = writer->getOutAddress();
 
-    if (sendto(conn->getSocket(), buffer, frame->dataLen + 12, 0, (struct sockaddr *)&outAddr, sizeof(outAddr)) == -1) {
+    if (sendto(conn->getSocket(), buffer, frame->dataLen, 0, (struct sockaddr *)&outAddr, sizeof(outAddr)) == -1) {
         perror("pushGenericFrame");
         return RTP_GENERIC_ERROR;
     }
@@ -90,9 +91,9 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, RTPGeneric::GenericFrame *
 
     /* Update statistics */
 #ifdef __RTP_STATS__
-    conn->incProcessedBytes(frame->dataLen);
-    conn->incOverheadBytes(12);
-    conn->incTotalBytes(frame->dataLen + 12);
+    conn->incProcessedBytes(frame->dataLen - RTP_HEADER_SIZE);
+    conn->incOverheadBytes(RTP_HEADER_SIZE);
+    conn->incTotalBytes(frame->dataLen);
     conn->incProcessedPackets(1);
 #endif
 
