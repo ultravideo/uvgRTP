@@ -55,7 +55,7 @@ void RTPGeneric::destroyGenericFrame(RTPGeneric::GenericFrame *frame)
         return;
 
     if (frame->data)
-        free(frame->data);
+        delete frame->data;
 
     delete frame;
 }
