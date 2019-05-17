@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <cstring>
 
+#include "debug.hh"
 #include "rtp_hevc.hh"
 #include "conn.hh"
 
@@ -10,12 +11,12 @@ using RTPGeneric::GenericFrame;
 static int nextFrameStart(uint8_t *data, uint32_t offset, uint32_t dataLen, uint8_t& startLen)
 {
     uint8_t zeros = 0;
-    uint32_t pos = 0;
+    uint32_t pos  = 0;
 
     while (offset + pos < dataLen) {
         if (zeros >= 2 && data[offset + pos] == 1) {
             startLen = zeros + 1;
-            return offset + pos +1;
+            return offset + pos + 1;
         }
 
         if (data[offset + pos] == 0)
@@ -38,7 +39,7 @@ static int __pushHevcFrame(RTPConnection *conn, uint8_t *data, uint32_t dataLen,
     GenericFrame *frame = nullptr;
 
     if (dataLen <= MAX_PAYLOAD) {
-        std::cerr << "[fRTP] send unfrag size " << dataLen << " type " << (uint32_t)((data[0] >> 1) & 0x3F) << std::endl;
+        LOG_DEBUG("send unfrag size %u, type %u", dataLen, (uint32_t)((data[0] >> 1) & 0x3F));
         return RTPGeneric::pushGenericFrame(conn, data, dataLen, 0);
     }
 
@@ -48,7 +49,7 @@ static int __pushHevcFrame(RTPConnection *conn, uint8_t *data, uint32_t dataLen,
     conn->fillFrame(frame);
     frame->rtp_format = RTP_FORMAT_HEVC;
     
-    std::cerr << "[fRTP] send frag size " << dataLen << std::endl;
+    LOG_DEBUG("send frag size: %u, type %u", dataLen, (data[0] >> 1) & 0x3F);
     uint8_t nalType = (data[0] >> 1) & 0x3F;
 
     frame->data[0] = 49 << 1; /* fragmentation unit */
@@ -105,5 +106,5 @@ int RTPHevc::pushHevcFrame(RTPConnection *conn, uint8_t *data, uint32_t dataLen,
     if (previousOffset == -1)
         previousOffset = 0;
 
-    return __pushHevcFrame(conn, &data[previousOffset], dataLen- previousOffset, timestamp);
+    return __pushHevcFrame(conn, &data[previousOffset], dataLen - previousOffset, timestamp);
 }
