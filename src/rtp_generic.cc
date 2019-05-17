@@ -63,7 +63,7 @@ void RTPGeneric::destroyGenericFrame(RTPGeneric::GenericFrame *frame)
 int RTPGeneric::pushGenericFrame(RTPConnection *conn, RTPGeneric::GenericFrame *frame)
 {
     if (!conn || !frame)
-        return -EINVAL;
+        return RTP_INVALID_VALUE;
 
     uint8_t buffer[MAX_PACKET] = { 0 };
 
@@ -82,7 +82,7 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, RTPGeneric::GenericFrame *
 
     if (sendto(conn->getSocket(), buffer, frame->dataLen + 12, 0, (struct sockaddr *)&outAddr, sizeof(outAddr)) == -1) {
         perror("pushGenericFrame");
-        return -errno;
+        return RTP_GENERIC_ERROR;
     }
 
     conn->incRTPSequence(1);
@@ -94,7 +94,7 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, RTPGeneric::GenericFrame *
     conn->incTotalBytes(frame->dataLen + 12);
     conn->incProcessedPackets(1);
 
-    return 0;
+    return RTP_OK;
 }
 
 int RTPGeneric::pushGenericFrame(RTPConnection *conn, uint8_t *data, uint32_t dataLen, uint32_t timestamp)
@@ -102,7 +102,7 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, uint8_t *data, uint32_t da
     (void)timestamp;
 
     if (!conn || !data)
-        return -EINVAL;
+        return RTP_INVALID_VALUE;
 
     uint8_t buffer[MAX_PACKET] = { 0 };
 
@@ -120,7 +120,7 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, uint8_t *data, uint32_t da
 
     if (sendto(conn->getSocket(), buffer, dataLen + 12, 0, (struct sockaddr *)&outAddr, sizeof(outAddr)) == -1) {
         perror("pushGenericFrame");
-        return -errno;
+        return RTP_GENERIC_ERROR;
     }
 
     conn->incRTPSequence(1);
@@ -131,5 +131,5 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, uint8_t *data, uint32_t da
     conn->incTotalBytes(dataLen + 12);
     conn->incProcessedPackets(1);
 
-    return 0;
+    return RTP_OK;
 }
