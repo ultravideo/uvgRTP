@@ -30,11 +30,16 @@ RTPReader::~RTPReader()
 
 int RTPReader::start()
 {
-    // TODO open socket
+    LOG_INFO("Starting to listen to port %d", srcPort_);
+
     if ((socket_ = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        perror("RTPConnection::open");
+        LOG_ERROR("Failed to create socket: %s", strerror(errno));
         return RTP_SOCKET_ERROR;
     }
+
+    int enable = 1;
+    if (setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+        perror("setsockopt(SO_REUSEADDR) failed");
 
     sockaddr_in addrIn_;
 
@@ -44,12 +49,16 @@ int RTPReader::start()
     addrIn_.sin_port = htons(srcPort_);
 
     if (bind(socket_, (struct sockaddr *) &addrIn_, sizeof(addrIn_)) < 0) {
-        perror("RTPConnection::open");
+        LOG_ERROR("Failed to bind to port: %s", strerror(errno));
         return RTP_BIND_ERROR;
     }
 
-    inPacketBuffer_ = new uint8_t[MAX_PACKET];
     inPacketBufferLen_ = MAX_PACKET;
+
+    if ((inPacketBuffer_ = new uint8_t[MAX_PACKET]) == nullptr) {
+        LOG_ERROR("Failed to allocate buffer for incoming data!");
+        inPacketBufferLen_ = 0;
+    }
 
     active_ = true;
     id_     = rtpGetUniqueId();
