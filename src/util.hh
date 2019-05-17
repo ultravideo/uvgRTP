@@ -8,8 +8,11 @@ const int MAX_PACKET  = 65536;
 const int MAX_PAYLOAD = 1000;
 
 enum RTP_ERROR {
-  RTP_SOCKET_ERROR = -1,
-  RTP_BIND_ERROR   = -2,
+    RTP_OK            =  0,
+    RTP_GENERIC_ERROR = -1,
+    RTP_SOCKET_ERROR  = -2,
+    RTP_BIND_ERROR    = -3,
+    RTP_INVALID_VALUE = -4
 };
 
 typedef enum RTP_FORMAT {
