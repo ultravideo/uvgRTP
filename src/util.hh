@@ -1,19 +1,24 @@
 #pragma once
 
 #include <cstdint>
+#include <cstddef>
 
 class RTPConnection;
 
 const int MAX_PACKET      = 65536;
 const int MAX_PAYLOAD     = 1000;
-const int RTP_HEADER_SIZE = 12;
+
+const size_t RTP_HEADER_SIZE      = 12;
+const size_t HEVC_RTP_HEADER_SIZE =  2;
+const size_t HEVC_FU_HEADER_SIZE  =  1;
 
 enum RTP_ERROR {
     RTP_OK            =  0,
     RTP_GENERIC_ERROR = -1,
     RTP_SOCKET_ERROR  = -2,
     RTP_BIND_ERROR    = -3,
-    RTP_INVALID_VALUE = -4
+    RTP_INVALID_VALUE = -4,
+    RTP_SEND_ERROR    = -5,
 };
 
 typedef enum RTP_FORMAT {
