@@ -4,8 +4,9 @@
 
 class RTPConnection;
 
-const int MAX_PACKET  = 65536;
-const int MAX_PAYLOAD = 1000;
+const int MAX_PACKET      = 65536;
+const int MAX_PAYLOAD     = 1000;
+const int RTP_HEADER_SIZE = 12;
 
 enum RTP_ERROR {
     RTP_OK            =  0,
@@ -22,5 +23,8 @@ typedef enum RTP_FORMAT {
 } rtp_format_t;
 
 
-uint64_t rtpGetUniqueId();
-int rtpRecvData(RTPConnection *conn);
+static inline uint64_t rtpGetUniqueId()
+{
+    static uint64_t i = 1;
+    return i++;
+}
