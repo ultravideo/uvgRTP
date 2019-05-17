@@ -17,7 +17,7 @@
 
 static int __internalWrite(RTPConnection *conn, uint8_t *buf, size_t bufLen, int flags)
 {
-    if (!conn || !buf || bufLen == 0)
+    if (!buf || bufLen == 0)
         return RTP_INVALID_VALUE;
 
     RTPWriter *writer   = dynamic_cast<RTPWriter *>(conn);
@@ -36,11 +36,28 @@ static int __internalWrite(RTPConnection *conn, uint8_t *buf, size_t bufLen, int
 
 int RTPSender::writePayload(RTPConnection *conn, uint8_t *payload, size_t payloadLen)
 {
+    if (!conn)
+        return RTP_INVALID_VALUE;
+
+#ifdef __RTP_STATS__
+    conn->incProcessedBytes(payloadLen);
+    conn->incTotalBytes(payloadLen);
+    conn->incProcessedPackets(1);
+#endif
+
     return __internalWrite(conn, payload, payloadLen, 0);
 }
 
 int RTPSender::writeGenericHeader(RTPConnection *conn, uint8_t *header, size_t headerLen)
 {
+    if (!conn)
+        return RTP_INVALID_VALUE;
+
+#ifdef __RTP_STATS__
+    conn->incOverheadBytes(headerLen);
+    conn->incTotalBytes(headerLen);
+#endif
+
 #ifdef __linux
     return __internalWrite(conn, header, headerLen, MSG_MORE);
 #else
