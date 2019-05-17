@@ -89,10 +89,12 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, RTPGeneric::GenericFrame *
     frame->rtp_sequence++;
 
     /* Update statistics */
+#ifdef __RTP_STATS__
     conn->incProcessedBytes(frame->dataLen);
     conn->incOverheadBytes(12);
     conn->incTotalBytes(frame->dataLen + 12);
     conn->incProcessedPackets(1);
+#endif
 
     return RTP_OK;
 }
@@ -125,11 +127,13 @@ int RTPGeneric::pushGenericFrame(RTPConnection *conn, uint8_t *data, uint32_t da
 
     conn->incRTPSequence(1);
 
+#ifdef __RTP_STATS__
     /* Update statistics */
     conn->incProcessedBytes(dataLen);
     conn->incOverheadBytes(12);
     conn->incTotalBytes(dataLen + 12);
     conn->incProcessedPackets(1);
+#endif
 
     return RTP_OK;
 }
