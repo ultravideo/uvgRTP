@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <cstdarg>
+#include <string>
 
 // TODO constexpr??
 inline const char *className(const std::string& prettyFunction)
