@@ -2,63 +2,16 @@
 #include <iostream>
 
 #include "reader.hh"
+#include "debug.hh"
 
-static int frameReceiver(RTPReader *reader)
-{
-    sockaddr_in fromAddr;
-
-    std::cerr << "starting to listen to address and port" << std::endl;
-
-    while (reader->active()) {
-        int fromAddrSize = sizeof(fromAddr);
-        int32_t ret = recvfrom(reader->getSocket(), reader->getInPacketBuffer(), reader->getInPacketBufferLength(),
-                               0, /* no flags */
-#ifdef _WIN32
-                               (SOCKADDR *)&fromAddr, 
-                               &fromAddrSize
-#else
-                               (struct sockaddr *)&fromAddr,
-                               (socklen_t *)&fromAddrSize
-#endif
-                );
-
-        if (ret == -1) {
-#if _WIN32
-            int _error = WSAGetLastError();
-            if (_error != 10035)
-                std::cerr << "Socket error" << _error << std::endl;
-#else
-            perror("frameReceiver");
-#endif
-            return -1;
-        } else {
-            const uint8_t *inBuffer = reader->getInPacketBuffer();
-
-            RTPGeneric::GenericFrame *frame = RTPGeneric::createGenericFrame();
-
-            frame->marker      = (inBuffer[1] & 0x80) ? 1 : 0;
-            frame->rtp_payload = (inBuffer[1] & 0x7f);
-
-            frame->rtp_sequence  = ntohs(*(uint16_t *)&inBuffer[2]);
-            frame->rtp_timestamp = ntohl(*(uint32_t *)&inBuffer[4]);
-            frame->rtp_ssrc      = ntohl(*(uint32_t *)&inBuffer[8]);
-            frame->data          = new uint8_t[ret - 12];
-            frame->dataLen       = ret - 12;
-
-            memcpy(frame->data, &inBuffer[12], frame->dataLen);
-
-            reader->addOutgoingFrame(frame);
-        }
-    }
-
-    std::cerr << "THREAD EXITING!!" << std::endl;
-}
 
 RTPReader::RTPReader(std::string srcAddr, int srcPort):
     RTPConnection(true),
     srcAddr_(srcAddr),
     srcPort_(srcPort),
-    active_(false)
+    active_(false),
+    receiveHook_(nullptr),
+    receiveHookArg_(nullptr)
 {
 }
 
@@ -142,4 +95,98 @@ void RTPReader::addOutgoingFrame(RTPGeneric::GenericFrame *frame)
         return;
 
     framesOut_.push_back(frame);
+}
+
+bool RTPReader::receiveHookInstalled()
+{
+    return receiveHook_ != nullptr;
+}
+
+void RTPReader::installReceiveHook(void *arg, void (*hook)(void *arg, RTPGeneric::GenericFrame *))
+{
+    if (hook == nullptr)
+    {
+        LOG_ERROR("Unable to install receive hook, function pointer is nullptr!");
+        return;
+    }
+
+    receiveHook_ = hook;
+    receiveHookArg_ = arg;
+}
+
+void RTPReader::receiveHook(RTPGeneric::GenericFrame *frame)
+{
+    if (receiveHook_)
+        return receiveHook_(receiveHookArg_, frame);
+}
+
+int RTPReader::frameReceiver(RTPReader *reader)
+{
+    LOG_INFO("frameReceiver starting listening...");
+
+    sockaddr_in fromAddr;
+
+    while (reader->active()) {
+        int fromAddrSize = sizeof(fromAddr);
+        int32_t ret = recvfrom(reader->getSocket(), reader->getInPacketBuffer(), reader->getInPacketBufferLength(),
+                               0, /* no flags */
+#ifdef _WIN32
+                               (SOCKADDR *)&fromAddr, 
+                               &fromAddrSize
+#else
+                               (struct sockaddr *)&fromAddr,
+                               (socklen_t *)&fromAddrSize
+#endif
+                );
+
+        if (ret == -1) {
+#if _WIN32
+            int _error = WSAGetLastError();
+            if (_error != 10035)
+                std::cerr << "Socket error" << _error << std::endl;
+#else
+            perror("frameReceiver");
+#endif
+            return -1;
+        } else {
+            /* LOG_INFO("Got %d bytes", ret); */
+
+            const uint8_t *inBuffer = reader->getInPacketBuffer();
+
+            RTPGeneric::GenericFrame *frame = RTPGeneric::createGenericFrame();
+
+            if (!frame) {
+                LOG_ERROR("Failed to allocate GenericFrame!");
+                continue;
+            }
+
+            frame->marker      = (inBuffer[1] & 0x80) ? 1 : 0;
+            frame->rtp_payload = (inBuffer[1] & 0x7f);
+
+            frame->rtp_sequence  = ntohs(*(uint16_t *)&inBuffer[2]);
+            frame->rtp_timestamp = ntohl(*(uint32_t *)&inBuffer[4]);
+            frame->rtp_ssrc      = ntohl(*(uint32_t *)&inBuffer[8]);
+
+            if (ret - 12 <= 0) {
+                LOG_WARN("Got an invalid payload of size %d", ret);
+                continue;
+            }
+
+            frame->data    = new uint8_t[ret - 12];
+            frame->dataLen = ret - 12;
+
+            if (!frame->data) {
+                LOG_ERROR("Failed to allocate buffer for GenericFrame!");
+                continue;
+            }
+
+            memcpy(frame->data, &inBuffer[12], frame->dataLen);
+
+            reader->addOutgoingFrame(frame);
+
+            if (reader->receiveHookInstalled())
+                reader->receiveHook(frame);
+        }
+    }
+    LOG_INFO("FrameReceiver thread exiting...");
 }

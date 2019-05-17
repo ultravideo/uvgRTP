@@ -19,12 +19,18 @@ public:
 
     bool active();
 
+    bool receiveHookInstalled();
+    void receiveHook(RTPGeneric::GenericFrame *frame);
+    void installReceiveHook(void *arg, void (*hook)(void *arg, RTPGeneric::GenericFrame *));
+
     uint8_t *getInPacketBuffer() const;
     uint32_t getInPacketBufferLength() const;
 
     void addOutgoingFrame(RTPGeneric::GenericFrame *frame);
 
 private:
+    static int frameReceiver(RTPReader *reader);
+
     // TODO implement ring buffer
     bool active_;
 
@@ -39,4 +45,8 @@ private:
 
     std::vector<RTPGeneric::GenericFrame *>  framesOut_;
     std::mutex framesMtx_;
+
+    // TODO
+    void *receiveHookArg_;
+    void (*receiveHook_)(void *arg, RTPGeneric::GenericFrame *frame);
 };
