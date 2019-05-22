@@ -8,25 +8,25 @@
 #include "rtp_generic.hh"
 #include "writer.hh"
 
-RTPWriter::RTPWriter(std::string dstAddr, int dstPort):
-    RTPConnection(false),
-    dstAddr_(dstAddr),
-    dstPort_(dstPort),
-    srcPort_(0)
+kvz_rtp::writer::writer(std::string dst_addr, int dst_port):
+    connection(false),
+    dst_addr_(dst_addr),
+    dst_port_(dst_port),
+    src_port_(0)
 {
 }
 
-RTPWriter::RTPWriter(std::string dstAddr, int dstPort, int srcPort):
-    RTPWriter(dstAddr, dstPort)
+kvz_rtp::writer::writer(std::string dst_addr, int dst_port, int src_port):
+    writer(dst_addr, dst_port)
 {
-    srcPort_ = srcPort;
+    src_port_ = src_port;
 }
 
-RTPWriter::~RTPWriter()
+kvz_rtp::writer::~writer()
 {
 }
 
-int RTPWriter::start()
+rtp_error_t kvz_rtp::writer::start()
 {
     if ((socket_ = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         LOG_ERROR("Creating socket failed: %s", strerror(errno));
@@ -35,52 +35,53 @@ int RTPWriter::start()
 
     /* if source port is not 0, writer should be bind to that port so that outgoing packet
      * has a correct source port (important for hole punching purposes) */
-    if (srcPort_ != 0) {
+    if (src_port_ != 0) {
         int enable = 1;
+
         if (setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
-            perror("setsockopt(SO_REUSEADDR) failed");
+            LOG_ERROR("Failed to set socket options: %s", strerror(errno));
             return RTP_GENERIC_ERROR;
         }
 
-        LOG_DEBUG("Binding to port %d (source port)", srcPort_);
+        LOG_DEBUG("Binding to port %d (source port)", src_port_);
 
-        sockaddr_in addrIn_;
+        sockaddr_in addr_in;
 
-        memset(&addrIn_, 0, sizeof(addrIn_));
-        addrIn_.sin_family = AF_INET;
-        addrIn_.sin_addr.s_addr = htonl(INADDR_ANY);
-        addrIn_.sin_port = htons(srcPort_);
+        memset(&addr_in, 0, sizeof(addr_in));
+        addr_in.sin_family = AF_INET;
+        addr_in.sin_addr.s_addr = htonl(INADDR_ANY);
+        addr_in.sin_port = htons(src_port_);
 
-        if (bind(socket_, (struct sockaddr *) &addrIn_, sizeof(addrIn_)) < 0) {
+        if (bind(socket_, (struct sockaddr *) &addr_in, sizeof(addr_in)) < 0) {
             LOG_ERROR("Binding failed: %s", strerror(errno));
             return RTP_BIND_ERROR;
         }
     }
 
-    memset(&addrOut_, 0, sizeof(addrOut_));
-    addrOut_.sin_family = AF_INET;
-    inet_pton(AF_INET, dstAddr_.c_str(), &addrOut_.sin_addr);
-    addrOut_.sin_port = htons(dstPort_);
+    memset(&addr_out_, 0, sizeof(addr_out_));
+    addr_out_.sin_family = AF_INET;
+    inet_pton(AF_INET, dst_addr_.c_str(), &addr_out_.sin_addr);
+    addr_out_.sin_port = htons(dst_port_);
 
-    id_ = rtpGetUniqueId();
-    return 0;
+    return RTP_OK;
 }
 
-int RTPWriter::pushFrame(uint8_t *data, uint32_t datalen, rtp_format_t fmt, uint32_t timestamp)
+rtp_error_t kvz_rtp::writer::push_frame(uint8_t *data, uint32_t data_len, rtp_format_t fmt, uint32_t timestamp)
 {
     switch (fmt) {
         case RTP_FORMAT_HEVC:
-            return RTPHevc::pushHevcFrame(this, data, datalen, timestamp);
+            return kvz_rtp::hevc::push_hevc_frame(this, data, data_len, timestamp);
 
         case RTP_FORMAT_OPUS:
-            return RTPOpus::pushOpusFrame(this, data, datalen, timestamp);
+            return kvz_rtp::opus::push_opus_frame(this, data, data_len, timestamp);
 
         default:
-            return RTPGeneric::pushGenericFrame(this, data, datalen, timestamp);
+            LOG_DEBUG("Format not recognized, pushing the frame as generic");
+            return kvz_rtp::generic::push_generic_frame(this, data, data_len, timestamp);
     }
 }
 
-sockaddr_in RTPWriter::getOutAddress()
+sockaddr_in kvz_rtp::writer::get_out_address()
 {
-    return addrOut_;
+    return addr_out_;
 }

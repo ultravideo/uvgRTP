@@ -9,95 +9,93 @@
 #include "rtp_opus.hh"
 #include "util.hh"
 
-RTPConnection::RTPConnection(bool reader):
-    reader_(reader)
+kvz_rtp::connection::connection(bool reader):
+    reader_(reader),
+    config_(nullptr)
 {
     rtp_sequence_  = 45175;
-    rtp_timestamp_ = 123456;
     rtp_ssrc_      = 0x72b644;
     rtp_payload_   = RTP_FORMAT_HEVC;
 }
 
-RTPConnection::~RTPConnection()
+kvz_rtp::connection::~connection()
 {
 }
 
-void RTPConnection::setPayloadType(rtp_format_t fmt)
+void kvz_rtp::connection::set_payload(rtp_format_t fmt)
 {
     rtp_payload_ = fmt;
 }
 
-void RTPConnection::setConfig(void *config)
+void kvz_rtp::connection::set_config(void *config)
 {
-    config_ = static_cast<void *>(config);
+    config_ = config;
 }
 
-void *RTPConnection::getConfig()
+void *kvz_rtp::connection::get_config()
 {
     return config_;
 }
 
-uint32_t RTPConnection::getId() const
-{
-    return id_;
-}
-
-uint16_t RTPConnection::getSequence() const
+uint16_t kvz_rtp::connection::get_sequence() const
 {
     return rtp_sequence_;
 }
 
-uint32_t RTPConnection::getTimestamp() const
-{
-    return rtp_timestamp_;
-}
-
-uint32_t RTPConnection::getSSRC() const
+uint32_t kvz_rtp::connection::get_ssrc() const
 {
     return rtp_ssrc_;
 }
 
-uint8_t RTPConnection::getPayloadType() const
+void kvz_rtp::connection::set_ssrc(uint32_t ssrc)
+{
+    rtp_ssrc_ = ssrc;
+}
+
+uint8_t kvz_rtp::connection::get_payload() const
 {
     return rtp_payload_;
 }
 
-int RTPConnection::getSocket() const
+int kvz_rtp::connection::get_socket() const
 {
     return socket_;
 }
 
-void RTPConnection::incRTPSequence(uint16_t seq)
+void kvz_rtp::connection::incRTPSequence(uint16_t seq)
 {
     rtp_sequence_ += seq;
 }
 
-void RTPConnection::incProcessedBytes(uint32_t nbytes)
+void kvz_rtp::connection::incProcessedBytes(uint32_t nbytes)
 {
     processedBytes_ += nbytes;
 }
 
-void RTPConnection::incOverheadBytes(uint32_t nbytes)
+void kvz_rtp::connection::incOverheadBytes(uint32_t nbytes)
 {
     overheadBytes_ += nbytes;
 }
 
-void RTPConnection::incTotalBytes(uint32_t nbytes)
+void kvz_rtp::connection::incTotalBytes(uint32_t nbytes)
 {
     totalBytes_ += nbytes;
 }
 
-void RTPConnection::incProcessedPackets(uint32_t npackets)
+void kvz_rtp::connection::incProcessedPackets(uint32_t npackets)
 {
     processedPackets_ += npackets;
 }
 
-void RTPConnection::fillFrame(RTPGeneric::GenericFrame *frame)
+void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
 {
-    if (!frame)
+    if (!buffer)
         return;
 
-    frame->rtp_sequence  = rtp_sequence_;
-    frame->rtp_timestamp = rtp_timestamp_;
-    frame->rtp_ssrc      = rtp_ssrc_;
+    buffer[0] = 2 << 6; // RTP version
+    buffer[1] = (rtp_payload_ & 0x7f) | (0 << 7);
+
+    *(uint16_t *)&buffer[2] = htons(rtp_sequence_);
+    *(uint32_t *)&buffer[4] = htonl(timestamp);
+    *(uint32_t *)&buffer[8] = htonl(rtp_ssrc_);
 }

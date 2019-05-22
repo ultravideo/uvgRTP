@@ -5,50 +5,52 @@
 #include "conn.hh"
 #include "frame.hh"
 
-class RTPReader : public RTPConnection {
+namespace kvz_rtp {
+    class reader : public connection {
 
-public:
-    RTPReader(std::string srcAddr, int srcPort);
-    ~RTPReader();
+    public:
+        reader(std::string src_addr, int src_port);
+        ~reader();
 
-    /* 
-     *
-     * NOTE: this operation is blocking */
-    RTPFrame::Frame *pullFrame();
+        /* 
+         *
+         * NOTE: this operation is blocking */
+        kvz_rtp::frame::rtp_frame *pull_frame();
 
-    // open socket and start runner_
-    int start();
+        // open socket and start runner_
+        rtp_error_t start();
 
-    bool active();
+        bool active();
 
-    bool receiveHookInstalled();
-    void receiveHook(RTPFrame::Frame *frame);
-    void installReceiveHook(void *arg, void (*hook)(void *arg, RTPFrame::Frame *));
+        bool recv_hook_installed();
+        void recv_hook(kvz_rtp::frame::rtp_frame *frame);
+        void install_recv_hook(void *arg, void (*hook)(void *arg, kvz_rtp::frame::rtp_frame *));
 
-    uint8_t *getInPacketBuffer() const;
-    uint32_t getInPacketBufferLength() const;
+        uint8_t *get_recv_buffer() const;
+        uint32_t get_recv_buffer_len() const;
 
-    void addOutgoingFrame(RTPFrame::Frame *frame);
+        void add_outgoing_frame(kvz_rtp::frame::rtp_frame *frame);
 
-private:
-    static int frameReceiver(RTPReader *reader);
+    private:
+        static int frame_receiver(kvz_rtp::reader *reader);
 
-    // TODO implement ring buffer
-    bool active_;
+        // TODO implement ring buffer
+        bool active_;
 
-    // connection-related stuff
-    std::string srcAddr_;
-    int srcPort_;
+        // connection-related stuff
+        std::string src_addr_;
+        int src_port_;
 
-    // receiver thread related stuff
-    std::thread *runner_;
-    uint8_t *inPacketBuffer_; /* Buffer for incoming packet (MAX_PACKET) */
-    uint32_t inPacketBufferLen_;
+        // receiver thread related stuff
+        std::thread *runner_;
+        uint8_t *recv_buffer_;     /* buffer for incoming packet (MAX_PACKET) */
+        uint32_t recv_buffer_len_; /* buffer length */
 
-    std::vector<RTPFrame::Frame *>  framesOut_;
-    std::mutex framesMtx_;
+        std::vector<kvz_rtp::frame::rtp_frame *>  framesOut_;
+        std::mutex frames_mtx_;
 
-    // TODO
-    void *receiveHookArg_;
-    void (*receiveHook_)(void *arg, RTPFrame::Frame *frame);
+        // TODO
+        void *recv_hook_arg_;
+        void (*recv_hook_)(void *arg, kvz_rtp::frame::rtp_frame *frame);
+    };
 };

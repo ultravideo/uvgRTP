@@ -5,30 +5,29 @@
 #include "reader.hh"
 #include "writer.hh"
 
-class RTPContext {
+namespace kvz_rtp {
+    class context {
 
-public:
-    RTPContext();
-    ~RTPContext();
+    public:
+        context();
+        ~context();
 
-    /* Start listening to incoming RTP packets form srcAddr:srcPort
-     *
-     * Read packets are stored in a ring buffer which can be read by
-     * calling RTPReader::pullFrame() */
-    RTPReader *createReader(std::string srcAddr, int srcPort);
-    RTPReader *createReader(std::string srcAddr, int srcPort, rtp_format_t fmt);
+        /* Start listening to incoming RTP packets form src_addr:src_port
+         *
+         * Read packets are stored in a ring buffer which can be read by
+         * calling kvz_rtp::reader::pull_frame() */
+        kvz_rtp::reader *create_reader(std::string src_addr, int src_port);
+        kvz_rtp::reader *create_reader(std::string src_addr, int src_port, rtp_format_t fmt);
 
-    /* Open connection for writing RTP packets to dstAddr:dstPort
-     *
-     * Packets can be sent by calling RTPWriter::pushFrame() */
-    RTPWriter *createWriter(std::string dstAddr, int dstPort);
-    RTPWriter *createWriter(std::string dstAddr, int dstPort, rtp_format_t fmt);
-    RTPWriter *createWriter(std::string dstAddr, int dstPort, int srcPort);
-    RTPWriter *createWriter(std::string dstAddr, int dstPort, int srcPort, rtp_format_t fmt);
+        /* Open connection for writing RTP packets to dst_addr:dst_port
+         *
+         * Packets can be sent by calling kvz_rtp::writer::push_frame() */
+        kvz_rtp::writer *create_writer(std::string dst_addr, int dst_port);
+        kvz_rtp::writer *create_writer(std::string dst_addr, int dst_port, rtp_format_t fmt);
+        kvz_rtp::writer *create_writer(std::string dst_addr, int dst_port, int src_port);
+        kvz_rtp::writer *create_writer(std::string dst_addr, int dst_port, int src_port, rtp_format_t fmt);
 
-    RTPConnection *openConnection(std::string dstAddr, int dstPort, int srcPort);
-    int closeConnection(int id);
-
-private:
-    std::map<uint32_t, RTPConnection *> conns_;
+    private:
+        std::map<uint32_t, connection *> conns_;
+    };
 };

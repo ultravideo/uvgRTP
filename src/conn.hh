@@ -14,52 +14,56 @@
 #include "frame.hh"
 #include "util.hh"
 
-class RTPConnection {
+namespace kvz_rtp {
+    class connection {
 
-public:
-    RTPConnection(bool reader);
-    virtual ~RTPConnection();
+    public:
+        connection(bool reader);
+        virtual ~connection();
 
-    virtual int start() = 0;
+        virtual rtp_error_t start() = 0;
 
-    // getters
-    uint32_t getId() const;
-    uint16_t getSequence() const;
-    uint32_t getTimestamp() const;
-    uint32_t getSSRC() const;
-    uint8_t getPayloadType() const;
-    int getSocket() const;
-    uint8_t *getInPacketBuffer() const;
-    uint32_t getInPacketBufferLength() const;
+        uint16_t  get_sequence() const;
+        uint32_t  get_ssrc() const;
+        uint8_t   get_payload() const;
+        int       get_socket() const;
 
-    void setPayloadType(rtp_format_t fmt);
+        void set_payload(rtp_format_t fmt);
+        void set_ssrc(uint32_t ssrc);
 
-    void incRTPSequence(uint16_t seq);
-    void incProcessedBytes(uint32_t nbytes);
-    void incOverheadBytes(uint32_t nbytes);
-    void incTotalBytes(uint32_t nbytes);
-    void incProcessedPackets(uint32_t npackets);
+        /* TODO: this is awful! */
+        void incRTPSequence(uint16_t seq);
+        void incProcessedBytes(uint32_t nbytes);
+        void incOverheadBytes(uint32_t nbytes);
+        void incTotalBytes(uint32_t nbytes);
+        void incProcessedPackets(uint32_t npackets);
 
-    void setConfig(void *config);
-    void *getConfig();
+        /* config set and get */
+        void set_config(void *config);
+        void *get_config();
 
-protected:
-    void *config_;
-    uint32_t id_;
-    int socket_;
+        /* helper function fill the rtp header to allocated buffer,
+         * caller must make sure that the buffer is at least RTP_HEADER_SIZE bytes long */
+        void fill_rtp_header(uint8_t *buffer, uint32_t timestamp);
 
-private:
-    bool reader_;
+    protected:
+        void *config_;
+        uint32_t id_;
+        int socket_;
 
-    // RTP
-    uint16_t rtp_sequence_;
-    uint8_t  rtp_payload_;
-    uint32_t rtp_timestamp_;
-    uint32_t rtp_ssrc_;
+    private:
+        /* TODO: should these be public so we could get rid of setters/getters */
+        bool reader_;
 
-    // Statistics
-    uint32_t processedBytes_;
-    uint32_t overheadBytes_;
-    uint32_t totalBytes_;
-    uint32_t processedPackets_;
+        // RTP
+        uint16_t rtp_sequence_;
+        uint8_t  rtp_payload_;
+        uint32_t rtp_ssrc_;
+
+        // Statistics
+        uint32_t processedBytes_;
+        uint32_t overheadBytes_;
+        uint32_t totalBytes_;
+        uint32_t processedPackets_;
+    };
 };

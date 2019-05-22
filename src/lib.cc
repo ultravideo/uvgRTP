@@ -3,14 +3,14 @@
 #include "lib.hh"
 #include "conn.hh"
 
-RTPContext::RTPContext()
+kvz_rtp::context::context()
 {
 #ifdef _WIN32
     // TODO initialize networking for windows
 #endif
 }
 
-RTPContext::~RTPContext()
+kvz_rtp::context::~context()
 {
     for (auto it = conns_.begin(); it != conns_.end(); ++it) {
         delete it->second;
@@ -18,76 +18,76 @@ RTPContext::~RTPContext()
     }
 }
 
-RTPReader *RTPContext::createReader(std::string srcAddr, int srcPort)
+kvz_rtp::reader *kvz_rtp::context::create_reader(std::string srcAddr, int srcPort)
 {
-    RTPReader *reader = new RTPReader(srcAddr, srcPort);
+    kvz_rtp::reader *reader = new kvz_rtp::reader(srcAddr, srcPort);
 
     if (!reader) {
-        std::cerr << "Failed to create RTPReader for " << srcAddr << ":" << srcPort << "!" << std::endl;
+        std::cerr << "Failed to create kvz_rtp::reader for " << srcAddr << ":" << srcPort << "!" << std::endl;
         return nullptr;
     }
 
-    conns_.insert(std::pair<int, RTPConnection *>(reader->getId(), reader));
+    conns_.insert(std::pair<int, connection *>(reader->get_ssrc(), reader));
     return reader;
 }
 
-RTPReader *RTPContext::createReader(std::string srcAddr, int srcPort, rtp_format_t fmt)
+kvz_rtp::reader *kvz_rtp::context::create_reader(std::string srcAddr, int srcPort, rtp_format_t fmt)
 {
-    RTPReader *reader = nullptr;
+    kvz_rtp::reader *reader = nullptr;
 
-    if ((reader = createReader(srcAddr, srcPort)) == nullptr)
+    if ((reader = create_reader(srcAddr, srcPort)) == nullptr)
         return nullptr;
 
-    reader->setPayloadType(fmt);
+    reader->set_payload(fmt);
     return reader;
 }
 
-RTPWriter *RTPContext::createWriter(std::string dstAddr, int dstPort)
+kvz_rtp::writer *kvz_rtp::context::create_writer(std::string dstAddr, int dstPort)
 {
-    RTPWriter *writer = new RTPWriter(dstAddr, dstPort);
+    kvz_rtp::writer *writer = new kvz_rtp::writer(dstAddr, dstPort);
 
     if (!writer) {
-        std::cerr << "Failed to create RTPWriter for " << dstAddr << ":" << dstPort << "!" << std::endl;
+        std::cerr << "Failed to create writer for " << dstAddr << ":" << dstPort << "!" << std::endl;
         return nullptr;
     }
 
-    conns_.insert(std::pair<int, RTPConnection *>(writer->getId(), writer));
+    conns_.insert(std::pair<int, connection *>(writer->get_ssrc(), writer));
     return writer;
 }
 
-RTPWriter *RTPContext::createWriter(std::string dstAddr, int dstPort, rtp_format_t fmt)
+kvz_rtp::writer *kvz_rtp::context::create_writer(std::string dstAddr, int dstPort, rtp_format_t fmt)
 {
-    RTPWriter *writer = nullptr;
+    kvz_rtp::writer *writer = nullptr;
 
-    if ((writer = createWriter(dstAddr, dstPort)) == nullptr)
+    if ((writer = create_writer(dstAddr, dstPort)) == nullptr)
         return nullptr;
 
-    conns_.insert(std::pair<int, RTPConnection *>(writer->getId(), writer));
-    writer->setPayloadType(fmt);
+    conns_.insert(std::pair<int, connection *>(writer->get_ssrc(), writer));
+    writer->set_payload(fmt);
     return writer;
 }
 
-RTPWriter *RTPContext::createWriter(std::string dstAddr, int dstPort, int srcPort)
+kvz_rtp::writer *kvz_rtp::context::create_writer(std::string dstAddr, int dstPort, int srcPort)
 {
-    RTPWriter *writer = new RTPWriter(dstAddr, dstPort, srcPort);
+    kvz_rtp::writer *writer = new kvz_rtp::writer(dstAddr, dstPort, srcPort);
 
     if (!writer) {
-        std::cerr << "Failed to create RTPWriter for " << dstAddr << ":" << dstPort << "!" << std::endl;
+        std::cerr << "Failed to create writer for " << dstAddr << ":" << dstPort << "!" << std::endl;
         return nullptr;
     }
 
-    conns_.insert(std::pair<int, RTPConnection *>(writer->getId(), writer));
+    conns_.insert(std::pair<int, connection *>(writer->get_ssrc(), writer));
     return writer;
 }
 
-RTPWriter *RTPContext::createWriter(std::string dstAddr, int dstPort, int srcPort, rtp_format_t fmt)
+kvz_rtp::writer *kvz_rtp::context::create_writer(std::string dstAddr, int dstPort, int srcPort, rtp_format_t fmt)
 {
-    RTPWriter *writer = nullptr;
+    kvz_rtp::writer *writer = nullptr;
 
-    if ((writer = createWriter(dstAddr, dstPort, srcPort)) == nullptr)
+    if ((writer = create_writer(dstAddr, dstPort, srcPort)) == nullptr)
         return nullptr;
 
-    conns_.insert(std::pair<int, RTPConnection *>(writer->getId(), writer));
-    writer->setPayloadType(fmt);
+    conns_.insert(std::pair<int, connection *>(writer->get_ssrc(), writer));
+    writer->set_payload(fmt);
     return writer;
 }

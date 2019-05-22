@@ -15,71 +15,85 @@
 #include "util.hh"
 #include "writer.hh"
 
-static int __internalWrite(RTPConnection *conn, uint8_t *buf, size_t bufLen, int flags)
+static rtp_error_t __internal_write(kvz_rtp::connection *conn, uint8_t *buf, size_t buf_len, int flags)
 {
-    if (!buf || bufLen == 0)
+    if (!buf || buf_len == 0)
         return RTP_INVALID_VALUE;
 
-    RTPWriter *writer   = dynamic_cast<RTPWriter *>(conn);
-    sockaddr_in outAddr = writer->getOutAddress();
+    kvz_rtp::writer *writer = dynamic_cast<kvz_rtp::writer *>(conn);
+    sockaddr_in out_addr    = writer->get_out_address();
 
 #ifdef __linux__
-    if (sendto(conn->getSocket(), buf, bufLen, flags, (struct sockaddr *)&outAddr, sizeof(outAddr)) == -1)
+    if (sendto(conn->get_socket(), buf, buf_len, flags, (struct sockaddr *)&out_addr, sizeof(out_addr)) == -1)
         return RTP_SEND_ERROR;
 #else
-    if ((WSASend(conn->getSocket(), buf, 1, bufLen, flags, NULL, NULL)) == SOCKET_ERROR)
+    if ((WSASend(conn->get_socket(), buf, 1, buf_len, flags, NULL, NULL)) == SOCKET_ERROR)
         return RTP_SEND_ERROR;
 #endif
 
     return RTP_OK;
 }
 
-int RTPSender::writePayload(RTPConnection *conn, uint8_t *payload, size_t payloadLen)
+rtp_error_t kvz_rtp::sender::write_payload(kvz_rtp::connection *conn, uint8_t *payload, size_t payload_len)
 {
     if (!conn)
         return RTP_INVALID_VALUE;
 
 #ifdef __RTP_STATS__
-    conn->incProcessedBytes(payloadLen);
-    conn->incTotalBytes(payloadLen);
+    conn->incProcessedBytes(payload_len);
+    conn->incTotalBytes(payload_len);
     conn->incProcessedPackets(1);
 #endif
 
     conn->incRTPSequence(1);
 
-    return __internalWrite(conn, payload, payloadLen, 0);
+    return __internal_write(conn, payload, payload_len, 0);
 }
 
-int RTPSender::writeGenericHeader(RTPConnection *conn, uint8_t *header, size_t headerLen)
+rtp_error_t kvz_rtp::sender::write_generic_header(kvz_rtp::connection *conn, uint8_t *header, size_t header_len)
 {
     if (!conn)
         return RTP_INVALID_VALUE;
 
 #ifdef __RTP_STATS__
-    conn->incOverheadBytes(headerLen);
-    conn->incTotalBytes(headerLen);
+    conn->incOverheadBytes(header_len);
+    conn->incTotalBytes(header_len);
 #endif
 
-#ifdef __linux
-    return __internalWrite(conn, header, headerLen, MSG_MORE);
+#ifdef __linux__
+    return __internal_write(conn, header, header_len, MSG_MORE);
 #else
-    return __internalWrite(conn, header, headerLen, MSG_PARTIAL);
+    return __internal_write(conn, header, header_len, MSG_PARTIAL);
 #endif
 }
 
-int RTPSender::writeRTPHeader(RTPConnection *conn)
+rtp_error_t kvz_rtp::sender::write_rtp_header(kvz_rtp::connection *conn, uint32_t timestamp)
 {
     if (!conn)
         return RTP_INVALID_VALUE;
 
     uint8_t header[RTP_HEADER_SIZE] = { 0 };
 
-    header[0] = 2 << 6; // RTP version
-    header[1] = (conn->getPayloadType() & 0x7f) | (0 << 7);
+    conn->fill_rtp_header(header, timestamp);
+    return kvz_rtp::sender::write_generic_header(conn, header, RTP_HEADER_SIZE);
+}
 
-    *(uint16_t *)&header[2] = htons(conn->getSequence());
-    *(uint32_t *)&header[4] = htonl(conn->getTimestamp());
-    *(uint32_t *)&header[8] = htonl(conn->getSSRC());
+rtp_error_t kvz_rtp::sender::write_generic_frame(kvz_rtp::connection *conn, kvz_rtp::frame::rtp_frame *frame)
+{
+    if (!frame)
+        return RTP_INVALID_VALUE;
 
-    return RTPSender::writeGenericHeader(conn, header, RTP_HEADER_SIZE);
+    rtp_error_t ret;
+
+    if ((ret = kvz_rtp::sender::write_generic_header(conn, frame->header, frame->header_len)) != RTP_OK) {
+        LOG_ERROR("Failed to send header! Size %zu, Type %d", frame->header_len, frame->frame_type);
+        return ret;
+    }
+
+    if ((ret = kvz_rtp::sender::write_payload(conn, frame->data, frame->data_len)) != RTP_OK) {
+        LOG_ERROR("Failed to send payload! Size %zu, Type %d", frame->data_len, frame->frame_type);
+        return ret;
+    }
+
+    return RTP_OK;
 }

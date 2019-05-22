@@ -17,6 +17,7 @@ typedef enum RTP_ERROR {
     RTP_BIND_ERROR    = -3,
     RTP_INVALID_VALUE = -4,
     RTP_SEND_ERROR    = -5,
+    RTP_MEMORY_ERROR  = -6,
 } rtp_error_t;
 
 typedef enum RTP_FORMAT {

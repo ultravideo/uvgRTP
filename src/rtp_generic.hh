@@ -2,8 +2,10 @@
 
 #include "util.hh"
 
-class RTPConnection;
+namespace kvz_rtp {
+    class connection;
 
-namespace RTPGeneric {
-    int pushGenericFrame(RTPConnection *conn, uint8_t *data, size_t dataLen, uint32_t timestamp);
+    namespace generic {
+        rtp_error_t push_generic_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len, uint32_t timestamp);
+    };
 };

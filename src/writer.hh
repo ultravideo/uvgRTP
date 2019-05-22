@@ -5,27 +5,29 @@
 #include "conn.hh"
 #include "frame.hh"
 
-class RTPWriter : public RTPConnection {
+namespace kvz_rtp {
+    class writer : public connection {
 
-public:
-    RTPWriter(std::string dstAddr, int dstPort);
-    RTPWriter(std::string dstAddr, int dstPort, int srcPort);
-    ~RTPWriter();
+    public:
+        writer(std::string dst_addr, int dst_port);
+        writer(std::string dst_addr, int dst_port, int src_port);
+        ~writer();
 
-    // open socket for sending frames
-    int start();
+        // open socket for sending frames
+        rtp_error_t start();
 
-    // TODO
-    int pushFrame(uint8_t *data, uint32_t datalen, rtp_format_t fmt, uint32_t timestamp);
+        /* TODO:  */
+        rtp_error_t push_frame(uint8_t *data, uint32_t data_len, rtp_format_t fmt, uint32_t timestamp);
 
-    // TODO
-    int pushFrame(RTPFrame::Frame *frame);
+        /* TODO:  */
+        rtp_error_t push_frame(kvz_rtp::frame::rtp_frame *frame, uint32_t timestamp);
 
-    sockaddr_in getOutAddress();
+        sockaddr_in get_out_address();
 
-private:
-    std::string dstAddr_;
-    int dstPort_;
-    int srcPort_;
-    sockaddr_in addrOut_;
+    private:
+        std::string dst_addr_;
+        int dst_port_;
+        int src_port_;
+        sockaddr_in addr_out_;
+    };
 };

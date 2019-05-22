@@ -2,6 +2,10 @@
 
 #include "rtp_generic.hh"
 
-namespace RTPHevc {
-    int pushHevcFrame(RTPConnection *conn, uint8_t *data, size_t dataLen, uint32_t timestamp);
+namespace kvz_rtp {
+    class connection;
+
+    namespace hevc {
+        rtp_error_t push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len, uint32_t timestamp);
+    };
 };

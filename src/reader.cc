@@ -5,25 +5,25 @@
 #include "frame.hh"
 #include "reader.hh"
 
-RTPReader::RTPReader(std::string srcAddr, int srcPort):
-    RTPConnection(true),
-    srcAddr_(srcAddr),
-    srcPort_(srcPort),
+kvz_rtp::reader::reader(std::string src_addr, int src_port):
+    connection(true),
+    src_addr_(src_addr),
+    src_port_(src_port),
     active_(false),
-    receiveHook_(nullptr),
-    receiveHookArg_(nullptr)
+    recv_hook_(nullptr),
+    recv_hook_arg_(nullptr)
 {
 }
 
-RTPReader::~RTPReader()
+kvz_rtp::reader::~reader()
 {
     active_ = false;
-    delete inPacketBuffer_;
+    delete recv_buffer_;
 }
 
-int RTPReader::start()
+rtp_error_t kvz_rtp::reader::start()
 {
-    LOG_INFO("Starting to listen to port %d", srcPort_);
+    LOG_INFO("Starting to listen to port %d", src_port_);
 
     if ((socket_ = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         LOG_ERROR("Failed to create socket: %s", strerror(errno));
@@ -39,59 +39,58 @@ int RTPReader::start()
     memset(&addrIn_, 0, sizeof(addrIn_));
     addrIn_.sin_family = AF_INET;  
     addrIn_.sin_addr.s_addr = htonl(INADDR_ANY);
-    addrIn_.sin_port = htons(srcPort_);
+    addrIn_.sin_port = htons(src_port_);
 
     if (bind(socket_, (struct sockaddr *) &addrIn_, sizeof(addrIn_)) < 0) {
         LOG_ERROR("Failed to bind to port: %s", strerror(errno));
         return RTP_BIND_ERROR;
     }
 
-    inPacketBufferLen_ = MAX_PACKET;
+    recv_buffer_len_ = MAX_PACKET;
 
-    if ((inPacketBuffer_ = new uint8_t[MAX_PACKET]) == nullptr) {
+    if ((recv_buffer_ = new uint8_t[MAX_PACKET]) == nullptr) {
         LOG_ERROR("Failed to allocate buffer for incoming data!");
-        inPacketBufferLen_ = 0;
+        recv_buffer_len_ = 0;
     }
 
     active_ = true;
-    id_     = rtpGetUniqueId();
 
-    runner_ = new std::thread(frameReceiver, this);
+    runner_ = new std::thread(frame_receiver, this);
     runner_->detach();
 
-    return 0;
+    return RTP_OK;
 }
 
-RTPFrame::Frame *RTPReader::pullFrame()
+kvz_rtp::frame::rtp_frame *kvz_rtp::reader::pull_frame()
 {
     while (framesOut_.empty()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
-    framesMtx_.lock();
+    frames_mtx_.lock();
     auto nextFrame = framesOut_.front();
     framesOut_.erase(framesOut_.begin());
-    framesMtx_.unlock();
+    frames_mtx_.unlock();
 
     return nextFrame;
 }
 
-bool RTPReader::active()
+bool kvz_rtp::reader::active()
 {
     return active_;
 }
 
-uint8_t *RTPReader::getInPacketBuffer() const
+uint8_t *kvz_rtp::reader::get_recv_buffer() const
 {
-    return inPacketBuffer_;
+    return recv_buffer_;
 }
 
-uint32_t RTPReader::getInPacketBufferLength() const
+uint32_t kvz_rtp::reader::get_recv_buffer_len() const
 {
-    return inPacketBufferLen_;
+    return recv_buffer_len_;
 }
 
-void RTPReader::addOutgoingFrame(RTPFrame::Frame *frame)
+void kvz_rtp::reader::add_outgoing_frame(kvz_rtp::frame::rtp_frame *frame)
 {
     if (!frame)
         return;
@@ -99,45 +98,44 @@ void RTPReader::addOutgoingFrame(RTPFrame::Frame *frame)
     framesOut_.push_back(frame);
 }
 
-bool RTPReader::receiveHookInstalled()
+bool kvz_rtp::reader::recv_hook_installed()
 {
-    return receiveHook_ != nullptr;
+    return recv_hook_ != nullptr;
 }
 
-void RTPReader::installReceiveHook(void *arg, void (*hook)(void *arg, RTPFrame::Frame *))
+void kvz_rtp::reader::install_recv_hook(void *arg, void (*hook)(void *arg, kvz_rtp::frame::rtp_frame *))
 {
-    if (hook == nullptr)
-    {
+    if (hook == nullptr) {
         LOG_ERROR("Unable to install receive hook, function pointer is nullptr!");
         return;
     }
 
-    receiveHook_ = hook;
-    receiveHookArg_ = arg;
+    recv_hook_     = hook;
+    recv_hook_arg_ = arg;
 }
 
-void RTPReader::receiveHook(RTPFrame::Frame *frame)
+void kvz_rtp::reader::recv_hook(kvz_rtp::frame::rtp_frame *frame)
 {
-    if (receiveHook_)
-        return receiveHook_(receiveHookArg_, frame);
+    if (recv_hook_)
+        return recv_hook_(recv_hook_arg_, frame);
 }
 
-int RTPReader::frameReceiver(RTPReader *reader)
+int kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
 {
     LOG_INFO("frameReceiver starting listening...");
 
-    sockaddr_in fromAddr;
+    sockaddr_in from_addr;
 
     while (reader->active()) {
-        int fromAddrSize = sizeof(fromAddr);
-        int32_t ret = recvfrom(reader->getSocket(), reader->getInPacketBuffer(), reader->getInPacketBufferLength(),
+        int from_addrSize = sizeof(from_addr);
+        int32_t ret = recvfrom(reader->get_socket(), reader->get_recv_buffer(), reader->get_recv_buffer_len(),
                                0, /* no flags */
 #ifdef _WIN32
-                               (SOCKADDR *)&fromAddr, 
-                               &fromAddrSize
+                               (SOCKADDR *)&from_addr, 
+                               &from_addrSize
 #else
-                               (struct sockaddr *)&fromAddr,
-                               (socklen_t *)&fromAddrSize
+                               (struct sockaddr *)&from_addr,
+                               (socklen_t *)&from_addrSize
 #endif
                 );
 
@@ -153,39 +151,39 @@ int RTPReader::frameReceiver(RTPReader *reader)
         } else {
             LOG_DEBUG("got %d bytes", ret);
 
-            const uint8_t *inBuffer = reader->getInPacketBuffer();
-            RTPFrame::Frame *frame  = RTPFrame::allocFrame(ret - RTP_HEADER_SIZE, RTPFrame::FRAME_TYPE_GENERIC);
+            uint8_t *inbuf = reader->get_recv_buffer();
+            auto *frame    = kvz_rtp::frame::alloc_frame(ret, kvz_rtp::frame::FRAME_TYPE_GENERIC);
 
             if (!frame) {
                 LOG_ERROR("Failed to allocate RTP Frame!");
                 continue;
             }
 
-            frame->marker    = (inBuffer[1] & 0x80) ? 1 : 0;
-            frame->payload   = (inBuffer[1] & 0x7f);
-            frame->seq       = ntohs(*(uint16_t *)&inBuffer[2]);
-            frame->timestamp = ntohl(*(uint32_t *)&inBuffer[4]);
-            frame->ssrc      = ntohl(*(uint32_t *)&inBuffer[8]);
+            frame->marker    = (inbuf[1] & 0x80) ? 1 : 0;
+            frame->payload   = (inbuf[1] & 0x7f);
+            frame->seq       = ntohs(*(uint16_t *)&inbuf[2]);
+            frame->timestamp = ntohl(*(uint32_t *)&inbuf[4]);
+            frame->ssrc      = ntohl(*(uint32_t *)&inbuf[8]);
 
             if (ret - 12 <= 0) {
                 LOG_WARN("Got an invalid payload of size %d", ret);
                 continue;
             }
 
-            frame->header    = new uint8_t[ret];
-            frame->headerLen = ret;
+            frame->header     = new uint8_t[ret];
+            frame->header_len = ret;
 
             if (!frame->data) {
                 LOG_ERROR("Failed to allocate buffer for RTP frame!");
                 continue;
             }
 
-            memcpy(frame->header, inBuffer, ret);
+            memcpy(frame->header, inbuf, ret);
 
-            if (reader->receiveHookInstalled())
-                reader->receiveHook(frame);
+            if (reader->recv_hook_installed())
+                reader->recv_hook(frame);
             else
-                reader->addOutgoingFrame(frame);
+                reader->add_outgoing_frame(frame);
         }
     }
     LOG_INFO("FrameReceiver thread exiting...");

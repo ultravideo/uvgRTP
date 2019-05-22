@@ -2,12 +2,14 @@
 
 #include "rtp_generic.hh"
 
-namespace RTPOpus {
-    struct OpusConfig {
-        uint32_t samplerate;
-        uint8_t channels;
-        uint8_t configurationNumber;
-    };
+namespace kvz_rtp {
+    namespace opus {
+        struct opus_config {
+            uint32_t samplerate;
+            uint8_t channels;
+            uint8_t config_number;
+        };
 
-    int pushOpusFrame(RTPConnection *conn, uint8_t *data, uint32_t dataLen, uint32_t timestamp);
+        rtp_error_t push_opus_frame(connection *conn, uint8_t *data, uint32_t data_len, uint32_t timestamp);
+    };
 };

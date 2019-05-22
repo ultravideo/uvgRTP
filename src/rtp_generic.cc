@@ -17,14 +17,14 @@
 
 // TODO implement frame splitting if dataLen > MTU
 // TODO write timestamp to RTP header
-int RTPGeneric::pushGenericFrame(RTPConnection *conn, uint8_t *data, size_t dataLen, uint32_t timestamp)
+rtp_error_t kvz_rtp::generic::push_generic_frame(connection *conn, uint8_t *data, size_t data_len, uint32_t timestamp)
 {
-    int ret;
+    rtp_error_t ret;
 
-    if ((ret = RTPSender::writeRTPHeader(conn)) != RTP_OK) {
+    if ((ret = kvz_rtp::sender::write_rtp_header(conn, timestamp)) != RTP_OK) {
         LOG_ERROR("Failed to write RTP Header for Opus frame!");
         return ret;
     }
 
-    return RTPSender::writePayload(conn, data, dataLen);
+    return kvz_rtp::sender::write_payload(conn, data, data_len);
 }
