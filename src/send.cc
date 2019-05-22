@@ -23,7 +23,7 @@ static int __internalWrite(RTPConnection *conn, uint8_t *buf, size_t bufLen, int
     RTPWriter *writer   = dynamic_cast<RTPWriter *>(conn);
     sockaddr_in outAddr = writer->getOutAddress();
 
-#if __linux
+#ifdef __linux__
     if (sendto(conn->getSocket(), buf, bufLen, flags, (struct sockaddr *)&outAddr, sizeof(outAddr)) == -1)
         return RTP_SEND_ERROR;
 #else
