@@ -6,13 +6,13 @@
 #include <netinet/ip.h>
 #endif
 
-#include <string>
-#include <vector>
-#include <thread>
 #include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
 
+#include "frame.hh"
 #include "util.hh"
-#include "rtp_generic.hh"
 
 class RTPConnection {
 
@@ -39,8 +39,6 @@ public:
     void incOverheadBytes(uint32_t nbytes);
     void incTotalBytes(uint32_t nbytes);
     void incProcessedPackets(uint32_t npackets);
-
-    void fillFrame(RTPGeneric::GenericFrame *frame);
 
     void setConfig(void *config);
     void *getConfig();

@@ -5,9 +5,9 @@
 #include <iostream>
 
 #include "conn.hh"
-#include "util.hh"
 #include "rtp_hevc.hh"
 #include "rtp_opus.hh"
+#include "util.hh"
 
 RTPConnection::RTPConnection(bool reader):
     reader_(reader)

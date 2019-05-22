@@ -6,7 +6,7 @@
 #include "rtp_hevc.hh"
 #include "conn.hh"
 
-using RTPGeneric::GenericFrame;
+/* using RTPGeneric::GenericFrame; */
 
 static int nextFrameStart(uint8_t *data, uint32_t offset, uint32_t dataLen, uint8_t& startLen)
 {
@@ -32,22 +32,22 @@ static int nextFrameStart(uint8_t *data, uint32_t offset, uint32_t dataLen, uint
 
 static int __pushHevcFrame(RTPConnection *conn, uint8_t *data, uint32_t dataLen, uint32_t timestamp)
 {
-    int ret             = 0;
-    uint32_t bufferlen  = 0;
-    uint32_t dataPos    = 0;
-    uint32_t dataLeft   = dataLen;
-    GenericFrame *frame = nullptr;
+    int ret                = 0;
+    uint32_t bufferlen     = 0;
+    uint32_t dataPos       = 0;
+    uint32_t dataLeft      = dataLen;
+    RTPFrame::Frame *frame = nullptr;
 
     if (dataLen <= MAX_PAYLOAD) {
         LOG_DEBUG("send unfrag size %u, type %u", dataLen, (uint32_t)((data[0] >> 1) & 0x3F));
-        return RTPGeneric::pushGenericFrame(conn, data, dataLen, 0);
+        /* return RTPGeneric::pushGenericFrame(conn, data, dataLen, 0); */
     }
 
-    if ((frame = RTPGeneric::createGenericFrame(MAX_PAYLOAD)) == nullptr)
-        return -1;
+    /* if ((frame = RTPFrame::allocFrame(MAX_PAYLOAD, FRAME_TYPE_HEVC_FU)) == nullptr) */
+    /*     return RTP_GENERIC_ERROR; */
 
-    conn->fillFrame(frame);
-    frame->rtp_format = RTP_FORMAT_HEVC;
+    /* conn->fillFrame(frame); */
+    frame->rtpFormat = RTP_FORMAT_HEVC;
     
     LOG_DEBUG("send frag size: %u, type %u", dataLen, (data[0] >> 1) & 0x3F);
     uint8_t nalType = (data[0] >> 1) & 0x3F;
@@ -64,8 +64,8 @@ static int __pushHevcFrame(RTPConnection *conn, uint8_t *data, uint32_t dataLen,
     while (dataLeft + 3 > MAX_PAYLOAD) {
         memcpy(&frame->data[3], &data[dataPos], MAX_PAYLOAD - 3);
 
-        if ((ret = RTPGeneric::pushGenericFrame(conn, frame)))
-            goto end;
+        /* if ((ret = RTPGeneric::pushGenericFrame(conn, frame))) */
+        /*     goto end; */
 
         dataPos  += (MAX_PAYLOAD - 3);
         dataLeft -= (MAX_PAYLOAD - 3);
@@ -78,14 +78,14 @@ static int __pushHevcFrame(RTPConnection *conn, uint8_t *data, uint32_t dataLen,
     frame->data[2] |= 1 << 6;
     memcpy(&frame->data[3], &data[dataPos], dataLeft);
 
-    ret = RTPGeneric::pushGenericFrame(conn, frame->data, dataLeft + 3, 1);
+    /* ret = RTPGeneric::pushGenericFrame(conn, frame->data, dataLeft + 3, 1); */
 
 end:
-    RTPGeneric::destroyGenericFrame(frame);
+    RTPFrame::deallocFrame(frame);
     return ret;
 }
 
-int RTPHevc::pushHevcFrame(RTPConnection *conn, uint8_t *data, uint32_t dataLen, uint32_t timestamp)
+int RTPHevc::pushHevcFrame(RTPConnection *conn, uint8_t *data, size_t dataLen, uint32_t timestamp)
 {
     uint8_t startLen;
     uint32_t previousOffset = 0;

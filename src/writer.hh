@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "conn.hh"
+#include "frame.hh"
 
 class RTPWriter : public RTPConnection {
 
@@ -18,7 +19,7 @@ public:
     int pushFrame(uint8_t *data, uint32_t datalen, rtp_format_t fmt, uint32_t timestamp);
 
     // TODO
-    int pushGenericFrameFrame(RTPGeneric::GenericFrame *frame);
+    int pushFrame(RTPFrame::Frame *frame);
 
     sockaddr_in getOutAddress();
 

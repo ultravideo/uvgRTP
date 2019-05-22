@@ -5,7 +5,7 @@
 
 RTPFrame::Frame *RTPFrame::allocFrame(size_t payloadLen, frame_type_t type)
 {
-    if (payloadLen == 0 || !(type <= FRAME_TYPE_HEVC_FU && type >= FRAME_TYPE_GENERIC)) {
+    if (payloadLen == 0 || INVALID_FRAME_TYPE(type)) {
         LOG_ERROR("Invalid parameter!");
         return nullptr;
     }
@@ -33,14 +33,14 @@ RTPFrame::Frame *RTPFrame::allocFrame(size_t payloadLen, frame_type_t type)
     if (!frame)
         return nullptr;
 
-    if ((frame->start = new uint8_t[payloadLen + headerLen]) == nullptr) {
+    if ((frame->header = new uint8_t[payloadLen + headerLen]) == nullptr) {
         delete frame;
         return nullptr;
     }
 
     frame->headerLen = headerLen;
     frame->dataLen   = payloadLen;
-    frame->data      = frame->start + headerLen;
+    frame->data      = frame->header + headerLen;
 
     return frame;
 }
@@ -50,8 +50,8 @@ int RTPFrame::deallocFrame(RTPFrame::Frame *frame)
     if (!frame)
         return RTP_INVALID_VALUE;
 
-    if (frame->start)
-        delete frame->start;
+    if (frame->header)
+        delete frame->header;
 
     delete frame;
     return RTP_OK;
@@ -64,7 +64,7 @@ int RTPFrame::sendFrame(RTPConnection *conn, RTPFrame::Frame *frame)
 
     int ret;
 
-    if ((ret = RTPSender::writeGenericHeader(conn, frame->start, frame->headerLen)) != RTP_OK) {
+    if ((ret = RTPSender::writeGenericHeader(conn, frame->header, frame->headerLen)) != RTP_OK) {
         LOG_ERROR("Failed to send header! Size %zu, Type %d", frame->headerLen, frame->frameType);
         return ret;
     }
