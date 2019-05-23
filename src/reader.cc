@@ -168,7 +168,7 @@ int kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
             }
 
             frame->marker    = (inbuf[1] & 0x80) ? 1 : 0;
-            frame->payload   = (inbuf[1] & 0x7f);
+            frame->ptype     = (inbuf[1] & 0x7f);
             frame->seq       = ntohs(*(uint16_t *)&inbuf[2]);
             frame->timestamp = ntohl(*(uint32_t *)&inbuf[4]);
             frame->ssrc      = ntohl(*(uint32_t *)&inbuf[8]);
@@ -178,15 +178,15 @@ int kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
                 continue;
             }
 
-            frame->header     = new uint8_t[ret];
-            frame->header_len = ret;
+            frame->data      = new uint8_t[ret];
+            frame->total_len = ret;
 
             if (!frame->data) {
                 LOG_ERROR("Failed to allocate buffer for RTP frame!");
                 continue;
             }
 
-            memcpy(frame->header, inbuf, ret);
+            memcpy(frame->data, inbuf, ret);
 
             if (reader->recv_hook_installed())
                 reader->recv_hook(frame);

@@ -23,16 +23,15 @@ namespace kvz_rtp {
             uint32_t timestamp;
             uint32_t ssrc;
             uint16_t seq;
-            uint8_t  payload;
+            uint8_t  ptype;
             uint8_t  marker;
 
-            /* TODO:  rename header -> data and data -> payload */
+            size_t total_len;   /* total length of the frame (payload length + header length) */
+            size_t header_len;  /* length of header (varies based on the type of the frame) */
+            size_t payload_len; /* length of the payload  */
 
-            uint8_t *header;
-            size_t header_len;
-
-            uint8_t *data;
-            size_t data_len;
+            uint8_t *data;     /* pointer to the start of the whole buffer */
+            uint8_t *payload;  /* pointer to actual payload */
 
             rtp_format_t format;
             frame_type_t type;
