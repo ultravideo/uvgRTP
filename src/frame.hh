@@ -34,8 +34,8 @@ namespace kvz_rtp {
             uint8_t *data;
             size_t data_len;
 
-            rtp_format_t rtp_fmt;
-            frame_type_t frame_type;
+            rtp_format_t format;
+            frame_type_t type;
         };
 
         /* TODO:  */
