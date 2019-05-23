@@ -27,6 +27,11 @@ namespace kvz_rtp {
         kvz_rtp::writer *create_writer(std::string dst_addr, int dst_port, int src_port);
         kvz_rtp::writer *create_writer(std::string dst_addr, int dst_port, int src_port, rtp_format_t fmt);
 
+        /* call reader/writer-specific destroy functions, send an RTCP BYE message
+         * and remove the connection from conns_ map */
+        rtp_error_t destroy_writer(kvz_rtp::writer *writer);
+        rtp_error_t destroy_reader(kvz_rtp::reader *reader);
+
     private:
         std::map<uint32_t, connection *> conns_;
     };

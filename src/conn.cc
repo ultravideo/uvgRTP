@@ -1,5 +1,6 @@
 #ifdef __linux__
 #include <arpa/inet.h>
+#include <unistd.h>
 #endif
 #include <cstring>
 #include <iostream>
@@ -20,6 +21,15 @@ kvz_rtp::connection::connection(bool reader):
 
 kvz_rtp::connection::~connection()
 {
+    /* this is going to cause problems if config was allocated from stack... */
+    if (config_)
+        delete config_;
+
+#ifdef __linux__
+    close(socket_);
+#else
+    /* TODO: close socket a la windows */
+#endif
 }
 
 void kvz_rtp::connection::set_payload(rtp_format_t fmt)
