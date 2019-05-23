@@ -19,6 +19,14 @@ kvz_rtp::reader::~reader()
 {
     active_ = false;
     delete recv_buffer_;
+
+    if (!framesOut_.empty()) {
+        for (auto &i : framesOut_) {
+            if (kvz_rtp::frame::dealloc_frame(i) != RTP_OK) {
+                LOG_ERROR("Failed to deallocate frame!");
+            }
+        }
+    }
 }
 
 rtp_error_t kvz_rtp::reader::start()

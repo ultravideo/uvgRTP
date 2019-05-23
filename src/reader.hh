@@ -12,9 +12,7 @@ namespace kvz_rtp {
         reader(std::string src_addr, int src_port);
         ~reader();
 
-        /* 
-         *
-         * NOTE: this operation is blocking */
+        /* NOTE: this operation is blocking */
         kvz_rtp::frame::rtp_frame *pull_frame();
 
         // open socket and start runner_
