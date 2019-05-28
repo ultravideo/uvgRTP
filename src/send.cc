@@ -92,3 +92,27 @@ rtp_error_t kvz_rtp::sender::write_generic_frame(kvz_rtp::connection *conn, kvz_
 
     return RTP_OK;
 }
+
+rtp_error_t kvz_rtp::sender::write_frame(
+    kvz_rtp::connection *conn,
+    uint8_t *header,  size_t header_len,
+    uint8_t *payload, size_t payload_len
+)
+{
+    if (!conn || !header || !payload || header_len == 0 || payload_len == 0)
+        return RTP_INVALID_VALUE;
+
+    rtp_error_t ret;
+
+    if ((ret = kvz_rtp::sender::write_generic_header(conn, header, header_len)) != RTP_OK) {
+        LOG_ERROR("Failed to write generic header, length: %zu", header_len);
+        return ret;
+    }
+
+    if ((ret = kvz_rtp::sender::write_payload(conn, payload, payload_len)) != RTP_OK) {
+        LOG_ERROR("Failed to write payload, length: %zu", payload_len);
+        return ret;
+    }
+
+    return ret;
+}

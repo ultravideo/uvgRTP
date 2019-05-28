@@ -29,5 +29,12 @@ namespace kvz_rtp {
          *
          * Return RTP_OK on success and RTP_ERROR on error */
         rtp_error_t write_generic_frame(kvz_rtp::connection *conn, kvz_rtp::frame::rtp_frame *frame);
+
+        /* TODO:  */
+        rtp_error_t write_frame(
+            kvz_rtp::connection *conn,
+            uint8_t *header, size_t header_len,
+            uint8_t *payload, size_t payload_len
+        );
     };
 };
