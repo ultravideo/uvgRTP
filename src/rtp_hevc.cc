@@ -48,7 +48,7 @@ static rtp_error_t __internal_push_hevc_frame(kvz_rtp::connection *conn, uint8_t
         LOG_ERROR("Failed to allocate RTP Frame for HEVC FU payload!");
         return RTP_MEMORY_ERROR;
     }
-    frame->rtp_fmt = RTP_FORMAT_HEVC;
+    frame->format = RTP_FORMAT_HEVC;
 
     uint8_t *rtp_hdr      = kvz_rtp::frame::get_rtp_header(frame);
     uint8_t *hevc_rtp_hdr = kvz_rtp::frame::get_hevc_rtp_header(frame);
@@ -57,44 +57,32 @@ static rtp_error_t __internal_push_hevc_frame(kvz_rtp::connection *conn, uint8_t
 
     conn->fill_rtp_header(rtp_hdr, timestamp);
 
-    hevc_rtp_hdr[0] = 49 << 1; /* fragmentation unit */
-    hevc_rtp_hdr[1] = 1;       /* TID */
-
-    /* Set the S bit with NAL type */
-    hevc_fu_hdr[0] = 1 << 7 | nalType;
-
-    /* frame->data[0] = 49 << 1; */
-    /* frame->data[1] = 1; /1* TID *1/ */
-    /* Set the S bit with NAL type */
-    /* frame->data[2] = 1 << 7 | nalType; */
+    hevc_rtp_hdr[0] = 49 << 1;          /* fragmentation unit */
+    hevc_rtp_hdr[1] = 1;                /* TID */
+    hevc_fu_hdr[0]  = 1 << 7 | nalType; /* set S bit and NAL type */
 
     data_pos   = 2;
     data_left -= 2;
 
     /* Send full payload data packets */
     while (data_left + 3 > MAX_PAYLOAD) {
-        memcpy(&frame->data[3], &data[data_pos], MAX_PAYLOAD - 3);
-
-        /* if ((ret = RTPGeneric::pushGenericFrame(conn, frame))) */
-        /*     goto end; */
+        memcpy(frame->payload, &data[data_pos], MAX_PAYLOAD);
 
         if ((ret = kvz_rtp::sender::write_generic_frame(conn, frame)) != RTP_OK)
             goto end;
 
-        data_pos  += (MAX_PAYLOAD - 3);
-        data_left -= (MAX_PAYLOAD - 3);
+        data_pos  += (MAX_PAYLOAD - 0);
+        data_left -= (MAX_PAYLOAD - 0);
 
         /* Clear extra bits */
-        /* frame->data[2] = nalType; */
         hevc_fu_hdr[0] = nalType;
     }
 
     /* Signal end and send the rest of the data */
     hevc_fu_hdr[0] |= 1 << 6;
-    /* frame->data[2] |= 1 << 6; */
-    memcpy(&frame->data[3], &data[data_pos], data_left);
+    memcpy(frame->payload, &data[data_pos], data_left);
 
-    ret = kvz_rtp::generic::push_generic_frame(conn, frame->data, data_left + 3, timestamp);
+    ret = kvz_rtp::generic::push_generic_frame(conn, frame->data, data_left + frame->header_len, timestamp);
 
 end:
     kvz_rtp::frame::dealloc_frame(frame);
