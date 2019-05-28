@@ -29,63 +29,53 @@ static int __internal_get_next_frame_start(uint8_t *data, uint32_t offset, uint3
     return -1;
 }
 
-static rtp_error_t __internal_push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, uint32_t data_len, uint32_t timestamp)
+static rtp_error_t __internal_push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len, uint32_t timestamp)
 {
     uint32_t data_pos  = 0;
     uint32_t data_left = data_len;
     rtp_error_t ret    = RTP_OK;
+    uint8_t nalType    = (data[0] >> 1) & 0x3F;
 
     if (data_len <= MAX_PAYLOAD) {
-        LOG_DEBUG("send unfrag size %u, type %u", data_len, (uint32_t)((data[0] >> 1) & 0x3F));
+        LOG_DEBUG("send unfrag size %u, type %u", data_len, nalType);
         return kvz_rtp::generic::push_generic_frame(conn, data, data_len, timestamp);
     }
 
-    LOG_DEBUG("send frag size: %u, type %u", data_len, (data[0] >> 1) & 0x3F);
+    LOG_DEBUG("send frag size: %u, type %u", data_len, nalType);
 
-    auto *frame = kvz_rtp::frame::alloc_frame(MAX_PAYLOAD, kvz_rtp::frame::FRAME_TYPE_HEVC_FU);
+    uint8_t header[
+        kvz_rtp::frame::HEADER_SIZE_RTP      +
+        kvz_rtp::frame::HEADER_SIZE_HEVC_RTP +
+        kvz_rtp::frame::HEADER_SIZE_HEVC_FU  ] = { 0 };
 
-    if (frame == nullptr) {
-        LOG_ERROR("Failed to allocate RTP Frame for HEVC FU payload!");
-        return RTP_MEMORY_ERROR;
-    }
-    frame->format = RTP_FORMAT_HEVC;
+    conn->fill_rtp_header(header, timestamp);
 
-    uint8_t *rtp_hdr      = kvz_rtp::frame::get_rtp_header(frame);
-    uint8_t *hevc_rtp_hdr = kvz_rtp::frame::get_hevc_rtp_header(frame);
-    uint8_t *hevc_fu_hdr  = kvz_rtp::frame::get_hevc_fu_header(frame);
-    uint8_t nalType       = (data[0] >> 1) & 0x3F;
+    header[kvz_rtp::frame::HEADER_SIZE_RTP + 0]  = 49 << 1;            /* fragmentation unit */
+    header[kvz_rtp::frame::HEADER_SIZE_RTP + 1]  = 1;                  /* TID */
+    header[kvz_rtp::frame::HEADER_SIZE_RTP +
+           kvz_rtp::frame::HEADER_SIZE_HEVC_RTP] = (1 << 7) | nalType; /* Start bit + NAL type */
 
-    conn->fill_rtp_header(rtp_hdr, timestamp);
+    data_pos   = kvz_rtp::frame::HEADER_SIZE_HEVC_RTP;
+    data_left -= kvz_rtp::frame::HEADER_SIZE_HEVC_RTP;
 
-    hevc_rtp_hdr[0] = 49 << 1;          /* fragmentation unit */
-    hevc_rtp_hdr[1] = 1;                /* TID */
-    hevc_fu_hdr[0]  = 1 << 7 | nalType; /* set S bit and NAL type */
-
-    data_pos   = 2;
-    data_left -= 2;
-
-    /* Send full payload data packets */
-    while (data_left + 3 > MAX_PAYLOAD) {
-        memcpy(frame->payload, &data[data_pos], MAX_PAYLOAD);
-
-        if ((ret = kvz_rtp::sender::write_generic_frame(conn, frame)) != RTP_OK)
+    while (data_left > MAX_PAYLOAD) {
+        if ((ret = kvz_rtp::sender::write_frame(conn, header, sizeof(header), &data[data_pos], MAX_PAYLOAD)) != RTP_OK)
             goto end;
 
-        data_pos  += (MAX_PAYLOAD - 0);
-        data_left -= (MAX_PAYLOAD - 0);
+        data_pos  += MAX_PAYLOAD;
+        data_left -= MAX_PAYLOAD;
 
         /* Clear extra bits */
-        hevc_fu_hdr[0] = nalType;
+        header[kvz_rtp::frame::HEADER_SIZE_RTP +
+               kvz_rtp::frame::HEADER_SIZE_HEVC_RTP] = nalType;
     }
 
-    /* Signal end and send the rest of the data */
-    hevc_fu_hdr[0] |= 1 << 6;
-    memcpy(frame->payload, &data[data_pos], data_left);
+    header[kvz_rtp::frame::HEADER_SIZE_RTP +
+           kvz_rtp::frame::HEADER_SIZE_HEVC_RTP] |= (1 << 6); /* set E bit to signal end of data */
 
-    ret = kvz_rtp::generic::push_generic_frame(conn, frame->data, data_left + frame->header_len, timestamp);
+    ret = kvz_rtp::sender::write_frame(conn, header, sizeof(header), &data[data_pos], data_left);
 
 end:
-    kvz_rtp::frame::dealloc_frame(frame);
     return ret;
 }
 
