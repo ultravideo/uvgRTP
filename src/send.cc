@@ -85,13 +85,8 @@ rtp_error_t kvz_rtp::sender::write_generic_frame(kvz_rtp::connection *conn, kvz_
 
     rtp_error_t ret;
 
-    if ((ret = kvz_rtp::sender::write_generic_header(conn, frame->header, frame->header_len)) != RTP_OK) {
-        LOG_ERROR("Failed to send header! Size %zu, Type %d", frame->header_len, frame->frame_type);
-        return ret;
-    }
-
-    if ((ret = kvz_rtp::sender::write_payload(conn, frame->data, frame->data_len)) != RTP_OK) {
-        LOG_ERROR("Failed to send payload! Size %zu, Type %d", frame->data_len, frame->frame_type);
+    if ((ret = kvz_rtp::sender::write_payload(conn, frame->data, frame->total_len)) != RTP_OK) {
+        LOG_ERROR("Failed to send payload! Size %zu, Type %d", frame->total_len, frame->type);
         return ret;
     }
 
