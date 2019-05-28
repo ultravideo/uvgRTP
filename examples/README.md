@@ -1,4 +1,21 @@
+# HEVC sender
 
+Extract 8-bit yuv420 raw video from input.mp4 and start ffplay
+
+```
+ffmpeg -i input.mp4 -f rawvideo -pix_fmt yuv420p video.raw
+ffplay -protocol_whitelist "file,rtp,udp" sdp/hevc.sdp
+```
+
+Compile the RTP Library and hevc_sender.cc and start the sender
+
+```
+cd ..
+make all -j8
+cd examples
+g++ -o main hevc_sender.cc -lrtp -L .. -lpthread -lopus
+./main
+```
 
 # Opus sender
 
