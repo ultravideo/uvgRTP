@@ -12,7 +12,7 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_frame(size_t payload_len, frame
 
     LOG_DEBUG("Allocating frame. Size %zu, Type %u", payload_len, type);
 
-    kvz_rtp::frame::rtp_frame *frame = new kvz_rtp::frame::rtp_frame;
+    kvz_rtp::frame::rtp_frame *frame;
     size_t header_len;
 
     switch (type) {
