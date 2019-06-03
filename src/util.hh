@@ -26,3 +26,18 @@ typedef enum RTP_FORMAT {
     RTP_FORMAT_HEVC    = 96,
     RTP_FORMAT_OPUS    = 97,
 } rtp_format_t;
+
+
+static inline void hex_dump(uint8_t *buf, size_t len)
+{
+    if (!buf)
+        return;
+
+    for (size_t i = 0; i < len; i += 10) {
+        fprintf(stderr, "\t");
+        for (size_t k = i; k < i + 10; ++k) {
+            fprintf(stderr, "0x%02x ", buf[k]);
+        }
+        fprintf(stderr, "\n");
+    }
+}
