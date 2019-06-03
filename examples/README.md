@@ -15,7 +15,7 @@ Compile the RTP Library and hevc_sender.cc and start the sender
 cd ../..
 make all -j8
 cd examples/sending
-g++ -o main hevc_sender.cc -lrtp -L ../.. -lpthread -lopus
+g++ -o main hevc_sender.cc -lrtp -L ../.. -lpthread -lkvazaar
 ./main
 ```
 
@@ -35,5 +35,24 @@ cd ../..
 make all -j8
 cd examples/sending
 g++ -o main opus_sender.cc -lrtp -L ../.. -lpthread -lopus
+./main
+```
+
+# Receiving
+
+## HEVC sender/receiver
+Extract 8-bit yuv420 raw video from input.mp4
+
+```
+ffmpeg -i input.mp4 -f rawvideo -pix_fmt yuv420p video.raw
+```
+
+Compile the RTP Library and recv_example_1.cc or recv_example_2.cc and start the sender
+
+```
+cd ../..
+make all -j8
+cd examples/receiving
+g++ -o main recv_example_1.cc -lrtp -L ../.. -lpthread -lkvazaar
 ./main
 ```
