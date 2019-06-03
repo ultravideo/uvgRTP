@@ -11,6 +11,7 @@ const size_t HEVC_RTP_HEADER_SIZE =  2;
 const size_t HEVC_FU_HEADER_SIZE  =  1;
 
 typedef enum RTP_ERROR {
+    RTP_NOT_READY     =  1,
     RTP_OK            =  0,
     RTP_GENERIC_ERROR = -1,
     RTP_SOCKET_ERROR  = -2,

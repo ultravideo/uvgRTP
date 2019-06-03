@@ -4,14 +4,16 @@
 #include "debug.hh"
 #include "frame.hh"
 #include "reader.hh"
+#include "rtp_hevc.hh"
+#include "rtp_opus.hh"
 
 kvz_rtp::reader::reader(std::string src_addr, int src_port):
     connection(true),
+    active_(false),
     src_addr_(src_addr),
     src_port_(src_port),
-    active_(false),
-    recv_hook_(nullptr),
-    recv_hook_arg_(nullptr)
+    recv_hook_arg_(nullptr),
+    recv_hook_(nullptr)
 {
 }
 
@@ -56,7 +58,7 @@ rtp_error_t kvz_rtp::reader::start()
 
     recv_buffer_len_ = MAX_PACKET;
 
-    if ((recv_buffer_ = new uint8_t[MAX_PACKET]) == nullptr) {
+    if ((recv_buffer_ = new uint8_t[4096]) == nullptr) {
         LOG_ERROR("Failed to allocate buffer for incoming data!");
         recv_buffer_len_ = 0;
     }
@@ -71,9 +73,12 @@ rtp_error_t kvz_rtp::reader::start()
 
 kvz_rtp::frame::rtp_frame *kvz_rtp::reader::pull_frame()
 {
-    while (framesOut_.empty()) {
+    while (framesOut_.empty() && this->active()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
+
+    if (!this->active())
+        return nullptr;
 
     frames_mtx_.lock();
     auto nextFrame = framesOut_.front();
@@ -128,11 +133,13 @@ void kvz_rtp::reader::recv_hook(kvz_rtp::frame::rtp_frame *frame)
         return recv_hook_(recv_hook_arg_, frame);
 }
 
-int kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
+void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
 {
     LOG_INFO("frameReceiver starting listening...");
 
+    std::vector<kvz_rtp::frame::rtp_frame *> fu;
     sockaddr_in from_addr;
+    rtp_error_t err;
 
     while (reader->active()) {
         int from_addrSize = sizeof(from_addr);
@@ -155,7 +162,7 @@ int kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
 #else
             perror("frameReceiver");
 #endif
-            return -1;
+            return;
         } else {
             LOG_DEBUG("got %d bytes", ret);
 
@@ -173,13 +180,15 @@ int kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
             frame->timestamp = ntohl(*(uint32_t *)&inbuf[4]);
             frame->ssrc      = ntohl(*(uint32_t *)&inbuf[8]);
 
-            if (ret - 12 <= 0) {
+            if (ret - RTP_HEADER_SIZE <= 0) {
                 LOG_WARN("Got an invalid payload of size %d", ret);
                 continue;
             }
 
-            frame->data      = new uint8_t[ret];
-            frame->total_len = ret;
+            frame->data        = new uint8_t[ret];
+            frame->payload     = frame->data + RTP_HEADER_SIZE;
+            frame->payload_len = ret - RTP_HEADER_SIZE;
+            frame->total_len   = ret;
 
             if (!frame->data) {
                 LOG_ERROR("Failed to allocate buffer for RTP frame!");
@@ -188,11 +197,39 @@ int kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
 
             memcpy(frame->data, inbuf, ret);
 
-            if (reader->recv_hook_installed())
-                reader->recv_hook(frame);
-            else
-                reader->add_outgoing_frame(frame);
+            switch (frame->ptype) {
+                case RTP_FORMAT_OPUS:
+                    frame = kvz_rtp::opus::process_opus_frame(frame, fu, err);
+                    break;
+
+                case RTP_FORMAT_HEVC:
+                    frame = kvz_rtp::hevc::process_hevc_frame(frame, fu, err);
+                    break;
+
+                case RTP_FORMAT_GENERIC:
+                    frame = kvz_rtp::generic::process_generic_frame(frame, fu, err);
+                    break;
+
+                default:
+                    LOG_WARN("Unrecognized RTP payload type %u", frame->ptype);
+                    err = RTP_INVALID_VALUE;
+                    break;
+            }
+
+            if (err == RTP_OK) {
+                LOG_DEBUG("returning frame!");
+
+                if (reader->recv_hook_installed())
+                    reader->recv_hook(frame);
+                else
+                    reader->add_outgoing_frame(frame);
+            } else if (err == RTP_NOT_READY) {
+                LOG_DEBUG("received a fragmentation unit, unable return frame to user");
+            } else {
+                LOG_ERROR("Failed to process frame, error: %d", err);
+            }
         }
     }
+
     LOG_INFO("FrameReceiver thread exiting...");
 }
