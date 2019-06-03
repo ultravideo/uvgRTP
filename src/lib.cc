@@ -98,6 +98,7 @@ rtp_error_t kvz_rtp::context::destroy_writer(kvz_rtp::writer *writer)
 
     /* TODO: rtcp bye */
     delete writer;
+    return RTP_OK;
 }
 
 rtp_error_t kvz_rtp::context::destroy_reader(kvz_rtp::reader *reader)
@@ -106,4 +107,5 @@ rtp_error_t kvz_rtp::context::destroy_reader(kvz_rtp::reader *reader)
 
     /* TODO: rtcp bye */
     delete reader;
+    return RTP_OK;
 }
