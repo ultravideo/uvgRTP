@@ -40,3 +40,22 @@ rtp_error_t kvz_rtp::opus::push_opus_frame(connection *conn, uint8_t *data, uint
     return RTPGeneric::pushGenericFrame(conn, data, dataLen, 0);
 #endif
 }
+
+kvz_rtp::frame::rtp_frame *kvz_rtp::opus::process_opus_frame(
+    kvz_rtp::frame::rtp_frame *frame,
+    std::vector<kvz_rtp::frame::rtp_frame *>& fu,
+    rtp_error_t& error
+)
+{
+    (void)fu;
+
+    if (!frame) {
+        error = RTP_INVALID_VALUE;
+        
+        LOG_ERROR("Invalid value, unable to process frame!");
+        return nullptr;
+    }
+
+    error = RTP_OK;
+    return frame;
+}
