@@ -1,6 +1,6 @@
-#include "../src/lib.hh"
-#include "../src/util.hh"
-#include "../src/rtp_opus.hh"
+#include "../../src/lib.hh"
+#include "../../src/util.hh"
+#include "../../src/rtp_opus.hh"
 #include <iostream>
 #include <thread>
 #include <cstdlib>
