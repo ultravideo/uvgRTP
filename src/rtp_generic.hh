@@ -23,7 +23,7 @@ namespace kvz_rtp {
          * If the frame is invalid, nullptr is returned and "error" is set to RTP_INVALID_VALUE (is possible) */
         kvz_rtp::frame::rtp_frame *process_generic_frame(
                 kvz_rtp::frame::rtp_frame *frame,
-                std::vector<kvz_rtp::frame::rtp_frame *>& fu,
+                std::pair<size_t, std::vector<kvz_rtp::frame::rtp_frame *>>& fu,
                 rtp_error_t& error
         );
     };

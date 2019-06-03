@@ -137,9 +137,9 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
 {
     LOG_INFO("frameReceiver starting listening...");
 
-    std::vector<kvz_rtp::frame::rtp_frame *> fu;
     sockaddr_in from_addr;
     rtp_error_t err;
+    std::pair<size_t, std::vector<kvz_rtp::frame::rtp_frame *>> fu;
 
     while (reader->active()) {
         int from_addrSize = sizeof(from_addr);

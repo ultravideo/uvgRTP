@@ -105,11 +105,10 @@ rtp_error_t kvz_rtp::hevc::push_hevc_frame(kvz_rtp::connection *conn, uint8_t *d
 
 kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
         kvz_rtp::frame::rtp_frame *frame,
-        std::vector<kvz_rtp::frame::rtp_frame *>& fu,
+        std::pair<size_t, std::vector<kvz_rtp::frame::rtp_frame *>>& fu,
         rtp_error_t& error
 )
 {
-    size_t total_len               = 0;
     bool last_frag                 = false;
     bool first_frag                = false;
     uint8_t NALHeader[2]           = { 0 };
@@ -128,7 +127,7 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
 
         /* we received a non-fragmented HEVC frame but FU buffer is not empty 
          * which means a packet was lost and we must drop this partial frame */
-        if (!fu.empty()) {
+        if (!fu.second.empty()) {
             /* TODO: update rtcp stats for dropped packets */
 
             LOG_WARN("fragmented frame was not fully received, dropping...");
@@ -139,14 +138,14 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
         return frame;
     }
 
-    if (!fu.empty()) {
-        if (frame->timestamp != fu.at(0)->timestamp) {
+    if (!fu.second.empty()) {
+        if (frame->timestamp != fu.second.at(0)->timestamp) {
             LOG_ERROR("Timestamp mismatch for fragmentation units!");
 
             /* TODO: update rtcp stats for dropped packets */
 
             /* push the frame to fu vector so deallocation is cleaner */
-            fu.push_back(frame);
+            fu.second.push_back(frame);
             goto error;
         }
     }
@@ -158,7 +157,7 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
         LOG_ERROR("Invalid combination of S and E bits");
 
         /* push the frame to fu vector so deallocation is cleaner */
-        fu.push_back(frame);
+        fu.second.push_back(frame);
 
         error = RTP_INVALID_VALUE;
         goto error;
@@ -166,30 +165,28 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
 
     frame->payload     += (kvz_rtp::frame::HEADER_SIZE_HEVC_RTP + kvz_rtp::frame::HEADER_SIZE_HEVC_FU);
     frame->payload_len -= (kvz_rtp::frame::HEADER_SIZE_HEVC_RTP + kvz_rtp::frame::HEADER_SIZE_HEVC_FU);
-    fu.push_back(frame);
+    fu.second.push_back(frame);
+    fu.first += frame->payload_len;
 
     if (!last_frag) {
         error = RTP_NOT_READY;
         return frame;
     }
 
-    if (fu.size() == 1) {
+    if (fu.second.size() == 1) {
         LOG_ERROR("Received the last FU but FU vector is empty!");
         error = RTP_INVALID_VALUE;
         goto error;
     }
 
-    for (auto& i : fu) {
-        total_len += i->payload_len;
-    }
-
-    ret = kvz_rtp::frame::alloc_frame(total_len + 2, kvz_rtp::frame::FRAME_TYPE_GENERIC);
+    LOG_WARN("size %zu", fu.first);
+    ret = kvz_rtp::frame::alloc_frame(fu.first + 2, kvz_rtp::frame::FRAME_TYPE_GENERIC);
 
     /* copy the RTP header of the first fragmentation unit and use it for the full frame */
-    memcpy(frame->data, fu.at(0)->data, kvz_rtp::frame::HEADER_SIZE_RTP);
+    memcpy(frame->data, fu.second.at(0)->data, kvz_rtp::frame::HEADER_SIZE_RTP);
 
-    NALHeader[0] = (fu.at(0)->payload[0] & 0x81) | ((fu.at(0)->payload[2] & 0x3f) << 1);
-    NALHeader[1] = fu.at(0)->payload[1];
+    NALHeader[0] = (fu.second.at(0)->payload[0] & 0x81) | ((fu.second.at(0)->payload[2] & 0x3f) << 1);
+    NALHeader[1] = fu.second.at(0)->payload[1];
 
     memcpy(ret->payload, NALHeader, sizeof(NALHeader));
     ret->payload += sizeof(NALHeader);
@@ -197,26 +194,32 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
     {
         size_t ptr = 0;
 
-        for (auto& i : fu) {
+        for (auto& i : fu.second) {
             memcpy(&ret->payload[ptr], i->payload, i->payload_len);
             ptr += i->payload_len;
         }
     }
 
-    while (fu.size() != 0) {
-        auto tmp = fu.back();
-        fu.pop_back();
+    while (fu.second.size() != 0) {
+        auto tmp = fu.second.back();
+        fu.second.pop_back();
         kvz_rtp::frame::dealloc_frame(tmp);
     }
+
+    /* total size of fragmentation units */
+    fu.first = 0;
 
     error = RTP_OK;
     return ret;
 
 error:
-    if (!fu.empty()) {
-        for (auto& i: fu) {
+    if (!fu.second.empty()) {
+        for (auto& i: fu.second) {
             (void)kvz_rtp::frame::dealloc_frame(i);
         }
+
+        /* total size of fragmentation units */
+        fu.first = 0;
     }
 
     return ret;

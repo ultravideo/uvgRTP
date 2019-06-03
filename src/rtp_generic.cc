@@ -33,7 +33,7 @@ rtp_error_t kvz_rtp::generic::push_generic_frame(connection *conn, uint8_t *data
 
 kvz_rtp::frame::rtp_frame *kvz_rtp::generic::process_generic_frame(
     kvz_rtp::frame::rtp_frame *frame,
-    std::vector<kvz_rtp::frame::rtp_frame *>& fu,
+    std::pair<size_t, std::vector<kvz_rtp::frame::rtp_frame *>>& fu,
     rtp_error_t& error
 )
 {
