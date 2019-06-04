@@ -163,8 +163,7 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
         goto error;
     }
 
-    frame->payload     += (kvz_rtp::frame::HEADER_SIZE_HEVC_RTP + kvz_rtp::frame::HEADER_SIZE_HEVC_FU);
-    frame->payload_len -= (kvz_rtp::frame::HEADER_SIZE_HEVC_RTP + kvz_rtp::frame::HEADER_SIZE_HEVC_FU);
+    frame->payload_len -= (HEVC_RTP_HEADER_SIZE + HEVC_FU_HEADER_SIZE);
     fu.second.push_back(frame);
     fu.first += frame->payload_len;
 
@@ -179,23 +178,25 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
         goto error;
     }
 
-    LOG_WARN("size %zu", fu.first);
     ret = kvz_rtp::frame::alloc_frame(fu.first + 2, kvz_rtp::frame::FRAME_TYPE_GENERIC);
 
     /* copy the RTP header of the first fragmentation unit and use it for the full frame */
     memcpy(frame->data, fu.second.at(0)->data, kvz_rtp::frame::HEADER_SIZE_RTP);
 
-    NALHeader[0] = (fu.second.at(0)->payload[0] & 0x81) | ((fu.second.at(0)->payload[2] & 0x3f) << 1);
-    NALHeader[1] = fu.second.at(0)->payload[1];
-
-    memcpy(ret->payload, NALHeader, sizeof(NALHeader));
-    ret->payload += sizeof(NALHeader);
-
     {
-        size_t ptr = 0;
+        kvz_rtp::frame::rtp_frame *f = fu.second.at(0);
+
+        NALHeader[0] = (f->payload[0] & 0x81) | ((frame->payload[2] & 0x3f) << 1);
+        NALHeader[1] = f->payload[1];
+
+        memcpy(ret->payload, NALHeader, sizeof(NALHeader));
+
+        size_t ptr    = sizeof(NALHeader);
+        size_t offset = HEVC_RTP_HEADER_SIZE + HEVC_FU_HEADER_SIZE;
 
         for (auto& i : fu.second) {
-            memcpy(&ret->payload[ptr], i->payload, i->payload_len);
+
+            memcpy(&ret->payload[ptr], i->payload + offset, i->payload_len);
             ptr += i->payload_len;
         }
     }
@@ -206,21 +207,21 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
         kvz_rtp::frame::dealloc_frame(tmp);
     }
 
-    /* total size of fragmentation units */
+    /* reset the total size of fragmentation units */
     fu.first = 0;
 
     error = RTP_OK;
     return ret;
 
 error:
-    if (!fu.second.empty()) {
-        for (auto& i: fu.second) {
-            (void)kvz_rtp::frame::dealloc_frame(i);
-        }
-
-        /* total size of fragmentation units */
-        fu.first = 0;
+    while (fu.second.size() != 0) {
+        auto tmp = fu.second.back();
+        fu.second.pop_back();
+        kvz_rtp::frame::dealloc_frame(tmp);
     }
+
+    /* reset the total size of fragmentation units */
+    fu.first = 0;
 
     return ret;
 }
