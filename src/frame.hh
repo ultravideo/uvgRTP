@@ -9,14 +9,14 @@ namespace kvz_rtp {
         enum HEADER_SIZES {
             HEADER_SIZE_RTP      = 12,
             HEADER_SIZE_OPUS     =  1,
-            HEADER_SIZE_HEVC_RTP =  2,
+            HEADER_SIZE_HEVC_NAL =  2,
             HEADER_SIZE_HEVC_FU  =  1,
         };
 
         typedef enum FRAME_TYPE {
             FRAME_TYPE_GENERIC = 0, // payload length + RTP Header size (N + 12)
             FRAME_TYPE_OPUS    = 1, // payload length + RTP Header size + Opus header (N + 12 + 0 [for now])
-            FRAME_TYPE_HEVC_FU = 2, // payload length + RTP Header size + HEVC RTP Header + FU Header (N + 12 + 2 + 1)
+            FRAME_TYPE_HEVC_FU = 2, // payload length + RTP Header size + HEVC NAL Header + FU Header (N + 12 + 2 + 1)
         } frame_type_t;
 
         struct rtp_frame {

@@ -17,16 +17,18 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_frame(size_t payload_len, frame
 
     switch (type) {
         case FRAME_TYPE_GENERIC:
-            header_len = RTP_HEADER_SIZE;
+            header_len = kvz_rtp::frame::HEADER_SIZE_RTP;
             break;
 
         /* for now, opus header is not used */
         case FRAME_TYPE_OPUS:
-            header_len = RTP_HEADER_SIZE + 0;
+            header_len = kvz_rtp::frame::HEADER_SIZE_RTP + 0;
             break;
 
         case FRAME_TYPE_HEVC_FU:
-            header_len = RTP_HEADER_SIZE + HEVC_RTP_HEADER_SIZE + HEVC_FU_HEADER_SIZE;
+            header_len = kvz_rtp::frame::HEADER_SIZE_RTP
+                       + kvz_rtp::frame::HEADER_SIZE_HEVC_NAL
+                       + kvz_rtp::frame::HEADER_SIZE_HEVC_FU;
             break;
     }
 
@@ -94,5 +96,5 @@ uint8_t *kvz_rtp::frame::get_hevc_fu_header(kvz_rtp::frame::rtp_frame *frame)
     if (!frame || !frame->data || frame->type != FRAME_TYPE_HEVC_FU)
         return nullptr;
 
-    return frame->data + HEADER_SIZE_RTP + HEADER_SIZE_HEVC_RTP;
+    return frame->data + HEADER_SIZE_RTP + HEADER_SIZE_HEVC_NAL;
 }

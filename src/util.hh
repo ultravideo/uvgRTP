@@ -6,10 +6,6 @@
 const int MAX_PACKET      = 65536;
 const int MAX_PAYLOAD     = 1000;
 
-const size_t RTP_HEADER_SIZE      = 12;
-const size_t HEVC_RTP_HEADER_SIZE =  2;
-const size_t HEVC_FU_HEADER_SIZE  =  1;
-
 typedef enum RTP_ERROR {
     RTP_NOT_READY     =  1,
     RTP_OK            =  0,

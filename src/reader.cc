@@ -180,14 +180,14 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
             frame->timestamp = ntohl(*(uint32_t *)&inbuf[4]);
             frame->ssrc      = ntohl(*(uint32_t *)&inbuf[8]);
 
-            if (ret - RTP_HEADER_SIZE <= 0) {
+            if (ret - kvz_rtp::frame::HEADER_SIZE_RTP <= 0) {
                 LOG_WARN("Got an invalid payload of size %d", ret);
                 continue;
             }
 
             frame->data        = new uint8_t[ret];
-            frame->payload     = frame->data + RTP_HEADER_SIZE;
-            frame->payload_len = ret - RTP_HEADER_SIZE;
+            frame->payload     = frame->data + kvz_rtp::frame::HEADER_SIZE_RTP;
+            frame->payload_len = ret - kvz_rtp::frame::HEADER_SIZE_RTP;
             frame->total_len   = ret;
 
             if (!frame->data) {

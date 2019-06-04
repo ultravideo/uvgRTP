@@ -72,10 +72,10 @@ rtp_error_t kvz_rtp::sender::write_rtp_header(kvz_rtp::connection *conn, uint32_
     if (!conn)
         return RTP_INVALID_VALUE;
 
-    uint8_t header[RTP_HEADER_SIZE] = { 0 };
+    uint8_t header[kvz_rtp::frame::HEADER_SIZE_RTP] = { 0 };
 
     conn->fill_rtp_header(header, timestamp);
-    return kvz_rtp::sender::write_generic_header(conn, header, RTP_HEADER_SIZE);
+    return kvz_rtp::sender::write_generic_header(conn, header, kvz_rtp::frame::HEADER_SIZE_RTP);
 }
 
 rtp_error_t kvz_rtp::sender::write_generic_frame(kvz_rtp::connection *conn, kvz_rtp::frame::rtp_frame *frame)

@@ -45,7 +45,7 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
 
     uint8_t header[
         kvz_rtp::frame::HEADER_SIZE_RTP      +
-        kvz_rtp::frame::HEADER_SIZE_HEVC_RTP +
+        kvz_rtp::frame::HEADER_SIZE_HEVC_NAL +
         kvz_rtp::frame::HEADER_SIZE_HEVC_FU  ] = { 0 };
 
     conn->fill_rtp_header(header, timestamp);
@@ -53,10 +53,10 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
     header[kvz_rtp::frame::HEADER_SIZE_RTP + 0]  = 49 << 1;            /* fragmentation unit */
     header[kvz_rtp::frame::HEADER_SIZE_RTP + 1]  = 1;                  /* TID */
     header[kvz_rtp::frame::HEADER_SIZE_RTP +
-           kvz_rtp::frame::HEADER_SIZE_HEVC_RTP] = (1 << 7) | nalType; /* Start bit + NAL type */
+           kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] = (1 << 7) | nalType; /* Start bit + NAL type */
 
-    data_pos   = kvz_rtp::frame::HEADER_SIZE_HEVC_RTP;
-    data_left -= kvz_rtp::frame::HEADER_SIZE_HEVC_RTP;
+    data_pos   = kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
+    data_left -= kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
 
     while (data_left > MAX_PAYLOAD) {
         if ((ret = kvz_rtp::sender::write_frame(conn, header, sizeof(header), &data[data_pos], MAX_PAYLOAD)) != RTP_OK)
@@ -67,11 +67,11 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
 
         /* Clear extra bits */
         header[kvz_rtp::frame::HEADER_SIZE_RTP +
-               kvz_rtp::frame::HEADER_SIZE_HEVC_RTP] = nalType;
+               kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] = nalType;
     }
 
     header[kvz_rtp::frame::HEADER_SIZE_RTP +
-           kvz_rtp::frame::HEADER_SIZE_HEVC_RTP] |= (1 << 6); /* set E bit to signal end of data */
+           kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] |= (1 << 6); /* set E bit to signal end of data */
 
     ret = kvz_rtp::sender::write_frame(conn, header, sizeof(header), &data[data_pos], data_left);
 
@@ -163,7 +163,8 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
         goto error;
     }
 
-    frame->payload_len -= (HEVC_RTP_HEADER_SIZE + HEVC_FU_HEADER_SIZE);
+    frame->payload_len -= (kvz_rtp::frame::HEADER_SIZE_HEVC_NAL +
+                           kvz_rtp::frame::HEADER_SIZE_HEVC_FU);
     fu.second.push_back(frame);
     fu.first += frame->payload_len;
 
@@ -192,7 +193,8 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
         memcpy(ret->payload, NALHeader, sizeof(NALHeader));
 
         size_t ptr    = sizeof(NALHeader);
-        size_t offset = HEVC_RTP_HEADER_SIZE + HEVC_FU_HEADER_SIZE;
+        size_t offset = kvz_rtp::frame::HEADER_SIZE_HEVC_NAL +
+                        kvz_rtp::frame::HEADER_SIZE_HEVC_FU;
 
         for (auto& i : fu.second) {
 
