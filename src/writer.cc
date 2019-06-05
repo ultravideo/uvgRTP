@@ -1,4 +1,16 @@
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <arpa/inet.h>
+#endif
+
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#include "mingw_inet.hh"
+using namespace kvz_rtp;
+using namespace mingw;
+#endif
+
 #include <cstring>
 #include <iostream>
 
@@ -28,7 +40,11 @@ kvz_rtp::writer::~writer()
 
 rtp_error_t kvz_rtp::writer::start()
 {
+#ifdef _WIN32
+    if ((socket_ = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
+#else
     if ((socket_ = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+#endif
         LOG_ERROR("Creating socket failed: %s", strerror(errno));
         return RTP_SOCKET_ERROR;
     }
@@ -38,7 +54,7 @@ rtp_error_t kvz_rtp::writer::start()
     if (src_port_ != 0) {
         int enable = 1;
 
-        if (setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
+        if (setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int)) < 0) {
             LOG_ERROR("Failed to set socket options: %s", strerror(errno));
             return RTP_GENERIC_ERROR;
         }
@@ -60,8 +76,9 @@ rtp_error_t kvz_rtp::writer::start()
 
     memset(&addr_out_, 0, sizeof(addr_out_));
     addr_out_.sin_family = AF_INET;
+
     inet_pton(AF_INET, dst_addr_.c_str(), &addr_out_.sin_addr);
-    addr_out_.sin_port = htons(dst_port_);
+    addr_out_.sin_port = htons((uint16_t)dst_port_);
 
     return RTP_OK;
 }

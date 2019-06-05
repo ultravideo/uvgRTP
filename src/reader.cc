@@ -35,13 +35,18 @@ rtp_error_t kvz_rtp::reader::start()
 {
     LOG_INFO("Starting to listen to port %d", src_port_);
 
-    if ((socket_ = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+#ifdef _WIN32
+    if ((socket_ = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET)
+#else
+    if ((socket_ = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+#endif
+    {
         LOG_ERROR("Failed to create socket: %s", strerror(errno));
         return RTP_SOCKET_ERROR;
     }
 
     int enable = 1;
-    if (setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+    if (setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int)) < 0)
         perror("setsockopt(SO_REUSEADDR) failed");
 
     sockaddr_in addrIn_;
@@ -49,7 +54,7 @@ rtp_error_t kvz_rtp::reader::start()
     memset(&addrIn_, 0, sizeof(addrIn_));
     addrIn_.sin_family = AF_INET;  
     addrIn_.sin_addr.s_addr = htonl(INADDR_ANY);
-    addrIn_.sin_port = htons(src_port_);
+    addrIn_.sin_port = htons((uint16_t)src_port_);
 
     if (bind(socket_, (struct sockaddr *) &addrIn_, sizeof(addrIn_)) < 0) {
         LOG_ERROR("Failed to bind to port: %s", strerror(errno));
@@ -142,15 +147,17 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
     std::pair<size_t, std::vector<kvz_rtp::frame::rtp_frame *>> fu;
 
     while (reader->active()) {
-        int from_addrSize = sizeof(from_addr);
-        int32_t ret = recvfrom(reader->get_socket(), reader->get_recv_buffer(), reader->get_recv_buffer_len(),
+        int from_addr_size = sizeof(from_addr);
+        int32_t ret = recvfrom(reader->get_socket(),
+                               (char *)reader->get_recv_buffer(),
+                               reader->get_recv_buffer_len(),
                                0, /* no flags */
 #ifdef _WIN32
-                               (SOCKADDR *)&from_addr, 
-                               &from_addrSize
+                               (SOCKADDR *)&from_addr,
+                               &from_addr_size
 #else
                                (struct sockaddr *)&from_addr,
-                               (socklen_t *)&from_addrSize
+                               (socklen_t *)&from_addr_size
 #endif
                 );
 

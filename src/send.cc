@@ -1,5 +1,6 @@
 #ifdef _WIN32
-// TODO
+#include <winsock2.h>
+#include <windows.h>
 #else
 #include <arpa/inet.h>
 #endif
@@ -21,13 +22,20 @@ static rtp_error_t __internal_write(kvz_rtp::connection *conn, uint8_t *buf, siz
         return RTP_INVALID_VALUE;
 
     kvz_rtp::writer *writer = dynamic_cast<kvz_rtp::writer *>(conn);
-    sockaddr_in out_addr    = writer->get_out_address();
 
 #ifdef __linux__
+    sockaddr_in out_addr    = writer->get_out_address();
+
     if (sendto(conn->get_socket(), buf, buf_len, flags, (struct sockaddr *)&out_addr, sizeof(out_addr)) == -1)
         return RTP_SEND_ERROR;
 #else
-    if ((WSASend(conn->get_socket(), buf, 1, buf_len, flags, NULL, NULL)) == SOCKET_ERROR)
+    DWORD sent_bytes;
+    WSABUF data_buf;
+
+    data_buf.buf = (char *)buf;
+    data_buf.len = buf_len;
+
+    if (WSASend((SOCKET)conn->get_socket(), &data_buf, 1, &sent_bytes, flags, NULL, NULL) == -1)
         return RTP_SEND_ERROR;
 #endif
 

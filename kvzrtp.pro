@@ -23,34 +23,38 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-	src/ssrc.cc \
-	src/send.cc \
-	src/rtp_opus.cc \
-	src/rtp_hevc.cc \
-	src/rtp_generic.cc \
-	src/rtcp.cc \
-	src/reader.cc \
-	src/lib.cc \
-	src/frame.cc \
-	src/conn.cc \
-	src/writer.cc
+    src/ssrc.cc \
+    src/send.cc \
+    src/rtp_opus.cc \
+    src/rtp_hevc.cc \
+    src/rtp_generic.cc \
+    src/rtcp.cc \
+    src/reader.cc \
+    src/lib.cc \
+    src/frame.cc \
+    src/conn.cc \
+    src/writer.cc \
+    src/mingw_inet.cc
 
 HEADERS += \
-	src/writer.hh \
-	src/ssrc.hh \
-	src/send.hh \
-	src/rtp_opus.hh \
-	src/rtp_hevc.hh \
-	src/rtp_generic.hh \
-	src/rtcp.hh \
-	src/reader.hh \
-	src/lib.hh \
-	src/frame.hh \
-	src/conn.hh \
-	src/debug.hh \
-	src/util.hh
+    src/writer.hh \
+    src/ssrc.hh \
+    src/send.hh \
+    src/rtp_opus.hh \
+    src/rtp_hevc.hh \
+    src/rtp_generic.hh \
+    src/rtcp.hh \
+    src/reader.hh \
+    src/lib.hh \
+    src/frame.hh \
+    src/conn.hh \
+    src/debug.hh \
+    src/util.hh \
+    src/mingw_inet.hh
 
 unix {
     target.path = /usr/lib
     INSTALLS += target
 }
+
+win32: LIBS += -lwsock32 -lws2_32

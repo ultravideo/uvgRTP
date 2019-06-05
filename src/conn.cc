@@ -63,7 +63,11 @@ uint8_t kvz_rtp::connection::get_payload() const
     return rtp_payload_;
 }
 
-int kvz_rtp::connection::get_socket() const
+#ifdef _WIN32
+SOCKET kvz_rtp::connection::get_socket() const
+#else
+int    kvz_rtp::connection::get_socket() const
+#endif
 {
     return socket_;
 }

@@ -1,12 +1,19 @@
 #include <iostream>
 
-#include "lib.hh"
+#include "debug.hh"
 #include "conn.hh"
+#include "lib.hh"
 
 kvz_rtp::context::context()
 {
 #ifdef _WIN32
-    // TODO initialize networking for windows
+    WSADATA wsd;
+    int rc;
+
+    if ((rc = WSAStartup(MAKEWORD(2, 2), &wsd)) != 0) {
+        LOG_ERROR("Unable to load Winsock: %d\n", rc);
+        /* TODO: how to stop everything?? */
+    }
 #endif
 }
 
