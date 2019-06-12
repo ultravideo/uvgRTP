@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 namespace kvz_rtp {
     class connection;
 
@@ -30,11 +32,40 @@ namespace kvz_rtp {
          * Return RTP_OK on success and RTP_ERROR on error */
         rtp_error_t write_generic_frame(kvz_rtp::connection *conn, kvz_rtp::frame::rtp_frame *frame);
 
-        /* TODO:  */
+        /* If the header and payload of RTP messages are separate, the can be combined and sent 
+         * using write_frame()
+         *
+         * This function will send the message right away.
+         *
+         * return RTP_OK on success and RTP_ERROR on error */
         rtp_error_t write_frame(
             kvz_rtp::connection *conn,
             uint8_t *header, size_t header_len,
             uint8_t *payload, size_t payload_len
         );
+
+        /* linux specific functions*/
+
+        /* TODO:  */
+        rtp_error_t enqueue_message(
+            kvz_rtp::connection *conn,
+            uint8_t *header,  size_t header_len,
+            uint8_t *payload, size_t payload_len
+        );
+
+        /* TODO:  */
+        rtp_error_t enqueue_message(
+            kvz_rtp::connection *conn,
+            std::vector<std::pair<size_t, uint8_t *>>& buffers
+        );
+
+        /* TODO:  */
+        rtp_error_t enqueue_message(
+            kvz_rtp::connection *conn,
+            uint8_t *message,  size_t message_len
+        );
+
+        /* TODO:  */
+        rtp_error_t flush_message_queue(kvz_rtp::connection *conn);
     };
 };
