@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdint>
 #include <cstring>
+#include <easy/profiler.h>
 
 #include "conn.hh"
 #include "debug.hh"
@@ -43,39 +44,98 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
 
     LOG_DEBUG("send frag size: %zu, type %u", data_len, nalType);
 
-    uint8_t header[
-        kvz_rtp::frame::HEADER_SIZE_RTP      +
-        kvz_rtp::frame::HEADER_SIZE_HEVC_NAL +
-        kvz_rtp::frame::HEADER_SIZE_HEVC_FU  ] = { 0 };
+#ifdef __linux__
+    /* all fragment units share the same RTP and HEVC NAL headers
+     * but because there's three different types of FU headers (and because the state 
+     * of each buffer must last between calls) we must allocate space for three FU headers */
+    std::vector<std::pair<size_t, uint8_t *>> buffers;
 
+    uint8_t header[
+        kvz_rtp::frame::HEADER_SIZE_RTP +
+        kvz_rtp::frame::HEADER_SIZE_HEVC_NAL ] = { 0 };
+
+    /* create common RTP and NAL headers */
     conn->fill_rtp_header(header, timestamp);
 
-    header[kvz_rtp::frame::HEADER_SIZE_RTP + 0]  = 49 << 1;            /* fragmentation unit */
-    header[kvz_rtp::frame::HEADER_SIZE_RTP + 1]  = 1;                  /* TID */
-    header[kvz_rtp::frame::HEADER_SIZE_RTP +
+    header[kvz_rtp::frame::HEADER_SIZE_RTP + 0]  = 49 << 1; /* fragmentation unit */
+    header[kvz_rtp::frame::HEADER_SIZE_RTP + 1]  = 1;       /* TID */
+
+    /* one for first frag, one for all the middle frags and one for the last frag */
+    uint8_t fu_headers[3 * kvz_rtp::frame::HEADER_SIZE_HEVC_FU] = {
+        (uint8_t)((1 << 7) | nalType),
+        nalType,
+        (uint8_t)((1 << 6) | nalType)
+    };
+
+    buffers.push_back(std::make_pair(sizeof(header),  header));
+    buffers.push_back(std::make_pair(sizeof(uint8_t), &fu_headers[0]));
+    buffers.push_back(std::make_pair(MAX_PAYLOAD,     nullptr));
+
+    data_pos   = kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
+    data_left -= kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
+
+    while (data_left > MAX_PAYLOAD) {
+        /* buffers.at(2).first  = MAX_PAYLOAD; */
+        buffers.at(2).second = &data[data_pos];
+
+        if ((ret = kvz_rtp::sender::enqueue_message(conn, buffers)) != RTP_OK)
+            return ret;
+
+        data_pos  += MAX_PAYLOAD;
+        data_left -= MAX_PAYLOAD;
+
+        /* from now on, use the FU header meant for middle frags */
+        buffers.at(1).second = &fu_headers[1];
+    }
+
+    /* use the FU header meant for  */
+    buffers.at(1).second = &fu_headers[2];
+
+    buffers.at(2).first  = data_left;
+    buffers.at(2).second = &data[data_pos];
+
+    ret = kvz_rtp::sender::enqueue_message(conn, buffers);
+    ret = kvz_rtp::sender::flush_message_queue(conn);
+#else
+    const size_t HEADER_SIZE =
+        kvz_rtp::frame::HEADER_SIZE_RTP +
+        kvz_rtp::frame::HEADER_SIZE_HEVC_NAL +
+        kvz_rtp::frame::HEADER_SIZE_HEVC_FU;
+
+    uint8_t buffer[HEADER_SIZE + MAX_PAYLOAD];
+
+    conn->fill_rtp_header(buffer, timestamp);
+
+    buffer[kvz_rtp::frame::HEADER_SIZE_RTP + 0]  = 49 << 1;            /* fragmentation unit */
+    buffer[kvz_rtp::frame::HEADER_SIZE_RTP + 1]  = 1;                  /* TID */
+    buffer[kvz_rtp::frame::HEADER_SIZE_RTP +
            kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] = (1 << 7) | nalType; /* Start bit + NAL type */
 
     data_pos   = kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
     data_left -= kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
 
     while (data_left > MAX_PAYLOAD) {
-        if ((ret = kvz_rtp::sender::write_frame(conn, header, sizeof(header), &data[data_pos], MAX_PAYLOAD)) != RTP_OK)
-            goto end;
+        memcpy(&buffer[HEADER_SIZE], &data[data_pos], MAX_PAYLOAD);
+
+        if ((ret = kvz_rtp::sender::write_payload(conn, buffer, sizeof(buffer))) != RTP_OK)
+            return RTP_GENERIC_ERROR;
 
         data_pos  += MAX_PAYLOAD;
         data_left -= MAX_PAYLOAD;
 
         /* Clear extra bits */
-        header[kvz_rtp::frame::HEADER_SIZE_RTP +
-               kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] = nalType;
+        buffer[kvz_rtp::frame::HEADER_SIZE_RTP +
+                   kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] = nalType;
     }
 
-    header[kvz_rtp::frame::HEADER_SIZE_RTP +
-           kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] |= (1 << 6); /* set E bit to signal end of data */
+    buffer[kvz_rtp::frame::HEADER_SIZE_RTP +
+               kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] |= (1 << 6); /* set E bit to signal end of data */
 
-    ret = kvz_rtp::sender::write_frame(conn, header, sizeof(header), &data[data_pos], data_left);
+    memcpy(&buffer[HEADER_SIZE], &data[data_pos], data_left);
 
-end:
+    ret = kvz_rtp::sender::write_payload(conn, buffer, HEADER_SIZE + data_left);
+#endif
+
     return ret;
 }
 
@@ -197,7 +257,6 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
                         kvz_rtp::frame::HEADER_SIZE_HEVC_FU;
 
         for (auto& i : fu.second) {
-
             memcpy(&ret->payload[ptr], i->payload + offset, i->payload_len);
             ptr += i->payload_len;
         }
