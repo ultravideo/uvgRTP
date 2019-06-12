@@ -26,7 +26,7 @@ inline const char *className(const std::string& prettyFunction)
 	fprintf(stderr, "[RTPLIB][%s][%s::%s] " fmt "\n", level, \
             className(__PRETTY_FUNCTION__), __func__, ##__VA_ARGS__)
 
-#ifndef __NDEBUG__
+#ifndef NDEBUG
 #define LOG_DEBUG(fmt,  ...) debug(LOG_LEVEL_DEBUG,  fmt, ##__VA_ARGS__)
 #else
 #define LOG_DEBUG(fmt,  ...) ;
@@ -39,7 +39,7 @@ inline const char *className(const std::string& prettyFunction)
 #undef LOG_DEBUG
 #define LOG_DEBUG(fmt,  ...) ;
 #else
-#define LOG_ERROR(fmt,  ...) debug(LOG_LEVEL_ERROR,  fmt, ##__VA_ARGS__)
-#define LOG_WARN(fmt,   ...) debug(LOG_LEVEL_WARN,   fmt, ##__VA_ARGS__)
-#define LOG_INFO(fmt,   ...) debug(LOG_LEVEL_INFO,   fmt, ##__VA_ARGS__)
+#define LOG_ERROR(fmt,  ...) debug(LOG_LEVEL_ERROR, fmt, ##__VA_ARGS__)
+#define LOG_WARN(fmt,   ...) debug(LOG_LEVEL_WARN,  fmt, ##__VA_ARGS__)
+#define LOG_INFO(fmt,   ...) debug(LOG_LEVEL_INFO,  fmt, ##__VA_ARGS__)
 #endif
