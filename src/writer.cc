@@ -40,45 +40,26 @@ kvz_rtp::writer::~writer()
 
 rtp_error_t kvz_rtp::writer::start()
 {
-#ifdef _WIN32
-    if ((socket_ = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
-#else
-    if ((socket_ = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-#endif
-        LOG_ERROR("Creating socket failed: %s", strerror(errno));
-        return RTP_SOCKET_ERROR;
-    }
+    rtp_error_t ret;
+
+    if ((ret = socket_.init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
+        return ret;
 
     /* if source port is not 0, writer should be bind to that port so that outgoing packet
      * has a correct source port (important for hole punching purposes) */
     if (src_port_ != 0) {
         int enable = 1;
 
-        if (setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int)) < 0) {
-            LOG_ERROR("Failed to set socket options: %s", strerror(errno));
-            return RTP_GENERIC_ERROR;
-        }
+        if ((ret = socket_.setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int))) != RTP_OK)
+            return ret;
 
         LOG_DEBUG("Binding to port %d (source port)", src_port_);
 
-        sockaddr_in addr_in;
-
-        memset(&addr_in, 0, sizeof(addr_in));
-        addr_in.sin_family = AF_INET;
-        addr_in.sin_addr.s_addr = htonl(INADDR_ANY);
-        addr_in.sin_port = htons(src_port_);
-
-        if (bind(socket_, (struct sockaddr *) &addr_in, sizeof(addr_in)) < 0) {
-            LOG_ERROR("Binding failed: %s", strerror(errno));
-            return RTP_BIND_ERROR;
-        }
+        if ((ret = socket_.bind(AF_INET, INADDR_ANY, src_port_)) != RTP_OK)
+            return ret;
     }
 
-    memset(&addr_out_, 0, sizeof(addr_out_));
-    addr_out_.sin_family = AF_INET;
-
-    inet_pton(AF_INET, dst_addr_.c_str(), &addr_out_.sin_addr);
-    addr_out_.sin_port = htons((uint16_t)dst_port_);
+    addr_out_ = socket_.create_sockaddr(AF_INET, dst_addr_, dst_port_);
 
     return RTP_OK;
 }

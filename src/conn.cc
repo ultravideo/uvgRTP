@@ -2,17 +2,20 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #endif
+
 #include <cstring>
 #include <iostream>
 
 #include "conn.hh"
+#include "debug.hh"
 #include "rtp_hevc.hh"
 #include "rtp_opus.hh"
 #include "util.hh"
 
 kvz_rtp::connection::connection(bool reader):
     config_(nullptr),
-    reader_(reader)
+    reader_(reader),
+    socket_()
 {
     rtp_sequence_  = 45175;
     rtp_ssrc_      = 0x72b644;
@@ -21,11 +24,6 @@ kvz_rtp::connection::connection(bool reader):
 
 kvz_rtp::connection::~connection()
 {
-#ifdef __linux__
-    close(socket_);
-#else
-    /* TODO: close socket a la windows */
-#endif
 }
 
 void kvz_rtp::connection::set_payload(rtp_format_t fmt)
@@ -63,11 +61,12 @@ uint8_t kvz_rtp::connection::get_payload() const
     return rtp_payload_;
 }
 
-#ifdef _WIN32
-SOCKET kvz_rtp::connection::get_socket() const
-#else
-int    kvz_rtp::connection::get_socket() const
-#endif
+kvz_rtp::socket_t kvz_rtp::connection::get_raw_socket() const
+{
+    return socket_.get_raw_socket();
+}
+
+kvz_rtp::socket kvz_rtp::connection::get_socket() const
 {
     return socket_;
 }

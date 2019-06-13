@@ -4,6 +4,7 @@
 
 #include "conn.hh"
 #include "frame.hh"
+#include "socket.hh"
 
 namespace kvz_rtp {
     class reader : public connection {

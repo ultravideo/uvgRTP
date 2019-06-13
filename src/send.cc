@@ -16,33 +16,6 @@
 #include "util.hh"
 #include "writer.hh"
 
-static rtp_error_t __internal_write(kvz_rtp::connection *conn, uint8_t *buf, size_t buf_len, int flags)
-{
-    if (!buf || buf_len == 0)
-        return RTP_INVALID_VALUE;
-
-    kvz_rtp::writer *writer = dynamic_cast<kvz_rtp::writer *>(conn);
-
-#ifdef __linux__
-    sockaddr_in out_addr = writer->get_out_address();
-
-    if (sendto(conn->get_socket(), buf, buf_len, flags, (struct sockaddr *)&out_addr, sizeof(out_addr)) == -1)
-        return RTP_SEND_ERROR;
-
-#else
-    DWORD sent_bytes;
-    WSABUF data_buf;
-
-    data_buf.buf = (char *)buf;
-    data_buf.len = buf_len;
-
-    if (WSASend((SOCKET)conn->get_socket(), &data_buf, 1, &sent_bytes, flags, NULL, NULL) == -1)
-        return RTP_SEND_ERROR;
-#endif
-
-    return RTP_OK;
-}
-
 rtp_error_t kvz_rtp::sender::write_payload(kvz_rtp::connection *conn, uint8_t *payload, size_t payload_len)
 {
     if (!conn)
@@ -56,7 +29,7 @@ rtp_error_t kvz_rtp::sender::write_payload(kvz_rtp::connection *conn, uint8_t *p
 
     conn->incRTPSequence(1);
 
-    return __internal_write(conn, payload, payload_len, 0);
+    return conn->get_socket().sendto(payload, payload_len, 0, NULL);
 }
 
 rtp_error_t kvz_rtp::sender::write_generic_header(kvz_rtp::connection *conn, uint8_t *header, size_t header_len)
@@ -70,9 +43,9 @@ rtp_error_t kvz_rtp::sender::write_generic_header(kvz_rtp::connection *conn, uin
 #endif
 
 #ifdef __linux__
-    return __internal_write(conn, header, header_len, MSG_MORE);
+    return conn->get_socket().sendto(header, header_len, MSG_MORE, NULL);
 #else
-    return __internal_write(conn, header, header_len, MSG_PARTIAL);
+    return conn->get_socket().sendto(header, header_len, MSG_PARTIAL, NULL);
 #endif
 }
 
@@ -132,8 +105,8 @@ rtp_error_t kvz_rtp::sender::write_frame(
     return ret;
 }
 
-#define MAX_CHUNK_COUNT 30
-#define MAX_MSG_COUNT   10
+#define MAX_CHUNK_COUNT 2000
+#define MAX_MSG_COUNT   1000
 
 static thread_local struct mmsghdr headers[MAX_MSG_COUNT];
 static thread_local struct msghdr messages[MAX_MSG_COUNT];
@@ -266,10 +239,12 @@ rtp_error_t kvz_rtp::sender::flush_message_queue(kvz_rtp::connection *conn)
         goto end;
     }
 
-    if (sendmmsg(conn->get_socket(), headers, hdr_ptr, 0) < 0) {
+    if (sendmmsg(conn->get_raw_socket(), headers, hdr_ptr, 0) < 0) {
         LOG_ERROR("Failed to flush the message queue!");
         ret = RTP_SEND_ERROR;
     }
+
+    LOG_DEBUG("full message took %d chunks and %d messages", chunk_ptr, msg_ptr);
 
 end:
     chunk_ptr = hdr_ptr = msg_ptr = 0;

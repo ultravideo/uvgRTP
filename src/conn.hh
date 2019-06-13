@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "frame.hh"
+#include "socket.hh"
 #include "util.hh"
 
 namespace kvz_rtp {
@@ -27,11 +28,9 @@ namespace kvz_rtp {
         uint16_t  get_sequence() const;
         uint32_t  get_ssrc() const;
         uint8_t   get_payload() const;
-#ifdef _WIN32
-        SOCKET    get_socket() const;
-#else
-        int       get_socket() const;
-#endif
+
+        socket   get_socket() const;
+        socket_t get_raw_socket() const;
 
         void set_payload(rtp_format_t fmt);
         void set_ssrc(uint32_t ssrc);
@@ -54,11 +53,8 @@ namespace kvz_rtp {
     protected:
         void *config_;
         uint32_t id_;
-#ifdef _WIN32
-        SOCKET socket_;
-#else
-        int socket_;
-#endif
+
+        kvz_rtp::socket socket_;
 
     private:
         /* TODO: should these be public so we could get rid of setters/getters */

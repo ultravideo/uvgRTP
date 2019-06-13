@@ -33,33 +33,20 @@ kvz_rtp::reader::~reader()
 
 rtp_error_t kvz_rtp::reader::start()
 {
-    LOG_INFO("Starting to listen to port %d", src_port_);
+    rtp_error_t ret;
 
-#ifdef _WIN32
-    if ((socket_ = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET)
-#else
-    if ((socket_ = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-#endif
-    {
-        LOG_ERROR("Failed to create socket: %s", strerror(errno));
-        return RTP_SOCKET_ERROR;
-    }
+    if ((ret = socket_.init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
+        return ret;
 
     int enable = 1;
-    if (setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int)) < 0)
-        perror("setsockopt(SO_REUSEADDR) failed");
 
-    sockaddr_in addrIn_;
+    if ((ret = socket_.setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int))) != RTP_OK)
+        return ret;
 
-    memset(&addrIn_, 0, sizeof(addrIn_));
-    addrIn_.sin_family = AF_INET;  
-    addrIn_.sin_addr.s_addr = htonl(INADDR_ANY);
-    addrIn_.sin_port = htons((uint16_t)src_port_);
+    LOG_DEBUG("Binding to port %d (source port)", src_port_);
 
-    if (bind(socket_, (struct sockaddr *) &addrIn_, sizeof(addrIn_)) < 0) {
-        LOG_ERROR("Failed to bind to port: %s", strerror(errno));
-        return RTP_BIND_ERROR;
-    }
+    if ((ret = socket_.bind(AF_INET, INADDR_ANY, src_port_)) != RTP_OK)
+        return ret;
 
     recv_buffer_len_ = MAX_PACKET;
 
@@ -142,99 +129,80 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
 {
     LOG_INFO("frameReceiver starting listening...");
 
-    sockaddr_in from_addr;
-    rtp_error_t err;
+    int nread = 0;
+    rtp_error_t ret;
+    kvz_rtp::socket socket = reader->get_socket();
     std::pair<size_t, std::vector<kvz_rtp::frame::rtp_frame *>> fu;
 
     while (reader->active()) {
-        int from_addr_size = sizeof(from_addr);
-        int32_t ret = recvfrom(reader->get_socket(),
-                               (char *)reader->get_recv_buffer(),
-                               reader->get_recv_buffer_len(),
-                               0, /* no flags */
-#ifdef _WIN32
-                               (SOCKADDR *)&from_addr,
-                               &from_addr_size
-#else
-                               (struct sockaddr *)&from_addr,
-                               (socklen_t *)&from_addr_size
-#endif
-                );
+        ret = socket.recvfrom(reader->get_recv_buffer(), reader->get_recv_buffer_len(), 0, &nread);
 
-        if (ret == -1) {
-#if _WIN32
-            int _error = WSAGetLastError();
-            if (_error != 10035)
-                std::cerr << "Socket error" << _error << std::endl;
-#else
-            perror("frameReceiver");
-#endif
+        if (ret != RTP_OK) {
+            LOG_ERROR("recvfrom failed! FrameReceiver cannot continue!");
             return;
+        }
+
+        uint8_t *inbuf = reader->get_recv_buffer();
+        auto *frame    = kvz_rtp::frame::alloc_frame(nread, kvz_rtp::frame::FRAME_TYPE_GENERIC);
+
+        if (!frame) {
+            LOG_ERROR("Failed to allocate RTP Frame!");
+            continue;
+        }
+
+        frame->marker    = (inbuf[1] & 0x80) ? 1 : 0;
+        frame->ptype     = (inbuf[1] & 0x7f);
+        frame->seq       = ntohs(*(uint16_t *)&inbuf[2]);
+        frame->timestamp = ntohl(*(uint32_t *)&inbuf[4]);
+        frame->ssrc      = ntohl(*(uint32_t *)&inbuf[8]);
+
+        if (nread - kvz_rtp::frame::HEADER_SIZE_RTP <= 0) {
+            LOG_WARN("Got an invalid payload of size %d", nread);
+            continue;
+        }
+
+        frame->data        = new uint8_t[nread];
+        frame->payload     = frame->data + kvz_rtp::frame::HEADER_SIZE_RTP;
+        frame->payload_len = nread - kvz_rtp::frame::HEADER_SIZE_RTP;
+        frame->total_len   = nread;
+
+        if (!frame->data) {
+            LOG_ERROR("Failed to allocate buffer for RTP frame!");
+            continue;
+        }
+
+        memcpy(frame->data, inbuf, nread);
+
+        switch (frame->ptype) {
+            case RTP_FORMAT_OPUS:
+                frame = kvz_rtp::opus::process_opus_frame(frame, fu, ret);
+                break;
+
+            case RTP_FORMAT_HEVC:
+                frame = kvz_rtp::hevc::process_hevc_frame(frame, fu, ret);
+                break;
+
+            case RTP_FORMAT_GENERIC:
+                frame = kvz_rtp::generic::process_generic_frame(frame, fu, ret);
+                break;
+
+            default:
+                LOG_WARN("Unrecognized RTP payload type %u", frame->ptype);
+                ret = RTP_INVALID_VALUE;
+                break;
+        }
+
+        if (ret == RTP_OK) {
+            LOG_DEBUG("returning frame!");
+
+            if (reader->recv_hook_installed())
+                reader->recv_hook(frame);
+            else
+                reader->add_outgoing_frame(frame);
+        } else if (ret == RTP_NOT_READY) {
+            LOG_DEBUG("received a fragmentation unit, unable return frame to user");
         } else {
-            LOG_DEBUG("got %d bytes", ret);
-
-            uint8_t *inbuf = reader->get_recv_buffer();
-            auto *frame    = kvz_rtp::frame::alloc_frame(ret, kvz_rtp::frame::FRAME_TYPE_GENERIC);
-
-            if (!frame) {
-                LOG_ERROR("Failed to allocate RTP Frame!");
-                continue;
-            }
-
-            frame->marker    = (inbuf[1] & 0x80) ? 1 : 0;
-            frame->ptype     = (inbuf[1] & 0x7f);
-            frame->seq       = ntohs(*(uint16_t *)&inbuf[2]);
-            frame->timestamp = ntohl(*(uint32_t *)&inbuf[4]);
-            frame->ssrc      = ntohl(*(uint32_t *)&inbuf[8]);
-
-            if (ret - kvz_rtp::frame::HEADER_SIZE_RTP <= 0) {
-                LOG_WARN("Got an invalid payload of size %d", ret);
-                continue;
-            }
-
-            frame->data        = new uint8_t[ret];
-            frame->payload     = frame->data + kvz_rtp::frame::HEADER_SIZE_RTP;
-            frame->payload_len = ret - kvz_rtp::frame::HEADER_SIZE_RTP;
-            frame->total_len   = ret;
-
-            if (!frame->data) {
-                LOG_ERROR("Failed to allocate buffer for RTP frame!");
-                continue;
-            }
-
-            memcpy(frame->data, inbuf, ret);
-
-            switch (frame->ptype) {
-                case RTP_FORMAT_OPUS:
-                    frame = kvz_rtp::opus::process_opus_frame(frame, fu, err);
-                    break;
-
-                case RTP_FORMAT_HEVC:
-                    frame = kvz_rtp::hevc::process_hevc_frame(frame, fu, err);
-                    break;
-
-                case RTP_FORMAT_GENERIC:
-                    frame = kvz_rtp::generic::process_generic_frame(frame, fu, err);
-                    break;
-
-                default:
-                    LOG_WARN("Unrecognized RTP payload type %u", frame->ptype);
-                    err = RTP_INVALID_VALUE;
-                    break;
-            }
-
-            if (err == RTP_OK) {
-                LOG_DEBUG("returning frame!");
-
-                if (reader->recv_hook_installed())
-                    reader->recv_hook(frame);
-                else
-                    reader->add_outgoing_frame(frame);
-            } else if (err == RTP_NOT_READY) {
-                LOG_DEBUG("received a fragmentation unit, unable return frame to user");
-            } else {
-                LOG_ERROR("Failed to process frame, error: %d", err);
-            }
+            LOG_ERROR("Failed to process frame, error: %d", ret);
         }
     }
 
