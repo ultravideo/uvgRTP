@@ -35,12 +35,17 @@ namespace kvz_rtp {
         void set_payload(rtp_format_t fmt);
         void set_ssrc(uint32_t ssrc);
 
-        /* TODO: this is awful! */
-        void incRTPSequence(uint16_t seq);
-        void incProcessedBytes(uint32_t nbytes);
-        void incOverheadBytes(uint32_t nbytes);
-        void incTotalBytes(uint32_t nbytes);
-        void incProcessedPackets(uint32_t npackets);
+        /* functions for increasing various RTP statistics
+         *
+         * overloaded functions without parameters increase the counter by 1*/
+        void inc_rtp_sequence(size_t n);
+        void inc_processed_bytes(size_t n);
+        void inc_overhead_bytes(size_t n);
+        void inc_total_bytes(size_t n);
+        void inc_processed_pkts(size_t n);
+
+        void inc_processed_pkts();
+        void inc_rtp_sequence();
 
         /* config set and get */
         void set_config(void *config);
@@ -57,18 +62,18 @@ namespace kvz_rtp {
         kvz_rtp::socket socket_;
 
     private:
-        /* TODO: should these be public so we could get rid of setters/getters */
         bool reader_;
 
-        // RTP
+        /* RTP */
         uint16_t rtp_sequence_;
         uint8_t  rtp_payload_;
         uint32_t rtp_ssrc_;
 
-        // Statistics
-        uint32_t processedBytes_;
-        uint32_t overheadBytes_;
-        uint32_t totalBytes_;
-        uint32_t processedPackets_;
+        /* statistics for RTCP reports */
+        size_t processed_bytes_;
+        size_t overhead_bytes_;
+        size_t total_bytes_;
+        size_t processed_pkts_;
+        size_t dropped_pkts_;
     };
 };

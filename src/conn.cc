@@ -14,8 +14,8 @@
 
 kvz_rtp::connection::connection(bool reader):
     config_(nullptr),
-    reader_(reader),
-    socket_()
+    socket_(),
+    reader_(reader)
 {
     rtp_sequence_  = 45175;
     rtp_ssrc_      = 0x72b644;
@@ -71,29 +71,39 @@ kvz_rtp::socket kvz_rtp::connection::get_socket() const
     return socket_;
 }
 
-void kvz_rtp::connection::incRTPSequence(uint16_t seq)
+void kvz_rtp::connection::inc_rtp_sequence(size_t n)
 {
-    rtp_sequence_ += seq;
+    rtp_sequence_ += n;
 }
 
-void kvz_rtp::connection::incProcessedBytes(uint32_t nbytes)
+void kvz_rtp::connection::inc_processed_bytes(size_t n)
 {
-    processedBytes_ += nbytes;
+    processed_bytes_ += n;
 }
 
-void kvz_rtp::connection::incOverheadBytes(uint32_t nbytes)
+void kvz_rtp::connection::inc_overhead_bytes(size_t n)
 {
-    overheadBytes_ += nbytes;
+    overhead_bytes_ += n;
 }
 
-void kvz_rtp::connection::incTotalBytes(uint32_t nbytes)
+void kvz_rtp::connection::inc_total_bytes(size_t n)
 {
-    totalBytes_ += nbytes;
+    total_bytes_ += n;
 }
 
-void kvz_rtp::connection::incProcessedPackets(uint32_t npackets)
+void kvz_rtp::connection::inc_processed_pkts(size_t n)
 {
-    processedPackets_ += npackets;
+    processed_pkts_ += n;
+}
+
+void kvz_rtp::connection::inc_processed_pkts()
+{
+    processed_pkts_++;
+}
+
+void kvz_rtp::connection::inc_rtp_sequence()
+{
+    rtp_sequence_++;
 }
 
 void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)

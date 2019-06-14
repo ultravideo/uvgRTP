@@ -21,13 +21,10 @@ rtp_error_t kvz_rtp::sender::write_payload(kvz_rtp::connection *conn, uint8_t *p
     if (!conn)
         return RTP_INVALID_VALUE;
 
-#ifdef __RTP_STATS__
-    conn->incProcessedBytes(payload_len);
-    conn->incTotalBytes(payload_len);
-    conn->incProcessedPackets(1);
-#endif
-
-    conn->incRTPSequence(1);
+    conn->inc_processed_bytes(payload_len);
+    conn->inc_total_bytes(payload_len);
+    conn->inc_processed_pkts();
+    conn->inc_rtp_sequence();
 
     return conn->get_socket().sendto(payload, payload_len, 0, NULL);
 }
@@ -37,10 +34,8 @@ rtp_error_t kvz_rtp::sender::write_generic_header(kvz_rtp::connection *conn, uin
     if (!conn)
         return RTP_INVALID_VALUE;
 
-#ifdef __RTP_STATS__
-    conn->incOverheadBytes(header_len);
-    conn->incTotalBytes(header_len);
-#endif
+    conn->inc_overhead_bytes(header_len);
+    conn->inc_total_bytes(header_len);
 
 #ifdef __linux__
     return conn->get_socket().sendto(header, header_len, MSG_MORE, NULL);
@@ -150,7 +145,8 @@ rtp_error_t kvz_rtp::sender::enqueue_message(
     msg_ptr   += 1;
     hdr_ptr   += 1;
 
-    conn->incRTPSequence(1);
+    conn->inc_rtp_sequence();
+    conn->inc_processed_pkts();
 
     return RTP_OK;
 }
@@ -186,7 +182,8 @@ rtp_error_t kvz_rtp::sender::enqueue_message(
     msg_ptr++;
     hdr_ptr++;
 
-    conn->incRTPSequence(1);
+    conn->inc_rtp_sequence();
+    conn->inc_processed_pkts();
 
     return RTP_OK;
 }
@@ -224,7 +221,8 @@ rtp_error_t kvz_rtp::sender::enqueue_message(
     msg_ptr   += 1;
     hdr_ptr   += 1;
 
-    conn->incRTPSequence(1);
+    conn->inc_rtp_sequence();
+    conn->inc_processed_pkts();
 
     return RTP_OK;
 }
