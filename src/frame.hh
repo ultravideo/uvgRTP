@@ -41,6 +41,7 @@ namespace kvz_rtp {
         rtp_frame *alloc_frame(size_t payload_len, frame_type_t type);
 
         /* TODO:  */
+        kvz_rtp::rtp_frame *alloc_rtp_frame(size_t payload_len, rtp_type_t type);
         rtp_error_t dealloc_frame(kvz_rtp::frame::rtp_frame *frame);
 
         /* get pointer to rtp header start or nullptr if frame is invalid */

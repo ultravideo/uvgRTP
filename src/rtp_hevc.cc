@@ -239,7 +239,7 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
         goto error;
     }
 
-    ret = kvz_rtp::frame::alloc_frame(fu.first + 2, kvz_rtp::frame::FRAME_TYPE_GENERIC);
+    ret = kvz_rtp::frame::alloc_rtp_frame(fu.first + 2, kvz_rtp::frame::FRAME_TYPE_GENERIC);
 
     /* copy the RTP header of the first fragmentation unit and use it for the full frame */
     memcpy(frame->data, fu.second.at(0)->data, kvz_rtp::frame::HEADER_SIZE_RTP);

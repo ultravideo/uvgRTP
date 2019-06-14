@@ -143,7 +143,7 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
         }
 
         uint8_t *inbuf = reader->get_recv_buffer();
-        auto *frame    = kvz_rtp::frame::alloc_frame(nread, kvz_rtp::frame::FRAME_TYPE_GENERIC);
+        auto *frame    = kvz_rtp::frame::alloc_rtp_frame(nread, kvz_rtp::frame::FRAME_TYPE_GENERIC);
 
         if (!frame) {
             LOG_ERROR("Failed to allocate RTP Frame!");

@@ -3,7 +3,7 @@
 #include "send.hh"
 #include "util.hh"
 
-kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_frame(size_t payload_len, frame_type_t type)
+kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame(size_t payload_len, rtp_type_t type)
 {
     if (payload_len == 0 || INVALID_FRAME_TYPE(type)) {
         LOG_ERROR("Invalid parameter!");
