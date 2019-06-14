@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <cstdio>
 
 const int MAX_PACKET      = 65536;
 const int MAX_PAYLOAD     = 1000;
