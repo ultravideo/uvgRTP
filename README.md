@@ -10,11 +10,23 @@ make -j8
 sudo make install
 ```
 
-you can also use QtCreator to build the library
+You can also use QtCreator to build the library
 
-# defines
+# Defines
 
-if you want to disable all prints (the rtp lib is quite verbose), use `__RTP_SILENT__`
+Use  `__RTP_SILENT__` to disable all prints
+
+Use `NDEBUG` to disable `LOG_DEBUG` which is the most verbose level of logging
+
+# Return values
+
+There are two classes of return values: positive and negative
+
+Negative return value means that some condition that the library can't handle happened and the function failed (out of memory, invalid parameters etc.)
+
+Positive return value means that the function call didn't succeed but didn't fail completely either. Examples of these would be polling a socket timeouts when listening to incoming RTCP status reports (`RTP_INTERRUPTED`) or when `process_hevc_frame()` returns `RTP_NOT_READY` when the full frame has not been received.
+
+When an operation succeeds, `RTP_OK` is returned
 
 # API
 
