@@ -4,6 +4,19 @@
 #include <cstddef>
 #include <cstdio>
 
+#ifdef _WIN32
+
+/* TODO: make sure this works on windows too! */
+
+#define PACKED_STRUCT_WIN(name) \
+    __pragma(pack(push, 1)) \
+    struct name \
+    __pragma(pack(pop))
+#else
+#define PACKED_STRUCT(name) \
+    struct __attribute__((packed)) name
+#endif
+
 const int MAX_PACKET      = 65536;
 const int MAX_PAYLOAD     = 1000;
 

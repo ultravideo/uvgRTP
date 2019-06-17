@@ -46,7 +46,7 @@ namespace kvz_rtp {
             rtp_type_t type;
         };
 
-        struct rtcp_header {
+        PACKED_STRUCT(rtcp_header) {
             uint8_t version:2;
             uint8_t padding:1;
             uint8_t report_cnt:5;
@@ -54,7 +54,7 @@ namespace kvz_rtp {
             uint16_t length;
         };
 
-        struct rtcp_sender_info {
+        PACKED_STRUCT(rtcp_sender_info) {
             uint32_t ntp_msw;
             uint32_t ntp_lsw;
             uint32_t rtp_timestamp;
@@ -62,7 +62,7 @@ namespace kvz_rtp {
             uint32_t byte_count;
         };
 
-        struct rtcp_report_block {
+        PACKED_STRUCT(rtcp_report_block) {
             uint32_t ssrc;
             uint8_t  fraction_lost;
             uint32_t cumulative_pkt_lost:24;
@@ -72,13 +72,13 @@ namespace kvz_rtp {
             uint32_t delay_since_last_sr;
         };
 
-        struct rtcp_sender_frame {
+        PACKED_STRUCT(rtcp_sender_frame) {
             struct rtcp_header header;
             struct rtcp_sender_info s_info;
             struct rtcp_report_block blocks[0];
         };
 
-        struct rtcp_receiver_frame {
+        PACKED_STRUCT(rtcp_receiver_frame) {
             struct rtcp_header header;
             struct rtcp_report_block blocks[0];
         };
