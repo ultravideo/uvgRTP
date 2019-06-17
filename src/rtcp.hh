@@ -61,7 +61,7 @@ namespace kvz_rtp {
 
         /* Return reference to kvz_rtp::socket of the RTCP instance
          * Used by the rtcp_runner to listen to incoming  */
-        kvz_rtp::socket& get_socket();
+        const kvz_rtp::socket& get_socket() const;
 
         /* Somebody joined the multicast group the owner of this RTCP instance is part of
          * Add it to RTCP participant list so we can start listening for reports 

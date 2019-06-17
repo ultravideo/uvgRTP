@@ -127,7 +127,7 @@ bool kvz_rtp::rtcp::receiver() const
     return receiver_;
 }
 
-kvz_rtp::socket& kvz_rtp::rtcp::get_socket()
+const kvz_rtp::socket& kvz_rtp::rtcp::get_socket() const
 {
     return socket_;
 }
