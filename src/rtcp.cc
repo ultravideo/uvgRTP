@@ -280,7 +280,7 @@ rtp_error_t kvz_rtp::rtcp::generate_report()
     return generate_sender_report();
 }
 
-rtp_error_t kvz_rtp::rtcp::handle_sender_packet(kvz_rtp::frame::rtcp_sender_frame *report)
+rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *report)
 {
     if (!report)
         return RTP_INVALID_VALUE;
@@ -295,7 +295,7 @@ rtp_error_t kvz_rtp::rtcp::handle_sender_packet(kvz_rtp::frame::rtcp_sender_fram
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::rtcp::handle_receiver_packet(kvz_rtp::frame::rtcp_receiver_frame *report)
+rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *report)
 {
     if (!report)
         return RTP_INVALID_VALUE;
@@ -330,6 +330,8 @@ rtp_error_t kvz_rtp::rtcp::handle_app_packet(kvz_rtp::frame::rtcp_app_frame *app
 
 rtp_error_t kvz_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
 {
+    (void)size;
+
     kvz_rtp::frame::rtcp_header *header = (kvz_rtp::frame::rtcp_header *)buffer;
 
     if (header->version != 2) {
@@ -352,11 +354,11 @@ rtp_error_t kvz_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
 
     switch (header->pkt_type) {
         case kvz_rtp::frame::FRAME_TYPE_SR:
-            ret = handle_sender_packet((kvz_rtp::frame::rtcp_sender_frame *)buffer);
+            ret = handle_sender_report_packet((kvz_rtp::frame::rtcp_sender_frame *)buffer);
             break;
 
         case kvz_rtp::frame::FRAME_TYPE_RR:
-            ret = handle_receiver_packet((kvz_rtp::frame::rtcp_receiver_frame *)buffer);
+            ret = handle_receiver_report_packet((kvz_rtp::frame::rtcp_receiver_frame *)buffer);
             break;
 
         case kvz_rtp::frame::FRAME_TYPE_SDES:
