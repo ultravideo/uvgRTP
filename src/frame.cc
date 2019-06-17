@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include "debug.hh"
 #include "frame.hh"
 #include "send.hh"
@@ -61,6 +63,90 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtp_frame *frame)
         delete frame->data;
 
     LOG_DEBUG("Deallocating frame, type %u", frame->type);
+
+    delete frame;
+    return RTP_OK;
+}
+
+kvz_rtp::frame::rtcp_sender_frame *kvz_rtp::frame::alloc_rtcp_sender_frame(size_t nblocks)
+{
+    if (nblocks == 0) {
+        LOG_ERROR("Cannot send 0 report blocks!");
+        rtp_errno = RTP_INVALID_VALUE;
+        return nullptr;
+    }
+
+    size_t total_size =
+        sizeof(rtcp_header) +
+        sizeof(rtcp_sender_info) +
+        sizeof(rtcp_report_block) * nblocks;
+
+    auto *frame = (kvz_rtp::frame::rtcp_sender_frame *)malloc(total_size);
+
+    if (!frame) {
+        LOG_ERROR("Failed to allocate memory for RTCP sender report");
+        rtp_errno = RTP_MEMORY_ERROR;
+        return nullptr;
+    }
+
+    frame->header.version    = 2;
+    frame->header.padding    = 0;
+    frame->header.pkt_type   = kvz_rtp::frame::FRAME_TYPE_RR;
+    frame->header.length     = total_size;
+    frame->header.report_cnt = nblocks;
+
+    /* caller fills these */
+    memset(&frame->s_info, 0, sizeof(rtcp_sender_info));
+    memset(frame->blocks,  0, sizeof(rtcp_report_block) * nblocks);
+
+    return frame;
+}
+
+kvz_rtp::frame::rtcp_receiver_frame *kvz_rtp::frame::alloc_rtcp_receiver_frame(size_t nblocks)
+{
+    if (nblocks == 0) {
+        LOG_ERROR("Cannot send 0 report blocks!");
+        rtp_errno = RTP_INVALID_VALUE;
+        return nullptr;
+    }
+
+    size_t total_size =
+        sizeof(rtcp_header) +
+        sizeof(rtcp_report_block) * nblocks;
+
+    auto *frame = (kvz_rtp::frame::rtcp_receiver_frame *)malloc(total_size);
+
+    if (!frame) {
+        LOG_ERROR("Failed to allocate memory for RTCP sender report");
+        rtp_errno = RTP_MEMORY_ERROR;
+        return nullptr;
+    }
+
+    frame->header.version    = 2;
+    frame->header.padding    = 0;
+    frame->header.pkt_type   = kvz_rtp::frame::FRAME_TYPE_RR;
+    frame->header.length     = total_size;
+    frame->header.report_cnt = nblocks;
+
+    /* caller fills these */
+    memset(frame->blocks, 0, sizeof(rtcp_report_block) * nblocks);
+
+    return frame;
+}
+
+rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtcp_sender_frame *frame)
+{
+    if (!frame)
+        return RTP_INVALID_VALUE;
+
+    delete frame;
+    return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtcp_receiver_frame *frame)
+{
+    if (!frame)
+        return RTP_INVALID_VALUE;
 
     delete frame;
     return RTP_OK;
