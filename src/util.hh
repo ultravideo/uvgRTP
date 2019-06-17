@@ -24,6 +24,7 @@ typedef enum RTP_FORMAT {
     RTP_FORMAT_OPUS    = 97,
 } rtp_format_t;
 
+extern thread_local rtp_error_t rtp_errno;
 
 static inline void hex_dump(uint8_t *buf, size_t len)
 {

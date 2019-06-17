@@ -6,7 +6,7 @@
 kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame(size_t payload_len, rtp_type_t type)
 {
     if (payload_len == 0 || INVALID_FRAME_TYPE(type)) {
-        LOG_ERROR("Invalid parameter!");
+        rtp_errno = RTP_INVALID_VALUE;
         return nullptr;
     }
 
@@ -33,12 +33,12 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame(size_t payload_len, r
     }
 
     if ((frame = new kvz_rtp::frame::rtp_frame) == nullptr) {
-        LOG_ERROR("Failed to allocate RTP frame!");
+        rtp_errno = RTP_MEMORY_ERROR;
         return nullptr;
     }
 
     if ((frame->data = new uint8_t[payload_len + header_len]) == nullptr) {
-        LOG_ERROR("Failed to allocate paylod for RTP frame");
+        rtp_errno = RTP_MEMORY_ERROR;
         delete frame;
         return nullptr;
     }
@@ -69,32 +69,40 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtp_frame *frame)
 /* get pointer to RTP Header or nullptr if frame is invalid */
 uint8_t *kvz_rtp::frame::get_rtp_header(kvz_rtp::frame::rtp_frame *frame)
 {
-    if (!frame)
+    if (!frame) {
+        rtp_errno = RTP_INVALID_VALUE;
         return nullptr;
+    }
 
     return frame->data;
 }
 
 uint8_t *kvz_rtp::frame::get_opus_header(kvz_rtp::frame::rtp_frame *frame)
 {
-    if (!frame || !frame->data || frame->type != FRAME_TYPE_OPUS)
+    if (!frame || !frame->data || frame->type != FRAME_TYPE_OPUS) {
+        rtp_errno = RTP_INVALID_VALUE;
         return nullptr;
+    }
 
     return frame->data + HEADER_SIZE_RTP;
 }
 
 uint8_t *kvz_rtp::frame::get_hevc_rtp_header(kvz_rtp::frame::rtp_frame *frame)
 {
-    if (!frame || !frame->data || frame->type != FRAME_TYPE_HEVC_FU)
+    if (!frame || !frame->data || frame->type != FRAME_TYPE_HEVC_FU) {
+        rtp_errno = RTP_INVALID_VALUE;
         return nullptr;
+    }
 
     return frame->data + HEADER_SIZE_RTP;
 }
 
 uint8_t *kvz_rtp::frame::get_hevc_fu_header(kvz_rtp::frame::rtp_frame *frame)
 {
-    if (!frame || !frame->data || frame->type != FRAME_TYPE_HEVC_FU)
+    if (!frame || !frame->data || frame->type != FRAME_TYPE_HEVC_FU) {
+        rtp_errno = RTP_INVALID_VALUE;
         return nullptr;
+    }
 
     return frame->data + HEADER_SIZE_RTP + HEADER_SIZE_HEVC_NAL;
 }

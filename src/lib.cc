@@ -4,6 +4,8 @@
 #include "conn.hh"
 #include "lib.hh"
 
+thread_local rtp_error_t rtp_errno;
+
 kvz_rtp::context::context()
 {
 #ifdef _WIN32
