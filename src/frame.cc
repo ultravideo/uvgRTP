@@ -81,7 +81,7 @@ kvz_rtp::frame::rtcp_sender_frame *kvz_rtp::frame::alloc_rtcp_sender_frame(size_
         sizeof(rtcp_sender_info) +
         sizeof(rtcp_report_block) * nblocks;
 
-    auto *frame = (kvz_rtp::frame::rtcp_sender_frame *)malloc(total_size);
+    auto *frame = (kvz_rtp::frame::rtcp_sender_frame *)new uint8_t[total_size];
 
     if (!frame) {
         LOG_ERROR("Failed to allocate memory for RTCP sender report");
@@ -114,7 +114,7 @@ kvz_rtp::frame::rtcp_receiver_frame *kvz_rtp::frame::alloc_rtcp_receiver_frame(s
         sizeof(rtcp_header) +
         sizeof(rtcp_report_block) * nblocks;
 
-    auto *frame = (kvz_rtp::frame::rtcp_receiver_frame *)malloc(total_size);
+    auto *frame = (kvz_rtp::frame::rtcp_receiver_frame *)new uint8_t[total_size];
 
     if (!frame) {
         LOG_ERROR("Failed to allocate memory for RTCP sender report");
