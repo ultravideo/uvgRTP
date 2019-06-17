@@ -110,7 +110,7 @@ namespace kvz_rtp {
         uint8_t *get_opus_header(rtp_frame *frame);
 
         /* get pointer to hevc rtp header start or nullptr if frame is invalid */
-        uint8_t *get_hevc_rtp_header(rtp_frame *frame);
+        uint8_t *get_hevc_nal_header(rtp_frame *frame);
 
         /* get pointer to hevc fu header start or nullptr if frame is invalid */
         uint8_t *get_hevc_fu_header(rtp_frame *frame);

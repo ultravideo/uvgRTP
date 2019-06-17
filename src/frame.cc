@@ -173,7 +173,7 @@ uint8_t *kvz_rtp::frame::get_opus_header(kvz_rtp::frame::rtp_frame *frame)
     return frame->data + HEADER_SIZE_RTP;
 }
 
-uint8_t *kvz_rtp::frame::get_hevc_rtp_header(kvz_rtp::frame::rtp_frame *frame)
+uint8_t *kvz_rtp::frame::get_hevc_nal_header(kvz_rtp::frame::rtp_frame *frame)
 {
     if (!frame || !frame->data || frame->type != FRAME_TYPE_HEVC_FU) {
         rtp_errno = RTP_INVALID_VALUE;
