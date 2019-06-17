@@ -57,9 +57,9 @@ namespace kvz_rtp {
         PACKED_STRUCT(rtcp_sender_info) {
             uint32_t ntp_msw;
             uint32_t ntp_lsw;
-            uint32_t rtp_timestamp;
-            uint32_t pkt_count;
-            uint32_t byte_count;
+            uint32_t rtp_ts;
+            uint32_t pkt_cnt;
+            uint32_t byte_cnt;
         };
 
         PACKED_STRUCT(rtcp_report_block) {

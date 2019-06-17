@@ -24,6 +24,10 @@ kvz_rtp::connection::connection(bool reader):
 
 kvz_rtp::connection::~connection()
 {
+    if (rtcp_) {
+        rtcp_->terminate();
+        delete rtcp_;
+    }
 }
 
 void kvz_rtp::connection::set_payload(rtp_format_t fmt)
@@ -76,34 +80,59 @@ void kvz_rtp::connection::inc_rtp_sequence(size_t n)
     rtp_sequence_ += n;
 }
 
+void kvz_rtp::connection::inc_rtp_sequence()
+{
+    rtp_sequence_++;
+}
+
 void kvz_rtp::connection::inc_processed_bytes(size_t n)
 {
-    processed_bytes_ += n;
+    rtcp_->sender_inc_processed_bytes(n);
 }
 
 void kvz_rtp::connection::inc_overhead_bytes(size_t n)
 {
-    overhead_bytes_ += n;
+    rtcp_->sender_inc_overhead_bytes(n);
 }
 
 void kvz_rtp::connection::inc_total_bytes(size_t n)
 {
-    total_bytes_ += n;
+    rtcp_->sender_inc_total_bytes(n);
 }
 
 void kvz_rtp::connection::inc_processed_pkts(size_t n)
 {
-    processed_pkts_ += n;
+    rtcp_->sender_inc_processed_pkts(n);
 }
 
 void kvz_rtp::connection::inc_processed_pkts()
 {
-    processed_pkts_++;
+    rtcp_->sender_inc_processed_pkts(1);
 }
 
-void kvz_rtp::connection::inc_rtp_sequence()
+void kvz_rtp::connection::inc_processed_bytes(uint32_t ssrc, size_t n)
 {
-    rtp_sequence_++;
+    rtcp_->receiver_inc_processed_bytes(ssrc, n);
+}
+
+void kvz_rtp::connection::inc_overhead_bytes(uint32_t ssrc, size_t n)
+{
+    rtcp_->receiver_inc_overhead_bytes(ssrc, n);
+}
+
+void kvz_rtp::connection::inc_total_bytes(uint32_t ssrc, size_t n)
+{
+    rtcp_->receiver_inc_total_bytes(ssrc, n);
+}
+
+void kvz_rtp::connection::inc_processed_pkts(uint32_t ssrc, size_t n)
+{
+    rtcp_->receiver_inc_processed_pkts(ssrc, n);
+}
+
+void kvz_rtp::connection::inc_processed_pkts(uint32_t ssrc)
+{
+    rtcp_->receiver_inc_processed_pkts(ssrc, 1);
 }
 
 void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
@@ -117,4 +146,14 @@ void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
     *(uint16_t *)&buffer[2] = htons(rtp_sequence_);
     *(uint32_t *)&buffer[4] = htonl(timestamp);
     *(uint32_t *)&buffer[8] = htonl(rtp_ssrc_);
+}
+
+rtp_error_t kvz_rtp::connection::create_rtcp(std::string dst_addr, int dst_port, int src_port)
+{
+    if ((rtcp_ = new kvz_rtp::rtcp(dst_addr, dst_port, src_port, reader_)) == nullptr) {
+        LOG_ERROR("Failed to allocate RTCP instance!");
+        return RTP_MEMORY_ERROR;
+    }
+
+    return rtcp_->start();
 }

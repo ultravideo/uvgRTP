@@ -13,12 +13,12 @@
 #include <vector>
 
 #include "frame.hh"
+#include "rtcp.hh"
 #include "socket.hh"
 #include "util.hh"
 
 namespace kvz_rtp {
     class connection {
-
     public:
         connection(bool reader);
         virtual ~connection();
@@ -35,17 +35,25 @@ namespace kvz_rtp {
         void set_payload(rtp_format_t fmt);
         void set_ssrc(uint32_t ssrc);
 
-        /* functions for increasing various RTP statistics
+        /* Functions for increasing various RTP statistics
+         * Overloaded functions without parameters increase the counter by 1
          *
-         * overloaded functions without parameters increase the counter by 1*/
+         * Functions that take SSRC are for updating receiver statistics
+         *
+         * TODO: jitter! */
         void inc_rtp_sequence(size_t n);
         void inc_processed_bytes(size_t n);
         void inc_overhead_bytes(size_t n);
         void inc_total_bytes(size_t n);
         void inc_processed_pkts(size_t n);
-
         void inc_processed_pkts();
         void inc_rtp_sequence();
+
+        void inc_processed_bytes(uint32_t ssrc, size_t n);
+        void inc_overhead_bytes(uint32_t ssrc, size_t n);
+        void inc_total_bytes(uint32_t ssrc, size_t n);
+        void inc_processed_pkts(uint32_t ssrc, size_t n);
+        void inc_processed_pkts(uint32_t ssrc);
 
         /* config set and get */
         void set_config(void *config);
@@ -55,11 +63,20 @@ namespace kvz_rtp {
          * caller must make sure that the buffer is at least 12 bytes long */
         void fill_rtp_header(uint8_t *buffer, uint32_t timestamp);
 
+        /* Create RTCP instance for this connection
+         *
+         * This instance listens to src_port for incoming RTCP reports and sends
+         * repots about this session to dst_addr:dst_port every N seconds (see RFC 3550) */
+        rtp_error_t create_rtcp(std::string dst_addr, int dst_port, int src_port);
+
+        rtp_error_t add_rtcp_participant(kvz_rtp::connection *conn);
+
     protected:
         void *config_;
         uint32_t id_;
 
         kvz_rtp::socket socket_;
+        kvz_rtp::rtcp *rtcp_;
 
     private:
         bool reader_;
@@ -68,12 +85,5 @@ namespace kvz_rtp {
         uint16_t rtp_sequence_;
         uint8_t  rtp_payload_;
         uint32_t rtp_ssrc_;
-
-        /* statistics for RTCP reports */
-        size_t processed_bytes_;
-        size_t overhead_bytes_;
-        size_t total_bytes_;
-        size_t processed_pkts_;
-        size_t dropped_pkts_;
     };
 };

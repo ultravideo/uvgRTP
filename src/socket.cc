@@ -139,6 +139,9 @@ rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, i
         ::recvfrom(socket_, buf, buf_len, flags, (struct sockaddr *)&from_addr, (socklen_t *)&from_addr_size);
 
     if (ret == -1) {
+        if (errno == EAGAIN)
+            return RTP_INTERRUPTED;
+
         LOG_ERROR("recvfrom failed: %s", strerror(errno));
         return RTP_GENERIC_ERROR;
     }
