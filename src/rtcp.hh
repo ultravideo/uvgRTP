@@ -63,9 +63,6 @@ namespace kvz_rtp {
          *
          * These routines will convert all necessary fields to network byte order
          *
-         * NOTE: The "parameter" frame should NOT be used after calling this function.
-         * These routines will deallocate the frame after it's sent
-         *
          * Return RTP_OK on success
          * Return RTP_INVALID_VALUE if "frame" is somehow invalid
          * Return RTP_SEND_ERROR if sending "frame" did not succeed */

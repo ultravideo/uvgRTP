@@ -219,7 +219,6 @@ rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender
     }
 
     rtp_error_t ret = socket_.sendto((uint8_t *)frame, len, 0, NULL);
-    kvz_rtp::frame::dealloc_frame(frame);
 
     return ret;
 }
@@ -246,7 +245,6 @@ rtp_error_t kvz_rtp::rtcp::send_receiver_report_packet(kvz_rtp::frame::rtcp_rece
     }
 
     rtp_error_t ret = socket_.sendto((uint8_t *)frame, len, 0, NULL);
-    kvz_rtp::frame::dealloc_frame(frame);
 
     return ret;
 }
