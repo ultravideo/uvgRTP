@@ -99,7 +99,7 @@ void kvz_rtp::socket::set_sockaddr(sockaddr_in addr)
     addr_ = addr;
 }
 
-kvz_rtp::socket_t kvz_rtp::socket::get_raw_socket() const
+const kvz_rtp::socket_t& kvz_rtp::socket::get_raw_socket() const
 {
     return socket_;
 }
@@ -111,6 +111,9 @@ rtp_error_t kvz_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags, int
 #ifdef __linux__
     if ((nsend = ::sendto(socket_, buf, buf_len, flags, (const struct sockaddr *)&addr_, sizeof(addr_))) == -1) {
         LOG_ERROR("Failed to send data: %s", strerror(errno));
+
+        if (bytes_sent)
+            *bytes_sent = -1;
         return RTP_SEND_ERROR;
     }
 #else
@@ -123,6 +126,9 @@ rtp_error_t kvz_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags, int
     if (WSASend(socket_, &data_buf, 1, &sent_bytes, flags, NULL, NULL) == -1) {
         /* TODO: winsock specific error message */
         LOG_ERROR("Failed to send data!");
+
+        if (bytes_sent)
+            *bytes_sent = -1;
         return RTP_SEND_ERROR;
     }
 #endif
@@ -143,10 +149,16 @@ rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, i
         ::recvfrom(socket_, buf, buf_len, flags, (struct sockaddr *)&from_addr, (socklen_t *)&from_addr_size);
 
     if (ret == -1) {
-        if (errno == EAGAIN)
+        if (errno == EAGAIN) {
+            if (bytes_read)
+                bytes_read = 0;
             return RTP_INTERRUPTED;
+        }
 
         LOG_ERROR("recvfrom failed: %s", strerror(errno));
+
+        if (bytes_read)
+            *bytes_read = -1;
         return RTP_GENERIC_ERROR;
     }
 #else
@@ -155,6 +167,9 @@ rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, i
 
     if (ret == -1) {
         LOG_ERROR("recvfrom failed: %d", WSAGetLastError());
+
+        if (bytes_read)
+            *bytes_read = -1;
         return RTP_GENERIC_ERROR;
     }
 #endif
