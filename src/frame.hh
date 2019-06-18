@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "util.hh"
 
 #define INVALID_FRAME_TYPE(ft) (ft < FRAME_TYPE_GENERIC || ft > FRAME_TYPE_HEVC_FU)
@@ -85,25 +87,50 @@ namespace kvz_rtp {
             struct rtcp_report_block blocks[0];
         };
 
-        struct rtcp_sdes_frame {
-            int value;
+        PACKED_STRUCT(rtcp_sdes_item) {
+            uint8_t type;
+            uint8_t length;
+            uint8_t data[0];
         };
 
-        struct rtcp_bye_frame {
-            int value;
+        PACKED_STRUCT(rtcp_sdes_frame) {
+            struct rtcp_header header;
+            uint32_t ssrc;
+            struct rtcp_sdes_item items[0];
         };
 
-        struct rtcp_app_frame {
-            int value;
+        PACKED_STRUCT(rtcp_bye_frame) {
+            struct rtcp_header header;
+            uint32_t ssrc[0];
+        };
+
+        PACKED_STRUCT(rtcp_app_frame) {
+            uint8_t version:2;
+            uint8_t padding:1;
+            uint8_t pkt_subtype:5;
+            uint8_t pkt_type;
+            uint16_t length;
+
+            uint32_t ssrc;
+            uint8_t name[4];
+            uint8_t payload[0];
         };
 
         rtp_frame           *alloc_rtp_frame(size_t payload_len, rtp_type_t type);
-        rtcp_sender_frame   *alloc_rtcp_sender_frame(size_t numblocks);
-        rtcp_receiver_frame *alloc_rtcp_receiver_frame(size_t numblocks);
+        rtcp_app_frame      *alloc_rtcp_app_frame(std::string name, uint8_t subtype, size_t payload_len);
+        rtcp_sdes_frame     *alloc_rtcp_sdes_frame(size_t ssrc_count, size_t total_len);
+        rtcp_receiver_frame *alloc_rtcp_receiver_frame(size_t nblocks);
+        rtcp_sender_frame   *alloc_rtcp_sender_frame(size_t nblocks);
+        rtcp_bye_frame      *alloc_rtcp_bye_frame(size_t ssrc_count);
 
         rtp_error_t dealloc_frame(rtp_frame *frame);
+
+        /* TODO: template??? */
         rtp_error_t dealloc_frame(rtcp_sender_frame *frame);
         rtp_error_t dealloc_frame(rtcp_receiver_frame *frame);
+        rtp_error_t dealloc_frame(rtcp_sdes_frame *frame);
+        rtp_error_t dealloc_frame(rtcp_bye_frame *frame);
+        rtp_error_t dealloc_frame(rtcp_app_frame *frame);
 
         /* get pointer to rtp header start or nullptr if frame is invalid */
         uint8_t *get_rtp_header(rtp_frame *frame);
