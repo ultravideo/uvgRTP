@@ -89,11 +89,11 @@ kvz_rtp::frame::rtcp_sender_frame *kvz_rtp::frame::alloc_rtcp_sender_frame(size_
         return nullptr;
     }
 
-    frame->header.version    = 2;
-    frame->header.padding    = 0;
-    frame->header.pkt_type   = kvz_rtp::frame::FRAME_TYPE_RR;
-    frame->header.length     = total_size;
-    frame->header.report_cnt = nblocks;
+    frame->header.version  = 2;
+    frame->header.padding  = 0;
+    frame->header.pkt_type = kvz_rtp::frame::FRAME_TYPE_RR;
+    frame->header.length   = total_size;
+    frame->header.count    = nblocks;
 
     /* caller fills these */
     memset(&frame->s_info, 0, sizeof(rtcp_sender_info));
@@ -122,11 +122,11 @@ kvz_rtp::frame::rtcp_receiver_frame *kvz_rtp::frame::alloc_rtcp_receiver_frame(s
         return nullptr;
     }
 
-    frame->header.version    = 2;
-    frame->header.padding    = 0;
-    frame->header.pkt_type   = kvz_rtp::frame::FRAME_TYPE_RR;
-    frame->header.length     = total_size;
-    frame->header.report_cnt = nblocks;
+    frame->header.version  = 2;
+    frame->header.padding  = 0;
+    frame->header.pkt_type = kvz_rtp::frame::FRAME_TYPE_RR;
+    frame->header.length   = total_size;
+    frame->header.count    = nblocks;
 
     /* caller fills these */
     memset(frame->blocks, 0, sizeof(rtcp_report_block) * nblocks);
@@ -152,11 +152,11 @@ kvz_rtp::frame::rtcp_sdes_frame *kvz_rtp::frame::alloc_rtcp_sdes_frame(size_t ss
         return nullptr;
     }
 
-    frame->header.version    = 2;
-    frame->header.padding    = 0;
-    frame->header.pkt_type   = kvz_rtp::frame::FRAME_TYPE_SDES;
-    frame->header.length     = total_size;
-    frame->header.report_cnt = ssrc_count;
+    frame->header.version  = 2;
+    frame->header.padding  = 0;
+    frame->header.pkt_type = kvz_rtp::frame::FRAME_TYPE_SDES;
+    frame->header.length   = total_size;
+    frame->header.count    = ssrc_count;
 
     /* caller fills these */
     memset(frame->items, 0, total_len);
@@ -181,11 +181,11 @@ kvz_rtp::frame::rtcp_bye_frame *kvz_rtp::frame::alloc_rtcp_bye_frame(size_t ssrc
         return nullptr;
     }
 
-    frame->header.version    = 2;
-    frame->header.padding    = 0;
-    frame->header.pkt_type   = kvz_rtp::frame::FRAME_TYPE_BYE;
-    frame->header.length     = total_size;
-    frame->header.report_cnt = ssrc_count;
+    frame->header.version  = 2;
+    frame->header.padding  = 0;
+    frame->header.pkt_type = kvz_rtp::frame::FRAME_TYPE_BYE;
+    frame->header.length   = total_size;
+    frame->header.count    = ssrc_count;
 
     return frame;
 }

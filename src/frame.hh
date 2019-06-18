@@ -51,7 +51,7 @@ namespace kvz_rtp {
         PACKED_STRUCT(rtcp_header) {
             uint8_t version:2;
             uint8_t padding:1;
-            uint8_t report_cnt:5;
+            uint8_t count:5;
             uint8_t pkt_type;
             uint16_t length;
         };

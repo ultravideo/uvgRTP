@@ -209,7 +209,7 @@ rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender
     frame->s_info.byte_cnt = htonl(frame->s_info.byte_cnt);
 
     /* report block(s) */
-    for (size_t i = 0; i < frame->header.report_cnt; ++i) {
+    for (size_t i = 0; i < frame->header.count; ++i) {
         frame->blocks[i].last_seq = htonl(frame->blocks[i].last_seq);
         frame->blocks[i].jitter   = htonl(frame->blocks[i].jitter);
         frame->blocks[i].ssrc     = htonl(frame->blocks[i].ssrc);
@@ -236,7 +236,7 @@ rtp_error_t kvz_rtp::rtcp::send_receiver_report_packet(kvz_rtp::frame::rtcp_rece
     frame->sender_ssrc   = htonl(frame->sender_ssrc);
 
     /* report block(s) */
-    for (size_t i = 0; i < frame->header.report_cnt; ++i) {
+    for (size_t i = 0; i < frame->header.count; ++i) {
         frame->blocks[i].last_seq = htonl(frame->blocks[i].last_seq);
         frame->blocks[i].jitter   = htonl(frame->blocks[i].jitter);
         frame->blocks[i].ssrc     = htonl(frame->blocks[i].ssrc);
@@ -356,7 +356,7 @@ rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_send
     if (!report)
         return RTP_INVALID_VALUE;
 
-    if (report->header.report_cnt == 0) {
+    if (frame->header.count == 0) {
         LOG_ERROR("Receiver report cannot have 0 report blocks!");
         return RTP_INVALID_VALUE;
     }
@@ -371,7 +371,7 @@ rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_re
     if (!report)
         return RTP_INVALID_VALUE;
 
-    if (report->header.report_cnt == 0) {
+    if (frame->header.count == 0) {
         LOG_ERROR("Receiver report cannot have 0 report blocks!");
         return RTP_INVALID_VALUE;
     }
