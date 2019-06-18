@@ -217,15 +217,15 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
         frame->blocks[ptr].ssrc = receiver.first;
 
         if (receiver.second->dropped_pkts) {
-            frame->blocks[ptr].fraction_lost =
+            frame->blocks[ptr].fraction =
                 receiver.second->processed_pkts / receiver.second->dropped_pkts;
         }
 
-        frame->blocks[ptr].cumulative_pkt_lost = receiver.second->dropped_pkts;
-        frame->blocks[ptr].highest_seq_recved  = 222; // TODO ???
-        frame->blocks[ptr].interraival_jitter  = 333; // TODO ???
-        frame->blocks[ptr].delay_since_last_sr = 555; // TODO ???
-        frame->blocks[ptr].last_sr             = 444; // TODO ???
+        frame->blocks[ptr].lost     = receiver.second->dropped_pkts;
+        frame->blocks[ptr].last_seq = 222; // TODO ???
+        frame->blocks[ptr].dlsr     = 555; // TODO jitter
+        frame->blocks[ptr].jitter   = 333; // TODO ???
+        frame->blocks[ptr].lsr      = 444; // TODO ???
 
         ptr++;
     }
@@ -247,22 +247,21 @@ rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
         return rtp_errno;
     }
 
-    rtp_error_t ret = RTP_OK;
-    size_t ptr      = 0;
+    size_t ptr = 0;
 
     for (auto& receiver : receiver_stats_) {
         frame->blocks[ptr].ssrc = receiver.first;
 
         if (receiver.second->dropped_pkts) {
-            frame->blocks[ptr].fraction_lost =
+            frame->blocks[ptr].fraction =
                 receiver.second->processed_pkts / receiver.second->dropped_pkts;
         }
 
-        frame->blocks[ptr].cumulative_pkt_lost = receiver.second->dropped_pkts;
-        frame->blocks[ptr].highest_seq_recved  = 222; // TODO ???
-        frame->blocks[ptr].interraival_jitter  = 333; // TODO ???
-        frame->blocks[ptr].delay_since_last_sr = 555; // TODO ???
-        frame->blocks[ptr].last_sr             = 444; // TODO ???
+        frame->blocks[ptr].lost     = receiver.second->dropped_pkts;
+        frame->blocks[ptr].last_seq = 222; // TODO ???
+        frame->blocks[ptr].dlsr     = 555; // TODO jitter
+        frame->blocks[ptr].jitter   = 333; // TODO ???
+        frame->blocks[ptr].lsr      = 444; // TODO ???
 
         ptr++;
     }
@@ -290,7 +289,7 @@ rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_send
         return RTP_INVALID_VALUE;
     }
 
-    /* TODO: what are we supposed to with this report? */
+    /* TODO: 6.4.4 Analyzing Sender and Receiver Reports */
 
     return RTP_OK;
 }
@@ -305,7 +304,7 @@ rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_re
         return RTP_INVALID_VALUE;
     }
 
-    /* TODO: what are we supposed to with this report? */
+    /* TODO: 6.4.4 Analyzing Sender and Receiver Reports */
 
     return RTP_OK;
 }

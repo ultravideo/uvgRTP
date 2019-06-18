@@ -64,12 +64,12 @@ namespace kvz_rtp {
 
         PACKED_STRUCT(rtcp_report_block) {
             uint32_t ssrc;
-            uint8_t  fraction_lost;
-            uint32_t cumulative_pkt_lost:24;
-            uint32_t highest_seq_recved;
-            uint32_t interraival_jitter;
-            uint32_t last_sr;
-            uint32_t delay_since_last_sr;
+            uint8_t  fraction;
+            int32_t  lost:24;
+            uint32_t last_seq;
+            uint32_t jitter;
+            uint32_t lsr;  /* last Sender Report */
+            uint32_t dlsr; /* delay since last Sender Report */
         };
 
         PACKED_STRUCT(rtcp_sender_frame) {
