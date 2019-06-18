@@ -25,6 +25,8 @@ kvz_rtp::socket::~socket()
 
 rtp_error_t kvz_rtp::socket::init(short family, int type, int protocol)
 {
+    assert(family == AF_INET);
+
 #ifdef _WIN32
     if ((socket_ = ::socket(family, type, protocol)) == INVALID_SOCKET) {
         LOG_ERROR("todo windows specific error message");
@@ -50,6 +52,8 @@ rtp_error_t kvz_rtp::socket::setsockopt(int level, int optname, const void *optv
 
 rtp_error_t kvz_rtp::socket::bind(short family, unsigned host, short port)
 {
+    assert(assert == AF_INET);
+
     sockaddr_in addr = create_sockaddr(family, host, port);
 
     if (::bind(socket_, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
