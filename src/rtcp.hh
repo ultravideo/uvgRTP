@@ -59,6 +59,22 @@ namespace kvz_rtp {
          * Return RTP_OK on success and RTP_ERROR on error */
         rtp_error_t handle_incoming_packet(uint8_t *buffer, size_t size);
 
+        /* Send "frame" to all participants
+         *
+         * These routines will convert all necessary fields to network byte order
+         *
+         * NOTE: The "parameter" frame should NOT be used after calling this function.
+         * These routines will deallocate the frame after it's sent
+         *
+         * Return RTP_OK on success
+         * Return RTP_INVALID_VALUE if "frame" is somehow invalid
+         * Return RTP_SEND_ERROR if sending "frame" did not succeed */
+        rtp_error_t send_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame);
+        rtp_error_t send_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *frame);
+        rtp_error_t send_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame);
+        rtp_error_t send_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame);
+        rtp_error_t send_app_packet(kvz_rtp::frame::rtcp_app_frame *frame);
+
         /* Return reference to kvz_rtp::socket of the RTCP instance
          * Used by the rtcp_runner to listen to incoming  */
         const kvz_rtp::socket& get_socket() const;
@@ -155,6 +171,7 @@ namespace kvz_rtp {
 
         /* statistics for RTCP Sender and Receiver Reports */
         struct statistics sender_stats_;
+
         std::map<uint32_t, struct statistics *> receiver_stats_;
         size_t num_receivers_;
     };

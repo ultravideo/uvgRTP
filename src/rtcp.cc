@@ -190,6 +190,85 @@ void kvz_rtp::rtcp::receiver_inc_processed_pkts(uint32_t sender_ssrc, size_t n)
     receiver_stats_[sender_ssrc]->processed_pkts += n;
 }
 
+rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame)
+{
+    if (!frame)
+        return RTP_INVALID_VALUE;
+
+    uint16_t len = frame->header.length;
+
+    /* RTCP header + SSRC */
+    frame->header.length = htons(frame->header.length);
+    frame->sender_ssrc   = htonl(frame->sender_ssrc);
+
+    /* RTCP Sender Info */
+    frame->s_info.ntp_msw  = htonl(frame->s_info.ntp_msw);
+    frame->s_info.ntp_lsw  = htonl(frame->s_info.ntp_lsw);
+    frame->s_info.rtp_ts   = htonl(frame->s_info.rtp_ts);
+    frame->s_info.pkt_cnt  = htonl(frame->s_info.pkt_cnt);
+    frame->s_info.byte_cnt = htonl(frame->s_info.byte_cnt);
+
+    /* report block(s) */
+    for (size_t i = 0; i < frame->header.report_cnt; ++i) {
+        frame->blocks[i].last_seq = htonl(frame->blocks[i].last_seq);
+        frame->blocks[i].jitter   = htonl(frame->blocks[i].jitter);
+        frame->blocks[i].ssrc     = htonl(frame->blocks[i].ssrc);
+        frame->blocks[i].lost     = htonl(frame->blocks[i].lost);
+        frame->blocks[i].dlsr     = htonl(frame->blocks[i].dlsr);
+        frame->blocks[i].lsr      = htonl(frame->blocks[i].lsr);
+    }
+
+    rtp_error_t ret = socket_.sendto((uint8_t *)frame, len, 0, NULL);
+    kvz_rtp::frame::dealloc_frame(frame);
+
+    return ret;
+}
+
+rtp_error_t kvz_rtp::rtcp::send_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *frame)
+{
+    if (!frame)
+        return RTP_INVALID_VALUE;
+
+    uint16_t len = frame->header.length;
+
+    /* rtcp header + ssrc */
+    frame->header.length = htons(frame->header.length);
+    frame->sender_ssrc   = htonl(frame->sender_ssrc);
+
+    /* report block(s) */
+    for (size_t i = 0; i < frame->header.report_cnt; ++i) {
+        frame->blocks[i].last_seq = htonl(frame->blocks[i].last_seq);
+        frame->blocks[i].jitter   = htonl(frame->blocks[i].jitter);
+        frame->blocks[i].ssrc     = htonl(frame->blocks[i].ssrc);
+        frame->blocks[i].lost     = htonl(frame->blocks[i].lost);
+        frame->blocks[i].dlsr     = htonl(frame->blocks[i].dlsr);
+        frame->blocks[i].lsr      = htonl(frame->blocks[i].lsr);
+    }
+
+    rtp_error_t ret = socket_.sendto((uint8_t *)frame, len, 0, NULL);
+    kvz_rtp::frame::dealloc_frame(frame);
+
+    return ret;
+}
+
+rtp_error_t kvz_rtp::rtcp::send_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame)
+{
+    (void)frame;
+    return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::rtcp::send_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame)
+{
+    (void)frame;
+    return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::rtcp::send_app_packet(kvz_rtp::frame::rtcp_app_frame *frame)
+{
+    (void)frame;
+    return RTP_OK;
+}
+
 rtp_error_t kvz_rtp::rtcp::generate_sender_report()
 {
     return RTP_OK;
@@ -204,7 +283,6 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
     }
 
     size_t ptr         = 0;
-    rtp_error_t ret    = RTP_OK;
     uint64_t timestamp = tv_to_ntp();
 
     frame->s_info.ntp_msw  = timestamp >> 32;
@@ -230,10 +308,7 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
         ptr++;
     }
 
-    ret = socket_.sendto((uint8_t *)frame, frame->header.length, 0, NULL);
-    kvz_rtp::frame::dealloc_frame(frame);
-
-    return ret;
+    return send_sender_report_packet(frame);
 }
 
 rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
@@ -266,10 +341,7 @@ rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
         ptr++;
     }
 
-    ret = socket_.sendto((uint8_t *)frame, frame->header.length, 0, NULL);
-    kvz_rtp::frame::dealloc_frame(frame);
-
-    return ret;
+    return send_receiver_report_packet(frame);
 }
 
 rtp_error_t kvz_rtp::rtcp::generate_report()
