@@ -104,12 +104,12 @@ const kvz_rtp::socket_t& kvz_rtp::socket::get_raw_socket() const
     return socket_;
 }
 
-rtp_error_t kvz_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
+rtp_error_t kvz_rtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
 {
     int nsend;
 
 #ifdef __linux__
-    if ((nsend = ::sendto(socket_, buf, buf_len, flags, (const struct sockaddr *)&addr_, sizeof(addr_))) == -1) {
+    if ((nsend = ::sendto(socket_, buf, buf_len, flags, (const struct sockaddr *)&addr, sizeof(addr_))) == -1) {
         LOG_ERROR("Failed to send data: %s", strerror(errno));
 
         if (bytes_sent)
@@ -137,6 +137,16 @@ rtp_error_t kvz_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags, int
         *bytes_sent = nsend;
 
     return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
+{
+    return __sendto(addr_, buf, buf_len, flags, bytes_sent);
+}
+
+rtp_error_t kvz_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
+{
+    return __sendto(addr, buf, buf_len, flags, bytes_sent);
 }
 
 rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)

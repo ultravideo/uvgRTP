@@ -54,6 +54,9 @@ namespace kvz_rtp {
              * Return RTP_SEND_ERROR on error and set "bytes_sent" to -1 */
             rtp_error_t sendto(uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
 
+            /* Same as the function above but this time remote address given as parameter */
+            rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
+
             /* Same as recvfrom(2), receives a message from remote
              *
              * "bytes_sent" may be NULL if the information is not needed
@@ -79,6 +82,9 @@ namespace kvz_rtp {
             void set_sockaddr(sockaddr_in addr);
 
         private:
+            /* helper function for sending UPD packets, see documentation for sendto() above */
+            rtp_error_t __sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
+
             socket_t socket_;
             sockaddr_in addr_;
     };
