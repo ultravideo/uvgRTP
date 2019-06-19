@@ -149,10 +149,11 @@ rtp_error_t kvz_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_
     return __sendto(addr, buf, buf_len, flags, bytes_sent);
 }
 
-rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
+rtp_error_t kvz_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags)
 {
-    sockaddr_in from_addr;
-    int from_addr_size = sizeof(from_addr);
+    return __sendto(addr, buf, buf_len, flags, NULL);
+}
+
 
 #ifdef __linux__
     int32_t ret =

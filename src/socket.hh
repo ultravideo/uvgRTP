@@ -48,13 +48,13 @@ namespace kvz_rtp {
             /* Same as send(2), send message to remote using "flags"
              * This function uses the internal addr_ object as remote address so it MUST be set
              *
-             * "bytes_sent" may be NULL if the information is not needed
-             *
              * Return RTP_OK on success and write the amount of bytes sent to "bytes_sent"
              * Return RTP_SEND_ERROR on error and set "bytes_sent" to -1 */
+            rtp_error_t sendto(uint8_t *buf, size_t buf_len, int flags);
             rtp_error_t sendto(uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
 
-            /* Same as the function above but this time remote address given as parameter */
+            /* Same as sendto() but the remote address given as parameter */
+            rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags);
             rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
 
             /* Same as recvfrom(2), receives a message from remote
