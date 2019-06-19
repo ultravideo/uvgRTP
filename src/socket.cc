@@ -1,6 +1,7 @@
 #ifdef _WIN32
 #else
 #include <unistd.h>
+#include <poll.h>
 #endif
 
 #include <cstring>
@@ -154,10 +155,16 @@ rtp_error_t kvz_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_
     return __sendto(addr, buf, buf_len, flags, NULL);
 }
 
+rtp_error_t kvz_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read)
+{
+    socklen_t *len_ptr = NULL;
+    socklen_t len      = sizeof(sockaddr_in);
+
+    if (sender)
+        len_ptr = &len;
 
 #ifdef __linux__
-    int32_t ret =
-        ::recvfrom(socket_, buf, buf_len, flags, (struct sockaddr *)&from_addr, (socklen_t *)&from_addr_size);
+    int32_t ret = ::recvfrom(socket_, buf, buf_len, flags, (struct sockaddr *)sender, len_ptr);
 
     if (ret == -1) {
         if (errno == EAGAIN) {
@@ -173,8 +180,7 @@ rtp_error_t kvz_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_
         return RTP_GENERIC_ERROR;
     }
 #else
-    int32_t ret =
-        ::recvfrom(socket_, buf, buf_len, flags (SOCKADDR *)&from_addr, &from_addr_size);
+    int32_t ret = ::recvfrom(socket_, buf, buf_len, flags (SOCKADDR *)sender, len_ptr);
 
     if (ret == -1) {
         LOG_ERROR("recvfrom failed: %d", WSAGetLastError());
@@ -189,4 +195,24 @@ rtp_error_t kvz_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_
         *bytes_read = ret;
 
     return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read)
+{
+    return __recvfrom(buf, buf_len, flags, sender, bytes_read);
+}
+
+rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
+{
+    return __recvfrom(buf, buf_len, flags, NULL, bytes_read);
+}
+
+rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender)
+{
+    return __recvfrom(buf, buf_len, flags, sender, NULL);
+}
+
+rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags)
+{
+    return __recvfrom(buf, buf_len, flags, NULL, NULL);
 }

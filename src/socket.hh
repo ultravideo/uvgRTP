@@ -48,6 +48,8 @@ namespace kvz_rtp {
             /* Same as send(2), send message to remote using "flags"
              * This function uses the internal addr_ object as remote address so it MUST be set
              *
+             * Write the amount of bytes sent to "bytes_sent" if it's not NULL
+             *
              * Return RTP_OK on success and write the amount of bytes sent to "bytes_sent"
              * Return RTP_SEND_ERROR on error and set "bytes_sent" to -1 */
             rtp_error_t sendto(uint8_t *buf, size_t buf_len, int flags);
@@ -59,12 +61,16 @@ namespace kvz_rtp {
 
             /* Same as recvfrom(2), receives a message from remote
              *
-             * "bytes_sent" may be NULL if the information is not needed
+             * Write the sender address to "sender" if it's not NULL
+             * Write the amount of bytes read to "bytes_read" if it's not NULL
              *
              * Return RTP_OK on success and write the amount of bytes sent to "bytes_sent"
              * Return RTP_INTERRUPTED if the call was interrupted due to timeout and set "bytes_sent" to 0
              * Return RTP_GENERIC_ERROR on error and set "bytes_sent" to -1 */
+            rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read);
+            rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender);
             rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int flags, int *bytes_read);
+            rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int flags);
 
             /* Create sockaddr_in object using the provided information
              * NOTE: "family" must be AF_INET */
@@ -84,6 +90,7 @@ namespace kvz_rtp {
         private:
             /* helper function for sending UPD packets, see documentation for sendto() above */
             rtp_error_t __sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
+            rtp_error_t __recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read);
 
             socket_t socket_;
             sockaddr_in addr_;
