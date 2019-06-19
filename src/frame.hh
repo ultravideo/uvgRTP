@@ -57,9 +57,9 @@ namespace kvz_rtp {
         };
 
         PACKED_STRUCT(rtcp_sender_info) {
-            uint32_t ntp_msw;
-            uint32_t ntp_lsw;
-            uint32_t rtp_ts;
+            uint32_t ntp_msw; /* NTP timestamp, most significant word */
+            uint32_t ntp_lsw; /* NTP timestamp, least significant word */
+            uint32_t rtp_ts;  /* RTP timestamp corresponding to same time as NTP */
             uint32_t pkt_cnt;
             uint32_t byte_cnt;
         };
@@ -95,7 +95,7 @@ namespace kvz_rtp {
 
         PACKED_STRUCT(rtcp_sdes_frame) {
             struct rtcp_header header;
-            uint32_t ssrc;
+            uint32_t sender_ssrc;
             struct rtcp_sdes_item items[0];
         };
 

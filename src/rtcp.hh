@@ -64,8 +64,8 @@ namespace kvz_rtp {
          * These routines will convert all necessary fields to network byte order
          *
          * Return RTP_OK on success
-         * Return RTP_INVALID_VALUE if "frame" is somehow invalid
-         * Return RTP_SEND_ERROR if sending "frame" did not succeed */
+         * Return RTP_INVALID_VALUE if "frame" is in some way invalid
+         * Return RTP_SEND_ERROR if sending "frame" did not succeed (see socket.hh for details) */
         rtp_error_t send_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame);
         rtp_error_t send_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *frame);
         rtp_error_t send_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame);

@@ -244,27 +244,61 @@ rtp_error_t kvz_rtp::rtcp::send_receiver_report_packet(kvz_rtp::frame::rtcp_rece
         frame->blocks[i].lsr      = htonl(frame->blocks[i].lsr);
     }
 
-    rtp_error_t ret = socket_.sendto((uint8_t *)frame, len, 0, NULL);
-
-    return ret;
-}
-
-rtp_error_t kvz_rtp::rtcp::send_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame)
-{
-    (void)frame;
-    return RTP_OK;
+    return socket_.sendto((uint8_t *)frame, len, 0, NULL);
 }
 
 rtp_error_t kvz_rtp::rtcp::send_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame)
 {
-    (void)frame;
-    return RTP_OK;
+    if (!frame)
+        return RTP_INVALID_VALUE;
+
+    if (frame->header.count == 0) {
+        LOG_WARN("Source Count in RTCP BYE packet is 0");
+    }
+
+    uint16_t len         = frame->header.length;
+    frame->header.length = htons(frame->header.length);
+
+    for (size_t i = 0; i < frame->header.count; ++i) {
+        frame->ssrc[i] = htonl(frame->ssrc[i]);
+    }
+
+    return socket_.sendto((uint8_t *)frame, len, 0, NULL);
+}
+
+rtp_error_t kvz_rtp::rtcp::send_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame)
+{
+    if (!frame)
+        return RTP_INVALID_VALUE;
+
+    if (frame->header.count == 0) {
+        LOG_WARN("");
+    }
+
+    uint16_t len = frame->header.length;
+
+    /* rtcp header + ssrc */
+    frame->header.length = htons(frame->header.length);
+    frame->sender_ssrc = htonl(frame->sender_ssrc);
+
+    for (size_t i = 0; i < frame->header.count; ++i) {
+        frame->items[i].length = htons(frame->items[i].length);
+    }
+
+    return socket_.sendto((uint8_t *)frame, len, 0, NULL);
 }
 
 rtp_error_t kvz_rtp::rtcp::send_app_packet(kvz_rtp::frame::rtcp_app_frame *frame)
 {
-    (void)frame;
-    return RTP_OK;
+    if (!frame)
+        return RTP_INVALID_VALUE;
+
+    uint16_t len = frame->length;
+
+    frame->length = htons(frame->length);
+    frame->ssrc   = htonl(frame->ssrc);
+
+    return socket_.sendto((uint8_t *)frame, len, 0, NULL);
 }
 
 rtp_error_t kvz_rtp::rtcp::generate_sender_report()
