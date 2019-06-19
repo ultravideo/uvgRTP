@@ -383,13 +383,13 @@ rtp_error_t kvz_rtp::rtcp::generate_report()
     return generate_sender_report();
 }
 
-rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *report)
+rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame)
 {
-    if (!report)
+    if (!frame)
         return RTP_INVALID_VALUE;
 
     if (frame->header.count == 0) {
-        LOG_ERROR("Receiver report cannot have 0 report blocks!");
+        LOG_ERROR("Sender Report cannot have 0 report blocks!");
         return RTP_INVALID_VALUE;
     }
 
@@ -398,13 +398,13 @@ rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_send
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *report)
+rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *frame)
 {
-    if (!report)
+    if (!frame)
         return RTP_INVALID_VALUE;
 
     if (frame->header.count == 0) {
-        LOG_ERROR("Receiver report cannot have 0 report blocks!");
+        LOG_ERROR("Receiver Report cannot have 0 report blocks!");
         return RTP_INVALID_VALUE;
     }
 
@@ -413,21 +413,39 @@ rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_re
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::rtcp::handle_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *sdes)
+rtp_error_t kvz_rtp::rtcp::handle_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame)
 {
-    (void)sdes;
+    if (!frame)
+        return RTP_INVALID_VALUE;
+
+    if (frame->header.count == 0) {
+        LOG_ERROR("SDES packet cannot contain 0 fields!");
+        return RTP_INVALID_VALUE;
+    }
+
+    /* TODO: What to do with SDES packet */
+
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::rtcp::handle_bye_packet(kvz_rtp::frame::rtcp_bye_frame *bye)
+rtp_error_t kvz_rtp::rtcp::handle_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame)
 {
-    (void)bye;
+    if (!frame)
+        return RTP_INVALID_VALUE;
+
+    /* TODO: remove this participant from the map */
+    /* TODO: implement participant map + support for multiple participants */
+
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::rtcp::handle_app_packet(kvz_rtp::frame::rtcp_app_frame *app)
+rtp_error_t kvz_rtp::rtcp::handle_app_packet(kvz_rtp::frame::rtcp_app_frame *frame)
 {
-    (void)app;
+    if (!frame)
+        return RTP_INVALID_VALUE;
+
+    /* TODO: What to do with APP packet */
+
     return RTP_OK;
 }
 
@@ -453,7 +471,7 @@ rtp_error_t kvz_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
         return RTP_INVALID_VALUE;
     }
 
-    rtp_error_t ret;
+    rtp_error_t ret = RTP_INVALID_VALUE;
 
     switch (header->pkt_type) {
         case kvz_rtp::frame::FRAME_TYPE_SR:
@@ -465,15 +483,15 @@ rtp_error_t kvz_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
             break;
 
         case kvz_rtp::frame::FRAME_TYPE_SDES:
-            /* ret = handle_sender_packet((kvz_rtp::frame::rtcp_sender_frame *)buffer); */
+            ret = handle_sdes_packet((kvz_rtp::frame::rtcp_sdes_frame *)buffer);
             break;
 
         case kvz_rtp::frame::FRAME_TYPE_BYE:
-            /* ret = handle_sender_packet((kvz_rtp::frame::rtcp_sender_frame *)buffer); */
+            ret = handle_bye_packet((kvz_rtp::frame::rtcp_bye_frame *)buffer);
             break;
 
         case kvz_rtp::frame::FRAME_TYPE_APP:
-            /* ret = handle_app_packet((kvz_rtp::frame::rtcp_sender_frame *)buffer); */
+            ret = handle_app_packet((kvz_rtp::frame::rtcp_app_frame *)buffer);
             break;
     }
 
@@ -505,8 +523,6 @@ void kvz_rtp::rtcp::rtcp_runner(kvz_rtp::rtcp *rtcp)
             LOG_ERROR("Failed to send RTCP status report!");
         }
     }
-
-    /* TODO: send bye */
 }
 
 uint64_t kvz_rtp::rtcp::tv_to_ntp()

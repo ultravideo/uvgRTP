@@ -43,15 +43,17 @@ namespace kvz_rtp {
 
         /* Handle different kinds of incoming packets 
          *
+         * These routines will convert the fields of "frame" from network to host byte order
+         *
          * Currently nothing's done with valid packets, at some point an API for
-         * querying these repots is implemented
+         * querying these reports is implemented
          *
          * Return RTP_OK on success and RTP_ERROR on error */
-        rtp_error_t handle_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *sender_report);
-        rtp_error_t handle_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *receiver_report);
-        rtp_error_t handle_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *sdes);
-        rtp_error_t handle_bye_packet(kvz_rtp::frame::rtcp_bye_frame *bye);
-        rtp_error_t handle_app_packet(kvz_rtp::frame::rtcp_app_frame *app);
+        rtp_error_t handle_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame);
+        rtp_error_t handle_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *frame);
+        rtp_error_t handle_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame);
+        rtp_error_t handle_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame);
+        rtp_error_t handle_app_packet(kvz_rtp::frame::rtcp_app_frame *frame);
 
         /* Handle incoming RTCP packet (first make sure it's a valid RTCP packet)
          * This function will call one of the above functions internally
