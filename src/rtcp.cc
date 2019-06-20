@@ -456,7 +456,10 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
         ptr++;
     }
 
-    return send_sender_report_packet(frame);
+    ret = kvz_rtp::rtcp::send_sender_report_packet(frame);
+    (void)kvz_rtp::frame::dealloc_frame(frame);
+
+    return RTP_OK;
 }
 
 rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
@@ -467,6 +470,8 @@ rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
         return RTP_NOT_READY;
     }
 
+    size_t ptr = 0;
+    rtp_error_t ret;
     kvz_rtp::frame::rtcp_receiver_frame *frame;
 
     if ((frame = kvz_rtp::frame::alloc_rtcp_receiver_frame(num_receivers_)) == nullptr) {
@@ -496,7 +501,10 @@ rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
         ptr++;
     }
 
-    return send_receiver_report_packet(frame);
+    ret = kvz_rtp::rtcp::send_receiver_report_packet(frame);
+    (void)kvz_rtp::frame::dealloc_frame(frame);
+
+    return RTP_OK;
 }
 
 rtp_error_t kvz_rtp::rtcp::generate_report()
