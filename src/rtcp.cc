@@ -12,11 +12,15 @@
 #include "rtcp.hh"
 #include "util.hh"
 
+/* TODO: Find the actual used sizes somehow? */
+#define UDP_HEADER_SIZE  8
+#define IP_HEADER_SIZE  20
+
 kvz_rtp::rtcp::rtcp(bool receiver):
     receiver_(receiver),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
-    we_sent_(0), avg_rtcp_pkt_pize_(0),
+    we_sent_(0), avg_rtcp_pkt_pize_(0), rtcp_pkt_count_(0),
     initial_(true), active_(false), num_receivers_(0)
 {
     cname_ = "hello"; //generate_cname();
@@ -83,6 +87,13 @@ void kvz_rtp::rtcp::add_participant(uint32_t ssrc)
     participants_[ssrc] = initial_peers_.back();
     initial_peers_.pop_back();
     num_receivers_++;
+}
+
+void kvz_rtp::rtcp::update_rtcp_bandwidth(size_t pkt_size)
+{
+    rtcp_pkt_count_++;
+    rtcp_byte_count_  += pkt_size + UDP_HEADER_SIZE + IP_HEADER_SIZE;
+    avg_rtcp_pkt_pize_ = rtcp_byte_count_ / rtcp_pkt_count_;
 }
 
 void kvz_rtp::rtcp::set_sender_ssrc(sockaddr_in& addr, uint32_t ssrc)
@@ -263,6 +274,8 @@ rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender
         if ((ret = p->socket->sendto(p->address, (uint8_t *)frame, len, 0)) != RTP_OK) {
             LOG_ERROR("sendto() failed!");
         }
+
+        update_rtcp_bandwidth(len);
     }
 
     return ret;
@@ -297,6 +310,8 @@ rtp_error_t kvz_rtp::rtcp::send_receiver_report_packet(kvz_rtp::frame::rtcp_rece
             LOG_ERROR("sendto() failed!");
             return ret;
         }
+
+        update_rtcp_bandwidth(len);
     }
 
     return ret;
@@ -327,6 +342,8 @@ rtp_error_t kvz_rtp::rtcp::send_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame
             LOG_ERROR("sendto() failed!");
             return ret;
         }
+
+        update_rtcp_bandwidth(len);
     }
 
     return ret;
@@ -360,6 +377,8 @@ rtp_error_t kvz_rtp::rtcp::send_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *fra
             LOG_ERROR("sendto() failed!");
             return ret;
         }
+
+        update_rtcp_bandwidth(len);
     }
 
     return ret;
@@ -376,11 +395,17 @@ rtp_error_t kvz_rtp::rtcp::send_app_packet(kvz_rtp::frame::rtcp_app_frame *frame
     frame->length = htons(frame->length);
     frame->ssrc   = htonl(frame->ssrc);
 
-    if (is_participant(ssrc))
-        return participants_[ssrc]->socket->sendto((uint8_t *)frame, len, 0, NULL);
+    if (!is_participant(ssrc)) {
+        LOG_ERROR("Unknown participant 0x%x", ssrc);
+        return RTP_INVALID_VALUE;
+    }
 
-    LOG_ERROR("Unknown participant 0x%x", ssrc);
-    return RTP_INVALID_VALUE;
+    rtp_error_t ret = participants_[ssrc]->socket->sendto((uint8_t *)frame, len, 0, NULL);
+
+    if (ret == RTP_OK)
+        update_rtcp_bandwidth(len);
+
+    return ret;
 }
 
 rtp_error_t kvz_rtp::rtcp::generate_sender_report()
@@ -571,6 +596,8 @@ rtp_error_t kvz_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
         LOG_ERROR("Invalid packet type (%u)!", header->pkt_type);
         return RTP_INVALID_VALUE;
     }
+
+    update_rtcp_bandwidth(size);
 
     rtp_error_t ret = RTP_INVALID_VALUE;
 

@@ -109,6 +109,12 @@ namespace kvz_rtp {
         /* Move participant from initial_peers_ to participants_ */
         void add_participant(uint32_t ssrc);
 
+        /* Update the RTCP bandwidth variables 
+         *
+         * "pkt_size" tells how much rtcp_byte_count_ 
+         * should be increased before calculating the new average */
+        void update_rtcp_bandwidth(size_t pkt_size);
+
         /* Functions for generating different kinds of reports. 
          * These functions will both generate the report and send it 
          *
@@ -139,10 +145,14 @@ namespace kvz_rtp {
         bool we_sent_;
 
         /* The average compound RTCP packet size, in octets,
-         * over all RTCP packets sent and received by this participant.  The
+         * over all RTCP packets sent and received by this participant. The
          * size includes lower-layer transport and network protocol headers
          * (e.g., UDP and IP) as explained in Section 6.2 */
         size_t avg_rtcp_pkt_pize_;
+
+        /* Number of RTCP packets and bytes sent and received by this participant */
+        size_t rtcp_pkt_count_;
+        size_t rtcp_byte_count_;
 
         /* Flag that is true if the application has not yet sent an RTCP packet. */
         bool initial_;
