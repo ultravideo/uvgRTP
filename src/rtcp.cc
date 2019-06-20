@@ -78,6 +78,13 @@ rtp_error_t kvz_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, i
     return RTP_OK;
 }
 
+void kvz_rtp::rtcp::add_participant(uint32_t ssrc)
+{
+    participants_[ssrc] = initial_peers_.back();
+    initial_peers_.pop_back();
+    num_receivers_++;
+}
+
 void kvz_rtp::rtcp::set_sender_ssrc(sockaddr_in& addr, uint32_t ssrc)
 {
     if (participants_.find(ssrc) != participants_.end()) {
@@ -86,11 +93,7 @@ void kvz_rtp::rtcp::set_sender_ssrc(sockaddr_in& addr, uint32_t ssrc)
     }
 
     /* TODO: this is not correct, find the sender from initial_peers_ (TODO: how??) */
-    /* TODO: this is too ugly code, rewrite */
-    auto peer = initial_peers_.back();
-    participants_[ssrc] = peer;
-    initial_peers_.pop_back();
-    num_receivers_++;
+    add_participant(ssrc);
 }
 
 rtp_error_t kvz_rtp::rtcp::start()
@@ -479,6 +482,19 @@ rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_re
 {
     if (!frame)
         return RTP_INVALID_VALUE;
+
+    frame->header.count = ntohs(frame->header.count);
+    frame->sender_ssrc  = ntohl(frame->sender_ssrc);
+
+    /* Receiver Reports are sent from participant that don't send RTP packets
+     * This means that the sender of this report is not in the participants_ map
+     * but rather in the initial_peers_ vector
+     *
+     * Check if that's the case and if so, move the entry from initial_peers_ to participants_ */
+    if (!is_participant(frame->sender_ssrc)) {
+        /* TODO: this is not correct way to do it! fix before multicast */
+        add_participant(frame->sender_ssrc);
+    }
 
     if (frame->header.count == 0) {
         LOG_ERROR("Receiver Report cannot have 0 report blocks!");

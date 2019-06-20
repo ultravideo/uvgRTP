@@ -106,6 +106,9 @@ namespace kvz_rtp {
          * from this sender and if not, create new entry to receiver_stats_ map */
         bool is_participant(uint32_t ssrc);
 
+        /* Move participant from initial_peers_ to participants_ */
+        void add_participant(uint32_t ssrc);
+
         /* Functions for generating different kinds of reports. 
          * These functions will both generate the report and send it 
          *
