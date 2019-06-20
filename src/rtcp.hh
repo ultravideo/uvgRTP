@@ -14,7 +14,7 @@ namespace kvz_rtp {
 
     class rtcp {
     public:
-        rtcp(bool receiver);
+        rtcp(uint32_t ssrc, bool receiver);
         ~rtcp();
 
         /* start the RTCP runner thread
@@ -162,9 +162,12 @@ namespace kvz_rtp {
          * which stops the rtcp runner and RTCP BYE message to all participants */
         bool active_;
 
+        /* Copy of our own current SSRC */
+        uint32_t ssrc_;
+
         struct statistics {
             uint32_t sent_pkts;   /* Number of sent RTP packets */
-            uint32_t sent_bytes;  /* RTP header size not included */
+            uint32_t sent_bytes;  /* Number of sent bytes excluding RTP Header */
             uint16_t highest_seq; /* Highest sequence number received */
             uint16_t cycles_cnt;  /* Number of sequence number cycles */
 

@@ -16,7 +16,7 @@
 #define UDP_HEADER_SIZE  8
 #define IP_HEADER_SIZE  20
 
-kvz_rtp::rtcp::rtcp(bool receiver):
+kvz_rtp::rtcp::rtcp(uint32_t ssrc, bool receiver):
     receiver_(receiver),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
@@ -24,6 +24,7 @@ kvz_rtp::rtcp::rtcp(bool receiver):
     initial_(true), active_(false), num_receivers_(0)
 {
     cname_ = "hello"; //generate_cname();
+    ssrc_  = ssrc;
 
     memset(&sender_stats, 0, sizeof(sender_stats));
 }
@@ -45,6 +46,8 @@ rtp_error_t kvz_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, i
 
     if ((p = new struct participant) == nullptr)
         return RTP_MEMORY_ERROR;
+
+    memset(&p->stats, 0, sizeof(struct statistics));
 
     if ((p->socket = new kvz_rtp::socket()) == nullptr)
         return RTP_MEMORY_ERROR;
@@ -423,15 +426,17 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
 
     size_t ptr         = 0;
     uint64_t timestamp = tv_to_ntp();
+    rtp_error_t ret    = RTP_GENERIC_ERROR;
 
+    frame->header.count    = num_receivers_;
+    frame->sender_ssrc     = ssrc_;
     frame->s_info.ntp_msw  = timestamp >> 32;
     frame->s_info.ntp_lsw  = timestamp & 0xffffffff;
     frame->s_info.rtp_ts   = 3; /* TODO: what timestamp is this? */
     frame->s_info.pkt_cnt  = sender_stats.sent_pkts;
     frame->s_info.byte_cnt = sender_stats.sent_bytes;
 
-    /* TODO: is this correct?? 
-     * what information should we sent here?? */
+    LOG_DEBUG("Sender Report from 0x%x has %u blocks", ssrc_, num_receivers_);
 
     for (auto& participant : participants_) {
         frame->blocks[ptr].ssrc = participant.first;
@@ -464,10 +469,10 @@ rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
         return rtp_errno;
     }
 
-    size_t ptr = 0;
+    frame->header.count = num_receivers_;
+    frame->sender_ssrc  = ssrc_;
 
-    /* TODO: is this correct?? 
-     * what information should we sent here?? */
+    LOG_DEBUG("Receiver Report from 0x%x has %u blocks", ssrc_, num_receivers_);
 
     for (auto& participant : participants_) {
         frame->blocks[ptr].ssrc = participant.first;
@@ -516,8 +521,8 @@ rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_re
     if (!frame)
         return RTP_INVALID_VALUE;
 
-    frame->header.count = ntohs(frame->header.count);
-    frame->sender_ssrc  = ntohl(frame->sender_ssrc);
+    frame->header.length = ntohs(frame->header.length);
+    frame->sender_ssrc   = ntohl(frame->sender_ssrc);
 
     /* Receiver Reports are sent from participant that don't send RTP packets
      * This means that the sender of this report is not in the participants_ map
