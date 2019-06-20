@@ -152,12 +152,6 @@ namespace kvz_rtp {
          * which stops the rtcp runner and RTCP BYE message to all participants */
         bool active_;
 
-        /* send_addr_:send_port_ is used for sending reports to remote
-         * recv_port_ is used for receiving reports */
-        std::string send_addr_;
-        int send_port_;
-        int recv_port_;
-
         struct statistics {
             uint32_t sent_pkts;   /* Number of sent RTP packets */
             uint32_t sent_bytes;  /* RTP header size not included */

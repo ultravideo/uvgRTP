@@ -13,11 +13,11 @@
 #include "util.hh"
 
 kvz_rtp::rtcp::rtcp(bool receiver):
+    receiver_(receiver),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
-    we_sent_(0), avg_rtcp_pkt_pize_(0), initial_(true),
-    active_(false), send_addr_(""), send_port_(0), recv_port_(0),
-    num_receivers_(0), receiver_(receiver)
+    we_sent_(0), avg_rtcp_pkt_pize_(0),
+    initial_(true), active_(false), num_receivers_(0)
 {
     cname_ = "hello"; //generate_cname();
 
@@ -87,6 +87,8 @@ void kvz_rtp::rtcp::add_participant(uint32_t ssrc)
 
 void kvz_rtp::rtcp::set_sender_ssrc(sockaddr_in& addr, uint32_t ssrc)
 {
+    (void)addr;
+
     if (participants_.find(ssrc) != participants_.end()) {
         LOG_ERROR("SSRC clash detected, must be resolved!");
         return;
@@ -224,7 +226,7 @@ rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender
     if (!frame)
         return RTP_INVALID_VALUE;
 
-    rtp_error_t ret;
+    rtp_error_t ret = RTP_OK;
     std::vector<uint32_t> ssrcs;
     uint16_t len = frame->header.length;
 
@@ -262,6 +264,8 @@ rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender
             LOG_ERROR("sendto() failed!");
         }
     }
+
+    return ret;
 }
 
 rtp_error_t kvz_rtp::rtcp::send_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *frame)
@@ -324,6 +328,8 @@ rtp_error_t kvz_rtp::rtcp::send_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame
             return ret;
         }
     }
+
+    return ret;
 }
 
 rtp_error_t kvz_rtp::rtcp::send_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame)
@@ -355,6 +361,8 @@ rtp_error_t kvz_rtp::rtcp::send_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *fra
             return ret;
         }
     }
+
+    return ret;
 }
 
 rtp_error_t kvz_rtp::rtcp::send_app_packet(kvz_rtp::frame::rtcp_app_frame *frame)
