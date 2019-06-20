@@ -559,8 +559,18 @@ rtp_error_t kvz_rtp::rtcp::handle_bye_packet(kvz_rtp::frame::rtcp_bye_frame *fra
     if (!frame)
         return RTP_INVALID_VALUE;
 
-    /* TODO: remove this participant from the map */
-    /* TODO: implement participant map + support for multiple participants */
+    for (size_t i = 0; i < frame->header.count; ++i) {
+        uint32_t ssrc = ntohl(frame->ssrc[i]);
+
+        if (!is_participant(ssrc)) {
+            LOG_WARN("Participants 0x%x is not part of this group!", ssrc);
+            continue;
+        }
+
+        delete participants_[ssrc]->socket;
+        delete participants_[ssrc];
+        participants_.erase(ssrc);
+    }
 
     return RTP_OK;
 }
