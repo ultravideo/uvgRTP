@@ -104,7 +104,7 @@ namespace kvz_rtp {
         /* when we start the RTCP instance, we don't know what the SSRC of the remote is
          * when an RTP packet is received, we must check if we've already received a packet 
          * from this sender and if not, create new entry to receiver_stats_ map */
-        bool is_valid_sender(uint32_t ssrc);
+        bool is_participant(uint32_t ssrc);
 
         /* Functions for generating different kinds of reports. 
          * These functions will both generate the report and send it 

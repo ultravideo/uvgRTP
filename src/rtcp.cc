@@ -154,7 +154,7 @@ std::vector<kvz_rtp::socket>& kvz_rtp::rtcp::get_sockets()
     return sockets_;
 }
 
-bool kvz_rtp::rtcp::is_valid_sender(uint32_t ssrc)
+bool kvz_rtp::rtcp::is_participant(uint32_t ssrc)
 {
     return participants_.find(ssrc) != participants_.end();
 }
@@ -181,7 +181,7 @@ void kvz_rtp::rtcp::sender_update_stats(kvz_rtp::frame::rtp_frame *frame)
 
 void kvz_rtp::rtcp::receiver_inc_sent_bytes(uint32_t sender_ssrc, size_t n)
 {
-    if (is_valid_sender(sender_ssrc)) {
+    if (is_participant(sender_ssrc)) {
         participants_[sender_ssrc]->stats.sent_bytes += n;
         return;
     }
@@ -191,7 +191,7 @@ void kvz_rtp::rtcp::receiver_inc_sent_bytes(uint32_t sender_ssrc, size_t n)
 
 void kvz_rtp::rtcp::receiver_inc_sent_pkts(uint32_t sender_ssrc, size_t n)
 {
-    if (is_valid_sender(sender_ssrc)) {
+    if (is_participant(sender_ssrc)) {
         participants_[sender_ssrc]->stats.sent_pkts += n;
         return;
     }
@@ -204,7 +204,7 @@ void kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *frame)
     if (!frame)
         return;
 
-    if (!is_valid_sender(frame->ssrc)) {
+    if (!is_participant(frame->ssrc)) {
         LOG_WARN("Got RTP packet from unknown source: 0x%x", frame->ssrc);
         return;
     }
@@ -249,7 +249,7 @@ rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender
     }
 
     for (uint32_t& ssrc : ssrcs) {
-        if (!is_valid_sender(ssrc)) {
+        if (!is_participant(ssrc)) {
             LOG_WARN("Unknown participant 0x%x", ssrc);
             continue;
         }
@@ -365,7 +365,7 @@ rtp_error_t kvz_rtp::rtcp::send_app_packet(kvz_rtp::frame::rtcp_app_frame *frame
     frame->length = htons(frame->length);
     frame->ssrc   = htonl(frame->ssrc);
 
-    if (is_valid_sender(ssrc))
+    if (is_participant(ssrc))
         return participants_[ssrc]->socket->sendto((uint8_t *)frame, len, 0, NULL);
 
     LOG_ERROR("Unknown participant 0x%x", ssrc);
