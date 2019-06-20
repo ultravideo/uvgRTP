@@ -34,7 +34,11 @@ SOURCES += \
     src/frame.cc \
     src/conn.cc \
     src/writer.cc \
-    src/mingw_inet.cc
+    src/mingw_inet.cc \
+    src/multicast.cc \
+    src/poll.cc \
+    src/rtcp.cc \
+    src/socket.cc
 
 HEADERS += \
     src/writer.hh \
@@ -50,7 +54,11 @@ HEADERS += \
     src/conn.hh \
     src/debug.hh \
     src/util.hh \
-    src/mingw_inet.hh
+    src/mingw_inet.hh \
+    src/multicast.cc \
+    src/poll.cc \
+    src/rtcp.cc \
+    src/socket.cc
 
 unix {
     target.path = /usr/lib
