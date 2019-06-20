@@ -127,71 +127,64 @@ bool kvz_rtp::rtcp::receiver() const
     return receiver_;
 }
 
-const kvz_rtp::socket& kvz_rtp::rtcp::get_socket() const
+std::vector<kvz_rtp::socket>& kvz_rtp::rtcp::get_sockets()
 {
-    return socket_;
+    return sockets_;
 }
 
-void kvz_rtp::rtcp::sender_inc_processed_bytes(size_t n)
+bool kvz_rtp::rtcp::is_valid_sender(uint32_t ssrc)
 {
-    sender_stats_.processed_bytes += n;
+    return participants_.find(ssrc) != participants_.end();
 }
 
-void kvz_rtp::rtcp::sender_inc_overhead_bytes(size_t n)
+void kvz_rtp::rtcp::sender_inc_sent_bytes(size_t n)
 {
-    sender_stats_.overhead_bytes += n;
+    sender_stats.sent_bytes += n;
 }
 
-void kvz_rtp::rtcp::sender_inc_total_bytes(size_t n)
+void kvz_rtp::rtcp::sender_inc_sent_pkts(size_t n)
 {
-    sender_stats_.total_bytes += n;
+    sender_stats.sent_pkts += n;
 }
 
-void kvz_rtp::rtcp::sender_inc_processed_pkts(size_t n)
+void kvz_rtp::rtcp::sender_update_stats(kvz_rtp::frame::rtp_frame *frame)
 {
-    sender_stats_.processed_pkts += n;
+    if (!frame)
+        return;
 }
 
-void kvz_rtp::rtcp::check_sender(uint32_t ssrc)
+void kvz_rtp::rtcp::receiver_inc_sent_bytes(uint32_t sender_ssrc, size_t n)
 {
-    if (receiver_stats_.find(ssrc) == receiver_stats_.end()) {
-        LOG_INFO("First RTP packet from 0x%x", ssrc);
-
-        receiver_stats_[ssrc] = new struct statistics;
-        num_receivers_++;
+    if (is_valid_sender(sender_ssrc)) {
+        participants_[sender_ssrc]->stats.sent_bytes += n;
+        return;
     }
+
+    LOG_WARN("Got RTP packet from unknown source: 0x%x", sender_ssrc);
 }
 
-void kvz_rtp::rtcp::receiver_inc_processed_bytes(uint32_t sender_ssrc, size_t n)
+void kvz_rtp::rtcp::receiver_inc_sent_pkts(uint32_t sender_ssrc, size_t n)
 {
-    check_sender(sender_ssrc);
+    if (is_valid_sender(sender_ssrc)) {
+        participants_[sender_ssrc]->stats.sent_pkts += n;
+        return;
+    }
 
-    receiver_stats_[sender_ssrc]->processed_bytes += n;
+    LOG_WARN("Got RTP packet from unknown source: 0x%x", sender_ssrc);
 }
 
-void kvz_rtp::rtcp::receiver_inc_overhead_bytes(uint32_t sender_ssrc, size_t n)
+void kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *frame)
 {
-    check_sender(sender_ssrc);
+    if (!frame)
+        return;
 
-    receiver_stats_[sender_ssrc]->overhead_bytes += n;
-}
-
-void kvz_rtp::rtcp::receiver_inc_total_bytes(uint32_t sender_ssrc, size_t n)
-{
-    check_sender(sender_ssrc);
-
-    receiver_stats_[sender_ssrc]->total_bytes += n;
-}
-
-void kvz_rtp::rtcp::receiver_inc_processed_pkts(uint32_t sender_ssrc, size_t n)
-{
-    check_sender(sender_ssrc);
-
-    receiver_stats_[sender_ssrc]->processed_pkts += n;
+    /* TODO:  */
 }
 
 rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame)
 {
+    LOG_INFO("Generating sender report...");
+
     if (!frame)
         return RTP_INVALID_VALUE;
 

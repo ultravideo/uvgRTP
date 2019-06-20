@@ -166,10 +166,8 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
         frame->payload_len = nread - kvz_rtp::frame::HEADER_SIZE_RTP;
         frame->total_len   = nread;
 
-        reader->inc_processed_bytes(frame->ssrc, frame->total_len);
-        reader->inc_overhead_bytes(frame->ssrc,  kvz_rtp::frame::HEADER_SIZE_RTP); /* TODO: this is not accurate! */
-        reader->inc_total_bytes(frame->ssrc,     frame->total_len);
-        reader->inc_processed_pkts(frame->ssrc,  1);
+        reader->inc_sent_bytes(frame->ssrc, frame->total_len);
+        reader->inc_sent_pkts(frame->ssrc,  1);
 
         if (!frame->data) {
             LOG_ERROR("Failed to allocate buffer for RTP frame!");

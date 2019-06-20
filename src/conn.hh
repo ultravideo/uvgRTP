@@ -42,18 +42,14 @@ namespace kvz_rtp {
          *
          * TODO: jitter! */
         void inc_rtp_sequence(size_t n);
-        void inc_processed_bytes(size_t n);
-        void inc_overhead_bytes(size_t n);
-        void inc_total_bytes(size_t n);
-        void inc_processed_pkts(size_t n);
-        void inc_processed_pkts();
+        void inc_sent_bytes(size_t n);
+        void inc_sent_pkts(size_t n);
+        void inc_sent_pkts();
         void inc_rtp_sequence();
 
-        void inc_processed_bytes(uint32_t ssrc, size_t n);
-        void inc_overhead_bytes(uint32_t ssrc, size_t n);
-        void inc_total_bytes(uint32_t ssrc, size_t n);
-        void inc_processed_pkts(uint32_t ssrc, size_t n);
-        void inc_processed_pkts(uint32_t ssrc);
+        void inc_sent_bytes(uint32_t ssrc, size_t n);
+        void inc_sent_pkts(uint32_t ssrc, size_t n);
+        void inc_sent_pkts(uint32_t ssrc);
 
         /* config set and get */
         void set_config(void *config);

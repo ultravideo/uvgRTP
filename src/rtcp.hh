@@ -85,15 +85,15 @@ namespace kvz_rtp {
         rtp_error_t add_participant(kvz_rtp::connection *conn);
 
         /* Functions for updating various RTP sender statistics */
-        void sender_inc_processed_bytes(size_t n);
-        void sender_inc_overhead_bytes(size_t n);
-        void sender_inc_total_bytes(size_t n);
-        void sender_inc_processed_pkts(size_t n);
+        void sender_inc_sent_bytes(size_t n);
+        void sender_inc_sent_pkts(size_t n);
+        void sender_update_stats(kvz_rtp::frame::rtp_frame *frame);
 
-        void receiver_inc_processed_bytes(uint32_t sender_ssrc, size_t n);
+        void receiver_inc_sent_bytes(uint32_t sender_ssrc, size_t n);
         void receiver_inc_overhead_bytes(uint32_t sender_ssrc, size_t n);
         void receiver_inc_total_bytes(uint32_t sender_ssrc, size_t n);
-        void receiver_inc_processed_pkts(uint32_t sender_ssrc, size_t n);
+        void receiver_inc_sent_pkts(uint32_t sender_ssrc, size_t n);
+        void receiver_update_stats(kvz_rtp::frame::rtp_frame *frame);
 
     private:
         static void rtcp_runner(rtcp *rtcp);
@@ -104,7 +104,7 @@ namespace kvz_rtp {
         /* when we start the RTCP instance, we don't know what the SSRC of the remote is
          * when an RTP packet is received, we must check if we've already received a packet 
          * from this sender and if not, create new entry to receiver_stats_ map */
-        void check_sender(uint32_t ssrc);
+        bool is_valid_sender(uint32_t ssrc);
 
         /* Functions for generating different kinds of reports. 
          * These functions will both generate the report and send it 

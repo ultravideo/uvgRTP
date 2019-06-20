@@ -85,54 +85,39 @@ void kvz_rtp::connection::inc_rtp_sequence()
     rtp_sequence_++;
 }
 
-void kvz_rtp::connection::inc_processed_bytes(size_t n)
+void kvz_rtp::connection::inc_sent_bytes(size_t n)
 {
-    rtcp_->sender_inc_processed_bytes(n);
+    rtcp_->sender_inc_sent_bytes(n);
 }
 
-void kvz_rtp::connection::inc_overhead_bytes(size_t n)
+void kvz_rtp::connection::inc_sent_pkts(size_t n)
 {
-    rtcp_->sender_inc_overhead_bytes(n);
+    rtcp_->sender_inc_sent_pkts(n);
 }
 
-void kvz_rtp::connection::inc_total_bytes(size_t n)
+void kvz_rtp::connection::inc_sent_pkts()
 {
-    rtcp_->sender_inc_total_bytes(n);
+    rtcp_->sender_inc_sent_pkts(1);
 }
 
-void kvz_rtp::connection::inc_processed_pkts(size_t n)
+void kvz_rtp::connection::inc_sent_bytes(uint32_t ssrc, size_t n)
 {
-    rtcp_->sender_inc_processed_pkts(n);
+    rtcp_->receiver_inc_sent_bytes(ssrc, n);
 }
 
-void kvz_rtp::connection::inc_processed_pkts()
+void kvz_rtp::connection::inc_sent_pkts(uint32_t ssrc, size_t n)
 {
-    rtcp_->sender_inc_processed_pkts(1);
+    rtcp_->receiver_inc_sent_pkts(ssrc, n);
 }
 
-void kvz_rtp::connection::inc_processed_bytes(uint32_t ssrc, size_t n)
+void kvz_rtp::connection::inc_sent_pkts(uint32_t ssrc)
 {
-    rtcp_->receiver_inc_processed_bytes(ssrc, n);
+    rtcp_->receiver_inc_sent_pkts(ssrc, 1);
 }
 
-void kvz_rtp::connection::inc_overhead_bytes(uint32_t ssrc, size_t n)
+void kvz_rtp::connection::set_sender_ssrc(sockaddr_in& addr, uint32_t ssrc)
 {
-    rtcp_->receiver_inc_overhead_bytes(ssrc, n);
-}
-
-void kvz_rtp::connection::inc_total_bytes(uint32_t ssrc, size_t n)
-{
-    rtcp_->receiver_inc_total_bytes(ssrc, n);
-}
-
-void kvz_rtp::connection::inc_processed_pkts(uint32_t ssrc, size_t n)
-{
-    rtcp_->receiver_inc_processed_pkts(ssrc, n);
-}
-
-void kvz_rtp::connection::inc_processed_pkts(uint32_t ssrc)
-{
-    rtcp_->receiver_inc_processed_pkts(ssrc, 1);
+    rtcp_->set_sender_ssrc(addr, ssrc);
 }
 
 void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
