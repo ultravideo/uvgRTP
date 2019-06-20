@@ -86,9 +86,11 @@ void kvz_rtp::rtcp::set_sender_ssrc(sockaddr_in& addr, uint32_t ssrc)
     }
 
     /* TODO: this is not correct, find the sender from initial_peers_ (TODO: how??) */
+    /* TODO: this is too ugly code, rewrite */
     auto peer = initial_peers_.back();
     participants_[ssrc] = peer;
     initial_peers_.pop_back();
+    num_receivers_++;
 }
 
 rtp_error_t kvz_rtp::rtcp::start()
