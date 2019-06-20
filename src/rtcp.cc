@@ -4,80 +4,99 @@
 #include <sys/time.h>
 #endif
 
+#include <cstring>
 #include <iostream>
 
 #include "debug.hh"
+#include "poll.hh"
 #include "rtcp.hh"
 #include "util.hh"
 
-kvz_rtp::rtcp::rtcp():
+kvz_rtp::rtcp::rtcp(bool receiver):
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
     we_sent_(0), avg_rtcp_pkt_pize_(0), initial_(true),
     active_(false), send_addr_(""), send_port_(0), recv_port_(0),
-    socket_(), num_receivers_(0)
+    num_receivers_(0), receiver_(receiver)
 {
     cname_ = "hello"; //generate_cname();
-}
 
-kvz_rtp::rtcp::rtcp(std::string dst_addr, int dst_port, bool receiver):
-    rtcp()
-{
-    send_addr_ = dst_addr;
-    send_port_ = dst_port;
-    receiver_  = receiver;
-}
-
-kvz_rtp::rtcp::rtcp(std::string dst_addr, int dst_port, int src_port, bool receiver):
-    rtcp(dst_addr, dst_port, receiver)
-{
-    recv_port_ = src_port;
+    memset(&sender_stats, 0, sizeof(sender_stats));
 }
 
 kvz_rtp::rtcp::~rtcp()
 {
 }
 
-rtp_error_t kvz_rtp::rtcp::start()
+rtp_error_t kvz_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, int src_port)
 {
-    if (send_addr_ == "" || send_port_ == 0) {
-        LOG_ERROR("Invalid values given (%s, %d), cannot create RTCP instance", send_addr_.c_str(), send_port_);
+    if (dst_addr == "" || dst_port == 0 || src_port == 0) {
+        LOG_ERROR("Invalid values given (%s, %d, %d), cannot create RTCP instance",
+                dst_addr.c_str(), dst_port, src_port);
         return RTP_INVALID_VALUE;
     }
 
     rtp_error_t ret;
+    struct participant *p;
 
-    if ((ret = socket_.init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
+    if ((p = new struct participant) == nullptr)
+        return RTP_MEMORY_ERROR;
+
+    if ((p->socket = new kvz_rtp::socket()) == nullptr)
+        return RTP_MEMORY_ERROR;
+
+    if ((ret = p->socket->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
         return ret;
 
-    /* if the receive port was given, this RTCP instance
-     * is expecting status reports to that port and should bind the socket to it */
-    if (recv_port_ != 0) {
-        int enable = 1;
+    int enable = 1;
 
-        if ((ret = socket_.setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int))) != RTP_OK)
-            return ret;
+    if ((ret = p->socket->setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int))) != RTP_OK)
+        return ret;
 
-        /* Set read timeout (5s for now) 
-         *
-         * TODO: this doesn't btw work...
-         *
-         * This means that the socket is listened for 5s at a time and after the timeout, 
-         * Send Report is sent to all participants */
-        struct timeval tv;
-        tv.tv_sec = 3;
-        tv.tv_usec = 0;
+    /* Set read timeout (5s for now) 
+     *
+     * This means that the socket is listened for 5s at a time and after the timeout, 
+     * Send Report is sent to all participants */
+    struct timeval tv = {
+        .tv_sec  = 3,
+        .tv_usec = 0
+    };
 
-        if ((ret = socket_.setsockopt(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))) != RTP_OK)
-            return ret;
+    if ((ret = p->socket->setsockopt(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))) != RTP_OK)
+        return ret;
 
-        LOG_DEBUG("Binding to port %d (source port)", recv_port_);
+    LOG_WARN("Binding to port %d (source port)", src_port);
 
-        if ((ret = socket_.bind(AF_INET, INADDR_ANY, recv_port_)) != RTP_OK)
-            return ret;
+    if ((ret = p->socket->bind(AF_INET, INADDR_ANY, src_port)) != RTP_OK)
+        return ret;
+
+    p->address = p->socket->create_sockaddr(AF_INET, dst_addr, dst_port);
+
+    initial_peers_.push_back(p);
+    sockets_.push_back(*p->socket);
+
+    return RTP_OK;
+}
+
+void kvz_rtp::rtcp::set_sender_ssrc(sockaddr_in& addr, uint32_t ssrc)
+{
+    if (participants_.find(ssrc) != participants_.end()) {
+        LOG_ERROR("SSRC clash detected, must be resolved!");
+        return;
     }
 
-    socket_.set_sockaddr(socket_.create_sockaddr(AF_INET, send_addr_, send_port_));
+    /* TODO: this is not correct, find the sender from initial_peers_ (TODO: how??) */
+    auto peer = initial_peers_.back();
+    participants_[ssrc] = peer;
+    initial_peers_.pop_back();
+}
+
+rtp_error_t kvz_rtp::rtcp::start()
+{
+    if (sockets_.empty()) {
+        LOG_ERROR("Cannot start RTCP Runner because no connections have been initialized");
+        return RTP_INVALID_VALUE;
+    }
 
     active_ = true;
 
@@ -110,8 +129,9 @@ rtp_error_t kvz_rtp::rtcp::terminate()
 
 end:
     /* free all receiver statistic structs */
-    for (auto& i : receiver_stats_) {
-        delete i.second;
+    for (auto& participant : participants_) {
+        delete participant.second->socket;
+        delete participant.second;
     }
 
     return RTP_OK;
@@ -151,6 +171,10 @@ void kvz_rtp::rtcp::sender_update_stats(kvz_rtp::frame::rtp_frame *frame)
 {
     if (!frame)
         return;
+
+    sender_stats.sent_pkts   += 1;
+    sender_stats.sent_bytes  += frame->payload_len;
+    sender_stats.highest_seq  = frame->seq;
 }
 
 void kvz_rtp::rtcp::receiver_inc_sent_bytes(uint32_t sender_ssrc, size_t n)
@@ -178,7 +202,14 @@ void kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *frame)
     if (!frame)
         return;
 
-    /* TODO:  */
+    if (!is_valid_sender(frame->ssrc)) {
+        LOG_WARN("Got RTP packet from unknown source: 0x%x", frame->ssrc);
+        return;
+    }
+
+    participants_[frame->ssrc]->stats.sent_pkts   += 1;
+    participants_[frame->ssrc]->stats.sent_bytes  += frame->payload_len;
+    participants_[frame->ssrc]->stats.highest_seq  = frame->seq;
 }
 
 rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame)
@@ -188,6 +219,8 @@ rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender
     if (!frame)
         return RTP_INVALID_VALUE;
 
+    rtp_error_t ret;
+    std::vector<uint32_t> ssrcs;
     uint16_t len = frame->header.length;
 
     /* RTCP header + SSRC */
@@ -203,6 +236,8 @@ rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender
 
     /* report block(s) */
     for (size_t i = 0; i < frame->header.count; ++i) {
+        ssrcs.push_back(frame->blocks[i].ssrc);
+
         frame->blocks[i].last_seq = htonl(frame->blocks[i].last_seq);
         frame->blocks[i].jitter   = htonl(frame->blocks[i].jitter);
         frame->blocks[i].ssrc     = htonl(frame->blocks[i].ssrc);
@@ -211,9 +246,17 @@ rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender
         frame->blocks[i].lsr      = htonl(frame->blocks[i].lsr);
     }
 
-    rtp_error_t ret = socket_.sendto((uint8_t *)frame, len, 0, NULL);
+    for (uint32_t& ssrc : ssrcs) {
+        if (!is_valid_sender(ssrc)) {
+            LOG_WARN("Unknown participant 0x%x", ssrc);
+            continue;
+        }
 
-    return ret;
+        auto p = participants_[ssrc];
+        if ((ret = p->socket->sendto(p->address, (uint8_t *)frame, len, 0)) != RTP_OK) {
+            LOG_ERROR("sendto() failed!");
+        }
+    }
 }
 
 rtp_error_t kvz_rtp::rtcp::send_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *frame)
@@ -221,6 +264,7 @@ rtp_error_t kvz_rtp::rtcp::send_receiver_report_packet(kvz_rtp::frame::rtcp_rece
     if (!frame)
         return RTP_INVALID_VALUE;
 
+    rtp_error_t ret;
     uint16_t len = frame->header.length;
 
     /* rtcp header + ssrc */
@@ -237,7 +281,16 @@ rtp_error_t kvz_rtp::rtcp::send_receiver_report_packet(kvz_rtp::frame::rtcp_rece
         frame->blocks[i].lsr      = htonl(frame->blocks[i].lsr);
     }
 
-    return socket_.sendto((uint8_t *)frame, len, 0, NULL);
+    for (auto& participant : participants_) {
+        auto p = participant.second;
+
+        if ((ret = p->socket->sendto(p->address, (uint8_t *)frame, len, 0)) != RTP_OK) {
+            LOG_ERROR("sendto() failed!");
+            return ret;
+        }
+    }
+
+    return ret;
 }
 
 rtp_error_t kvz_rtp::rtcp::send_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame)
@@ -256,7 +309,16 @@ rtp_error_t kvz_rtp::rtcp::send_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame
         frame->ssrc[i] = htonl(frame->ssrc[i]);
     }
 
-    return socket_.sendto((uint8_t *)frame, len, 0, NULL);
+    rtp_error_t ret;
+
+    for (auto& participant : participants_) {
+        auto p = participant.second;
+
+        if ((ret = p->socket->sendto(p->address, (uint8_t *)frame, len, 0)) != RTP_OK) {
+            LOG_ERROR("sendto() failed!");
+            return ret;
+        }
+    }
 }
 
 rtp_error_t kvz_rtp::rtcp::send_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame)
@@ -278,7 +340,16 @@ rtp_error_t kvz_rtp::rtcp::send_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *fra
         frame->items[i].length = htons(frame->items[i].length);
     }
 
-    return socket_.sendto((uint8_t *)frame, len, 0, NULL);
+    rtp_error_t ret;
+
+    for (auto& participant : participants_) {
+        auto p = participant.second;
+
+        if ((ret = p->socket->sendto(p->address, (uint8_t *)frame, len, 0)) != RTP_OK) {
+            LOG_ERROR("sendto() failed!");
+            return ret;
+        }
+    }
 }
 
 rtp_error_t kvz_rtp::rtcp::send_app_packet(kvz_rtp::frame::rtcp_app_frame *frame)
@@ -286,12 +357,17 @@ rtp_error_t kvz_rtp::rtcp::send_app_packet(kvz_rtp::frame::rtcp_app_frame *frame
     if (!frame)
         return RTP_INVALID_VALUE;
 
-    uint16_t len = frame->length;
+    uint16_t len  = frame->length;
+    uint32_t ssrc = frame->ssrc;
 
     frame->length = htons(frame->length);
     frame->ssrc   = htonl(frame->ssrc);
 
-    return socket_.sendto((uint8_t *)frame, len, 0, NULL);
+    if (is_valid_sender(ssrc))
+        return participants_[ssrc]->socket->sendto((uint8_t *)frame, len, 0, NULL);
+
+    LOG_ERROR("Unknown participant 0x%x", ssrc);
+    return RTP_INVALID_VALUE;
 }
 
 rtp_error_t kvz_rtp::rtcp::generate_sender_report()
@@ -313,22 +389,25 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
     frame->s_info.ntp_msw  = timestamp >> 32;
     frame->s_info.ntp_lsw  = timestamp & 0xffffffff;
     frame->s_info.rtp_ts   = 3; /* TODO: what timestamp is this? */
-    frame->s_info.pkt_cnt  = sender_stats_.processed_pkts;
-    frame->s_info.byte_cnt = sender_stats_.processed_bytes;
+    frame->s_info.pkt_cnt  = sender_stats.sent_pkts;
+    frame->s_info.byte_cnt = sender_stats.sent_bytes;
 
-    for (auto& receiver : receiver_stats_) {
-        frame->blocks[ptr].ssrc = receiver.first;
+    /* TODO: is this correct?? 
+     * what information should we sent here?? */
 
-        if (receiver.second->dropped_pkts) {
+    for (auto& participant : participants_) {
+        frame->blocks[ptr].ssrc = participant.first;
+
+        if (participant.second->stats.dropped_pkts != 0) {
             frame->blocks[ptr].fraction =
-                receiver.second->processed_pkts / receiver.second->dropped_pkts;
+                participant.second->stats.sent_pkts / participant.second->stats.dropped_pkts;
         }
 
-        frame->blocks[ptr].lost     = receiver.second->dropped_pkts;
-        frame->blocks[ptr].last_seq = 222; // TODO ???
-        frame->blocks[ptr].dlsr     = 555; // TODO jitter
-        frame->blocks[ptr].jitter   = 333; // TODO ???
-        frame->blocks[ptr].lsr      = 444; // TODO ???
+        frame->blocks[ptr].lost     = participant.second->stats.dropped_pkts;
+        frame->blocks[ptr].last_seq = participant.second->stats.highest_seq;
+        frame->blocks[ptr].jitter   = participant.second->stats.jitter;
+        frame->blocks[ptr].dlsr     = participant.second->stats.lsr_delay;
+        frame->blocks[ptr].lsr      = participant.second->stats.lsr_ts;
 
         ptr++;
     }
@@ -349,19 +428,22 @@ rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
 
     size_t ptr = 0;
 
-    for (auto& receiver : receiver_stats_) {
-        frame->blocks[ptr].ssrc = receiver.first;
+    /* TODO: is this correct?? 
+     * what information should we sent here?? */
 
-        if (receiver.second->dropped_pkts) {
+    for (auto& participant : participants_) {
+        frame->blocks[ptr].ssrc = participant.first;
+
+        if (participant.second->stats.dropped_pkts != 0) {
             frame->blocks[ptr].fraction =
-                receiver.second->processed_pkts / receiver.second->dropped_pkts;
+                participant.second->stats.sent_pkts / participant.second->stats.dropped_pkts;
         }
 
-        frame->blocks[ptr].lost     = receiver.second->dropped_pkts;
-        frame->blocks[ptr].last_seq = 222; // TODO ???
-        frame->blocks[ptr].dlsr     = 555; // TODO jitter
-        frame->blocks[ptr].jitter   = 333; // TODO ???
-        frame->blocks[ptr].lsr      = 444; // TODO ???
+        frame->blocks[ptr].lost     = participant.second->stats.dropped_pkts;
+        frame->blocks[ptr].last_seq = participant.second->stats.highest_seq;
+        frame->blocks[ptr].jitter   = participant.second->stats.jitter;
+        frame->blocks[ptr].dlsr     = participant.second->stats.lsr_delay;
+        frame->blocks[ptr].lsr      = participant.second->stats.lsr_ts;
 
         ptr++;
     }
@@ -498,11 +580,8 @@ void kvz_rtp::rtcp::rtcp_runner(kvz_rtp::rtcp *rtcp)
     int nread;
     uint8_t buffer[MAX_PACKET];
 
-    kvz_rtp::socket socket = rtcp->get_socket();
-    rtp_error_t ret;
-
     while (rtcp->active()) {
-        ret = socket.recvfrom(buffer, MAX_PACKET, 0, &nread);
+        rtp_error_t ret = kvz_rtp::poll::poll(rtcp->get_sockets(), buffer, MAX_PACKET, 1500, &nread);
 
         if (ret == RTP_OK && nread > 0) {
             (void)rtcp->handle_incoming_packet(buffer, (size_t)nread);

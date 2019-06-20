@@ -65,6 +65,9 @@ namespace kvz_rtp {
          * repots about this session to dst_addr:dst_port every N seconds (see RFC 3550) */
         rtp_error_t create_rtcp(std::string dst_addr, int dst_port, int src_port);
 
+        /* Give RTCP the SSRC of this sender */
+        void set_sender_ssrc(sockaddr_in& addr, uint32_t ssrc);
+
         rtp_error_t add_rtcp_participant(kvz_rtp::connection *conn);
 
     protected:

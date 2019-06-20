@@ -135,9 +135,14 @@ void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
 
 rtp_error_t kvz_rtp::connection::create_rtcp(std::string dst_addr, int dst_port, int src_port)
 {
-    if ((rtcp_ = new kvz_rtp::rtcp(dst_addr, dst_port, src_port, reader_)) == nullptr) {
+    if ((rtcp_ = new kvz_rtp::rtcp(reader_)) == nullptr) {
         LOG_ERROR("Failed to allocate RTCP instance!");
         return RTP_MEMORY_ERROR;
+    }
+
+    if ((rtp_errno = rtcp_->add_participant(dst_addr, dst_port, src_port)) != RTP_OK) {
+        LOG_ERROR("Failed to add RTCP participant!");
+        return rtp_errno;
     }
 
     return rtcp_->start();

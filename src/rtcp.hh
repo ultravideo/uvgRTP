@@ -14,9 +14,7 @@ namespace kvz_rtp {
 
     class rtcp {
     public:
-        rtcp();
-        rtcp(std::string dst_addr, int dst_port, bool receiver);
-        rtcp(std::string dst_addr, int dst_port, int src_port, bool receiver);
+        rtcp(bool receiver);
         ~rtcp();
 
         /* start the RTCP runner thread
@@ -74,15 +72,17 @@ namespace kvz_rtp {
         rtp_error_t send_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame);
         rtp_error_t send_app_packet(kvz_rtp::frame::rtcp_app_frame *frame);
 
-        /* Return reference to kvz_rtp::socket of the RTCP instance
-         * Used by the rtcp_runner to listen to incoming  */
-        const kvz_rtp::socket& get_socket() const;
+        /* TODO:  */
+        std::vector<kvz_rtp::socket>& get_sockets();
 
         /* Somebody joined the multicast group the owner of this RTCP instance is part of
          * Add it to RTCP participant list so we can start listening for reports 
          *
          * Return RTP_OK on success and RTP_ERROR on error */
-        rtp_error_t add_participant(kvz_rtp::connection *conn);
+        rtp_error_t add_participant(std::string dst_addr, int dst_port, int src_port);
+
+        /* TODO:  */
+        void set_sender_ssrc(sockaddr_in& addr, uint32_t ssrc);
 
         /* Functions for updating various RTP sender statistics */
         void sender_inc_sent_bytes(size_t n);
@@ -155,23 +155,43 @@ namespace kvz_rtp {
         int send_port_;
         int recv_port_;
 
-        kvz_rtp::socket socket_;
-
-        /* TODO: is there any use for this?? */
-        std::vector<kvz_rtp::connection *> participant_;
-
         struct statistics {
-            size_t processed_bytes;
-            size_t overhead_bytes;
-            size_t total_bytes;
-            size_t processed_pkts;
-            size_t dropped_pkts;
+            uint32_t sent_pkts;   /* Number of sent RTP packets */
+            uint32_t sent_bytes;  /* RTP header size not included */
+            uint16_t highest_seq; /* Highest sequence number received */
+            uint16_t cycles_cnt;  /* Number of sequence number cycles */
+
+            uint32_t dropped_pkts; /* Number of dropped RTP packets */
+
+            uint32_t jitter;      /* TODO */
+
+            uint32_t lsr_ts;      /* Timestamp of the last Sender Report */
+            uint32_t lsr_delay;   /* Delay since last Sender Report */
         };
 
-        /* statistics for RTCP Sender and Receiver Reports */
-        struct statistics sender_stats_;
+        struct participant {
+            kvz_rtp::socket *socket;  /* socket associated with this participant */
+            sockaddr_in address;     /* address of the participant */
+            struct statistics stats; /* RTCP session statistics of the participant */
+        };
 
-        std::map<uint32_t, struct statistics *> receiver_stats_;
+        std::map<uint32_t, struct participant *> participants_;
         size_t num_receivers_;
+
+        /* statistics for RTCP Sender and Receiver Reports */
+        struct statistics sender_stats;
+
+        /* Participants from whom we have not yet received an RTP packet are stored here
+         * The amount of peers like this is very small so using a vector won't be too inefficient
+         *
+         * When the first RTP packet (and the peer's SSRC) is received the peer is moved from here
+         * to participants_ map */
+        std::vector<struct participant *> initial_peers_;
+
+        /* Vector of sockets the RTCP runner is listening to
+         *
+         * The socket are also stored here (in addition to participants_ map) so they're easier
+         * to pass to poll when RTCP runner is listening to incoming packets */
+        std::vector<kvz_rtp::socket> sockets_;
     };
 };

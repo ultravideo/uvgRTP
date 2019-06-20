@@ -9,6 +9,7 @@
 #endif
 
 #include <vector>
+#include <string>
 
 #include "util.hh"
 

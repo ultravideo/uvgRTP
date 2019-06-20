@@ -53,3 +53,9 @@ static inline void hex_dump(uint8_t *buf, size_t len)
         fprintf(stderr, "\n");
     }
 }
+
+static inline void set_bytes(int *ptr, int nbytes)
+{
+    if (ptr)
+        *ptr = nbytes;
+}

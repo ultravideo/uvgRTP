@@ -131,11 +131,13 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
 
     int nread = 0;
     rtp_error_t ret;
+    sockaddr_in sender_addr;
+    bool first_message = true;
     kvz_rtp::socket socket = reader->get_socket();
     std::pair<size_t, std::vector<kvz_rtp::frame::rtp_frame *>> fu;
 
     while (reader->active()) {
-        ret = socket.recvfrom(reader->get_recv_buffer(), reader->get_recv_buffer_len(), 0, &nread);
+        ret = socket.recvfrom(reader->get_recv_buffer(), reader->get_recv_buffer_len(), 0, &sender_addr, &nread);
 
         if (ret != RTP_OK) {
             LOG_ERROR("recvfrom failed! FrameReceiver cannot continue!");
@@ -165,6 +167,11 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
         frame->payload     = frame->data + kvz_rtp::frame::HEADER_SIZE_RTP;
         frame->payload_len = nread - kvz_rtp::frame::HEADER_SIZE_RTP;
         frame->total_len   = nread;
+
+        if (first_message) {
+            reader->set_sender_ssrc(sender_addr, frame->ssrc);
+            first_message = false;
+        }
 
         reader->inc_sent_bytes(frame->ssrc, frame->total_len);
         reader->inc_sent_pkts(frame->ssrc,  1);
