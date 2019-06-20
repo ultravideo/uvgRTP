@@ -415,7 +415,8 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
 {
     return RTP_OK;
 
-    LOG_INFO("Generating sender report...");
+    if (num_receivers_ == 0)
+        return RTP_NOT_READY;
 
     kvz_rtp::frame::rtcp_sender_frame *frame;
 
@@ -449,8 +450,8 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
         frame->blocks[ptr].lost     = participant.second->stats.dropped_pkts;
         frame->blocks[ptr].last_seq = participant.second->stats.highest_seq;
         frame->blocks[ptr].jitter   = participant.second->stats.jitter;
-        frame->blocks[ptr].dlsr     = participant.second->stats.lsr_delay;
         frame->blocks[ptr].lsr      = participant.second->stats.lsr_ts;
+        frame->blocks[ptr].dlsr     = participant.second->stats.lsr_delay;
 
         ptr++;
     }
@@ -460,7 +461,11 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
 
 rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
 {
-    LOG_INFO("Generating receiver report...");
+    /* It is possible that haven't yet received an RTP packet from remote */
+    if (num_receivers_ == 0) {
+        LOG_WARN("cannot send receiver report yet, haven't received anything");
+        return RTP_NOT_READY;
+    }
 
     kvz_rtp::frame::rtcp_receiver_frame *frame;
 
@@ -485,8 +490,8 @@ rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
         frame->blocks[ptr].lost     = participant.second->stats.dropped_pkts;
         frame->blocks[ptr].last_seq = participant.second->stats.highest_seq;
         frame->blocks[ptr].jitter   = participant.second->stats.jitter;
-        frame->blocks[ptr].dlsr     = participant.second->stats.lsr_delay;
         frame->blocks[ptr].lsr      = participant.second->stats.lsr_ts;
+        frame->blocks[ptr].dlsr     = participant.second->stats.lsr_delay;
 
         ptr++;
     }
