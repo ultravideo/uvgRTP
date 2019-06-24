@@ -188,6 +188,11 @@ void kvz_rtp::rtcp::sender_inc_sent_pkts(size_t n)
     sender_stats.sent_pkts += n;
 }
 
+void kvz_rtp::rtcp::sender_inc_seq_cycle_count()
+{
+    sender_stats.cycles_cnt++;
+}
+
 void kvz_rtp::rtcp::sender_update_stats(kvz_rtp::frame::rtp_frame *frame)
 {
     if (!frame)

@@ -83,6 +83,9 @@ void kvz_rtp::connection::inc_rtp_sequence(size_t n)
 void kvz_rtp::connection::inc_rtp_sequence()
 {
     rtp_sequence_++;
+
+    if (rtp_sequence_ == 0)
+        rtcp_->sender_inc_seq_cycle_count();
 }
 
 void kvz_rtp::connection::inc_sent_bytes(size_t n)

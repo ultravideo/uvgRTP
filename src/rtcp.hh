@@ -85,8 +85,9 @@ namespace kvz_rtp {
         void set_sender_ssrc(sockaddr_in& addr, uint32_t ssrc);
 
         /* Functions for updating various RTP sender statistics */
-        void sender_inc_sent_bytes(size_t n);
+        void sender_inc_seq_cycle_count();
         void sender_inc_sent_pkts(size_t n);
+        void sender_inc_sent_bytes(size_t n);
         void sender_update_stats(kvz_rtp::frame::rtp_frame *frame);
 
         void receiver_inc_sent_bytes(uint32_t sender_ssrc, size_t n);
@@ -169,7 +170,7 @@ namespace kvz_rtp {
             uint32_t sent_pkts;   /* Number of sent RTP packets */
             uint32_t sent_bytes;  /* Number of sent bytes excluding RTP Header */
             uint16_t highest_seq; /* Highest sequence number received */
-            uint16_t cycles_cnt;  /* Number of sequence number cycles */
+            uint16_t cycles_cnt;  /* Number of sequence cycles */
 
             uint32_t dropped_pkts; /* Number of dropped RTP packets */
 
