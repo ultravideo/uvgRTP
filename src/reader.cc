@@ -132,7 +132,6 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
     int nread = 0;
     rtp_error_t ret;
     sockaddr_in sender_addr;
-    bool first_message = true;
     kvz_rtp::socket socket = reader->get_socket();
     std::pair<size_t, std::vector<kvz_rtp::frame::rtp_frame *>> fu;
 
@@ -168,12 +167,10 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
         frame->payload_len = nread - kvz_rtp::frame::HEADER_SIZE_RTP;
         frame->total_len   = nread;
 
-        if (first_message) {
-            reader->set_sender_ssrc(sender_addr, frame->ssrc);
-            first_message = false;
-        }
-
-        /* update session related statistics */
+        /* Update session related statistics
+         *
+         * If this is a new peer,
+         * RTCP will take care of initializing necessary stuff */
         reader->update_receiver_stats(frame);
 
         if (!frame->data) {
