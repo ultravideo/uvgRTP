@@ -464,7 +464,7 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
     ret = kvz_rtp::rtcp::send_sender_report_packet(frame);
     (void)kvz_rtp::frame::dealloc_frame(frame);
 
-    return RTP_OK;
+    return ret;
 }
 
 rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
@@ -509,7 +509,7 @@ rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
     ret = kvz_rtp::rtcp::send_receiver_report_packet(frame);
     (void)kvz_rtp::frame::dealloc_frame(frame);
 
-    return RTP_OK;
+    return ret;
 }
 
 rtp_error_t kvz_rtp::rtcp::generate_report()
