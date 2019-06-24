@@ -173,8 +173,8 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
             first_message = false;
         }
 
-        reader->inc_sent_bytes(frame->ssrc, frame->total_len);
-        reader->inc_sent_pkts(frame->ssrc,  1);
+        /* update session related statistics */
+        reader->update_receiver_stats(frame);
 
         if (!frame->data) {
             LOG_ERROR("Failed to allocate buffer for RTP frame!");

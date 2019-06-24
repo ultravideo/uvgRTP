@@ -51,6 +51,8 @@ namespace kvz_rtp {
         void inc_sent_pkts(uint32_t ssrc, size_t n);
         void inc_sent_pkts(uint32_t ssrc);
 
+        void update_receiver_stats(kvz_rtp::frame::rtp_frame *frame);
+
         /* config set and get */
         void set_config(void *config);
         void *get_config();

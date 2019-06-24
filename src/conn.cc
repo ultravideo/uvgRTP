@@ -120,6 +120,11 @@ void kvz_rtp::connection::set_sender_ssrc(sockaddr_in& addr, uint32_t ssrc)
     rtcp_->set_sender_ssrc(addr, ssrc);
 }
 
+void kvz_rtp::connection::update_receiver_stats(kvz_rtp::frame::rtp_frame *frame)
+{
+    rtcp_->receiver_update_stats(frame);
+}
+
 void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
 {
     if (!buffer)
