@@ -88,9 +88,6 @@ namespace kvz_rtp {
          * Return RTP_OK on success and RTP_ERROR on error */
         rtp_error_t add_participant(std::string dst_addr, int dst_port, int src_port);
 
-        /* TODO:  */
-        void set_sender_ssrc(sockaddr_in& addr, uint32_t ssrc);
-
         /* Functions for updating various RTP sender statistics */
         void sender_inc_seq_cycle_count();
         void sender_inc_sent_pkts(size_t n);

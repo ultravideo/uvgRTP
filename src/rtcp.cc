@@ -100,19 +100,6 @@ void kvz_rtp::rtcp::update_rtcp_bandwidth(size_t pkt_size)
     avg_rtcp_pkt_pize_ = rtcp_byte_count_ / rtcp_pkt_count_;
 }
 
-void kvz_rtp::rtcp::set_sender_ssrc(sockaddr_in& addr, uint32_t ssrc)
-{
-    (void)addr;
-
-    if (participants_.find(ssrc) != participants_.end()) {
-        LOG_ERROR("SSRC clash detected, must be resolved!");
-        return;
-    }
-
-    /* TODO: this is not correct, find the sender from initial_peers_ (TODO: how??) */
-    add_participant(ssrc);
-}
-
 rtp_error_t kvz_rtp::rtcp::start()
 {
     if (sockets_.empty()) {
