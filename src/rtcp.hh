@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bitset>
 #include <map>
 #include <thread>
 #include <vector>
@@ -11,6 +12,12 @@
 namespace kvz_rtp {
 
     class connection;
+
+    /* TODO: explain these constants */
+    const int RTP_SEQ_MOD    = 1 << 16;
+    const int MIN_SEQUENTIAL = 2;
+    const int MAX_DROPOUT    = 3000;
+    const int MAX_MISORDER   = 100;
 
     class rtcp {
     public:
@@ -110,6 +117,21 @@ namespace kvz_rtp {
         /* Move participant from initial_peers_ to participants_ */
         void add_participant(uint32_t ssrc);
 
+        /* We've got a message from new source (the SSRC of the frame is not known to us)
+         * Initialize statistics for the peer and move it to participants_ */
+        void init_new_peer(kvz_rtp::frame::rtp_frame *frame);
+
+        /* Initialize the RTP Sequence related stuff of peer
+         * This function assumes that the peer already exists in the participants_ map */
+        void init_peer_seq(uint32_t ssrc, uint16_t base_seq);
+
+        /* Update the SSRC's sequence related data in participants_ map
+         *
+         * Return RTP_OK if the received packet was OK
+         * Return RTP_GENERIC_ERROR if it wasn't and
+         * packet-related statistics should not be updated */
+        rtp_error_t update_peer_seq(uint32_t ssrc, uint16_t seq);
+
         /* Update the RTCP bandwidth variables 
          *
          * "pkt_size" tells how much rtcp_byte_count_ 
@@ -168,22 +190,26 @@ namespace kvz_rtp {
 
         struct statistics {
             uint32_t sent_pkts;   /* Number of sent RTP packets */
-            uint32_t sent_bytes;  /* Number of sent bytes excluding RTP Header */
-            uint16_t highest_seq; /* Highest sequence number received */
-            uint16_t cycles_cnt;  /* Number of sequence cycles */
-
             uint32_t dropped_pkts; /* Number of dropped RTP packets */
 
+            uint32_t sent_bytes;  /* Number of sent bytes excluding RTP Header */
             uint32_t jitter;      /* TODO */
 
             uint32_t lsr_ts;      /* Timestamp of the last Sender Report */
             uint32_t lsr_delay;   /* Delay since last Sender Report */
+
+            uint16_t max_seq;  /* Highest sequence number received */
+            uint16_t base_seq; /* First sequence number received */
+            uint16_t bad_seq;  /* TODO:  */
+            uint16_t cycles;   /* Number of sequence cycles */
         };
 
         struct participant {
-            kvz_rtp::socket *socket;  /* socket associated with this participant */
+            kvz_rtp::socket *socket; /* socket associated with this participant */
             sockaddr_in address;     /* address of the participant */
             struct statistics stats; /* RTCP session statistics of the participant */
+
+            int probation;        /* TODO: */
         };
 
         std::map<uint32_t, struct participant *> participants_;
@@ -192,11 +218,7 @@ namespace kvz_rtp {
         /* statistics for RTCP Sender and Receiver Reports */
         struct statistics sender_stats;
 
-        /* Participants from whom we have not yet received an RTP packet are stored here
-         * The amount of peers like this is very small so using a vector won't be too inefficient
-         *
-         * When the first RTP packet (and the peer's SSRC) is received the peer is moved from here
-         * to participants_ map */
+        /* TODO: */
         std::vector<struct participant *> initial_peers_;
 
         /* Vector of sockets the RTCP runner is listening to

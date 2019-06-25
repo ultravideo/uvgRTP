@@ -4,6 +4,7 @@
 #include <sys/time.h>
 #endif
 
+#include <cassert>
 #include <cstring>
 #include <iostream>
 
@@ -190,7 +191,7 @@ void kvz_rtp::rtcp::sender_inc_sent_pkts(size_t n)
 
 void kvz_rtp::rtcp::sender_inc_seq_cycle_count()
 {
-    sender_stats.cycles_cnt++;
+    sender_stats.cycles++;
 }
 
 void kvz_rtp::rtcp::sender_update_stats(kvz_rtp::frame::rtp_frame *frame)
@@ -198,9 +199,9 @@ void kvz_rtp::rtcp::sender_update_stats(kvz_rtp::frame::rtp_frame *frame)
     if (!frame)
         return;
 
-    sender_stats.sent_pkts   += 1;
-    sender_stats.sent_bytes  += frame->payload_len;
-    sender_stats.highest_seq  = frame->seq;
+    sender_stats.sent_pkts  += 1;
+    sender_stats.sent_bytes += frame->payload_len;
+    sender_stats.max_seq     = frame->seq;
 }
 
 void kvz_rtp::rtcp::receiver_inc_sent_bytes(uint32_t sender_ssrc, size_t n)
@@ -223,6 +224,80 @@ void kvz_rtp::rtcp::receiver_inc_sent_pkts(uint32_t sender_ssrc, size_t n)
     LOG_WARN("Got RTP packet from unknown source: 0x%x", sender_ssrc);
 }
 
+void kvz_rtp::rtcp::init_new_peer(kvz_rtp::frame::rtp_frame *frame)
+{
+    assert(frame != nullptr);
+
+    kvz_rtp::rtcp::add_participant(frame->ssrc);
+    kvz_rtp::rtcp::init_peer_seq(frame->ssrc, frame->seq);
+
+    /* Set the probation to MIN_SEQUENTIAL (2)
+     *
+     * What this means is that we must receive at least two packets from SSRC
+     * with sequential RTP sequence numbers for this peer to be considered valid */
+    participants_[frame->ssrc]->probation = MIN_SEQUENTIAL;
+}
+
+void kvz_rtp::rtcp::init_peer_seq(uint32_t ssrc, uint16_t base_seq)
+{
+    if (participants_.find(ssrc) == participants_.end())
+        return;
+
+    participants_[ssrc]->stats.base_seq = base_seq;
+    participants_[ssrc]->stats.max_seq  = base_seq;
+    participants_[ssrc]->stats.bad_seq  = RTP_SEQ_MOD + 1;
+}
+
+rtp_error_t kvz_rtp::rtcp::update_peer_seq(uint32_t ssrc, uint16_t seq)
+{
+    if (participants_.find(ssrc) == participants_.end())
+        return RTP_GENERIC_ERROR;
+
+    auto p = participants_[ssrc];
+    uint16_t udelta = seq - p->stats.max_seq;
+
+    /* Source is not valid until MIN_SEQUENTIAL packets with
+    * sequential sequence numbers have been received.  */
+    if (p->probation) {
+       /* packet is in sequence */
+       if (seq == p->stats.max_seq + 1) {
+           p->probation--;
+           p->stats.max_seq = seq;
+           if (p->probation == 0) {
+               kvz_rtp::rtcp::init_peer_seq(ssrc, seq);
+               return RTP_OK;
+            }
+       } else {
+           p->probation = MIN_SEQUENTIAL - 1;
+           p->stats.max_seq = seq;
+       }
+       return RTP_GENERIC_ERROR;
+    } else if (udelta < MAX_DROPOUT) {
+       /* in order, with permissible gap */
+       if (seq < p->stats.max_seq) {
+           /* Sequence number wrapped - count another 64K cycle.  */
+           p->stats.cycles += RTP_SEQ_MOD;
+       }
+       p->stats.max_seq = seq;
+    } else if (udelta <= RTP_SEQ_MOD - MAX_MISORDER) {
+       /* the sequence number made a very large jump */
+       if (seq == p->stats.bad_seq) {
+           /* Two sequential packets -- assume that the other side
+            * restarted without telling us so just re-sync
+            * (i.e., pretend this was the first packet).  */
+           kvz_rtp::rtcp::init_peer_seq(ssrc, seq);
+       }
+       else {
+           p->stats.bad_seq = (seq + 1) & (RTP_SEQ_MOD - 1);
+           return RTP_GENERIC_ERROR;
+       }
+    } else {
+       /* duplicate or reordered packet */
+    }
+
+    return RTP_OK;
+}
+
 void kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *frame)
 {
     if (!frame)
@@ -230,12 +305,19 @@ void kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *frame)
 
     if (!is_participant(frame->ssrc)) {
         LOG_WARN("Got RTP packet from unknown source: 0x%x", frame->ssrc);
+        init_new_peer(frame);
+    }
+
+    if (kvz_rtp::rtcp::update_peer_seq(frame->ssrc, frame->seq) != RTP_OK) {
+        LOG_DEBUG("Invalid packet received from remote!");
         return;
     }
 
     participants_[frame->ssrc]->stats.sent_pkts   += 1;
     participants_[frame->ssrc]->stats.sent_bytes  += frame->payload_len;
-    participants_[frame->ssrc]->stats.highest_seq  = frame->seq;
+
+    /* TODO: calculate jitter */
+    /* TODO: calculate # of dropped packets */
 }
 
 rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame)
@@ -453,7 +535,7 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
         }
 
         frame->blocks[ptr].lost     = participant.second->stats.dropped_pkts;
-        frame->blocks[ptr].last_seq = participant.second->stats.highest_seq;
+        frame->blocks[ptr].last_seq = participant.second->stats.max_seq;
         frame->blocks[ptr].jitter   = participant.second->stats.jitter;
         frame->blocks[ptr].lsr      = participant.second->stats.lsr_ts;
         frame->blocks[ptr].dlsr     = participant.second->stats.lsr_delay;
@@ -498,7 +580,7 @@ rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
         }
 
         frame->blocks[ptr].lost     = participant.second->stats.dropped_pkts;
-        frame->blocks[ptr].last_seq = participant.second->stats.highest_seq;
+        frame->blocks[ptr].last_seq = participant.second->stats.max_seq;
         frame->blocks[ptr].jitter   = participant.second->stats.jitter;
         frame->blocks[ptr].lsr      = participant.second->stats.lsr_ts;
         frame->blocks[ptr].dlsr     = participant.second->stats.lsr_delay;
