@@ -186,10 +186,15 @@ namespace kvz_rtp {
         uint32_t ssrc_;
 
         struct statistics {
-            uint32_t sent_pkts;   /* Number of sent RTP packets */
-            uint32_t dropped_pkts; /* Number of dropped RTP packets */
+            /* receiver stats */
+            uint32_t received_pkts;  /* Number of packets received */
+            uint32_t dropped_pkts;   /* Number of dropped RTP packets */
+            uint32_t received_bytes; /* Number of bytes received excluding RTP Header */
 
+            /* sender stats */
+            uint32_t sent_pkts;   /* Number of sent RTP packets */
             uint32_t sent_bytes;  /* Number of sent bytes excluding RTP Header */
+
             uint32_t jitter;      /* TODO */
 
             uint32_t lsr_ts;      /* Timestamp of the last Sender Report */

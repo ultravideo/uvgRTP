@@ -521,7 +521,7 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
 
         if (participant.second->stats.dropped_pkts != 0) {
             frame->blocks[ptr].fraction =
-                participant.second->stats.sent_pkts / participant.second->stats.dropped_pkts;
+                participant.second->stats.received_pkts / participant.second->stats.dropped_pkts;
         }
 
         frame->blocks[ptr].lost     = participant.second->stats.dropped_pkts;
@@ -559,14 +559,14 @@ rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
     frame->header.count = num_receivers_;
     frame->sender_ssrc  = ssrc_;
 
-    LOG_DEBUG("Receiver Report from 0x%x has %u blocks", ssrc_, num_receivers_);
+    LOG_INFO("Receiver Report from 0x%x has %zu blocks", ssrc_, num_receivers_);
 
     for (auto& participant : participants_) {
         frame->blocks[ptr].ssrc = participant.first;
 
         if (participant.second->stats.dropped_pkts != 0) {
             frame->blocks[ptr].fraction =
-                participant.second->stats.sent_pkts / participant.second->stats.dropped_pkts;
+                participant.second->stats.received_bytes / participant.second->stats.dropped_pkts;
         }
 
         frame->blocks[ptr].lost     = participant.second->stats.dropped_pkts;
