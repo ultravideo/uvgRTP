@@ -206,7 +206,8 @@ namespace kvz_rtp {
             sockaddr_in address;     /* address of the participant */
             struct statistics stats; /* RTCP session statistics of the participant */
 
-            int probation;        /* TODO: */
+            int probation;           /* TODO: */
+            bool sender;             /* Sender will create report block for other sender only */
         };
 
         std::map<uint32_t, struct participant *> participants_;

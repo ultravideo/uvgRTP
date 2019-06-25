@@ -79,6 +79,7 @@ rtp_error_t kvz_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, i
         return ret;
 
     p->address = p->socket->create_sockaddr(AF_INET, dst_addr, dst_port);
+    p->sender  = false;
 
     initial_participants_.push_back(p);
     sockets_.push_back(*p->socket);
@@ -487,14 +488,13 @@ rtp_error_t kvz_rtp::rtcp::send_app_packet(kvz_rtp::frame::rtcp_app_frame *frame
 
 rtp_error_t kvz_rtp::rtcp::generate_sender_report()
 {
-    return RTP_OK;
-
+    /* No one to generate report for */
     if (num_receivers_ == 0)
         return RTP_NOT_READY;
 
     kvz_rtp::frame::rtcp_sender_frame *frame;
 
-    if ((frame = kvz_rtp::frame::alloc_rtcp_sender_frame(num_receivers_)) == nullptr) {
+    if ((frame = kvz_rtp::frame::alloc_rtcp_sender_frame(senders_)) == nullptr) {
         LOG_ERROR("Failed to allocate RTCP Receiver Report frame!");
         return rtp_errno;
     }
@@ -503,7 +503,7 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
     uint64_t timestamp = tv_to_ntp();
     rtp_error_t ret    = RTP_GENERIC_ERROR;
 
-    frame->header.count    = num_receivers_;
+    frame->header.count    = senders_;
     frame->sender_ssrc     = ssrc_;
     frame->s_info.ntp_msw  = timestamp >> 32;
     frame->s_info.ntp_lsw  = timestamp & 0xffffffff;
@@ -511,9 +511,12 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
     frame->s_info.pkt_cnt  = sender_stats.sent_pkts;
     frame->s_info.byte_cnt = sender_stats.sent_bytes;
 
-    LOG_DEBUG("Sender Report from 0x%x has %u blocks", ssrc_, num_receivers_);
+    LOG_DEBUG("Sender Report from 0x%x has %u blocks", ssrc_, senders_);
 
     for (auto& participant : participants_) {
+        if (!participant.second->sender)
+            continue;
+
         frame->blocks[ptr].ssrc = participant.first;
 
         if (participant.second->stats.dropped_pkts != 0) {
