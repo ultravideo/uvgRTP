@@ -70,12 +70,6 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtp_frame *frame)
 
 kvz_rtp::frame::rtcp_sender_frame *kvz_rtp::frame::alloc_rtcp_sender_frame(size_t nblocks)
 {
-    if (nblocks == 0) {
-        LOG_ERROR("Cannot send 0 report blocks!");
-        rtp_errno = RTP_INVALID_VALUE;
-        return nullptr;
-    }
-
     size_t total_size =
         sizeof(rtcp_header) +
         sizeof(uint32_t) +
@@ -98,7 +92,9 @@ kvz_rtp::frame::rtcp_sender_frame *kvz_rtp::frame::alloc_rtcp_sender_frame(size_
 
     /* caller fills these */
     memset(&frame->s_info, 0, sizeof(rtcp_sender_info));
-    memset(frame->blocks,  0, sizeof(rtcp_report_block) * nblocks);
+
+    if (nblocks == 0)
+        memset(frame->blocks,  0, sizeof(rtcp_report_block) * nblocks);
 
     return frame;
 }
