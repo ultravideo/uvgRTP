@@ -116,18 +116,18 @@ namespace kvz_rtp {
 
         /* We've got a message from new source (the SSRC of the frame is not known to us)
          * Initialize statistics for the peer and move it to participants_ */
-        void init_new_peer(kvz_rtp::frame::rtp_frame *frame);
+        void init_new_participant(kvz_rtp::frame::rtp_frame *frame);
 
         /* Initialize the RTP Sequence related stuff of peer
          * This function assumes that the peer already exists in the participants_ map */
-        void init_peer_seq(uint32_t ssrc, uint16_t base_seq);
+        void init_participant_seq(uint32_t ssrc, uint16_t base_seq);
 
         /* Update the SSRC's sequence related data in participants_ map
          *
          * Return RTP_OK if the received packet was OK
          * Return RTP_GENERIC_ERROR if it wasn't and
          * packet-related statistics should not be updated */
-        rtp_error_t update_peer_seq(uint32_t ssrc, uint16_t seq);
+        rtp_error_t update_participant_seq(uint32_t ssrc, uint16_t seq);
 
         /* Update the RTCP bandwidth variables 
          *
@@ -216,7 +216,7 @@ namespace kvz_rtp {
         struct statistics sender_stats;
 
         /* TODO: */
-        std::vector<struct participant *> initial_peers_;
+        std::vector<struct participant *> initial_participants_;
 
         /* Vector of sockets the RTCP runner is listening to
          *

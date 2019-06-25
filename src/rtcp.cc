@@ -80,7 +80,7 @@ rtp_error_t kvz_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, i
 
     p->address = p->socket->create_sockaddr(AF_INET, dst_addr, dst_port);
 
-    initial_peers_.push_back(p);
+    initial_participants_.push_back(p);
     sockets_.push_back(*p->socket);
 
     return RTP_OK;
@@ -88,8 +88,8 @@ rtp_error_t kvz_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, i
 
 void kvz_rtp::rtcp::add_participant(uint32_t ssrc)
 {
-    participants_[ssrc] = initial_peers_.back();
-    initial_peers_.pop_back();
+    participants_[ssrc] = initial_participants_.back();
+    initial_participants_.pop_back();
     num_receivers_++;
 }
 
@@ -211,12 +211,12 @@ void kvz_rtp::rtcp::receiver_inc_sent_pkts(uint32_t sender_ssrc, size_t n)
     LOG_WARN("Got RTP packet from unknown source: 0x%x", sender_ssrc);
 }
 
-void kvz_rtp::rtcp::init_new_peer(kvz_rtp::frame::rtp_frame *frame)
+void kvz_rtp::rtcp::init_new_participant(kvz_rtp::frame::rtp_frame *frame)
 {
     assert(frame != nullptr);
 
     kvz_rtp::rtcp::add_participant(frame->ssrc);
-    kvz_rtp::rtcp::init_peer_seq(frame->ssrc, frame->seq);
+    kvz_rtp::rtcp::init_participant_seq(frame->ssrc, frame->seq);
 
     /* Set the probation to MIN_SEQUENTIAL (2)
      *
@@ -225,7 +225,7 @@ void kvz_rtp::rtcp::init_new_peer(kvz_rtp::frame::rtp_frame *frame)
     participants_[frame->ssrc]->probation = MIN_SEQUENTIAL;
 }
 
-void kvz_rtp::rtcp::init_peer_seq(uint32_t ssrc, uint16_t base_seq)
+void kvz_rtp::rtcp::init_participant_seq(uint32_t ssrc, uint16_t base_seq)
 {
     if (participants_.find(ssrc) == participants_.end())
         return;
@@ -235,7 +235,7 @@ void kvz_rtp::rtcp::init_peer_seq(uint32_t ssrc, uint16_t base_seq)
     participants_[ssrc]->stats.bad_seq  = RTP_SEQ_MOD + 1;
 }
 
-rtp_error_t kvz_rtp::rtcp::update_peer_seq(uint32_t ssrc, uint16_t seq)
+rtp_error_t kvz_rtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
 {
     if (participants_.find(ssrc) == participants_.end())
         return RTP_GENERIC_ERROR;
@@ -251,7 +251,7 @@ rtp_error_t kvz_rtp::rtcp::update_peer_seq(uint32_t ssrc, uint16_t seq)
            p->probation--;
            p->stats.max_seq = seq;
            if (p->probation == 0) {
-               kvz_rtp::rtcp::init_peer_seq(ssrc, seq);
+               kvz_rtp::rtcp::init_participant_seq(ssrc, seq);
                return RTP_OK;
             }
        } else {
@@ -272,7 +272,7 @@ rtp_error_t kvz_rtp::rtcp::update_peer_seq(uint32_t ssrc, uint16_t seq)
            /* Two sequential packets -- assume that the other side
             * restarted without telling us so just re-sync
             * (i.e., pretend this was the first packet).  */
-           kvz_rtp::rtcp::init_peer_seq(ssrc, seq);
+           kvz_rtp::rtcp::init_participant_seq(ssrc, seq);
        }
        else {
            p->stats.bad_seq = (seq + 1) & (RTP_SEQ_MOD - 1);
@@ -292,10 +292,10 @@ void kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *frame)
 
     if (!is_participant(frame->ssrc)) {
         LOG_WARN("Got RTP packet from unknown source: 0x%x", frame->ssrc);
-        init_new_peer(frame);
+        init_new_participant(frame);
     }
 
-    if (kvz_rtp::rtcp::update_peer_seq(frame->ssrc, frame->seq) != RTP_OK) {
+    if (kvz_rtp::rtcp::update_participant_seq(frame->ssrc, frame->seq) != RTP_OK) {
         LOG_DEBUG("Invalid packet received from remote!");
         return;
     }
@@ -613,9 +613,9 @@ rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_re
 
     /* Receiver Reports are sent from participant that don't send RTP packets
      * This means that the sender of this report is not in the participants_ map
-     * but rather in the initial_peers_ vector
+     * but rather in the initial_participants_ vector
      *
-     * Check if that's the case and if so, move the entry from initial_peers_ to participants_ */
+     * Check if that's the case and if so, move the entry from initial_participants_ to participants_ */
     if (!is_participant(frame->sender_ssrc)) {
         /* TODO: this is not correct way to do it! fix before multicast */
         add_participant(frame->sender_ssrc);
