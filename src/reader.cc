@@ -48,7 +48,7 @@ rtp_error_t kvz_rtp::reader::start()
     if ((ret = socket_.bind(AF_INET, INADDR_ANY, src_port_)) != RTP_OK)
         return ret;
 
-    recv_buffer_len_ = MAX_PACKET;
+    recv_buffer_len_ = 4096;
 
     if ((recv_buffer_ = new uint8_t[4096]) == nullptr) {
         LOG_ERROR("Failed to allocate buffer for incoming data!");
