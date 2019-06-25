@@ -20,7 +20,7 @@ kvz_rtp::reader::reader(std::string src_addr, int src_port):
 kvz_rtp::reader::~reader()
 {
     active_ = false;
-    delete recv_buffer_;
+    delete[] recv_buffer_;
 
     if (!framesOut_.empty()) {
         for (auto &i : framesOut_) {

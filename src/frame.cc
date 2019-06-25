@@ -60,7 +60,7 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtp_frame *frame)
         return RTP_INVALID_VALUE;
 
     if (frame->data)
-        delete frame->data;
+        delete[] frame->data;
 
     LOG_DEBUG("Deallocating frame, type %u", frame->type);
 
@@ -220,7 +220,7 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtcp_sender_frame *fra
     if (!frame)
         return RTP_INVALID_VALUE;
 
-    delete frame;
+    delete[] frame;
     return RTP_OK;
 }
 
@@ -229,7 +229,7 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtcp_receiver_frame *f
     if (!frame)
         return RTP_INVALID_VALUE;
 
-    delete frame;
+    delete[] frame;
     return RTP_OK;
 }
 
@@ -238,7 +238,7 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(rtcp_sdes_frame *frame)
     if (!frame)
         return RTP_INVALID_VALUE;
 
-    delete frame;
+    delete[] frame;
     return RTP_OK;
 }
 
@@ -247,7 +247,7 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(rtcp_bye_frame *frame)
     if (!frame)
         return RTP_INVALID_VALUE;
 
-    delete frame;
+    delete[] frame;
     return RTP_OK;
 }
 
@@ -256,7 +256,7 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(rtcp_app_frame *frame)
     if (!frame)
         return RTP_INVALID_VALUE;
 
-    delete frame;
+    delete[] frame;
     return RTP_OK;
 }
 
