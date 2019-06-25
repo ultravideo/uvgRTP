@@ -78,6 +78,7 @@ kvz_rtp::frame::rtcp_sender_frame *kvz_rtp::frame::alloc_rtcp_sender_frame(size_
 
     size_t total_size =
         sizeof(rtcp_header) +
+        sizeof(uint32_t) +
         sizeof(rtcp_sender_info) +
         sizeof(rtcp_report_block) * nblocks;
 
@@ -112,6 +113,7 @@ kvz_rtp::frame::rtcp_receiver_frame *kvz_rtp::frame::alloc_rtcp_receiver_frame(s
 
     size_t total_size =
         sizeof(rtcp_header) +
+        sizeof(uint32_t) +
         sizeof(rtcp_report_block) * nblocks;
 
     auto *frame = (kvz_rtp::frame::rtcp_receiver_frame *)new uint8_t[total_size];
