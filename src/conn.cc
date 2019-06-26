@@ -33,6 +33,20 @@ kvz_rtp::connection::~connection()
 void kvz_rtp::connection::set_payload(rtp_format_t fmt)
 {
     rtp_payload_ = fmt;
+
+    switch (fmt) {
+        case RTP_FORMAT_HEVC:
+            clock_rate_ = 90000;
+            break;
+
+        case RTP_FORMAT_OPUS:
+            clock_rate_ = 48000;
+            break;
+
+        default:
+            LOG_WARN("Unknown RTP format, clock rate must be set manually");
+            break;
+    }
 }
 
 void kvz_rtp::connection::set_config(void *config)
@@ -121,6 +135,11 @@ void kvz_rtp::connection::inc_sent_pkts(uint32_t ssrc)
 void kvz_rtp::connection::update_receiver_stats(kvz_rtp::frame::rtp_frame *frame)
 {
     rtcp_->receiver_update_stats(frame);
+}
+
+void kvz_rtp::connection::set_clock_rate(uint32_t clock_rate)
+{
+    clock_rate_ = clock_rate;
 }
 
 void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)

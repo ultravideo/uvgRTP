@@ -61,6 +61,10 @@ namespace kvz_rtp {
          * caller must make sure that the buffer is at least 12 bytes long */
         void fill_rtp_header(uint8_t *buffer, uint32_t timestamp);
 
+        /* Set clock rate for RTP timestamp in Hz
+         * This must be set, otherwise the timestamps won't be correct */
+        void set_clock_rate(uint32_t clock_rate);
+
         /* Create RTCP instance for this connection
          *
          * This instance listens to src_port for incoming RTCP reports and sends
@@ -83,5 +87,6 @@ namespace kvz_rtp {
         uint16_t rtp_sequence_;
         uint8_t  rtp_payload_;
         uint32_t rtp_ssrc_;
+        uint32_t clock_rate_;
     };
 };
