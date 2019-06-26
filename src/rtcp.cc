@@ -239,6 +239,8 @@ void kvz_rtp::rtcp::init_new_participant(kvz_rtp::frame::rtp_frame *frame)
      * What this means is that we must receive at least two packets from SSRC
      * with sequential RTP sequence numbers for this peer to be considered valid */
     participants_[frame->ssrc]->probation = MIN_SEQUENTIAL;
+
+    senders_++;
 }
 
 void kvz_rtp::rtcp::init_participant_seq(uint32_t ssrc, uint16_t base_seq)
