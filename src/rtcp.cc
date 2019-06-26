@@ -318,11 +318,18 @@ void kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *frame)
         return;
     }
 
-    participants_[frame->ssrc]->stats.sent_pkts   += 1;
-    participants_[frame->ssrc]->stats.sent_bytes  += frame->payload_len;
-
     /* TODO: calculate jitter */
-    /* TODO: calculate # of dropped packets */
+
+    auto p = participants_[frame->ssrc];
+
+    /* calculate number of dropped packets */
+    p->stats.received_pkts  += 1;
+    p->stats.received_bytes += frame->payload_len;
+
+    int extended_max = p->stats.cycles + p->stats.max_seq;
+    int expected     = extended_max - p->stats.base_seq + 1;
+
+    p->stats.dropped_pkts = expected - p->stats.received_pkts;
 }
 
 rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame)
