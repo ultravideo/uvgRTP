@@ -87,6 +87,8 @@ namespace kvz_rtp {
         uint16_t rtp_sequence_;
         uint8_t  rtp_payload_;
         uint32_t rtp_ssrc_;
+        uint32_t rtp_timestamp_;
+        uint64_t wc_start_;
         uint32_t clock_rate_;
     };
 };

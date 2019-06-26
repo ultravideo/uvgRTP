@@ -147,11 +147,18 @@ void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
     if (!buffer)
         return;
 
+    /* This is the first RTP message, get wall clock reading (t = 0)
+     * and generate random RTP timestamp for this reading */
+    if (wc_start_ == 0) {
+        rtp_timestamp_ = generate_rand_32();
+        wc_start_      = tv_to_ntp();
+    }
+
     buffer[0] = 2 << 6; // RTP version
     buffer[1] = (rtp_payload_ & 0x7f) | (0 << 7);
 
     *(uint16_t *)&buffer[2] = htons(rtp_sequence_);
-    *(uint32_t *)&buffer[4] = htonl(timestamp);
+    *(uint32_t *)&buffer[4] = htonl(rtp_timestamp_ + (ntp_diff_ms(tv_to_ntp(), wc_start_)) * clock_rate_ / 1000);
     *(uint32_t *)&buffer[8] = htonl(rtp_ssrc_);
 }
 
