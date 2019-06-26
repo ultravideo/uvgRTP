@@ -142,6 +142,9 @@ namespace kvz_rtp {
         rtp_error_t generate_sender_report();
         rtp_error_t generate_receiver_report();
 
+        /* Generate CNAME for participant using host and login names */
+        std::string generate_cname();
+
         std::thread *runner_;
         std::string cname_;
         bool receiver_;

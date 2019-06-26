@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include "debug.hh"
+#include "hostname.hh"
 #include "poll.hh"
 #include "rtcp.hh"
 #include "util.hh"
@@ -24,8 +25,8 @@ kvz_rtp::rtcp::rtcp(uint32_t ssrc, bool receiver):
     we_sent_(0), avg_rtcp_pkt_pize_(0), rtcp_pkt_count_(0),
     initial_(true), active_(false), num_receivers_(0)
 {
-    cname_ = "hello"; //generate_cname();
     ssrc_  = ssrc;
+    cname_ = kvz_rtp::rtcp::generate_cname();
 
     memset(&sender_stats, 0, sizeof(sender_stats));
 }
@@ -180,6 +181,20 @@ void kvz_rtp::rtcp::sender_inc_sent_pkts(size_t n)
 void kvz_rtp::rtcp::sender_inc_seq_cycle_count()
 {
     sender_stats.cycles++;
+}
+
+std::string kvz_rtp::rtcp::generate_cname()
+{
+    std::string host = kvz_rtp::hostname::get_hostname();
+    std::string user = kvz_rtp::hostname::get_username();
+
+    if (host == "")
+        host = generate_string(10);
+
+    if (user == "")
+        user = generate_string(10);
+
+    return host + "@" + user;
 }
 
 void kvz_rtp::rtcp::sender_update_stats(kvz_rtp::frame::rtp_frame *frame)
