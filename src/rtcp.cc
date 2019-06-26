@@ -18,7 +18,7 @@
 #define UDP_HEADER_SIZE  8
 #define IP_HEADER_SIZE  20
 
-kvz_rtp::rtcp::rtcp(uint32_t ssrc, bool receiver):
+kvz_rtp::rtcp::rtcp(uint32_t ssrc, uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start, bool receiver):
     receiver_(receiver),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
@@ -27,6 +27,10 @@ kvz_rtp::rtcp::rtcp(uint32_t ssrc, bool receiver):
 {
     ssrc_  = ssrc;
     cname_ = kvz_rtp::rtcp::generate_cname();
+
+    clock_start_  = clock_start;
+    clock_rate_   = clock_rate;
+    rtp_ts_start_ = rtp_ts_start_;
 
     memset(&sender_stats, 0, sizeof(sender_stats));
 }

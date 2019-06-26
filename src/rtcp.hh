@@ -21,7 +21,7 @@ namespace kvz_rtp {
 
     class rtcp {
     public:
-        rtcp(uint32_t ssrc, bool receiver);
+        rtcp(uint32_t ssrc, uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start, bool receiver);
         ~rtcp();
 
         /* start the RTCP runner thread
@@ -187,6 +187,15 @@ namespace kvz_rtp {
 
         /* Copy of our own current SSRC */
         uint32_t ssrc_;
+
+        /* NTP timestamp associated with initial RTP timestamp (aka t = 0) */
+        uint64_t clock_start_;
+
+        /* Clock rate of the media ie. how fast does the time increase */
+        uint32_t clock_rate_;
+
+        /* The first value of RTP timestamp (aka t = 0) */
+        uint32_t rtp_ts_start_;
 
         struct statistics {
             /* receiver stats */
