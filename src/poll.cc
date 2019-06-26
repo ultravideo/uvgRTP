@@ -58,6 +58,37 @@ rtp_error_t kvz_rtp::poll::poll(std::vector<kvz_rtp::socket>& sockets, uint8_t *
     return RTP_GENERIC_ERROR;
 
 #else
-    /* TODO: winsock poll */
+    WSAPOLLFD fdarray[kvz_rtp::MULTICAST_MAX_PEERS];
+    int ret;
+
+    for (size_t i = 0; i < sockets.size(); ++i) {
+        fdarray[i].fd = sockets.at(i).get_raw_socket();
+        fds[i].events = POLLRDNORM;
+    }
+
+    if ((ret = WSAPoll(&fdarray, sockets.size(), DEFAULT_WAIT)) == SOCKET_ERROR) {
+        ERR("WSAPoll");
+        set_bytes(bytes_read, -1);
+        return RTP_GENERIC_ERROR;
+    }
+
+    if (ret) {
+        for (size_t i = 0; i < sockets.size(); ++i) {
+            if (fdarray[i].revents & POLLRDNORM) {
+                if ((ret = recv(csock, buf, buf_len, 0)) == SOCKET_ERROR) {
+                    ERR("recv");
+                    return RTP_GENERIC_ERROR;
+                } else {
+                    set_bytes(bytes_read, ret);
+                    return RTP_OK;
+                }
+            }
+        }
+    }
+
+    /* TODO: ?? */
+    /* WaitForSingleObject(hCloseSignal, DEFAULT_WAIT); */
+
+    return RTP_GENERIC_ERROR;
 #endif
 }
