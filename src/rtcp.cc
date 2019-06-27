@@ -370,14 +370,8 @@ rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender
         frame->blocks[i].lsr      = htonl(frame->blocks[i].lsr);
     }
 
-    for (uint32_t& ssrc : ssrcs) {
-        if (!is_participant(ssrc)) {
-            LOG_WARN("Unknown participant 0x%x", ssrc);
-            continue;
-        }
-
-        auto p = participants_[ssrc];
-        if ((ret = p->socket->sendto(p->address, (uint8_t *)frame, len, 0)) != RTP_OK) {
+    for (auto& p : participants_) {
+        if ((ret = p.second->socket->sendto(p.second->address, (uint8_t *)frame, len, 0)) != RTP_OK) {
             LOG_ERROR("sendto() failed!");
         }
 
