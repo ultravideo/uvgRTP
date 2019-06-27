@@ -763,11 +763,14 @@ void kvz_rtp::rtcp::rtcp_runner(kvz_rtp::rtcp *rtcp)
 {
     LOG_INFO("RTCP instance created!");
 
-    int nread;
+    std::chrono::high_resolution_clock::time_point start, end;
+    int nread, diff, timeout = MIN_TIMEOUT;
     uint8_t buffer[MAX_PACKET];
+    rtp_error_t ret;
 
     while (rtcp->active()) {
-        rtp_error_t ret = kvz_rtp::poll::poll(rtcp->get_sockets(), buffer, MAX_PACKET, 1500, &nread);
+        start = std::chrono::high_resolution_clock::now();
+        ret   = kvz_rtp::poll::poll(rtcp->get_sockets(), buffer, MAX_PACKET, timeout, &nread);
 
         if (ret == RTP_OK && nread > 0) {
             (void)rtcp->handle_incoming_packet(buffer, (size_t)nread);
@@ -777,24 +780,15 @@ void kvz_rtp::rtcp::rtcp_runner(kvz_rtp::rtcp *rtcp)
             LOG_ERROR("recvfrom failed, %d", ret);
         }
 
-        if ((ret = rtcp->generate_report()) != RTP_OK) {
-            LOG_ERROR("Failed to send RTCP status report!");
+        end  = std::chrono::high_resolution_clock::now();
+        diff = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+        if (diff >= MIN_TIMEOUT) {
+            if ((ret = rtcp->generate_report()) != RTP_OK) {
+                LOG_ERROR("Failed to send RTCP status report!");
+            }
+
+            timeout = MIN_TIMEOUT;
         }
     }
-}
-
-uint64_t kvz_rtp::rtcp::tv_to_ntp()
-{
-    static const uint64_t EPOCH = 2208988800ULL;
-    static const uint64_t NTP_SCALE_FRAC = 4294967296ULL;
-
-    static struct timeval tv;
-    gettimeofday(&tv, NULL);
-
-    uint64_t tv_ntp, tv_usecs;
-
-    tv_ntp = tv.tv_sec + EPOCH;
-    tv_usecs = (NTP_SCALE_FRAC * tv.tv_usec) / 1000000UL;
-
-    return (tv_ntp << 32) | tv_usecs;
 }

@@ -18,6 +18,7 @@ namespace kvz_rtp {
     const int MIN_SEQUENTIAL = 2;
     const int MAX_DROPOUT    = 3000;
     const int MAX_MISORDER   = 100;
+    const int MIN_TIMEOUT    = 5000;
 
     class rtcp {
     public:
