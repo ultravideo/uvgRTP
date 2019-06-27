@@ -536,11 +536,11 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
     frame->sender_ssrc     = ssrc_;
     frame->s_info.ntp_msw  = timestamp >> 32;
     frame->s_info.ntp_lsw  = timestamp & 0xffffffff;
-    frame->s_info.rtp_ts   = 3; /* TODO: what timestamp is this? */
+    frame->s_info.rtp_ts   = rtp_ts_start_ + (ntp_diff_ms(timestamp, clock_start_)) * clock_rate_ / 1000;
     frame->s_info.pkt_cnt  = sender_stats.sent_pkts;
     frame->s_info.byte_cnt = sender_stats.sent_bytes;
 
-    LOG_DEBUG("Sender Report from 0x%x has %u blocks", ssrc_, senders_);
+    LOG_DEBUG("Sender Report from 0x%x has %u blocks %u", ssrc_, senders_);
 
     for (auto& participant : participants_) {
         if (!participant.second->sender)
