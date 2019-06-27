@@ -22,7 +22,7 @@ namespace kvz_rtp {
 
     class rtcp {
     public:
-        rtcp(uint32_t ssrc, uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start, bool receiver);
+        rtcp(uint32_t ssrc, bool receiver);
         ~rtcp();
 
         /* start the RTCP runner thread
@@ -100,6 +100,10 @@ namespace kvz_rtp {
         void receiver_inc_total_bytes(uint32_t sender_ssrc, size_t n);
         void receiver_inc_sent_pkts(uint32_t sender_ssrc, size_t n);
         void receiver_update_stats(kvz_rtp::frame::rtp_frame *frame);
+
+        /* Set wallclock reading for t = 0 and random RTP timestamp from where the counting is started
+         * + clock rate for calculating the correct increment */
+        void set_sender_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start);
 
     private:
         static void rtcp_runner(rtcp *rtcp);

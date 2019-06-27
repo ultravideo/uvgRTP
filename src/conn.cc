@@ -152,6 +152,8 @@ void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
     if (wc_start_ == 0) {
         rtp_timestamp_ = generate_rand_32();
         wc_start_      = tv_to_ntp();
+
+        rtcp_->set_sender_ts_info(wc_start_, clock_rate_, rtp_timestamp_);
     }
 
     buffer[0] = 2 << 6; // RTP version
@@ -164,7 +166,7 @@ void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
 
 rtp_error_t kvz_rtp::connection::create_rtcp(std::string dst_addr, int dst_port, int src_port)
 {
-    if ((rtcp_ = new kvz_rtp::rtcp(rtp_ssrc_, wc_start_, clock_rate_, rtp_timestamp_, reader_)) == nullptr) {
+    if ((rtcp_ = new kvz_rtp::rtcp(rtp_ssrc_, reader_)) == nullptr) {
         LOG_ERROR("Failed to allocate RTCP instance!");
         return RTP_MEMORY_ERROR;
     }
