@@ -86,7 +86,7 @@ kvz_rtp::frame::rtcp_sender_frame *kvz_rtp::frame::alloc_rtcp_sender_frame(size_
 
     frame->header.version  = 2;
     frame->header.padding  = 0;
-    frame->header.pkt_type = kvz_rtp::frame::FRAME_TYPE_RR;
+    frame->header.pkt_type = kvz_rtp::frame::FRAME_TYPE_SR;
     frame->header.length   = total_size;
     frame->header.count    = nblocks;
 
