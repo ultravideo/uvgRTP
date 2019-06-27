@@ -556,8 +556,7 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
         frame->blocks[ptr].lost     = participant.second->stats.dropped_pkts;
         frame->blocks[ptr].last_seq = participant.second->stats.max_seq;
         frame->blocks[ptr].jitter   = participant.second->stats.jitter;
-        frame->blocks[ptr].lsr      = participant.second->stats.lsr_ts;
-        frame->blocks[ptr].dlsr     = participant.second->stats.lsr_delay;
+        frame->blocks[ptr].lsr      = participant.second->stats.lsr;
 
         ptr++;
     }
@@ -601,8 +600,19 @@ rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
         frame->blocks[ptr].lost     = participant.second->stats.dropped_pkts;
         frame->blocks[ptr].last_seq = participant.second->stats.max_seq;
         frame->blocks[ptr].jitter   = participant.second->stats.jitter;
-        frame->blocks[ptr].lsr      = participant.second->stats.lsr_ts;
-        frame->blocks[ptr].dlsr     = participant.second->stats.lsr_delay;
+        frame->blocks[ptr].lsr      = participant.second->stats.lsr;
+
+        /* calculate delay of last SR only if SR has been received at least once */
+        if (frame->blocks[ptr].lsr != 0) {
+            /* TODO: this is very ugly code, refactor */
+            double diff = (double)std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::high_resolution_clock::now() -  participant.second->stats.sr_ts
+            ).count();
+
+            uint32_t jiffies = ((double)diff / 1000) * 65536;
+
+            frame->blocks[ptr].dlsr = jiffies;
+        }
 
         ptr++;
     }
@@ -625,10 +635,17 @@ rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_send
     if (!frame)
         return RTP_INVALID_VALUE;
 
-    if (frame->header.count == 0) {
-        LOG_ERROR("Sender Report cannot have 0 report blocks!");
-        return RTP_INVALID_VALUE;
-    }
+    frame->sender_ssrc = ntohl(frame->sender_ssrc);
+
+    if (!is_participant(frame->sender_ssrc))
+        add_participant(frame->sender_ssrc);
+
+    uint32_t ntp_msw = ntohl(frame->s_info.ntp_msw);
+    uint32_t ntp_lsw = ntohl(frame->s_info.ntp_lsw);
+    uint32_t lsr     = ((ntp_msw >> 16) & 0xffff) | ((ntp_lsw & 0xffff0000) >> 16);
+
+    participants_[frame->sender_ssrc]->stats.lsr   = lsr;
+    participants_[frame->sender_ssrc]->stats.sr_ts = std::chrono::high_resolution_clock::now();
 
     /* TODO: 6.4.4 Analyzing Sender and Receiver Reports */
 

@@ -13,6 +13,8 @@ namespace kvz_rtp {
 
     class connection;
 
+    using namespace std::chrono;
+
     /* TODO: explain these constants */
     const int RTP_SEQ_MOD    = 1 << 16;
     const int MIN_SEQUENTIAL = 2;
@@ -212,10 +214,11 @@ namespace kvz_rtp {
             uint32_t sent_pkts;   /* Number of sent RTP packets */
             uint32_t sent_bytes;  /* Number of sent bytes excluding RTP Header */
 
-            uint32_t jitter;      /* TODO */
+            uint32_t jitter;      /* TODO: */
+            uint32_t transit;     /* TODO: */
 
-            uint32_t lsr_ts;      /* Timestamp of the last Sender Report */
-            uint32_t lsr_delay;   /* Delay since last Sender Report */
+            uint32_t lsr;         /* Middle 32 bits of the 64-bit NTP timestamp of previous SR*/
+            high_resolution_clock::time_point sr_ts;
 
             uint16_t max_seq;  /* Highest sequence number received */
             uint16_t base_seq; /* First sequence number received */
