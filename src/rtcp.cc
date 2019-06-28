@@ -5,6 +5,7 @@
 #endif
 
 #include <cassert>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 
@@ -39,7 +40,7 @@ kvz_rtp::rtcp::~rtcp()
 {
 }
 
-rtp_error_t kvz_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, int src_port)
+rtp_error_t kvz_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, int src_port, uint32_t clock_rate)
 {
     if (dst_addr == "" || dst_port == 0 || src_port == 0) {
         LOG_ERROR("Invalid values given (%s, %d, %d), cannot create RTCP instance",
@@ -85,6 +86,7 @@ rtp_error_t kvz_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, i
 
     p->address = p->socket->create_sockaddr(AF_INET, dst_addr, dst_port);
     p->sender  = false;
+    p->stats.clock_rate = clock_rate;
 
     initial_participants_.push_back(p);
     sockets_.push_back(*p->socket);
@@ -250,6 +252,11 @@ void kvz_rtp::rtcp::init_new_participant(kvz_rtp::frame::rtp_frame *frame)
      * What this means is that we must receive at least two packets from SSRC
      * with sequential RTP sequence numbers for this peer to be considered valid */
     participants_[frame->ssrc]->probation = MIN_SEQUENTIAL;
+
+    /* This is the first RTP frame from remote to frame->timestamp represents t = 0
+     * Save the timestamp and current NTP timestamp so we can do jitter calculations later on */
+    participants_[frame->ssrc]->stats.initial_rtp = frame->timestamp;
+    participants_[frame->ssrc]->stats.initial_ntp = kvz_rtp::clock::now_ntp();
 
     senders_++;
 }

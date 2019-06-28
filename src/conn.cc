@@ -176,7 +176,7 @@ rtp_error_t kvz_rtp::connection::create_rtcp(std::string dst_addr, int dst_port,
         return RTP_MEMORY_ERROR;
     }
 
-    if ((rtp_errno = rtcp_->add_participant(dst_addr, dst_port, src_port)) != RTP_OK) {
+    if ((rtp_errno = rtcp_->add_participant(dst_addr, dst_port, src_port, clock_rate_)) != RTP_OK) {
         LOG_ERROR("Failed to add RTCP participant!");
         return rtp_errno;
     }

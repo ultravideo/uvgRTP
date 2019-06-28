@@ -87,8 +87,12 @@ namespace kvz_rtp {
         /* Somebody joined the multicast group the owner of this RTCP instance is part of
          * Add it to RTCP participant list so we can start listening for reports 
          *
+         * "clock_rate" tells how much the RTP timestamp advances, this information is needed
+         * to calculate the interarrival jitter correctly. It has nothing do with our clock rate,
+         * (or whether we're even sending anything)
+         *
          * Return RTP_OK on success and RTP_ERROR on error */
-        rtp_error_t add_participant(std::string dst_addr, int dst_port, int src_port);
+        rtp_error_t add_participant(std::string dst_addr, int dst_port, int src_port, uint32_t clock_rate);
 
         /* Functions for updating various RTP sender statistics */
         void sender_inc_seq_cycle_count();
@@ -212,6 +216,11 @@ namespace kvz_rtp {
 
             uint32_t jitter;      /* TODO: */
             uint32_t transit;     /* TODO: */
+
+            /* Receiver clock related stuff */
+            uint64_t initial_ntp; /* Wallclock reading when the first RTP packet was received */
+            uint32_t initial_rtp; /* RTP timestamp of the first RTP packet received */
+            uint32_t clock_rate;  /* Rate of the clock (used for jitter calculations) */
 
             uint32_t lsr;               /* Middle 32 bits of the 64-bit NTP timestamp of previous SR*/
             kvz_rtp::clock::tp_t sr_ts; /* When the last SR was received (used to calculate delay) */
