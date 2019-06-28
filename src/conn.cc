@@ -15,7 +15,8 @@
 kvz_rtp::connection::connection(bool reader):
     config_(nullptr),
     socket_(),
-    reader_(reader)
+    reader_(reader),
+    rtcp_(nullptr)
 {
     rtp_sequence_  = generate_rand_32();
     rtp_ssrc_      = 0x72b644;
@@ -98,43 +99,50 @@ void kvz_rtp::connection::inc_rtp_sequence()
 {
     rtp_sequence_++;
 
-    if (rtp_sequence_ == 0)
+    if (rtp_sequence_ == 0 && rtcp_)
         rtcp_->sender_inc_seq_cycle_count();
 }
 
 void kvz_rtp::connection::inc_sent_bytes(size_t n)
 {
-    rtcp_->sender_inc_sent_bytes(n);
+    if (rtcp_)
+        rtcp_->sender_inc_sent_bytes(n);
 }
 
 void kvz_rtp::connection::inc_sent_pkts(size_t n)
 {
-    rtcp_->sender_inc_sent_pkts(n);
+    if (rtcp_)
+        rtcp_->sender_inc_sent_pkts(n);
 }
 
 void kvz_rtp::connection::inc_sent_pkts()
 {
-    rtcp_->sender_inc_sent_pkts(1);
+    if (rtcp_)
+        rtcp_->sender_inc_sent_pkts(1);
 }
 
 void kvz_rtp::connection::inc_sent_bytes(uint32_t ssrc, size_t n)
 {
-    rtcp_->receiver_inc_sent_bytes(ssrc, n);
+    if (rtcp_)
+        rtcp_->receiver_inc_sent_bytes(ssrc, n);
 }
 
 void kvz_rtp::connection::inc_sent_pkts(uint32_t ssrc, size_t n)
 {
-    rtcp_->receiver_inc_sent_pkts(ssrc, n);
+    if (rtcp_)
+        rtcp_->receiver_inc_sent_pkts(ssrc, n);
 }
 
 void kvz_rtp::connection::inc_sent_pkts(uint32_t ssrc)
 {
-    rtcp_->receiver_inc_sent_pkts(ssrc, 1);
+    if (rtcp_)
+        rtcp_->receiver_inc_sent_pkts(ssrc, 1);
 }
 
 void kvz_rtp::connection::update_receiver_stats(kvz_rtp::frame::rtp_frame *frame)
 {
-    rtcp_->receiver_update_stats(frame);
+    if (rtcp_)
+        rtcp_->receiver_update_stats(frame);
 }
 
 void kvz_rtp::connection::set_clock_rate(uint32_t clock_rate)
@@ -153,7 +161,8 @@ void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
         rtp_timestamp_ = generate_rand_32();
         wc_start_      = kvz_rtp::clock::now_ntp();
 
-        rtcp_->set_sender_ts_info(wc_start_, clock_rate_, rtp_timestamp_);
+        if (rtcp_)
+            rtcp_->set_sender_ts_info(wc_start_, clock_rate_, rtp_timestamp_);
     }
 
     buffer[0] = 2 << 6; // RTP version
