@@ -60,6 +60,7 @@ rtp_error_t kvz_rtp::writer::start()
     }
 
     addr_out_ = socket_.create_sockaddr(AF_INET, dst_addr_, dst_port_);
+    socket_.set_sockaddr(addr_out_);
 
     return RTP_OK;
 }
