@@ -5,6 +5,7 @@
 #include <thread>
 #include <vector>
 
+#include "clock.hh"
 #include "frame.hh"
 #include "socket.hh"
 #include "util.hh"
@@ -12,8 +13,6 @@
 namespace kvz_rtp {
 
     class connection;
-
-    using namespace std::chrono;
 
     /* TODO: explain these constants */
     const int RTP_SEQ_MOD    = 1 << 16;
@@ -109,9 +108,6 @@ namespace kvz_rtp {
 
     private:
         static void rtcp_runner(rtcp *rtcp);
-
-        /* convert struct timeval format to NTP format */
-        uint64_t tv_to_ntp();
 
         /* when we start the RTCP instance, we don't know what the SSRC of the remote is
          * when an RTP packet is received, we must check if we've already received a packet 
@@ -217,8 +213,8 @@ namespace kvz_rtp {
             uint32_t jitter;      /* TODO: */
             uint32_t transit;     /* TODO: */
 
-            uint32_t lsr;         /* Middle 32 bits of the 64-bit NTP timestamp of previous SR*/
-            high_resolution_clock::time_point sr_ts;
+            uint32_t lsr;               /* Middle 32 bits of the 64-bit NTP timestamp of previous SR*/
+            kvz_rtp::clock::tp_t sr_ts; /* When the last SR was received (used to calculate delay) */
 
             uint16_t max_seq;  /* Highest sequence number received */
             uint16_t base_seq; /* First sequence number received */

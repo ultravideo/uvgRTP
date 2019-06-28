@@ -529,14 +529,14 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
     }
 
     size_t ptr         = 0;
-    uint64_t timestamp = tv_to_ntp();
+    uint64_t timestamp = kvz_rtp::clock::now_ntp();
     rtp_error_t ret    = RTP_GENERIC_ERROR;
 
     frame->header.count    = senders_;
     frame->sender_ssrc     = ssrc_;
     frame->s_info.ntp_msw  = timestamp >> 32;
     frame->s_info.ntp_lsw  = timestamp & 0xffffffff;
-    frame->s_info.rtp_ts   = rtp_ts_start_ + (ntp_diff_ms(timestamp, clock_start_)) * clock_rate_ / 1000;
+    frame->s_info.rtp_ts   = rtp_ts_start_ + (kvz_rtp::clock::diff_ntp_ms(timestamp, clock_start_)) * clock_rate_ / 1000;
     frame->s_info.pkt_cnt  = sender_stats.sent_pkts;
     frame->s_info.byte_cnt = sender_stats.sent_bytes;
 
@@ -604,14 +604,8 @@ rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
 
         /* calculate delay of last SR only if SR has been received at least once */
         if (frame->blocks[ptr].lsr != 0) {
-            /* TODO: this is very ugly code, refactor */
-            double diff = (double)std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::high_resolution_clock::now() -  participant.second->stats.sr_ts
-            ).count();
-
-            uint32_t jiffies = ((double)diff / 1000) * 65536;
-
-            frame->blocks[ptr].dlsr = jiffies;
+            uint64_t diff = kvz_rtp::clock::diff_tp_now_ms(participant.second->stats.sr_ts);
+            frame->blocks[ptr].dlsr = kvz_rtp::clock::ms_to_jiffies(diff);
         }
 
         ptr++;
@@ -645,7 +639,7 @@ rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_send
     uint32_t lsr     = ((ntp_msw >> 16) & 0xffff) | ((ntp_lsw & 0xffff0000) >> 16);
 
     participants_[frame->sender_ssrc]->stats.lsr   = lsr;
-    participants_[frame->sender_ssrc]->stats.sr_ts = std::chrono::high_resolution_clock::now();
+    participants_[frame->sender_ssrc]->stats.sr_ts = kvz_rtp::clock::now_high_res();
 
     /* TODO: 6.4.4 Analyzing Sender and Receiver Reports */
 
@@ -781,13 +775,13 @@ void kvz_rtp::rtcp::rtcp_runner(kvz_rtp::rtcp *rtcp)
 {
     LOG_INFO("RTCP instance created!");
 
-    std::chrono::high_resolution_clock::time_point start, end;
+    kvz_rtp::clock::tp_t start, end;
     int nread, diff, timeout = MIN_TIMEOUT;
     uint8_t buffer[MAX_PACKET];
     rtp_error_t ret;
 
     while (rtcp->active()) {
-        start = std::chrono::high_resolution_clock::now();
+        start = kvz_rtp::clock::now_high_res();
         ret   = kvz_rtp::poll::poll(rtcp->get_sockets(), buffer, MAX_PACKET, timeout, &nread);
 
         if (ret == RTP_OK && nread > 0) {
@@ -798,8 +792,7 @@ void kvz_rtp::rtcp::rtcp_runner(kvz_rtp::rtcp *rtcp)
             LOG_ERROR("recvfrom failed, %d", ret);
         }
 
-        end  = std::chrono::high_resolution_clock::now();
-        diff = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        diff = kvz_rtp::clock::diff_tp_now_ms(start);
 
         if (diff >= MIN_TIMEOUT) {
             if ((ret = rtcp->generate_report()) != RTP_OK) {
