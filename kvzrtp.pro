@@ -23,12 +23,10 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    src/ssrc.cc \
     src/send.cc \
     src/rtp_opus.cc \
     src/rtp_hevc.cc \
     src/rtp_generic.cc \
-    src/rtcp.cc \
     src/reader.cc \
     src/lib.cc \
     src/frame.cc \
@@ -38,11 +36,13 @@ SOURCES += \
     src/multicast.cc \
     src/poll.cc \
     src/rtcp.cc \
-    src/socket.cc
+    src/socket.cc \
+    src/clock.cc \
+    src/hostname.cc \
+    src/queue.cc
 
 HEADERS += \
     src/writer.hh \
-    src/ssrc.hh \
     src/send.hh \
     src/rtp_opus.hh \
     src/rtp_hevc.hh \
@@ -55,10 +55,13 @@ HEADERS += \
     src/debug.hh \
     src/util.hh \
     src/mingw_inet.hh \
-    src/multicast.cc \
-    src/poll.cc \
-    src/rtcp.cc \
-    src/socket.cc
+    src/multicast.hh \
+    src/poll.hh \
+    src/rtcp.hh \
+    src/socket.hh \
+    src/clock.hh \
+    src/hostname.hh \
+    src/queue.hh
 
 unix {
     target.path = /usr/lib
