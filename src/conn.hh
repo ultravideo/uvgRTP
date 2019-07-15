@@ -29,8 +29,8 @@ namespace kvz_rtp {
         uint32_t  get_ssrc() const;
         uint8_t   get_payload() const;
 
-        socket   get_socket() const;
-        socket_t get_raw_socket() const;
+        socket&  get_socket();
+        socket_t get_raw_socket();
 
         void set_payload(rtp_format_t fmt);
         void set_ssrc(uint32_t ssrc);

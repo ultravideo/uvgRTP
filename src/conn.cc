@@ -80,12 +80,12 @@ uint8_t kvz_rtp::connection::get_payload() const
     return rtp_payload_;
 }
 
-kvz_rtp::socket_t kvz_rtp::connection::get_raw_socket() const
+kvz_rtp::socket_t kvz_rtp::connection::get_raw_socket()
 {
     return socket_.get_raw_socket();
 }
 
-kvz_rtp::socket kvz_rtp::connection::get_socket() const
+kvz_rtp::socket& kvz_rtp::connection::get_socket()
 {
     return socket_;
 }

@@ -81,8 +81,8 @@ namespace kvz_rtp {
              * NOTE: "family" must be AF_INET */
             sockaddr_in create_sockaddr(short family, std::string host, short port);
 
-            /* Get const reference to the actual socket object */
-            const socket_t& get_raw_socket() const;
+            /* Get reference to the actual socket object */
+            socket_t& get_raw_socket();
 
             /* Initialize the private "addr_" object with "addr"
              * This is used when calling send() */

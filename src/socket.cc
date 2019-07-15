@@ -2,6 +2,7 @@
 #else
 #include <unistd.h>
 #include <poll.h>
+#include <fcntl.h>
 #endif
 
 #include <cstring>
@@ -11,7 +12,7 @@
 #include "socket.hh"
 
 kvz_rtp::socket::socket():
-    socket_(0)
+    socket_(-1)
 {
 }
 
@@ -100,7 +101,7 @@ void kvz_rtp::socket::set_sockaddr(sockaddr_in addr)
     addr_ = addr;
 }
 
-const kvz_rtp::socket_t& kvz_rtp::socket::get_raw_socket() const
+kvz_rtp::socket_t& kvz_rtp::socket::get_raw_socket()
 {
     return socket_;
 }
