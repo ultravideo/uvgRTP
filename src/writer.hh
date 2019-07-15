@@ -4,6 +4,7 @@
 
 #include "conn.hh"
 #include "frame.hh"
+#include "queue.hh"
 #include "socket.hh"
 
 namespace kvz_rtp {
@@ -25,10 +26,14 @@ namespace kvz_rtp {
 
         sockaddr_in get_out_address();
 
+        const kvz_rtp::frame_queue& get_frame_queue() const;
+
     private:
         std::string dst_addr_;
         int dst_port_;
         int src_port_;
         sockaddr_in addr_out_;
+
+        kvz_rtp::frame_queue fqueue_;
     };
 };

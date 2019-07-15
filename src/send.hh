@@ -43,29 +43,5 @@ namespace kvz_rtp {
             uint8_t *header, size_t header_len,
             uint8_t *payload, size_t payload_len
         );
-
-        /* linux specific functions*/
-
-        /* TODO:  */
-        rtp_error_t enqueue_message(
-            kvz_rtp::connection *conn,
-            uint8_t *header,  size_t header_len,
-            uint8_t *payload, size_t payload_len
-        );
-
-        /* TODO:  */
-        rtp_error_t enqueue_message(
-            kvz_rtp::connection *conn,
-            std::vector<std::pair<size_t, uint8_t *>>& buffers
-        );
-
-        /* TODO:  */
-        rtp_error_t enqueue_message(
-            kvz_rtp::connection *conn,
-            uint8_t *message,  size_t message_len
-        );
-
-        /* TODO:  */
-        rtp_error_t flush_message_queue(kvz_rtp::connection *conn);
     };
 };

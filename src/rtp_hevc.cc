@@ -6,7 +6,9 @@
 #include "conn.hh"
 #include "debug.hh"
 #include "rtp_hevc.hh"
+#include "queue.hh"
 #include "send.hh"
+#include "writer.hh"
 
 static int __get_next_frame_start(uint8_t *data, uint32_t offset, uint32_t data_len, uint8_t& start_len)
 {
@@ -45,6 +47,8 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
     LOG_DEBUG("send frag size: %zu, type %u", data_len, nalType);
 
 #ifdef __linux__
+    auto fqueue = dynamic_cast<kvz_rtp::writer *>(conn)->get_frame_queue();
+
     /* all fragment units share the same RTP and HEVC NAL headers
      * but because there's three different types of FU headers (and because the state 
      * of each buffer must last between calls) we must allocate space for three FU headers */
@@ -75,10 +79,10 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
     data_left -= kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
 
     while (data_left > MAX_PAYLOAD) {
-        /* buffers.at(2).first  = MAX_PAYLOAD; */
+        buffers.at(2).first  = MAX_PAYLOAD;
         buffers.at(2).second = &data[data_pos];
 
-        if ((ret = kvz_rtp::sender::enqueue_message(conn, buffers)) != RTP_OK)
+        if ((ret = fqueue.enqueue_message(conn, buffers)) != RTP_OK)
             return ret;
 
         data_pos  += MAX_PAYLOAD;
@@ -88,14 +92,19 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
         buffers.at(1).second = &fu_headers[1];
     }
 
-    /* use the FU header meant for  */
+    /* use the FU header meant for last fragment */
     buffers.at(1).second = &fu_headers[2];
 
     buffers.at(2).first  = data_left;
     buffers.at(2).second = &data[data_pos];
 
-    ret = kvz_rtp::sender::enqueue_message(conn, buffers);
-    ret = kvz_rtp::sender::flush_message_queue(conn);
+    if ((ret = fqueue.enqueue_message(conn, buffers)) != RTP_OK) {
+        LOG_ERROR("Failed to send HEVC frame!");
+        fqueue.empty_queue();
+        return ret;
+    }
+
+    return fqueue.flush_queue(conn);
 #else
     const size_t HEADER_SIZE =
         kvz_rtp::frame::HEADER_SIZE_RTP +
