@@ -27,7 +27,6 @@ kvz_rtp::rtcp::rtcp(uint32_t ssrc, bool receiver):
     initial_(true), active_(false), num_receivers_(0)
 {
     ssrc_  = ssrc;
-    cname_ = kvz_rtp::rtcp::generate_cname();
 
     clock_start_  = 0;
     clock_rate_   = 0;
@@ -187,20 +186,6 @@ void kvz_rtp::rtcp::sender_inc_sent_pkts(size_t n)
 void kvz_rtp::rtcp::sender_inc_seq_cycle_count()
 {
     sender_stats.cycles++;
-}
-
-std::string kvz_rtp::rtcp::generate_cname()
-{
-    std::string host = kvz_rtp::hostname::get_hostname();
-    std::string user = kvz_rtp::hostname::get_username();
-
-    if (host == "")
-        host = generate_string(10);
-
-    if (user == "")
-        user = generate_string(10);
-
-    return host + "@" + user;
 }
 
 void kvz_rtp::rtcp::set_sender_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start)

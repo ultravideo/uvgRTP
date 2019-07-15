@@ -2,12 +2,15 @@
 
 #include "debug.hh"
 #include "conn.hh"
+#include "hostname.hh"
 #include "lib.hh"
 
 thread_local rtp_error_t rtp_errno;
 
 kvz_rtp::context::context()
 {
+    cname_ = kvz_rtp::context::generate_cname();
+
 #ifdef _WIN32
     WSADATA wsd;
     int rc;
@@ -115,4 +118,23 @@ rtp_error_t kvz_rtp::context::destroy_reader(kvz_rtp::reader *reader)
 
     delete reader;
     return RTP_OK;
+}
+
+std::string kvz_rtp::context::generate_cname()
+{
+    std::string host = kvz_rtp::hostname::get_hostname();
+    std::string user = kvz_rtp::hostname::get_username();
+
+    if (host == "")
+        host = generate_string(10);
+
+    if (user == "")
+        user = generate_string(10);
+
+    return host + "@" + user;
+}
+
+std::string& kvz_rtp::context::get_cname()
+{
+    return cname_;
 }

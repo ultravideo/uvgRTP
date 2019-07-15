@@ -32,7 +32,15 @@ namespace kvz_rtp {
         rtp_error_t destroy_writer(kvz_rtp::writer *writer);
         rtp_error_t destroy_reader(kvz_rtp::reader *reader);
 
+        std::string& get_cname();
+
     private:
+        /* Generate CNAME for participant using host and login names */
+        std::string generate_cname();
+
+        /* CNAME is the same for all connections */
+        std::string cname_;
+
         std::map<uint32_t, connection *> conns_;
     };
 };
