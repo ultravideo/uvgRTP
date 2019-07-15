@@ -1,7 +1,6 @@
 #include <iostream>
 #include <cstdint>
 #include <cstring>
-#include <easy/profiler.h>
 
 #include "conn.hh"
 #include "debug.hh"

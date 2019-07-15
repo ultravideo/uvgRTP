@@ -121,24 +121,6 @@ void kvz_rtp::connection::inc_sent_pkts()
         rtcp_->sender_inc_sent_pkts(1);
 }
 
-void kvz_rtp::connection::inc_sent_bytes(uint32_t ssrc, size_t n)
-{
-    if (rtcp_)
-        rtcp_->receiver_inc_sent_bytes(ssrc, n);
-}
-
-void kvz_rtp::connection::inc_sent_pkts(uint32_t ssrc, size_t n)
-{
-    if (rtcp_)
-        rtcp_->receiver_inc_sent_pkts(ssrc, n);
-}
-
-void kvz_rtp::connection::inc_sent_pkts(uint32_t ssrc)
-{
-    if (rtcp_)
-        rtcp_->receiver_inc_sent_pkts(ssrc, 1);
-}
-
 void kvz_rtp::connection::update_receiver_stats(kvz_rtp::frame::rtp_frame *frame)
 {
     if (rtcp_)

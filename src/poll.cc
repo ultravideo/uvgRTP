@@ -58,6 +58,7 @@ rtp_error_t kvz_rtp::poll::poll(std::vector<kvz_rtp::socket>& sockets, uint8_t *
     return RTP_GENERIC_ERROR;
 
 #else
+#if 0
     WSAPOLLFD fdarray[kvz_rtp::MULTICAST_MAX_PEERS];
     int ret;
 
@@ -88,7 +89,7 @@ rtp_error_t kvz_rtp::poll::poll(std::vector<kvz_rtp::socket>& sockets, uint8_t *
 
     /* TODO: ?? */
     /* WaitForSingleObject(hCloseSignal, DEFAULT_WAIT); */
-
+#endif
     return RTP_GENERIC_ERROR;
 #endif
 }

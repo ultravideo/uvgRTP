@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "util.hh"
+
 namespace kvz_rtp {
     class connection;
 

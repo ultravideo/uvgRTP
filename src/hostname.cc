@@ -1,4 +1,5 @@
 #ifdef _WIN32
+#include <windows.h>
 #include <winbase.h>
 #else
 #include <unistd.h>
@@ -15,11 +16,11 @@
 std::string kvz_rtp::hostname::get_hostname()
 {
 #ifdef _WIN32
-    TCHAR buffer[NAME_MAXLEN];
+    char buffer[NAME_MAXLEN];
     DWORD bufCharCount = NAME_MAXLEN;
 
-    if(!GetComputerName(buffer, &bufCharCount)) {
-        printError(TEXT("GetComputerName")); 
+    if(!GetComputerName((TCHAR *)buffer, &bufCharCount)) {
+        LOG_ERROR("Failed to get computer name!");
         return "";
     }
 
@@ -39,11 +40,11 @@ std::string kvz_rtp::hostname::get_hostname()
 std::string kvz_rtp::hostname::get_username()
 {
 #ifdef _WIN32
-    TCHAR buffer[NAME_MAXLEN];
+    char buffer[NAME_MAXLEN];
     DWORD bufCharCount = NAME_MAXLEN;
 
-    if(!GetUserName(buffer, &bufCharCount)) {
-        printError(TEXT("GetUserName")); 
+    if(!GetUserName((TCHAR *)buffer, &bufCharCount)) {
+        LOG_ERROR("Failed to get user name!");
         return "";
     }
 

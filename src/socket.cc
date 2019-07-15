@@ -1,8 +1,16 @@
 #ifdef _WIN32
+#include <winsock2.h>
+#include <ws2def.h>
 #else
 #include <unistd.h>
 #include <poll.h>
 #include <fcntl.h>
+#endif
+
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#include "mingw_inet.hh"
+using namespace kvz_rtp;
+using namespace mingw;
 #endif
 
 #include <cstring>
@@ -44,7 +52,7 @@ rtp_error_t kvz_rtp::socket::init(short family, int type, int protocol)
 
 rtp_error_t kvz_rtp::socket::setsockopt(int level, int optname, const void *optval, socklen_t optlen)
 {
-    if (::setsockopt(socket_, level, optname, optval, optlen) < 0) {
+    if (::setsockopt(socket_, level, optname, (const char *)optval, optlen) < 0) {
         LOG_ERROR("Failed to set socket options: %s", strerror(errno));
         return RTP_GENERIC_ERROR;
     }
@@ -181,7 +189,7 @@ rtp_error_t kvz_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags,
         return RTP_GENERIC_ERROR;
     }
 #else
-    int32_t ret = ::recvfrom(socket_, buf, buf_len, flags (SOCKADDR *)sender, len_ptr);
+    int32_t ret = ::recvfrom(socket_, (char *)buf, buf_len, flags, (SOCKADDR *)sender, (int *)len_ptr);
 
     if (ret == -1) {
         LOG_ERROR("recvfrom failed: %d", WSAGetLastError());

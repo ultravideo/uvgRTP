@@ -10,8 +10,10 @@
 #include "queue.hh"
 #include "writer.hh"
 
-kvz_rtp::frame_queue::frame_queue():
-    hdr_ptr_(0), msg_ptr_(0), chunk_ptr_(0)
+kvz_rtp::frame_queue::frame_queue()
+#ifdef __linux__
+    :hdr_ptr_(0), msg_ptr_(0), chunk_ptr_(0)
+#endif
 {
 }
 
@@ -185,7 +187,9 @@ end:
 
 rtp_error_t kvz_rtp::frame_queue::empty_queue()
 {
+#ifdef __linux__
     hdr_ptr_ = msg_ptr_ = chunk_ptr_ = 0;
+#endif
 
     return RTP_OK;
 }

@@ -12,17 +12,13 @@
 #include <cstdio>
 #include <string>
 
-#ifdef _WIN32
 
-/* TODO: make sure this works on windows too! */
-
-#define PACKED_STRUCT_WIN(name) \
-    __pragma(pack(push, 1)) \
-    struct name \
-    __pragma(pack(pop))
-#else
+#if defined(__MINGW32__) || defined(__MINGW64__) || defined(__linux__)
 #define PACKED_STRUCT(name) \
     struct __attribute__((packed)) name
+#else
+#warning "structures are not packed!"
+#define PACKED_STRUCT(name) struct name
 #endif
 
 const int MAX_PACKET      = 65536;
@@ -90,7 +86,11 @@ static inline uint32_t generate_rand_32()
     static bool init = false;
 
     if (!init) {
+#ifdef __linux__
         srand(time(NULL));
+#else
+        srand(GetTickCount());
+#endif
         init = true;
     }
 

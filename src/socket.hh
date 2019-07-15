@@ -1,8 +1,8 @@
 #pragma once
 
 #ifdef _WIN32
-#include <inaddr.h>
 #include <winsock2.h>
+#include <inaddr.h>
 #else
 #include <netinet/ip.h>
 #include <arpa/inet.h>
@@ -17,6 +17,7 @@ namespace kvz_rtp {
 
 #ifdef _WIN32
     typedef SOCKET socket_t;
+    typedef unsigned socklen_t;
 #else
     typedef int    socket_t;
 #endif
