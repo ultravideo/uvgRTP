@@ -19,7 +19,7 @@ kvz_rtp::connection::connection(bool reader):
     rtcp_(nullptr)
 {
     rtp_sequence_  = generate_rand_32();
-    rtp_ssrc_      = 0x72b644;
+    rtp_ssrc_      = generate_rand_32();
     rtp_payload_   = RTP_FORMAT_HEVC;
 }
 
