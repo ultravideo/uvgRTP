@@ -54,7 +54,7 @@ rtp_error_t kvz_rtp::socket::setsockopt(int level, int optname, const void *optv
 
 rtp_error_t kvz_rtp::socket::bind(short family, unsigned host, short port)
 {
-    assert(assert == AF_INET);
+    assert(family == AF_INET);
 
     sockaddr_in addr = create_sockaddr(family, host, port);
 
