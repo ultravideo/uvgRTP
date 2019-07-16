@@ -18,6 +18,20 @@ inline const char *className(const std::string& prettyFunction)
 }
 
 #ifdef _WIN32
+
+static inline void win_get_last_error(void)
+{
+    wchar_t *s = NULL;
+    FormatMessageW(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL, WSAGetLastError(),
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPWSTR)&s, 0, NULL
+    );
+    fprintf(stderr, "%S %d\n", s, WSAGetLastError());
+    LocalFree(s);
+}
+
 #define LOG_LEVEL_ERROR "ERROR"
 #define LOG_LEVEL_WARN  "WARNING"
 #define LOG_LEVEL_INFO  "INFO"

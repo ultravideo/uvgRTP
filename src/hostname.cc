@@ -19,9 +19,8 @@ std::string kvz_rtp::hostname::get_hostname()
     char buffer[NAME_MAXLEN];
     DWORD bufCharCount = NAME_MAXLEN;
 
-    if(!GetComputerName((TCHAR *)buffer, &bufCharCount)) {
-        LOG_ERROR("Failed to get computer name!");
-        return "";
+    if (!GetComputerName((TCHAR *)buffer, &bufCharCount)) {
+        win_get_last_error();
     }
 
     return std::string(buffer);
@@ -43,8 +42,8 @@ std::string kvz_rtp::hostname::get_username()
     char buffer[NAME_MAXLEN];
     DWORD bufCharCount = NAME_MAXLEN;
 
-    if(!GetUserName((TCHAR *)buffer, &bufCharCount)) {
-        LOG_ERROR("Failed to get user name!");
+    if (!GetUserName((TCHAR *)buffer, &bufCharCount)) {
+        win_get_last_error();
         return "";
     }
 

@@ -39,7 +39,7 @@ rtp_error_t kvz_rtp::socket::init(short family, int type, int protocol)
 
 #ifdef _WIN32
     if ((socket_ = ::socket(family, type, protocol)) == INVALID_SOCKET) {
-        LOG_ERROR("todo windows specific error message");
+        win_get_last_error();
 #else
     if ((socket_ = ::socket(family, type, protocol)) < 0) {
         LOG_ERROR("Failed to create socket: %s", strerror(errno));
@@ -67,6 +67,11 @@ rtp_error_t kvz_rtp::socket::bind(short family, unsigned host, short port)
     sockaddr_in addr = create_sockaddr(family, host, port);
 
     if (::bind(socket_, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+#ifdef _WIN32
+        win_get_last_error();
+#else
+        fprintf(stderr, "%s\n", strerror(errno));
+#endif
         LOG_ERROR("Biding to port %u failed!", port);
         return RTP_BIND_ERROR;
     }
@@ -134,8 +139,7 @@ rtp_error_t kvz_rtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t bu
     data_buf.len = buf_len;
 
     if (WSASendTo(socket_, &data_buf, 1, &sent_bytes, flags, (const struct sockaddr *)&addr, sizeof(addr_), NULL, NULL) == -1) {
-        /* TODO: winsock specific error message */
-        LOG_ERROR("Failed to send data!");
+        win_get_last_error();
 
         if (bytes_sent)
             *bytes_sent = -1;
@@ -192,7 +196,7 @@ rtp_error_t kvz_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags,
     int32_t ret = ::recvfrom(socket_, (char *)buf, buf_len, flags, (SOCKADDR *)sender, (int *)len_ptr);
 
     if (ret == -1) {
-        LOG_ERROR("recvfrom failed: %d", WSAGetLastError());
+        win_get_last_error();
 
         if (bytes_read)
             *bytes_read = -1;

@@ -16,8 +16,7 @@ kvz_rtp::context::context()
     int rc;
 
     if ((rc = WSAStartup(MAKEWORD(2, 2), &wsd)) != 0) {
-        LOG_ERROR("Unable to load Winsock: %d\n", rc);
-        /* TODO: how to stop everything?? */
+        win_get_last_error();
     }
 #endif
 }
