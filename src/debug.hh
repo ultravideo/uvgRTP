@@ -17,9 +17,15 @@ inline const char *className(const std::string& prettyFunction)
     return prettyFunction.substr(begin,end).c_str();
 }
 
+#ifdef _WIN32
+#define LOG_LEVEL_ERROR "ERROR"
+#define LOG_LEVEL_WARN  "WARNING"
+#define LOG_LEVEL_INFO  "INFO"
+#else
 #define LOG_LEVEL_ERROR "\x1b[31mERROR\x1b[0m"
 #define LOG_LEVEL_WARN  "\x1b[33mWARNING\x1b[0m"
 #define LOG_LEVEL_INFO  "\x1b[34mINFO\x1b[0m"
+#endif
 #define LOG_LEVEL_DEBUG "DEBUG"
 
 #define debug(level, fmt, ...) \
