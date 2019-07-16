@@ -27,6 +27,10 @@ kvz_rtp::context::~context()
         delete it->second;
         conns_.erase(it);
     }
+
+#ifdef _WIN32
+    WSACleanup();
+#endif
 }
 
 kvz_rtp::reader *kvz_rtp::context::create_reader(std::string srcAddr, int srcPort)

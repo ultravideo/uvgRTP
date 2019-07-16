@@ -29,7 +29,7 @@ kvz_rtp::socket::~socket()
 #ifdef __linux__
     close(socket_);
 #else
-    /* TODO: winsock stuff? */
+    closesocket(socket_);
 #endif
 }
 
