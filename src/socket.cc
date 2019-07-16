@@ -133,7 +133,7 @@ rtp_error_t kvz_rtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t bu
     data_buf.buf = (char *)buf;
     data_buf.len = buf_len;
 
-    if (WSASend(socket_, &data_buf, 1, &sent_bytes, flags, NULL, NULL) == -1) {
+    if (WSASendTo(socket_, &data_buf, 1, &sent_bytes, flags, (const struct sockaddr *)&addr, sizeof(addr_), NULL, NULL) == -1) {
         /* TODO: winsock specific error message */
         LOG_ERROR("Failed to send data!");
 
