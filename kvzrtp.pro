@@ -68,5 +68,3 @@ unix {
     target.path = /usr/lib
     INSTALLS += target
 }
-
-win32: LIBS += -lwsock32 -lws2_32

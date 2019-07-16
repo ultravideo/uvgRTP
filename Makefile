@@ -5,7 +5,7 @@ CFLAGS = -g -Wall -Wextra -O2 -std=c++11
 
 SOURCES=$(wildcard src/*.cc)
 OBJECTS=$(addprefix obj/,$(notdir $(SOURCES:.cc=.o)))
-TARGET = librtp.a
+TARGET = libkvzrtp.a
 
 all: $(TARGET)
 

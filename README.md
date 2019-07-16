@@ -1,8 +1,8 @@
-# rtplib
+# kvzrtp
 
 Based on Marko Viitanen's [fRTPlib](https://github.com/fador/fRTPlib)
 
-# building
+# Building
 
 Linux
 ```
@@ -10,7 +10,19 @@ make -j8
 sudo make install
 ```
 
-You can also use QtCreator to build the library
+You can also use QtCreator to build the library. The library must be built using a 64-bit compiler!
+
+# Usage
+
+The library should be linked as a static library to your program.
+
+Linux
+
+`-L<path to library> -lkvzrtp`
+
+Windows
+
+`-L<path to library> -lkvzrtp -lwsock32 -lws2_32`
 
 # Defines
 
@@ -32,7 +44,7 @@ When an operation succeeds, `RTP_OK` is returned
 
 ## Sending data
 
-Sending data is a simple as calling writer->push_frame(), see examples/sending/hevc_sender.cc.
+Sending data is a simple as calling `writer->push_frame()`, see examples/sending/hevc_sender.cc.
 
 ## Receiving data
 
