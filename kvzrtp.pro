@@ -8,6 +8,7 @@ QT -= core gui
 
 TARGET   = kvzrtp
 TEMPLATE = lib
+CONFIG  += staticlib
 
 DEFINES += KVZRTP_LIBRARY
 
