@@ -16,76 +16,49 @@
 #include "util.hh"
 #include "writer.hh"
 
-rtp_error_t kvz_rtp::sender::write_payload(kvz_rtp::connection *conn, uint8_t *payload, size_t payload_len)
+rtp_error_t kvz_rtp::send::send_frame(
+    kvz_rtp::connection *conn,
+    uint8_t *frame, size_t frame_len
+)
 {
-    if (!conn)
+    if (!conn || !frame || frame_len == 0)
         return RTP_INVALID_VALUE;
 
-    conn->inc_sent_bytes(payload_len);
+    if (frame_len >= MAX_PAYLOAD) {
+        LOG_WARN("Frame length (%lu) is larger than MAX_PAYLOAD (%u)", frame_len, MAX_PAYLOAD);
+    }
+
+    conn->inc_sent_bytes(frame_len);
     conn->inc_sent_pkts();
     conn->inc_rtp_sequence();
 
-    return conn->get_socket().sendto(payload, payload_len, 0, NULL);
+    return conn->get_socket().sendto(frame, frame_len, 0, NULL);
 }
 
-rtp_error_t kvz_rtp::sender::write_generic_header(kvz_rtp::connection *conn, uint8_t *header, size_t header_len)
-{
-    if (!conn)
-        return RTP_INVALID_VALUE;
-
-#ifdef __linux__
-    return conn->get_socket().sendto(header, header_len, MSG_MORE, NULL);
-#else
-    return conn->get_socket().sendto(header, header_len, MSG_PARTIAL, NULL);
-#endif
-}
-
-rtp_error_t kvz_rtp::sender::write_rtp_header(kvz_rtp::connection *conn, uint32_t timestamp)
-{
-    if (!conn)
-        return RTP_INVALID_VALUE;
-
-    uint8_t header[kvz_rtp::frame::HEADER_SIZE_RTP] = { 0 };
-    conn->fill_rtp_header(header, timestamp);
-
-    return kvz_rtp::sender::write_generic_header(conn, header, kvz_rtp::frame::HEADER_SIZE_RTP);
-}
-
-rtp_error_t kvz_rtp::sender::write_generic_frame(kvz_rtp::connection *conn, kvz_rtp::frame::rtp_frame *frame)
-{
-    if (!frame)
-        return RTP_INVALID_VALUE;
-
-    rtp_error_t ret;
-
-    if ((ret = kvz_rtp::sender::write_payload(conn, frame->data, frame->total_len)) != RTP_OK) {
-        LOG_ERROR("Failed to send payload! Size %zu, Type %d", frame->total_len, frame->type);
-        return ret;
-    }
-
-    return RTP_OK;
-}
-
-rtp_error_t kvz_rtp::sender::write_frame(
+rtp_error_t kvz_rtp::send::send_frame(
     kvz_rtp::connection *conn,
     uint8_t *header,  size_t header_len,
     uint8_t *payload, size_t payload_len
 )
 {
-    if (!conn || !header || !payload || header_len == 0 || payload_len == 0)
+    if (!conn || !header || header_len == 0 || !payload || payload_len == 0)
         return RTP_INVALID_VALUE;
 
-    rtp_error_t ret;
+    std::vector<std::pair<size_t, uint8_t *>> buffers;
 
-    if ((ret = kvz_rtp::sender::write_generic_header(conn, header, header_len)) != RTP_OK) {
-        LOG_ERROR("Failed to write generic header, length: %zu", header_len);
-        return ret;
-    }
+    buffers.push_back(std::make_pair(header_len,  header));
+    buffers.push_back(std::make_pair(payload_len, payload));
 
-    if ((ret = kvz_rtp::sender::write_payload(conn, payload, payload_len)) != RTP_OK) {
-        LOG_ERROR("Failed to write payload, length: %zu", payload_len);
-        return ret;
-    }
+    return conn->get_socket().sendto(buffers, 0);
+}
 
-    return ret;
+rtp_error_t kvz_rtp::send::send_frame(
+    kvz_rtp::connection *conn,
+    std::vector<std::pair<size_t, uint8_t *>>& buffers
+)
+{
+    if (!conn)
+        return RTP_INVALID_VALUE;
+
+    return conn->get_socket().sendto(buffers, 0);
 }
