@@ -153,6 +153,11 @@ rtp_error_t kvz_rtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t bu
     return RTP_OK;
 }
 
+rtp_error_t kvz_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags)
+{
+    return __sendto(addr_, buf, buf_len, flags, nullptr);
+}
+
 rtp_error_t kvz_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
 {
     return __sendto(addr_, buf, buf_len, flags, bytes_sent);
@@ -165,7 +170,84 @@ rtp_error_t kvz_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_
 
 rtp_error_t kvz_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags)
 {
-    return __sendto(addr, buf, buf_len, flags, NULL);
+    return __sendto(addr, buf, buf_len, flags, nullptr);
+}
+
+rtp_error_t kvz_rtp::socket::__sendtov(
+    sockaddr_in& addr,
+    std::vector<std::pair<size_t, uint8_t *>> buffers,
+    int flags, int *bytes_sent
+)
+{
+#ifdef __linux__
+    int sent_bytes = 0;
+
+    for (size_t i = 0; i < buffers.size(); ++i) {
+        chunks_[i].iov_len  = buffers.at(i).first;
+        chunks_[i].iov_base = buffers.at(i).second;
+
+        sent_bytes += buffers.at(i).first;
+    }
+
+    header_.msg_hdr.msg_name       = (void *)&addr;
+    header_.msg_hdr.msg_namelen    = sizeof(addr);
+    header_.msg_hdr.msg_iov        = chunks_;
+    header_.msg_hdr.msg_iovlen     = buffers.size();
+    header_.msg_hdr.msg_control    = 0;
+    header_.msg_hdr.msg_controllen = 0;
+
+    if (sendmmsg(socket_, &header_, 1, 0) < 0) {
+        LOG_ERROR("Failed to send RTP frame: %s!", strerror(errno));
+        set_bytes(bytes_sent, -1);
+        return RTP_SEND_ERROR;
+    }
+
+    set_bytes(bytes_sent, sent_bytes);
+    return RTP_OK;
+
+#else
+    DWORD sent_bytes;
+
+    /* create WSABUFs from input buffers and send them at once */
+    for (size_t i = 0; i < buffers.size(); ++i) {
+        buffers_[i].len = buffers.at(i).first;
+        buffers_[i].buf = (char *)buffers.at(i).second;
+    }
+
+    if (WSASendTo(socket_, &buffers, buffers.size(), &sent_bytes, flags, (SOCKADDR *)&addr, sizeof(addr_), NULL, NULL) == -1) {
+        win_get_last_error();
+
+        set_bytes(bytes_sent, -1);
+        return RTP_SEND_ERROR;
+    }
+
+    set_bytes(bytes_sent, sent_bytes);
+    return RTP_OK;
+#endif
+}
+
+rtp_error_t kvz_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags)
+{
+    return __sendtov(addr_, buffers, flags, nullptr);
+}
+
+rtp_error_t kvz_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent)
+{
+    return __sendtov(addr_, buffers, flags, bytes_sent);
+}
+
+rtp_error_t kvz_rtp::socket::sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags)
+{
+    return __sendtov(addr, buffers, flags, nullptr);
+}
+
+rtp_error_t kvz_rtp::socket::sendto(
+    sockaddr_in& addr,
+    std::vector<std::pair<size_t, uint8_t *>> buffers,
+    int flags, int *bytes_sent
+)
+{
+    return __sendtov(addr, buffers, flags, bytes_sent);
 }
 
 rtp_error_t kvz_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read)

@@ -6,6 +6,7 @@
 #else
 #include <netinet/ip.h>
 #include <arpa/inet.h>
+#include <sys/uio.h>
 #endif
 
 #include <vector>
@@ -21,6 +22,8 @@ namespace kvz_rtp {
 #else
     typedef int    socket_t;
 #endif
+
+    const int MAX_BUFFER_COUNT = 256;
 
     class socket {
         public:
@@ -50,16 +53,23 @@ namespace kvz_rtp {
             /* Same as send(2), send message to remote using "flags"
              * This function uses the internal addr_ object as remote address so it MUST be set
              *
+             * It is possible to combine multiple buffers and send them as one RTP frame by calling
+             * the sendto() with a vector containing the buffers and their lengths
+             *
              * Write the amount of bytes sent to "bytes_sent" if it's not NULL
              *
              * Return RTP_OK on success and write the amount of bytes sent to "bytes_sent"
              * Return RTP_SEND_ERROR on error and set "bytes_sent" to -1 */
             rtp_error_t sendto(uint8_t *buf, size_t buf_len, int flags);
             rtp_error_t sendto(uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
+            rtp_error_t sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags);
+            rtp_error_t sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent);
 
             /* Same as sendto() but the remote address given as parameter */
             rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags);
             rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
+            rtp_error_t sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags);
+            rtp_error_t sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent);
 
             /* Same as recvfrom(2), receives a message from remote
              *
@@ -94,7 +104,17 @@ namespace kvz_rtp {
             rtp_error_t __sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
             rtp_error_t __recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read);
 
+            /* __sendtov() does the same as __sendto but it combines multiple buffers into one frame and sends them */
+            rtp_error_t __sendtov(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent);
+
             socket_t socket_;
             sockaddr_in addr_;
+
+#ifdef _WIN32
+    WSABUF buffers_[MAX_BUFFER_COUNT];
+#else
+    struct mmsghdr header_;
+    struct iovec   chunks_[MAX_BUFFER_COUNT];
+#endif
     };
 };
