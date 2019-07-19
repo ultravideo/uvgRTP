@@ -214,7 +214,7 @@ rtp_error_t kvz_rtp::socket::__sendtov(
         buffers_[i].buf = (char *)buffers.at(i).second;
     }
 
-    if (WSASendTo(socket_, &buffers, buffers.size(), &sent_bytes, flags, (SOCKADDR *)&addr, sizeof(addr_), NULL, NULL) == -1) {
+    if (WSASendTo(socket_, &buffers_, buffers.size(), &sent_bytes, flags, (SOCKADDR *)&addr, sizeof(addr_), NULL, NULL) == -1) {
         win_get_last_error();
 
         set_bytes(bytes_sent, -1);
