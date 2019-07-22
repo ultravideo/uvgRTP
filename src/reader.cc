@@ -165,7 +165,7 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
         frame->data        = new uint8_t[nread];
         frame->payload     = frame->data + kvz_rtp::frame::HEADER_SIZE_RTP;
         frame->payload_len = nread - kvz_rtp::frame::HEADER_SIZE_RTP;
-        frame->total_len   = nread;
+        frame->total_len   = nread + kvz_rtp::frame::HEADER_SIZE_RTP;
 
         /* Update session related statistics
          *
