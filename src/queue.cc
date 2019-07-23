@@ -211,7 +211,6 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
 rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
 {
 #ifdef __linux__
-    rtp_error_t ret = RTP_OK;
 
     if (!conn || msg_ptr_ == 0 || hdr_ptr_ == 0 || chunk_ptr_ == 0) {
         LOG_ERROR("Cannot send 0 messages or messages containing 0 chunks!");

@@ -196,7 +196,7 @@ rtp_error_t kvz_rtp::socket::__sendtov(
     header_.msg_hdr.msg_control    = 0;
     header_.msg_hdr.msg_controllen = 0;
 
-    if (sendmmsg(socket_, &header_, 1, 0) < 0) {
+    if (sendmmsg(socket_, &header_, 1, flags) < 0) {
         LOG_ERROR("Failed to send RTP frame: %s!", strerror(errno));
         set_bytes(bytes_sent, -1);
         return RTP_SEND_ERROR;

@@ -15,8 +15,8 @@
 kvz_rtp::connection::connection(bool reader):
     config_(nullptr),
     socket_(),
-    reader_(reader),
-    rtcp_(nullptr)
+    rtcp_(nullptr),
+    reader_(reader)
 {
     rtp_sequence_  = generate_rand_32();
     rtp_ssrc_      = generate_rand_32();
@@ -134,6 +134,8 @@ void kvz_rtp::connection::set_clock_rate(uint32_t clock_rate)
 
 void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
 {
+    (void)timestamp;
+
     if (!buffer)
         return;
 

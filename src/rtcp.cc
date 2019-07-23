@@ -253,7 +253,7 @@ void kvz_rtp::rtcp::init_participant_seq(uint32_t ssrc, uint16_t base_seq)
 
     participants_[ssrc]->stats.base_seq = base_seq;
     participants_[ssrc]->stats.max_seq  = base_seq;
-    participants_[ssrc]->stats.bad_seq  = RTP_SEQ_MOD + 1;
+    participants_[ssrc]->stats.bad_seq  = (uint16_t)RTP_SEQ_MOD + 1;
 }
 
 rtp_error_t kvz_rtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
