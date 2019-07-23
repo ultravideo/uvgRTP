@@ -69,6 +69,8 @@ namespace kvz_rtp {
     int hdr_ptr_;
     int msg_ptr_;
     int chunk_ptr_;
+
+    sockaddr_in out_addr_;
 #else
     std::vector<uint8_t *> merge_bufs_;
     WSABUF buffers_[MAX_MSG_COUNT];

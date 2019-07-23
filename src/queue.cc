@@ -18,6 +18,9 @@ kvz_rtp::frame_queue::frame_queue()
     :buf_ptr_(0)
 #endif
 {
+#ifdef __linux__
+    out_addr_.sin_addr.s_addr = 0;
+#endif
 }
 
 kvz_rtp::frame_queue::~frame_queue()
@@ -39,8 +42,8 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
         return RTP_MEMORY_ERROR;
     }
 
-    /* TODO: this is not valid after return */
-    sockaddr_in out_addr = dynamic_cast<kvz_rtp::writer *>(conn)->get_out_address(); 
+    if (out_addr_.sin_addr.s_addr == 0)
+        out_addr_ = dynamic_cast<kvz_rtp::writer *>(conn)->get_out_address();
 
     chunks_[chunk_ptr_ + 0].iov_base = header;
     chunks_[chunk_ptr_ + 0].iov_len  = header_len;
@@ -48,8 +51,8 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
     chunks_[chunk_ptr_ + 1].iov_base = payload;
     chunks_[chunk_ptr_ + 1].iov_len  = payload_len;
 
-    messages_[msg_ptr_].msg_name = (void *)&out_addr;
-    messages_[msg_ptr_].msg_namelen = sizeof(out_addr);
+    messages_[msg_ptr_].msg_name = (void *)&out_addr_;
+    messages_[msg_ptr_].msg_namelen = sizeof(out_addr_);
     messages_[msg_ptr_].msg_iov = &chunks_[chunk_ptr_];
     messages_[msg_ptr_].msg_iovlen = 2;
     messages_[msg_ptr_].msg_control = 0;
@@ -101,14 +104,14 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
         return RTP_MEMORY_ERROR;
     }
 
-    /* TODO: this is not valid after return */
-    sockaddr_in out_addr = dynamic_cast<kvz_rtp::writer *>(conn)->get_out_address(); 
+    if (out_addr_.sin_addr.s_addr == 0)
+        out_addr_ = dynamic_cast<kvz_rtp::writer *>(conn)->get_out_address();
 
     chunks_[chunk_ptr_ + 0].iov_base = message;
     chunks_[chunk_ptr_ + 0].iov_len  = message_len;
 
-    messages_[msg_ptr_].msg_name = (void *)&out_addr;
-    messages_[msg_ptr_].msg_namelen = sizeof(out_addr);
+    messages_[msg_ptr_].msg_name = (void *)&out_addr_;
+    messages_[msg_ptr_].msg_namelen = sizeof(out_addr_);
     messages_[msg_ptr_].msg_iov = &chunks_[chunk_ptr_];
     messages_[msg_ptr_].msg_iovlen = 1;
     messages_[msg_ptr_].msg_control = 0;
@@ -159,11 +162,11 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
         chunks_[chunk_ptr_ + i].iov_base = buffers.at(i).second;
     }
 
-    /* TODO: this is not valid after return */
-    sockaddr_in out_addr = dynamic_cast<kvz_rtp::writer *>(conn)->get_out_address(); 
+    if (out_addr_.sin_addr.s_addr == 0)
+        out_addr_ = dynamic_cast<kvz_rtp::writer *>(conn)->get_out_address();
 
-    messages_[msg_ptr_].msg_name = (void *)&out_addr;
-    messages_[msg_ptr_].msg_namelen = sizeof(out_addr);
+    messages_[msg_ptr_].msg_name = (void *)&out_addr_;
+    messages_[msg_ptr_].msg_namelen = sizeof(out_addr_);
     messages_[msg_ptr_].msg_iov = &chunks_[chunk_ptr_];
     messages_[msg_ptr_].msg_iovlen = buffers.size();
     messages_[msg_ptr_].msg_control = 0;
@@ -249,7 +252,7 @@ rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
 rtp_error_t kvz_rtp::frame_queue::empty_queue()
 {
 #ifdef __linux__
-    hdr_ptr_ = msg_ptr_ = chunk_ptr_ = 0;
+    hdr_ptr_ = msg_ptr_ = chunk_ptr_ = out_addr_.sin_addr.s_addr = 0;
 #else
     buf_ptr_ = 0;
 
