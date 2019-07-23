@@ -125,6 +125,30 @@ void kvz_rtp::reader::recv_hook(kvz_rtp::frame::rtp_frame *frame)
         return recv_hook_(recv_hook_arg_, frame);
 }
 
+bool kvz_rtp::reader::is_valid_rtp_frame(kvz_rtp::frame::rtp_frame *frame)
+{
+    if (frame->version != 2) {
+        LOG_DEBUG("invalid version %u", frame->version);
+        return false;
+    }
+
+    if (frame->padding) {
+        LOG_DEBUG("frame is padded");
+
+        uint8_t padding_len = frame->data[frame->total_len - 1];
+
+        if (padding_len == 0 || frame->payload_len < padding_len)
+            return false;
+    }
+
+    if (frame->extension) {
+        LOG_DEBUG("frame contains extension information");
+        LOG_DEBUG("CC: %u", frame->cc_count);
+    }
+
+    return true;
+}
+
 void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
 {
     LOG_INFO("frameReceiver starting listening...");
@@ -151,6 +175,10 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
             continue;
         }
 
+        frame->version   = (inbuf[0] >> 6) & 0x03;
+        frame->padding   = (inbuf[0] >> 5) & 0x01;
+        frame->extension = (inbuf[0] >> 4) & 0x01;
+        frame->cc_count  = (inbuf[0] >> 0) & 0x0f;
         frame->marker    = (inbuf[1] & 0x80) ? 1 : 0;
         frame->ptype     = (inbuf[1] & 0x7f);
         frame->seq       = ntohs(*(uint16_t *)&inbuf[2]);
@@ -158,14 +186,20 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
         frame->ssrc      = ntohl(*(uint32_t *)&inbuf[8]);
 
         if (nread - kvz_rtp::frame::HEADER_SIZE_RTP <= 0) {
-            LOG_WARN("Got an invalid payload of size %d", nread);
+            LOG_WARN("RTP frame cannot have empty payload");
             continue;
         }
 
         frame->data        = new uint8_t[nread];
         frame->payload     = frame->data + kvz_rtp::frame::HEADER_SIZE_RTP;
         frame->payload_len = nread - kvz_rtp::frame::HEADER_SIZE_RTP;
-        frame->total_len   = nread + kvz_rtp::frame::HEADER_SIZE_RTP;
+        frame->total_len   = nread;
+
+        if (!is_valid_rtp_frame(frame)) {
+            LOG_WARN("Discarding invalid rtp frame!");
+            (void)kvz_rtp::frame::dealloc_frame(frame);
+            continue;
+        }
 
         /* Update session related statistics
          *

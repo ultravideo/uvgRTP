@@ -31,6 +31,7 @@ namespace kvz_rtp {
         void add_outgoing_frame(kvz_rtp::frame::rtp_frame *frame);
 
     private:
+        static bool is_valid_rtp_frame(kvz_rtp::frame::rtp_frame *frame);
         static void frame_receiver(kvz_rtp::reader *reader);
 
         // TODO implement ring buffer
