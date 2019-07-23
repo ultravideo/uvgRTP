@@ -16,7 +16,8 @@ kvz_rtp::connection::connection(bool reader):
     config_(nullptr),
     socket_(),
     rtcp_(nullptr),
-    reader_(reader)
+    reader_(reader),
+    wc_start_(0)
 {
     rtp_sequence_  = generate_rand_32();
     rtp_ssrc_      = generate_rand_32();
