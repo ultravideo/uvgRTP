@@ -207,10 +207,17 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
     }
 
     if (!fu.second.empty()) {
-        if (frame->timestamp != fu.second.at(0)->timestamp) {
+        if (frame->header.timestamp != fu.second.at(0)->header.timestamp) {
             LOG_ERROR("Timestamp mismatch for fragmentation units!");
 
-            /* TODO: update rtcp stats for dropped packets */
+            if (frame->header.timestamp > fu.second.at(0)->header.timestamp) {
+                LOG_ERROR("packet was dropped: %u %u | %u %u", frame->header.timestamp, fu.second.at(0)->header.timestamp,
+                        frame->header.seq, fu.second.at(fu.second.size() - 1)->header.seq);
+            } else {
+                LOG_ERROR("packet came in late: %u %u", frame->header.timestamp, fu.second.at(0)->header.timestamp);
+            }
+
+            LOG_WARN("removing %u frames", fu.second.size());
 
             /* push the frame to fu vector so deallocation is cleaner */
             fu.second.push_back(frame);
@@ -273,7 +280,7 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
     while (fu.second.size() != 0) {
         auto tmp = fu.second.back();
         fu.second.pop_back();
-        kvz_rtp::frame::dealloc_frame(tmp);
+        (void)kvz_rtp::frame::dealloc_frame(tmp);
     }
 
     /* reset the total size of fragmentation units */
@@ -286,7 +293,7 @@ error:
     while (fu.second.size() != 0) {
         auto tmp = fu.second.back();
         fu.second.pop_back();
-        kvz_rtp::frame::dealloc_frame(tmp);
+        (void)kvz_rtp::frame::dealloc_frame(tmp);
     }
 
     /* reset the total size of fragmentation units */

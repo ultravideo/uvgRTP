@@ -202,7 +202,7 @@ void kvz_rtp::rtcp::sender_update_stats(kvz_rtp::frame::rtp_frame *frame)
 
     sender_stats.sent_pkts  += 1;
     sender_stats.sent_bytes += frame->payload_len;
-    sender_stats.max_seq     = frame->seq;
+    sender_stats.max_seq     = frame->header.seq;
 }
 
 void kvz_rtp::rtcp::receiver_inc_sent_bytes(uint32_t sender_ssrc, size_t n)
@@ -229,19 +229,19 @@ void kvz_rtp::rtcp::init_new_participant(kvz_rtp::frame::rtp_frame *frame)
 {
     assert(frame != nullptr);
 
-    kvz_rtp::rtcp::add_participant(frame->ssrc);
-    kvz_rtp::rtcp::init_participant_seq(frame->ssrc, frame->seq);
+    kvz_rtp::rtcp::add_participant(frame->header.ssrc);
+    kvz_rtp::rtcp::init_participant_seq(frame->header.ssrc, frame->header.seq);
 
     /* Set the probation to MIN_SEQUENTIAL (2)
      *
      * What this means is that we must receive at least two packets from SSRC
      * with sequential RTP sequence numbers for this peer to be considered valid */
-    participants_[frame->ssrc]->probation = MIN_SEQUENTIAL;
+    participants_[frame->header.ssrc]->probation = MIN_SEQUENTIAL;
 
-    /* This is the first RTP frame from remote to frame->timestamp represents t = 0
+    /* This is the first RTP frame from remote to frame->header.timestamp represents t = 0
      * Save the timestamp and current NTP timestamp so we can do jitter calculations later on */
-    participants_[frame->ssrc]->stats.initial_rtp = frame->timestamp;
-    participants_[frame->ssrc]->stats.initial_ntp = kvz_rtp::clock::now_ntp();
+    participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
+    participants_[frame->header.ssrc]->stats.initial_ntp = kvz_rtp::clock::now_ntp();
 
     senders_++;
 }
@@ -311,17 +311,17 @@ void kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *frame)
     if (!frame)
         return;
 
-    if (!is_participant(frame->ssrc)) {
-        LOG_WARN("Got RTP packet from unknown source: 0x%x", frame->ssrc);
+    if (!is_participant(frame->header.ssrc)) {
+        LOG_WARN("Got RTP packet from unknown source: 0x%x", frame->header.ssrc);
         init_new_participant(frame);
     }
 
-    if (kvz_rtp::rtcp::update_participant_seq(frame->ssrc, frame->seq) != RTP_OK) {
+    if (kvz_rtp::rtcp::update_participant_seq(frame->header.ssrc, frame->header.seq) != RTP_OK) {
         LOG_DEBUG("Invalid packet received from remote!");
         return;
     }
 
-    auto p = participants_[frame->ssrc];
+    auto p = participants_[frame->header.ssrc];
 
     p->stats.received_pkts  += 1;
     p->stats.received_bytes += frame->payload_len;
@@ -339,7 +339,7 @@ void kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *frame)
         / 1000);
 
 	/* calculate interarrival jitter */
-    int transit = arrival - frame->timestamp;
+    int transit = arrival - frame->header.timestamp;
     int d = std::abs((int)(transit - p->stats.transit));
 
     p->stats.transit = transit;
@@ -670,6 +670,15 @@ rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_re
     if (frame->header.count == 0) {
         LOG_ERROR("Receiver Report cannot have 0 report blocks!");
         return RTP_INVALID_VALUE;
+    }
+
+    for (int i = 0; i < frame->header.count; ++i) {
+        fprintf(stderr, "-------\n");
+        fprintf(stderr, "lost:     %d\n", frame->blocks[i].lost); /* TODO:  */
+        fprintf(stderr, "last_seq: %u\n", ntohl(frame->blocks[i].last_seq));
+        fprintf(stderr, "last sr:  %u\n", ntohl(frame->blocks[i].lsr));
+        fprintf(stderr, "dlsr:     %u\n", ntohl(frame->blocks[i].dlsr));
+        fprintf(stderr, "-------\n");
     }
 
     /* TODO: 6.4.4 Analyzing Sender and Receiver Reports */

@@ -29,20 +29,28 @@ namespace kvz_rtp {
             FRAME_TYPE_APP  = 204  /* Application-specific message */
         } rtcp_type_t;
 
-        /* TODO: is this actually a useful struct? */
-        struct rtp_frame {
+        PACKED_STRUCT(rtp_header) {
+            uint8_t version:2;
+            uint8_t padding:1;
+            uint8_t ext:1;
+            uint8_t cc:4;
+            uint8_t marker:1;
+            uint8_t payload:7;
+            uint16_t seq;
             uint32_t timestamp;
             uint32_t ssrc;
-            uint16_t seq;
-            uint8_t  ptype;
-            uint8_t  marker;
+        };
 
-            size_t total_len;   /* total length of the frame (payload length + header length) */
-            size_t header_len;  /* length of header (varies based on the type of the frame) */
-            size_t payload_len; /* length of the payload  */
+        struct rtp_frame {
+            struct rtp_header header;
+            uint32_t *csrc;
 
-            uint8_t *data;     /* pointer to the start of the whole buffer */
-            uint8_t *payload;  /* pointer to actual payload */
+            size_t total_len;   /* total length of the frame (including padding) */
+            size_t padding_len; /* non-zero if frame is padded */
+            size_t payload_len; /* payload_len: total_len - header_len - padding length (if padded) */
+
+            uint8_t *data;
+            uint8_t *payload;
 
             rtp_format_t format;
             rtp_type_t type;
@@ -116,6 +124,7 @@ namespace kvz_rtp {
             uint8_t payload[0];
         };
 
+        rtp_frame           *alloc_rtp_frame();
         rtp_frame           *alloc_rtp_frame(size_t payload_len, rtp_type_t type);
         rtcp_app_frame      *alloc_rtcp_app_frame(std::string name, uint8_t subtype, size_t payload_len);
         rtcp_sdes_frame     *alloc_rtcp_sdes_frame(size_t ssrc_count, size_t total_len);
@@ -123,7 +132,7 @@ namespace kvz_rtp {
         rtcp_sender_frame   *alloc_rtcp_sender_frame(size_t nblocks);
         rtcp_bye_frame      *alloc_rtcp_bye_frame(size_t ssrc_count);
 
-        rtp_error_t dealloc_frame(rtp_frame *frame);
+        rtp_error_t dealloc_frame(kvz_rtp::frame::rtp_frame *frame);
 
         /* TODO: template??? */
         rtp_error_t dealloc_frame(rtcp_sender_frame *frame);

@@ -5,6 +5,21 @@
 #include "send.hh"
 #include "util.hh"
 
+kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame()
+{
+    kvz_rtp::frame::rtp_frame *frame = new kvz_rtp::frame::rtp_frame;
+
+    if (!frame) {
+        rtp_errno = RTP_MEMORY_ERROR;
+        return nullptr;
+    }
+
+    std::memset(&frame->header, 0, sizeof(kvz_rtp::frame::rtp_header));
+    std::memset(frame,          0, sizeof(kvz_rtp::frame::rtp_frame));
+
+    return frame;
+}
+
 kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame(size_t payload_len, rtp_type_t type)
 {
     if (payload_len == 0 || INVALID_FRAME_TYPE(type)) {
@@ -34,10 +49,8 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame(size_t payload_len, r
             break;
     }
 
-    if ((frame = new kvz_rtp::frame::rtp_frame) == nullptr) {
-        rtp_errno = RTP_MEMORY_ERROR;
+    if ((frame = kvz_rtp::frame::alloc_rtp_frame()) == nullptr)
         return nullptr;
-    }
 
     if ((frame->data = new uint8_t[payload_len + header_len]) == nullptr) {
         rtp_errno = RTP_MEMORY_ERROR;
@@ -45,7 +58,6 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame(size_t payload_len, r
         return nullptr;
     }
 
-    frame->header_len  = header_len;
     frame->payload_len = payload_len;
     frame->total_len   = payload_len + header_len;
     frame->payload     = frame->data + header_len;
