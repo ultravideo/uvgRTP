@@ -71,6 +71,9 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtp_frame *frame)
     if (!frame)
         return RTP_INVALID_VALUE;
 
+    if (frame->csrc)
+        delete[] frame->csrc;
+
     if (frame->data)
         delete[] frame->data;
 
