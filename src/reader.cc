@@ -7,6 +7,8 @@
 #include "rtp_hevc.hh"
 #include "rtp_opus.hh"
 
+#define RTP_HEADER_VERSION 2
+
 kvz_rtp::reader::reader(std::string src_addr, int src_port):
     connection(true),
     active_(false),
@@ -125,28 +127,107 @@ void kvz_rtp::reader::recv_hook(kvz_rtp::frame::rtp_frame *frame)
         return recv_hook_(recv_hook_arg_, frame);
 }
 
-bool kvz_rtp::reader::is_valid_rtp_frame(kvz_rtp::frame::rtp_frame *frame)
+rtp_error_t kvz_rtp::reader::read_rtp_header(kvz_rtp::frame::rtp_header *dst, uint8_t *src)
 {
-    if (frame->version != 2) {
-        LOG_DEBUG("invalid version %u", frame->version);
-        return false;
+    if (!dst || !src)
+        return RTP_INVALID_VALUE;
+
+    dst->version   = (src[0] >> 6) & 0x03;
+    dst->padding   = (src[0] >> 5) & 0x01;
+    dst->ext       = (src[0] >> 4) & 0x01;
+    dst->cc        = (src[0] >> 0) & 0x0f;
+    dst->marker    = (src[1] & 0x80) ? 1 : 0;
+    dst->payload   = (src[1] & 0x7f);
+    dst->seq       = ntohs(*(uint16_t *)&src[2]);
+    dst->timestamp = ntohl(*(uint32_t *)&src[4]);
+    dst->ssrc      = ntohl(*(uint32_t *)&src[8]);
+
+    return RTP_OK;
+}
+
+kvz_rtp::frame::rtp_frame *kvz_rtp::reader::validate_rtp_frame(uint8_t *buffer, int size)
+{
+    if (!buffer || size < 12) {
+        rtp_errno = RTP_INVALID_VALUE;
+        return nullptr;
     }
 
-    if (frame->padding) {
-        LOG_DEBUG("frame is padded");
+    uint8_t *ptr                      = buffer;
+    kvz_rtp::frame::rtp_frame *frame = kvz_rtp::frame::alloc_rtp_frame();
 
+    if (!frame) {
+        LOG_ERROR("failed to allocate memory for RTP frame");
+        return nullptr;
+    }
+
+    if (kvz_rtp::reader::read_rtp_header(&frame->header, buffer) != RTP_OK) {
+        LOG_ERROR("failed to read the RTP header");
+        return nullptr;
+    }
+
+    frame->total_len   = (size_t)size;
+    frame->payload_len = (size_t)size - sizeof(kvz_rtp::frame::rtp_header);
+
+    if (frame->header.version != RTP_HEADER_VERSION) {
+        LOG_ERROR("inavlid version");
+        rtp_errno = RTP_INVALID_VALUE;
+        return nullptr;
+    }
+
+    if (frame->header.marker) {
+        LOG_DEBUG("header has marker set");
+    }
+
+    /* Skip the generic RTP header
+     * There may be 0..N CSRC entries after the header, so check those
+     * After CSRC there may be extension header */
+    ptr += sizeof(kvz_rtp::frame::rtp_header);
+
+    if (frame->header.cc > 0) {
+        LOG_DEBUG("frame contains csrc entries");
+
+        if ((ssize_t)(frame->total_len - sizeof(kvz_rtp::frame::rtp_header) - frame->header.cc * sizeof(uint32_t)) < 0) {
+            LOG_DEBUG("invalid frame length, %u CSRC entries, total length %u", frame->header.cc, frame->total_len);
+            rtp_errno = RTP_INVALID_VALUE;
+            return nullptr;
+        }
+        LOG_DEBUG("Allocating %u CSRC entries", frame->header.cc);
+
+        frame->csrc         = new uint32_t[frame->header.cc];
+        frame->payload_len -= frame->header.cc * sizeof(uint32_t);
+
+        for (size_t i = 0; i < frame->header.cc; ++i) {
+            frame->csrc[i] = *(uint32_t *)ptr;
+            ptr += sizeof(uint32_t);
+        }
+    }
+
+    if (frame->header.ext) {
+        LOG_DEBUG("frame contains extension information");
+        /* TODO: handle extension */
+    }
+
+    /* If padding is set to 1, the last byte of the payload indicates
+     * how many padding bytes was used. Make sure the padding length is
+     * valid and subtract the amount of padding bytes from payload length */
+    if (frame->header.padding) {
+        LOG_DEBUG("frame contains padding");
         uint8_t padding_len = frame->data[frame->total_len - 1];
 
-        if (padding_len == 0 || frame->payload_len < padding_len)
-            return false;
+        if (padding_len == 0 || frame->payload_len <= padding_len) {
+            rtp_errno = RTP_INVALID_VALUE;
+            return nullptr;
+        }
+
+        frame->payload_len -= padding_len;
+        frame->padding_len  = padding_len;
     }
 
-    if (frame->extension) {
-        LOG_DEBUG("frame contains extension information");
-        LOG_DEBUG("CC: %u", frame->cc_count);
-    }
+    frame->data = new uint8_t[frame->total_len];
+    std::memcpy(frame->data, buffer, frame->total_len);
+    frame->payload = frame->data + (frame->total_len - frame->payload_len);
 
-    return true;
+    return frame;
 }
 
 void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
@@ -158,6 +239,7 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
     sockaddr_in sender_addr;
     kvz_rtp::socket socket = reader->get_socket();
     std::pair<size_t, std::vector<kvz_rtp::frame::rtp_frame *>> fu;
+    kvz_rtp::frame::rtp_frame *frame;
 
     while (reader->active()) {
         ret = socket.recvfrom(reader->get_recv_buffer(), reader->get_recv_buffer_len(), 0, &sender_addr, &nread);
@@ -167,54 +249,16 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
             return;
         }
 
-        uint8_t *inbuf = reader->get_recv_buffer();
-        auto *frame    = kvz_rtp::frame::alloc_rtp_frame(nread, kvz_rtp::frame::FRAME_TYPE_GENERIC);
-
-        if (!frame) {
-            LOG_ERROR("Failed to allocate RTP Frame!");
-            continue;
-        }
-
-        frame->version   = (inbuf[0] >> 6) & 0x03;
-        frame->padding   = (inbuf[0] >> 5) & 0x01;
-        frame->extension = (inbuf[0] >> 4) & 0x01;
-        frame->cc_count  = (inbuf[0] >> 0) & 0x0f;
-        frame->marker    = (inbuf[1] & 0x80) ? 1 : 0;
-        frame->ptype     = (inbuf[1] & 0x7f);
-        frame->seq       = ntohs(*(uint16_t *)&inbuf[2]);
-        frame->timestamp = ntohl(*(uint32_t *)&inbuf[4]);
-        frame->ssrc      = ntohl(*(uint32_t *)&inbuf[8]);
-
-        if (nread - kvz_rtp::frame::HEADER_SIZE_RTP <= 0) {
-            LOG_WARN("RTP frame cannot have empty payload");
-            continue;
-        }
-
-        frame->data        = new uint8_t[nread];
-        frame->payload     = frame->data + kvz_rtp::frame::HEADER_SIZE_RTP;
-        frame->payload_len = nread - kvz_rtp::frame::HEADER_SIZE_RTP;
-        frame->total_len   = nread;
-
-        if (!is_valid_rtp_frame(frame)) {
-            LOG_WARN("Discarding invalid rtp frame!");
-            (void)kvz_rtp::frame::dealloc_frame(frame);
+        if ((frame = validate_rtp_frame(reader->get_recv_buffer(), nread)) == nullptr) {
+            LOG_DEBUG("received an invalid frame, discarding");
             continue;
         }
 
         /* Update session related statistics
-         *
-         * If this is a new peer,
-         * RTCP will take care of initializing necessary stuff */
+         * If this is a new peer, RTCP will take care of initializing necessary stuff */
         reader->update_receiver_stats(frame);
 
-        if (!frame->data) {
-            LOG_ERROR("Failed to allocate buffer for RTP frame!");
-            continue;
-        }
-
-        memcpy(frame->data, inbuf, nread);
-
-        switch (frame->ptype) {
+        switch (frame->header.payload) {
             case RTP_FORMAT_OPUS:
                 frame = kvz_rtp::opus::process_opus_frame(frame, fu, ret);
                 break;
@@ -228,7 +272,7 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
                 break;
 
             default:
-                LOG_WARN("Unrecognized RTP payload type %u", frame->ptype);
+                LOG_WARN("Unrecognized RTP payload type %u", frame->header.payload);
                 ret = RTP_INVALID_VALUE;
                 break;
         }
@@ -245,7 +289,6 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
         } else {
             LOG_ERROR("Failed to process frame, error: %d", ret);
         }
-    }
 
-    LOG_INFO("FrameReceiver thread exiting...");
+    }
 }
