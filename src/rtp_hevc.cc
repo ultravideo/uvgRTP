@@ -125,7 +125,7 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
     while (data_left > MAX_PAYLOAD) {
         memcpy(&buffer[HEADER_SIZE], &data[data_pos], MAX_PAYLOAD);
 
-        if ((ret = kvz_rtp::sender::write_payload(conn, buffer, sizeof(buffer))) != RTP_OK)
+        if ((ret = kvz_rtp::send::send_frame(conn, buffer, sizeof(buffer))) != RTP_OK)
             return RTP_GENERIC_ERROR;
 
         data_pos  += MAX_PAYLOAD;
@@ -133,15 +133,15 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
 
         /* Clear extra bits */
         buffer[kvz_rtp::frame::HEADER_SIZE_RTP +
-                   kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] = nalType;
+               kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] = nalType;
     }
 
     buffer[kvz_rtp::frame::HEADER_SIZE_RTP +
-               kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] |= (1 << 6); /* set E bit to signal end of data */
+           kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] |= (1 << 6); /* set E bit to signal end of data */
 
     memcpy(&buffer[HEADER_SIZE], &data[data_pos], data_left);
 
-    ret = kvz_rtp::sender::write_payload(conn, buffer, HEADER_SIZE + data_left);
+    ret = kvz_rtp::send::send_frame(conn, buffer, HEADER_SIZE + data_left);
 #endif
 
     return ret;
