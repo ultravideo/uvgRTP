@@ -24,10 +24,6 @@ rtp_error_t kvz_rtp::send::send_frame(
     if (!conn || !frame || frame_len == 0)
         return RTP_INVALID_VALUE;
 
-    if (frame_len >= MAX_PAYLOAD) {
-        LOG_WARN("Frame length (%lu) is larger than MAX_PAYLOAD (%u)", frame_len, MAX_PAYLOAD);
-    }
-
     conn->inc_sent_bytes(frame_len);
     conn->inc_sent_pkts();
     conn->inc_rtp_sequence();
