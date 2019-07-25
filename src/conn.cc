@@ -144,7 +144,7 @@ void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
      * and generate random RTP timestamp for this reading */
     if (wc_start_ == 0) {
         rtp_timestamp_ = generate_rand_32();
-        wc_start_      = kvz_rtp::clock::now_ntp();
+        wc_start_      = kvz_rtp::clock::ntp::now();
 
         if (rtcp_)
             rtcp_->set_sender_ts_info(wc_start_, clock_rate_, rtp_timestamp_);
@@ -156,7 +156,7 @@ void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
     *(uint16_t *)&buffer[2] = htons(rtp_sequence_);
     *(uint32_t *)&buffer[4] = htonl(
         rtp_timestamp_
-        + kvz_rtp::clock::diff_ntp_now_ms(wc_start_)
+        + kvz_rtp::clock::ntp::diff_now(wc_start_)
         * clock_rate_
         / 1000
     );

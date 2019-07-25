@@ -241,7 +241,7 @@ void kvz_rtp::rtcp::init_new_participant(kvz_rtp::frame::rtp_frame *frame)
     /* This is the first RTP frame from remote to frame->header.timestamp represents t = 0
      * Save the timestamp and current NTP timestamp so we can do jitter calculations later on */
     participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
-    participants_[frame->header.ssrc]->stats.initial_ntp = kvz_rtp::clock::now_ntp();
+    participants_[frame->header.ssrc]->stats.initial_ntp = kvz_rtp::clock::ntp::now();
 
     senders_++;
 }
@@ -334,7 +334,7 @@ void kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *frame)
 
     int arrival =
         p->stats.initial_rtp +
-        + kvz_rtp::clock::diff_ntp_now_ms(p->stats.initial_ntp)
+        + kvz_rtp::clock::ntp::diff_now(p->stats.initial_ntp)
         * (p->stats.clock_rate
         / 1000);
 
@@ -532,14 +532,15 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
     }
 
     size_t ptr         = 0;
-    uint64_t timestamp = kvz_rtp::clock::now_ntp();
+    uint64_t timestamp = kvz_rtp::clock::ntp::now();
     rtp_error_t ret    = RTP_GENERIC_ERROR;
 
     frame->header.count    = senders_;
     frame->sender_ssrc     = ssrc_;
     frame->s_info.ntp_msw  = timestamp >> 32;
     frame->s_info.ntp_lsw  = timestamp & 0xffffffff;
-    frame->s_info.rtp_ts   = rtp_ts_start_ + (kvz_rtp::clock::diff_ntp_ms(timestamp, clock_start_)) * clock_rate_ / 1000;
+    /* frame->s_info.rtp_ts   = rtp_ts_start_ + (kvz_rtp::clock::diff_ntp_ms(timestamp, clock_start_)) * clock_rate_ / 1000; */
+    frame->s_info.rtp_ts   = rtp_ts_start_ + (kvz_rtp::clock::ntp::diff(timestamp, clock_start_)) * clock_rate_ / 1000;
     frame->s_info.pkt_cnt  = sender_stats.sent_pkts;
     frame->s_info.byte_cnt = sender_stats.sent_bytes;
 
@@ -607,7 +608,7 @@ rtp_error_t kvz_rtp::rtcp::generate_receiver_report()
 
         /* calculate delay of last SR only if SR has been received at least once */
         if (frame->blocks[ptr].lsr != 0) {
-            uint64_t diff = kvz_rtp::clock::diff_tp_now_ms(participant.second->stats.sr_ts);
+            uint64_t diff = kvz_rtp::clock::hrc::diff_now(participant.second->stats.sr_ts);
             frame->blocks[ptr].dlsr = kvz_rtp::clock::ms_to_jiffies(diff);
         }
 
@@ -642,7 +643,7 @@ rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_send
     uint32_t lsr     = ((ntp_msw >> 16) & 0xffff) | ((ntp_lsw & 0xffff0000) >> 16);
 
     participants_[frame->sender_ssrc]->stats.lsr   = lsr;
-    participants_[frame->sender_ssrc]->stats.sr_ts = kvz_rtp::clock::now_high_res();
+    participants_[frame->sender_ssrc]->stats.sr_ts = kvz_rtp::clock::hrc::now();
 
     /* TODO: 6.4.4 Analyzing Sender and Receiver Reports */
 
@@ -787,13 +788,13 @@ void kvz_rtp::rtcp::rtcp_runner(kvz_rtp::rtcp *rtcp)
 {
     LOG_INFO("RTCP instance created!");
 
-    kvz_rtp::clock::tp_t start, end;
+    kvz_rtp::clock::hrc::hrc_t start, end;
     int nread, diff, timeout = MIN_TIMEOUT;
     uint8_t buffer[MAX_PACKET];
     rtp_error_t ret;
 
     while (rtcp->active()) {
-        start = kvz_rtp::clock::now_high_res();
+        start = kvz_rtp::clock::hrc::now();
         ret   = kvz_rtp::poll::poll(rtcp->get_sockets(), buffer, MAX_PACKET, timeout, &nread);
 
         if (ret == RTP_OK && nread > 0) {
@@ -804,7 +805,7 @@ void kvz_rtp::rtcp::rtcp_runner(kvz_rtp::rtcp *rtcp)
             LOG_ERROR("recvfrom failed, %d", ret);
         }
 
-        diff = kvz_rtp::clock::diff_tp_now_ms(start);
+        diff = kvz_rtp::clock::hrc::diff_now(start);
 
         if (diff >= MIN_TIMEOUT) {
             if ((ret = rtcp->generate_report()) != RTP_OK) {
