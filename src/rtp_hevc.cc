@@ -45,7 +45,7 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
 
     LOG_DEBUG("send frag size: %zu, type %u", data_len, nalType);
 
-#ifdef __linux__
+#if 0
     auto fqueue = dynamic_cast<kvz_rtp::writer *>(conn)->get_frame_queue();
 
     /* all fragment units share the same RTP and HEVC NAL headers
@@ -127,6 +127,8 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
 
         if ((ret = kvz_rtp::send::send_frame(conn, buffer, sizeof(buffer))) != RTP_OK)
             return RTP_GENERIC_ERROR;
+
+        conn->update_rtp_sequence(buffer);
 
         data_pos  += MAX_PAYLOAD;
         data_left -= MAX_PAYLOAD;
