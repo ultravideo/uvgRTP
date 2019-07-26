@@ -163,6 +163,14 @@ void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
     *(uint32_t *)&buffer[8] = htonl(rtp_ssrc_);
 }
 
+void kvz_rtp::connection::update_rtp_sequence(uint8_t *buffer)
+{
+    if (!buffer)
+        return;
+
+    *(uint16_t *)&buffer[2] = htons(rtp_sequence_);
+}
+
 rtp_error_t kvz_rtp::connection::create_rtcp(std::string dst_addr, int dst_port, int src_port)
 {
     if ((rtcp_ = new kvz_rtp::rtcp(rtp_ssrc_, reader_)) == nullptr) {
