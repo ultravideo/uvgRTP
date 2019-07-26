@@ -1,4 +1,4 @@
-# kvzrtp
+# kvzRTP
 
 Based on Marko Viitanen's [fRTPlib](https://github.com/fador/fRTPlib)
 
@@ -18,11 +18,11 @@ The library should be linked as a static library to your program.
 
 Linux
 
-`-L<path to library> -lkvzrtp`
+`-L<path to library folder> -lkvzrtp`
 
 Windows
 
-`-L<path to library> -lkvzrtp -lwsock32 -lws2_32`
+`-L<path to library folder> -lkvzrtp -lwsock32 -lws2_32`
 
 # Defines
 
