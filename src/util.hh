@@ -22,7 +22,7 @@
 #endif
 
 const int MAX_PACKET      = 65536;
-const int MAX_PAYLOAD     = 1000;
+const int MAX_PAYLOAD     = 1250;
 
 typedef enum RTP_ERROR {
     RTP_INTERRUPTED   =  2,
