@@ -41,6 +41,9 @@ namespace kvz_rtp {
          * Return nullptr if the frame is invalid */
         static kvz_rtp::frame::rtp_frame *validate_rtp_frame(uint8_t *buffer, int size);
 
+        /* Helper function for returning received RTP frames to user (just to make code look cleaner) */
+        static void return_frame(kvz_rtp::reader *reader, kvz_rtp::frame::rtp_frame *frame);
+
         /* kvz_rtp::reader::start() initializes the reader socket and spawns thread
          * for frame_receiver which is responsible for receiving, reordering, merging,
          * discarding and returning frames to user  */

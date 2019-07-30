@@ -173,6 +173,33 @@ rtp_error_t kvz_rtp::hevc::push_hevc_frame(kvz_rtp::connection *conn, uint8_t *d
     return __push_hevc_frame(conn, &data[prev_offset], data_len - prev_offset, timestamp);
 }
 
+int kvz_rtp::hevc::check_frame(kvz_rtp::frame::rtp_frame *frame)
+{
+    bool first_frag = frame->payload[2] & 0x80;
+    bool last_frag  = frame->payload[2] & 0x40;
+
+    if ((frame->payload[0] >> 1) != 49)
+        return kvz_rtp::hevc::FT_NOT_FRAG;
+
+    if (first_frag && last_frag)
+        return kvz_rtp::hevc::FT_INVALID;
+
+    if (first_frag)
+        return kvz_rtp::hevc::FT_START;
+
+    if (last_frag)
+        return kvz_rtp::hevc::FT_END;
+
+    return kvz_rtp::hevc::FT_MIDDLE;
+}
+
+kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::merge_frames(kvz_rtp::frame::rtp_frame **frames, uint16_t first, size_t nframes)
+{
+    (void)frames, (void)first, (void)nframes;
+
+    return nullptr;
+}
+
 kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
         kvz_rtp::frame::rtp_frame *frame,
         std::pair<size_t, std::vector<kvz_rtp::frame::rtp_frame *>>& fu,
