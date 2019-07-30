@@ -42,6 +42,10 @@ rtp_error_t kvz_rtp::send::send_frame(
 
     std::vector<std::pair<size_t, uint8_t *>> buffers;
 
+    conn->inc_sent_bytes(payload_len);
+    conn->inc_sent_pkts();
+    conn->inc_rtp_sequence();
+
     buffers.push_back(std::make_pair(header_len,  header));
     buffers.push_back(std::make_pair(payload_len, payload));
 
@@ -55,6 +59,17 @@ rtp_error_t kvz_rtp::send::send_frame(
 {
     if (!conn)
         return RTP_INVALID_VALUE;
+
+    size_t total_size = 0;
+
+    /* first buffer is supposed to be RTP header which is not included */
+    for (size_t i = 1; i < buffers.size(); ++i) {
+        total_size += buffers.at(i).first;
+    }
+
+    conn->inc_sent_bytes(total_size);
+    conn->inc_sent_pkts();
+    conn->inc_rtp_sequence();
 
     return conn->get_socket().sendto(buffers, 0);
 }
