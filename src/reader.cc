@@ -49,6 +49,8 @@ kvz_rtp::reader::~reader()
                 LOG_ERROR("Failed to deallocate frame!");
             }
         }
+
+        framesOut_.clear();
     }
 }
 
