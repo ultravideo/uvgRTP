@@ -23,10 +23,11 @@ kvz_rtp::context::context()
 
 kvz_rtp::context::~context()
 {
-    for (auto it = conns_.begin(); it != conns_.end(); ++it) {
-        delete it->second;
-        conns_.erase(it);
+    for (auto& conn : conns_) {
+        delete conn.second;
     }
+
+    conns_.clear();
 
 #ifdef _WIN32
     WSACleanup();
