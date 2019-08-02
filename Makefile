@@ -1,7 +1,7 @@
 .PHONY: all clean obj install
 
 CXX = g++
-CFLAGS = -g -Wall -Wextra -O2 -std=c++11
+CFLAGS = -g -Wall -Wextra -O2 -std=c++11 -DNDEBUG
 
 SOURCES=$(wildcard src/*.cc)
 OBJECTS=$(addprefix obj/,$(notdir $(SOURCES:.cc=.o)))
