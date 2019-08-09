@@ -1,5 +1,11 @@
 #pragma once
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <winsock.h>
+#include <winbase.h>
+#endif
+
 #include <cstdio>
 #include <cstdarg>
 #include <string>
@@ -21,7 +27,6 @@ inline const char *className(const std::string& prettyFunction)
 
 static inline void win_get_last_error(void)
 {
-#if 0
     wchar_t *s = NULL;
     FormatMessageW(
         FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -31,7 +36,6 @@ static inline void win_get_last_error(void)
     );
     fprintf(stderr, "%S %d\n", s, WSAGetLastError());
     LocalFree(s);
-#endif
 }
 
 #define LOG_LEVEL_ERROR "ERROR"
