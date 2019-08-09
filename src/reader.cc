@@ -61,9 +61,13 @@ rtp_error_t kvz_rtp::reader::start()
     if ((ret = socket_.init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
         return ret;
 
-    int enable = 1;
+    int enable       = 1;
+    int udp_buf_size = 0xffff;
 
     if ((ret = socket_.setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int))) != RTP_OK)
+        return ret;
+
+    if ((ret = socket_.setsockopt(SOL_SOCKET, SO_RCVBUF, (const char *)&udp_buf_size, sizeof(int))) != RTP_OK)
         return ret;
 
     LOG_DEBUG("Binding to port %d (source port)", src_port_);
