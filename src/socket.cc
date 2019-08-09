@@ -263,33 +263,35 @@ rtp_error_t kvz_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags,
 
     if (ret == -1) {
         if (errno == EAGAIN) {
-            if (bytes_read)
-                bytes_read = 0;
+            set_bytes(bytes_read, 0);
             return RTP_INTERRUPTED;
         }
-
         LOG_ERROR("recvfrom failed: %s", strerror(errno));
 
-        if (bytes_read)
-            *bytes_read = -1;
+        set_bytes(bytes_read, -1);
         return RTP_GENERIC_ERROR;
     }
-#else
-    int32_t ret = ::recvfrom(socket_, (char *)buf, buf_len, flags, (SOCKADDR *)sender, (int *)len_ptr);
 
-    if (ret == -1) {
-        win_get_last_error();
-
-        if (bytes_read)
-            *bytes_read = -1;
-        return RTP_GENERIC_ERROR;
-    }
-#endif
-
-    if (bytes_read)
-        *bytes_read = ret;
-
+    set_bytes(bytes_read, ret);
     return RTP_OK;
+#else
+    int rc, err;
+    WSABUF DataBuf;
+    DataBuf.len = (u_long)buf_len;
+    DataBuf.buf = (char *)buf;
+    DWORD bytes_received, flags_ = 0;
+
+    rc = ::WSARecvFrom(socket_, &DataBuf, 1, &bytes_received, &flags_, NULL, NULL, NULL, NULL);
+
+    if ((rc == SOCKET_ERROR) && (WSA_IO_PENDING != (err = WSAGetLastError()))) {
+        win_get_last_error();
+        set_bytes(bytes_read, -1);
+        return RTP_GENERIC_ERROR;
+    }
+
+    set_bytes(bytes_read, bytes_received);
+    return RTP_OK;
+#endif
 }
 
 rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read)
