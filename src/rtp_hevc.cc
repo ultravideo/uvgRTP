@@ -45,23 +45,19 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
 
     LOG_DEBUG("send frag size: %zu, type %u", data_len, nalType);
 
-#if 0
+#ifdef __linux__
     auto fqueue = dynamic_cast<kvz_rtp::writer *>(conn)->get_frame_queue();
+    fqueue.init_queue(conn);
 
     /* all fragment units share the same RTP and HEVC NAL headers
      * but because there's three different types of FU headers (and because the state 
      * of each buffer must last between calls) we must allocate space for three FU headers */
     std::vector<std::pair<size_t, uint8_t *>> buffers;
 
-    uint8_t header[
-        kvz_rtp::frame::HEADER_SIZE_RTP +
-        kvz_rtp::frame::HEADER_SIZE_HEVC_NAL ] = { 0 };
-
-    /* create common RTP and NAL headers */
-    conn->fill_rtp_header(header, timestamp);
-
-    header[kvz_rtp::frame::HEADER_SIZE_RTP + 0]  = 49 << 1; /* fragmentation unit */
-    header[kvz_rtp::frame::HEADER_SIZE_RTP + 1]  = 1;       /* TID */
+    uint8_t nal_header[kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] = {
+        49 << 1, /* fragmentation unit */
+        1,       /* TID */
+    };
 
     /* one for first frag, one for all the middle frags and one for the last frag */
     uint8_t fu_headers[3 * kvz_rtp::frame::HEADER_SIZE_HEVC_FU] = {
@@ -70,9 +66,9 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
         (uint8_t)((1 << 6) | nalType)
     };
 
-    buffers.push_back(std::make_pair(sizeof(header),  header));
-    buffers.push_back(std::make_pair(sizeof(uint8_t), &fu_headers[0]));
-    buffers.push_back(std::make_pair(MAX_PAYLOAD,     nullptr));
+    buffers.push_back(std::make_pair(sizeof(nal_header), nal_header));
+    buffers.push_back(std::make_pair(sizeof(uint8_t),    &fu_headers[0]));
+    buffers.push_back(std::make_pair(MAX_PAYLOAD,        nullptr));
 
     data_pos   = kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
     data_left -= kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
@@ -87,11 +83,11 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
         data_pos  += MAX_PAYLOAD;
         data_left -= MAX_PAYLOAD;
 
-        /* from now on, use the FU header meant for middle frags */
+        /* from now on, use the FU header meant for middle fragments */
         buffers.at(1).second = &fu_headers[1];
     }
 
-    /* use the FU header meant for last fragment */
+    /* use the FU header meant for the last fragment */
     buffers.at(1).second = &fu_headers[2];
 
     buffers.at(2).first  = data_left;
