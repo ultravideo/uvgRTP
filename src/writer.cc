@@ -70,14 +70,14 @@ rtp_error_t kvz_rtp::writer::push_frame(uint8_t *data, uint32_t data_len, rtp_fo
 {
     switch (fmt) {
         case RTP_FORMAT_HEVC:
-            return kvz_rtp::hevc::push_hevc_frame(this, data, data_len, timestamp);
+            return kvz_rtp::hevc::push_frame(this, data, data_len, timestamp);
 
         case RTP_FORMAT_OPUS:
-            return kvz_rtp::opus::push_opus_frame(this, data, data_len, timestamp);
+            return kvz_rtp::opus::push_frame(this, data, data_len, timestamp);
 
         default:
             LOG_DEBUG("Format not recognized, pushing the frame as generic");
-            return kvz_rtp::generic::push_generic_frame(this, data, data_len, timestamp);
+            return kvz_rtp::generic::push_frame(this, data, data_len, timestamp);
     }
 }
 

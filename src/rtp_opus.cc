@@ -7,9 +7,9 @@
 #include "send.hh"
 
 /* Validity of arguments is checked by kvz_rtp::sender. We just need to relay them there */
-rtp_error_t kvz_rtp::opus::push_opus_frame(connection *conn, uint8_t *data, uint32_t data_len, uint32_t timestamp)
+rtp_error_t kvz_rtp::opus::push_frame(connection *conn, uint8_t *data, uint32_t data_len, uint32_t timestamp)
 {
-    return kvz_rtp::generic::push_generic_frame(conn, data, data_len, timestamp);
+    return kvz_rtp::generic::push_frame(conn, data, data_len, timestamp);
 
 #if 0
     rtp_error_t ret;

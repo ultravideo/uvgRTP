@@ -9,7 +9,7 @@ namespace kvz_rtp {
     class connection;
 
     namespace generic {
-        rtp_error_t push_generic_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len, uint32_t timestamp);
+        rtp_error_t push_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len, uint32_t timestamp);
 
         /* Process the incoming generic frame (for now not used)
          * The RTP frame "frame" given as parameter should be considered invalid after calling this function
