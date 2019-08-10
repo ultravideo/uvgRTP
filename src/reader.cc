@@ -185,7 +185,7 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::reader::validate_rtp_frame(uint8_t *buffer, 
         return nullptr;
     }
 
-    uint8_t *ptr                      = buffer;
+    uint8_t *ptr                     = buffer;
     kvz_rtp::frame::rtp_frame *frame = kvz_rtp::frame::alloc_rtp_frame();
 
     if (!frame) {
@@ -278,7 +278,7 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
     uint8_t nal_header[2] = { 0 };
     std::map<uint32_t, hevc_fu_info> s_timers;
     std::map<uint32_t, size_t> dropped_frames;
-    size_t n_dropped_frames = 0, n_new_frames = 0;
+    size_t n_dropped_frames = 0, n_new_frames = 0, cached = 0;
 
     while (reader->active()) {
         ret = socket.recvfrom(reader->get_recv_buffer(), reader->get_recv_buffer_len(), 0, &sender_addr, &nread);
@@ -402,10 +402,14 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
                 if (diff > RTP_FRAME_MAX_DELAY) {
                     if (dropped_frames.find(frame->header.timestamp) == dropped_frames.end()) {
                         dropped_frames[frame->header.timestamp] = 1;
+                        LOG_ERROR("frame dropped %u, diff %u!", ++n_dropped_frames, diff);
+                        kvz_rtp::frame::dealloc_frame(frame);
                     } else {
                         dropped_frames[frame->header.timestamp]++;
+                        kvz_rtp::frame::dealloc_frame(frame);
                         /* TODO: do something? */
                     }
+                    continue;
                 }
 
                 if (!duplicate) {
@@ -436,6 +440,7 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
 
                         out->payload_len = s_timers[frame->header.timestamp].total_size + kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
                         out->payload     = new uint8_t[out->payload_len];
+                        out->data        = out->payload;
 
                         std::memcpy(&out->header,  &frames[s_seq]->header, kvz_rtp::frame::HEADER_SIZE_RTP);
                         std::memcpy(out->payload,  nal_header,             kvz_rtp::frame::HEADER_SIZE_HEVC_NAL);
@@ -449,6 +454,7 @@ void kvz_rtp::reader::frame_receiver(kvz_rtp::reader *reader)
                                 frames[i]->payload_len - HEVC_HDR_SIZE
                             );
                             ptr += frames[i]->payload_len - HEVC_HDR_SIZE;
+                            kvz_rtp::frame::dealloc_frame(frames[i]);
                         }
 
                         RETURN_FRAME(out);
