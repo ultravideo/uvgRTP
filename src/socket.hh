@@ -99,6 +99,16 @@ namespace kvz_rtp {
              * This is used when calling send() */
             void set_sockaddr(sockaddr_in addr);
 
+            /* Some media types (such as HEVC) require finer control over the sending/receiving process
+             * These functions can be used to install low-level (the higher level API will call these)
+             * functions for dealing with media-specific details
+             *
+             * Return RTP_OK if installation succeeded
+             * Return RTP_INVALID_VALUE if the handler is nullptr */
+            rtp_error_t install_ll_recv(rtp_error_t (*recv)(uint8_t *, size_t , int , sockaddr_in *, int *));
+            rtp_error_t install_ll_sendto(rtp_error_t (*sendto_handler_)(sockaddr_in&, uint8_t *, size_t, int, int *));
+            rtp_error_t install_ll_sendtov(rtp_error_t (*send)(sockaddr_in&, std::vector<std::pair<size_t, uint8_t *>>, int, int *));
+
         private:
             /* helper function for sending UPD packets, see documentation for sendto() above */
             rtp_error_t __sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
@@ -106,6 +116,10 @@ namespace kvz_rtp {
 
             /* __sendtov() does the same as __sendto but it combines multiple buffers into one frame and sends them */
             rtp_error_t __sendtov(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent);
+
+            rtp_error_t (*recv_handler_)(uint8_t *, size_t , int , sockaddr_in *, int *);
+            rtp_error_t (*sendto_handler_)(sockaddr_in&, uint8_t *, size_t, int, int *);
+            rtp_error_t (*sendtov_handler_)(sockaddr_in&, std::vector<std::pair<size_t, uint8_t *>>, int, int *);
 
             socket_t socket_;
             sockaddr_in addr_;
