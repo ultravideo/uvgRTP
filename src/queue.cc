@@ -23,6 +23,8 @@ kvz_rtp::frame_queue::frame_queue()
 #ifdef __linux__
     out_addr_.sin_addr.s_addr = 0;
 #endif
+
+    rtphdr_ptr_ = 0;
 }
 
 kvz_rtp::frame_queue::~frame_queue()
@@ -31,8 +33,15 @@ kvz_rtp::frame_queue::~frame_queue()
 
 rtp_error_t kvz_rtp::frame_queue::init_queue(kvz_rtp::connection *conn)
 {
+    if (!conn)
+        return RTP_INVALID_VALUE;
+
+#ifdef __linux__
     out_addr_ = dynamic_cast<kvz_rtp::writer *>(conn)->get_out_address();
+#endif
     conn->fill_rtp_header((uint8_t *)(&rtphdr_), 0);
+
+    return RTP_OK;
 }
 
 rtp_error_t kvz_rtp::frame_queue::enqueue_message(
@@ -79,13 +88,20 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
     if (!message || !message_len == 0)
         return RTP_INVALID_VALUE;
 
-    if (buf_ptr_ + 1 >= MAX_CHUNK_COUNT)
+    if (buf_ptr_ + 2 >= MAX_CHUNK_COUNT)
         return RTP_MEMORY_ERROR;
 
-    buffers_[buf_ptr_].len = (u_long)message_len;
-    buffers_[buf_ptr_].buf = (char *)message;
+    /* Create RTP header for this message */
+    kvz_rtp::frame_queue::update_rtp_header(conn);
 
-    buf_ptr_++;
+    buffers_[buf_ptr_ + 0].buf = (char *)&rtpheaders_[rtphdr_ptr_];
+    buffers_[buf_ptr_ + 0].len = (u_long)sizeof(rtpheaders_[rtphdr_ptr_]);
+
+    buffers_[buf_ptr_ + 1].len = (u_long)message_len;
+    buffers_[buf_ptr_ + 1].buf = (char *)message;
+
+    buf_ptr_    += 2;
+    rtphdr_ptr_ += 1;
 #endif
 
     conn->inc_rtp_sequence();
@@ -138,9 +154,23 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
     (void)conn;
     DWORD sent_bytes;
 
-    if (buf_ptr_ + buffers.size() >= MAX_CHUNK_COUNT)
+    if (buf_ptr_ + buffers.size() + 1 >= MAX_CHUNK_COUNT)
         return RTP_MEMORY_ERROR;
 
+    /* Create RTP header for this message */
+    kvz_rtp::frame_queue::update_rtp_header(conn);
+
+    buffers_[buf_ptr_].buf = (char *)&rtpheaders_[rtphdr_ptr_];
+    buffers_[buf_ptr_].len = (u_long)sizeof(rtpheaders_[rtphdr_ptr_]);
+
+    for (size_t i = 0; i < buffers.size(); ++i) {
+        buffers_[buf_ptr_ + i + 1].buf = (char *)buffers.at(i).first;
+        buffers_[buf_ptr_ + i + 1].len = (u_long)buffers.at(i).second;
+    }
+
+    rtphdr_ptr_ += 1;
+    buf_ptr_    += buffers.size() + 1;
+#if 0
     unsigned ptr = 0, total_size = 0;
     uint8_t *tmp = nullptr;
 
@@ -160,6 +190,7 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
 
     merge_bufs_.push_back(tmp);
     buf_ptr_++;
+#endif
 #endif
 
     conn->inc_rtp_sequence();
@@ -209,25 +240,20 @@ rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
 rtp_error_t kvz_rtp::frame_queue::empty_queue()
 {
 #ifdef __linux__
-    hdr_ptr_ = msg_ptr_ = chunk_ptr_ = rtphdr_ptr_ = 0;
-    out_addr_.sin_addr.s_addr                      = 0;
-
-    std::memset(&rtphdr_, 0, sizeof(rtphdr_));
+    hdr_ptr_ = msg_ptr_ = chunk_ptr_ = 0;
+    out_addr_.sin_addr.s_addr        = 0;
 #else
     buf_ptr_ = 0;
-
-    for (size_t i = 0; i < merge_bufs_.size(); ++i) {
-        auto buffer = merge_bufs_.back();
-        merge_bufs_.pop_back();
-        delete[] buffer;
-    }
 #endif
+
+    rtphdr_ptr_ = 0;
+    memset(&rtphdr_, 0, sizeof(rtphdr_));
 
     return RTP_OK;
 }
 
 void kvz_rtp::frame_queue::update_rtp_header(kvz_rtp::connection *conn)
 {
-    std::memcpy(&rtpheaders_[rtphdr_ptr_], &rtphdr_, sizeof(rtphdr_));
+    memcpy(&rtpheaders_[rtphdr_ptr_], &rtphdr_, sizeof(rtphdr_));
     conn->update_rtp_sequence((uint8_t *)(&rtpheaders_[rtphdr_ptr_]));
 }

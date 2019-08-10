@@ -51,23 +51,24 @@ namespace kvz_rtp {
     private:
         void update_rtp_header(kvz_rtp::connection *conn);
 
+        kvz_rtp::frame::rtp_header rtpheaders_[MAX_MSG_COUNT];
+        kvz_rtp::frame::rtp_frame rtphdr_;
+
+        int rtphdr_ptr_;
+        int chunk_ptr_;
+        int msg_ptr_;
+
+        sockaddr_in out_addr_;
+
 #ifdef __linux__
-    struct mmsghdr             headers_[MAX_MSG_COUNT];
-    struct msghdr              messages_[MAX_MSG_COUNT];
-    struct iovec               chunks_[MAX_CHUNK_COUNT];
-    kvz_rtp::frame::rtp_header rtpheaders_[MAX_MSG_COUNT];
+        struct mmsghdr headers_[MAX_MSG_COUNT];
+        struct msghdr  messages_[MAX_MSG_COUNT];
+        struct iovec   chunks_[MAX_CHUNK_COUNT];
 
-    int hdr_ptr_;
-    int msg_ptr_;
-    int chunk_ptr_;
-    int rtphdr_ptr_;
-
-    sockaddr_in out_addr_;
-    kvz_rtp::frame::rtp_frame rtphdr_;
+        int hdr_ptr_;
 #else
-    std::vector<uint8_t *> merge_bufs_;
-    WSABUF              buffers_[MAX_MSG_COUNT];
-    int buf_ptr_;
+        WSAMSG messages_[MAX_MSG_COUNT];
+        WSABUF buffers_[MAX_CHUNK_COUNT];
 #endif
     };
 };
