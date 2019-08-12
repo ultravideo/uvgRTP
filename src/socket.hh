@@ -105,9 +105,9 @@ namespace kvz_rtp {
              *
              * Return RTP_OK if installation succeeded
              * Return RTP_INVALID_VALUE if the handler is nullptr */
-            void install_ll_recv(rtp_error_t (*recv)(uint8_t *, size_t , int , sockaddr_in *, int *));
-            void install_ll_sendto(rtp_error_t (*sendto_handler_)(sockaddr_in&, uint8_t *, size_t, int, int *));
-            void install_ll_sendtov(rtp_error_t (*send)(sockaddr_in&, std::vector<std::pair<size_t, uint8_t *>>, int, int *));
+            void install_ll_recv(rtp_error_t (*recv)(socket_t, uint8_t *, size_t , int , sockaddr_in *, int *));
+            void install_ll_sendto(rtp_error_t (*sendto)(socket_t, sockaddr_in&, uint8_t *, size_t, int, int *));
+            void install_ll_sendtov(rtp_error_t (*send)(socket_t, sockaddr_in&, std::vector<std::pair<size_t, uint8_t *>>, int, int *));
 
         private:
             /* helper function for sending UPD packets, see documentation for sendto() above */
@@ -117,9 +117,9 @@ namespace kvz_rtp {
             /* __sendtov() does the same as __sendto but it combines multiple buffers into one frame and sends them */
             rtp_error_t __sendtov(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent);
 
-            rtp_error_t (*recv_handler_)(uint8_t *, size_t , int , sockaddr_in *, int *);
-            rtp_error_t (*sendto_handler_)(sockaddr_in&, uint8_t *, size_t, int, int *);
-            rtp_error_t (*sendtov_handler_)(sockaddr_in&, std::vector<std::pair<size_t, uint8_t *>>, int, int *);
+            rtp_error_t (*recv_handler_)(socket_t, uint8_t *, size_t , int , sockaddr_in *, int *);
+            rtp_error_t (*sendto_handler_)(socket_t, sockaddr_in&, uint8_t *, size_t, int, int *);
+            rtp_error_t (*sendtov_handler_)(socket_t, sockaddr_in&, std::vector<std::pair<size_t, uint8_t *>>, int, int *);
 
             socket_t socket_;
             sockaddr_in addr_;
