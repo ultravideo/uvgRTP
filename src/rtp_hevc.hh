@@ -4,6 +4,7 @@
 
 namespace kvz_rtp {
     class connection;
+    class reader;
 
     namespace hevc {
 
@@ -28,32 +29,9 @@ namespace kvz_rtp {
          * Return RTP_OK when E bit of the NAL header is set */
         int check_frame(kvz_rtp::frame::rtp_frame *frame);
 
-        /* Merge fragmentation units into one complete frames
-         * "first" marks the index of the first fragmentation unit in "frames" array
-         * "nframes" tells how many frames should be merged to together
-         *
-         * NOTE: merge_frames() will free all RTP frames from range "first - (first + nframes)" and sets
-         * the range in the "frames" array to nullptr
-         *
-         * Return pointer to merged frame on succes
-         * Return nullptr and set rtp_errno to RTP_MEMORY_ERROR if allocation fails
-         * Return nullptr and set rtp_errno to RTP_INVALID_VALUE if one of the frames from range is missing */
-        kvz_rtp::frame::rtp_frame *merge_frames(kvz_rtp::frame::rtp_frame **frames, uint16_t first, size_t nframes);
+        /* TODO:  */
+        /* rtp_error_t frame_receiver(kvz_rtp::reader *reader); */
 
-        /* Process the incoming HEVC frame
-         * The RTP frame "frame" given as parameter should be considered invalid after calling this function
-         * and no operatios should be performed on it after the function has returned.
-         *
-         * On success, a valid RTP frame is returned and "error" is set to RTP_OK
-         *
-         * If the original frame has been split and this is a fragment of it, the fragment is returned
-         * and "error" is set to RTP_NOT_READY
-         *
-         * If the frame is invalid, nullptr is returned and "error" is set to RTP_INVALID_VALUE (is possible) */
-        kvz_rtp::frame::rtp_frame *process_hevc_frame(
-            kvz_rtp::frame::rtp_frame *frame,
-            std::pair<size_t, std::vector<kvz_rtp::frame::rtp_frame *>>& fu,
-            rtp_error_t& error
-        );
+        rtp_error_t frame_receiver(kvz_rtp::reader *reader);
     };
 };

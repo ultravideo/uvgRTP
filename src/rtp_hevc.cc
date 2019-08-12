@@ -1,13 +1,25 @@
-#include <iostream>
 #include <cstdint>
 #include <cstring>
+#include <iostream>
 
 #include "conn.hh"
 #include "debug.hh"
+#include "reader.hh"
 #include "rtp_hevc.hh"
 #include "queue.hh"
 #include "send.hh"
 #include "writer.hh"
+
+#define RTP_FRAME_MAX_DELAY           50
+#define INVALID_SEQ           0x13371338
+
+struct hevc_fu_info {
+    kvz_rtp::clock::hrc::hrc_t sframe_time; /* clock reading when the first fragment is received */
+    uint32_t sframe_seq;                    /* sequence number of the frame with s-bit */
+    uint32_t eframe_seq;                    /* sequence number of the frame with e-bit */
+    size_t pkts_received;                   /* how many fragments have been received */
+    size_t total_size;                      /* total size of all fragments */
+};
 
 static int __get_next_frame_start(uint8_t *data, uint32_t offset, uint32_t data_len, uint8_t& start_len)
 {
@@ -189,140 +201,183 @@ int kvz_rtp::hevc::check_frame(kvz_rtp::frame::rtp_frame *frame)
     return kvz_rtp::hevc::FT_MIDDLE;
 }
 
-kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::merge_frames(kvz_rtp::frame::rtp_frame **frames, uint16_t first, size_t nframes)
+rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::reader *reader)
 {
-    (void)frames, (void)first, (void)nframes;
+    LOG_INFO("frameReceiver starting listening...");
 
-    return nullptr;
-}
+    int nread = 0;
+    rtp_error_t ret;
+    sockaddr_in sender_addr;
+    kvz_rtp::socket socket = reader->get_socket();
+    kvz_rtp::frame::rtp_frame *frame, *f, *frames[0xffff + 1] = { 0 };
 
-kvz_rtp::frame::rtp_frame *kvz_rtp::hevc::process_hevc_frame(
-        kvz_rtp::frame::rtp_frame *frame,
-        std::pair<size_t, std::vector<kvz_rtp::frame::rtp_frame *>>& fu,
-        rtp_error_t& error
-)
-{
-    bool last_frag                 = false;
-    bool first_frag                = false;
-    uint8_t NALHeader[2]           = { 0 };
-    kvz_rtp::frame::rtp_frame *ret = nullptr;
+    uint8_t nal_header[2] = { 0 };
+    std::map<uint32_t, hevc_fu_info> s_timers;
+    std::map<uint32_t, size_t> dropped_frames;
 
-    if (!frame) {
-        LOG_ERROR("Invalid value, unable to process frame!");
+    while (reader->active()) {
+        ret = socket.recvfrom(reader->get_recv_buffer(), reader->get_recv_buffer_len(), 0, &sender_addr, &nread);
 
-        error = RTP_INVALID_VALUE;
-        return nullptr;
-    }
-
-    if ((frame->payload[0] >> 1) != 49) {
-        LOG_DEBUG("frame is not fragmented, returning...");
-        error = RTP_OK;
-
-        /* we received a non-fragmented HEVC frame but FU buffer is not empty 
-         * which means a packet was lost and we must drop this partial frame */
-        if (!fu.second.empty()) {
-            /* TODO: update rtcp stats for dropped packets */
-
-            LOG_WARN("fragmented frame was not fully received, dropping...");
-            ret = frame;
-            goto error;
+        if (ret != RTP_OK) {
+            LOG_ERROR("recvfrom failed! FrameReceiver cannot continue!");
+            return RTP_GENERIC_ERROR;;
         }
 
-        return frame;
-    }
+        if ((frame = reader->validate_rtp_frame(reader->get_recv_buffer(), nread)) == nullptr) {
+            LOG_DEBUG("received an invalid frame, discarding");
+            continue;
+        }
 
-    if (!fu.second.empty()) {
-        if (frame->header.timestamp != fu.second.at(0)->header.timestamp) {
-            LOG_ERROR("Timestamp mismatch for fragmentation units!");
+        /* Update session related statistics
+         * If this is a new peer, RTCP will take care of initializing necessary stuff */
+        reader->update_receiver_stats(frame);
 
-            if (frame->header.timestamp > fu.second.at(0)->header.timestamp) {
-                LOG_ERROR("packet was dropped: %u %u | %u %u", frame->header.timestamp, fu.second.at(0)->header.timestamp,
-                        frame->header.seq, fu.second.at(fu.second.size() - 1)->header.seq);
+        /* How to the frame is handled is based what its type is. Generic and Opus frames
+         * don't require any extra processing so they can be returned to the user as soon as
+         * they're received without any buffering.
+         *
+         * Frames that can be fragmented (only HEVC for now) require some preprocessing before they're returned.
+         *
+         * When a frame with an S-bit set is received, the frame is saved to "frames" array and an NTP timestamp
+         * is saved. All subsequent frag frames are also saved in the "frames" array and they may arrive in
+         * any order they want because they're saved in the array using the sequence number.
+         *
+         * Each time a new frame is received, the initial timestamp is compared with current time to see
+         * how much time this frame still has left until it's discarded. Each frame is given N milliseconds
+         * and if all its fragments are not received within that time window, the frame is considered invalid
+         * and all fragments are discarded.
+         *
+         * When the last fragment is received (ie. the frame with E-bit set) AND if all previous fragments
+         * very received too, frame_receiver() will call post-processing function to merge all the fragments
+         * into one complete frame.
+         *
+         * If all previous fragments have not been received (ie. some frame is late), the code will wait
+         * until the time windows closes. When that happens, the array is inspected once more to see if
+         * all fragments were received and if so, the fragments are merged and returned to user.
+         *
+         * If some fragments were dropped, the whole HEVC frame is discarded
+         *
+         * Due to the nature of UDP, it's possible that during a fragment reception,
+         * a stray RTP packet from earlier fragment might be received and that might corrupt
+         * the reception process. To mitigate this, the sequence number and RTP timestamp of each
+         * incoming packet is matched and checked against our own clock to get sense whether this packet valid
+         *
+         * Invalid packets (such as very late packets) are discarded automatically without further processing */
+        const size_t HEVC_HDR_SIZE =
+            kvz_rtp::frame::HEADER_SIZE_HEVC_NAL +
+            kvz_rtp::frame::HEADER_SIZE_HEVC_FU;
+
+        int type = kvz_rtp::hevc::check_frame(frame);
+
+        if (type == kvz_rtp::hevc::FT_NOT_FRAG) {
+            reader->return_frame(frame);
+            continue;
+        }
+
+        if (type == kvz_rtp::hevc::FT_INVALID) {
+            LOG_WARN("invalid frame received!");
+            break;
+        }
+
+        /* TODO: this is ugly */
+        bool duplicate = true;
+
+        /* Save the received frame to "frames" array where frames are indexed using
+         * their sequence number. This way when all fragments of a frame are received,
+         * we can loop through the range sframe_seq - eframe_seq and merge all fragments */
+        if (frames[frame->header.seq] == nullptr) {
+            frames[frame->header.seq] = frame;
+            duplicate                 = false;
+        }
+
+        /* If this is the first packet received with this timestamp, create new entry
+         * to s_timers and save current time.
+         *
+         * This timestamp is used to keep track of how long we've been receiving chunks
+         * and if the time exceeds RTP_FRAME_MAX_DELAY, we drop the frame */
+        if (s_timers.find(frame->header.timestamp) == s_timers.end()) {
+            /* UDP being unreliable, we can't know for sure in what order the packets are arriving.
+             * Especially on linux where the fragment frames are batched and sent together it possible
+             * that the first fragment we receive is the fragment containing the E-bit which sounds weird
+             *
+             * When the first fragment is received (regardless of its type), the timer is started and if the
+             * fragment is special (S or E bit set), the sequence number is saved so we know the range of complete
+             * full HEVC frame if/when all fragments have been received */
+
+            if (type == kvz_rtp::hevc::FT_START) {
+                s_timers[frame->header.timestamp].sframe_seq = frame->header.seq;
+                s_timers[frame->header.timestamp].eframe_seq = INVALID_SEQ;
+            } else if (type == kvz_rtp::hevc::FT_END) {
+                s_timers[frame->header.timestamp].eframe_seq = frame->header.seq;
+                s_timers[frame->header.timestamp].sframe_seq = INVALID_SEQ;
             } else {
-                LOG_ERROR("packet came in late: %u %u", frame->header.timestamp, fu.second.at(0)->header.timestamp);
+                s_timers[frame->header.timestamp].sframe_seq = INVALID_SEQ;
+                s_timers[frame->header.timestamp].eframe_seq = INVALID_SEQ;
             }
 
-            LOG_WARN("removing %u frames", fu.second.size());
+            s_timers[frame->header.timestamp].sframe_time   = kvz_rtp::clock::hrc::now();
+            s_timers[frame->header.timestamp].total_size    = frame->payload_len - HEVC_HDR_SIZE;
+            s_timers[frame->header.timestamp].pkts_received = 1;
+            continue;
+        }
 
-            /* push the frame to fu vector so deallocation is cleaner */
-            fu.second.push_back(frame);
-            goto error;
+        uint64_t diff = kvz_rtp::clock::hrc::diff_now(s_timers[frame->header.timestamp].sframe_time);
+
+        if (diff > RTP_FRAME_MAX_DELAY) {
+            if (dropped_frames.find(frame->header.timestamp) == dropped_frames.end()) {
+                dropped_frames[frame->header.timestamp] = 1;
+            } else {
+                dropped_frames[frame->header.timestamp]++;
+                /* TODO: do something? */
+            }
+        }
+
+        if (!duplicate) {
+            s_timers[frame->header.timestamp].pkts_received++;
+            s_timers[frame->header.timestamp].total_size += (frame->payload_len - HEVC_HDR_SIZE);
+        }
+
+        if (type == kvz_rtp::hevc::FT_START)
+            s_timers[frame->header.timestamp].sframe_seq = frame->header.seq;
+
+        if (type == kvz_rtp::hevc::FT_END)
+            s_timers[frame->header.timestamp].eframe_seq = frame->header.seq;
+
+        if (s_timers[frame->header.timestamp].sframe_seq != INVALID_SEQ &&
+            s_timers[frame->header.timestamp].eframe_seq != INVALID_SEQ)
+        {
+            uint32_t ts    = frame->header.timestamp;
+            uint16_t s_seq = s_timers[ts].sframe_seq;
+            uint16_t e_seq = s_timers[ts].eframe_seq;
+            size_t ptr     = 0;
+
+            /* we've received every fragment and the frame can be reconstructed */
+            if (e_seq - s_seq + 1 == s_timers[frame->header.timestamp].pkts_received) {
+                nal_header[0] = (frames[s_seq]->payload[0] & 0x81) | ((frame->payload[2] & 0x3f) << 1);
+                nal_header[1] =  frames[s_seq]->payload[1];
+
+                kvz_rtp::frame::rtp_frame *out = kvz_rtp::frame::alloc_rtp_frame();
+
+                out->payload_len = s_timers[frame->header.timestamp].total_size + kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
+                out->payload     = new uint8_t[out->payload_len];
+
+                std::memcpy(&out->header,  &frames[s_seq]->header, kvz_rtp::frame::HEADER_SIZE_RTP);
+                std::memcpy(out->payload,  nal_header,             kvz_rtp::frame::HEADER_SIZE_HEVC_NAL);
+
+                ptr += kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
+
+                for (size_t i = s_seq; i <= e_seq; ++i) {
+                    std::memcpy(
+                        &out->payload[ptr],
+                        &frames[i]->payload[HEVC_HDR_SIZE],
+                        frames[i]->payload_len - HEVC_HDR_SIZE
+                    );
+                    ptr += frames[i]->payload_len - HEVC_HDR_SIZE;
+                }
+
+                reader->return_frame(out);
+                s_timers.erase(ts);
+            }
         }
     }
-
-    first_frag = frame->payload[2] & 0x80;
-    last_frag  = frame->payload[2] & 0x40;
-
-    if (first_frag && last_frag) {
-        LOG_ERROR("Invalid combination of S and E bits");
-
-        /* push the frame to fu vector so deallocation is cleaner */
-        fu.second.push_back(frame);
-
-        error = RTP_INVALID_VALUE;
-        goto error;
-    }
-
-    frame->payload_len -= (kvz_rtp::frame::HEADER_SIZE_HEVC_NAL +
-                           kvz_rtp::frame::HEADER_SIZE_HEVC_FU);
-    fu.second.push_back(frame);
-    fu.first += frame->payload_len;
-
-    if (!last_frag) {
-        error = RTP_NOT_READY;
-        return frame;
-    }
-
-    if (fu.second.size() == 1) {
-        LOG_ERROR("Received the last FU but FU vector is empty!");
-        error = RTP_INVALID_VALUE;
-        goto error;
-    }
-
-    ret = kvz_rtp::frame::alloc_rtp_frame(fu.first + 2, kvz_rtp::frame::FRAME_TYPE_GENERIC);
-
-    /* copy the RTP header of the first fragmentation unit and use it for the full frame */
-    memcpy(frame->data, fu.second.at(0)->data, kvz_rtp::frame::HEADER_SIZE_RTP);
-
-    {
-        kvz_rtp::frame::rtp_frame *f = fu.second.at(0);
-
-        NALHeader[0] = (f->payload[0] & 0x81) | ((frame->payload[2] & 0x3f) << 1);
-        NALHeader[1] = f->payload[1];
-
-        memcpy(ret->payload, NALHeader, sizeof(NALHeader));
-
-        size_t ptr    = sizeof(NALHeader);
-        size_t offset = kvz_rtp::frame::HEADER_SIZE_HEVC_NAL +
-                        kvz_rtp::frame::HEADER_SIZE_HEVC_FU;
-
-        for (auto& i : fu.second) {
-            memcpy(&ret->payload[ptr], i->payload + offset, i->payload_len);
-            ptr += i->payload_len;
-        }
-    }
-
-    while (fu.second.size() != 0) {
-        auto tmp = fu.second.back();
-        fu.second.pop_back();
-        (void)kvz_rtp::frame::dealloc_frame(tmp);
-    }
-
-    /* reset the total size of fragmentation units */
-    fu.first = 0;
-
-    error = RTP_OK;
-    return ret;
-
-error:
-    while (fu.second.size() != 0) {
-        auto tmp = fu.second.back();
-        fu.second.pop_back();
-        (void)kvz_rtp::frame::dealloc_frame(tmp);
-    }
-
-    /* reset the total size of fragmentation units */
-    fu.first = 0;
-
-    return ret;
 }

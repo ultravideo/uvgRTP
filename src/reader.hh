@@ -30,25 +30,20 @@ namespace kvz_rtp {
 
         void add_outgoing_frame(kvz_rtp::frame::rtp_frame *frame);
 
-    private:
         /* Read RTP header field from "src" to "dst" changing the byte order from network to host where needed */
-        static rtp_error_t read_rtp_header(kvz_rtp::frame::rtp_header *dst, uint8_t *src);
+        rtp_error_t read_rtp_header(kvz_rtp::frame::rtp_header *dst, uint8_t *src);
 
         /* When a frame is received, this validate_rtp_frame() is called to validate the frame
          * and to construct the actual header and frame "buffer"
          *
          * Return valid RTP frame on success
          * Return nullptr if the frame is invalid */
-        static kvz_rtp::frame::rtp_frame *validate_rtp_frame(uint8_t *buffer, int size);
+        kvz_rtp::frame::rtp_frame *validate_rtp_frame(uint8_t *buffer, int size);
 
         /* Helper function for returning received RTP frames to user (just to make code look cleaner) */
-        static void return_frame(kvz_rtp::reader *reader, kvz_rtp::frame::rtp_frame *frame);
+        void return_frame(kvz_rtp::frame::rtp_frame *frame);
 
-        /* kvz_rtp::reader::start() initializes the reader socket and spawns thread
-         * for frame_receiver which is responsible for receiving, reordering, merging,
-         * discarding and returning frames to user  */
-        static void frame_receiver(kvz_rtp::reader *reader);
-
+    private:
         // TODO implement ring buffer
         bool active_;
 

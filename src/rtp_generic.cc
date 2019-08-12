@@ -4,12 +4,14 @@
 #include <arpa/inet.h>
 #endif
 
-#include <stdint.h>
+#include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <map>
 
 #include "debug.hh"
 #include "conn.hh"
+#include "reader.hh"
 #include "rtp_generic.hh"
 #include "send.hh"
 #include "util.hh"
@@ -28,20 +30,39 @@ rtp_error_t kvz_rtp::generic::push_frame(kvz_rtp::connection *conn, uint8_t *dat
     return kvz_rtp::send::send_frame(conn, header, sizeof(header), data, data_len);
 }
 
-kvz_rtp::frame::rtp_frame *kvz_rtp::generic::process_generic_frame(
-    kvz_rtp::frame::rtp_frame *frame,
-    std::pair<size_t, std::vector<kvz_rtp::frame::rtp_frame *>>& fu,
-    rtp_error_t& error
-)
+rtp_error_t kvz_rtp::generic::frame_receiver(kvz_rtp::reader *reader)
 {
-    (void)fu;
+    LOG_INFO("Generic frame receiver starting...");
 
-    if (!frame) {
-        error = RTP_INVALID_VALUE;
+    /* TODO: this looks super ugly */
+    rtp_error_t ret;
+    int nread = 0, ftype = 0;
+    sockaddr_in sender_addr;
+    kvz_rtp::socket socket = reader->get_socket();
+    kvz_rtp::frame::rtp_frame *frame, *f, *frames[0xffff + 1] = { 0 };
 
-        LOG_ERROR("Invalid value, unable to process frame!");
-        return nullptr;
+    uint8_t nal_header[2] = { 0 };
+    std::map<uint32_t, size_t> dropped_frames;
+    size_t n_dropped_frames = 0, n_new_frames = 0, cached = 0;
+
+    while (reader->active()) {
+        ret = socket.recvfrom(reader->get_recv_buffer(), reader->get_recv_buffer_len(), 0, &sender_addr, &nread);
+
+        if (ret != RTP_OK) {
+            LOG_ERROR("recvfrom failed! FrameReceiver cannot continue!");
+            return RTP_GENERIC_ERROR;
+        }
+
+        if ((frame = reader->validate_rtp_frame(reader->get_recv_buffer(), nread)) == nullptr) {
+            LOG_DEBUG("received an invalid frame, discarding");
+            continue;
+        }
+
+        /* Update session related statistics
+         * If this is a new peer, RTCP will take care of initializing necessary stuff */
+        reader->update_receiver_stats(frame);
+        reader->return_frame(frame);
     }
 
-    return nullptr;
+    return ret;
 }
