@@ -353,38 +353,26 @@ rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags)
     return __recvfrom(buf, buf_len, flags, nullptr, nullptr);
 }
 
-rtp_error_t kvz_rtp::socket::install_ll_recv(
+void kvz_rtp::socket::install_ll_recv(
     rtp_error_t (*recv)(uint8_t *, size_t , int , sockaddr_in *, int *)
 )
 {
-    if (!recv)
-        return RTP_INVALID_VALUE;
-
+    assert(recv != nullptr);
     recv_handler_ = recv;
-
-    return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::socket::install_ll_sendto(
+void kvz_rtp::socket::install_ll_sendto(
     rtp_error_t (*sendto)(sockaddr_in&, uint8_t *, size_t, int, int *)
 )
 {
-    if (!sendto_handler_)
-        return RTP_INVALID_VALUE;
-
+    assert(sendto != nullptr);
     sendto_handler_ = sendto;
-
-    return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::socket::install_ll_sendtov(
+void kvz_rtp::socket::install_ll_sendtov(
     rtp_error_t (*sendtov)(sockaddr_in&, std::vector<std::pair<size_t, uint8_t *>>, int, int *)
 )
 {
-    if (!sendtov_handler_)
-        return RTP_INVALID_VALUE;
-
+    assert(sendto != nullptr);
     sendtov_handler_ = sendtov;
-
-    return RTP_OK;
 }

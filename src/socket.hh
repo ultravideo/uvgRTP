@@ -105,9 +105,9 @@ namespace kvz_rtp {
              *
              * Return RTP_OK if installation succeeded
              * Return RTP_INVALID_VALUE if the handler is nullptr */
-            rtp_error_t install_ll_recv(rtp_error_t (*recv)(uint8_t *, size_t , int , sockaddr_in *, int *));
-            rtp_error_t install_ll_sendto(rtp_error_t (*sendto_handler_)(sockaddr_in&, uint8_t *, size_t, int, int *));
-            rtp_error_t install_ll_sendtov(rtp_error_t (*send)(sockaddr_in&, std::vector<std::pair<size_t, uint8_t *>>, int, int *));
+            void install_ll_recv(rtp_error_t (*recv)(uint8_t *, size_t , int , sockaddr_in *, int *));
+            void install_ll_sendto(rtp_error_t (*sendto_handler_)(sockaddr_in&, uint8_t *, size_t, int, int *));
+            void install_ll_sendtov(rtp_error_t (*send)(sockaddr_in&, std::vector<std::pair<size_t, uint8_t *>>, int, int *));
 
         private:
             /* helper function for sending UPD packets, see documentation for sendto() above */
@@ -125,10 +125,10 @@ namespace kvz_rtp {
             sockaddr_in addr_;
 
 #ifdef _WIN32
-    WSABUF buffers_[MAX_BUFFER_COUNT];
+            WSABUF buffers_[MAX_BUFFER_COUNT];
 #else
-    struct mmsghdr header_;
-    struct iovec   chunks_[MAX_BUFFER_COUNT];
+            struct mmsghdr header_;
+            struct iovec   chunks_[MAX_BUFFER_COUNT];
 #endif
     };
 };
