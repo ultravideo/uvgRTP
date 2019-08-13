@@ -20,48 +20,15 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame()
     return frame;
 }
 
-kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame(size_t payload_len, rtp_type_t type)
+kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame(size_t payload_len)
 {
-    if (payload_len == 0 || INVALID_FRAME_TYPE(type)) {
-        rtp_errno = RTP_INVALID_VALUE;
-        return nullptr;
-    }
-
-    LOG_DEBUG("Allocating frame. Size %zu, Type %u", payload_len, type);
-
-    kvz_rtp::frame::rtp_frame *frame;
-    size_t header_len;
-
-    switch (type) {
-        case FRAME_TYPE_GENERIC:
-            header_len = kvz_rtp::frame::HEADER_SIZE_RTP;
-            break;
-
-        /* for now, opus header is not used */
-        case FRAME_TYPE_OPUS:
-            header_len = kvz_rtp::frame::HEADER_SIZE_RTP + 0;
-            break;
-
-        case FRAME_TYPE_HEVC_FU:
-            header_len = kvz_rtp::frame::HEADER_SIZE_RTP
-                       + kvz_rtp::frame::HEADER_SIZE_HEVC_NAL
-                       + kvz_rtp::frame::HEADER_SIZE_HEVC_FU;
-            break;
-    }
+    kvz_rtp::frame::rtp_frame *frame = nullptr;
 
     if ((frame = kvz_rtp::frame::alloc_rtp_frame()) == nullptr)
         return nullptr;
 
-    if ((frame->data = new uint8_t[payload_len + header_len]) == nullptr) {
-        rtp_errno = RTP_MEMORY_ERROR;
-        delete frame;
-        return nullptr;
-    }
-
-    frame->payload_len = payload_len;
-    frame->total_len   = payload_len + header_len;
-    frame->payload     = frame->data + header_len;
-    frame->type        = type;
+    frame->data      = frame->payload     = new uint8_t[payload_len];
+    frame->total_len = frame->payload_len = payload_len;
 
     return frame;
 }

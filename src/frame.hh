@@ -125,7 +125,7 @@ namespace kvz_rtp {
         };
 
         rtp_frame           *alloc_rtp_frame();
-        rtp_frame           *alloc_rtp_frame(size_t payload_len, rtp_type_t type);
+        rtp_frame           *alloc_rtp_frame(size_t payload_len);
         rtcp_app_frame      *alloc_rtcp_app_frame(std::string name, uint8_t subtype, size_t payload_len);
         rtcp_sdes_frame     *alloc_rtcp_sdes_frame(size_t ssrc_count, size_t total_len);
         rtcp_receiver_frame *alloc_rtcp_receiver_frame(size_t nblocks);
