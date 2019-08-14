@@ -122,10 +122,24 @@ void kvz_rtp::connection::inc_sent_pkts()
         rtcp_->sender_inc_sent_pkts(1);
 }
 
-void kvz_rtp::connection::update_receiver_stats(kvz_rtp::frame::rtp_frame *frame)
+rtp_error_t kvz_rtp::connection::update_receiver_stats(kvz_rtp::frame::rtp_frame *frame)
 {
-    if (rtcp_)
-        rtcp_->receiver_update_stats(frame);
+    rtp_error_t ret;
+
+    if (rtcp_) {
+        if ((ret = rtcp_->receiver_update_stats(frame)) != RTP_SSRC_COLLISION)
+            return ret;
+
+        do {
+            rtp_ssrc_ = generate_rand_32();
+        } while ((rtcp_->reset_rtcp_state(rtp_ssrc_)) != RTP_OK);
+
+        /* even though we've resolved the SSRC conflict, we still need to return an error
+         * code because the original packet that caused the conflict is considered "invalid" */
+        return RTP_INVALID_VALUE;
+    }
+
+    return RTP_OK;
 }
 
 void kvz_rtp::connection::set_clock_rate(uint32_t clock_rate)

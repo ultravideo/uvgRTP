@@ -227,10 +227,15 @@ rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::reader *reader)
             LOG_DEBUG("received an invalid frame, discarding");
             continue;
         }
+        memcpy(&frame->src_addr, &sender_addr, sizeof(sockaddr_in));
 
         /* Update session related statistics
-         * If this is a new peer, RTCP will take care of initializing necessary stuff */
-        reader->update_receiver_stats(frame);
+         * If this is a new peer, RTCP will take care of initializing necessary stuff
+         *
+         * Skip processing the packet if it was invalid. This is mostly likely caused
+         * by an SSRC collision */
+        if (reader->update_receiver_stats(frame) != RTP_OK)
+            continue;
 
         /* How to the frame is handled is based what its type is. Generic and Opus frames
          * don't require any extra processing so they can be returned to the user as soon as

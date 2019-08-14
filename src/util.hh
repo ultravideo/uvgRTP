@@ -25,15 +25,16 @@ const int MAX_PACKET      = 65536;
 const int MAX_PAYLOAD     = 1250;
 
 typedef enum RTP_ERROR {
-    RTP_INTERRUPTED   =  2,
-    RTP_NOT_READY     =  1,
-    RTP_OK            =  0,
-    RTP_GENERIC_ERROR = -1,
-    RTP_SOCKET_ERROR  = -2,
-    RTP_BIND_ERROR    = -3,
-    RTP_INVALID_VALUE = -4,
-    RTP_SEND_ERROR    = -5,
-    RTP_MEMORY_ERROR  = -6,
+    RTP_INTERRUPTED    =  2,
+    RTP_NOT_READY      =  1,
+    RTP_OK             =  0,
+    RTP_GENERIC_ERROR  = -1,
+    RTP_SOCKET_ERROR   = -2,
+    RTP_BIND_ERROR     = -3,
+    RTP_INVALID_VALUE  = -4,
+    RTP_SEND_ERROR     = -5,
+    RTP_MEMORY_ERROR   = -6,
+    RTP_SSRC_COLLISION = -7,
 } rtp_error_t;
 
 typedef enum RTP_FORMAT {

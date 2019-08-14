@@ -81,6 +81,9 @@ namespace kvz_rtp {
         rtp_error_t send_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame);
         rtp_error_t send_app_packet(kvz_rtp::frame::rtcp_app_frame *frame);
 
+        /* create RTCP BYE packet using our own SSRC and send it to all participants */
+        rtp_error_t terminate_self();
+
         /* TODO:  */
         std::vector<kvz_rtp::socket>& get_sockets();
 
@@ -104,7 +107,22 @@ namespace kvz_rtp {
         void receiver_inc_overhead_bytes(uint32_t sender_ssrc, size_t n);
         void receiver_inc_total_bytes(uint32_t sender_ssrc, size_t n);
         void receiver_inc_sent_pkts(uint32_t sender_ssrc, size_t n);
-        void receiver_update_stats(kvz_rtp::frame::rtp_frame *frame);
+
+        /* Update the RTCP statistics regarding this packet
+         *
+         * Return RTP_OK if packet is valid
+         * Return RTP_INVALID_VALUE if SSRCs of remotes have collided or the packet is invalid in some way
+         * return RTP_SSRC_COLLISION if our own SSRC has collided and we need to reinitialize it */
+        rtp_error_t receiver_update_stats(kvz_rtp::frame::rtp_frame *frame);
+
+        /* If we've detected that our SSRC has collided with someone else's SSRC, we need to
+         * generate new random SSRC and reinitialize our own RTCP state.
+         * RTCP object still has the participants of "last session", we can use their SSRCs
+         * to detected new collision
+         *
+         * Return RTP_OK if reinitialization succeeded
+         * Return RTP_SSRC_COLLISION if our new SSRC has collided and we need to generate new SSRC */
+        rtp_error_t reset_rtcp_state(uint32_t ssrc);
 
         /* Set wallclock reading for t = 0 and random RTP timestamp from where the counting is started
          * + clock rate for calculating the correct increment */
@@ -117,6 +135,14 @@ namespace kvz_rtp {
          * when an RTP packet is received, we must check if we've already received a packet 
          * from this sender and if not, create new entry to receiver_stats_ map */
         bool is_participant(uint32_t ssrc);
+
+        /* When we receive an RTP or RTCP packet, we need to check the source address and see if it's
+         * the same address where we've received packets before.
+         *
+         * If the address is new, it means we have detected an SSRC collision and the paket should
+         * be dropped We also need to check whether this SSRC matches with our own SSRC and if it does
+         * we need to send RTCP BYE and rejoin to the session */
+        bool collision_detected(uint32_t ssrc, sockaddr_in& src_addr);
 
         /* Move participant from initial_peers_ to participants_ */
         void add_participant(uint32_t ssrc);

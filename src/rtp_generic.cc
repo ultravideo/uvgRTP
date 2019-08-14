@@ -53,11 +53,12 @@ rtp_error_t kvz_rtp::generic::frame_receiver(kvz_rtp::reader *reader)
             LOG_DEBUG("received an invalid frame, discarding");
             continue;
         }
+        memcpy(&frame->src_addr, &sender_addr, sizeof(sockaddr_in));
 
         /* Update session related statistics
          * If this is a new peer, RTCP will take care of initializing necessary stuff */
-        reader->update_receiver_stats(frame);
-        reader->return_frame(frame);
+        if (reader->update_receiver_stats(frame) == RTP_OK)
+            reader->return_frame(frame);
     }
 
     return ret;

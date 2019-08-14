@@ -1,5 +1,11 @@
 #pragma once
 
+#ifdef _WIN32
+#include <ws2def.h>
+#else
+#include <netinet/in.h>
+#endif
+
 #include <string>
 
 #include "util.hh"
@@ -59,6 +65,7 @@ namespace kvz_rtp {
 
             rtp_format_t format;
             rtp_type_t type;
+            sockaddr_in src_addr;
         };
 
         PACKED_STRUCT(rtcp_header) {

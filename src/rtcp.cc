@@ -142,6 +142,9 @@ rtp_error_t kvz_rtp::rtcp::terminate()
     senders_  = 0;
     active_   = false;
 
+    /* Send BYE packet with our SSRC to all participants */
+    kvz_rtp::rtcp::terminate_self();
+
 end:
     /* free all receiver statistic structs */
     for (auto& participant : participants_) {
@@ -305,19 +308,83 @@ rtp_error_t kvz_rtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
     return RTP_OK;
 }
 
-void kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *frame)
+rtp_error_t kvz_rtp::rtcp::terminate_self()
+{
+    rtp_error_t ret;
+    auto bye_frame = kvz_rtp::frame::alloc_rtcp_bye_frame(1);
+
+    bye_frame->ssrc[0] = ssrc_;
+
+    if ((ret = send_bye_packet(bye_frame)) != RTP_OK) {
+        LOG_ERROR("Failed to send BYE");
+    }
+
+    (void)kvz_rtp::frame::dealloc_frame(bye_frame);
+
+    return ret;
+}
+
+rtp_error_t kvz_rtp::rtcp::reset_rtcp_state(uint32_t ssrc)
+{
+    if (participants_.find(ssrc) != participants_.end())
+        return RTP_SSRC_COLLISION;
+
+    sender_stats.received_pkts  = 0;
+    sender_stats.dropped_pkts   = 0;
+    sender_stats.received_bytes = 0;
+    sender_stats.sent_pkts      = 0;
+    sender_stats.sent_bytes     = 0;
+    sender_stats.jitter         = 0;
+    sender_stats.transit        = 0;
+    sender_stats.max_seq        = 0;
+    sender_stats.base_seq       = 0;
+    sender_stats.bad_seq        = 0;
+    sender_stats.cycles         = 0;
+
+    return RTP_OK;
+}
+
+bool kvz_rtp::rtcp::collision_detected(uint32_t ssrc, sockaddr_in& src_addr)
+{
+    if (participants_.find(ssrc) == participants_.end())
+        return false;
+
+    auto sender = participants_[ssrc];
+
+    if (src_addr.sin_port        == sender->address.sin_port &&
+        src_addr.sin_addr.s_addr == sender->address.sin_addr.s_addr)
+        return true;
+
+    return false;
+}
+
+rtp_error_t kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *frame)
 {
     if (!frame)
-        return;
+        return RTP_OK;
 
-    if (!is_participant(frame->header.ssrc)) {
+    if (kvz_rtp::rtcp::collision_detected(frame->header.ssrc, frame->src_addr)) {
+        LOG_DEBUG("collision detected, packet must be dropped");
+
+        /* check if the SSRC of remote is ours, we need to send RTCP BYE
+         * and reinitialize ourselves */
+        if (frame->header.ssrc == ssrc_) {
+            terminate_self();
+            participants_.erase(ssrc_);
+            return RTP_SSRC_COLLISION;
+        }
+
+        return RTP_INVALID_VALUE;
+    }
+
+    if (!kvz_rtp::rtcp::is_participant(frame->header.ssrc)) {
         LOG_WARN("Got RTP packet from unknown source: 0x%x", frame->header.ssrc);
         init_new_participant(frame);
     }
 
     if (kvz_rtp::rtcp::update_participant_seq(frame->header.ssrc, frame->header.seq) != RTP_OK) {
         LOG_DEBUG("Invalid packet received from remote!");
-        return;
+        return RTP_INVALID_VALUE;
     }
 
     auto p = participants_[frame->header.ssrc];
@@ -343,6 +410,8 @@ void kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *frame)
 
     p->stats.transit = transit;
     p->stats.jitter += (1.f / 16.f) * ((double)d - p->stats.jitter);
+
+    return RTP_OK;
 }
 
 rtp_error_t kvz_rtp::rtcp::send_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame)

@@ -47,7 +47,8 @@ namespace kvz_rtp {
         void inc_sent_pkts();
         void inc_rtp_sequence();
 
-        void update_receiver_stats(kvz_rtp::frame::rtp_frame *frame);
+        /* See RTCP->update_receiver_stats() for documentation */
+        rtp_error_t update_receiver_stats(kvz_rtp::frame::rtp_frame *frame);
 
         /* config set and get */
         void set_config(void *config);
