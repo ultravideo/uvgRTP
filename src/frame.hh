@@ -41,9 +41,16 @@ namespace kvz_rtp {
             uint32_t ssrc;
         };
 
+        PACKED_STRUCT(ext_header) {
+            uint16_t type;
+            uint16_t len;
+            uint8_t *data;
+        };
+
         struct rtp_frame {
             struct rtp_header header;
             uint32_t *csrc;
+            struct ext_header *ext;
 
             size_t padding_len; /* non-zero if frame is padded */
             size_t payload_len; /* payload_len: total_len - header_len - padding length (if padded) */

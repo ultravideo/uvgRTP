@@ -41,6 +41,9 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtp_frame *frame)
     if (frame->csrc)
         delete[] frame->csrc;
 
+    if (frame->ext)
+        delete frame->ext;
+
     if (frame->payload)
         delete[] frame->payload;
 

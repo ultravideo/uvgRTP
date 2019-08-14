@@ -226,7 +226,13 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::reader::validate_rtp_frame(uint8_t *buffer, 
 
     if (frame->header.ext) {
         LOG_DEBUG("frame contains extension information");
-        /* TODO: handle extension */
+        frame->ext = new kvz_rtp::frame::ext_header;
+
+        frame->ext->type = ntohs(*(uint16_t *)ptr[0]);
+        frame->ext->len  = ntohs(*(uint32_t *)ptr[1]);
+        frame->ext->data = (uint8_t *)ptr + 4;
+
+        ptr += 2 * sizeof(uint16_t) + frame->ext->len;
     }
 
     /* If padding is set to 1, the last byte of the payload indicates
