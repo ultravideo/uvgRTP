@@ -27,8 +27,8 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame(size_t payload_len)
     if ((frame = kvz_rtp::frame::alloc_rtp_frame()) == nullptr)
         return nullptr;
 
-    frame->data      = frame->payload     = new uint8_t[payload_len];
-    frame->total_len = frame->payload_len = payload_len;
+    frame->payload     = new uint8_t[payload_len];
+    frame->payload_len = payload_len;
 
     return frame;
 }
@@ -41,8 +41,8 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtp_frame *frame)
     if (frame->csrc)
         delete[] frame->csrc;
 
-    if (frame->data)
-        delete[] frame->data;
+    if (frame->payload)
+        delete[] frame->payload;
 
     LOG_DEBUG("Deallocating frame, type %u", frame->type);
 
@@ -247,35 +247,35 @@ uint8_t *kvz_rtp::frame::get_rtp_header(kvz_rtp::frame::rtp_frame *frame)
         return nullptr;
     }
 
-    return frame->data;
+    return (uint8_t *)&frame->header;
 }
 
 uint8_t *kvz_rtp::frame::get_opus_header(kvz_rtp::frame::rtp_frame *frame)
 {
-    if (!frame || !frame->data || frame->type != FRAME_TYPE_OPUS) {
+    if (!frame || !frame->payload || frame->type != FRAME_TYPE_OPUS) {
         rtp_errno = RTP_INVALID_VALUE;
         return nullptr;
     }
 
-    return frame->data + HEADER_SIZE_RTP;
+    return frame->payload;
 }
 
 uint8_t *kvz_rtp::frame::get_hevc_nal_header(kvz_rtp::frame::rtp_frame *frame)
 {
-    if (!frame || !frame->data || frame->type != FRAME_TYPE_HEVC_FU) {
+    if (!frame || !frame->payload || frame->type != FRAME_TYPE_HEVC_FU) {
         rtp_errno = RTP_INVALID_VALUE;
         return nullptr;
     }
 
-    return frame->data + HEADER_SIZE_RTP;
+    return frame->payload;
 }
 
 uint8_t *kvz_rtp::frame::get_hevc_fu_header(kvz_rtp::frame::rtp_frame *frame)
 {
-    if (!frame || !frame->data || frame->type != FRAME_TYPE_HEVC_FU) {
+    if (!frame || !frame->payload || frame->type != FRAME_TYPE_HEVC_FU) {
         rtp_errno = RTP_INVALID_VALUE;
         return nullptr;
     }
 
-    return frame->data + HEADER_SIZE_RTP + HEADER_SIZE_HEVC_NAL;
+    return frame->payload + HEADER_SIZE_HEVC_NAL;
 }

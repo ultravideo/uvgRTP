@@ -188,7 +188,6 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::reader::validate_rtp_frame(uint8_t *buffer, 
         return nullptr;
     }
 
-    frame->total_len   = (size_t)size;
     frame->payload_len = (size_t)size - sizeof(kvz_rtp::frame::rtp_header);
 
     if (frame->header.version != RTP_HEADER_VERSION) {
@@ -197,7 +196,6 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::reader::validate_rtp_frame(uint8_t *buffer, 
         return nullptr;
     }
 
-#if 0
     if (frame->header.marker) {
         LOG_DEBUG("header has marker set");
     }
@@ -210,8 +208,8 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::reader::validate_rtp_frame(uint8_t *buffer, 
     if (frame->header.cc > 0) {
         LOG_DEBUG("frame contains csrc entries");
 
-        if ((ssize_t)(frame->total_len - sizeof(kvz_rtp::frame::rtp_header) - frame->header.cc * sizeof(uint32_t)) < 0) {
-            LOG_DEBUG("invalid frame length, %u CSRC entries, total length %u", frame->header.cc, frame->total_len);
+        if ((ssize_t)(frame->payload_len - frame->header.cc * sizeof(uint32_t)) < 0) {
+            LOG_DEBUG("invalid frame length, %u CSRC entries, total length %u", frame->header.cc, frame->payload_len);
             rtp_errno = RTP_INVALID_VALUE;
             return nullptr;
         }
@@ -236,7 +234,7 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::reader::validate_rtp_frame(uint8_t *buffer, 
      * valid and subtract the amount of padding bytes from payload length */
     if (frame->header.padding) {
         LOG_DEBUG("frame contains padding");
-        uint8_t padding_len = frame->data[frame->total_len - 1];
+        uint8_t padding_len = frame->payload[frame->payload_len - 1];
 
         if (padding_len == 0 || frame->payload_len <= padding_len) {
             rtp_errno = RTP_INVALID_VALUE;
@@ -246,11 +244,9 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::reader::validate_rtp_frame(uint8_t *buffer, 
         frame->payload_len -= padding_len;
         frame->padding_len  = padding_len;
     }
-#endif
 
-    frame->data = new uint8_t[frame->total_len];
-    std::memcpy(frame->data, buffer, frame->total_len);
-    frame->payload = frame->data + (frame->total_len - frame->payload_len);
+    frame->payload = new uint8_t[frame->payload_len];
+    std::memcpy(frame->payload, ptr, frame->payload_len);
 
     return frame;
 }

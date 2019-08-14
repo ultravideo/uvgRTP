@@ -45,11 +45,9 @@ namespace kvz_rtp {
             struct rtp_header header;
             uint32_t *csrc;
 
-            size_t total_len;   /* total length of the frame (including padding) */
             size_t padding_len; /* non-zero if frame is padded */
             size_t payload_len; /* payload_len: total_len - header_len - padding length (if padded) */
 
-            uint8_t *data;
             uint8_t *payload;
 
             rtp_format_t format;
