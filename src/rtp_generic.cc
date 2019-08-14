@@ -36,14 +36,10 @@ rtp_error_t kvz_rtp::generic::frame_receiver(kvz_rtp::reader *reader)
 
     /* TODO: this looks super ugly */
     rtp_error_t ret;
-    int nread = 0, ftype = 0;
+    int nread = 0;
     sockaddr_in sender_addr;
     kvz_rtp::socket socket = reader->get_socket();
-    kvz_rtp::frame::rtp_frame *frame, *f, *frames[0xffff + 1] = { 0 };
-
-    uint8_t nal_header[2] = { 0 };
-    std::map<uint32_t, size_t> dropped_frames;
-    size_t n_dropped_frames = 0, n_new_frames = 0, cached = 0;
+    kvz_rtp::frame::rtp_frame *frame;
 
     while (reader->active()) {
         ret = socket.recvfrom(reader->get_recv_buffer(), reader->get_recv_buffer_len(), 0, &sender_addr, &nread);

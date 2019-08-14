@@ -14,17 +14,17 @@
 #include <iostream>
 
 kvz_rtp::frame_queue::frame_queue()
+    :rtphdr_ptr_(0), chunk_ptr_(0), msg_ptr_(0),
 #ifdef __linux__
-    :hdr_ptr_(0), msg_ptr_(0), chunk_ptr_(0)
+    hdr_ptr_(0)
 #else
-    :buf_ptr_(0)
+    buf_ptr_(0)
 #endif
 {
 #ifdef __linux__
     out_addr_.sin_addr.s_addr = 0;
 #endif
 
-    rtphdr_ptr_ = 0;
 }
 
 kvz_rtp::frame_queue::~frame_queue()

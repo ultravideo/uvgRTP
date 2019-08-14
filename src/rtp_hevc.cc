@@ -209,7 +209,7 @@ rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::reader *reader)
     rtp_error_t ret;
     sockaddr_in sender_addr;
     kvz_rtp::socket socket = reader->get_socket();
-    kvz_rtp::frame::rtp_frame *frame, *f, *frames[0xffff + 1] = { 0 };
+    kvz_rtp::frame::rtp_frame *frame, *frames[0xffff + 1] = { 0 };
 
     uint8_t nal_header[2] = { 0 };
     std::map<uint32_t, hevc_fu_info> s_timers;
@@ -352,7 +352,7 @@ rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::reader *reader)
             size_t ptr     = 0;
 
             /* we've received every fragment and the frame can be reconstructed */
-            if (e_seq - s_seq + 1 == s_timers[frame->header.timestamp].pkts_received) {
+            if (e_seq - s_seq + 1 == (ssize_t)s_timers[frame->header.timestamp].pkts_received) {
                 nal_header[0] = (frames[s_seq]->payload[0] & 0x81) | ((frame->payload[2] & 0x3f) << 1);
                 nal_header[1] =  frames[s_seq]->payload[1];
 
@@ -380,4 +380,6 @@ rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::reader *reader)
             }
         }
     }
+
+    return ret;
 }

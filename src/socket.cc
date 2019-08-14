@@ -20,10 +20,10 @@ using namespace mingw;
 #include "socket.hh"
 
 kvz_rtp::socket::socket():
-    socket_(-1),
     recv_handler_(nullptr),
     sendto_handler_(nullptr),
-    sendtov_handler_(nullptr)
+    sendtov_handler_(nullptr),
+    socket_(-1)
 {
 }
 
