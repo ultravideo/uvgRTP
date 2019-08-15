@@ -355,8 +355,8 @@ bool kvz_rtp::rtcp::collision_detected(uint32_t ssrc, sockaddr_in& src_addr)
 
     auto sender = participants_[ssrc];
 
-    if (src_addr.sin_port        == sender->address.sin_port &&
-        src_addr.sin_addr.s_addr == sender->address.sin_addr.s_addr)
+    if (src_addr.sin_port        != sender->address.sin_port &&
+        src_addr.sin_addr.s_addr != sender->address.sin_addr.s_addr)
         return true;
 
     return false;
