@@ -601,13 +601,12 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
 
     size_t ptr         = 0;
     uint64_t timestamp = kvz_rtp::clock::ntp::now();
-    rtp_error_t ret    = RTP_GENERIC_ERROR;
+    rtp_error_t ret    = RTP_OK;
 
     frame->header.count    = senders_;
     frame->sender_ssrc     = ssrc_;
     frame->s_info.ntp_msw  = timestamp >> 32;
     frame->s_info.ntp_lsw  = timestamp & 0xffffffff;
-    /* frame->s_info.rtp_ts   = rtp_ts_start_ + (kvz_rtp::clock::diff_ntp_ms(timestamp, clock_start_)) * clock_rate_ / 1000; */
     frame->s_info.rtp_ts   = rtp_ts_start_ + (kvz_rtp::clock::ntp::diff(timestamp, clock_start_)) * clock_rate_ / 1000;
     frame->s_info.pkt_cnt  = sender_stats.sent_pkts;
     frame->s_info.byte_cnt = sender_stats.sent_bytes;
@@ -633,7 +632,10 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
         ptr++;
     }
 
-    ret = kvz_rtp::rtcp::send_sender_report_packet(frame);
+    /* Send sender report only if the session contains other senders */
+    if (ptr != 0)
+        ret = kvz_rtp::rtcp::send_sender_report_packet(frame);
+
     (void)kvz_rtp::frame::dealloc_frame(frame);
 
     return ret;
@@ -715,6 +717,16 @@ rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_send
 
     /* TODO: 6.4.4 Analyzing Sender and Receiver Reports */
 
+    fprintf(stderr, "Sender reports:\n");
+    for (int i = 0; i < frame->header.count; ++i) {
+        fprintf(stderr, "-------\n");
+        fprintf(stderr, "lost:     %d\n", frame->blocks[i].lost); /* TODO:  */
+        fprintf(stderr, "last_seq: %u\n", ntohl(frame->blocks[i].last_seq));
+        fprintf(stderr, "last sr:  %u\n", ntohl(frame->blocks[i].lsr));
+        fprintf(stderr, "dlsr:     %u\n", ntohl(frame->blocks[i].dlsr));
+        fprintf(stderr, "-------\n");
+    }
+
     return RTP_OK;
 }
 
@@ -741,6 +753,7 @@ rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_re
         return RTP_INVALID_VALUE;
     }
 
+    fprintf(stderr, "Receiver reports:\n");
     for (int i = 0; i < frame->header.count; ++i) {
         fprintf(stderr, "-------\n");
         fprintf(stderr, "lost:     %d\n", frame->blocks[i].lost); /* TODO:  */
