@@ -56,7 +56,7 @@ namespace kvz_rtp {
 
         /* helper function fill the rtp header to allocated buffer,
          * caller must make sure that the buffer is at least 12 bytes long */
-        void fill_rtp_header(uint8_t *buffer, uint32_t timestamp);
+        void fill_rtp_header(uint8_t *buffer);
 
         void update_rtp_sequence(uint8_t *buffer);
 

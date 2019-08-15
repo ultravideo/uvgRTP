@@ -19,10 +19,7 @@ namespace kvz_rtp {
         rtp_error_t start();
 
         /* TODO:  */
-        rtp_error_t push_frame(uint8_t *data, uint32_t data_len, rtp_format_t fmt, uint32_t timestamp);
-
-        /* TODO:  */
-        rtp_error_t push_frame(kvz_rtp::frame::rtp_frame *frame, uint32_t timestamp);
+        rtp_error_t push_frame(uint8_t *data, uint32_t data_len, rtp_format_t fmt);
 
         sockaddr_in get_out_address();
 

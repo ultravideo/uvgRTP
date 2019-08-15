@@ -149,10 +149,8 @@ void kvz_rtp::connection::set_clock_rate(uint32_t clock_rate)
     clock_rate_ = clock_rate;
 }
 
-void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
+void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer)
 {
-    (void)timestamp;
-
     if (!buffer)
         return;
 

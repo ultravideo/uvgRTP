@@ -39,7 +39,7 @@ rtp_error_t kvz_rtp::frame_queue::init_queue(kvz_rtp::connection *conn)
 #ifdef __linux__
     out_addr_ = dynamic_cast<kvz_rtp::writer *>(conn)->get_out_address();
 #endif
-    conn->fill_rtp_header((uint8_t *)(&rtphdr_), 0);
+    conn->fill_rtp_header((uint8_t *)(&rtphdr_));
 
     return RTP_OK;
 }
