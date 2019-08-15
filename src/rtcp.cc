@@ -142,10 +142,10 @@ rtp_error_t kvz_rtp::rtcp::terminate()
     senders_  = 0;
     active_   = false;
 
+end:
     /* Send BYE packet with our SSRC to all participants */
     kvz_rtp::rtcp::terminate_self();
 
-end:
     /* free all receiver statistic structs */
     for (auto& participant : participants_) {
         delete participant.second->socket;
