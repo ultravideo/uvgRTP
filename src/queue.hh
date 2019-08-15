@@ -69,6 +69,8 @@ namespace kvz_rtp {
 #else
         WSAMSG messages_[MAX_MSG_COUNT];
         WSABUF buffers_[MAX_CHUNK_COUNT];
+
+        int buf_ptr_;
 #endif
     };
 };

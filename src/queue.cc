@@ -164,8 +164,8 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
     buffers_[buf_ptr_].len = (u_long)sizeof(rtpheaders_[rtphdr_ptr_]);
 
     for (size_t i = 0; i < buffers.size(); ++i) {
-        buffers_[buf_ptr_ + i + 1].buf = (char *)buffers.at(i).first;
-        buffers_[buf_ptr_ + i + 1].len = (u_long)buffers.at(i).second;
+        buffers_[buf_ptr_ + i + 1].len = (u_long)buffers.at(i).first;
+        buffers_[buf_ptr_ + i + 1].buf = (char *)buffers.at(i).second;
     }
 
     rtphdr_ptr_ += 1;
