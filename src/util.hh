@@ -1,7 +1,8 @@
 #pragma once
 
 #ifdef _WIN32
-#include <winsock2.h> #include <windows.h>
+#include <winsock2.h>
+#include <windows.h>
 #else
 #include <sys/time.h>
 #endif
@@ -80,20 +81,4 @@ static inline std::string generate_string(size_t length)
     std::string str(length, 0);
     std::generate_n(str.begin(), length, randchar);
     return str;
-}
-
-static inline uint32_t generate_rand_32()
-{
-    static bool init = false;
-
-    if (!init) {
-#ifdef __linux__
-        srand(time(NULL));
-#else
-        srand(GetTickCount());
-#endif
-        init = true;
-    }
-
-    return rand();
 }

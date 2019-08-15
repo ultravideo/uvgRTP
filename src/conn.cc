@@ -8,6 +8,7 @@
 
 #include "conn.hh"
 #include "debug.hh"
+#include "random.hh"
 #include "rtp_hevc.hh"
 #include "rtp_opus.hh"
 #include "util.hh"
@@ -19,8 +20,8 @@ kvz_rtp::connection::connection(bool reader):
     reader_(reader),
     wc_start_(0)
 {
-    rtp_sequence_  = generate_rand_32();
-    rtp_ssrc_      = generate_rand_32();
+    rtp_sequence_  = kvz_rtp::random::generate_32();
+    rtp_ssrc_      = kvz_rtp::random::generate_32();
     rtp_payload_   = RTP_FORMAT_HEVC;
 }
 
@@ -131,7 +132,7 @@ rtp_error_t kvz_rtp::connection::update_receiver_stats(kvz_rtp::frame::rtp_frame
             return ret;
 
         do {
-            rtp_ssrc_ = generate_rand_32();
+            rtp_ssrc_ = kvz_rtp::random::generate_32();
         } while ((rtcp_->reset_rtcp_state(rtp_ssrc_)) != RTP_OK);
 
         /* even though we've resolved the SSRC conflict, we still need to return an error
@@ -157,7 +158,7 @@ void kvz_rtp::connection::fill_rtp_header(uint8_t *buffer, uint32_t timestamp)
     /* This is the first RTP message, get wall clock reading (t = 0)
      * and generate random RTP timestamp for this reading */
     if (wc_start_ == 0) {
-        rtp_timestamp_ = generate_rand_32();
+        rtp_timestamp_ = kvz_rtp::random::generate_32();
         wc_start_      = kvz_rtp::clock::ntp::now();
 
         if (rtcp_)

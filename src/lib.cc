@@ -1,9 +1,11 @@
+#include <cstdlib>
 #include <iostream>
 
 #include "debug.hh"
 #include "conn.hh"
 #include "hostname.hh"
 #include "lib.hh"
+#include "random.hh"
 
 thread_local rtp_error_t rtp_errno;
 
@@ -19,6 +21,8 @@ kvz_rtp::context::context()
         win_get_last_error();
     }
 #endif
+
+    kvz_rtp::random::init();
 }
 
 kvz_rtp::context::~context()
