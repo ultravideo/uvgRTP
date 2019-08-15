@@ -23,13 +23,14 @@ kvz_rtp::rtcp::rtcp(uint32_t ssrc, bool receiver):
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
     we_sent_(0), avg_rtcp_pkt_pize_(0), rtcp_pkt_count_(0),
-    initial_(true), active_(false), num_receivers_(0), runner_(nullptr)
+    initial_(true), active_(false), num_receivers_(0)
 {
     ssrc_  = ssrc;
 
     clock_start_  = 0;
     clock_rate_   = 0;
     rtp_ts_start_ = 0;
+    runner_       = nullptr;
 
     memset(&sender_stats, 0, sizeof(sender_stats));
 }
@@ -601,6 +602,50 @@ rtp_error_t kvz_rtp::rtcp::send_app_packet(kvz_rtp::frame::rtcp_app_frame *frame
     return ret;
 }
 
+kvz_rtp::frame::rtcp_sender_frame *kvz_rtp::rtcp::get_sender_packet(uint32_t ssrc)
+{
+    if (participants_.find(ssrc) == participants_.end())
+        return nullptr;
+
+    auto frame = participants_[ssrc]->s_frame;
+    participants_[ssrc]->s_frame = nullptr;
+
+    return frame;
+}
+
+kvz_rtp::frame::rtcp_receiver_frame *kvz_rtp::rtcp::get_receiver_paket(uint32_t ssrc)
+{
+    if (participants_.find(ssrc) == participants_.end())
+        return nullptr;
+
+    auto frame = participants_[ssrc]->r_frame;
+    participants_[ssrc]->r_frame = nullptr;
+
+    return frame;
+}
+
+kvz_rtp::frame::rtcp_sdes_frame *kvz_rtp::rtcp::get_sdes_packet(uint32_t ssrc)
+{
+    if (participants_.find(ssrc) == participants_.end())
+        return nullptr;
+
+    auto frame = participants_[ssrc]->sdes_frame;
+    participants_[ssrc]->sdes_frame = nullptr;
+
+    return frame;
+}
+
+kvz_rtp::frame::rtcp_app_frame *kvz_rtp::rtcp::get_app_packet(uint32_t ssrc)
+{
+    if (participants_.find(ssrc) == participants_.end())
+        return nullptr;
+
+    auto frame = participants_[ssrc]->app_frame;
+    participants_[ssrc]->app_frame = nullptr;
+
+    return frame;
+}
+
 rtp_error_t kvz_rtp::rtcp::generate_sender_report()
 {
     /* No one to generate report for */
@@ -713,8 +758,10 @@ rtp_error_t kvz_rtp::rtcp::generate_report()
     return generate_sender_report();
 }
 
-rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame)
+rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame, size_t size)
 {
+    (void)size;
+
     if (!frame)
         return RTP_INVALID_VALUE;
 
@@ -730,23 +777,39 @@ rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_send
     participants_[frame->sender_ssrc]->stats.lsr   = lsr;
     participants_[frame->sender_ssrc]->stats.sr_ts = kvz_rtp::clock::hrc::now();
 
-    /* TODO: 6.4.4 Analyzing Sender and Receiver Reports */
+    /* We need to make a copy of the frame because right now frame points to RTCP recv buffer
+     * Deallocate previous frame if it exists */
+    if (participants_[frame->sender_ssrc]->s_frame != nullptr)
+        (void)kvz_rtp::frame::dealloc_frame(participants_[frame->sender_ssrc]->s_frame);
+
+    auto cpy_frame = kvz_rtp::frame::alloc_rtcp_sender_frame(frame->header.count);
+    memcpy(cpy_frame, frame, sizeof(kvz_rtp::frame::rtcp_sender_frame));
 
     fprintf(stderr, "Sender reports:\n");
     for (int i = 0; i < frame->header.count; ++i) {
+        memcpy(&cpy_frame->blocks[i], &frame->blocks[i], sizeof(kvz_rtp::frame::rtcp_report_block));
+        cpy_frame->blocks[i].lost     = ntohs(cpy_frame->blocks[i].lost);
+        cpy_frame->blocks[i].last_seq = ntohs(cpy_frame->blocks[i].last_seq);
+        cpy_frame->blocks[i].lsr      = ntohs(cpy_frame->blocks[i].lsr);
+        cpy_frame->blocks[i].dlsr     = ntohs(cpy_frame->blocks[i].dlsr);
+
         fprintf(stderr, "-------\n");
-        fprintf(stderr, "lost:     %d\n", frame->blocks[i].lost); /* TODO:  */
-        fprintf(stderr, "last_seq: %u\n", ntohl(frame->blocks[i].last_seq));
-        fprintf(stderr, "last sr:  %u\n", ntohl(frame->blocks[i].lsr));
-        fprintf(stderr, "dlsr:     %u\n", ntohl(frame->blocks[i].dlsr));
+        fprintf(stderr, "lost:     %d\n", cpy_frame->blocks[i].lost);
+        fprintf(stderr, "last_seq: %u\n", cpy_frame->blocks[i].last_seq);
+        fprintf(stderr, "last sr:  %u\n", cpy_frame->blocks[i].lsr);
+        fprintf(stderr, "dlsr:     %u\n", cpy_frame->blocks[i].dlsr);
         fprintf(stderr, "-------\n");
     }
+
+    participants_[frame->sender_ssrc]->s_frame = cpy_frame;
 
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *frame)
+rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *frame, size_t size)
 {
+    (void)size;
+
     if (!frame)
         return RTP_INVALID_VALUE;
 
@@ -768,22 +831,36 @@ rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_re
         return RTP_INVALID_VALUE;
     }
 
+    /* We need to make a copy of the frame because right now frame points to RTCP recv buffer
+     * Deallocate previous frame if it exists */
+    if (participants_[frame->sender_ssrc]->r_frame != nullptr)
+        (void)kvz_rtp::frame::dealloc_frame(participants_[frame->sender_ssrc]->r_frame);
+
+    auto cpy_frame = kvz_rtp::frame::alloc_rtcp_receiver_frame(frame->header.count);
+    memcpy(cpy_frame, frame, sizeof(kvz_rtp::frame::rtcp_sender_frame));
+
     fprintf(stderr, "Receiver reports:\n");
     for (int i = 0; i < frame->header.count; ++i) {
+        memcpy(&cpy_frame->blocks[i], &frame->blocks[i], sizeof(kvz_rtp::frame::rtcp_report_block));
+        cpy_frame->blocks[i].lost     = ntohs(cpy_frame->blocks[i].lost);
+        cpy_frame->blocks[i].last_seq = ntohs(cpy_frame->blocks[i].last_seq);
+        cpy_frame->blocks[i].lsr      = ntohs(cpy_frame->blocks[i].lsr);
+        cpy_frame->blocks[i].dlsr     = ntohs(cpy_frame->blocks[i].dlsr);
+
         fprintf(stderr, "-------\n");
-        fprintf(stderr, "lost:     %d\n", frame->blocks[i].lost); /* TODO:  */
-        fprintf(stderr, "last_seq: %u\n", ntohl(frame->blocks[i].last_seq));
-        fprintf(stderr, "last sr:  %u\n", ntohl(frame->blocks[i].lsr));
-        fprintf(stderr, "dlsr:     %u\n", ntohl(frame->blocks[i].dlsr));
+        fprintf(stderr, "lost:     %d\n", cpy_frame->blocks[i].lost);
+        fprintf(stderr, "last_seq: %u\n", cpy_frame->blocks[i].last_seq);
+        fprintf(stderr, "last sr:  %u\n", cpy_frame->blocks[i].lsr);
+        fprintf(stderr, "dlsr:     %u\n", cpy_frame->blocks[i].dlsr);
         fprintf(stderr, "-------\n");
     }
 
-    /* TODO: 6.4.4 Analyzing Sender and Receiver Reports */
+    participants_[frame->sender_ssrc]->r_frame = cpy_frame;
 
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::rtcp::handle_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame)
+rtp_error_t kvz_rtp::rtcp::handle_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame, size_t size)
 {
     if (!frame)
         return RTP_INVALID_VALUE;
@@ -793,13 +870,25 @@ rtp_error_t kvz_rtp::rtcp::handle_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *f
         return RTP_INVALID_VALUE;
     }
 
-    /* TODO: What to do with SDES packet */
+    frame->sender_ssrc = ntohl(frame->sender_ssrc);
+
+    /* We need to make a copy of the frame because right now frame points to RTCP recv buffer
+     * Deallocate previous frame if it exists */
+    if (participants_[frame->sender_ssrc]->sdes_frame != nullptr)
+        (void)kvz_rtp::frame::dealloc_frame(participants_[frame->sender_ssrc]->sdes_frame);
+
+    uint8_t *cpy_frame = new uint8_t[size];
+    memcpy(cpy_frame, frame, size);
+
+    participants_[frame->sender_ssrc]->sdes_frame = (kvz_rtp::frame::rtcp_sdes_frame *)cpy_frame;
 
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::rtcp::handle_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame)
+rtp_error_t kvz_rtp::rtcp::handle_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame, size_t size)
 {
+    (void)size;
+
     if (!frame)
         return RTP_INVALID_VALUE;
 
@@ -819,12 +908,23 @@ rtp_error_t kvz_rtp::rtcp::handle_bye_packet(kvz_rtp::frame::rtcp_bye_frame *fra
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::rtcp::handle_app_packet(kvz_rtp::frame::rtcp_app_frame *frame)
+rtp_error_t kvz_rtp::rtcp::handle_app_packet(kvz_rtp::frame::rtcp_app_frame *frame, size_t size)
 {
     if (!frame)
         return RTP_INVALID_VALUE;
 
-    /* TODO: What to do with APP packet */
+    frame->ssrc   = ntohl(frame->ssrc);
+    frame->length = ntohs(frame->length);
+
+    /* We need to make a copy of the frame because right now frame points to RTCP recv buffer
+     * Deallocate previous frame if it exists */
+    if (participants_[frame->ssrc]->app_frame != nullptr)
+        (void)kvz_rtp::frame::dealloc_frame(participants_[frame->ssrc]->app_frame);
+
+    uint8_t *cpy_frame = new uint8_t[size];
+    memcpy(cpy_frame, frame, size);
+
+    participants_[frame->ssrc]->app_frame = (kvz_rtp::frame::rtcp_app_frame *)cpy_frame;
 
     return RTP_OK;
 }
@@ -857,23 +957,23 @@ rtp_error_t kvz_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
 
     switch (header->pkt_type) {
         case kvz_rtp::frame::FRAME_TYPE_SR:
-            ret = handle_sender_report_packet((kvz_rtp::frame::rtcp_sender_frame *)buffer);
+            ret = handle_sender_report_packet((kvz_rtp::frame::rtcp_sender_frame *)buffer, size);
             break;
 
         case kvz_rtp::frame::FRAME_TYPE_RR:
-            ret = handle_receiver_report_packet((kvz_rtp::frame::rtcp_receiver_frame *)buffer);
+            ret = handle_receiver_report_packet((kvz_rtp::frame::rtcp_receiver_frame *)buffer, size);
             break;
 
         case kvz_rtp::frame::FRAME_TYPE_SDES:
-            ret = handle_sdes_packet((kvz_rtp::frame::rtcp_sdes_frame *)buffer);
+            ret = handle_sdes_packet((kvz_rtp::frame::rtcp_sdes_frame *)buffer, size);
             break;
 
         case kvz_rtp::frame::FRAME_TYPE_BYE:
-            ret = handle_bye_packet((kvz_rtp::frame::rtcp_bye_frame *)buffer);
+            ret = handle_bye_packet((kvz_rtp::frame::rtcp_bye_frame *)buffer, size);
             break;
 
         case kvz_rtp::frame::FRAME_TYPE_APP:
-            ret = handle_app_packet((kvz_rtp::frame::rtcp_app_frame *)buffer);
+            ret = handle_app_packet((kvz_rtp::frame::rtcp_app_frame *)buffer, size);
             break;
     }
 

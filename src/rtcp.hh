@@ -56,11 +56,11 @@ namespace kvz_rtp {
          * querying these reports is implemented
          *
          * Return RTP_OK on success and RTP_ERROR on error */
-        rtp_error_t handle_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame);
-        rtp_error_t handle_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *frame);
-        rtp_error_t handle_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame);
-        rtp_error_t handle_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame);
-        rtp_error_t handle_app_packet(kvz_rtp::frame::rtcp_app_frame *frame);
+        rtp_error_t handle_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame, size_t size);
+        rtp_error_t handle_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *frame, size_t size);
+        rtp_error_t handle_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame, size_t size);
+        rtp_error_t handle_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame, size_t size);
+        rtp_error_t handle_app_packet(kvz_rtp::frame::rtcp_app_frame *frame, size_t size);
 
         /* Handle incoming RTCP packet (first make sure it's a valid RTCP packet)
          * This function will call one of the above functions internally
@@ -80,6 +80,15 @@ namespace kvz_rtp {
         rtp_error_t send_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame);
         rtp_error_t send_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame);
         rtp_error_t send_app_packet(kvz_rtp::frame::rtcp_app_frame *frame);
+
+        /* Return the latest RTCP packet received from participant of "ssrc"
+         * Return nullptr if we haven't received this kind of packet or if "ssrc" doesn't exist
+         *
+         * NOTE: Caller is responsible for deallocating the memory */
+        kvz_rtp::frame::rtcp_sender_frame   *get_sender_packet(uint32_t ssrc);
+        kvz_rtp::frame::rtcp_receiver_frame *get_receiver_paket(uint32_t ssrc);
+        kvz_rtp::frame::rtcp_sdes_frame     *get_sdes_packet(uint32_t ssrc);
+        kvz_rtp::frame::rtcp_app_frame      *get_app_packet(uint32_t ssrc);
 
         /* create RTCP BYE packet using our own SSRC and send it to all participants */
         rtp_error_t terminate_self();
@@ -260,6 +269,13 @@ namespace kvz_rtp {
 
             int probation;           /* TODO: */
             bool sender;             /* Sender will create report block for other sender only */
+
+            /* Save the latest RTCP packets received from this participant
+             * Users can query these packets using the SSRC of participant */
+            kvz_rtp::frame::rtcp_sender_frame   *s_frame;
+            kvz_rtp::frame::rtcp_receiver_frame *r_frame;
+            kvz_rtp::frame::rtcp_sdes_frame     *sdes_frame;
+            kvz_rtp::frame::rtcp_app_frame      *app_frame;
         };
 
         std::map<uint32_t, struct participant *> participants_;
