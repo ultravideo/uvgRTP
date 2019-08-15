@@ -23,7 +23,7 @@ kvz_rtp::rtcp::rtcp(uint32_t ssrc, bool receiver):
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
     we_sent_(0), avg_rtcp_pkt_pize_(0), rtcp_pkt_count_(0),
-    initial_(true), active_(false), num_receivers_(0)
+    initial_(true), active_(false), num_receivers_(0), runner_(nullptr)
 {
     ssrc_  = ssrc;
 
@@ -127,6 +127,9 @@ rtp_error_t kvz_rtp::rtcp::start()
 
 rtp_error_t kvz_rtp::rtcp::terminate()
 {
+    if (runner_ == nullptr)
+        return RTP_OK;
+
     /* when the member count is less than 50,
      * we can just send the BYE message and destroy the session */
     if (members_ < 50) {
@@ -375,6 +378,18 @@ rtp_error_t kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *fram
         }
 
         return RTP_INVALID_VALUE;
+    }
+
+    /* RTCP runner is not running so we don't need to do any other checks,
+     * just create new participant so we can check for SSRC collisions */
+    if (runner_ == nullptr) {
+        if (participants_.find(frame->header.ssrc) == participants_.end()) {
+            auto participant = new struct participant;
+            participant->address = frame->src_addr;
+            participants_[frame->header.ssrc] = participant;
+        }
+
+        return RTP_OK;
     }
 
     if (!kvz_rtp::rtcp::is_participant(frame->header.ssrc)) {

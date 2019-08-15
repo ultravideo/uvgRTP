@@ -77,6 +77,11 @@ rtp_error_t kvz_rtp::reader::start()
     }
     runner_->detach();
 
+    if ((rtcp_ = new kvz_rtp::rtcp(get_ssrc(), true)) == nullptr) {
+        LOG_ERROR("Failed to allocate RTCP instance!");
+        return RTP_MEMORY_ERROR;
+    }
+
     return RTP_OK;
 }
 

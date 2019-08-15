@@ -3,6 +3,7 @@
 #include <unistd.h>
 #endif
 
+#include <cassert>
 #include <cstring>
 #include <iostream>
 
@@ -188,10 +189,7 @@ void kvz_rtp::connection::update_rtp_sequence(uint8_t *buffer)
 
 rtp_error_t kvz_rtp::connection::create_rtcp(std::string dst_addr, int dst_port, int src_port)
 {
-    if ((rtcp_ = new kvz_rtp::rtcp(rtp_ssrc_, reader_)) == nullptr) {
-        LOG_ERROR("Failed to allocate RTCP instance!");
-        return RTP_MEMORY_ERROR;
-    }
+    assert(rtcp_ != nullptr);
 
     if ((rtp_errno = rtcp_->add_participant(dst_addr, dst_port, src_port, clock_rate_)) != RTP_OK) {
         LOG_ERROR("Failed to add RTCP participant!");
