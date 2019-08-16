@@ -42,7 +42,8 @@ SOURCES += \
     src/socket.cc \
     src/clock.cc \
     src/hostname.cc \
-    src/queue.cc
+    src/queue.cc \
+    src/random.cc
 
 HEADERS += \
     src/writer.hh \
@@ -64,7 +65,8 @@ HEADERS += \
     src/socket.hh \
     src/clock.hh \
     src/hostname.hh \
-    src/queue.hh
+    src/queue.hh \
+    src/random.hh
 
 unix {
     target.path = /usr/lib
