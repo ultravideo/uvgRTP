@@ -1,4 +1,5 @@
 #ifdef _WIN32
+#include <winsock2.h>
 #else
 #include <unistd.h>
 #include <poll.h>
@@ -56,40 +57,41 @@ rtp_error_t kvz_rtp::poll::poll(std::vector<kvz_rtp::socket>& sockets, uint8_t *
 
     /* code should not get here */
     return RTP_GENERIC_ERROR;
-
 #else
-#if 0
-    WSAPOLLFD fdarray[kvz_rtp::MULTICAST_MAX_PEERS];
-    int ret;
+    fd_set read_fds;
+    struct timeval t_val;
+
+    FD_ZERO(&read_fds);
 
     for (size_t i = 0; i < sockets.size(); ++i) {
-        fdarray[i].fd = sockets.at(i).get_raw_socket();
-        fds[i].events = POLLRDNORM;
+        auto fd = sockets.at(i).get_raw_socket();
+        FD_SET(fd, &read_fds);
     }
 
-    if ((ret = WSAPoll(&fdarray, sockets.size(), DEFAULT_WAIT)) == SOCKET_ERROR) {
-        ERR("WSAPoll");
-        set_bytes(bytes_read, -1);
+    t_val.tv_sec  = timeout / 1000;
+    t_val.tv_usec = 0;
+
+    int ret = ::select((int)sockets.size(), &read_fds, nullptr, nullptr, &t_val);
+
+    if (ret < 0) {
+        win_get_last_error();
         return RTP_GENERIC_ERROR;
+    } else if (ret == 0) {
+        set_bytes(bytes_read, 0);
+        return RTP_INTERRUPTED;
     }
 
-    if (ret) {
-        for (size_t i = 0; i < sockets.size(); ++i) {
-            if (fdarray[i].revents & POLLRDNORM) {
-                if ((ret = recv(csock, buf, buf_len, 0)) == SOCKET_ERROR) {
-                    ERR("recv");
-                    return RTP_GENERIC_ERROR;
-                } else {
-                    set_bytes(bytes_read, ret);
-                    return RTP_OK;
-                }
-            }
+    for (size_t i = 0; i < sockets.size(); ++i) {
+        if ((ret = ::recv(sockets.at(i).get_raw_socket(), (char *)buf, (int)buf_len, 0)) < 0) {
+            if (WSAGetLastError() == WSAEWOULDBLOCK)
+                continue;
+        } else {
+            set_bytes(bytes_read, ret);
+            return RTP_OK;
         }
     }
 
-    /* TODO: ?? */
-    /* WaitForSingleObject(hCloseSignal, DEFAULT_WAIT); */
-#endif
+    set_bytes(bytes_read, -1);
     return RTP_GENERIC_ERROR;
 #endif
 }

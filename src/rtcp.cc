@@ -66,6 +66,11 @@ rtp_error_t kvz_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, i
     if ((ret = p->socket->setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int))) != RTP_OK)
         return ret;
 
+#ifdef _WIN32
+    if (::ioctlsocket(p->get_raw_socket(), FIONREAD, nullptr) < 0)
+        LOG_ERROR("Failed to make the socket non-blocking!");
+#endif
+
     /* Set read timeout (5s for now) 
      *
      * This means that the socket is listened for 5s at a time and after the timeout, 
