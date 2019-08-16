@@ -63,9 +63,11 @@ rtp_error_t kvz_rtp::writer::start()
     addr_out_ = socket_.create_sockaddr(AF_INET, dst_addr_, dst_port_);
     socket_.set_sockaddr(addr_out_);
 
-    if ((rtcp_ = new kvz_rtp::rtcp(get_ssrc(), false)) == nullptr) {
-        LOG_ERROR("Failed to allocate RTCP instance!");
-        return RTP_MEMORY_ERROR;
+    if (rtcp_ == nullptr) {
+        if ((rtcp_ = new kvz_rtp::rtcp(get_ssrc(), false)) == nullptr) {
+            LOG_ERROR("Failed to allocate RTCP instance!");
+            return RTP_MEMORY_ERROR;
+        }
     }
 
     return RTP_OK;
