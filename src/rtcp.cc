@@ -134,7 +134,7 @@ rtp_error_t kvz_rtp::rtcp::start()
 rtp_error_t kvz_rtp::rtcp::terminate()
 {
     if (runner_ == nullptr)
-        return RTP_OK;
+        goto free_mem;
 
     /* when the member count is less than 50,
      * we can just send the BYE message and destroy the session */
@@ -155,6 +155,7 @@ end:
     /* Send BYE packet with our SSRC to all participants */
     kvz_rtp::rtcp::terminate_self();
 
+free_mem:
     /* free all receiver statistic structs */
     for (auto& participant : participants_) {
         delete participant.second->socket;
@@ -392,6 +393,7 @@ rtp_error_t kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *fram
         if (participants_.find(frame->header.ssrc) == participants_.end()) {
             auto participant = new struct participant;
             participant->address = frame->src_addr;
+            participant->socket  = nullptr;
             participants_[frame->header.ssrc] = participant;
         }
 

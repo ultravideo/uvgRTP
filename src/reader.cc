@@ -23,6 +23,7 @@ kvz_rtp::reader::~reader()
 {
     active_ = false;
     delete[] recv_buffer_;
+    delete runner_;
 
     if (!framesOut_.empty()) {
         for (auto &i : framesOut_) {

@@ -281,6 +281,7 @@ rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::reader *reader)
 
         if (type == kvz_rtp::hevc::FT_INVALID) {
             LOG_WARN("invalid frame received!");
+            (void)kvz_rtp::frame::dealloc_frame(frame);
             break;
         }
 
@@ -333,8 +334,11 @@ rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::reader *reader)
                 dropped_frames[frame->header.timestamp] = 1;
             } else {
                 dropped_frames[frame->header.timestamp]++;
-                /* TODO: do something? */
             }
+
+            frames[frame->header.seq] = nullptr;
+            (void)kvz_rtp::frame::dealloc_frame(frame);
+            continue;
         }
 
         if (!duplicate) {
@@ -378,6 +382,8 @@ rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::reader *reader)
                         frames[i]->payload_len - HEVC_HDR_SIZE
                     );
                     ptr += frames[i]->payload_len - HEVC_HDR_SIZE;
+                    (void)kvz_rtp::frame::dealloc_frame(frames[i]);
+                    frames[i] = nullptr;
                 }
 
                 reader->return_frame(out);
