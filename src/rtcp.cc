@@ -373,7 +373,7 @@ rtp_error_t kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *fram
         return RTP_OK;
 
     if (kvz_rtp::rtcp::collision_detected(frame->header.ssrc, frame->src_addr)) {
-        LOG_DEBUG("collision detected, packet must be dropped");
+        LOG_WARN("collision detected, packet must be dropped");
 
         /* check if the SSRC of remote is ours, we need to send RTCP BYE
          * and reinitialize ourselves */
@@ -404,7 +404,7 @@ rtp_error_t kvz_rtp::rtcp::receiver_update_stats(kvz_rtp::frame::rtp_frame *fram
     }
 
     if (kvz_rtp::rtcp::update_participant_seq(frame->header.ssrc, frame->header.seq) != RTP_OK) {
-        LOG_DEBUG("Invalid packet received from remote!");
+        LOG_WARN("Invalid packet received from remote!");
         return RTP_INVALID_VALUE;
     }
 
@@ -788,15 +788,14 @@ rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_send
         (void)kvz_rtp::frame::dealloc_frame(participants_[frame->sender_ssrc]->s_frame);
 
     auto cpy_frame = kvz_rtp::frame::alloc_rtcp_sender_frame(frame->header.count);
-    memcpy(cpy_frame, frame, sizeof(kvz_rtp::frame::rtcp_sender_frame));
+    memcpy(cpy_frame, frame, size);
 
-    fprintf(stderr, "Sender reports:\n");
+    fprintf(stderr, "Sender report:\n");
     for (int i = 0; i < frame->header.count; ++i) {
-        memcpy(&cpy_frame->blocks[i], &frame->blocks[i], sizeof(kvz_rtp::frame::rtcp_report_block));
-        cpy_frame->blocks[i].lost     = ntohs(cpy_frame->blocks[i].lost);
-        cpy_frame->blocks[i].last_seq = ntohs(cpy_frame->blocks[i].last_seq);
-        cpy_frame->blocks[i].lsr      = ntohs(cpy_frame->blocks[i].lsr);
-        cpy_frame->blocks[i].dlsr     = ntohs(cpy_frame->blocks[i].dlsr);
+        cpy_frame->blocks[i].lost     = ntohl(cpy_frame->blocks[i].lost);
+        cpy_frame->blocks[i].last_seq = ntohl(cpy_frame->blocks[i].last_seq);
+        cpy_frame->blocks[i].lsr      = ntohl(cpy_frame->blocks[i].lsr);
+        cpy_frame->blocks[i].dlsr     = ntohl(cpy_frame->blocks[i].dlsr);
 
         fprintf(stderr, "-------\n");
         fprintf(stderr, "lost:     %d\n", cpy_frame->blocks[i].lost);
@@ -842,24 +841,24 @@ rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_re
         (void)kvz_rtp::frame::dealloc_frame(participants_[frame->sender_ssrc]->r_frame);
 
     auto cpy_frame = kvz_rtp::frame::alloc_rtcp_receiver_frame(frame->header.count);
-    memcpy(cpy_frame, frame, sizeof(kvz_rtp::frame::rtcp_sender_frame));
+    memcpy(cpy_frame, frame, size);
 
-    fprintf(stderr, "Receiver reports:\n");
+    fprintf(stderr, "Receiver report:\n");
     for (int i = 0; i < frame->header.count; ++i) {
-        memcpy(&cpy_frame->blocks[i], &frame->blocks[i], sizeof(kvz_rtp::frame::rtcp_report_block));
-        cpy_frame->blocks[i].lost     = ntohs(cpy_frame->blocks[i].lost);
-        cpy_frame->blocks[i].last_seq = ntohs(cpy_frame->blocks[i].last_seq);
-        cpy_frame->blocks[i].lsr      = ntohs(cpy_frame->blocks[i].lsr);
-        cpy_frame->blocks[i].dlsr     = ntohs(cpy_frame->blocks[i].dlsr);
+        cpy_frame->blocks[i].lost     = ntohl(cpy_frame->blocks[i].lost);
+        cpy_frame->blocks[i].last_seq = ntohl(cpy_frame->blocks[i].last_seq);
+        cpy_frame->blocks[i].jitter   = ntohl(cpy_frame->blocks[i].jitter);
+        cpy_frame->blocks[i].lsr      = ntohl(cpy_frame->blocks[i].lsr);
+        cpy_frame->blocks[i].dlsr     = ntohl(cpy_frame->blocks[i].dlsr);
 
         fprintf(stderr, "-------\n");
         fprintf(stderr, "lost:     %d\n", cpy_frame->blocks[i].lost);
         fprintf(stderr, "last_seq: %u\n", cpy_frame->blocks[i].last_seq);
+        fprintf(stderr, "jitter:   %u\n", cpy_frame->blocks[i].jitter);
         fprintf(stderr, "last sr:  %u\n", cpy_frame->blocks[i].lsr);
         fprintf(stderr, "dlsr:     %u\n", cpy_frame->blocks[i].dlsr);
         fprintf(stderr, "-------\n");
     }
-
     participants_[frame->sender_ssrc]->r_frame = cpy_frame;
 
     return RTP_OK;
