@@ -79,7 +79,6 @@ int main(int arg, char **argv)
 
     uint8_t inputCounter = 0;
     uint8_t outputCounter = 0;
-    uint32_t frame = 0;
     uint32_t frameIn = 0;
     bool done = false;
     uint8_t *outData = (uint8_t *)malloc(1024 * 1024);
@@ -141,9 +140,8 @@ int main(int arg, char **argv)
             }
 
             outputCounter = (outputCounter + 1) % 16;
-            frame++;
 
-            if (writer->push_frame(outData, written, RTP_FORMAT_HEVC, (90001 / 24) * frame) < 0) {
+            if (writer->push_frame(outData, written, RTP_FORMAT_HEVC) < 0) {
                 std::cerr << "RTP push failure" << std::endl;
             }
         }

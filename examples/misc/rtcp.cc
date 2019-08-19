@@ -17,12 +17,11 @@ int main(void)
     (void)writer->start();
     (void)reader->start();
 
-    uint32_t timestamp = 0;
     uint8_t buffer[50] = { 0 };
     memset(buffer, 'a', 50);
 
     while (true) {
-        writer->push_frame((uint8_t *)buffer, 50, RTP_FORMAT_GENERIC, timestamp++);
+        writer->push_frame((uint8_t *)buffer, 50, RTP_FORMAT_GENERIC);
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     }
 }

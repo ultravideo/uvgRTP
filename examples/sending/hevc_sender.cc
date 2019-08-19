@@ -20,8 +20,8 @@ int main(void)
     FILE *inputFile = fopen("video.raw", "r");
     size_t r = 0;
 
-    int width = 1920;
-    int height = 1080;
+    int width = 720;
+    int height = 720;
 
     kvz_encoder* enc = NULL;
     const kvz_api * const api = kvz_api_get(8);
@@ -114,7 +114,7 @@ int main(void)
             outputCounter = (outputCounter + 1) % 16;
             frame++;
 
-            if (writer->push_frame(outData, written, RTP_FORMAT_HEVC, (90001 / 24) * frame) < 0) {
+            if (writer->push_frame(outData, written, RTP_FORMAT_HEVC) < 0) {
                 std::cerr << "RTP push failure" << std::endl;
             }
         }

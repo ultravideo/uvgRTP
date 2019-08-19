@@ -9,31 +9,27 @@
 #include <opus/opus.h>
 #include <stdint.h>
 
-FILE *fp = NULL; 
-
 void receive_hook(void *arg, kvz_rtp::frame::rtp_frame *frame)
 {
-    (void)arg;
-
-    if (!frame) {
-        fprintf(stderr, "invalid frame\n");
+    if (!frame || !arg) {
+        fprintf(stderr, "invalid param\n");
         return;
     }
 
-    fwrite(frame->payload, frame->payload_len, 1, fp);
+    fwrite(frame->payload, frame->payload_len, 1, (FILE *)arg);
     kvz_rtp::frame::dealloc_frame(frame);
 }
 
 int main(int arg, char **argv)
 {
-    fp = fopen("out.hevc", "w");
+    FILE *fp = fopen("out.hevc", "w");
 
     kvz_rtp::context rtp_ctx;
 
     kvz_rtp::reader *reader = rtp_ctx.create_reader("127.0.0.1", 8888, RTP_FORMAT_HEVC);
     kvz_rtp::writer *writer = rtp_ctx.create_writer("127.0.0.1", 8888, RTP_FORMAT_HEVC);
 
-    reader->install_recv_hook(NULL, receive_hook);
+    reader->install_recv_hook(fp, receive_hook);
 
     (void)writer->start();
     (void)reader->start();
@@ -72,7 +68,6 @@ int main(int arg, char **argv)
 
     uint8_t inputCounter = 0;
     uint8_t outputCounter = 0;
-    uint32_t frame = 0;
     uint32_t frameIn = 0;
     bool done = false;
     uint8_t *outData = (uint8_t *)malloc(1024 * 1024);
@@ -134,9 +129,8 @@ int main(int arg, char **argv)
             }
 
             outputCounter = (outputCounter + 1) % 16;
-            frame++;
 
-            if (writer->push_frame(outData, written, RTP_FORMAT_HEVC, (90001 / 24) * frame) < 0) {
+            if (writer->push_frame(outData, written, RTP_FORMAT_HEVC) < 0) {
                 std::cerr << "RTP push failure" << std::endl;
             }
         }
