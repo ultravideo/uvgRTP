@@ -1008,7 +1008,7 @@ void kvz_rtp::rtcp::rtcp_runner(kvz_rtp::rtcp *rtcp)
         diff = kvz_rtp::clock::hrc::diff_now(start);
 
         if (diff >= MIN_TIMEOUT) {
-            if ((ret = rtcp->generate_report()) != RTP_OK) {
+            if ((ret = rtcp->generate_report()) != RTP_OK && ret != RTP_NOT_READY) {
                 LOG_ERROR("Failed to send RTCP status report!");
             }
 
