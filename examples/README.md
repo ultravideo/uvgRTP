@@ -1,58 +1,8 @@
-# Sending
+# kvzRTP example codes
 
-## HEVC sender
+This directory contains directories full and simple. Simple directory contains code snippets that demonstrate how the library should be used. These miminal examples also show how the library can be used, but don't themselves do anything.
 
-Extract 8-bit yuv420 raw video from input.mp4 and start ffplay
+Full directory on the other hand shows the complete flow: these snippts encode HEVC/Opus from raw video, send this encoded data using the library and receive and reconstruct the received frames.
+These code snippets contain a lot of code unrelated to kvzRTP.
 
-```
-ffmpeg -i input.mp4 -f rawvideo -pix_fmt yuv420p video.raw
-ffplay -protocol_whitelist "file,rtp,udp" ../sdp/hevc.sdp
-```
-
-Compile the RTP Library and hevc_sender.cc and start the sender
-
-```
-cd ../..
-make all -j8
-cd examples/sending
-g++ -o main hevc_sender.cc -lrtp -L ../.. -lpthread -lkvazaar
-./main
-```
-
-## Opus sender
-
-Extract signed 16-bit little endian PCM from input.mp4 and start ffplay
-
-```
-ffmpeg -i input.mp4 -f s16le -acodec pcm_s16le -ac 2 -ar 48000 output.raw
-ffplay -acodec libopus -protocol_whitelist "file,rtp,udp" ../sdp/opus.sdp
-```
-
-Compile the RTP Library and opus_sender.cc and start the sender
-
-```
-cd ../..
-make all -j8
-cd examples/sending
-g++ -o main opus_sender.cc -lrtp -L ../.. -lpthread -lopus
-./main
-```
-
-# Receiving
-
-## HEVC sender/receiver
-Extract 8-bit yuv420 raw video from input.mp4
-
-```
-ffmpeg -i input.mp4 -f rawvideo -pix_fmt yuv420p video.raw
-```
-
-Compile the RTP Library and recv_example_1.cc or recv_example_2.cc and start the sender
-
-```
-cd ../..
-make all -j8
-cd examples/receiving
-g++ -o main recv_example_1.cc -lrtp -L ../.. -lpthread -lkvazaar
-./main
-```
+You can also use [Kvazzup](https://github.com/ultravideo/Kvazzup) to see a real-world example.
