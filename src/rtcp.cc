@@ -103,6 +103,11 @@ void kvz_rtp::rtcp::add_participant(uint32_t ssrc)
     participants_[ssrc] = initial_participants_.back();
     initial_participants_.pop_back();
     num_receivers_++;
+
+    participants_[ssrc]->r_frame    = nullptr;
+    participants_[ssrc]->s_frame    = nullptr;
+    participants_[ssrc]->sdes_frame = nullptr;
+    participants_[ssrc]->app_frame  = nullptr;
 }
 
 void kvz_rtp::rtcp::update_rtcp_bandwidth(size_t pkt_size)
