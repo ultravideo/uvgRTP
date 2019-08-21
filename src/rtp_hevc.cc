@@ -52,7 +52,7 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
 
     if (data_len <= MAX_PAYLOAD) {
         LOG_DEBUG("send unfrag size %zu, type %u", data_len, nalType);
-        return kvz_rtp::generic::push_frame(conn, data, data_len);
+        return kvz_rtp::generic::push_frame(conn, data, data_len, 0);
     }
 
     LOG_DEBUG("send frag size: %zu, type %u", data_len, nalType);
@@ -157,7 +157,7 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
     return ret;
 }
 
-rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len)
+rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len, int flags)
 {
     uint8_t start_len;
     int32_t prev_offset = 0;

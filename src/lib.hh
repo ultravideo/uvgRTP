@@ -16,15 +16,12 @@ namespace kvz_rtp {
          *
          * Read packets are stored in a ring buffer which can be read by
          * calling kvz_rtp::reader::pull_frame() */
-        kvz_rtp::reader *create_reader(std::string src_addr, int src_port);
         kvz_rtp::reader *create_reader(std::string src_addr, int src_port, rtp_format_t fmt);
 
         /* Open connection for writing RTP packets to dst_addr:dst_port
          *
          * Packets can be sent by calling kvz_rtp::writer::push_frame() */
-        kvz_rtp::writer *create_writer(std::string dst_addr, int dst_port);
         kvz_rtp::writer *create_writer(std::string dst_addr, int dst_port, rtp_format_t fmt);
-        kvz_rtp::writer *create_writer(std::string dst_addr, int dst_port, int src_port);
         kvz_rtp::writer *create_writer(std::string dst_addr, int dst_port, int src_port, rtp_format_t fmt);
 
         /* call reader/writer-specific destroy functions, send an RTCP BYE message
@@ -35,6 +32,8 @@ namespace kvz_rtp {
         std::string& get_cname();
 
     private:
+        kvz_rtp::writer *create_writer(std::string dst_addr, int dst_port);
+
         /* Generate CNAME for participant using host and login names */
         std::string generate_cname();
 

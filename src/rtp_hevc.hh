@@ -16,7 +16,7 @@ namespace kvz_rtp {
             FT_END       =  3, /* frame contains a fragment with E bit set */
         };
 
-        rtp_error_t push_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len);
+        rtp_error_t push_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len, int flags);
 
         /* Inspect the type of "frame" and return its type to caller
          *

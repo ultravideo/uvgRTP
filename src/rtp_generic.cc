@@ -18,8 +18,10 @@
 #include "writer.hh"
 
 // TODO implement frame splitting if data_len > MTU
-rtp_error_t kvz_rtp::generic::push_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len)
+rtp_error_t kvz_rtp::generic::push_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len, int flags)
 {
+    (void)flags;
+
     if (data_len > MAX_PAYLOAD) {
         LOG_WARN("packet is larger (%zu bytes) than MAX_PAYLOAD (%u bytes)", data_len, MAX_PAYLOAD);
     }

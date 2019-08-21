@@ -18,9 +18,10 @@ namespace kvz_rtp {
         // open socket for sending frames
         rtp_error_t start();
 
-        /* TODO:  */
-        rtp_error_t push_frame(uint8_t *data, uint32_t data_len, rtp_format_t fmt);
+        /* TODO: */
+        rtp_error_t push_frame(uint8_t *data, uint32_t data_len, int flags);
 
+        /* TODO: remove */
         sockaddr_in get_out_address();
 
         const kvz_rtp::frame_queue& get_frame_queue() const;
