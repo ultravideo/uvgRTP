@@ -13,6 +13,14 @@
 #define RTP_FRAME_MAX_DELAY           50
 #define INVALID_SEQ           0x13371338
 
+enum FRAG_TYPES {
+    FT_INVALID   = -2, /* invalid combination of S and E bits */
+    FT_NOT_FRAG  = -1, /* frame doesn't contain HEVC fragment */
+    FT_START     =  1, /* frame contains a fragment with S bit set */
+    FT_MIDDLE    =  2, /* frame is fragment but not S or E fragment */
+    FT_END       =  3, /* frame contains a fragment with E bit set */
+};
+
 struct hevc_fu_info {
     kvz_rtp::clock::hrc::hrc_t sframe_time; /* clock reading when the first fragment is received */
     uint32_t sframe_seq;                    /* sequence number of the frame with s-bit */
@@ -181,24 +189,24 @@ rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, uint8_t *data, 
     return __push_hevc_frame(conn, &data[prev_offset], data_len - prev_offset);
 }
 
-int kvz_rtp::hevc::check_frame(kvz_rtp::frame::rtp_frame *frame)
+static int __check_frame(kvz_rtp::frame::rtp_frame *frame)
 {
     bool first_frag = frame->payload[2] & 0x80;
     bool last_frag  = frame->payload[2] & 0x40;
 
     if ((frame->payload[0] >> 1) != 49)
-        return kvz_rtp::hevc::FT_NOT_FRAG;
+        return FT_NOT_FRAG;
 
     if (first_frag && last_frag)
-        return kvz_rtp::hevc::FT_INVALID;
+        return FT_INVALID;
 
     if (first_frag)
-        return kvz_rtp::hevc::FT_START;
+        return FT_START;
 
     if (last_frag)
-        return kvz_rtp::hevc::FT_END;
+        return FT_END;
 
-    return kvz_rtp::hevc::FT_MIDDLE;
+    return FT_MIDDLE;
 }
 
 rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::reader *reader)
@@ -272,14 +280,14 @@ rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::reader *reader)
             kvz_rtp::frame::HEADER_SIZE_HEVC_NAL +
             kvz_rtp::frame::HEADER_SIZE_HEVC_FU;
 
-        int type = kvz_rtp::hevc::check_frame(frame);
+        int type = __check_frame(frame);
 
-        if (type == kvz_rtp::hevc::FT_NOT_FRAG) {
+        if (type == FT_NOT_FRAG) {
             reader->return_frame(frame);
             continue;
         }
 
-        if (type == kvz_rtp::hevc::FT_INVALID) {
+        if (type == FT_INVALID) {
             LOG_WARN("invalid frame received!");
             (void)kvz_rtp::frame::dealloc_frame(frame);
             break;
@@ -310,10 +318,10 @@ rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::reader *reader)
              * fragment is special (S or E bit set), the sequence number is saved so we know the range of complete
              * full HEVC frame if/when all fragments have been received */
 
-            if (type == kvz_rtp::hevc::FT_START) {
+            if (type == FT_START) {
                 s_timers[frame->header.timestamp].sframe_seq = frame->header.seq;
                 s_timers[frame->header.timestamp].eframe_seq = INVALID_SEQ;
-            } else if (type == kvz_rtp::hevc::FT_END) {
+            } else if (type == FT_END) {
                 s_timers[frame->header.timestamp].eframe_seq = frame->header.seq;
                 s_timers[frame->header.timestamp].sframe_seq = INVALID_SEQ;
             } else {
@@ -346,10 +354,10 @@ rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::reader *reader)
             s_timers[frame->header.timestamp].total_size += (frame->payload_len - HEVC_HDR_SIZE);
         }
 
-        if (type == kvz_rtp::hevc::FT_START)
+        if (type == FT_START)
             s_timers[frame->header.timestamp].sframe_seq = frame->header.seq;
 
-        if (type == kvz_rtp::hevc::FT_END)
+        if (type == FT_END)
             s_timers[frame->header.timestamp].eframe_seq = frame->header.seq;
 
         if (s_timers[frame->header.timestamp].sframe_seq != INVALID_SEQ &&
