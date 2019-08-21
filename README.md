@@ -18,11 +18,11 @@ The library should be linked as a static library to your program.
 
 Linux
 
-`-L<path to library folder> -lkvzrtp`
+`-L<path to library folder> -lkvzrtp -lpthread`
 
 Windows
 
-`-L<path to library folder> -lkvzrtp -lwsock32 -lws2_32`
+`-L<path to library folder> -lkvzrtp -lpthread -lwsock32 -lws2_32`
 
 # Defines
 
