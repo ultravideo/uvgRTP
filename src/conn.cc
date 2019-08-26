@@ -9,6 +9,7 @@
 
 #include "conn.hh"
 #include "debug.hh"
+#include "queue.hh"
 #include "random.hh"
 #include "rtp_hevc.hh"
 #include "rtp_opus.hh"
@@ -19,11 +20,15 @@ kvz_rtp::connection::connection(bool reader):
     socket_(),
     rtcp_(nullptr),
     reader_(reader),
-    wc_start_(0)
+    wc_start_(0),
+    fqueue_(nullptr)
 {
     rtp_sequence_  = kvz_rtp::random::generate_32();
     rtp_ssrc_      = kvz_rtp::random::generate_32();
     rtp_payload_   = RTP_FORMAT_GENERIC;
+
+    if (!reader)
+        fqueue_ = new kvz_rtp::frame_queue;
 }
 
 kvz_rtp::connection::~connection()
@@ -200,4 +205,9 @@ rtp_error_t kvz_rtp::connection::create_rtcp(std::string dst_addr, int dst_port,
     }
 
     return rtcp_->start();
+}
+
+kvz_rtp::frame_queue *kvz_rtp::connection::get_frame_queue()
+{
+    return fqueue_;
 }

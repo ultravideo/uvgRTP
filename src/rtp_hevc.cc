@@ -51,7 +51,7 @@ static int __get_next_frame_start(uint8_t *data, uint32_t offset, uint32_t data_
     return -1;
 }
 
-static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len)
+static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len, bool more)
 {
     uint8_t nalType  = (data[0] >> 1) & 0x3F;
     rtp_error_t ret  = RTP_OK;
@@ -66,8 +66,8 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
     LOG_DEBUG("send frag size: %zu, type %u", data_len, nalType);
 
 #ifdef __linux__
-    auto fqueue = dynamic_cast<kvz_rtp::writer *>(conn)->get_frame_queue();
-    fqueue.init_queue(conn);
+    kvz_rtp::frame_queue *fqueue = conn->get_frame_queue();
+    fqueue->init_queue(conn);
 
     /* all fragment units share the same RTP and HEVC NAL headers
      * but because there's three different types of FU headers (and because the state 
@@ -97,7 +97,7 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
         buffers.at(2).first  = MAX_PAYLOAD;
         buffers.at(2).second = &data[data_pos];
 
-        if ((ret = fqueue.enqueue_message(conn, buffers)) != RTP_OK)
+        if ((ret = fqueue->enqueue_message(conn, buffers)) != RTP_OK)
             return ret;
 
         data_pos  += MAX_PAYLOAD;
@@ -113,13 +113,16 @@ static rtp_error_t __push_hevc_frame(kvz_rtp::connection *conn, uint8_t *data, s
     buffers.at(2).first  = data_left;
     buffers.at(2).second = &data[data_pos];
 
-    if ((ret = fqueue.enqueue_message(conn, buffers)) != RTP_OK) {
+    if ((ret = fqueue->enqueue_message(conn, buffers)) != RTP_OK) {
         LOG_ERROR("Failed to send HEVC frame!");
-        fqueue.empty_queue();
+        fqueue->empty_queue();
         return ret;
     }
 
-    return fqueue.flush_queue(conn);
+    if (more)
+        return RTP_NOT_READY;
+
+    return fqueue->flush_queue(conn);
 #else
     const size_t HEADER_SIZE =
         kvz_rtp::frame::HEADER_SIZE_RTP +
@@ -176,7 +179,7 @@ rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, uint8_t *data, 
         offset = __get_next_frame_start(data, offset, data_len, start_len);
 
         if (offset > 4 && offset != -1) {
-            if (__push_hevc_frame(conn, &data[prev_offset], offset - prev_offset - start_len) == -1)
+            if (__push_hevc_frame(conn, &data[prev_offset], offset - prev_offset - start_len, true) == -1)
                 return RTP_GENERIC_ERROR;
 
             prev_offset = offset;
@@ -186,7 +189,7 @@ rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, uint8_t *data, 
     if (prev_offset == -1)
         prev_offset = 0;
 
-    return __push_hevc_frame(conn, &data[prev_offset], data_len - prev_offset);
+    return __push_hevc_frame(conn, &data[prev_offset], data_len - prev_offset, false);
 }
 
 static int __check_frame(kvz_rtp::frame::rtp_frame *frame)

@@ -24,14 +24,10 @@ namespace kvz_rtp {
         /* TODO: remove */
         sockaddr_in get_out_address();
 
-        const kvz_rtp::frame_queue& get_frame_queue() const;
-
     private:
         std::string dst_addr_;
         int dst_port_;
         int src_port_;
         sockaddr_in addr_out_;
-
-        kvz_rtp::frame_queue fqueue_;
     };
 };

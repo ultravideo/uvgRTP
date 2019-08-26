@@ -18,6 +18,9 @@
 #include "util.hh"
 
 namespace kvz_rtp {
+
+    class frame_queue;
+
     class connection {
     public:
         connection(bool reader);
@@ -72,6 +75,9 @@ namespace kvz_rtp {
 
         rtp_error_t add_rtcp_participant(kvz_rtp::connection *conn);
 
+        /* TODO:  */
+        kvz_rtp::frame_queue *get_frame_queue();
+
     protected:
         void *config_;
         uint32_t id_;
@@ -89,5 +95,7 @@ namespace kvz_rtp {
         uint32_t rtp_timestamp_;
         uint64_t wc_start_;
         uint32_t clock_rate_;
+
+        kvz_rtp::frame_queue *fqueue_;
     };
 };

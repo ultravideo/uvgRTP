@@ -24,8 +24,7 @@ kvz_rtp::writer::writer(std::string dst_addr, int dst_port):
     connection(false),
     dst_addr_(dst_addr),
     dst_port_(dst_port),
-    src_port_(0),
-    fqueue_()
+    src_port_(0)
 {
 }
 
@@ -91,9 +90,4 @@ rtp_error_t kvz_rtp::writer::push_frame(uint8_t *data, uint32_t data_len, int fl
 sockaddr_in kvz_rtp::writer::get_out_address()
 {
     return addr_out_;
-}
-
-const kvz_rtp::frame_queue& kvz_rtp::writer::get_frame_queue() const
-{
-    return fqueue_;
 }
