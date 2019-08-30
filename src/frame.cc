@@ -17,6 +17,9 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame()
     std::memset(&frame->header, 0, sizeof(kvz_rtp::frame::rtp_header));
     std::memset(frame,          0, sizeof(kvz_rtp::frame::rtp_frame));
 
+    frame->payload   = nullptr;
+    frame->probation = nullptr;
+
     return frame;
 }
 
@@ -27,8 +30,17 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame(size_t payload_len)
     if ((frame = kvz_rtp::frame::alloc_rtp_frame()) == nullptr)
         return nullptr;
 
+#if defined(__linux__) && !defined(__RTP_NO_PROBATION_ZONE__)
+    frame->probation     = new uint8_t[PROBATION_MAX_PKTS * MAX_PAYLOAD + payload_len];
+    frame->probation_len = PROBATION_MAX_PKTS * MAX_PAYLOAD;
+    frame->probation_off = 0;
+
+    frame->payload     = (uint8_t *)frame->probation + frame->probation_len;
+    frame->payload_len = payload_len;
+#else
     frame->payload     = new uint8_t[payload_len];
     frame->payload_len = payload_len;
+#endif
 
     return frame;
 }
@@ -44,7 +56,10 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtp_frame *frame)
     if (frame->ext)
         delete frame->ext;
 
-    if (frame->payload)
+    if (frame->probation)
+        delete[] frame->probation;
+
+    else if (frame->payload)
         delete[] frame->payload;
 
     LOG_DEBUG("Deallocating frame, type %u", frame->type);

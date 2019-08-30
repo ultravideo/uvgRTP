@@ -28,6 +28,8 @@ Windows
 
 Use  `__RTP_SILENT__` to disable all prints
 
+Use `__RTP_NO_PROBATION_ZONE__` to disable the probation zone allocation for RTP frames
+
 Use `NDEBUG` to disable `LOG_DEBUG` which is the most verbose level of logging
 
 # Return values

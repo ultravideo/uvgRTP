@@ -4,6 +4,7 @@
 #include <ws2def.h>
 #else
 #include <netinet/in.h>
+#define PROBATION_MAX_PKTS 8
 #endif
 
 #include <string>
@@ -61,6 +62,22 @@ namespace kvz_rtp {
             size_t padding_len; /* non-zero if frame is padded */
             size_t payload_len; /* payload_len: total_len - header_len - padding length (if padded) */
 
+#if defined(__linux__) && !defined(__RTP_NO_PROBATION_ZONE__)
+            /* Probation zone is a small area of free-to-use memory for the frame receiver
+             * when handling fragments. For example HEVC fragments that belong to future frames
+             * but cannot be relocated there (start sequence missing) are copied to probation
+             * zone and when the frame becomes active, all fragments in the probation are relocated
+             *
+             * NOTE 1: Probation zone will increase the memory usage and will increase
+             * the internal fragmentation as this memory is not usable for anything else
+             *
+             * NOTE 2: This is a Linux-only optimization
+             *
+             * Use -D__RTP_NO_PROBATION_ZONE__ to disable the optimization */
+            size_t probation_len;
+            size_t probation_off;
+            uint8_t *probation;
+#endif
             uint8_t *payload;
 
             rtp_format_t format;
