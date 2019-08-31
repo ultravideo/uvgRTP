@@ -30,6 +30,8 @@ namespace kvz_rtp {
 
             /* the result is in milliseconds */
             uint64_t diff_now(hrc_t then);
+
+            uint64_t diff_now_us(hrc_t& then);
         };
 
         uint64_t ms_to_jiffies(uint64_t ms);

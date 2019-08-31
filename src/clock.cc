@@ -66,6 +66,15 @@ uint64_t kvz_rtp::clock::hrc::diff_now(hrc_t then)
     return diff;
 }
 
+uint64_t kvz_rtp::clock::hrc::diff_now_us(hrc_t& then)
+{
+    uint64_t diff = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::high_resolution_clock::now() - then
+    ).count();
+
+    return diff;
+}
+
 uint64_t kvz_rtp::clock::ms_to_jiffies(uint64_t ms)
 {
     return ((double)ms / 1000) * 65536;
