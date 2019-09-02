@@ -1,9 +1,9 @@
-.PHONY: all clean kvzrtp jrtp ccrtp live555
+.PHONY: all clean kvzrtp jrtp ccrtp live555 ortp ffmpeg
 
 CXX = g++
-CXXFLAGS = -Wall -Wextra -O2 -std=c++11
+CXXFLAGS = -Wall -Wextra -O2 -std=c++11 -g
 
-all: kvzrtp jrtp ccrtp live555
+all: kvzrtp jrtp ccrtp live555 ortp ffmpeg
 
 kvzrtp:
 	$(CXX) $(CXXFLAGS) -o main_kvzrtp kvzrtp.cc util/util.cc -lkvazaar -lkvzrtp -lpthread
@@ -22,5 +22,11 @@ live555:
 		-I /usr/local/include/UsageEnvironment \
 		-lkvazaar -lpthread -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment
 
+ortp:
+	$(CXX) $(CXXFLAGS) -o main_ortp ortp.cc util/util.cc -lkvazaar -lpthread -lbctoolbox -lortp
+
+ffmpeg:
+	$(CXX) $(CXXFLAGS) -o main_ffmpeg ffmpeg.cc util/util.cc -lkvazaar -lpthread
+
 clean:
-	rm -f main_kvzrtp main_jrtp main_ccrtp main_live555
+	rm -f main_kvzrtp main_jrtp main_ccrtp main_live555 main_ortp main_ffmpeg
