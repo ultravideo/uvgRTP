@@ -26,10 +26,8 @@ protected:
 
   virtual void doStopGettingFrames();
 private:
-  /* void copyFrameToBuffer(std::unique_ptr<Data> currentFrame); */
-
-  // send frame over the network.
-  void sendFrame();
+  void push_hevc_chunk(void *mem, size_t len);
+  void sendFrame(void *mem, size_t len);
 
   EventTriggerId afterEvent_;
 

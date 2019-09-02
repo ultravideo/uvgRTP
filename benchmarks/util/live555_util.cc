@@ -1,5 +1,8 @@
 #include "live555_util.hh"
 
+/* TODO: find what is the true maximum */
+#define MAX_WRITE_SIZE 1480
+
 FramedSourceCustom::FramedSourceCustom(UsageEnvironment *env)
     :FramedSource(*env)
 {
@@ -12,14 +15,16 @@ FramedSourceCustom::~FramedSourceCustom()
 
 void FramedSourceCustom::doGetNextFrame()
 {
-    if(isCurrentlyAwaitingData())
+    if (isCurrentlyAwaitingData())
     {
+        fprintf(stderr, "awaiting for data\n");
         /* std::unique_ptr<Data> currentFrame = getInput(); */
         /* copyFrameToBuffer(std::move(currentFrame)); */
         envir().taskScheduler().scheduleDelayedTask(1, (TaskFunc*)FramedSource::afterGetting, this);
     }
     else
     {
+        fprintf(stderr, "not waiting for data\n");
         fFrameSize = 0;
         currentTask_ = envir().taskScheduler().scheduleDelayedTask(1, (TaskFunc*)FramedSource::afterGetting, this);
     }
@@ -27,107 +32,76 @@ void FramedSourceCustom::doGetNextFrame()
 
 void FramedSourceCustom::doStopGettingFrames()
 {
-    fprintf(stderr, "stop gettin frames?\n");
     noMoreTasks_ = true;
 }
 
-void FramedSourceCustom::sendFrame()
+void FramedSourceCustom::sendFrame(void *mem, size_t len)
 {
+    fFrameSize = len;
+    memcpy(fTo, mem, fFrameSize);
+
     envir().taskScheduler().triggerEvent(afterEvent_, this);
+}
+
+void FramedSourceCustom::push_hevc_frame(void *mem, size_t len)
+{
+    if (len < MAX_WRITE_SIZE) {
+        sendFrame();
+        return;
+    }
+
+    for (size_t k = 0; k < len; k += MAX_WRITE_SIZE) {
+        size_t write_size = MAX_WRITE_SIZE;
+
+        if (chunk_size - k < MAX_WRITE_SIZE)
+            write_size = chunk_size - k;
+
+        sendFrame((uint8_t *)mem + k, write_size);
+    }
 }
 
 void FramedSourceCustom::send_data(void *mem, size_t len)
 {
-    fprintf(stderr, "max size: %d\n", fMaxSize);
+    uint64_t chunk_size, total_size;
+    rtp_error_t ret;
+    uint64_t fpt_ms = 0;
+    uint64_t fsize  = 0;
+    uint32_t frames = 0;
+    uint64_t bytes  = 0;
+    std::chrono::high_resolution_clock::time_point start, fpt_start, fpt_end, end;
+    start = std::chrono::high_resolution_clock::now();
+
+    for (size_t i = 0; i < len; ) {
+        memcpy(&chunk_size, (uint8_t *)mem + i, sizeof(uint64_t));
+
+        i          += sizeof(uint64_t);
+        total_size += chunk_size;
+
+        fpt_start = std::chrono::high_resolution_clock::now();
+
+        push_hevc_chunk((uint8_t *)mem + i, chunk_size);
+
+        fpt_end = std::chrono::high_resolution_clock::now();
+
+        i += chunk_size;
+        frames++;
+        fsize += chunk_size;
+        uint64_t diff = std::chrono::duration_cast<std::chrono::microseconds>(fpt_end - fpt_start).count();
+        fpt_ms += diff;
+    }
+    end = std::chrono::high_resolution_clock::now();
+
+    uint64_t diff = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    fprintf(stderr, "%lu bytes, %lu kB, %lu MB took %u ms %u s\n",
+        fsize, fsize / 1000, fsize / 1000 / 1000,
+        diff, diff / 1000
+    );
+
+    fprintf(stderr, "# of frames: %u\n", frames);
+    fprintf(stderr, "avg frame size: %lu\n", fsize / frames);
+    fprintf(stderr, "avg processing time of frame: %lu\n", fpt_ms / frames);
 }
-
-#ifdef _Win
-void FramedSourceFilter::copyFrameToBuffer(std::unique_ptr<Data> currentFrame)
-{
-  fFrameSize = 0;
-
-  if (currentFrame)
-  {
-    fPresentationTime = currentFrame->presentationTime;
-    if (currentFrame->framerate != 0)
-    {
-      //1000000/framerate is the correct length but
-      // 0 works with slices
-      fDurationInMicroseconds = 0;
-    }
-
-    if (currentFrame->data_size > fMaxSize)
-    {
-      fFrameSize = fMaxSize;
-      fNumTruncatedBytes = currentFrame->data_size - fMaxSize;
-      qDebug() << "WARNING, FramedSource : Requested sending larger packet than possible:"
-               << currentFrame->data_size << "/" << fMaxSize;
-    }
-    else
-    {
-      fFrameSize = currentFrame->data_size;
-      fNumTruncatedBytes = 0;
-    }
-
-    if (removeStartCodes_ && type_ == HEVCVIDEO)
-    {
-      fFrameSize -= 4;
-      memcpy(fTo, currentFrame->data.get() + 4, fFrameSize);
-    }
-    else
-    {
-      memcpy(fTo, currentFrame->data.get(), fFrameSize);
-    }
-
-    getStats()->addSendPacket(fFrameSize);
-  }
-}
-
-void FramedSourceFilter::process()
-{
-  // There is no way to copy the data here, because the
-  // pointer is given only after doGetNextFrame is called
-  while(separateInput_)
-  {
-    framePointerReady_.acquire(1);
-
-    if(stop_)
-    {
-      return;
-    }
-
-    std::unique_ptr<Data> currentFrame = getInput();
-
-    if(currentFrame == nullptr)
-    {
-      fFrameSize = 0;
-      sendFrame();
-      return;
-    }
-    while(currentFrame)
-    {
-      copyFrameToBuffer(std::move(currentFrame));
-      sendFrame();
-
-      currentFrame = nullptr;
-
-      framePointerReady_.acquire(1);
-      if(stop_)
-      {
-        return;
-      }
-      currentFrame = getInput();
-      // copy additional NAL units, if available.
-      if(currentFrame == nullptr)
-      {
-        fFrameSize = 0;
-        sendFrame();
-        return;
-      }
-    }
-  }
-}
-#endif
 
 void createConnection(
     UsageEnvironment *env,

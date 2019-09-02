@@ -156,8 +156,8 @@ int kvazaar_encode(char *input, char *output)
 
             outputCounter = (outputCounter + 1) % 16;
 
-            if (++r > 5)
-                goto cleanup;
+            /* if (++r > 5) */
+            /*     goto cleanup; */
         }
     }
 
