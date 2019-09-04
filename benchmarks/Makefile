@@ -26,7 +26,7 @@ ortp:
 	$(CXX) $(CXXFLAGS) -o main_ortp ortp.cc util/util.cc -lkvazaar -lpthread -lbctoolbox -lortp
 
 ffmpeg:
-	$(CXX) $(CXXFLAGS) -o main_ffmpeg ffmpeg.cc util/util.cc -lkvazaar -lpthread
+	$(CXX) $(CXXFLAGS) -o main_ffmpeg ffmpeg.cc util/util.cc -lkvazaar `pkg-config --libs libavformat`
 
 clean:
 	rm -f main_kvzrtp main_jrtp main_ccrtp main_live555 main_ortp main_ffmpeg
