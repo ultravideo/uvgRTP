@@ -94,6 +94,7 @@ namespace kvz_rtp {
         uint32_t rtp_ssrc_;
         uint32_t rtp_timestamp_;
         uint64_t wc_start_;
+        kvz_rtp::clock::hrc::hrc_t wc_start_2;
         uint32_t clock_rate_;
 
         kvz_rtp::frame_queue *fqueue_;

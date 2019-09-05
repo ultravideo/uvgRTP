@@ -24,7 +24,7 @@ kvz_rtp::connection::connection(bool reader):
     wc_start_(0),
     fqueue_(nullptr)
 {
-    rtp_sequence_  = kvz_rtp::random::generate_32();
+    rtp_sequence_  = 1; //kvz_rtp::random::generate_32();
     rtp_ssrc_      = kvz_rtp::random::generate_32();
     rtp_payload_   = RTP_FORMAT_GENERIC;
 
