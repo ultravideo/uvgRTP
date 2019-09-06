@@ -23,7 +23,7 @@ live555:
 		-lkvazaar -lpthread -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment
 
 ortp:
-	$(CXX) $(CXXFLAGS) -o main_ortp ortp.cc util/util.cc -lkvazaar -lpthread -lbctoolbox -lortp
+	$(CXX) $(CXXFLAGS) -o main_ortp ortp.cc util/util.cc -lkvazaar -lpthread -lortp
 
 ffmpeg:
 	$(CXX) $(CXXFLAGS) -o main_ffmpeg ffmpeg.cc util/util.cc -lkvazaar `pkg-config --libs libavformat`
