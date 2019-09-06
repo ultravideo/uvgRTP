@@ -1,17 +1,15 @@
 # Send throughput benchmarks
 
-The test setup is simple and tries to simulate a simple video conferencing condition where the RTP library is given a chunk of encoded video (H.265/HEVC in this case).
+The test setup is simple and tries to simulate a simple video conferencing condition where the RTP library is given a chunk of encoded video (H.265/HEVC in this case) and its job is to find the NAL units and send them (and possibly fragment the frame into smaller packets).
 
-To eliminate all other performance degrading factor and to get the maximum output of each library, the HEVC file was been encoded beforehand, it was memory-mapped and the sending was on localhost to minimize the netowork latency.
+Sending the data as discrete NAL units and fragmenting large frames is required by the [RFC 7789](https://tools.ietf.org/html/rfc7798).
 
-The task for each library is to find NAL units from the file and send them to remote (just a netcat server in listening mode). The actual video chunks (not VPS/SPS/PPS) are around 177 kB of memory so they must be splitted into smaller units. The test assumes MTU to be 1500 bytes.
+To eliminate all other performance-degrading factors and to get the maximum output of each library, the HEVC file was encoded beforehand and it was memory-mapped to the address space for faster reading.
 
-The benchmark tests were on 64-bit Ubuntu Linux with 3.4 GHz Intel i7-4770. TODO network card info?
+The benchmark tests were on 64-bit Ubuntu Linux with 3.4 GHz Intel i7-4770 and the network card is Intel Ethernet Connection I217-LM (1GbE).
 
 ## Notes about the benchmark implementation
 
-Two problems arose when designing the benchmark: JRTPLIB, ccRTP and Live555 are not media-aware in the same sense as kvzRTP is and they don't do automatic frame fragmentation like kvzRTP does.
+JRTPLIB, oRTP and ccRTP are not media-aware and won't do NAL unit extraction nor fragmentation so the test setup must provide this extra functionality.
 
-This means that they either reject large packets (JRTPLIB) or send them as is (ccRTP, Live555) without respecting MTU. So the test code must do the fragmentation for these libraries.
-
-They are also not media-aware and won't look for NAL units from the memory they're given and just send the data. The test code must also add code for finding the NAL units. TODO uudelleenkirjoita
+Some of the libraries don't restrict the frame size at all which results in larger-than-MTU packets. To make comparison fair for all libraries, 1500 was chosen to be the maximum write size and no packet sent is larger than 1500 bytes.
