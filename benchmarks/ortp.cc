@@ -10,28 +10,68 @@
 extern void *get_mem(int argc, char **argv, size_t& len);
 extern int get_next_frame_start(uint8_t *data, uint32_t offset, uint32_t data_len, uint8_t& start_len);
 
-#define MAX_WRITE_SIZE 1444
+#define MAX_WRITE_SIZE 1441
 
-int push_hevc_frame(RtpSession *session, uint8_t *mem, size_t chunk_size, uint32_t& ts)
+int push_hevc_nal_unit(RtpSession *session, uint8_t *data, size_t data_len, uint32_t& ts)
 {
-    int status;
+    uint8_t nalType  = (data[0] >> 1) & 0x3F;
+    size_t data_left = data_len;
+    size_t data_pos  = 0;
+    int status       = 0;
 
-    if (chunk_size < MAX_WRITE_SIZE) {
-		rtp_session_send_with_ts(session, (uint8_t *)mem, chunk_size, ts++);
+    if (data_len < MAX_WRITE_SIZE) {
+		rtp_session_send_with_ts(session, (uint8_t *)data, data_len, ts++);
         return 0;
     }
 
-    for (size_t k = 0; k < chunk_size; k += MAX_WRITE_SIZE) {
-        size_t write_size = MAX_WRITE_SIZE;
+    uint8_t buffer[2 + 1 + MAX_WRITE_SIZE];
 
-        if (chunk_size - k < MAX_WRITE_SIZE)
-            write_size = chunk_size - k;
+    buffer[0]  = 49 << 1;           /* fragmentation unit */
+    buffer[1]  = 1;                 /* TID */
+    buffer[2] = (1 << 7) | nalType; /* Start bit + NAL type */
 
-		rtp_session_send_with_ts(session, (uint8_t *)mem, write_size, ts);
+    data_pos   = 2;
+    data_left -= 2;
+
+    while (data_left > MAX_WRITE_SIZE) {
+        memcpy(&buffer[3], &data[data_pos], MAX_WRITE_SIZE);
+
+		rtp_session_send_with_ts(session, buffer, sizeof(buffer), ts);
+
+        data_pos  += MAX_WRITE_SIZE;
+        data_left -= MAX_WRITE_SIZE;
+
+        /* Clear extra bits */
+        buffer[2] = nalType;
     }
-    ts++;
+    buffer[2] |= (1 << 6); /* set E bit to signal end of data */
 
+    memcpy(&buffer[3], &data[data_pos], data_left);
+
+    rtp_session_send_with_ts(session, buffer, 2 + 1 + data_left, ts++);
     return 0;
+}
+
+int push_hevc_chunk(RtpSession *s, uint8_t *data, size_t data_len, uint32_t &ts)
+{
+    uint8_t start_len;
+    int32_t prev_offset = 0;
+    int offset = get_next_frame_start(data, 0, data_len, start_len);
+    prev_offset = offset;
+
+    while (offset != -1) {
+        offset = get_next_frame_start(data, offset, data_len, start_len);
+
+        if (offset > 4 && offset != -1) {
+            push_hevc_nal_unit(s, &data[prev_offset], offset - prev_offset - start_len, ts);
+            prev_offset = offset;
+        }
+    }
+
+    if (prev_offset == -1)
+        prev_offset = 0;
+
+    push_hevc_nal_unit(s, &data[prev_offset], data_len - prev_offset, ts);
 }
 
 int main(int argc, char *argv[])
@@ -41,7 +81,7 @@ int main(int argc, char *argv[])
 
 	ortp_init();
 	ortp_scheduler_init();
-	ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_ERROR);
+	ortp_set_log_level_mask(0);
 	session = rtp_session_new(RTP_SESSION_SENDONLY);	
 	
 	rtp_session_set_scheduling_mode(session, FALSE);
@@ -70,29 +110,7 @@ int main(int argc, char *argv[])
         total_size += chunk_size;
 
         fpt_start = std::chrono::high_resolution_clock::now();
-
-        /* Find nal units,  */
-#if 1
-        uint8_t start_len = 0;
-        int offset        = get_next_frame_start((uint8_t *)mem, 0, chunk_size, start_len);
-        int prev_offset   = offset;
-
-        while (offset != -1) {
-            offset = get_next_frame_start((uint8_t *)mem, offset, chunk_size, start_len);
-
-            if (offset > 4) {
-                push_hevc_frame(session, (uint8_t *)mem + prev_offset, chunk_size - prev_offset, ts);
-                prev_offset = offset;
-            }
-        }
-
-        if (prev_offset == -1)
-            prev_offset = 0;
-#else
-        int prev_offset = 0;
-#endif
-        push_hevc_frame(session, (uint8_t *)mem + prev_offset, chunk_size - prev_offset, ts);
-
+        push_hevc_chunk(session, (uint8_t *)mem + i, chunk_size, ts);
         fpt_end = std::chrono::high_resolution_clock::now();
 
         i += chunk_size;

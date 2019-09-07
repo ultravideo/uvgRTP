@@ -6,13 +6,6 @@ using std::chrono::high_resolution_clock;
 
 extern void *get_mem(int argc, char **argv, size_t& len);
 
-void hook(void *arg, kvz_rtp::frame::rtp_frame *frame)
-{
-    (void)arg;
-    /* fprintf(stderr, "free frame\n"); */
-    (void)kvz_rtp::frame::dealloc_frame(frame);
-}
-
 int main(int argc, char **argv)
 {
     size_t len = 0;
@@ -21,10 +14,6 @@ int main(int argc, char **argv)
     kvz_rtp::context rtp_ctx;
 
     kvz_rtp::writer *writer = rtp_ctx.create_writer("127.0.0.1", 8888, RTP_FORMAT_HEVC);
-    /* kvz_rtp::reader *reader = rtp_ctx.create_reader("127.0.0.1", 8888, RTP_FORMAT_HEVC); */
-
-    /* (void)reader->install_recv_hook(NULL, hook); */
-    /* (void)reader->start(); */
     (void)writer->start();
 
     uint64_t chunk_size, total_size;
@@ -68,5 +57,4 @@ int main(int argc, char **argv)
     fprintf(stderr, "avg processing time of frame: %lu\n", fpt_ms / frames);
 
     rtp_ctx.destroy_writer(writer);
-    /* rtp_ctx.destroy_reader(reader); */
 }

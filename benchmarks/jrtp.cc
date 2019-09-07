@@ -14,32 +14,76 @@ using namespace jrtplib;
 extern void *get_mem(int argc, char **argv, size_t& len);
 extern int get_next_frame_start(uint8_t *data, uint32_t offset, uint32_t data_len, uint8_t& start_len);
 
-#define MAX_WRITE_SIZE 1388
+#define MAX_WRITE_SIZE 1385
 
-int push_hevc_frame(RTPSession& session, uint8_t *mem, size_t chunk_size)
+int push_hevc_nal_unit(RTPSession& session, uint8_t *data, size_t data_len)
 {
-    int status;
+    uint8_t nalType  = (data[0] >> 1) & 0x3F;
+    size_t data_left = data_len;
+    size_t data_pos  = 0;
+    int status       = 0;
 
-    if (chunk_size < MAX_WRITE_SIZE) {
-        if ((status = session.SendPacket((uint8_t *)mem, chunk_size)) < 0) {
+    if (data_len < MAX_WRITE_SIZE) {
+        if ((status = session.SendPacket(data, data_len)) < 0) {
             std::cerr << RTPGetErrorString(status) << std::endl;
             exit(-1);
         }
-
         return 0;
     }
 
-    for (size_t k = 0; k < chunk_size; k += MAX_WRITE_SIZE) {
-        size_t write_size = MAX_WRITE_SIZE;
+    uint8_t buffer[2 + 1 + MAX_WRITE_SIZE];
 
-        if (chunk_size - k < MAX_WRITE_SIZE)
-            write_size = chunk_size - k;
+    buffer[0]  = 49 << 1;           /* fragmentation unit */
+    buffer[1]  = 1;                 /* TID */
+    buffer[2] = (1 << 7) | nalType; /* Start bit + NAL type */
 
-        if ((status = session.SendPacket((uint8_t *)mem + k, write_size)) < 0) {
+    data_pos   = 2;
+    data_left -= 2;
+
+    while (data_left > MAX_WRITE_SIZE) {
+        memcpy(&buffer[3], &data[data_pos], MAX_WRITE_SIZE);
+
+        if ((status = session.SendPacket(buffer, sizeof(buffer), 96, false, 0) < 0)) {
             std::cerr << RTPGetErrorString(status) << std::endl;
             exit(-1);
         }
+
+        data_pos  += MAX_WRITE_SIZE;
+        data_left -= MAX_WRITE_SIZE;
+
+        /* Clear extra bits */
+        buffer[2] = nalType;
     }
+    buffer[2] |= (1 << 6); /* set E bit to signal end of data */
+
+    memcpy(&buffer[3], &data[data_pos], data_left);
+
+    if ((status = session.SendPacket(buffer, 2 + 1 + data_left, 96, true, 1) < 0)) {
+        std::cerr << RTPGetErrorString(status) << std::endl;
+        exit(-1);
+    }
+}
+
+int push_hevc_chunk(RTPSession& s, uint8_t *data, size_t data_len)
+{
+    uint8_t start_len;
+    int32_t prev_offset = 0;
+    int offset = get_next_frame_start(data, 0, data_len, start_len);
+    prev_offset = offset;
+
+    while (offset != -1) {
+        offset = get_next_frame_start(data, offset, data_len, start_len);
+
+        if (offset > 4 && offset != -1) {
+            push_hevc_nal_unit(s, &data[prev_offset], offset - prev_offset - start_len);
+            prev_offset = offset;
+        }
+    }
+
+    if (prev_offset == -1)
+        prev_offset = 0;
+
+    push_hevc_nal_unit(s, &data[prev_offset], data_len - prev_offset);
 }
 
 int main(int argc, char **argv)
@@ -74,7 +118,7 @@ int main(int argc, char **argv)
 	
 	session.SetDefaultPayloadType(96);
 	session.SetDefaultMark(false);
-	session.SetDefaultTimestampIncrement(160);
+	session.SetDefaultTimestampIncrement(1);
 
     uint64_t chunk_size, total_size;
     uint64_t fpt_ms = 0;
@@ -90,26 +134,7 @@ int main(int argc, char **argv)
         total_size += chunk_size;
 
         fpt_start = std::chrono::high_resolution_clock::now();
-
-        /* Find nal units,  */
-        uint8_t start_len = 0;
-        int offset        = get_next_frame_start((uint8_t *)mem, 0, chunk_size, start_len);
-        int prev_offset   = offset;
-
-        while (offset != -1) {
-            offset = get_next_frame_start((uint8_t *)mem, offset, chunk_size, start_len);
-
-            if (offset > 4) {
-                push_hevc_frame(session, (uint8_t *)mem + prev_offset, chunk_size - prev_offset);
-                prev_offset = offset;
-            }
-        }
-
-        if (prev_offset == -1)
-            prev_offset = 0;
-
-        push_hevc_frame(session, (uint8_t *)mem + prev_offset, chunk_size - prev_offset);
-
+        push_hevc_chunk(session, (uint8_t *)mem + i, chunk_size);
         fpt_end = std::chrono::high_resolution_clock::now();
 
         i += chunk_size;
