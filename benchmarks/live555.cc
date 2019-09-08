@@ -18,8 +18,10 @@ void framedsourcefunction(UsageEnvironment *env, char *stop_rtp, void *mem, size
         fprintf(stderr, "failed to start sink!\n");
     }
 
-    filter->send_data(mem, len);
-    *stop_rtp = 1;
+    filter->startFramedSource(mem, len, stop_rtp);
+
+    while (true)
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 }
 
 int main(int argc, char **argv)
@@ -40,7 +42,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    auto fsf_thread = new std::thread(framedsourcefunction, env, &stop_rtp, mem, len);
+    (void)new std::thread(framedsourcefunction, env, &stop_rtp, mem, len);
 
     env->taskScheduler().doEventLoop(&stop_rtp);
 }

@@ -100,7 +100,7 @@ int kvazaar_encode(char *input, char *output)
     uint8_t inputCounter = 0;
     uint8_t outputCounter = 0;
     bool done = false;
-    int r = 0;
+    /* int r = 0; */
 
     while (!done) {
         kvz_data_chunk* chunks_out = NULL;
