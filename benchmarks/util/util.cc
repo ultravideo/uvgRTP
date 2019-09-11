@@ -39,7 +39,7 @@ void *get_mem(int argc, char **argv, size_t& len)
     stat(output, &st);
     len = st.st_size;
 
-    return mmap(NULL, len, PROT_READ, MAP_PRIVATE | MAP_POPULATE, fd, 0);
+    return mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, fd, 0);
 }
 
 int get_next_frame_start(uint8_t *data, uint32_t offset, uint32_t data_len, uint8_t& start_len)
