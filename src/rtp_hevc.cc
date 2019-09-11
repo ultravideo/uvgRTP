@@ -238,15 +238,21 @@ static rtp_error_t __push_hevc_frame(
     size_t data_pos  = 0;
 
 #ifdef __linux__
+    /* Smaller-than-MTU frames can be enqueued without flushing the queue before return
+     * because they don't store any extra info to __push_hevc_frame()'s stack.
+     *
+     * Larger frames on the other hand require that once all the data ("data" ptr)
+     * has been processed, the frame queue must be flushed because the fragment headers
+     * are stored to __push_hevc_frame()'s stack and on return that memory is not addressable */
     if (data_len <= MAX_PAYLOAD) {
         if ((ret = fqueue->enqueue_message(conn, data, data_len)) != RTP_OK)
             return ret;
         return more ? RTP_NOT_READY : RTP_OK;
     }
 
-    /* all fragment units share the same RTP and HEVC NAL headers
-     * but because there's three different types of FU headers (and because the state 
-     * of each buffer must last between calls) we must allocate space for three FU headers */
+    /* All fragment units share the same NAL and FU headers and these headers can be saved
+     * to this function's stack. Each fragment is given an unique RTP header when enqueue_message()
+     * is called because each fragment has its own sequence number */
     std::vector<std::pair<size_t, uint8_t *>> buffers;
 
     uint8_t nal_header[kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] = {
@@ -294,8 +300,6 @@ static rtp_error_t __push_hevc_frame(
         return ret;
     }
 
-    if (more)
-        return RTP_NOT_READY;
     return fqueue->flush_queue(conn);
 #else
     if (data_len <= MAX_PAYLOAD) {
