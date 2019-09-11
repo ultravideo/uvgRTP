@@ -6,7 +6,7 @@ CXXFLAGS = -Wall -Wextra -O2 -std=c++11 -g
 all: kvzrtp jrtp ccrtp live555 ortp ffmpeg
 
 kvzrtp:
-	$(CXX) $(CXXFLAGS) -o main_kvzrtp kvzrtp.cc util/util.cc -lkvazaar -lkvzrtp -lpthread
+	$(CXX) $(CXXFLAGS) -o main_kvzrtp kvzrtp.cc util/util.cc -lkvzrtp -lkvazaar -lpthread
 
 jrtp:
 	$(CXX) $(CXXFLAGS) -o main_jrtp jrtp.cc util/util.cc -lkvazaar -ljrtp -lpthread

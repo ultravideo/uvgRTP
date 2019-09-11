@@ -23,13 +23,10 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-QMAKE_CXXFLAGS += -DNDEBUG
+QMAKE_CXXFLAGS += -DNDEBUG -Isrc
 
 SOURCES += \
     src/send.cc \
-    src/rtp_opus.cc \
-    src/rtp_hevc.cc \
-    src/rtp_generic.cc \
     src/reader.cc \
     src/lib.cc \
     src/frame.cc \
@@ -43,14 +40,14 @@ SOURCES += \
     src/clock.cc \
     src/hostname.cc \
     src/queue.cc \
-    src/random.cc
+    src/random.cc \
+    src/formats/opus.cc \
+    src/formats/hevc.cc \
+    src/formats/generic.cc
 
 HEADERS += \
     src/writer.hh \
     src/send.hh \
-    src/rtp_opus.hh \
-    src/rtp_hevc.hh \
-    src/rtp_generic.hh \
     src/rtcp.hh \
     src/reader.hh \
     src/lib.hh \
@@ -66,7 +63,10 @@ HEADERS += \
     src/clock.hh \
     src/hostname.hh \
     src/queue.hh \
-    src/random.hh
+    src/random.hh \
+    src/formats/opus.hh \
+    src/formats/hevc.hh \
+    src/formats/generic.hh
 
 unix {
     target.path = /usr/lib

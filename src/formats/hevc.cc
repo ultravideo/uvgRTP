@@ -5,10 +5,11 @@
 #include "conn.hh"
 #include "debug.hh"
 #include "reader.hh"
-#include "rtp_hevc.hh"
 #include "queue.hh"
 #include "send.hh"
 #include "writer.hh"
+
+#include "formats/hevc.hh"
 
 #define PTR_DIFF(a, b)  ((ptrdiff_t)((char *)(a) - (char *)(b)))
 

@@ -4,8 +4,9 @@
 #include "debug.hh"
 #include "frame.hh"
 #include "reader.hh"
-#include "rtp_hevc.hh"
-#include "rtp_opus.hh"
+
+#include "formats/hevc.hh"
+#include "formats/opus.hh"
 
 #define RTP_HEADER_VERSION  2
 

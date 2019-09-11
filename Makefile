@@ -1,27 +1,25 @@
 .PHONY: all clean obj install
 
 CXX = g++
-CFLAGS = -g -Wall -Wextra -O2 -std=c++11 -DNDEBUG
+CXXFLAGS = -g -Wall -Wextra -O2 -std=c++11 -DNDEBUG -Isrc -fPIC
 
-SOURCES=$(wildcard src/*.cc)
-OBJECTS=$(addprefix obj/,$(notdir $(SOURCES:.cc=.o)))
+SOURCES = $(wildcard src/*.cc)
+MODULES := src/formats
+-include $(patsubst %, %/module.mk, $(MODULES))
+OBJECTS := $(patsubst %.cc, %.o, $(filter %.cc, $(SOURCES)))
+
 TARGET = libkvzrtp.a
 
 all: $(TARGET)
 
 install: $(TARGET)
 	install -m 577 $(TARGET) /usr/local/lib/
-	mkdir -p /usr/local/include/kvzrtp
+	mkdir -p /usr/local/include/kvzrtp /usr/local/include/kvzrtp/formats
 	cp src/*.hh /usr/local/include/kvzrtp
+	cp src/formats/*.hh /usr/local/include/kvzrtp/formats
 
 $(TARGET): $(OBJECTS)
 	$(AR) rcs $@ $(OBJECTS)
 
-obj/%.o: src/%.cc | obj
-	$(CXX) $(CFLAGS) -c -o $@ $<
-
-obj:
-	@mkdir -p $@
-
 clean:
-	rm -rf obj $(TARGET)
+	rm -f src/*.o src/formats/*.o $(TARGET)

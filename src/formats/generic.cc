@@ -12,10 +12,11 @@
 #include "debug.hh"
 #include "conn.hh"
 #include "reader.hh"
-#include "rtp_generic.hh"
 #include "send.hh"
 #include "util.hh"
 #include "writer.hh"
+
+#include "formats/generic.hh"
 
 // TODO implement frame splitting if data_len > MTU
 rtp_error_t kvz_rtp::generic::push_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len, int flags)

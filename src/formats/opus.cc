@@ -3,8 +3,9 @@
 
 #include "conn.hh"
 #include "debug.hh"
-#include "rtp_opus.hh"
 #include "send.hh"
+
+#include "formats/opus.hh"
 
 /* Validity of arguments is checked by kvz_rtp::sender. We just need to relay them there */
 rtp_error_t kvz_rtp::opus::push_frame(connection *conn, uint8_t *data, uint32_t data_len, int flags)

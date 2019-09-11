@@ -15,10 +15,11 @@ using namespace mingw;
 #include <iostream>
 
 #include "debug.hh"
-#include "rtp_opus.hh"
-#include "rtp_hevc.hh"
-#include "rtp_generic.hh"
 #include "writer.hh"
+
+#include "formats/opus.hh"
+#include "formats/hevc.hh"
+#include "formats/generic.hh"
 
 kvz_rtp::writer::writer(std::string dst_addr, int dst_port):
     connection(false),

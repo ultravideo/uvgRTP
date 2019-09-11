@@ -11,9 +11,10 @@
 #include "debug.hh"
 #include "queue.hh"
 #include "random.hh"
-#include "rtp_hevc.hh"
-#include "rtp_opus.hh"
 #include "util.hh"
+
+#include "formats/hevc.hh"
+#include "formats/opus.hh"
 
 kvz_rtp::connection::connection(bool reader):
     config_(nullptr),

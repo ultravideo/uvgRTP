@@ -11,7 +11,7 @@
 
 #include "debug.hh"
 #include "conn.hh"
-#include "rtp_generic.hh"
+#include "formats/generic.hh"
 #include "send.hh"
 #include "util.hh"
 #include "writer.hh"

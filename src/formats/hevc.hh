@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rtp_generic.hh"
+#include "formats/generic.hh"
 
 namespace kvz_rtp {
     class connection;
