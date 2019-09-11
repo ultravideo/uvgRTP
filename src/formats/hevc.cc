@@ -157,6 +157,7 @@ static ssize_t __get_hevc_start(uint8_t *data, size_t len, size_t offset, uint8_
             if (((value >> 24) & 0xff) == 0x01 && ((prev >>  0) & 0xffff) == 0) {
                 start_len = (((prev >>  0) & 0xffffff) == 0) ? 4 : 3;
 #endif
+                data[len - 1] = lb;
                 return pos + 1;
             }
         }
@@ -173,6 +174,7 @@ static ssize_t __get_hevc_start(uint8_t *data, size_t len, size_t offset, uint8_
 #endif
                 }
 
+                data[len - 1] = lb;
                 return pos + ret;
             }
 
@@ -199,6 +201,7 @@ static ssize_t __get_hevc_start(uint8_t *data, size_t len, size_t offset, uint8_
                 /* previous dword 0xxxxx0000 and current dword is 0x0001XXXX */
                 if (t4) {
                     start_len = 4;
+                    data[len - 1] = lb;
                     return pos + 2;
                 }
             /* Previous dwod was 0xXXXXXX00 */
@@ -206,12 +209,14 @@ static ssize_t __get_hevc_start(uint8_t *data, size_t len, size_t offset, uint8_
                 /* Current dword is 0x000001XX */
                 if (t5) {
                     start_len = 4;
+                    data[len - 1] = lb;
                     return pos + 3;
                 }
 
                 /* Current dword is 0x0001XXXX */
                 else if (t4) {
                     start_len = 3;
+                    data[len - 1] = lb;
                     return pos + 2;
                 }
             }
@@ -224,6 +229,7 @@ end:
         prev = value;
     }
 
+    data[len - 1] = lb;
     return -1;
 }
 
