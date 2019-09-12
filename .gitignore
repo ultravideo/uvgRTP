@@ -1,4 +1,5 @@
-obj
+src/*.o
+src/formats/*.o
 libkvzrtp.a
 *main
 benchmarks/main_*
