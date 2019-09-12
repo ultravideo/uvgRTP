@@ -28,8 +28,13 @@ Windows
 
 Use  `__RTP_SILENT__` to disable all prints
 
+Ue `__RTP_USE_OPTIMISTIC_RECEIVER__` to enable the optimistic fragment receiver
+* See src/formats/hevc.cc for more details
+* NOTE: To use the receiver, you must be sure that no individual packet is larger than MTU (1500 bytes)
+
 Use `__RTP_USE_PROBATION_ZONE__` to enable the probation zone allocation for RTP frames
 * See src/frame.hh for more details
+* NOTE: Probation zone is enabled only if optimistic fragment receiver is enabled
 
 Use `NDEBUG` to disable `LOG_DEBUG` which is the most verbose level of logging
 
