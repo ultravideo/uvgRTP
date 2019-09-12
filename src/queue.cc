@@ -14,7 +14,7 @@
 #include <iostream>
 
 kvz_rtp::frame_queue::frame_queue()
-    :rtphdr_ptr_(0), chunk_ptr_(0), msg_ptr_(0),
+    :rtphdr_ptr_(0), chunk_ptr_(0),
 #ifdef __linux__
     hdr_ptr_(0)
 #else
@@ -55,8 +55,8 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
     if (!conn || !message || message_len == 0)
         return RTP_INVALID_VALUE;
 
-    if (chunk_ptr_ + 2 >= MAX_CHUNK_COUNT || msg_ptr_ + 2 >= MAX_MSG_COUNT) {
-        LOG_ERROR("maximum amount of chunks (%d) or messages (%d) exceeded!", chunk_ptr_, msg_ptr_);
+    if (chunk_ptr_ + 2 >= MAX_CHUNK_COUNT || hdr_ptr_ + 1 >= MAX_MSG_COUNT) {
+        LOG_ERROR("maximum amount of chunks (%d) or messages (%d) exceeded!", chunk_ptr_, hdr_ptr_);
         return RTP_MEMORY_ERROR;
     }
 
@@ -69,18 +69,15 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
     chunks_[chunk_ptr_ + 1].iov_base = message;
     chunks_[chunk_ptr_ + 1].iov_len  = message_len;
 
-    messages_[msg_ptr_].msg_name       = (void *)&out_addr_;
-    messages_[msg_ptr_].msg_namelen    = sizeof(out_addr_);
-    messages_[msg_ptr_].msg_iov        = &chunks_[chunk_ptr_];
-    messages_[msg_ptr_].msg_iovlen     = 2;
-    messages_[msg_ptr_].msg_control    = 0;
-    messages_[msg_ptr_].msg_controllen = 0;
-
-    headers_[hdr_ptr_].msg_hdr = messages_[msg_ptr_];
+    headers_[hdr_ptr_].msg_hdr.msg_name       = (void *)&out_addr_;
+    headers_[hdr_ptr_].msg_hdr.msg_namelen    = sizeof(out_addr_);
+    headers_[hdr_ptr_].msg_hdr.msg_iov        = &chunks_[chunk_ptr_];
+    headers_[hdr_ptr_].msg_hdr.msg_iovlen     = 2;
+    headers_[hdr_ptr_].msg_hdr.msg_control    = 0;
+    headers_[hdr_ptr_].msg_hdr.msg_controllen = 0;
 
     rtphdr_ptr_ += 1;
     chunk_ptr_  += 2;
-    msg_ptr_    += 1;
     hdr_ptr_    += 1;
 #else
     (void)conn;
@@ -121,8 +118,8 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
     if (!conn || buffers.size() == 0)
         return RTP_INVALID_VALUE;
 
-    if (chunk_ptr_ + buffers.size() + 1 >= MAX_CHUNK_COUNT || msg_ptr_ + 1 >= MAX_MSG_COUNT) {
-        LOG_ERROR("maximum amount of chunks (%d) or messages (%d) exceeded!", chunk_ptr_, msg_ptr_);
+    if (chunk_ptr_ + buffers.size() + 1 >= MAX_CHUNK_COUNT || hdr_ptr_ + 1 >= MAX_MSG_COUNT) {
+        LOG_ERROR("maximum amount of chunks (%d) or messages (%d) exceeded!", chunk_ptr_, hdr_ptr_);
         return RTP_MEMORY_ERROR;
     }
 
@@ -137,17 +134,14 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
         chunks_[chunk_ptr_ + i + 1].iov_base = buffers.at(i).second;
     }
 
-    messages_[msg_ptr_].msg_name       = (void *)&out_addr_;
-    messages_[msg_ptr_].msg_namelen    = sizeof(out_addr_);
-    messages_[msg_ptr_].msg_iov        = &chunks_[chunk_ptr_];
-    messages_[msg_ptr_].msg_iovlen     = buffers.size() + 1;
-    messages_[msg_ptr_].msg_control    = 0;
-    messages_[msg_ptr_].msg_controllen = 0;
-
-    headers_[hdr_ptr_].msg_hdr = messages_[msg_ptr_];
+    headers_[hdr_ptr_].msg_hdr.msg_name       = (void *)&out_addr_;
+    headers_[hdr_ptr_].msg_hdr.msg_namelen    = sizeof(out_addr_);
+    headers_[hdr_ptr_].msg_hdr.msg_iov        = &chunks_[chunk_ptr_];
+    headers_[hdr_ptr_].msg_hdr.msg_iovlen     = buffers.size() + 1;
+    headers_[hdr_ptr_].msg_hdr.msg_control    = 0;
+    headers_[hdr_ptr_].msg_hdr.msg_controllen = 0;
 
     chunk_ptr_  += buffers.size() + 1;
-    msg_ptr_    += 1;
     hdr_ptr_    += 1;
     rtphdr_ptr_ += 1;
 #else
@@ -203,7 +197,7 @@ rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
 {
 #ifdef __linux__
 
-    if (!conn || msg_ptr_ == 0 || hdr_ptr_ == 0 || chunk_ptr_ == 0) {
+    if (!conn || hdr_ptr_ == 0 || chunk_ptr_ == 0) {
         LOG_ERROR("Cannot send 0 messages or messages containing 0 chunks!");
         empty_queue();
         return RTP_INVALID_VALUE;
@@ -215,7 +209,7 @@ rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
         return RTP_SEND_ERROR;
     }
 
-    LOG_DEBUG("full message took %d chunks and %d messages", chunk_ptr_, msg_ptr_);
+    LOG_DEBUG("full message took %d chunks and %d messages", chunk_ptr_, hdr_ptr_);
 
     return kvz_rtp::frame_queue::empty_queue();
 #else
@@ -240,8 +234,8 @@ rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
 rtp_error_t kvz_rtp::frame_queue::empty_queue()
 {
 #ifdef __linux__
-    hdr_ptr_ = msg_ptr_ = chunk_ptr_ = 0;
-    out_addr_.sin_addr.s_addr        = 0;
+    hdr_ptr_ = chunk_ptr_     = 0;
+    out_addr_.sin_addr.s_addr = 0;
 #else
     buf_ptr_ = 0;
 #endif

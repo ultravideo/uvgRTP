@@ -56,13 +56,11 @@ namespace kvz_rtp {
 
         int rtphdr_ptr_;
         int chunk_ptr_;
-        int msg_ptr_;
 
         sockaddr_in out_addr_;
 
 #ifdef __linux__
         struct mmsghdr headers_[MAX_MSG_COUNT];
-        struct msghdr  messages_[MAX_MSG_COUNT];
         struct iovec   chunks_[MAX_CHUNK_COUNT];
 
         int hdr_ptr_;
