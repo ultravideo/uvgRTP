@@ -21,7 +21,8 @@
 #define NAL_HDR_SIZE                   2
 #define FU_HDR_SIZE                    1
 
-#define INACTIVE(ts)    (buff.inactive[(ts)])
+#define INACTIVE(ts)     (buff.inactive[(ts)])
+#define FRAG_PSIZE(i)    (buff.headers[i].msg_len - RTP_HDR_SIZE - NAL_HDR_SIZE - FU_HDR_SIZE)
 
 const int DEFAULT_ALLOC_SIZE = 200 * MAX_PAYLOAD;
 const int REALLOC_SIZE       = 50  * MAX_PAYLOAD;  /* TODO: realloc size should be calculated dynamically */
@@ -42,51 +43,6 @@ enum FRAG_TYPES {
     /* frame contains a fragment with E bit set */
     FT_END       =  3,
 };
-
-/* Buffer contains three bytes: 2 byte NAL header and 1 byte FU header */
-static int __get_frame_type(uint8_t *buffer)
-{
-    bool first_frag = buffer[2] & 0x80;
-    bool last_frag  = buffer[2] & 0x40;
-
-    if ((buffer[0] >> 1) != 49)
-        return FT_NOT_FRAG;
-
-    if (first_frag && last_frag)
-        return FT_INVALID;
-
-    if (first_frag)
-        return FT_START;
-
-    if (last_frag)
-        return FT_END;
-
-    return FT_MIDDLE;
-}
-
-static inline uint32_t __get_next_ts(std::queue<uint32_t>& ts)
-{
-    uint32_t n_ts = ts.front();
-    ts.pop();
-
-    return n_ts;
-}
-
-/* Calculate the absolute offset within frame at "index"
- *
- * For empty frames the start offet ("start") might be 0 so we need
- * to take that into consideration when calculating the offset */
-static inline size_t __calculate_offset(size_t start, size_t index)
-{
-    size_t off = index * MAX_PAYLOAD;
-
-    if (start > NAL_HDR_SIZE)
-        off = start - MAX_DATAGRAMS * MAX_PAYLOAD + off;
-    else
-        off += NAL_HDR_SIZE;
-
-    return off;
-}
 
 /* TODO: tämä koodi pitää kommentoida todella hyvin! */
 
@@ -109,7 +65,7 @@ enum RELOC_TYPES {
 struct reloc_info {
     size_t   c_off; /* current offset in the frame */
     size_t   d_off; /* destination offset */
-    void     *ptr;  /* pointer to memory */
+    void     *ptr;  /* pointer to memory (reloc_type tells where the ptr is pointing to) */
     int reloc_type; /* relocation type (see RELOC_TYPES) */
 };
 
@@ -183,8 +139,8 @@ struct recv_buffer {
     std::queue<uint32_t> tss; /* TODO: this is beyond ugly */
 
     kvz_rtp::clock::hrc::hrc_t start; /* clock reading when the first fragment is received */
-    uint32_t s_seq;                    /* sequence number of the frame with s-bit */
-    uint32_t e_seq;                    /* sequence number of the frame with e-bit */
+    uint32_t s_seq;                   /* sequence number of the frame with S-bit */
+    uint32_t e_seq;                   /* sequence number of the frame with E-bit */
 };
 
 struct frame_info {
@@ -223,9 +179,15 @@ struct frames {
     kvz_rtp::frame::rtp_header rtp_headers[MAX_DATAGRAMS];
     uint8_t hevc_ext_buf[MAX_DATAGRAMS][NAL_HDR_SIZE + FU_HDR_SIZE];
     struct mmsghdr headers[MAX_DATAGRAMS];
+
+    /* * 3 because RTP header, HEVC NAL and FU and payload are read into these buffers 
+     * (or rather pointers to these buffers are stored into iovec) */
     struct iovec iov[MAX_DATAGRAMS * 3];
 
-    /* timestamp of the old (still active frame), used to index finfo */
+    /* timestamp of the oldest but still active frame, used to index finfo 
+     *
+     * Active is defined as not all fragments have been received but the oldest
+     * fragment of the frame is not RTP_FRAME_MAX_DELAY milliseconds old */
     uint32_t active_ts;
 
     /* Frames are handled FIFO style so keep the timestamps in a queue */
@@ -234,6 +196,75 @@ struct frames {
     /* All active and inactive frames */
     std::unordered_map<uint32_t, struct frame_info> finfo;
 };
+
+/* Buffer contains three bytes: 2 byte NAL header and 1 byte FU header */
+static int __get_frame_type(uint8_t *buffer)
+{
+    bool first_frag = buffer[2] & 0x80;
+    bool last_frag  = buffer[2] & 0x40;
+
+    if ((buffer[0] >> 1) != 49)
+        return FT_NOT_FRAG;
+
+    if (first_frag && last_frag)
+        return FT_INVALID;
+
+    if (first_frag)
+        return FT_START;
+
+    if (last_frag)
+        return FT_END;
+
+    return FT_MIDDLE;
+}
+
+static inline uint32_t __get_next_ts(std::queue<uint32_t>& ts)
+{
+    uint32_t n_ts = ts.front();
+    ts.pop();
+
+    return n_ts;
+}
+
+/* Calculate the absolute offset within frame at "index"
+ *
+ * For empty frames the start offet ("start") might be 0 so we need
+ * to take that into consideration when calculating the offset */
+static inline size_t __calculate_offset(size_t start, size_t index)
+{
+    size_t off = index * MAX_PAYLOAD;
+
+    if (start > NAL_HDR_SIZE)
+        off = start - MAX_DATAGRAMS * MAX_PAYLOAD + off;
+    else
+        off += NAL_HDR_SIZE;
+
+    return off;
+}
+
+static inline void __init_headers(
+    kvz_rtp::frame::rtp_frame *frame,
+    kvz_rtp::frame::rtp_header *header,
+    uint8_t *hevc_ext_buf
+)
+{
+    frame->payload[0] = (hevc_ext_buf[0] & 0x80) | ((hevc_ext_buf[2] & 0x3f) << 1);
+    frame->payload[1] = (hevc_ext_buf[1]);
+
+    std::memcpy(&frame->header, header, RTP_HDR_SIZE);
+}
+
+static inline void __add_relocation_entry(struct inactive_info& info, uint16_t seq, void *mem, int reloc_type)
+{
+    struct reloc_info reloc = {
+        info.next_off,  /* current offset */
+        0,              /* destination offset (not know right now) */
+        mem,            /* pointer to fragment */
+        reloc_type,     /* type of relocation needed for the frame */
+    };
+
+    info.rinfo.insert(std::make_pair(seq, reloc));
+}
 
 rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
 {
@@ -244,6 +275,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
     buff.total_size    = 2 * DEFAULT_ALLOC_SIZE + NAL_HDR_SIZE;
     buff.frame         = kvz_rtp::frame::alloc_rtp_frame(buff.total_size);
     buff.next_off      = NAL_HDR_SIZE;
+    buff.received_size = NAL_HDR_SIZE;
     buff.pkts_received = 0;
 
     buff.active_ts     = INVALID_TS;
@@ -253,14 +285,11 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
 
     std::memset(buff.headers, 0, sizeof(buff.headers));
 
-    uint64_t avg_us = 0, avg_us_total = 0;
-    uint64_t avg_fs = 0, avg_fs_total = 0;
-
     while (reader->active()) {
         for (size_t i = 0, k = 0; i < MAX_DATAGRAMS; ++i, k += 3) {
 
             if (buff.next_off + MAX_DATAGRAMS * MAX_PAYLOAD > buff.total_size) {
-                LOG_ERROR("Reallocate RTP frame from %u to %u!", buff.total_size, buff.total_size + REALLOC_SIZE);
+                LOG_ERROR("Reallocate RTP frame from %zu to %zu!", buff.total_size, buff.total_size + REALLOC_SIZE);
                 for (;;);
 #if 0
                 auto tmp_frame = kvz_rtp::frame::alloc_rtp_frame(buff.total_size + REALLOC_SIZE);
@@ -383,8 +412,8 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                 buff.active_ts = c_ts;
 
             if (buff.active_ts == c_ts) {
-                buff.pkts_received++;
-                buff.received_size += (buff.headers[i].msg_len - RTP_HDR_SIZE - NAL_HDR_SIZE - FU_HDR_SIZE);
+                buff.pkts_received += 1;
+                buff.received_size += FRAG_PSIZE(i);
 
                 if (sinfo.shift_needed) {
                     /* we have shifted the memory to correct place above but we need to
@@ -393,7 +422,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                     /* sinfo.shift_offset += MAX_PAYLOAD; */
 
                     /* TODO: käytä tätä kokoa, sillä saadaan framesta pienempi */
-                    sinfo.shift_offset += buff.headers[i].msg_len - RTP_HDR_SIZE - NAL_HDR_SIZE - FU_HDR_SIZE;
+                    sinfo.shift_offset += FRAG_PSIZE(i);
                 }
             } else {
                 /* seuraavan framen fragmentti tuli keskellä vielä keskeneräistä frame, 
@@ -404,11 +433,9 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                 if (i + 1 < MAX_DATAGRAMS) {
                     sinfo.shift_needed = true;
                     sinfo.shift_offset = buff.next_off - MAX_DATAGRAMS * MAX_PAYLOAD + i * MAX_PAYLOAD;
-                    sinfo.shift_size   = buff.headers[i].msg_len - RTP_HDR_SIZE - NAL_HDR_SIZE - FU_HDR_SIZE;
                 }
 
                 /* TODO: selitä */
-                size_t len = buff.headers[i].msg_len - RTP_HDR_SIZE - NAL_HDR_SIZE - FU_HDR_SIZE;
                 size_t off = __calculate_offset(buff.next_off, i);
 
                 if (buff.inactive.find(c_ts) == buff.inactive.end()) {
@@ -417,18 +444,17 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                     INACTIVE(c_ts).pkts_received = 0;
                     INACTIVE(c_ts).frame         = kvz_rtp::frame::alloc_rtp_frame(DEFAULT_ALLOC_SIZE + NAL_HDR_SIZE);
                     INACTIVE(c_ts).total_size    = DEFAULT_ALLOC_SIZE + NAL_HDR_SIZE;
-                    INACTIVE(c_ts).next_off      = MAX_PAYLOAD + NAL_HDR_SIZE;
-                    INACTIVE(c_ts).received_size = MAX_PAYLOAD + NAL_HDR_SIZE;
+                    INACTIVE(c_ts).next_off      = NAL_HDR_SIZE;
+                    INACTIVE(c_ts).received_size = NAL_HDR_SIZE;
 
                     if (type == FT_START) {
                         INACTIVE(c_ts).s_seq = c_seq;
                         INACTIVE(c_ts).start = kvz_rtp::clock::hrc::now();
 
-                        fprintf(stderr, "start %u: copy %u bytes from %u to %u\n", c_ts, MAX_PAYLOAD, off, NAL_HDR_SIZE);
                         std::memcpy(
                             INACTIVE(c_ts).frame->payload + NAL_HDR_SIZE,
                             buff.frame->payload + off,
-                            MAX_PAYLOAD
+                            FRAG_PSIZE(i)
                         );
                     } else {
                         LOG_WARN("frame must be copied to probation area");
@@ -438,23 +464,16 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                  * or to probation area if its place cannot be determined (s_seq must be known) */
                 } else {
                     if (buff.inactive[c_ts].s_seq != INVALID_SEQ) {
-                        fprintf(stderr, "not start %u: copy %u bytes from %u to %u\n", c_ts, MAX_PAYLOAD, off, INACTIVE(c_ts).next_off);
                         std::memcpy(
                             INACTIVE(c_ts).frame->payload + INACTIVE(c_ts).next_off,
                             buff.frame->payload + off,
-                            MAX_PAYLOAD
+                            FRAG_PSIZE(i)
                         );
 
-                        INACTIVE(c_ts).rinfo.insert(
-                            std::make_pair<uint16_t, struct reloc_info>(
-                                (uint16_t)c_seq,
-                                { INACTIVE(c_ts).next_off, 0 }
-                            )
-                        );
-
-                        INACTIVE(c_ts).next_off += MAX_PAYLOAD;
+                        __add_relocation_entry(INACTIVE(c_ts), (uint16_t)c_seq, NULL, RT_PAYLOAD);
                     } else {
                         LOG_WARN("frame must be copied to probation area");
+#if 0
 #ifdef __RTP_USE_PROBATION_ZONE__
                         if (buff.frame->probation_off != buff.frame->probation_len) {
                             std::memcpy(
@@ -488,25 +507,23 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                         /* TODO:  */
                         /* INACTIVE(c_ts).probation.push_back(tmp_frame); */
 #endif
+#endif
                     }
                 }
 
-                INACTIVE(c_ts).pkts_received++;
-                INACTIVE(c_ts).received_size += MAX_PAYLOAD;
+                INACTIVE(c_ts).next_off      += FRAG_PSIZE(i);
+                INACTIVE(c_ts).received_size += FRAG_PSIZE(i);
+                INACTIVE(c_ts).pkts_received += 1;
             }
 
             /* Create NAL header for the full frame using start fragments information */
             if (type == FT_START) {
                 if (buff.active_ts == c_ts) {
                     buff.s_seq = c_seq;
-
-                    buff.frame->payload[0] = (buff.hevc_ext_buf[i][0] & 0x80) | ((buff.hevc_ext_buf[i][2] & 0x3f) << 1);
-                    buff.frame->payload[1] = (buff.hevc_ext_buf[i][1]);
+                    __init_headers(buff.frame, &buff.rtp_headers[i], buff.hevc_ext_buf[i]);
                 } else {
                     INACTIVE(c_ts).s_seq = c_seq;
-
-                    INACTIVE(c_ts).frame->payload[1] = (buff.hevc_ext_buf[i][1]);
-                    INACTIVE(c_ts).frame->payload[0] = (buff.hevc_ext_buf[i][0] & 0x80) | ((buff.hevc_ext_buf[i][2] & 0x3f) << 1);
+                    __init_headers(INACTIVE(c_ts).frame, &buff.rtp_headers[i], buff.hevc_ext_buf[i]);
                 }
             }
 
@@ -594,6 +611,11 @@ end:
                 );
 #endif
 
+                fprintf(stderr, "return: %u %zu %zu\n",
+                    buff.frame->header.timestamp,
+                    buff.received_size,
+                    buff.pkts_received * MAX_PAYLOAD
+                );
                 buff.frame->payload_len = buff.received_size;
                 reader->return_frame(buff.frame);
 
@@ -605,7 +627,7 @@ end:
 
                 /* Frames are resolved in order meaning that the next oldest frame is resolved next */
                 if (buff.tss.size() != 0) {
-                    uint32_t n_ts  = __get_next_ts(buff.tss);
+                    uint32_t n_ts = __get_next_ts(buff.tss);
 
                     buff.active_ts     = n_ts;
                     buff.frame         = INACTIVE(n_ts).frame;
@@ -629,7 +651,7 @@ end:
                         uint32_t prev_seq = INACTIVE(n_ts).s_seq;
 
                         for (auto& i : INACTIVE(n_ts).rinfo) {
-                            if (i.first - 1 != prev_seq) {
+                            if (i.first - 1 != (ssize_t)prev_seq) {
                                 LOG_WARN("relocation cannot be performed, informatin missing!");
                             }
 
@@ -652,8 +674,8 @@ end:
                     buff.frame         = kvz_rtp::frame::alloc_rtp_frame(DEFAULT_ALLOC_SIZE + NAL_HDR_SIZE);
                     buff.s_seq         = INVALID_SEQ;
                     buff.e_seq         = INVALID_SEQ;
+                    buff.next_off      = NAL_HDR_SIZE;
                     buff.pkts_received = 0;
-                    buff.next_off      = 2;
 
                     /* TODO: selitä */
                     buff.active_ts = INVALID_TS;

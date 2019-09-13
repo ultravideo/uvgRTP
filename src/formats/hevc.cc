@@ -73,7 +73,6 @@ static inline unsigned __find_hevc_start(uint32_t value)
  * Do not add offset to "data" ptr before passing it to __get_hevc_start()! */
 static ssize_t __get_hevc_start(uint8_t *data, size_t len, size_t offset, uint8_t& start_len)
 {
-    int found     = 0;
     bool prev_z   = false;
     bool cur_z    = false;
     size_t pos    = offset;
