@@ -200,7 +200,7 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
 rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
 {
     /* set the marker bit of the last packet to 1 */
-    /* TODO:  */
+    ((uint8_t *)&rtpheaders_[rtphdr_ptr_ - 1])[1] |= (1 << 7);
 
 #ifdef __linux__
 
