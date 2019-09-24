@@ -14,7 +14,7 @@
 #include <iostream>
 
 kvz_rtp::frame_queue::frame_queue()
-    :rtphdr_ptr_(0), chunk_ptr_(0),
+    :initialized_(false), rtphdr_ptr_(0), chunk_ptr_(0),
 #ifdef __linux__
     hdr_ptr_(0)
 #else
@@ -36,11 +36,15 @@ rtp_error_t kvz_rtp::frame_queue::init_queue(kvz_rtp::connection *conn)
     if (!conn)
         return RTP_INVALID_VALUE;
 
+    if (initialized_)
+        return RTP_OK;
+
 #ifdef __linux__
     out_addr_ = dynamic_cast<kvz_rtp::writer *>(conn)->get_out_address();
 #endif
     conn->fill_rtp_header((uint8_t *)(&rtphdr_));
 
+    initialized_ = true;
     return RTP_OK;
 }
 
@@ -195,23 +199,26 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
 
 rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
 {
+    /* set the marker bit of the last packet to 1 */
+    /* TODO:  */
+
 #ifdef __linux__
 
     if (!conn || hdr_ptr_ == 0 || chunk_ptr_ == 0) {
         LOG_ERROR("Cannot send 0 messages or messages containing 0 chunks!");
-        empty_queue();
+        deinit_queue();
         return RTP_INVALID_VALUE;
     }
 
     if (sendmmsg(conn->get_raw_socket(), headers_, hdr_ptr_, 0) < 0) {
         LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
-        empty_queue();
+        deinit_queue();
         return RTP_SEND_ERROR;
     }
 
     LOG_DEBUG("full message took %d chunks and %d messages", chunk_ptr_, hdr_ptr_);
 
-    return kvz_rtp::frame_queue::empty_queue();
+    return kvz_rtp::frame_queue::deinit_queue();
 #else
     if (!conn || buf_ptr_ == 0)
         return RTP_INVALID_VALUE;
@@ -221,17 +228,17 @@ rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
 
     if (WSASendTo(conn->get_raw_socket(), buffers_, buf_ptr_, &sent_bytes, 0, (SOCKADDR *)&addr, sizeof(addr), NULL, NULL) == -1) {
         win_get_last_error();
-        empty_queue();
+        deinit_queue();
         return RTP_SEND_ERROR;
     }
 
     std::cerr << std::endl << "FLUSHING QUEUE!" << std::endl;
     LOG_INFO("full message took %d buffers, sent %u bytes", buf_ptr_, sent_bytes);
-    return empty_queue();
+    return kvz_rtp::frame_queue::deinit_queue();
 #endif
 }
 
-rtp_error_t kvz_rtp::frame_queue::empty_queue()
+rtp_error_t kvz_rtp::frame_queue::deinit_queue()
 {
 #ifdef __linux__
     hdr_ptr_ = chunk_ptr_     = 0;
@@ -242,6 +249,8 @@ rtp_error_t kvz_rtp::frame_queue::empty_queue()
 
     rtphdr_ptr_ = 0;
     memset(&rtphdr_, 0, sizeof(rtphdr_));
+
+    initialized_ = false;
 
     return RTP_OK;
 }

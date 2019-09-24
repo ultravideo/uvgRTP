@@ -45,8 +45,11 @@ namespace kvz_rtp {
          * return RTP_SEND_ERROR if send fails */
         rtp_error_t flush_queue(kvz_rtp::connection *conn);
 
-        /* Set all pointers to 0 and free any memory */
-        rtp_error_t empty_queue();
+        /* Set all pointers to 0 and free any memory
+         *
+         * NOTE: For each init_queue(), there MUST be a call to deinit_queue()
+         * Otherwise the queue is left in an uninitialized state */
+        rtp_error_t deinit_queue();
 
     private:
         void update_rtp_header(kvz_rtp::connection *conn);
@@ -54,6 +57,7 @@ namespace kvz_rtp {
         kvz_rtp::frame::rtp_header rtpheaders_[MAX_MSG_COUNT];
         kvz_rtp::frame::rtp_frame rtphdr_;
 
+        bool initialized_;
         int rtphdr_ptr_;
         int chunk_ptr_;
 

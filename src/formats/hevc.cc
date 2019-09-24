@@ -293,7 +293,7 @@ static rtp_error_t __push_hevc_frame(
 
     if ((ret = fqueue->enqueue_message(conn, buffers)) != RTP_OK) {
         LOG_ERROR("Failed to send HEVC frame!");
-        fqueue->empty_queue();
+        fqueue->deinit_queue();
         return ret;
     }
 
@@ -346,9 +346,41 @@ static rtp_error_t __push_hevc_frame(
 #endif
 }
 
+/* TODO: mitä speksi sanoo slicejen lähettämisestä */
+rtp_error_t __push_hevc_slice(kvz_rtp::connection *conn, uint8_t *data, size_t data_len, int flags)
+{
+    rtp_error_t ret;
+
+    if ((flags & RTP_SLICE) == 0) {
+        LOG_DEBUG("not a slice!");
+        return RTP_INVALID_VALUE;
+    }
+
+    kvz_rtp::frame_queue *fqueue = conn->get_frame_queue();
+    (void)fqueue->init_queue(conn);
+
+    if (data_len >= MAX_PAYLOAD) {
+        LOG_ERROR("slice is too big!");
+        (void)fqueue->deinit_queue();
+        return RTP_INVALID_VALUE;
+    }
+
+    if ((ret = fqueue->enqueue_message(conn, data, data_len)) != RTP_OK) {
+        LOG_ERROR("Failed to enqueue HEVC slice!");
+        (void)fqueue->deinit_queue();
+        return ret;
+    }
+
+    if ((flags & RTP_MORE) == 0)
+        ret = fqueue->flush_queue(conn);
+
+    return ret;
+}
+
 rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len, int flags)
 {
-    (void)flags;
+    if (flags & RTP_SLICE)
+        return __push_hevc_slice(conn, data, data_len, flags);
 
 #ifdef __linux__
     /* find first start code */
@@ -383,7 +415,7 @@ rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, uint8_t *data, 
         return RTP_OK;
 
 error:
-    fqueue->empty_queue();
+    fqueue->deinit_queue();
     return ret;
 #else
     uint8_t start_len;
