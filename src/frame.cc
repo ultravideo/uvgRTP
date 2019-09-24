@@ -62,10 +62,10 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtp_frame *frame)
 #if defined(__linux__) && defined(__RTP_USE_PROBATION_ZONE__)
     if (frame->probation)
         delete[] frame->probation;
-#endif
-
-    else if (frame->payload)
+#else
+    if (frame->payload)
         delete[] frame->payload;
+#endif
 
     LOG_DEBUG("Deallocating frame, type %u", frame->type);
 
