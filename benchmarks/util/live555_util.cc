@@ -71,6 +71,8 @@ void FramedSourceCustom::sendFrame()
             printStats();
         }
 
+        /* TODO: framer */
+
         auto cinfo   = chunks_.front();
         chunks_.pop();
 

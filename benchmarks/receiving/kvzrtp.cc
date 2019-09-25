@@ -2,18 +2,32 @@
 #include <kvzrtp/clock.hh>
 #include <cstring>
 
+#include <easy/profiler.h>
+
 using std::chrono::high_resolution_clock;
 
 extern void *get_mem(int argc, char **argv, size_t& len);
 
+void recv_hook(void *arg, kvz_rtp::frame::rtp_frame *frame)
+{
+    (void)kvz_rtp::frame::dealloc_frame(frame);
+}
+
 int main(int argc, char **argv)
 {
+    EASY_PROFILER_ENABLE;
+
     size_t len = 0;
     void *mem  = get_mem(argc, argv, len);
 
     kvz_rtp::context rtp_ctx;
 
     kvz_rtp::writer *writer = rtp_ctx.create_writer("127.0.0.1", 8888, RTP_FORMAT_HEVC);
+    kvz_rtp::reader *reader  = rtp_ctx.create_reader("127.0.0.1", 8888, RTP_FORMAT_HEVC);
+
+    reader->install_recv_hook(NULL, recv_hook);
+
+    (void)reader->start();
     (void)writer->start();
 
     uint64_t chunk_size, total_size;
@@ -57,4 +71,5 @@ int main(int argc, char **argv)
     fprintf(stderr, "avg processing time of frame: %lu\n", fpt_ms / frames);
 
     rtp_ctx.destroy_writer(writer);
+    profiler::dumpBlocksToFile("/home/altonen/work/rtplib/benchmarks/receiving/profiler.prof");
 }

@@ -2,5 +2,6 @@ src/*.o
 src/formats/*.o
 libkvzrtp.a
 *main
-benchmarks/main_*
-benchmarks/results
+benchmarks/*/main_*
+benchmarks/*/results
+*.prof

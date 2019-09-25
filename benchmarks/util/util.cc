@@ -22,8 +22,8 @@ void *get_mem(int argc, char **argv, size_t& len)
     char *output = NULL;
 
     if (argc != 3) {
-        input  = (char *)"util/video.raw";
-        output = (char *)"util/out.hevc";
+        input  = (char *)"../util/video.raw";
+        output = (char *)"../util/out.hevc";
     } else {
         input  = argv[1];
         output = argv[2];
