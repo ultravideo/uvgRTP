@@ -21,10 +21,16 @@
 #else
 
 #ifdef __RTP_N_PACKETS_PER_SYSCALL__
-#define MAX_DATAGRAMS                  __RTP_N_PACKETS_PER_SYSCALL__
+#   define MAX_DATAGRAMS   __RTP_N_PACKETS_PER_SYSCALL__
 #else
-#define MAX_DATAGRAMS                 10
+#   define MAX_DATAGRAMS   10
 #endif
+#endif
+
+#ifdef __RTP_MAX_PAYLOAD__
+#   define MAX_READ_SIZE   __RTP_MAX_PAYLOAD__
+#else
+#   define MAX_READ_SIZE   MAX_PAYLOAD
 #endif
 
 #define RTP_FRAME_MAX_DELAY          100
