@@ -38,7 +38,7 @@ For kvzRTP we've used 3 methods to improve the send throughput:
 * System call dispatching
    * To improve the responsiveness of the library, application code only needs to call `push_frame()` which does the packetization and pushes the packets to a writer-specific frame queue. The actual sending is done by a separate thread called system call dispatcher (SCD). Its sole purpose is to take the packets from the frame queue and send them. This minimizes the delay experienced by the calling application and makes sending faster
 
-System call batching and dispatching are very tightly-knit combination. Frame queue is internally implemented as a ring buffer of smaller buffers (or rather, slots for pointers to buffers). This ring buffer is filled by the caller using `enqueue_message()` and when `flush_queue()` is called, it will internally call `trigger_send()` in SCD's context. SCD locks the range given by `trigger_send()` and performs a batched system call. During that time, if more frames are given to kvzRTP, they're flexibly written to the ring buffer. If application pushes more data to kvzRTP than SCD can push out (the ring buffer is full), the `enqueue_message()` will wait on a mutex. The size of the ring buffer is configurable by `__RTP_FQUEUE_RING_BUFFER_SIZE__`
+System call batching and dispatching are very tightly-knit combination. Frame queue is internally implemented as a ring buffer of smaller buffers (or rather, slots for pointers to buffers). This ring buffer is filled by the caller using `enqueue_message()` and when `flush_queue()` is called, it will internally call `trigger_send()` in SCD's context. SCD locks the range given by `trigger_send()` and performs a batched system call. During that time, if more frames are given to kvzRTP, they're flexibly written to the ring buffer. If application pushes more data to kvzRTP than SCD can push out (the ring buffer is full), the `enqueue_message()` will wait on a mutex. The size of the ring buffer is configurable by `__RTP_FQUEUE_RING_BUFFER_SIZE__` and `__RTP_FQUEUE_RING_BUFFER_BUFFS_PER_PACKET__`
 
 Because of these optimizations, we're the [fastest at sending HEVC](https://google.com) (and AVC [not tested]). Basically we're fast at sending any media stream with frame sizes big and small that require packetization to MTU-sized chunks.
 
@@ -165,6 +165,13 @@ Use `__RTP_MAX_PAYLOAD__` to determine the maximum UDP **payload** size
 
 Use `__RTP_PROBATION_ZONE_SIZE__` to configure the probation zone is
 * This should define the number of **packets** that fit into probation zone
+
+`__RTP_FQUEUE_RING_BUFFER_SIZE__`
+* How many UDP packets the ring buffer can hold (default is 1500)
+
+Use `__RTP_FQUEUE_RING_BUFFER_BUFFS_PER_PACKET__`
+* How many buffers one UDP packet takes (default is 4 [RTP, NAL, FU and payload])
+* NOTE: ring buffer default size is 4 * 1500 = 6000 elements
 
 Use `NDEBUG` to disable `LOG_DEBUG` which is the most verbose level of logging
 

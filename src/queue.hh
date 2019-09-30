@@ -7,8 +7,17 @@
 
 namespace kvz_rtp {
 
+#ifdef __RTP_FQUEUE_RING_BUFFER_SIZE__
+    const int MAX_MSG_COUNT   = __RTP_FQUEUE_RING_BUFFER_SIZE__;
+#else
     const int MAX_MSG_COUNT   = 1500;
-    const int MAX_CHUNK_COUNT = 3000;
+#endif
+
+#ifdef __RTP_FQUEUE_RING_BUFFER_BUFFS_PER_PACKET__
+    const int MAX_CHUNK_COUNT = MAX_MSG_COUNT * __RTP_FQUEUE_RING_BUFFER_BUFFS_PER_PACKET__;
+#else
+    const int MAX_CHUNK_COUNT = MAX_MSG_COUNT * 4;
+#endif
 
     class frame_queue {
     public:
