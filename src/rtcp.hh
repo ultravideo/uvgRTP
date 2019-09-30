@@ -137,6 +137,11 @@ namespace kvz_rtp {
          * + clock rate for calculating the correct increment */
         void set_sender_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start);
 
+        rtp_error_t install_sender_hook(void (*hook)(kvz_rtp::frame::rtcp_sender_frame *));
+        rtp_error_t install_receiver_hook(void (*hook)(kvz_rtp::frame::rtcp_receiver_frame *));
+        rtp_error_t install_sdes_hook(void (*hook)(kvz_rtp::frame::rtcp_sdes_frame *));
+        rtp_error_t install_app_hook(void (*hook)(kvz_rtp::frame::rtcp_app_frame *));
+
     private:
         static void rtcp_runner(rtcp *rtcp);
 
@@ -292,5 +297,10 @@ namespace kvz_rtp {
          * The socket are also stored here (in addition to participants_ map) so they're easier
          * to pass to poll when RTCP runner is listening to incoming packets */
         std::vector<kvz_rtp::socket> sockets_;
+
+        void (*sender_hook_)(kvz_rtp::frame::rtcp_sender_frame *);
+        void (*receiver_hook_)(kvz_rtp::frame::rtcp_receiver_frame *);
+        void (*sdes_hook_)(kvz_rtp::frame::rtcp_sdes_frame *);
+        void (*app_hook_)(kvz_rtp::frame::rtcp_app_frame *);
     };
 };

@@ -770,6 +770,42 @@ rtp_error_t kvz_rtp::rtcp::generate_report()
     return generate_sender_report();
 }
 
+rtp_error_t kvz_rtp::rtcp::install_sender_hook(void (*hook)(kvz_rtp::frame::rtcp_sender_frame *))
+{
+    if (!hook)
+        return RTP_INVALID_VALUE;
+
+    sender_hook_ = hook;
+    return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::rtcp::install_receiver_hook(void (*hook)(kvz_rtp::frame::rtcp_receiver_frame *))
+{
+    if (!hook)
+        return RTP_INVALID_VALUE;
+
+    receiver_hook_ = hook;
+    return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::rtcp::install_sdes_hook(void (*hook)(kvz_rtp::frame::rtcp_sdes_frame *))
+{
+    if (!hook)
+        return RTP_INVALID_VALUE;
+
+    sdes_hook_ = hook;
+    return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::rtcp::install_app_hook(void (*hook)(kvz_rtp::frame::rtcp_app_frame *))
+{
+    if (!hook)
+        return RTP_INVALID_VALUE;
+
+    app_hook_ = hook;
+    return RTP_OK;
+}
+
 rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame, size_t size)
 {
     (void)size;
@@ -812,7 +848,10 @@ rtp_error_t kvz_rtp::rtcp::handle_sender_report_packet(kvz_rtp::frame::rtcp_send
         fprintf(stderr, "-------\n");
     }
 
-    participants_[frame->sender_ssrc]->s_frame = cpy_frame;
+    if (sender_hook_)
+        sender_hook_(cpy_frame);
+    else
+        participants_[frame->sender_ssrc]->s_frame = cpy_frame;
 
     return RTP_OK;
 }
@@ -866,7 +905,11 @@ rtp_error_t kvz_rtp::rtcp::handle_receiver_report_packet(kvz_rtp::frame::rtcp_re
         fprintf(stderr, "dlsr:     %u\n", cpy_frame->blocks[i].dlsr);
         fprintf(stderr, "-------\n");
     }
-    participants_[frame->sender_ssrc]->r_frame = cpy_frame;
+
+    if (receiver_hook_)
+        receiver_hook_(cpy_frame);
+    else
+        participants_[frame->sender_ssrc]->r_frame = cpy_frame;
 
     return RTP_OK;
 }
@@ -891,7 +934,10 @@ rtp_error_t kvz_rtp::rtcp::handle_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *f
     uint8_t *cpy_frame = new uint8_t[size];
     memcpy(cpy_frame, frame, size);
 
-    participants_[frame->sender_ssrc]->sdes_frame = (kvz_rtp::frame::rtcp_sdes_frame *)cpy_frame;
+    if (sdes_hook_)
+        sdes_hook_((kvz_rtp::frame::rtcp_sdes_frame *)cpy_frame);
+    else
+        participants_[frame->sender_ssrc]->sdes_frame = (kvz_rtp::frame::rtcp_sdes_frame *)cpy_frame;
 
     return RTP_OK;
 }
@@ -935,7 +981,10 @@ rtp_error_t kvz_rtp::rtcp::handle_app_packet(kvz_rtp::frame::rtcp_app_frame *fra
     uint8_t *cpy_frame = new uint8_t[size];
     memcpy(cpy_frame, frame, size);
 
-    participants_[frame->ssrc]->app_frame = (kvz_rtp::frame::rtcp_app_frame *)cpy_frame;
+    if (app_hook_)
+        app_hook_((kvz_rtp::frame::rtcp_app_frame *)cpy_frame);
+    else
+        participants_[frame->ssrc]->app_frame = (kvz_rtp::frame::rtcp_app_frame *)cpy_frame;
 
     return RTP_OK;
 }
