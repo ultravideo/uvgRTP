@@ -4,7 +4,12 @@
 #include <ws2def.h>
 #else
 #include <netinet/in.h>
+
+#ifdef __RTP_PROBATION_ZONE_SIZE__
+#define PROBATION_MAX_PKTS __RTP_PROBATION_ZONE_SIZE__
+#else
 #define PROBATION_MAX_PKTS 8
+#endif
 #endif
 
 #include <string>
