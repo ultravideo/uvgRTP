@@ -19,8 +19,10 @@ namespace kvz_rtp {
 #ifdef _WIN32
     typedef SOCKET socket_t;
     typedef unsigned socklen_t;
+    typedef TRANSMIT_PACKETS_ELEMENT vecio_buf;
 #else
-    typedef int    socket_t;
+    typedef int socket_t;
+    typedef mmsghdr vecio_buf;
 #endif
 
     const int MAX_BUFFER_COUNT = 256;
@@ -70,6 +72,14 @@ namespace kvz_rtp {
             rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
             rtp_error_t sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags);
             rtp_error_t sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent);
+
+            /* Special sendto() functions, used to send multiple UDP packets with one system call
+             * Internally it uses sendmmsg(2) (Linux) or TransmitPackets (Windows)
+             *
+             * Return RTP_OK on success
+             * Return RTP_INVALID_VALUE if one of the parameters is invalid
+             * Return RTP_SEND_ERROR if sendmmsg/TransmitPackets failed */
+            rtp_error_t send_vecio(vecio_buf *buffers, size_t nbuffers, int flags);
 
             /* Same as recvfrom(2), receives a message from remote
              *

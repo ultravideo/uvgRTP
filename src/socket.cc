@@ -277,6 +277,23 @@ rtp_error_t kvz_rtp::socket::sendto(
     return __sendtov(addr, buffers, flags, bytes_sent);
 }
 
+rtp_error_t kvz_rtp::socket::send_vecio(vecio_buf *buffers, size_t nbuffers, int flags)
+{
+    if (buffers == nullptr || nbuffers == 0)
+        return RTP_INVALID_VALUE;
+
+#ifdef __linux__
+    if (sendmmsg(socket_, buffers, nbuffers, flags) < 0) {
+        LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
+        return RTP_SEND_ERROR;
+    }
+
+    return RTP_OK;
+#else
+    /* TODO:  */
+#endif
+}
+
 rtp_error_t kvz_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read)
 {
     socklen_t *len_ptr = nullptr;
