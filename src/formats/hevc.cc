@@ -224,7 +224,8 @@ end:
 }
 
 static rtp_error_t __push_hevc_frame(
-    kvz_rtp::connection *conn, kvz_rtp::frame_queue *fqueue,
+    kvz_rtp::connection *conn,
+    kvz_rtp::frame_queue *fqueue,
     uint8_t *data, size_t data_len,
     bool more
 )
@@ -235,38 +236,35 @@ static rtp_error_t __push_hevc_frame(
     size_t data_pos  = 0;
 
 #ifdef __linux__
-    /* Smaller-than-MTU frames can be enqueued without flushing the queue before return
-     * because they don't store any extra info to __push_hevc_frame()'s stack.
-     *
-     * Larger frames on the other hand require that once all the data ("data" ptr)
-     * has been processed, the frame queue must be flushed because the fragment headers
-     * are stored to __push_hevc_frame()'s stack and on return that memory is not addressable */
     if (data_len <= MAX_PAYLOAD) {
-        if ((ret = fqueue->enqueue_message(conn, data, data_len)) != RTP_OK)
+        if ((ret = fqueue->enqueue_message(conn, data, data_len)) != RTP_OK) {
+            LOG_ERROR("enqeueu failed for small packet");
             return ret;
+        }
         return more ? RTP_NOT_READY : RTP_OK;
     }
 
-    /* All fragment units share the same NAL and FU headers and these headers can be saved
-     * to this function's stack. Each fragment is given an unique RTP header when enqueue_message()
-     * is called because each fragment has its own sequence number */
-    std::vector<std::pair<size_t, uint8_t *>> buffers;
+    /* The payload is larger than MTU (1500 bytes) so we must split it into smaller RTP frames
+     * Because we don't if the SCD is enabled and thus cannot make any assumptions about the life time
+     * of current stack, we need to store NAL and FU headers to the frame queue transaction.
+     *
+     * This can be done by asking a handle to current transaction's buffer vectors.
+     *
+     * During Connection initialization, the frame queue was given HEVC as the payload format so the
+     * transaction also contains our media-specifi headers [get_media_headers()]. */
+    auto buffers = fqueue->get_buffer_vector();
+    auto headers = (kvz_rtp::hevc::media_headers_t *)fqueue->get_media_headers();
 
-    uint8_t nal_header[kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] = {
-        49 << 1, /* fragmentation unit */
-        1,       /* TID */
-    };
+    headers->nal_header[0] = 49 << 1; /* fragmentation unit */
+    headers->nal_header[1] = 1;       /* temporal id */
 
-    /* one for first frag, one for all the middle frags and one for the last frag */
-    uint8_t fu_headers[3 * kvz_rtp::frame::HEADER_SIZE_HEVC_FU] = {
-        (uint8_t)((1 << 7) | nalType),
-        nalType,
-        (uint8_t)((1 << 6) | nalType)
-    };
+    headers->fu_headers[0] = (uint8_t)((1 << 7) | nalType);
+    headers->fu_headers[1] = nalType;
+    headers->fu_headers[2] = (uint8_t)((1 << 6) | nalType);
 
-    buffers.push_back(std::make_pair(sizeof(nal_header), nal_header));
-    buffers.push_back(std::make_pair(sizeof(uint8_t),    &fu_headers[0]));
-    buffers.push_back(std::make_pair(MAX_PAYLOAD,        nullptr));
+    buffers.push_back(std::make_pair(sizeof(headers->nal_header), headers->nal_header));
+    buffers.push_back(std::make_pair(sizeof(uint8_t),             &headers->fu_headers[0]));
+    buffers.push_back(std::make_pair(MAX_PAYLOAD,                 nullptr));
 
     data_pos   = kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
     data_left -= kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
@@ -275,25 +273,27 @@ static rtp_error_t __push_hevc_frame(
         buffers.at(2).first  = MAX_PAYLOAD;
         buffers.at(2).second = &data[data_pos];
 
-        if ((ret = fqueue->enqueue_message(conn, buffers)) != RTP_OK)
+        if ((ret = fqueue->enqueue_message(conn, buffers)) != RTP_OK) {
+            LOG_ERROR("enqueue failed");
             return ret;
+        }
 
         data_pos  += MAX_PAYLOAD;
         data_left -= MAX_PAYLOAD;
 
         /* from now on, use the FU header meant for middle fragments */
-        buffers.at(1).second = &fu_headers[1];
+        buffers.at(1).second = &headers->fu_headers[1];
     }
 
     /* use the FU header meant for the last fragment */
-    buffers.at(1).second = &fu_headers[2];
+    buffers.at(1).second = &headers->fu_headers[2];
 
     buffers.at(2).first  = data_left;
     buffers.at(2).second = &data[data_pos];
 
     if ((ret = fqueue->enqueue_message(conn, buffers)) != RTP_OK) {
         LOG_ERROR("Failed to send HEVC frame!");
-        fqueue->deinit_queue();
+        fqueue->deinit_transaction();
         return ret;
     }
 
@@ -357,17 +357,17 @@ rtp_error_t __push_hevc_slice(kvz_rtp::connection *conn, uint8_t *data, size_t d
     }
 
     kvz_rtp::frame_queue *fqueue = conn->get_frame_queue();
-    (void)fqueue->init_queue(conn);
+    (void)fqueue->init_transaction(conn);
 
     if (data_len >= MAX_PAYLOAD) {
         LOG_ERROR("slice is too big!");
-        (void)fqueue->deinit_queue();
+        (void)fqueue->deinit_transaction();
         return RTP_INVALID_VALUE;
     }
 
     if ((ret = fqueue->enqueue_message(conn, data, data_len)) != RTP_OK) {
         LOG_ERROR("Failed to enqueue HEVC slice!");
-        (void)fqueue->deinit_queue();
+        (void)fqueue->deinit_transaction();
         return ret;
     }
 
@@ -396,7 +396,7 @@ rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, uint8_t *data, 
     }
 
     kvz_rtp::frame_queue *fqueue = conn->get_frame_queue();
-    fqueue->init_queue(conn);
+    (void)fqueue->init_transaction(conn);
 
     while (offset != -1) {
         offset = __get_hevc_start(data, data_len, offset, start_len);
@@ -415,7 +415,7 @@ rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, uint8_t *data, 
         return RTP_OK;
 
 error:
-    fqueue->deinit_queue();
+    fqueue->deinit_transaction();
     return ret;
 #else
     uint8_t start_len;
