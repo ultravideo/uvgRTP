@@ -11,8 +11,8 @@ namespace kvz_rtp {
     class writer : public connection {
 
     public:
-        writer(std::string dst_addr, int dst_port);
-        writer(std::string dst_addr, int dst_port, int src_port);
+        writer(rtp_format_t fmt, std::string dst_addr, int dst_port);
+        writer(rtp_format_t fmt, std::string dst_addr, int dst_port, int src_port);
         ~writer();
 
         // open socket for sending frames

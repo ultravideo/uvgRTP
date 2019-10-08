@@ -21,16 +21,16 @@ using namespace mingw;
 #include "formats/hevc.hh"
 #include "formats/generic.hh"
 
-kvz_rtp::writer::writer(std::string dst_addr, int dst_port):
-    connection(false),
+kvz_rtp::writer::writer(rtp_format_t fmt, std::string dst_addr, int dst_port):
+    connection(fmt, false),
     dst_addr_(dst_addr),
     dst_port_(dst_port),
     src_port_(0)
 {
 }
 
-kvz_rtp::writer::writer(std::string dst_addr, int dst_port, int src_port):
-    writer(dst_addr, dst_port)
+kvz_rtp::writer::writer(rtp_format_t fmt, std::string dst_addr, int dst_port, int src_port):
+    writer(fmt, dst_addr, dst_port)
 {
     src_port_ = src_port;
 }

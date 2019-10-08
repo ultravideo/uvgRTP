@@ -16,7 +16,7 @@
 #include "formats/hevc.hh"
 #include "formats/opus.hh"
 
-kvz_rtp::connection::connection(bool reader):
+kvz_rtp::connection::connection(rtp_format_t fmt, bool reader):
     config_(nullptr),
     socket_(),
     rtcp_(nullptr),
@@ -26,10 +26,10 @@ kvz_rtp::connection::connection(bool reader):
 {
     rtp_sequence_  = 1; //kvz_rtp::random::generate_32();
     rtp_ssrc_      = kvz_rtp::random::generate_32();
-    rtp_payload_   = RTP_FORMAT_GENERIC;
+    rtp_payload_   = fmt;
 
     if (!reader)
-        fqueue_ = new kvz_rtp::frame_queue;
+        fqueue_ = new kvz_rtp::frame_queue(fmt);
 }
 
 kvz_rtp::connection::~connection()

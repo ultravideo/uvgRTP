@@ -23,7 +23,7 @@ namespace kvz_rtp {
 
     class connection {
     public:
-        connection(bool reader);
+        connection(rtp_format_t fmt, bool reader);
         virtual ~connection();
 
         virtual rtp_error_t start() = 0;

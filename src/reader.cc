@@ -10,8 +10,8 @@
 
 #define RTP_HEADER_VERSION  2
 
-kvz_rtp::reader::reader(std::string src_addr, int src_port):
-    connection(true),
+kvz_rtp::reader::reader(rtp_format_t fmt, std::string src_addr, int src_port):
+    connection(fmt, true),
     active_(false),
     src_addr_(src_addr),
     src_port_(src_port),
