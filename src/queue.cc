@@ -206,8 +206,7 @@ rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
         return RTP_INVALID_VALUE;
     }
 
-    /* TODO: start using send_vecio from socket.hh */
-    if (sendmmsg(conn->get_raw_socket(), active_->headers, active_->hdr_ptr, 0) < 0) {
+    if (conn->get_socket().send_vecio(active_->headers, active_->hdr_ptr, 0) != RTP_OK) {
         LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
         (void)deinit_transaction();
         return RTP_SEND_ERROR;
