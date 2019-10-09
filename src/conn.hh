@@ -19,6 +19,7 @@
 
 namespace kvz_rtp {
 
+    class dispatcher;
     class frame_queue;
 
     class connection {
@@ -78,6 +79,8 @@ namespace kvz_rtp {
         /* TODO:  */
         kvz_rtp::frame_queue *get_frame_queue();
 
+        kvz_rtp::dispatcher  *get_dispatcher();
+
     protected:
         void *config_;
         uint32_t id_;
@@ -98,5 +101,7 @@ namespace kvz_rtp {
         uint32_t clock_rate_;
 
         kvz_rtp::frame_queue *fqueue_;
+
+        kvz_rtp::dispatcher *dispatcher_;
     };
 };

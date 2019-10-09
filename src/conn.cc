@@ -7,6 +7,7 @@
 #include <cstring>
 #include <iostream>
 
+#include "dispatch.hh"
 #include "conn.hh"
 #include "debug.hh"
 #include "queue.hh"
@@ -22,14 +23,28 @@ kvz_rtp::connection::connection(rtp_format_t fmt, bool reader):
     rtcp_(nullptr),
     reader_(reader),
     wc_start_(0),
-    fqueue_(nullptr)
+    fqueue_(nullptr),
+    dispatcher_(nullptr)
 {
     rtp_sequence_  = 1; //kvz_rtp::random::generate_32();
     rtp_ssrc_      = kvz_rtp::random::generate_32();
     rtp_payload_   = fmt;
 
-    if (!reader)
-        fqueue_ = new kvz_rtp::frame_queue(fmt);
+    if (!reader) {
+#ifdef __RTP_USE_SYSCALL_DISPATCHER__
+        if (fmt == RTP_FORMAT_HEVC) {
+            dispatcher_ = new kvz_rtp::dispatcher(&socket_);
+            fqueue_     = new kvz_rtp::frame_queue(fmt, dispatcher_);
+        } else {
+            fqueue_     = new kvz_rtp::frame_queue(fmt);
+            dispatcher_ = nullptr;
+        }
+#else
+        fqueue_     = new kvz_rtp::frame_queue(fmt);
+#endif
+    }
+
+    set_payload(fmt);
 }
 
 kvz_rtp::connection::~connection()
@@ -38,6 +53,14 @@ kvz_rtp::connection::~connection()
         rtcp_->terminate();
         delete rtcp_;
     }
+
+#ifdef __RTP_USE_SYSCALL_DISPATCHER__
+    if (!reader_ && rtp_payload_ == RTP_FORMAT_HEVC) {
+        while (dispatcher_->stop() != RTP_OK) {
+            /* fprintf(stderr, "here...\n"); */
+        }
+    }
+#endif
 }
 
 void kvz_rtp::connection::set_payload(rtp_format_t fmt)
@@ -211,4 +234,9 @@ rtp_error_t kvz_rtp::connection::create_rtcp(std::string dst_addr, int dst_port,
 kvz_rtp::frame_queue *kvz_rtp::connection::get_frame_queue()
 {
     return fqueue_;
+}
+
+kvz_rtp::dispatcher *kvz_rtp::connection::get_dispatcher()
+{
+    return dispatcher_;
 }

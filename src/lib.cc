@@ -40,7 +40,7 @@ kvz_rtp::context::~context()
 
 kvz_rtp::reader *kvz_rtp::context::create_reader(std::string srcAddr, int srcPort, rtp_format_t fmt)
 {
-    kvz_rtp::reader *reader = new kvz_rtp::reader(srcAddr, srcPort);
+    kvz_rtp::reader *reader = new kvz_rtp::reader(fmt, srcAddr, srcPort);
 
     if (!reader) {
         std::cerr << "Failed to create kvz_rtp::reader for " << srcAddr << ":" << srcPort << "!" << std::endl;
@@ -48,14 +48,13 @@ kvz_rtp::reader *kvz_rtp::context::create_reader(std::string srcAddr, int srcPor
     }
 
     conns_.insert(std::pair<int, connection *>(reader->get_ssrc(), reader));
-    reader->set_payload(fmt);
 
     return reader;
 }
 
 kvz_rtp::writer *kvz_rtp::context::create_writer(std::string dstAddr, int dstPort, rtp_format_t fmt)
 {
-    kvz_rtp::writer *writer = new kvz_rtp::writer(dstAddr, dstPort);
+    kvz_rtp::writer *writer = new kvz_rtp::writer(fmt, dstAddr, dstPort);
 
     if (!writer) {
         LOG_ERROR("Failed to create writer for %s:%d!", dstAddr.c_str(), dstPort);
@@ -63,13 +62,13 @@ kvz_rtp::writer *kvz_rtp::context::create_writer(std::string dstAddr, int dstPor
     }
 
     conns_.insert(std::pair<int, connection *>(writer->get_ssrc(), writer));
-    writer->set_payload(fmt);
+
     return writer;
 }
 
 kvz_rtp::writer *kvz_rtp::context::create_writer(std::string dstAddr, int dstPort, int srcPort, rtp_format_t fmt)
 {
-    kvz_rtp::writer *writer = new kvz_rtp::writer(dstAddr, dstPort, srcPort);
+    kvz_rtp::writer *writer = new kvz_rtp::writer(fmt, dstAddr, dstPort, srcPort);
 
     if (!writer) {
         LOG_ERROR("Failed to create writer for %s:%d!", dstAddr.c_str(), dstPort);
@@ -77,7 +76,7 @@ kvz_rtp::writer *kvz_rtp::context::create_writer(std::string dstAddr, int dstPor
     }
 
     conns_.insert(std::pair<int, connection *>(writer->get_ssrc(), writer));
-    writer->set_payload(fmt);
+
     return writer;
 }
 

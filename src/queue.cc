@@ -19,6 +19,14 @@
 kvz_rtp::frame_queue::frame_queue(rtp_format_t fmt):
     fmt_(fmt), active_(nullptr)
 {
+    active_ = nullptr;
+    free_.reserve(MAX_QUEUED_MSGS);
+}
+
+kvz_rtp::frame_queue::frame_queue(rtp_format_t fmt, kvz_rtp::dispatcher *dispatcher):
+    frame_queue(fmt)
+{
+    dispatcher_ = dispatcher;
 }
 
 kvz_rtp::frame_queue::~frame_queue()
@@ -30,8 +38,8 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn)
     std::lock_guard<std::mutex> lock(transaction_mtx_);
 
     if (active_ != nullptr) {
-        LOG_ERROR("trying to initialize a new transaction while previous is still active!");
-        return RTP_GENERIC_ERROR;
+        LOG_WARN("initializing a new transaction while previous is still active!");
+        active_ = nullptr;
     }
 
     if (free_.empty()) {
@@ -51,10 +59,10 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn)
     active_->chunk_ptr  = 0;
     active_->hdr_ptr    = 0;
     active_->rtphdr_ptr = 0;
+    active_->fqueue     = this;
 
     active_->out_addr = dynamic_cast<kvz_rtp::writer *>(conn)->get_out_address();
     conn->fill_rtp_header((uint8_t *)&active_->rtp_common);
-
     active_->buffers.clear();
 
     return RTP_OK;
@@ -86,7 +94,7 @@ rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
 rtp_error_t kvz_rtp::frame_queue::deinit_transaction()
 {
     if (active_ == nullptr) {
-        LOG_ERROR("Trying to deinit transaction, no active transaction!");
+        LOG_WARN("Trying to deinit transaction, no active transaction!");
         return RTP_INVALID_VALUE;
     }
 
@@ -153,8 +161,8 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
     /* update the RTP header at "rtpheaders_ptr_" */
     kvz_rtp::frame_queue::update_rtp_header(conn);
 
-    active_->chunks[active_->chunk_ptr].iov_base = &active_->rtp_headers[active_->rtphdr_ptr];
     active_->chunks[active_->chunk_ptr].iov_len  = sizeof(active_->rtp_headers[active_->rtphdr_ptr]);
+    active_->chunks[active_->chunk_ptr].iov_base = &active_->rtp_headers[active_->rtphdr_ptr];
 
     for (size_t i = 0; i < buffers.size(); ++i) {
         active_->chunks[active_->chunk_ptr + i + 1].iov_len  = buffers.at(i).first;
@@ -183,6 +191,12 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
 
 rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
 {
+    if (!conn || active_->hdr_ptr == 0 || active_->chunk_ptr == 0) {
+        LOG_ERROR("Cannot send 0 messages or messages containing 0 chunks!");
+        (void)deinit_transaction();
+        return RTP_INVALID_VALUE;
+    }
+
     /* set the marker bit of the last packet to 1 */
     ((uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr - 1])[1] |= (1 << 7);
 
@@ -192,20 +206,14 @@ rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
     transaction_mtx_.unlock();
 
 #ifdef __RTP_USE_SYSCALL_DISPATCHER__
-    h_sfptr_      = active_->hdr_ptr;
-    c_sfptr_      = active_->chunk_ptr;
-
-    active_.h_end = active_->hdr_ptr   - 1;
-    active_.c_end = active_->chunk_ptr - 1;
-
-    dispatcher_->trigger_send(this);
-#else
-    if (!conn || active_->hdr_ptr == 0 || active_->chunk_ptr == 0) {
-        LOG_ERROR("Cannot send 0 messages or messages containing 0 chunks!");
-        (void)deinit_transaction();
-        return RTP_INVALID_VALUE;
+    /* Dispatcher may be enabled but it doesn't necessarily
+     * mean that this frame queue uses it to send messages */
+    if (dispatcher_) {
+        dispatcher_->trigger_send(active_);
+        active_ = nullptr;
+        return RTP_OK;
     }
-
+#endif
     if (conn->get_socket().send_vecio(active_->headers, active_->hdr_ptr, 0) != RTP_OK) {
         LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
         (void)deinit_transaction();
@@ -215,7 +223,6 @@ rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
     LOG_DEBUG("full message took %d chunks and %d messages", active_->chunk_ptr, active_->hdr_ptr);
 
     return deinit_transaction();
-#endif
 #endif
 }
 

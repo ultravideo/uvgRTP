@@ -11,7 +11,7 @@
 #ifdef __RTP_FQUEUE_RING_BUFFER_SIZE__
 #   define MAX_MSG_COUNT __RTP_FQUEUE_RING_BUFFER_SIZE__
 #else
-#   define MAX_MSG_COUNT 1500
+#   define MAX_MSG_COUNT 500
 #endif
 
 #ifdef __RTP_FQUEUE_RING_BUFFER_BUFFS_PER_PACKET__
@@ -64,11 +64,15 @@ namespace kvz_rtp {
         size_t rtphdr_ptr;
 
         sockaddr_in out_addr;
+
+        /* Used by the system call dispatcher for transaction deinitialization */
+        kvz_rtp::frame_queue *fqueue;
     } transaction_t;
 
     class frame_queue {
         public:
             frame_queue(rtp_format_t fmt);
+            frame_queue(rtp_format_t fmt, kvz_rtp::dispatcher *dispatcher);
             ~frame_queue();
 
             rtp_error_t init_transaction(kvz_rtp::connection *conn);
@@ -148,5 +152,8 @@ namespace kvz_rtp {
             /* What is the media format used to send data using this frame queue
              * This is used when allocating new transactions */
             rtp_format_t fmt_;
+
+            /* Set to nullptr if this frame queue doesn't use dispatcher */
+            kvz_rtp::dispatcher *dispatcher_;
     };
 };

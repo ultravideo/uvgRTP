@@ -275,6 +275,7 @@ static rtp_error_t __push_hevc_frame(
 
         if ((ret = fqueue->enqueue_message(conn, buffers)) != RTP_OK) {
             LOG_ERROR("enqueue failed");
+            fqueue->deinit_transaction();
             return ret;
         }
 

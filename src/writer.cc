@@ -15,6 +15,7 @@ using namespace mingw;
 #include <iostream>
 
 #include "debug.hh"
+#include "dispatch.hh"
 #include "writer.hh"
 
 #include "formats/opus.hh"
@@ -62,6 +63,13 @@ rtp_error_t kvz_rtp::writer::start()
 
     addr_out_ = socket_.create_sockaddr(AF_INET, dst_addr_, dst_port_);
     socket_.set_sockaddr(addr_out_);
+
+#ifdef __RTP_USE_SYSCALL_DISPATCHER__
+    auto dispatcher = get_dispatcher();
+
+    if (dispatcher)
+        dispatcher->start();
+#endif
 
     if (rtcp_ == nullptr) {
         if ((rtcp_ = new kvz_rtp::rtcp(get_ssrc(), false)) == nullptr) {
