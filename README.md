@@ -45,6 +45,35 @@ Because of these optimizations, we're the [fastest at sending HEVC](https://goog
 
 Some of these optimizations, however, have some penalties and they must be enabled explicitly, see "Defines" for more details.
 
+## Deallocation and memory ownership
+
+Enabling SCD makes the the lifetime of a transaction unknown. It might be processed immediately, it might take 2ms before it's processed. This is why no memory can be stored on the caller's stack unless the calling application knows that its stack frame has a longer lifetime than the transaction (kvzRTP doesn't provide any tools to figure this out so it's very risky). This also means that once `push_frame()` is called with some memory chunk, kvzRTP owns that memory (meaning it cannot be deallocated by the calling application).
+
+Another problem is that kvzRTP doesn't know what **kind of** memory is given to it: does the pointer point to stack or heap, or perhaps to a memory-mapped file? This "opaqueness" of the pointer makes deallocation a dangerous task which is why kvzRTP needs help from the application.
+
+There are few ways to deal with this memory ownership/deallocation issue:
+* Provide deallocation callback function for the SCD:
+   * When SCD has processed the transaction, it will call the deallocation callback function which deallocates the memory properly
+* Use `unique_ptr`/`shared_ptr`
+   * This is the advised way of using `push_frame()` because it's the easiest both from application's and kvzRTP's viewpoint
+* Give `RTP_COPY` flag for `push_frame()`
+   * This will cause kvzRTP to make a copy of the memory chunk and deallocate it when it's done. The calling application can also deallocate the memory it gave to kvzRTP without worries. This is also a very simple way of dealing with the issue but it degrades performance.
+* Disable SCD
+   * This is not advised, but it completely eliminates the ownership/deallocation problem
+
+If SCD is used, it's **very important** to use one of the aforementioned tactics when calling `push_frame()`. Below is listed three possible error conditions that can happen if application doesn't follow these rules.
+
+#### Problem 1
+If application doesn't provide a deallocation callback, doesn't use `unique_ptr`/`shared_ptr` and doesn't pass `RTP_COPY` to `push_frame()`, kvzRTP assumes that the pointer points to stack and **won't do anything** about it. If the memory is on the heap, this will leak a lot of memory.
+
+#### Problem 2
+If deallocation callback is provided, kvzRTP assumes that application won't deallocate the memory by itself. If the application decides to deallocate the memory without kvzRTP's permission anyway, kvzRTP's deallocation call will results in a double-free.
+
+#### Problem 3
+If the memory becomes invalid while the transaction is waiting/being processed, SCD will sent garbage. Application must not assume anything about the lifetime of the memory given to `push_frame()` and rather use "persistent" memory like heap or somehow ensure that the lifetime of memory won't expire while the transaction is being processed.
+
+By adhering to the memory ownership/deallocation scheme presented above, the application can be sure that there will be no memory issues stemming from kvzRTP.
+
 ## Optimistic fragment receiver (OFR)
 
 kvzRTP features a special kind of fragment receiver that tries to minimize the number of copies. The number of copies is minimized by assuming that UDP packets come in order even though the protocol itself doesn't guarantee that (hence optimistic).
