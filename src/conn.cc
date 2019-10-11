@@ -240,3 +240,11 @@ kvz_rtp::dispatcher *kvz_rtp::connection::get_dispatcher()
 {
     return dispatcher_;
 }
+
+void kvz_rtp::connection::install_dealloc_hook(void (*dealloc_hook)(void *))
+{
+    if (!fqueue_)
+        return;
+
+    fqueue_->install_dealloc_hook(dealloc_hook);
+}

@@ -84,6 +84,10 @@ namespace kvz_rtp {
         std::unique_ptr<uint8_t[]> data_smart;
         uint8_t *data_raw;
 
+        /* If the application code provided us a deallocation hook, this points to it.
+         * When SCD finishes processing a transaction, it will call this hook with "data_raw" pointer */
+        void (*dealloc_hook)(void *);
+
     } transaction_t;
 
     class frame_queue {
@@ -164,6 +168,18 @@ namespace kvz_rtp {
              * Return nullptr if no data pointer is set or if there is no active transaction */
             uint8_t *get_active_dataptr();
 
+            /* Install deallocation hook for external memory chunks
+             *
+             * When user doesn't issue RTP_COPY and doesn't pass unique_ptr, memory given
+             * to push_frame() must be deallocated manually. kvzRTP doesn't know the memory
+             * type (or whether can be even deallocated) so application must provide a way
+             * to deallocate the chunk
+             *
+             * If raw pointer without RTP_COPY is given to push_frame() and the deallocation
+             * hook is missing, kvzRTP won't do anything about the memory which can lead to
+             * significant memory leaks */
+            void install_dealloc_hook(void (*dealloc_hook)(void *));
+
         private:
             /* Both the application and SCD access "free_" and "queued_" structures so the
              * access must be protected by a mutex
@@ -182,5 +198,8 @@ namespace kvz_rtp {
 
             /* Set to nullptr if this frame queue doesn't use dispatcher */
             kvz_rtp::dispatcher *dispatcher_;
+
+            /* Deallocation hook is stored here and copied to transaction upon initialization */
+            void (*dealloc_hook_)(void *);
     };
 };

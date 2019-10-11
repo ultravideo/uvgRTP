@@ -61,8 +61,9 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn)
     active_->rtphdr_ptr = 0;
     active_->fqueue     = this;
 
-    active_->data_raw   = nullptr;
-    active_->data_smart = nullptr;
+    active_->data_raw     = nullptr;
+    active_->data_smart   = nullptr;
+    active_->dealloc_hook = dealloc_hook_;
 
     active_->out_addr = dynamic_cast<kvz_rtp::writer *>(conn)->get_out_address();
     conn->fill_rtp_header((uint8_t *)&active_->rtp_common);
@@ -115,6 +116,12 @@ rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
         active_ = nullptr;
 
     queued_.erase(key);
+
+    /* Deallocate the raw data pointer using the deallocation hook provided by application */
+    if (transaction_it->second->data_raw && transaction_it->second->dealloc_hook) {
+        transaction_it->second->dealloc_hook(transaction_it->second->data_raw);
+        transaction_it->second->data_raw = nullptr;
+    }
 
     if (free_.size() > MAX_QUEUED_MSGS) {
         delete transaction_it->second->media_headers;
@@ -285,4 +292,12 @@ uint8_t *kvz_rtp::frame_queue::get_active_dataptr()
     if (active_->data_smart)
         return active_->data_smart.get();
     return active_->data_raw;
+}
+
+void kvz_rtp::frame_queue::install_dealloc_hook(void (*dealloc_hook)(void *))
+{
+    if (!dealloc_hook)
+        return;
+
+    dealloc_hook_ = dealloc_hook;
 }

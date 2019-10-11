@@ -42,9 +42,7 @@ namespace kvz_rtp {
         /* Functions for increasing various RTP statistics
          * Overloaded functions without parameters increase the counter by 1
          *
-         * Functions that take SSRC are for updating receiver statistics
-         *
-         * TODO: jitter! */
+         * Functions that take SSRC are for updating receiver statistics */
         void inc_rtp_sequence(size_t n);
         void inc_sent_bytes(size_t n);
         void inc_sent_pkts(size_t n);
@@ -54,7 +52,10 @@ namespace kvz_rtp {
         /* See RTCP->update_receiver_stats() for documentation */
         rtp_error_t update_receiver_stats(kvz_rtp::frame::rtp_frame *frame);
 
-        /* config set and get */
+        /* Config setters and getter, used f.ex. for Opus
+         *
+         * Return nullptr if the media doesn't have a config
+         * Otherwise return void pointer to config (caller must do the cast) */
         void set_config(void *config);
         void *get_config();
 
@@ -74,12 +75,23 @@ namespace kvz_rtp {
          * repots about this session to dst_addr:dst_port every N seconds (see RFC 3550) */
         rtp_error_t create_rtcp(std::string dst_addr, int dst_port, int src_port);
 
-        rtp_error_t add_rtcp_participant(kvz_rtp::connection *conn);
-
-        /* TODO:  */
+        /* Get pointer to frame queue
+         *
+         * Return pointer to frame queue for writers
+         * Return nullptr for readers */
         kvz_rtp::frame_queue *get_frame_queue();
 
-        kvz_rtp::dispatcher  *get_dispatcher();
+        /* Get pointer to dispatcher
+         *
+         * Return pointer to dispatcher for medias that use dispatcher
+         * Return nullptr otherwise */
+        kvz_rtp::dispatcher *get_dispatcher();
+
+        /* Install deallocation hook for the transaction's data payload
+         *
+         * When SCD has finished processing the request,
+         * in deinit_transaction(), it will calls this hook if it has been set. */
+        void install_dealloc_hook(void (*dealloc_hook)(void *));
 
     protected:
         void *config_;
