@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <memory>
 #include <unordered_map>
 #include <vector>
 
@@ -63,10 +64,30 @@ namespace kvz_rtp {
         size_t hdr_ptr;
         size_t rtphdr_ptr;
 
+        /* Address of receiver, used by sendmmsg(2) */
         sockaddr_in out_addr;
 
         /* Used by the system call dispatcher for transaction deinitialization */
         kvz_rtp::frame_queue *fqueue;
+
+        /* If SCD is used, it's absolutely essential to initialize transaction
+         * by giving the data pointer to frame queue
+         *
+         * When the SCD has processed the transaction,
+         * it will be destroyed freeing the "data_smart" automatically.
+         *
+         * If "data_raw" is set instead, the SCD checks if a deallocation callback is provided
+         * and if so, it will deallocate the memory using the callback
+         *
+         * If callback is not provided, SCD will check if "flags" field contains the flag "RTP_COPY"
+         * which means that kvzRTP has a made a copy of the original chunk and it can be safely freed */
+        std::unique_ptr<uint8_t[]> data_smart;
+        uint8_t *data_raw;
+
+        /* Contains all necessary information related to this transaction
+         * such as can the "data_raw" pointer be deallocated */
+        int flags;
+
     } transaction_t;
 
     class frame_queue {
@@ -76,6 +97,8 @@ namespace kvz_rtp {
             ~frame_queue();
 
             rtp_error_t init_transaction(kvz_rtp::connection *conn);
+            rtp_error_t init_transaction(kvz_rtp::connection *conn, uint8_t *data, int flags);
+            rtp_error_t init_transaction(kvz_rtp::connection *conn, std::unique_ptr<uint8_t[]> data);
 
             /* If there are less than "MAX_QUEUED_MSGS" in the "free_" vector,
              * the transaction is moved there, otherwise it's destroyed
@@ -136,6 +159,14 @@ namespace kvz_rtp {
 
             /* Update the active task's current packet's sequence number */
             void update_rtp_header(kvz_rtp::connection *conn);
+
+            /* Because frame queue supports both raw and smart pointers and the smart pointer ownership
+             * is transferred to active transaction, the code that created the transaction must query
+             * the data pointer from frame queue explicitly
+             *
+             * Return raw data pointer for caller on success
+             * Return nullptr if no data pointer is set or if there is no active transaction */
+            uint8_t *get_active_dataptr();
 
         private:
             /* Both the application and SCD access "free_" and "queued_" structures so the

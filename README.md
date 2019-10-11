@@ -47,7 +47,7 @@ Some of these optimizations, however, have some penalties and they must be enabl
 
 ## Deallocation and memory ownership
 
-Enabling SCD makes the the lifetime of a transaction unknown. It might be processed immediately, it might take 2ms before it's processed. This is why no memory can be stored on the caller's stack unless the calling application knows that its stack frame has a longer lifetime than the transaction (kvzRTP doesn't provide any tools to figure this out so it's very risky). This also means that once `push_frame()` is called with some memory chunk, kvzRTP owns that memory (meaning it cannot be deallocated by the calling application).
+Enabling SCD makes the lifetime of a transaction unknown. It might be processed immediately, it might take 2ms before it's processed. This is why no memory can be stored on the caller's stack unless the calling application knows that its stack frame has a longer lifetime than the transaction (kvzRTP doesn't provide any tools to figure this out so it's very risky). This also means that once `push_frame()` is called with some memory chunk, kvzRTP owns that memory (meaning it cannot be deallocated by the calling application).
 
 Another problem is that kvzRTP doesn't know what **kind of** memory is given to it: does the pointer point to stack or heap, or perhaps to a memory-mapped file? This "opaqueness" of the pointer makes deallocation a dangerous task which is why kvzRTP needs help from the application.
 

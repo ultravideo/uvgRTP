@@ -61,9 +61,46 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn)
     active_->rtphdr_ptr = 0;
     active_->fqueue     = this;
 
+    active_->data_raw   = nullptr;
+    active_->data_smart = nullptr;
+    active_->flags      = RTP_NO_FLAGS;
+
     active_->out_addr = dynamic_cast<kvz_rtp::writer *>(conn)->get_out_address();
     conn->fill_rtp_header((uint8_t *)&active_->rtp_common);
     active_->buffers.clear();
+
+    return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn, uint8_t *data, int flags)
+{
+    if (!conn || !data)
+        return RTP_INVALID_VALUE;
+
+    if (init_transaction(conn) != RTP_OK) {
+        LOG_ERROR("Failed to initialize transaction");
+        return RTP_GENERIC_ERROR;
+    }
+
+    /* The transaction has been initialized to "active_" */
+    active_->data_raw = data;
+    active_->flags    = flags;
+
+    return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn, std::unique_ptr<uint8_t[]> data)
+{
+    if (!conn || !data)
+        return RTP_INVALID_VALUE;
+
+    if (init_transaction(conn) != RTP_OK) {
+        LOG_ERROR("Failed to initialize transaction");
+        return RTP_GENERIC_ERROR;
+    }
+
+    /* The transaction has been initialized to "active_" */
+    active_->data_smart = std::move(data);
 
     return RTP_OK;
 }
@@ -240,4 +277,14 @@ kvz_rtp::buff_vec& kvz_rtp::frame_queue::get_buffer_vector()
 void *kvz_rtp::frame_queue::get_media_headers()
 {
     return active_->media_headers;
+}
+
+uint8_t *kvz_rtp::frame_queue::get_active_dataptr()
+{
+    if (!active_)
+        return nullptr;
+
+    if (active_->data_smart)
+        return active_->data_smart.get();
+    return active_->data_raw;
 }
