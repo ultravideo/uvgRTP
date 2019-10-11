@@ -44,6 +44,11 @@ rtp_error_t kvz_rtp::opus::push_frame(connection *conn, uint8_t *data, uint32_t 
 #endif
 }
 
+rtp_error_t kvz_rtp::opus::push_frame(connection *conn, std::unique_ptr<uint8_t[]> data, uint32_t data_len, int flags)
+{
+    return kvz_rtp::generic::push_frame(conn, std::move(data), data_len, flags);
+}
+
 kvz_rtp::frame::rtp_frame *kvz_rtp::opus::process_opus_frame(
     kvz_rtp::frame::rtp_frame *frame,
     std::pair<size_t, std::vector<kvz_rtp::frame::rtp_frame *>>& fu,

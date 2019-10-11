@@ -81,7 +81,7 @@ rtp_error_t kvz_rtp::writer::start()
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::writer::push_frame(uint8_t *data, uint32_t data_len, int flags)
+rtp_error_t kvz_rtp::writer::push_frame(uint8_t *data, size_t data_len, int flags)
 {
     switch (get_payload()) {
         case RTP_FORMAT_HEVC:
@@ -93,6 +93,21 @@ rtp_error_t kvz_rtp::writer::push_frame(uint8_t *data, uint32_t data_len, int fl
         default:
             LOG_DEBUG("Format not recognized, pushing the frame as generic");
             return kvz_rtp::generic::push_frame(this, data, data_len, flags);
+    }
+}
+
+rtp_error_t kvz_rtp::writer::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
+{
+    switch (get_payload()) {
+        case RTP_FORMAT_HEVC:
+            return kvz_rtp::hevc::push_frame(this, std::move(data), data_len, flags);
+
+        case RTP_FORMAT_OPUS:
+            return kvz_rtp::opus::push_frame(this, std::move(data), data_len, flags);
+
+        default:
+            LOG_DEBUG("Format not recognized, pushing the frame as generic");
+            return kvz_rtp::generic::push_frame(this, std::move(data), data_len, flags);
     }
 }
 

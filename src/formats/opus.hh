@@ -10,7 +10,11 @@ namespace kvz_rtp {
             uint8_t config_number;
         };
 
+        /* TODO:  */
         rtp_error_t push_frame(connection *conn, uint8_t *data, uint32_t data_len, int flags);
+
+        /* TODO:  */
+        rtp_error_t push_frame(connection *conn, std::unique_ptr<uint8_t[]> data, uint32_t data_len, int flags);
 
         /* Process the incoming Opus frame
          * The RTP frame "frame" given as parameter should be considered invalid after calling this function

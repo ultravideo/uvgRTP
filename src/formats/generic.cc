@@ -33,6 +33,21 @@ rtp_error_t kvz_rtp::generic::push_frame(kvz_rtp::connection *conn, uint8_t *dat
     return kvz_rtp::send::send_frame(conn, header, sizeof(header), data, data_len);
 }
 
+rtp_error_t kvz_rtp::generic::push_frame(kvz_rtp::connection *conn, std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
+{
+    (void)flags;
+
+    if (data_len > MAX_PAYLOAD) {
+        LOG_WARN("packet is larger (%zu bytes) than MAX_PAYLOAD (%u bytes)", data_len, MAX_PAYLOAD);
+    }
+
+    uint8_t header[kvz_rtp::frame::HEADER_SIZE_RTP];
+    conn->fill_rtp_header(header);
+
+    /* We don't need to transfer the ownership of of "data" to socket because send_frame() executes immediately */
+    return kvz_rtp::send::send_frame(conn, header, sizeof(header), data.get(), data_len);
+}
+
 rtp_error_t kvz_rtp::generic::frame_receiver(kvz_rtp::reader *reader)
 {
     LOG_INFO("Generic frame receiver starting...");
