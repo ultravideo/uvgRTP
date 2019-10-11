@@ -63,7 +63,6 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn)
 
     active_->data_raw   = nullptr;
     active_->data_smart = nullptr;
-    active_->flags      = RTP_NO_FLAGS;
 
     active_->out_addr = dynamic_cast<kvz_rtp::writer *>(conn)->get_out_address();
     conn->fill_rtp_header((uint8_t *)&active_->rtp_common);
@@ -72,7 +71,7 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn)
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn, uint8_t *data, int flags)
+rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn, uint8_t *data)
 {
     if (!conn || !data)
         return RTP_INVALID_VALUE;
@@ -84,7 +83,6 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn, ui
 
     /* The transaction has been initialized to "active_" */
     active_->data_raw = data;
-    active_->flags    = flags;
 
     return RTP_OK;
 }

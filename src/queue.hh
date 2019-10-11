@@ -84,10 +84,6 @@ namespace kvz_rtp {
         std::unique_ptr<uint8_t[]> data_smart;
         uint8_t *data_raw;
 
-        /* Contains all necessary information related to this transaction
-         * such as can the "data_raw" pointer be deallocated */
-        int flags;
-
     } transaction_t;
 
     class frame_queue {
@@ -97,7 +93,7 @@ namespace kvz_rtp {
             ~frame_queue();
 
             rtp_error_t init_transaction(kvz_rtp::connection *conn);
-            rtp_error_t init_transaction(kvz_rtp::connection *conn, uint8_t *data, int flags);
+            rtp_error_t init_transaction(kvz_rtp::connection *conn, uint8_t *data);
             rtp_error_t init_transaction(kvz_rtp::connection *conn, std::unique_ptr<uint8_t[]> data);
 
             /* If there are less than "MAX_QUEUED_MSGS" in the "free_" vector,

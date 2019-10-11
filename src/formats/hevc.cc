@@ -298,9 +298,7 @@ static rtp_error_t __push_hevc_nal(
         return ret;
     }
 
-    int retzzz = fqueue->flush_queue(conn);
-    fprintf(stderr, "kvzrtp: %d %u\n", ret, ret);
-    return (rtp_error_t)retzzz;
+    return fqueue->flush_queue(conn);
 #else
     if (data_len <= MAX_PAYLOAD) {
         LOG_DEBUG("send unfrag size %zu, type %u", data_len, nalType);
@@ -455,7 +453,7 @@ rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, uint8_t *data, 
     rtp_error_t ret              = RTP_GENERIC_ERROR;
     kvz_rtp::frame_queue *fqueue = conn->get_frame_queue();
 
-    if (!fqueue || (ret = fqueue->init_transaction(conn, data, flags)) != RTP_OK) {
+    if (!fqueue || (ret = fqueue->init_transaction(conn, data)) != RTP_OK) {
         LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
         return ret;
     }
@@ -467,9 +465,6 @@ rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, uint8_t *data, 
 
 rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
 {
-    if (!conn || !data || data_len == 0)
-        return RTP_INVALID_VALUE;
-
     if (!conn || !data || data_len == 0)
         return RTP_INVALID_VALUE;
 

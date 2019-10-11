@@ -83,6 +83,13 @@ rtp_error_t kvz_rtp::writer::start()
 
 rtp_error_t kvz_rtp::writer::push_frame(uint8_t *data, size_t data_len, int flags)
 {
+    if (flags & RTP_COPY) {
+        std::unique_ptr<uint8_t[]> data_ptr = std::unique_ptr<uint8_t[]>(new uint8_t[data_len]);
+        std::memcpy(data_ptr.get(), data, data_len);
+
+        return push_frame(std::move(data_ptr), data_len, 0);
+    }
+
     switch (get_payload()) {
         case RTP_FORMAT_HEVC:
             return kvz_rtp::hevc::push_frame(this, data, data_len, flags);

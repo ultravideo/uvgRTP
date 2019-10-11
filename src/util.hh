@@ -52,6 +52,21 @@ typedef enum RTP_FLAGS {
 
     /* TODO */
     RTP_MORE     = 1 << 1,
+
+    /* Make a copy of "data" given to push_frame()
+     *
+     * This is an easy way out of the memory ownership/deallocation problem
+     * for the application but can significantly damage the performance
+     *
+     * NOTE: Copying is necessary only when the following conditions are met:
+     *   - SCD is enabled
+     *   - Media format is such that it uses SCD (HEVC is the only for now)
+     *   - Application hasn't provided a deallocation callback
+     *   - Application doens't use unique_ptrs
+     *
+     * If all of those conditions are met, then it's advised to pass RTP_COPY.
+     * Otherwise there might be a lot of leaked memory */
+    RTP_COPY = 1 << 2,
 } rtp_flags_t;
 
 extern thread_local rtp_error_t rtp_errno;
