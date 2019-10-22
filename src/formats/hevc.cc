@@ -241,7 +241,10 @@ static rtp_error_t __push_hevc_nal(
             LOG_ERROR("enqeueu failed for small packet");
             return ret;
         }
-        return more ? RTP_NOT_READY : RTP_OK;
+
+        if (more)
+            return RTP_NOT_READY;
+        return fqueue->flush_queue(conn);
     }
 
     /* The payload is larger than MTU (1500 bytes) so we must split it into smaller RTP frames
@@ -298,6 +301,8 @@ static rtp_error_t __push_hevc_nal(
         return ret;
     }
 
+    if (more)
+        return RTP_NOT_READY;
     return fqueue->flush_queue(conn);
 #else
     if (data_len <= MAX_PAYLOAD) {
@@ -399,6 +404,7 @@ static rtp_error_t __push_hevc_frame(
 
     if (data_len < MAX_PAYLOAD) {
         r_off = (offset < 0) ? 0 : offset; /* TODO: this looks ugly */
+        fqueue->deinit_transaction();
         return kvz_rtp::generic::push_frame(conn, data + r_off, data_len - r_off, flags);
     }
 

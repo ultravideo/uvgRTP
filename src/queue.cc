@@ -107,10 +107,19 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn, st
 rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
 {
     std::lock_guard<std::mutex> lock(transaction_mtx_);
+
     auto transaction_it = queued_.find(key);
 
-    if (transaction_it == queued_.end())
+    if (transaction_it == queued_.end()) {
+        /* It's possible that the transaction has not been queued yet because
+         * the chunk given by the application was smaller than MTU */
+        if (active_ && active_->key == key) {
+            active_ = nullptr;
+            return RTP_OK;
+        }
+
         return RTP_INVALID_VALUE;
+    }
 
     if (active_ && active_->key == key)
         active_ = nullptr;
@@ -255,6 +264,7 @@ rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
         active_ = nullptr;
         return RTP_OK;
     }
+
 #endif
     if (conn->get_socket().send_vecio(active_->headers, active_->hdr_ptr, 0) != RTP_OK) {
         LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
