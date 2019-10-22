@@ -6,6 +6,28 @@ There's no global state between the threads which results in no locking, it feat
 
 Based on Marko Viitanen's [fRTPlib](https://github.com/fador/fRTPlib)
 
+## Usage
+
+We provide several simple and thoroughly commented examples on how to use kvzRTP, please see:
+
+[How to create simple RTP sender](examples/simple/rtp/sending.cc)
+
+[How to create simple RTP receiver (hooking and polling)](examples/simple/rtp/receiving_1.cc)
+
+[How to create RTCP instance (polling)](examples/simple/rtcp/rtcp_poll.cc)
+
+[How to create RTCP instance (hoooking)](examples/simple/rtcp/rtcp_hook.cc)
+
+### Memory ownership/deallocation
+
+If you have not enabled the system call dispatcher, you don't need to worry about these
+
+[Method 1, unique_ptr](examples/simple/rtp/deallocation_1.cc)
+
+[Method 2, copying](examples/simple/rtp/deallocation_2.cc)
+
+[Method 3, deallocation hook](examples/simple/rtp/deallocation_3.cc)
+
 ## Building
 
 Linux
@@ -16,7 +38,7 @@ sudo make install
 
 You can also use QtCreator to build the library. The library must be built using a 64-bit compiler!
 
-## Usage
+## Linking
 
 The library should be linked as a static library to your program.
 

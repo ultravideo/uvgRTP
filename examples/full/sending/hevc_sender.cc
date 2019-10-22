@@ -6,6 +6,7 @@
 #include <kvazaar.h>
 #include <opus/opus.h>
 #include <stdint.h>
+#include <memory>
 
 int main(void)
 {
@@ -51,7 +52,7 @@ int main(void)
     uint32_t frame = 0;
     uint32_t frameIn = 0;
     bool done = false;
-    uint8_t *outData = (uint8_t *)malloc(1024 * 1024);
+    int kzzz = 0;
 
     std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
     std::chrono::high_resolution_clock::time_point end   = std::chrono::high_resolution_clock::now();
@@ -96,6 +97,8 @@ int main(void)
         }
 
         if (chunks_out != NULL) {
+            std::unique_ptr<uint8_t[]> outData = std::unique_ptr<uint8_t[]>(new uint8_t[1024 * 200]);
+
             uint64_t written = 0;
             uint32_t dataPos = 0;
 
@@ -105,19 +108,23 @@ int main(void)
             }
           
             for (kvz_data_chunk *chunk = chunks_out; chunk != NULL; chunk = chunk->next) {
-                memcpy(&outData[dataPos], chunk->data, chunk->len);
+                memcpy(&outData.get()[dataPos], chunk->data, chunk->len);
                 dataPos += chunk->len;
             }
 
             outputCounter = (outputCounter + 1) % 16;
             frame++;
 
-            if (writer->push_frame(outData, written, RTP_FORMAT_HEVC) < 0) {
+            if (writer->push_frame(std::move(outData), written, RTP_FORMAT_HEVC) < 0) {
                 std::cerr << "RTP push failure" << std::endl;
             }
+
+            /* if (frame > 31) */
+            /*     goto cleanup; */
         }
     }
 
+    rtp_ctx.destroy_writer(writer);
 cleanup:
     return 0;
 }
