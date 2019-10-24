@@ -185,6 +185,17 @@ std::vector<kvz_rtp::socket>& kvz_rtp::rtcp::get_sockets()
     return sockets_;
 }
 
+std::vector<uint32_t> kvz_rtp::rtcp::get_participants()
+{
+    std::vector<uint32_t> ssrcs;
+
+    for (auto& i : participants_) {
+        ssrcs.push_back(i.first);
+    }
+
+    return ssrcs;
+}
+
 bool kvz_rtp::rtcp::is_participant(uint32_t ssrc)
 {
     return participants_.find(ssrc) != participants_.end();

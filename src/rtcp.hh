@@ -137,6 +137,10 @@ namespace kvz_rtp {
          * + clock rate for calculating the correct increment */
         void set_sender_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start);
 
+        /* Return SSRCs of all participants */
+        std::vector<uint32_t> get_participants();
+
+        /* TODO:  */
         rtp_error_t install_sender_hook(void (*hook)(kvz_rtp::frame::rtcp_sender_frame *));
         rtp_error_t install_receiver_hook(void (*hook)(kvz_rtp::frame::rtcp_receiver_frame *));
         rtp_error_t install_sdes_hook(void (*hook)(kvz_rtp::frame::rtcp_sdes_frame *));
