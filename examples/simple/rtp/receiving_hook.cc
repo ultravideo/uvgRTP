@@ -21,14 +21,13 @@ void receive_hook(void *arg, kvz_rtp::frame::rtp_frame *frame)
 
 int main(int argc, char **argv)
 {
+    (void)argc, (void)argv;
+
     /* See sending.cc for information about the session initialization */
     kvz_rtp::context ctx;
 
     /* Initialization for both receiving styles is similar */
-    kvz_rtp::reader *reader = ctx.create_reader("127.0.0.1", 5566);
-
-    /* Frames can be received in two different ways: using a receive hook or polling */
-#ifdef USE_RECV_HOOK
+    kvz_rtp::reader *reader = ctx.create_reader("127.0.0.1", 5566, RTP_FORMAT_GENERIC);
 
     /* Receive hook can be installed and the receiver will call this hook 
      * and an RTP frame is received 
@@ -44,19 +43,12 @@ int main(int argc, char **argv)
 
     /* Now that the receive hook is in place, reader can be started */
     (void)reader->start();
-#else
-    /* Now that the receive hook is in place, reader can be started */
-    (void)reader->start();
 
-    /* pull_frame() will block until a frame is received.
+    /* NOTE: Because we've only initalized reader, this example code will return immediately 
+     * because there's nothing blocking the main thread.
      *
-     * If that is not acceptable, a separate thread for the reader should be created */
-    while ((frame = reader->pull_frame()) != nullptr) {
-        /* When we receive a frame, the ownership of the frame belongs to use and
-         * when we're done with it, we need to deallocate the frame */
-        (void)kvz_rtp::frame::dealloc_frame(frame);
-    }
-#endif
+     * Create RTP Sender (seen rtp/sending.cc) if you wish to construct full working 
+     * example code with both sender and receiver */
 
     /* Reader object must be destroy explicitly */
     (void)ctx.destroy_reader(reader);

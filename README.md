@@ -10,13 +10,15 @@ Based on Marko Viitanen's [fRTPlib](https://github.com/fador/fRTPlib)
 
 We provide several simple and thoroughly commented examples on how to use kvzRTP, please see:
 
-[How to create simple RTP sender](examples/simple/rtp/sending.cc)
+[How to create a simple RTP sender](examples/simple/rtp/sending.cc)
 
-[How to create simple RTP receiver (hooking and polling)](examples/simple/rtp/receiving_1.cc)
+[How to create a simple RTP receiver (hooking)](examples/simple/rtp/receiving_hook.cc)
 
-[How to create RTCP instance (polling)](examples/simple/rtcp/rtcp_poll.cc)
+[How to create a simple RTP receiver (polling)](examples/simple/rtp/receiving_poll.cc)
 
-[How to create RTCP instance (hoooking)](examples/simple/rtcp/rtcp_hook.cc)
+[How to create an RTCP instance (polling)](examples/simple/rtcp/rtcp_poll.cc)
+
+[How to create an RTCP instance (hoooking)](examples/simple/rtcp/rtcp_hook.cc)
 
 ### Memory ownership/deallocation
 
