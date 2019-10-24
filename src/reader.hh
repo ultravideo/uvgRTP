@@ -16,10 +16,12 @@ namespace kvz_rtp {
         /* NOTE: this operation is blocking */
         kvz_rtp::frame::rtp_frame *pull_frame();
 
-        // open socket and start runner_
+        /* Open socket, start frame receiver and RTCP
+         *
+         * Return RTP_OK on success
+         * Return RTP_MEMORY_ERROR if memory deallocation failed
+         * Return RTP_GENERIC_ERROR for any other error */
         rtp_error_t start();
-
-        bool active();
 
         bool recv_hook_installed();
         void recv_hook(kvz_rtp::frame::rtp_frame *frame);
@@ -44,15 +46,11 @@ namespace kvz_rtp {
         void return_frame(kvz_rtp::frame::rtp_frame *frame);
 
     private:
-        // TODO implement ring buffer
-        bool active_;
-
         // connection-related stuff
         std::string src_addr_;
         int src_port_;
 
-        // receiver thread related stuff
-        std::thread *runner_;
+        /* receiver thread related stuff */
         uint8_t *recv_buffer_;     /* buffer for incoming packet (MAX_PACKET) */
         uint32_t recv_buffer_len_; /* buffer length */
 

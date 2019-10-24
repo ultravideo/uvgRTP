@@ -23,7 +23,7 @@ kvz_rtp::rtcp::rtcp(uint32_t ssrc, bool receiver):
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
     we_sent_(0), avg_rtcp_pkt_pize_(0), rtcp_pkt_count_(0),
-    initial_(true), active_(false), num_receivers_(0)
+    initial_(true), num_receivers_(0)
 {
     ssrc_  = ssrc;
 
@@ -136,7 +136,7 @@ rtp_error_t kvz_rtp::rtcp::start()
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::rtcp::terminate()
+rtp_error_t kvz_rtp::rtcp::stop()
 {
     if (runner_ == nullptr)
         goto free_mem;
@@ -168,11 +168,6 @@ free_mem:
     }
 
     return RTP_OK;
-}
-
-bool kvz_rtp::rtcp::active() const
-{
-    return active_;
 }
 
 bool kvz_rtp::rtcp::receiver() const

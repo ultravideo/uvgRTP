@@ -6,6 +6,7 @@
 
 #include "queue.hh"
 #include "socket.hh"
+#include "runner.hh"
 #include "util.hh"
 
 namespace kvz_rtp {
@@ -30,14 +31,10 @@ namespace kvz_rtp {
      * experiences to very small (<50 us even for large frames [>170 kB]) */
     typedef struct transaction transaction_t;
 
-    class dispatcher {
+    class dispatcher : public runner {
         public:
             dispatcher(kvz_rtp::socket *socket);
             ~dispatcher();
-
-            rtp_error_t start();
-            rtp_error_t stop();
-            bool active();
 
             /* Add new transaction to dispatcher's task queue 
              * The task queue is emptied in FIFO style */
@@ -61,9 +58,6 @@ namespace kvz_rtp {
 
             std::mutex q_mtx_;
             std::queue<kvz_rtp::transaction_t *> tasks_;
-
-            bool active_;
-            std::thread *runner_;
 
             kvz_rtp::socket *socket_;
     };

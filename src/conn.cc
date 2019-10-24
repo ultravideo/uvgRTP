@@ -50,7 +50,7 @@ kvz_rtp::connection::connection(rtp_format_t fmt, bool reader):
 kvz_rtp::connection::~connection()
 {
     if (rtcp_) {
-        rtcp_->terminate();
+        rtcp_->stop();
         delete rtcp_;
     }
 

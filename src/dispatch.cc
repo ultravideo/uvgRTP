@@ -12,6 +12,7 @@ kvz_rtp::dispatcher::dispatcher(kvz_rtp::socket *socket):
 kvz_rtp::dispatcher::~dispatcher()
 {
     delete runner_;
+    runner_ = nullptr;
 }
 
 rtp_error_t kvz_rtp::dispatcher::start()
@@ -28,11 +29,6 @@ rtp_error_t kvz_rtp::dispatcher::stop()
 
     active_ = false;
     return RTP_OK;
-}
-
-bool kvz_rtp::dispatcher::active()
-{
-    return active_;
 }
 
 std::condition_variable& kvz_rtp::dispatcher::get_cvar()

@@ -12,7 +12,6 @@
 
 kvz_rtp::reader::reader(rtp_format_t fmt, std::string src_addr, int src_port):
     connection(fmt, true),
-    active_(false),
     src_addr_(src_addr),
     src_port_(src_port),
     recv_hook_arg_(nullptr),
@@ -104,11 +103,6 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::reader::pull_frame()
     frames_mtx_.unlock();
 
     return nextFrame;
-}
-
-bool kvz_rtp::reader::active()
-{
-    return active_;
 }
 
 uint8_t *kvz_rtp::reader::get_recv_buffer() const
