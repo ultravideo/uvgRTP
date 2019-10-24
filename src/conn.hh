@@ -93,6 +93,12 @@ namespace kvz_rtp {
          * in deinit_transaction(), it will calls this hook if it has been set. */
         void install_dealloc_hook(void (*dealloc_hook)(void *));
 
+        /* Return pointer to RTCP object if RTCP has been enabled
+         * Otherwise return nullptr
+         *
+         * TODO make this const */
+        kvz_rtp::rtcp *get_rtcp();
+
     protected:
         void *config_;
         uint32_t id_;

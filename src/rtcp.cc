@@ -625,7 +625,7 @@ kvz_rtp::frame::rtcp_sender_frame *kvz_rtp::rtcp::get_sender_packet(uint32_t ssr
     return frame;
 }
 
-kvz_rtp::frame::rtcp_receiver_frame *kvz_rtp::rtcp::get_receiver_paket(uint32_t ssrc)
+kvz_rtp::frame::rtcp_receiver_frame *kvz_rtp::rtcp::get_receiver_packet(uint32_t ssrc)
 {
     if (participants_.find(ssrc) == participants_.end())
         return nullptr;

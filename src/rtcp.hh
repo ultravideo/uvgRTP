@@ -86,7 +86,7 @@ namespace kvz_rtp {
          *
          * NOTE: Caller is responsible for deallocating the memory */
         kvz_rtp::frame::rtcp_sender_frame   *get_sender_packet(uint32_t ssrc);
-        kvz_rtp::frame::rtcp_receiver_frame *get_receiver_paket(uint32_t ssrc);
+        kvz_rtp::frame::rtcp_receiver_frame *get_receiver_packet(uint32_t ssrc);
         kvz_rtp::frame::rtcp_sdes_frame     *get_sdes_packet(uint32_t ssrc);
         kvz_rtp::frame::rtcp_app_frame      *get_app_packet(uint32_t ssrc);
 

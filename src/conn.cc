@@ -248,3 +248,8 @@ void kvz_rtp::connection::install_dealloc_hook(void (*dealloc_hook)(void *))
 
     fqueue_->install_dealloc_hook(dealloc_hook);
 }
+
+kvz_rtp::rtcp *kvz_rtp::connection::get_rtcp()
+{
+    return rtcp_;
+}
