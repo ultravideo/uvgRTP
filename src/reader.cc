@@ -21,9 +21,8 @@ kvz_rtp::reader::reader(rtp_format_t fmt, std::string src_addr, int src_port):
 
 kvz_rtp::reader::~reader()
 {
-    active_ = false;
+    kvz_rtp::runner::stop();
     delete[] recv_buffer_;
-    delete runner_;
 
     if (!framesOut_.empty()) {
         for (auto &i : framesOut_) {

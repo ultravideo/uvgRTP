@@ -21,7 +21,6 @@ rtp_error_t kvz_rtp::runner::start()
 rtp_error_t kvz_rtp::runner::stop()
 {
     active_ = false;
-    active_ = false;
 }
 
 bool kvz_rtp::runner::active()
