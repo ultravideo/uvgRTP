@@ -3,6 +3,7 @@
 #include <iostream>
 #include <queue>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "conn.hh"
 #include "debug.hh"
@@ -196,11 +197,13 @@ struct frame_info {
     std::vector<kvz_rtp::frame::rtp_frame *> probation;
 
     /* Store all received sequence numbers here so we can detect duplicate packets */
-    std::unordered_map<uint32_t, bool> seqs;
+    std::unordered_set<uint32_t> seqs;
 
-    /* start and end sequences of the frame (frames with S/E bit set) */
+    /* start and end sequences of the frame (frames with S/E bit set) 
+     * and the sequence number of the latest framgment copied to frame */
     uint32_t s_seq;
     uint32_t e_seq;
+    uint32_t last_seq;
 
     /* clock reading when the first fragment is received */
     kvz_rtp::clock::hrc::hrc_t start;
@@ -276,6 +279,7 @@ struct frames {
      * to be done when the frame is activated */
     uint32_t prev_eseq;
 
+    /* Sequence number of the previously handled fragment, could be part of this frame, could be part of some other frame */
     uint32_t prevr_eseq;
 
     /* These are just for bookkeeping */
@@ -581,7 +585,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                 std::memcpy(frame->payload + 0, &frames.hevc_ext_buf[i], 3);
                 std::memcpy(frame->payload + 3, ACTIVE.frame->payload + off, len - 3);
 
-                frames.prev_eseq = c_seq;
+                frames.prev_eseq = frames.prevr_eseq = c_seq;
                 reader->return_frame(frame);
                 continue;
             }
@@ -703,22 +707,10 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
             if (type == FT_START) {
                 GET_FRAME(c_ts).s_seq = c_seq;
                 __init_headers(GET_FRAME(c_ts).frame, &frames.rtp_headers[i], frames.hevc_ext_buf[i]);
-                /* goto end; */
             }
 
             if (type == FT_END)
                 GET_FRAME(c_ts).e_seq = c_seq;
-
-#if 0
-            if (GET_FRAME(c_ts).s_seq != INVALID_SEQ && GET_FRAME(c_ts).e_seq != INVALID_SEQ) {
-                if ((ssize_t)GET_FRAME(c_ts).pkts_received == (GET_FRAME(c_ts).e_seq - GET_FRAME(c_ts).s_seq + 1)) {
-                    LOG_ERROR("frame can be returned");
-                    __resolve_relocations(frames, c_ts);
-                    reader->return_frame(GET_FRAME(c_ts).frame);
-                    frames.finfo.erase(c_ts);
-                }
-            }
-#endif
 
             /* Here we must now check that during this read, all fragments were read to correct place 
              *
@@ -739,14 +731,25 @@ end:
          * The second case will move the active frame to inactive hashmap */
         bool change_active_frame = false;
 
-        if (kvz_rtp::clock::hrc::diff_now(ACTIVE.start) > RTP_FRAME_MAX_DELAY) {
-            LOG_WARN("frame deadline missed!");
+        if (kvz_rtp::clock::hrc::diff_now(ACTIVE.start) > RTP_FRAME_MAX_DELAY && ACTIVE.pkts_received > 0) {
+            fprintf(stderr, "\nframe %u deadline missed!\n", frames.active_ts);
+            fprintf(stderr, "s_seq 0x%x | e_seq 0x%x\n", ACTIVE.s_seq, ACTIVE.e_seq);
+            fprintf(stderr, "pkts_received %u\n\n", ACTIVE.pkts_received);
+                /* fprintf(stderr, "%u: %u %u %u\n", frames.active_ts, ACTIVE.s_seq, ACTIVE.e_seq, ACTIVE.pkts_received); */
+
+            frames.late_frames.insert(std::make_pair(frames.active_ts, ACTIVE.start));
             change_active_frame = true;
         }
 
         if (ACTIVE.s_seq != INVALID_SEQ && ACTIVE.e_seq != INVALID_SEQ) {
-            if ((ssize_t)ACTIVE.pkts_received == (ACTIVE.e_seq - ACTIVE.s_seq + 1)) {
+            size_t pkts_received = 0;
 
+            if (ACTIVE.s_seq > ACTIVE.e_seq)
+                pkts_received = 0xffff - ACTIVE.s_seq + ACTIVE.e_seq + 2;
+            else
+                pkts_received = ACTIVE.e_seq - ACTIVE.s_seq + 1;
+
+            if (ACTIVE.pkts_received == pkts_received) {
                 total_proc_time     += kvz_rtp::clock::hrc::diff_now_us(ACTIVE.start);
                 total_frames_recved += 1;
 
@@ -783,6 +786,8 @@ end:
                 __create_frame_entry(frames, INVALID_TS, NULL, 0);
                 frames.active_ts = INVALID_TS;
             }
+
+            ACTIVE.last_seq = INVALID_SEQ;
         }
 
         /* This read caused some shifting to happen which means that the next free slot is
