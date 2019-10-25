@@ -124,8 +124,6 @@ rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
     if (active_ && active_->key == key)
         active_ = nullptr;
 
-    queued_.erase(key);
-
     /* Deallocate the raw data pointer using the deallocation hook provided by application */
     if (transaction_it->second->data_raw && transaction_it->second->dealloc_hook) {
         transaction_it->second->dealloc_hook(transaction_it->second->data_raw);
@@ -139,6 +137,7 @@ rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
         free_.push_back(transaction_it->second);
     }
 
+    queued_.erase(key);
     return RTP_OK;
 }
 
