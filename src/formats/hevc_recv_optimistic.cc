@@ -255,8 +255,8 @@ struct frames {
      * This way, when a fragment that should be relocated to probation is received, 
      * we can check this map to check whether the framgment can be relocated to frame */
 
-    /* TODO: parempi nimi */
-    std::map<uint32_t, uint16_t> recved_seqs;
+    /* Keep track of late frames so that they can be discarded without further processing */
+    std::unordered_map<uint32_t, kvz_rtp::clock::hrc::hrc_t> late_frames;
 
     /* Sequence number of the previous frame/previous frames's last fragment
      *
@@ -594,6 +594,19 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                 /* TODO: update shift info */
                 LOG_WARN("Invalid frame received!");
                 for (;;);
+                continue;
+            }
+
+            /* This fragment is way too late and should not be processed at all because
+             * we have no use for it at this point.
+             *
+             * Because it's considered garbage, an overwriting shift must take place
+             * so the actual active frames stays valid */
+            if (frames.late_frames.find(c_ts) != frames.late_frames.end()) {
+                if (!frames.sinfo.shift_needed) {
+                    frames.sinfo.shift_needed = true;
+                    frames.sinfo.shift_offset = __calculate_offset(ACTIVE.next_off, i);
+                }
                 continue;
             }
 
