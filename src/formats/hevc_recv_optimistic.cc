@@ -24,7 +24,7 @@
 #ifdef __RTP_N_PACKETS_PER_SYSCALL__
 #   define MAX_DATAGRAMS   __RTP_N_PACKETS_PER_SYSCALL__
 #else
-#   define MAX_DATAGRAMS   1
+#   define MAX_DATAGRAMS   10
 #endif
 #endif
 
@@ -34,7 +34,7 @@
 #   define MAX_READ_SIZE   MAX_PAYLOAD
 #endif
 
-#define RTP_FRAME_MAX_DELAY          500
+#define RTP_FRAME_MAX_DELAY           34
 
 #define RTP_HDR_SIZE                  12
 #define NAL_HDR_SIZE                   2
@@ -254,6 +254,7 @@ struct frames {
      *
      * This way, when a fragment that should be relocated to probation is received, 
      * we can check this map to check whether the framgment can be relocated to frame */
+    std::map<uint32_t, uint16_t> all_seqs;
 
     /* Keep track of late frames so that they can be discarded without further processing */
     std::unordered_map<uint32_t, kvz_rtp::clock::hrc::hrc_t> late_frames;
@@ -284,6 +285,7 @@ struct frames {
 
     /* These are just for bookkeeping */
     size_t total_received;
+    size_t total_bytes_received;
     size_t total_copied;
 };
 
@@ -405,6 +407,7 @@ static void __create_frame_entry(struct frames& frames, uint32_t timestamp, void
     GET_FRAME(timestamp).pkts_received = 0;
     GET_FRAME(timestamp).s_seq         = INVALID_SEQ;
     GET_FRAME(timestamp).e_seq         = INVALID_SEQ;
+    GET_FRAME(timestamp).last_seq      = INVALID_SEQ;
 }
 
 static void __resolve_relocations(struct frames& frames, uint32_t ts)
@@ -412,8 +415,8 @@ static void __resolve_relocations(struct frames& frames, uint32_t ts)
     if (GET_FRAME(ts).rinfo.size() == 0)
         return;
 
-    LOG_ERROR("%zu relocations must be resolved (total received %zu)!",
-        GET_FRAME(ts).rinfo.size(), GET_FRAME(ts).pkts_received);
+    /* LOG_ERROR("%zu relocations must be resolved (total received %zu)!", */
+    /*     GET_FRAME(ts).rinfo.size(), GET_FRAME(ts).pkts_received); */
 
     if (GET_FRAME(ts).total_size < GET_FRAME(ts).rinfo.size() * MAX_READ_SIZE)
         __reallocate_frame(frames, frames.active_ts);
@@ -461,7 +464,7 @@ static void __resolve_relocations(struct frames& frames, uint32_t ts)
 
 rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
 {
-    LOG_INFO("in optimisic hevc receiver");
+    LOG_INFO("Starting Optimistic HEVC Fragment Receiver...");
 
     struct frames frames;
 
@@ -473,6 +476,9 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
     frames.fsah.das   = DEFAULT_ALLOC_SIZE;
     frames.fsah.ras   = DEFAULT_REALLOC_SIZE;
     frames.fsah.arc   = 0;
+
+    frames.total_received = 0;
+    frames.total_copied   = 0;
 
     /* We need to use INVALID_TS as bootstrap timestamp
      * because we don't know the timestamp of incoming frame */
@@ -512,7 +518,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
         if (WSARecvFrom(reader->get_raw_socket(), frame)) {
         }
 #else
-        if ((nread = recvmmsg(reader->get_raw_socket(), frames.headers, MAX_DATAGRAMS, 0, nullptr)) < 0) {
+        if ((nread = recvmmsg(reader->get_raw_socket(), frames.headers, MAX_DATAGRAMS, MSG_WAITFORONE, nullptr)) < 0) {
             LOG_ERROR("recvmmsg() failed, %s", strerror(errno));
             continue;
         }
@@ -694,7 +700,8 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                         if (GET_FRAME(c_ts).next_off + FRAG_PSIZE(i) > GET_FRAME(c_ts).total_size)
                             __reallocate_frame(frames, c_ts);
 
-                        /* TODO: kopio oikeaan paikkaan jos mahdollista! */
+                        /* TODO: make sure the fragment can be copied safely */
+
                         std::memcpy(
                             GET_FRAME(c_ts).frame->payload + GET_FRAME(c_ts).next_off,
                             ACTIVE.frame->payload + off,
@@ -704,8 +711,6 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                         GET_FRAME(c_ts).relocs   += 1;
                         GET_FRAME(c_ts).next_off += FRAG_PSIZE(i);
 
-                        /* fprintf(stderr, "no-brainer\n"); */
-                        /* __add_relocation_entry(GET_FRAME(c_ts), c_seq, NULL, 0, RT_PAYLOAD); */
                     } else {
                         /* Relocate the fragment temporarily to probation zone/temporary frame */
                         __relocate_temporarily(ACTIVE, GET_FRAME(c_ts), c_seq, FRAG_PSIZE(i), off);
@@ -729,8 +734,19 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
              *
              * If we detect, for example, that a fragment 3 was read to fragment 2's place, we need to shift 
              * all fragments forward. */
-            if (c_seq - 1 != frames.prevr_eseq && frames.prevr_eseq != INVALID_SEQ) {
-                LOG_ERROR("out of order! %d", c_seq - frames.prevr_eseq);
+            if (c_ts == frames.active_ts) {
+                if (c_seq - 1 != ACTIVE.last_seq && (ACTIVE.last_seq - 0xffff != c_seq) && ACTIVE.last_seq != INVALID_SEQ) {
+                    /* TODO: this is going to be very ugly */
+                    /* LOG_ERROR("error!!! %u %u", c_seq, ACTIVE.last_seq); */
+                }
+
+                ACTIVE.last_seq = c_seq;
+            } else {
+                /* This fragment doens't belong to active frame so it must cause an overwriting shift */
+                if (!frames.sinfo.shift_needed) {
+                    frames.sinfo.shift_needed = true;
+                    frames.sinfo.shift_offset = __calculate_offset(ACTIVE.next_off, i);
+                }
             }
 end:
             frames.prevr_eseq = c_seq;
@@ -745,10 +761,9 @@ end:
         bool change_active_frame = false;
 
         if (kvz_rtp::clock::hrc::diff_now(ACTIVE.start) > RTP_FRAME_MAX_DELAY && ACTIVE.pkts_received > 0) {
-            fprintf(stderr, "\nframe %u deadline missed!\n", frames.active_ts);
-            fprintf(stderr, "s_seq 0x%x | e_seq 0x%x\n", ACTIVE.s_seq, ACTIVE.e_seq);
-            fprintf(stderr, "pkts_received %u\n\n", ACTIVE.pkts_received);
-                /* fprintf(stderr, "%u: %u %u %u\n", frames.active_ts, ACTIVE.s_seq, ACTIVE.e_seq, ACTIVE.pkts_received); */
+            /* fprintf(stderr, "\nframe %u deadline missed! (%u ms)\n", frames.active_ts, kvz_rtp::clock::hrc::diff_now(ACTIVE.start)); */
+            /* fprintf(stderr, "s_seq 0x%x | e_seq 0x%x\n", ACTIVE.s_seq, ACTIVE.e_seq); */
+            /* fprintf(stderr, "pkts_received %u\n\n", ACTIVE.pkts_received); */
 
             frames.late_frames.insert(std::make_pair(frames.active_ts, ACTIVE.start));
             change_active_frame = true;
@@ -768,8 +783,14 @@ end:
 
                 __resolve_relocations(frames, frames.active_ts);
 
-                frames.total_received += ACTIVE.pkts_received;
-                frames.total_copied   += ACTIVE.relocs;
+                frames.total_received       += ACTIVE.pkts_received;
+                frames.total_bytes_received += ACTIVE.frame->payload_len;
+                frames.total_copied         += ACTIVE.relocs;
+
+                /* fprintf(stderr, "%zu vs %zu (%f) (%u MB)\n", */
+                /*         frames.total_received, frames.total_copied, */ 
+                /*         ((double)frames.total_copied / (double)frames.total_received) * 100, */
+                /*         frames.total_bytes_received / 1000 / 1000); */
 
                 ACTIVE.frame->payload_len = ACTIVE.received_size;
                 reader->return_frame(ACTIVE.frame);
@@ -783,6 +804,7 @@ end:
             /* Frames are resolved in order meaning that the oldest frame is resolved next */
             if (frames.tss.size() != 0) {
                 frames.active_ts = __get_next_ts(frames.tss);
+                ACTIVE.start     = kvz_rtp::clock::hrc::now();
 
                 /* Resolve all relocations (if any)
                  * Record in relocation info vector doesn't necessarily mean that the
