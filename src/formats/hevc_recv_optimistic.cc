@@ -400,6 +400,8 @@ static void __reallocate_frame(struct frames& frames, uint32_t timestamp)
 
 static void __create_frame_entry(struct frames& frames, uint32_t timestamp, void *payload, size_t size)
 {
+    (void)payload, (void)size;
+
     GET_FRAME(timestamp).frame         = kvz_rtp::frame::alloc_rtp_frame(frames.fsah.das);
     GET_FRAME(timestamp).total_size    = frames.fsah.das;
     GET_FRAME(timestamp).next_off      = NAL_HDR_SIZE;
@@ -487,7 +489,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
 
     std::memset(frames.headers, 0, sizeof(frames.headers));
 
-    int k = 0, nread = 0;
+    int nread = 0;
 
     uint64_t total_proc_time = 0;
     uint64_t total_frames_recved = 0;
@@ -527,7 +529,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
         frames.sinfo.shift_needed = false;
         frames.sinfo.shift_offset = 0;
 
-        for (size_t i = 0; i < nread; ++i) {
+        for (int i = 0; i < nread; ++i) {
             int type = __get_frame_type(frames.hevc_ext_buf[i]);
 
             frames.rtp_headers[i].timestamp = ntohl(frames.rtp_headers[i].timestamp);
@@ -748,7 +750,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                     frames.sinfo.shift_offset = __calculate_offset(ACTIVE.next_off, i);
                 }
             }
-end:
+
             frames.prevr_eseq = c_seq;
         } /* end of for loop */
 

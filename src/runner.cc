@@ -16,11 +16,15 @@ kvz_rtp::runner::~runner()
 rtp_error_t kvz_rtp::runner::start()
 {
     active_ = true;
+
+    return RTP_OK;
 }
 
 rtp_error_t kvz_rtp::runner::stop()
 {
     active_ = false;
+
+    return RTP_OK;
 }
 
 bool kvz_rtp::runner::active()

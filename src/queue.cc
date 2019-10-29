@@ -17,7 +17,7 @@
 #include "formats/hevc.hh"
 
 kvz_rtp::frame_queue::frame_queue(rtp_format_t fmt):
-    fmt_(fmt), active_(nullptr)
+    active_(nullptr), fmt_(fmt)
 {
     active_ = nullptr;
     free_.reserve(MAX_QUEUED_MSGS);
@@ -49,6 +49,9 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn)
         switch (fmt_) {
             case RTP_FORMAT_HEVC:
                 active_->media_headers = new kvz_rtp::hevc::media_headers;
+                break;
+
+            default:
                 break;
         }
     } else {
@@ -131,7 +134,13 @@ rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
     }
 
     if (free_.size() > MAX_QUEUED_MSGS) {
-        delete transaction_it->second->media_headers;
+        switch (fmt_) {
+            case RTP_FORMAT_HEVC:
+                delete (kvz_rtp::hevc::media_headers *)transaction_it->second->media_headers;
+            default:
+                break;
+        }
+
         delete transaction_it->second;
     } else {
         free_.push_back(transaction_it->second);
@@ -161,7 +170,7 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
 
 #ifdef __linux__
     if (active_->chunk_ptr + 2 >= MAX_CHUNK_COUNT || active_->hdr_ptr + 1 >= MAX_MSG_COUNT) {
-        LOG_ERROR("maximum amount of chunks (%d) or messages (%d) exceeded!", active_->chunk_ptr, active_->hdr_ptr);
+        LOG_ERROR("maximum amount of chunks (%zu) or messages (%zu) exceeded!", active_->chunk_ptr, active_->hdr_ptr);
         return RTP_MEMORY_ERROR;
     }
 
@@ -204,7 +213,7 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
 
 #ifdef __linux__
     if (active_->chunk_ptr + buffers.size() + 1 >= MAX_CHUNK_COUNT || active_->hdr_ptr + 1 >= MAX_MSG_COUNT) {
-        LOG_ERROR("maximum amount of chunks (%d) or messages (%d) exceeded!", active_->chunk_ptr, active_->hdr_ptr);
+        LOG_ERROR("maximum amount of chunks (%zu) or messages (%zu) exceeded!", active_->chunk_ptr, active_->hdr_ptr);
         return RTP_MEMORY_ERROR;
     }
 
