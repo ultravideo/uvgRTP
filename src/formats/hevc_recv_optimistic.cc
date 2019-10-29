@@ -24,7 +24,7 @@
 #ifdef __RTP_N_PACKETS_PER_SYSCALL__
 #   define MAX_DATAGRAMS   __RTP_N_PACKETS_PER_SYSCALL__
 #else
-#   define MAX_DATAGRAMS   10
+#   define MAX_DATAGRAMS   5
 #endif
 #endif
 
@@ -752,6 +752,22 @@ end:
             frames.prevr_eseq = c_seq;
         } /* end of for loop */
 
+        /* In typical video conferencing situation, we receive a burst of packets every N milliseconds.
+         * Because the amount of packets read using recvmmsg(2) is configurable, a situation might arise
+         * where we've read every packet of the burst but the amount of packets is less than what recvmmsg(2)
+         * is supposed to read.
+         *
+         * For example, let's say the packets per system call is 5 but a burst of packets from remote contains
+         * only 4 packets. If we didn't use MSG_WAITFORONE, the syscall would block until all 5 packets were read,
+         * and the last packet would be part of next burst. This would make our current frame to be late and cause
+         * distrotions during decoding.
+         *
+         * During buffer initialization, however, we assume we'll be reading 5 packets and update ACTIVE.next_off
+         * according to this assumption. Here we must fix the offset pointer if we read fewer packets */
+        if (nread < MAX_DATAGRAMS) {
+            ACTIVE.next_off -= (MAX_READ_SIZE * (MAX_DATAGRAMS - nread));
+        }
+
         /* There are two cases why the active frame is changed:
          *  - either we've received every fragment of the frame and the frame can be returned to user
          *  - the time window within which all fragments must be received has closed
@@ -761,9 +777,11 @@ end:
         bool change_active_frame = false;
 
         if (kvz_rtp::clock::hrc::diff_now(ACTIVE.start) > RTP_FRAME_MAX_DELAY && ACTIVE.pkts_received > 0) {
-            /* fprintf(stderr, "\nframe %u deadline missed! (%u ms)\n", frames.active_ts, kvz_rtp::clock::hrc::diff_now(ACTIVE.start)); */
-            /* fprintf(stderr, "s_seq 0x%x | e_seq 0x%x\n", ACTIVE.s_seq, ACTIVE.e_seq); */
-            /* fprintf(stderr, "pkts_received %u\n\n", ACTIVE.pkts_received); */
+#if 0
+            fprintf(stderr, "\nframe %u deadline missed! (%u ms)\n", frames.active_ts, kvz_rtp::clock::hrc::diff_now(ACTIVE.start));
+            fprintf(stderr, "s_seq 0x%x | e_seq 0x%x\n", ACTIVE.s_seq, ACTIVE.e_seq);
+            fprintf(stderr, "pkts_received %u\n\n", ACTIVE.pkts_received);
+#endif
 
             frames.late_frames.insert(std::make_pair(frames.active_ts, ACTIVE.start));
             change_active_frame = true;
@@ -787,10 +805,12 @@ end:
                 frames.total_bytes_received += ACTIVE.frame->payload_len;
                 frames.total_copied         += ACTIVE.relocs;
 
-                /* fprintf(stderr, "%zu vs %zu (%f) (%u MB)\n", */
-                /*         frames.total_received, frames.total_copied, */ 
-                /*         ((double)frames.total_copied / (double)frames.total_received) * 100, */
-                /*         frames.total_bytes_received / 1000 / 1000); */
+#if 0
+                fprintf(stderr, "%zu vs %zu (%f) (%u MB)\n",
+                        frames.total_received, frames.total_copied,
+                        ((double)frames.total_copied / (double)frames.total_received) * 100,
+                        frames.total_bytes_received / 1000 / 1000);
+#endif
 
                 ACTIVE.frame->payload_len = ACTIVE.received_size;
                 reader->return_frame(ACTIVE.frame);
