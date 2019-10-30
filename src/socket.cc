@@ -283,6 +283,16 @@ rtp_error_t kvz_rtp::socket::send_vecio(vecio_buf *buffers, size_t nbuffers, int
         return RTP_INVALID_VALUE;
 
 #ifdef __linux__
+    while (nbuffers > 1024) {
+        if (sendmmsg(socket_, buffers, 1024, flags) < 0) {
+            LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
+            return RTP_SEND_ERROR;
+        }
+
+        nbuffers -= 1024;
+        buffers  += 1024;
+    }
+
     if (sendmmsg(socket_, buffers, nbuffers, flags) < 0) {
         LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
         return RTP_SEND_ERROR;
