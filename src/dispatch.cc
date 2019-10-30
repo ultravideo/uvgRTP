@@ -4,22 +4,20 @@
 
 #ifdef __RTP_USE_SYSCALL_DISPATCHER__
 kvz_rtp::dispatcher::dispatcher(kvz_rtp::socket *socket):
-    active_(false),
     socket_(socket)
 {
 }
 
 kvz_rtp::dispatcher::~dispatcher()
 {
-    delete runner_;
-    runner_ = nullptr;
 }
 
 rtp_error_t kvz_rtp::dispatcher::start()
 {
-    active_ = true;
-    runner_ = new std::thread(dispatch_runner, this, socket_);
-    LOG_INFO("starting dispatcher...");
+    if ((runner_ = new std::thread(dispatch_runner, this, socket_)) == nullptr)
+        return RTP_MEMORY_ERROR;
+
+    return kvz_rtp::runner::start();
 }
 
 rtp_error_t kvz_rtp::dispatcher::stop()
@@ -27,8 +25,7 @@ rtp_error_t kvz_rtp::dispatcher::stop()
     if (tasks_.size() > 0)
         return RTP_NOT_READY;
 
-    active_ = false;
-    return RTP_OK;
+    return kvz_rtp::runner::stop();
 }
 
 std::condition_variable& kvz_rtp::dispatcher::get_cvar()

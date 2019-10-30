@@ -36,18 +36,30 @@ namespace kvz_rtp {
             dispatcher(kvz_rtp::socket *socket);
             ~dispatcher();
 
-            /* Add new transaction to dispatcher's task queue 
+            /* Add new transaction to dispatcher's task queue
              * The task queue is emptied in FIFO style */
             rtp_error_t trigger_send(kvz_rtp::transaction_t *transaction);
 
-            /* Application and dispatcher communicate with each other using a condition variable 
+            /* Create new thread object and start the dispatcher thread
+             *
+             * Return RTP_OK on success
+             * Return RTP_MEMORY_ERROR if allocation fails */
+            rtp_error_t start();
+
+            /* Stop the dispatcher thread
+             *
+             * Return RTP_OK on success
+             * Return RTP_NOT_READY if there are tasks to be processed in "tasks_" */
+            rtp_error_t stop();
+
+            /* Application and dispatcher communicate with each other using a condition variable
              *
              * If the task queue is empty, dispatcher will wait on a condition variable
              * and when application pushes a new transaction to task queue, it will notify
              * the dispatcher that it can start the send process. */
             std::condition_variable& get_cvar();
 
-            /* Get next transaction from task queue  
+            /* Get next transaction from task queue
              * Return nullptr if the task queue is empty */
             kvz_rtp::transaction_t *get_transaction();
 
