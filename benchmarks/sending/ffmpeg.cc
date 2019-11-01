@@ -10,7 +10,9 @@ extern "C" {
 #include <libavutil/samplefmt.h>
 #include <stdbool.h>
 }
+
 #include <chrono>
+#include <thread>
 
 extern void *get_mem(int argc, char **argv, size_t& len);
 
@@ -57,25 +59,26 @@ int main() {
     AVFormatContext* avfctx;
     AVOutputFormat* fmt = av_guess_format("rtp", NULL, NULL);
 
+#if 0
     ret = avformat_alloc_output_context2(&avfctx, fmt, fmt->name,
         "rtp://127.0.0.1:8888");
-
-    printf("Writing to %s\n", avfctx->filename);
+#else
+    ret = avformat_alloc_output_context2(&avfctx, fmt, fmt->name,
+        "rtp://10.21.25.26:8888");
+#endif
 
     avio_open(&avfctx->pb, avfctx->filename, AVIO_FLAG_WRITE);
 
     struct AVStream* stream = avformat_new_stream(avfctx, codec);
-    stream->codecpar->bit_rate = 400000;
-    stream->codecpar->width = 1920;
-    stream->codecpar->height = 1080;
+    /* stream->codecpar->bit_rate = 400000; */
+    stream->codecpar->width = 3840;
+    stream->codecpar->height = 2160;
     stream->codecpar->codec_id = AV_CODEC_ID_HEVC;
     stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
     stream->time_base.num = 1;
-    stream->time_base.den = 120;
+    stream->time_base.den = 30;
 
-    avformat_write_header(avfctx, NULL);
-    char buf[200000];
-    AVFormatContext *ac[] = { avfctx };
+    (void)avformat_write_header(avfctx, NULL);
 
     uint64_t chunk_size, total_size;
     uint64_t fpt_ms = 0;
@@ -88,33 +91,40 @@ int main() {
     std::chrono::high_resolution_clock::time_point start, fpt_start, fpt_end, end;
     start = std::chrono::high_resolution_clock::now();
 
-    for (size_t i = 0; i < len; ) {
-        memcpy(&chunk_size, (uint8_t *)mem + i, sizeof(uint64_t));
+    for (size_t rounds = 0; rounds < 1; ++rounds) {
+        for (size_t i = 0; i < len; ) {
+            memcpy(&chunk_size, (uint8_t *)mem + i, sizeof(uint64_t));
 
-        i          += sizeof(uint64_t);
-        total_size += chunk_size;
+            i          += sizeof(uint64_t);
+            total_size += chunk_size;
 
-        av_init_packet(&pkt);
-        pkt.data = (uint8_t *)mem + i;
-        pkt.size = chunk_size;
+            av_init_packet(&pkt);
+            pkt.data = (uint8_t *)mem + i;
+            pkt.size = chunk_size;
 
-        fpt_start = std::chrono::high_resolution_clock::now();
-        av_interleaved_write_frame(avfctx, &pkt);
-        fpt_end = std::chrono::high_resolution_clock::now();
+            fpt_start = std::chrono::high_resolution_clock::now();
+            av_interleaved_write_frame(avfctx, &pkt);
+            fpt_end = std::chrono::high_resolution_clock::now();
 
-        av_packet_unref(&pkt);
+            uint64_t diff = std::chrono::duration_cast<std::chrono::milliseconds>(fpt_end - fpt_start).count();
 
-        i += chunk_size;
-        frames++;
-        fsize += chunk_size;
-        uint64_t diff = std::chrono::duration_cast<std::chrono::microseconds>(fpt_end - fpt_start).count();
-        fpt_ms += diff;
+            fprintf(stderr, "sleep %d\n", 16 - diff);
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(16 - diff));
+
+            av_packet_unref(&pkt);
+
+            i += chunk_size;
+            frames++;
+            fsize += chunk_size;
+            fpt_ms += diff;
+        }
     }
     end = std::chrono::high_resolution_clock::now();
 
     uint64_t diff = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    fprintf(stderr, "%lu bytes, %lu kB, %lu MB took %u ms %u s\n",
+    fprintf(stderr, "%lu bytes, %lu kB, %lu MB took %lu ms %lu s\n",
         fsize, fsize / 1000, fsize / 1000 / 1000,
         diff, diff / 1000
     );

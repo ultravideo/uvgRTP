@@ -69,8 +69,8 @@ int kvazaar_encode(char *input, char *output)
     FILE *inputFile  = fopen(input, "r");
     FILE *outputFile = fopen(output, "w");
 
-    int width = 1920;
-    int height = 1080;
+    int width = 3840;
+    int height = 2160;
 
     kvz_encoder* enc = NULL;
     const kvz_api * const api = kvz_api_get(8);
@@ -81,9 +81,9 @@ int kvazaar_encode(char *input, char *output)
     config->height = height;
     config->hash = kvz_hash::KVZ_HASH_NONE;
     config->intra_period = 5;
-    config->vps_period = 1;
+    config->vps_period = 5;
     config->qp = 25;
-    config->framerate_num = 120;
+    config->framerate_num = 60;
     config->framerate_denom = 1;
 
     enc = api->encoder_open(config);
