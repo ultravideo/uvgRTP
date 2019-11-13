@@ -2,6 +2,7 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
+#include <mswsock.h>
 #include <inaddr.h>
 #else
 #include <netinet/ip.h>

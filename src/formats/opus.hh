@@ -1,6 +1,8 @@
 #pragma once
 
-#include "formats/generic.hh"
+#include <memory>
+
+#include "generic.hh"
 
 namespace kvz_rtp {
     namespace opus {

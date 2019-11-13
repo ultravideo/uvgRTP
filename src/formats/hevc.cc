@@ -430,7 +430,7 @@ error:
 #else
     uint8_t start_len;
     int32_t prev_offset = 0;
-    int offset = __get_hevc_start(data, ata_len, 0, start_len);
+    int offset = __get_hevc_start(data, data_len, 0, start_len);
     prev_offset = offset;
 
     while (offset != -1) {

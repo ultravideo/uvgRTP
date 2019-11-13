@@ -23,7 +23,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-QMAKE_CXXFLAGS += -DNDEBUG -Isrc
+QMAKE_CXXFLAGS += -DNDEBUG
+INCLUDEPATH    += src
 
 SOURCES += \
     src/send.cc \
@@ -41,9 +42,13 @@ SOURCES += \
     src/hostname.cc \
     src/queue.cc \
     src/random.cc \
+    src/dispatch.cc \
+    src/runner.cc \
     src/formats/opus.cc \
     src/formats/hevc.cc \
+    src/formats/hevc_recv_normal.cc \
     src/formats/generic.cc
+    #src/formats/hevc_recv_optimistic.cc \
 
 HEADERS += \
     src/writer.hh \
@@ -64,6 +69,8 @@ HEADERS += \
     src/hostname.hh \
     src/queue.hh \
     src/random.hh \
+    src/dispatch.hh \
+    src/runner.hh \
     src/formats/opus.hh \
     src/formats/hevc.hh \
     src/formats/generic.hh

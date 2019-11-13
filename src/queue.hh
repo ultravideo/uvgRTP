@@ -50,8 +50,13 @@ namespace kvz_rtp {
         kvz_rtp::frame::rtp_header rtp_common;
         kvz_rtp::frame::rtp_header rtp_headers[MAX_MSG_COUNT];
 
+#ifdef __linux__
         struct mmsghdr headers[MAX_MSG_COUNT];
         struct iovec   chunks[MAX_CHUNK_COUNT];
+#else
+        char headers[MAX_MSG_COUNT];
+        char chunks[MAX_CHUNK_COUNT];
+#endif
 
         /* Media may need space for additional buffers,
          * this pointer is initialized with kvz_rtp::MEDIA_TYPE::media_headers

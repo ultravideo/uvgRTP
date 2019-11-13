@@ -1,6 +1,6 @@
 #ifdef _WIN32
-#include <windows.h>
-#include <winbase.h>
+//#include <windows.h>
+//#include <winbase.h>
 #else
 #include <unistd.h>
 #include <cstring>
