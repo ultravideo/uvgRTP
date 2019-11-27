@@ -307,7 +307,15 @@ static rtp_error_t __push_hevc_nal(
 #else
     if (data_len <= MAX_PAYLOAD) {
         LOG_DEBUG("send unfrag size %zu, type %u", data_len, nalType);
-        return kvz_rtp::generic::push_frame(conn, data, data_len, 0);
+
+        if ((ret = kvz_rtp::generic::push_frame(conn, data, data_len, 0)) != RTP_OK) {
+            LOG_ERROR("failed to send small packet!");
+            return ret;
+        }
+
+        if (more)
+            return RTP_NOT_READY;
+        return RTP_OK;
     }
 
     const size_t HEADER_SIZE =
@@ -348,7 +356,14 @@ static rtp_error_t __push_hevc_nal(
 
     memcpy(&buffer[HEADER_SIZE], &data[data_pos], data_left);
 
-    return kvz_rtp::send::send_frame(conn, buffer, HEADER_SIZE + data_left);
+    if ((ret = kvz_rtp::send::send_frame(conn, buffer, HEADER_SIZE + data_left)) != RTP_OK) {
+        LOG_ERROR("Failed to send frame");
+        return ret;
+    }
+
+    if (more)
+        return RTP_NOT_READY;
+    return RTP_OK;
 #endif
 }
 
