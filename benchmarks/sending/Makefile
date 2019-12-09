@@ -8,6 +8,9 @@ all: kvzrtp jrtp ccrtp live555 ortp ffmpeg
 kvzrtp:
 	$(CXX) $(CXXFLAGS) -o main_kvzrtp kvzrtp.cc ../util/util.cc -lkvzrtp -lkvazaar -lpthread
 
+latency_kvzrtp:
+	$(CXX) $(CXXFLAGS) -o main_latency_kvzrtp latency_kvzrtp.cc ../util/util.cc -lkvzrtp -lkvazaar -lpthread
+
 jrtp:
 	$(CXX) $(CXXFLAGS) -o main_jrtp jrtp.cc ../util/util.cc -lkvazaar -ljrtp -lpthread
 
@@ -28,5 +31,8 @@ ortp:
 ffmpeg:
 	$(CXX) $(CXXFLAGS) -o main_ffmpeg ffmpeg.cc ../util/util.cc -lkvazaar `pkg-config --libs libavformat`
 
+latency_ffmpeg:
+	$(CXX) $(CXXFLAGS) -o main_latency_ffmpeg latency_ffmpeg.cc ../util/util.cc -lkvazaar `pkg-config --libs libavformat`
+
 clean:
-	rm -f main_kvzrtp main_jrtp main_ccrtp main_live555 main_ortp main_ffmpeg
+	rm -f main_kvzrtp main_jrtp main_ccrtp main_live555 main_ortp main_ffmpeg main_latency_kvzrtp main_latency_ffmpeg
