@@ -16,12 +16,18 @@ extern "C" {
 
 extern void *get_mem(int argc, char **argv, size_t& len);
 
+#define WIDTH  3840
+#define HEIGHT 2160
+
+#define FPS     250
+#define SLEEP     4
+
 int main() {
     avcodec_register_all();
     av_register_all();
     avformat_network_init();
 
-    enum AVCodecID codec_id = AV_CODEC_ID_H264;
+    enum AVCodecID codec_id = AV_CODEC_ID_H265;
     AVCodec *codec;
     AVCodecContext *c = NULL;
     int i, ret, x, y, got_output;
@@ -31,21 +37,13 @@ int main() {
     codec = avcodec_find_encoder(codec_id);
     c = avcodec_alloc_context3(codec);
 
-    c->bit_rate = 400000;
-    c->width = 1920;
-    c->height = 1080;
+    c->width = HEIGHT;
+    c->height = WIDTH;
     c->time_base.num = 1;
-    c->time_base.den = 25;
-    c->gop_size = 25;
-    c->max_b_frames = 1;
+    c->time_base.den = FPS;
     c->pix_fmt = AV_PIX_FMT_YUV420P;
     c->codec_type = AVMEDIA_TYPE_VIDEO;
     c->flags = AV_CODEC_FLAG_GLOBAL_HEADER;
-
-    if (codec_id == AV_CODEC_ID_H264) {
-        ret = av_opt_set(c->priv_data, "preset", "ultrafast", 0);
-        ret = av_opt_set(c->priv_data, "tune", "zerolatency", 0);
-    }
 
     avcodec_open2(c, codec, NULL);
 
@@ -59,24 +57,24 @@ int main() {
     AVFormatContext* avfctx;
     AVOutputFormat* fmt = av_guess_format("rtp", NULL, NULL);
 
-#if 0
+#if 1
     ret = avformat_alloc_output_context2(&avfctx, fmt, fmt->name,
         "rtp://127.0.0.1:8888");
 #else
     ret = avformat_alloc_output_context2(&avfctx, fmt, fmt->name,
-        "rtp://10.21.25.26:8888");
+        "rtp://10.21.25.2:8888");
 #endif
 
     avio_open(&avfctx->pb, avfctx->filename, AVIO_FLAG_WRITE);
 
     struct AVStream* stream = avformat_new_stream(avfctx, codec);
     /* stream->codecpar->bit_rate = 400000; */
-    stream->codecpar->width = 3840;
-    stream->codecpar->height = 2160;
+    stream->codecpar->width = WIDTH;
+    stream->codecpar->height = HEIGHT;
     stream->codecpar->codec_id = AV_CODEC_ID_HEVC;
     stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
     stream->time_base.num = 1;
-    stream->time_base.den = 30;
+    stream->time_base.den = FPS;
 
     (void)avformat_write_header(avfctx, NULL);
 
@@ -108,11 +106,14 @@ int main() {
 
             uint64_t diff = std::chrono::duration_cast<std::chrono::milliseconds>(fpt_end - fpt_start).count();
 
-            fprintf(stderr, "sleep %d\n", 16 - diff);
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(16 - diff));
-
             av_packet_unref(&pkt);
+            /* std::this_thread::sleep_for(std::chrono::microseconds(800)); */
+            /* std::this_thread::sleep_for(std::chrono::milliseconds(50)); */
+            if (diff < SLEEP) {
+               std::this_thread::sleep_for(std::chrono::milliseconds(SLEEP - diff));
+            } else {
+                fprintf(stderr, "cannot send this fast!\n");
+            }
 
             i += chunk_size;
             frames++;
@@ -131,7 +132,7 @@ int main() {
 
     fprintf(stderr, "# of frames: %u\n", frames);
     fprintf(stderr, "avg frame size: %lu\n", fsize / frames);
-    fprintf(stderr, "avg processing time of frame: %lu\n", fpt_ms / frames);
+    fprintf(stderr, "avg processing time of frame: %lu us\n", fpt_ms / frames);
 
     ret = avcodec_send_frame(c, NULL);
 
