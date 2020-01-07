@@ -4,7 +4,9 @@
 
 int main(int argc, char **argv)
 {
-    kvz_rtp::writer *writer = ctx.create_writer("127.0.0.1", 5566);
+    kvz_rtp::context ctx;
+
+    kvz_rtp::writer *writer = ctx.create_writer("127.0.0.1", 5566, RTP_FORMAT_GENERIC);
 
     (void)writer->start();
 

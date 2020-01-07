@@ -9,7 +9,9 @@ void dealloc_hook(void *mem)
 
 int main(int argc, char **argv)
 {
-    kvz_rtp::writer *writer = ctx.create_writer("127.0.0.1", 5566, 8888);
+    kvz_rtp::context ctx;
+
+    kvz_rtp::writer *writer = ctx.create_writer("127.0.0.1", 5566, 8888, RTP_FORMAT_GENERIC);
 
     /* When SCD has processed this memory chunk, it will call dealloc_hook()
      * which will do all necessary deallocation steps required by the application 
