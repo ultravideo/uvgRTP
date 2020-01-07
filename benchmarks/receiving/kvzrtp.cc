@@ -9,9 +9,15 @@ extern void *get_mem(int argc, char **argv, size_t& len);
 size_t bytes_sent     = 0;
 size_t bytes_received = 0;
 
+std::chrono::high_resolution_clock::time_point start, end;
+
 void recv_hook(void *arg, kvz_rtp::frame::rtp_frame *frame)
 {
     (void)arg;
+
+    if (bytes_received == 0) {
+        start = std::chrono::high_resolution_clock::now();
+    }
 
     bytes_received += frame->payload_len;
 
@@ -25,6 +31,7 @@ void runner(kvz_rtp::context *rtp_ctx, int n, void *mem, size_t len)
     (void)mem, (void)len;
 
     kvz_rtp::reader *reader = rtp_ctx->create_reader("127.0.0.1", 8888 + n, RTP_FORMAT_HEVC);
+    /* kvz_rtp::reader *reader = rtp_ctx->create_reader("10.21.25.200", 8888 + n, RTP_FORMAT_HEVC); */
     reader->install_recv_hook(NULL, recv_hook);
     (void)reader->start();
 

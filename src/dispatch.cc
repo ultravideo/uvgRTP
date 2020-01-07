@@ -82,6 +82,8 @@ void kvz_rtp::dispatcher::dispatch_runner(kvz_rtp::dispatcher *dispatcher, kvz_r
             if (t->fqueue)
                 t->fqueue->deinit_transaction(t->key);
         } while ((t = dispatcher->get_transaction()) != nullptr);
+
+        dispatcher->get_cvar().notify_one();
     }
 }
 #endif

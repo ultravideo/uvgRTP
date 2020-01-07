@@ -24,7 +24,7 @@
 #ifdef __RTP_N_PACKETS_PER_SYSCALL__
 #   define MAX_DATAGRAMS   __RTP_N_PACKETS_PER_SYSCALL__
 #else
-#   define MAX_DATAGRAMS   5
+#   define MAX_DATAGRAMS   1
 #endif
 #endif
 
@@ -34,7 +34,7 @@
 #   define MAX_READ_SIZE   MAX_PAYLOAD
 #endif
 
-#define RTP_FRAME_MAX_DELAY           34
+#define RTP_FRAME_MAX_DELAY           50
 
 #define RTP_HDR_SIZE                  12
 #define NAL_HDR_SIZE                   2
@@ -44,7 +44,7 @@
 #define ACTIVE           (frames.finfo[frames.active_ts])
 #define FRAG_PSIZE(i)    (frames.headers[i].msg_len - RTP_HDR_SIZE - NAL_HDR_SIZE - FU_HDR_SIZE)
 
-int DEFAULT_REALLOC_SIZE = 50  * MAX_READ_SIZE;
+int DEFAULT_REALLOC_SIZE = 100 * MAX_READ_SIZE;
 int DEFAULT_ALLOC_SIZE   = 100 * MAX_READ_SIZE + NAL_HDR_SIZE;
 
 
@@ -466,7 +466,7 @@ static void __resolve_relocations(struct frames& frames, uint32_t ts)
 
 rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
 {
-    LOG_INFO("Starting Optimistic HEVC Fragment Receiver...");
+    /* LOG_INFO("Starting Optimistic HEVC Fragment Receiver..."); */
 
     struct frames frames;
 
@@ -779,11 +779,8 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
         bool change_active_frame = false;
 
         if (kvz_rtp::clock::hrc::diff_now(ACTIVE.start) > RTP_FRAME_MAX_DELAY && ACTIVE.pkts_received > 0) {
-#if 0
-            fprintf(stderr, "\nframe %u deadline missed! (%u ms)\n", frames.active_ts, kvz_rtp::clock::hrc::diff_now(ACTIVE.start));
+            fprintf(stderr, "\nframe %u deadline missed! (%zu ms)\n", frames.active_ts, kvz_rtp::clock::hrc::diff_now(ACTIVE.start));
             fprintf(stderr, "s_seq 0x%x | e_seq 0x%x\n", ACTIVE.s_seq, ACTIVE.e_seq);
-            fprintf(stderr, "pkts_received %u\n\n", ACTIVE.pkts_received);
-#endif
 
             frames.late_frames.insert(std::make_pair(frames.active_ts, ACTIVE.start));
             change_active_frame = true;
@@ -796,6 +793,8 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                 pkts_received = 0xffff - ACTIVE.s_seq + ACTIVE.e_seq + 2;
             else
                 pkts_received = ACTIVE.e_seq - ACTIVE.s_seq + 1;
+
+            /* fprintf(stderr, "%zu missing\n", pkts_received - ACTIVE.pkts_received); */
 
             if (ACTIVE.pkts_received == pkts_received) {
                 total_proc_time     += kvz_rtp::clock::hrc::diff_now_us(ACTIVE.start);
@@ -819,6 +818,12 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                 frames.prev_eseq = ACTIVE.e_seq;
                 frames.finfo.erase(frames.active_ts);
                 change_active_frame = true;
+
+#if 0
+                fprintf(stderr, "total received %u | total dropped %u (%f% received)\n",K
+                        total_pkts_received, total_pkts_dropped,
+                        100 * (1 - ((double)total_pkts_dropped / (double)total_pkts_received)));
+#endif
             }
         }
 

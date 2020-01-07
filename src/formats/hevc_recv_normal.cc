@@ -9,7 +9,7 @@
 #include "send.hh"
 #include "writer.hh"
 
-#define RTP_FRAME_MAX_DELAY           50
+#define RTP_FRAME_MAX_DELAY           34
 #define INVALID_SEQ           0x13371338
 
 enum FRAG_TYPES {
@@ -143,6 +143,32 @@ rtp_error_t __hevc_receiver(kvz_rtp::reader *reader)
             duplicate                 = false;
         }
 
+        /* If frames[frame->header.seq] is not nullptr, there's actually two possibilites:
+         *    - The RTP frame is actually duplicate (quite rare)
+         *    - Previous HEVC was never returned to user and the RTP frames are still in the array
+         *
+         * Because this normal receiver does not have a notion of active frames (because all frames are active)
+         * it is very much possible that an RTP frame is dropped but the receiver never notices is because it's
+         * constructing multiple frames at once.
+         *
+         * This actually results in quite unintended behaviour where no data is returned to user.
+         * This problem can be averted by checking the timestamp of frames[frame->header.seq].
+         *
+         * If the entry is more than RTP_FRAME_MAX_DELAY milliseconds old, it can be released and
+         * the entry is replaced with this current RTP frame */
+        if (duplicate) {
+            uint64_t diff = kvz_rtp::clock::hrc::diff_now(
+                s_timers[frames[frame->header.seq]->header.timestamp].sframe_time);
+
+            if (diff >= RTP_FRAME_MAX_DELAY) {
+                kvz_rtp::frame::dealloc_frame(frames[frame->header.seq]);
+                frames[frame->header.seq] = frame;
+                duplicate = false;
+            } else {
+                fprintf(stderr, "not old enough\n");
+            }
+        }
+
         /* If this is the first packet received with this timestamp, create new entry
          * to s_timers and save current time.
          *
@@ -202,13 +228,19 @@ rtp_error_t __hevc_receiver(kvz_rtp::reader *reader)
         if (s_timers[frame->header.timestamp].sframe_seq != INVALID_SEQ &&
             s_timers[frame->header.timestamp].eframe_seq != INVALID_SEQ)
         {
-            uint32_t ts    = frame->header.timestamp;
-            uint16_t s_seq = s_timers[ts].sframe_seq;
-            uint16_t e_seq = s_timers[ts].eframe_seq;
-            size_t ptr     = 0;
+            uint32_t ts     = frame->header.timestamp;
+            uint16_t s_seq  = s_timers[ts].sframe_seq;
+            uint16_t e_seq  = s_timers[ts].eframe_seq;
+            size_t ptr      = 0;
+            size_t received = 0;
+
+            if (s_seq > e_seq)
+                received = 0xffff - s_seq + e_seq + 2;
+            else
+                received = e_seq - s_seq + 1;
 
             /* we've received every fragment and the frame can be reconstructed */
-            if (e_seq - s_seq + 1 == (ssize_t)s_timers[frame->header.timestamp].pkts_received) {
+            if (received == s_timers[frame->header.timestamp].pkts_received) {
                 nal_header[0] = (frames[s_seq]->payload[0] & 0x81) | ((frame->payload[2] & 0x3f) << 1);
                 nal_header[1] =  frames[s_seq]->payload[1];
 

@@ -38,7 +38,7 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn)
     std::lock_guard<std::mutex> lock(transaction_mtx_);
 
     if (active_ != nullptr) {
-        LOG_WARN("initializing a new transaction while previous is still active!");
+        /* LOG_WARN("initializing a new transaction while previous is still active!"); */
         active_ = nullptr;
     }
 

@@ -47,6 +47,11 @@ rtp_error_t kvz_rtp::writer::start()
     if ((ret = socket_.init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
         return ret;
 
+    int udp_buf_size = 40 * 1024 * 1024;
+
+    if ((ret = socket_.setsockopt(SOL_SOCKET, SO_SNDBUF, (const char *)&udp_buf_size, sizeof(int))) != RTP_OK)
+        return ret;
+
     /* if source port is not 0, writer should be bind to that port so that outgoing packet
      * has a correct source port (important for hole punching purposes) */
     if (src_port_ != 0) {

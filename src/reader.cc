@@ -43,7 +43,7 @@ rtp_error_t kvz_rtp::reader::start()
         return ret;
 
     int enable       = 1;
-    int udp_buf_size = 0xffff;
+    int udp_buf_size = 40 * 1024 * 1024;
 
     if ((ret = socket_.setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int))) != RTP_OK)
         return ret;

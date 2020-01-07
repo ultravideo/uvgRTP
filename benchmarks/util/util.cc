@@ -84,10 +84,10 @@ int kvazaar_encode(char *input, char *output)
     config->width = width;
     config->height = height;
     config->hash = kvz_hash::KVZ_HASH_NONE;
-    config->intra_period = 5;
-    config->vps_period = 5;
-    config->qp = 25;
-    config->framerate_num = 60;
+    config->intra_period = 1;
+    /* config->vps_period = 64; */
+    config->qp = 22;
+    config->framerate_num = 120;
     config->framerate_denom = 1;
 
     enc = api->encoder_open(config);

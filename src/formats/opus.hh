@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "generic.hh"
+#include "formats/generic.hh"
 
 namespace kvz_rtp {
     namespace opus {

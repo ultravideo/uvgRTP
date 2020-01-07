@@ -9,19 +9,19 @@
 #include "dispatch.hh"
 #include "util.hh"
 
-#ifdef __RTP_FQUEUE_RING_BUFFER_SIZE__
-#   define MAX_MSG_COUNT __RTP_FQUEUE_RING_BUFFER_SIZE__
+#ifdef __RTP_FQUEUE_MAX_SIZE__
+#   define MAX_MSG_COUNT __RTP_FQUEUE_MAX_SIZE__
 #else
-#   define MAX_MSG_COUNT 500
+#   define MAX_MSG_COUNT 5000
 #endif
 
-#ifdef __RTP_FQUEUE_RING_BUFFER_BUFFS_PER_PACKET__
-#   define MAX_CHUNK_COUNT (MAX_MSG_COUNT * __RTP_FQUEUE_RING_BUFFER_BUFFS_PER_PACKET__)
+#ifdef __RTP_FQUEUE_BUFFERS_PER_PACKET__
+#   define MAX_CHUNK_COUNT (MAX_MSG_COUNT * __RTP_FQUEUE_MAX_SIZE__)
 #else
 #   define MAX_CHUNK_COUNT (MAX_MSG_COUNT * 4)
 #endif
 
-#define MAX_QUEUED_MSGS 20
+#define MAX_QUEUED_MSGS 50
 
 namespace kvz_rtp {
 

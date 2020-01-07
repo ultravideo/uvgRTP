@@ -69,7 +69,7 @@ static inline unsigned __find_hevc_start(uint32_t value)
     return 0;
 }
 
-/* NOTE: the area 0 - len (ie data[0] - data[len - 1]) must be addressable!
+/* NOTE: the area 0 - len (ie data[0] - data[len - 1]) must be addressable
  * Do not add offset to "data" ptr before passing it to __get_hevc_start()! */
 static ssize_t __get_hevc_start(uint8_t *data, size_t len, size_t offset, uint8_t& start_len)
 {
@@ -89,7 +89,13 @@ static ssize_t __get_hevc_start(uint8_t *data, size_t len, size_t offset, uint8_
      * non-zero 8 byte chunks by setting the last byte to zero.
      *
      * This added zero will make the last 8 byte zero check to fail
-     * and when we get out of the loop we can check if we've reached the end */
+     * and when we get out of the loop we can check if we've reached the end
+     *
+     * TODO: if the length is not divisible by 8 it will result in read-beyond-bounds
+     * in the innner loop that looks for non-zero bytes. FIX THIS!
+     *
+     * How to fix: Set the last byte of last full 8 byte chunk to zero.
+     * There like 0 chance that the remaining bytes contain a NAL unit so it's safe to ignore?? */
     lb = data[len - 1];
     data[len - 1] = 0;
 

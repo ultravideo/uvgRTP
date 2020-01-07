@@ -6,6 +6,7 @@ extern "C" {
 #include <libavformat/avio.h>
 #include <libswscale/swscale.h>
 }
+#include <chrono>
 
 int main(int argc, char** argv) {
 
@@ -24,6 +25,11 @@ int main(int argc, char** argv) {
     //open RTSP
     AVDictionary *d = NULL;
     av_dict_set(&d, "protocol_whitelist", "file,udp,rtp", 0);
+
+    char buf[256];
+    snprintf(buf, sizeof(buf), "%d", 40 * 1024 * 1024);
+    av_dict_set(&d, "buffer_size", buf, 0);
+
     if (avformat_open_input(&format_ctx, "../../examples/full/sdp/hevc.sdp", NULL, &d) != 0) {
         return EXIT_FAILURE;
     }
@@ -39,6 +45,7 @@ int main(int argc, char** argv) {
     }
 
     size_t cnt = 0;
+    size_t size = 0;
     AVPacket packet;
     av_init_packet(&packet);
 
@@ -46,8 +53,9 @@ int main(int argc, char** argv) {
     av_read_play(format_ctx);    //play RTSP
 
     while (av_read_frame(format_ctx, &packet) >= 0) {
-        if (packet.stream_index == video_stream_index)
-            fprintf(stderr, "frame %zu read\n", ++cnt);
+        if (packet.stream_index == video_stream_index) {
+            size += packet.size;
+        }
 
         av_free_packet(&packet);
         av_init_packet(&packet);
