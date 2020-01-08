@@ -14,6 +14,8 @@ We provide several simple and thoroughly commented examples on how to use kvzRTP
 
 [How to create a simple RTP receiver (hooking)](examples/simple/rtp/receiving_hook.cc)
 
+[How to configure RTP sender to send high-quality stream](examples/simple/rtp/sending_hq.cc)
+
 NOTE: The hook should **not** be used for media processing. It should be rather used as interface between application and library where the frame handout happens.
 
 [How to create a simple RTP receiver (polling)](examples/simple/rtp/receiving_poll.cc)
@@ -164,73 +166,9 @@ _Overwriting shifts_, as the name suggests, overwrite the previous content so th
 
 Overwriting shifts also cause _appending shifts_ because when a fragment is removed, and a valid fragment is shifted on its place, this valid fragment must not be overwritten and all subsequent valid fragments must be appended.
 
-
-#### Frame Size and Allocation Heuristics (FSAH)
-
-Trying to mitigate both reallocations and internal fragmentation, OFR uses a "tool" called FSAH.
-
-FSAH keeps track of allocations and frame sizes and tries to build a model that resembles the frame sizes to the best of its ability. Usually a stream consist of inter and intra frames and the intra period is user-configurable. OFR tries to guess the intra period from the frame sizes using FSAH.
-
-Using FSAH, the OFR can efficiently update its allocation sizes when f.ex. encoding parameters or resolution of the video is changed.
-
-### Configuring the OFR
-
-NOTE 1: If you wish to use OFR, you need to supply the maximum payload size used by the sender. When using kvzRTP for both sending and receiving you don't need to worry about that but if you're using f.ex. FFmpeg for sending, you need to set the `MAX_PAYLOAD` to 1506.
-
-`__RTP_USE_OPTIMISTIC_RECEIVER__`
-* Enable the receiver, if not given the then default receiver is used
-
-`__RTP_USE_PROBATION_ZONE__`
-* Linux-only optimization, small area of free-to-use memory for fragments that cannot be relocated at the moment
-
-`__RTP_PROBATION_ZONE_SIZE__`
-* How many **packets** (ie. `N * MAX_PAYLOAD` bytes) can the probation zone hold
-
-`__RTP_N_PACKETS_PER_SYSCALL__`
-* How many packets should the OFR read per system call
-* This is a double-edged sword because on the other you can reduce the overhead caused by system calls but it will in turn increase the amount of processing done by system call and may cause more complex relocations
-* Setting this to 1, you can get rid of	shifting completely
-
-`__RTP_MAX_PAYLOAD__`
-* This defines the maximum payload used by sender (so only the actual HEVC data, all headers excluded).
-* NOTE: it's important that most of the fragments are of size `__RTP_MAX_PAYLOAD__`, otherwise the OFR will spent a lot of time shifting the memory
-
-One additional way of improving the performance of OFR is decreasing the VPS period. VPS/SPS/PPS packets are read into the active frame just like fragments which means that they must be copied out and all remaining fragments of current read must be shifted.
-
-For VPS period of 1, that's 3 copies (assuming all three are received) and `MAX_DATAGRAMS - 3` memory shifts.
-
 ## Defines
 
 Use `__RTP_SILENT__` to disable all prints
-
-Use `__RTP_USE_OPTIMISTIC_RECEIVER__` to enable the optimistic fragment receiver
-* See src/formats/hevc.cc for more details
-
-Use `__RTP_USE_PROBATION_ZONE__` to enable the probation zone allocation for RTP frames
-* See src/frame.hh for more details
-* NOTE: Probation zone is enabled only if optimistic fragment receiver is enabled
-
-Use `__RTP_MAX_PAYLOAD__` to determine the maximum UDP **payload** size
-* If you're unsure about this, don't define it. kvzRTP will default to 1441 bytes
-* NOTE: If you're not using kvzRTP for both sending and receiving, it is very much advised to set this (to some default value??)
-
-`__RTP_N_PACKETS_PER_SYSCALL__` (Linux only)
-* How many packets should the OFR read per system call
-* See "Configuring the OFR" for more details
-
-Use `__RTP_PROBATION_ZONE_SIZE__` to configure the probation zone is
-* This should define the number of **packets** that fit into probation zone
-
-Use `__RTP_MAX_QUEUED_MSGS__` to configure how many transaction entries the free queue can hold
-* This can be rather low number for small amount of clients
-* Default is 20
-
-Use `__RTP_FQUEUE_MAX_SIZE__` to configure how many UDP packets one transaction entry holds
-* Default is 500
-
-Use `__RTP_FQUEUE_BUFFERS_PER_PACKET__`
-* How many buffers does it take to construct one UDP packet
-* Default is 4 (RTP, NAL, FU and payload)
 
 Use `NDEBUG` to disable `LOG_DEBUG` which is the most verbose level of logging
 

@@ -517,9 +517,7 @@ rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, std::unique_ptr
 
 rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::reader *reader)
 {
-#ifdef __RTP_USE_OPTIMISTIC_RECEIVER__
-    return __hevc_receiver_optimistic(reader);
-#else
+    if (reader->get_ctx_conf().flags & RCE_OPTIMISTIC_RECEIVER)
+        return __hevc_receiver_optimistic(reader);
     return __hevc_receiver(reader);
-#endif
 }

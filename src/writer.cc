@@ -22,16 +22,16 @@ using namespace mingw;
 #include "formats/hevc.hh"
 #include "formats/generic.hh"
 
-kvz_rtp::writer::writer(rtp_format_t fmt, std::string dst_addr, int dst_port):
-    connection(fmt, false),
+kvz_rtp::writer::writer(rtp_format_t fmt, rtp_ctx_conf_t& conf, std::string dst_addr, int dst_port):
+    connection(fmt, conf, false),
     dst_addr_(dst_addr),
     dst_port_(dst_port),
     src_port_(0)
 {
 }
 
-kvz_rtp::writer::writer(rtp_format_t fmt, std::string dst_addr, int dst_port, int src_port):
-    writer(fmt, dst_addr, dst_port)
+kvz_rtp::writer::writer(rtp_format_t fmt, rtp_ctx_conf_t& conf, std::string dst_addr, int dst_port, int src_port):
+    writer(fmt, conf, dst_addr, dst_port)
 {
     src_port_ = src_port;
 }
@@ -47,9 +47,13 @@ rtp_error_t kvz_rtp::writer::start()
     if ((ret = socket_.init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
         return ret;
 
-    int udp_buf_size = 40 * 1024 * 1024;
+    auto ctx_conf    = get_ctx_conf();
+    ssize_t buf_size = ctx_conf.ctx_values[RCC_WRITER_UDP_BUF_SIZE];
 
-    if ((ret = socket_.setsockopt(SOL_SOCKET, SO_SNDBUF, (const char *)&udp_buf_size, sizeof(int))) != RTP_OK)
+    if (buf_size <= 0)
+        buf_size = 4 * 1000 * 1000;
+
+    if ((ret = socket_.setsockopt(SOL_SOCKET, SO_SNDBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
         return ret;
 
     /* if source port is not 0, writer should be bind to that port so that outgoing packet
@@ -69,12 +73,13 @@ rtp_error_t kvz_rtp::writer::start()
     addr_out_ = socket_.create_sockaddr(AF_INET, dst_addr_, dst_port_);
     socket_.set_sockaddr(addr_out_);
 
-#ifdef __RTP_USE_SYSCALL_DISPATCHER__
-    auto dispatcher = get_dispatcher();
+    if (get_payload() == RTP_FORMAT_HEVC && get_ctx_conf().flags & RCE_SYSTEM_CALL_DISPATCHER) {
+        LOG_ERROR("get dispatcher");
+        auto dispatcher = get_dispatcher();
 
-    if (dispatcher)
-        dispatcher->start();
-#endif
+        if (dispatcher)
+            dispatcher->start();
+    }
 
     if (rtcp_ == nullptr) {
         if ((rtcp_ = new kvz_rtp::rtcp(get_ssrc(), false)) == nullptr) {

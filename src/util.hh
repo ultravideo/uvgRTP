@@ -69,6 +69,83 @@ typedef enum RTP_FLAGS {
     RTP_COPY = 1 << 2,
 } rtp_flags_t;
 
+/* These flags are given when kvzRTP context is created */
+typedef enum RTP_CTX_ENABLE_FLAGS {
+    RTP_CTX_NO_FLAGS                      = 0 << 0,
+
+    /* Use optimistic receiver (HEVC only) */
+    RCE_OPTIMISTIC_RECEIVER    = 1 << 0,
+
+    /* Enable probation zone (enabled only if optimistic receiver is enabled) */
+    RCE_PROBATION_ZONE         = 1 << 1,
+
+    /* Enable system call dispatcher (HEVC only) */
+    RCE_SYSTEM_CALL_DISPATCHER = 1 << 2,
+
+} rtp_ctx_flags_t;
+
+/* These options are given to configuration() */
+typedef enum RTP_CTX_CONFIGURATION_FLAGS {
+    /* No configuration flags */
+    RCC_NO_FLAGS                  = 0,
+
+    /* How many packets can be fit into
+     * probation zone until they overflow to separate frames.
+     *
+     * By default, probation zone is disabled
+     *
+     * NOTE: how many **packets**, not bytes */
+    RCC_PROBATION_ZONE_SIZE       = 1,
+
+    /* How many transactions can be cached for later use 
+     * Caching transactions improves performance by reducing
+     * the number of (de)allocations but increases the memory
+     * footprint of the program
+     *
+     * By default, 10 transactions are cached */
+    RCC_MAX_TRANSACTIONS          = 2,
+
+    /* How many UDP packets does one transaction object hold.
+     *
+     * kvzRTP splits one input frame [argument of push_frame()] into
+     * multiple UDP packets, each of size 1500 bytes. This UDP packets
+     * are stored into a transaction object.
+     *
+     * Video with high bitrate may require large value for "RCC_MAX_MESSAGES" 
+     *
+     * By default, it is set to 500 (ie. one frame can take up to 500 * 1500 bytes) */
+    RCC_MAX_MESSAGES              = 3,
+
+    /* How many chunks each UDP packet can at most contain
+     *
+     * By default, this is set to 4 */
+    RCC_MAX_CHUNKS_PER_MSG        = 4,
+
+    /* How large is the receive UDP buffer size
+     *
+     * Default value is 4 MB
+     *
+     * For video with high bitrate, it is advisable to set this
+     * to a high number to prevent OS from dropping packets */
+    RCC_READER_UDP_BUF_SIZE       = 5,
+
+    /* How large is the send UDP buffer size
+     *
+     * Default value is 4 MB
+     *
+     * For video with high bitrate, it is advisable to set this
+     * to a high number to prevent OS from dropping packets */
+    RCC_WRITER_UDP_BUF_SIZE       = 6,
+
+    RTP_CTX_CONF_LAST
+} rtp_ctx_conf_flags_t;
+
+/* see src/util.hh for more information */
+typedef struct rtp_ctx_conf {
+    rtp_ctx_flags_t flags;
+    ssize_t ctx_values[RTP_CTX_CONF_LAST];
+} rtp_ctx_conf_t;
+
 extern thread_local rtp_error_t rtp_errno;
 
 static inline void hex_dump(uint8_t *buf, size_t len)

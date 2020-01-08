@@ -1,9 +1,7 @@
 .PHONY: all clean obj install
 
 CXX = g++
-CXXFLAGS = -g -Wall -Wextra -Wuninitialized -O2 -std=c++11 -DNDEBUG -Isrc -fPIC \
-		   -D__RTP_USE_SYSCALL_DISPATCHER__ \
-		   -D__RTP_USE_OPTIMISTIC_RECEIVER__
+CXXFLAGS = -g -Wall -Wextra -Wuninitialized -O2 -std=c++11 -DNDEBUG -Isrc -fPIC
 
 SOURCES = $(wildcard src/*.cc)
 MODULES := src/formats

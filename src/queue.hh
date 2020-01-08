@@ -9,19 +9,9 @@
 #include "dispatch.hh"
 #include "util.hh"
 
-#ifdef __RTP_FQUEUE_MAX_SIZE__
-#   define MAX_MSG_COUNT __RTP_FQUEUE_MAX_SIZE__
-#else
-#   define MAX_MSG_COUNT 5000
-#endif
-
-#ifdef __RTP_FQUEUE_BUFFERS_PER_PACKET__
-#   define MAX_CHUNK_COUNT (MAX_MSG_COUNT * __RTP_FQUEUE_MAX_SIZE__)
-#else
-#   define MAX_CHUNK_COUNT (MAX_MSG_COUNT * 4)
-#endif
-
-#define MAX_QUEUED_MSGS 50
+const int MAX_MSG_COUNT   = 500;
+const int MAX_QUEUED_MSGS =  10;
+const int MAX_CHUNK_COUNT =   4;
 
 namespace kvz_rtp {
 
@@ -48,14 +38,14 @@ namespace kvz_rtp {
          * Keeping a separate common RTP header and then just copying this is cleaner than initializing
          * RTP header for each packet */
         kvz_rtp::frame::rtp_header rtp_common;
-        kvz_rtp::frame::rtp_header rtp_headers[MAX_MSG_COUNT];
+        kvz_rtp::frame::rtp_header *rtp_headers;
 
 #ifdef __linux__
-        struct mmsghdr headers[MAX_MSG_COUNT];
-        struct iovec   chunks[MAX_CHUNK_COUNT];
+        struct mmsghdr *headers;
+        struct iovec   *chunks;
 #else
-        char headers[MAX_MSG_COUNT];
-        char chunks[MAX_CHUNK_COUNT];
+        char *headers;
+        char *chunks;
 #endif
 
         /* Media may need space for additional buffers,
@@ -97,8 +87,8 @@ namespace kvz_rtp {
 
     class frame_queue {
         public:
-            frame_queue(rtp_format_t fmt);
-            frame_queue(rtp_format_t fmt, kvz_rtp::dispatcher *dispatcher);
+            frame_queue(rtp_format_t fmt, rtp_ctx_conf_t& conf);
+            frame_queue(rtp_format_t fmt, rtp_ctx_conf_t& conf, kvz_rtp::dispatcher *dispatcher);
             ~frame_queue();
 
             rtp_error_t init_transaction(kvz_rtp::connection *conn);
@@ -206,5 +196,9 @@ namespace kvz_rtp {
 
             /* Deallocation hook is stored here and copied to transaction upon initialization */
             void (*dealloc_hook_)(void *);
+
+            ssize_t max_queued_; /* number of queued transactions */
+            ssize_t max_mcount_; /* number of messages per transactions */
+            ssize_t max_ccount_; /* number of chunks per message */
     };
 };

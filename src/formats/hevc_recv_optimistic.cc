@@ -287,6 +287,9 @@ struct frames {
     size_t total_received;
     size_t total_bytes_received;
     size_t total_copied;
+
+    bool pz_enabled; /* has probation zone been enabled */
+    size_t pz_size;  /* how many packets fit into the frame's probation zone */
 };
 
 /* Buffer contains three bytes: 2 byte NAL header and 1 byte FU header */
@@ -359,10 +362,15 @@ static inline void __add_relocation_entry(struct frame_info& finfo, uint16_t seq
     finfo.rinfo.insert(std::make_pair(seq, reloc));
 }
 
-static void __relocate_temporarily(struct frame_info& src, struct frame_info& dst, uint16_t seq, size_t size, size_t offset)
+static void __relocate_temporarily(
+    struct frame_info& src, struct frame_info& dst,
+    uint16_t seq, size_t size, size_t offset, bool pz_enabled
+)
 {
-#ifdef __RTP_USE_PROBATION_ZONE__
-    if (dst.frame->probation_off != dst.frame->probation_len) {
+    if (pz_enabled) {
+        if (dst.frame->probation_off >= dst.frame->probation_len)
+            goto alloc_normal;
+
         void *ptr = dst.frame->probation + dst.frame->probation_off;
 
         src.relocs++;
@@ -371,22 +379,25 @@ static void __relocate_temporarily(struct frame_info& src, struct frame_info& ds
         __add_relocation_entry(dst, seq, ptr, size, RT_PROBATION);
 
         dst.frame->probation_off += size;
-    } else {
-#endif
-        auto tmp_frame = kvz_rtp::frame::alloc_rtp_frame(size);
-        src.relocs++;
-
-        std::memcpy(tmp_frame->payload, src.frame->payload + offset, size);
-        __add_relocation_entry(dst, seq, tmp_frame, size, RT_FRAME);
-
-#ifdef __RTP_USE_PROBATION_ZONE__
+        return;
     }
-#endif
+
+alloc_normal:
+    auto tmp_frame = kvz_rtp::frame::alloc_rtp_frame(size);
+    src.relocs++;
+
+    std::memcpy(tmp_frame->payload, src.frame->payload + offset, size);
+    __add_relocation_entry(dst, seq, tmp_frame, size, RT_FRAME);
 }
 
 static void __reallocate_frame(struct frames& frames, uint32_t timestamp)
 {
-    auto tmp_frame = kvz_rtp::frame::alloc_rtp_frame(GET_FRAME(timestamp).total_size + frames.fsah.ras);
+    kvz_rtp::frame::rtp_frame *tmp_frame = nullptr;
+    
+    if (frames.pz_enabled)
+        tmp_frame = kvz_rtp::frame::alloc_rtp_frame(GET_FRAME(timestamp).total_size + frames.fsah.ras, frames.pz_size);
+    else
+        tmp_frame = kvz_rtp::frame::alloc_rtp_frame(GET_FRAME(timestamp).total_size + frames.fsah.ras);
 
     std::memcpy(tmp_frame->payload, GET_FRAME(timestamp).frame->payload, GET_FRAME(timestamp).total_size);
     (void)kvz_rtp::frame::dealloc_frame(GET_FRAME(timestamp).frame);
@@ -402,7 +413,11 @@ static void __create_frame_entry(struct frames& frames, uint32_t timestamp, void
 {
     (void)payload, (void)size;
 
-    GET_FRAME(timestamp).frame         = kvz_rtp::frame::alloc_rtp_frame(frames.fsah.das);
+    if (frames.pz_enabled)
+        GET_FRAME(timestamp).frame     = kvz_rtp::frame::alloc_rtp_frame(frames.fsah.das, frames.pz_size);
+    else
+        GET_FRAME(timestamp).frame     = kvz_rtp::frame::alloc_rtp_frame(frames.fsah.das);
+
     GET_FRAME(timestamp).total_size    = frames.fsah.das;
     GET_FRAME(timestamp).next_off      = NAL_HDR_SIZE;
     GET_FRAME(timestamp).received_size = NAL_HDR_SIZE;
@@ -466,7 +481,7 @@ static void __resolve_relocations(struct frames& frames, uint32_t ts)
 
 rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
 {
-    /* LOG_INFO("Starting Optimistic HEVC Fragment Receiver..."); */
+    LOG_INFO("Starting Optimistic HEVC Fragment Receiver...");
 
     struct frames frames;
 
@@ -489,10 +504,17 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
 
     std::memset(frames.headers, 0, sizeof(frames.headers));
 
-    int nread = 0;
+    int nread           = 0;
+    rtp_ctx_conf_t conf = reader->get_ctx_conf();
 
-    uint64_t total_proc_time = 0;
-    uint64_t total_frames_recved = 0;
+    frames.pz_enabled = !!(conf.flags & RCE_PROBATION_ZONE);
+    frames.pz_size    = conf.ctx_values[RCC_PROBATION_ZONE_SIZE];
+
+    if (!frames.pz_enabled) {
+        LOG_ERROR("probatoin zone dialbed");
+    } else {
+        LOG_ERROR("PZ enabled");
+    }
 
     while (reader->active()) {
 
@@ -692,7 +714,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                         }
                     } else {
                         /* Relocate the fragment temporarily to probation zone/temporary frame */
-                        __relocate_temporarily(ACTIVE, GET_FRAME(c_ts), c_seq, FRAG_PSIZE(i), off);
+                        __relocate_temporarily(ACTIVE, GET_FRAME(c_ts), c_seq, FRAG_PSIZE(i), off, frames.pz_enabled);
                     }
 
                 /* This is not the first fragment of an inactive frame, copy it to correct frame
@@ -715,7 +737,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
 
                     } else {
                         /* Relocate the fragment temporarily to probation zone/temporary frame */
-                        __relocate_temporarily(ACTIVE, GET_FRAME(c_ts), c_seq, FRAG_PSIZE(i), off);
+                        __relocate_temporarily(ACTIVE, GET_FRAME(c_ts), c_seq, FRAG_PSIZE(i), off, frames.pz_enabled);
                     }
                 }
 
@@ -797,9 +819,6 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
             /* fprintf(stderr, "%zu missing\n", pkts_received - ACTIVE.pkts_received); */
 
             if (ACTIVE.pkts_received == pkts_received) {
-                total_proc_time     += kvz_rtp::clock::hrc::diff_now_us(ACTIVE.start);
-                total_frames_recved += 1;
-
                 __resolve_relocations(frames, frames.active_ts);
 
                 frames.total_received       += ACTIVE.pkts_received;

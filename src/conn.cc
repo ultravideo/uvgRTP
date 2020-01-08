@@ -17,31 +17,30 @@
 #include "formats/hevc.hh"
 #include "formats/opus.hh"
 
-kvz_rtp::connection::connection(rtp_format_t fmt, bool reader):
+kvz_rtp::connection::connection(rtp_format_t fmt, rtp_ctx_conf_t& conf, bool reader):
     config_(nullptr),
     socket_(),
     rtcp_(nullptr),
     reader_(reader),
     wc_start_(0),
     fqueue_(nullptr),
-    dispatcher_(nullptr)
+    dispatcher_(nullptr),
+    conf_(conf)
 {
     rtp_sequence_  = 1; //kvz_rtp::random::generate_32();
     rtp_ssrc_      = kvz_rtp::random::generate_32();
     rtp_payload_   = fmt;
 
     if (!reader) {
-#ifdef __RTP_USE_SYSCALL_DISPATCHER__
-        if (fmt == RTP_FORMAT_HEVC) {
+        if (fmt == RTP_FORMAT_HEVC &&
+            conf_.flags & RCE_SYSTEM_CALL_DISPATCHER)
+        {
             dispatcher_ = new kvz_rtp::dispatcher(&socket_);
-            fqueue_     = new kvz_rtp::frame_queue(fmt, dispatcher_);
+            fqueue_     = new kvz_rtp::frame_queue(fmt, conf_, dispatcher_);
         } else {
-            fqueue_     = new kvz_rtp::frame_queue(fmt);
+            fqueue_     = new kvz_rtp::frame_queue(fmt, conf_);
             dispatcher_ = nullptr;
         }
-#else
-        fqueue_     = new kvz_rtp::frame_queue(fmt);
-#endif
     }
 
     set_payload(fmt);
@@ -54,13 +53,11 @@ kvz_rtp::connection::~connection()
         delete rtcp_;
     }
 
-#ifdef __RTP_USE_SYSCALL_DISPATCHER__
-    if (!reader_ && rtp_payload_ == RTP_FORMAT_HEVC) {
+    if (!reader_ && rtp_payload_ == RTP_FORMAT_HEVC && conf_.flags & RCE_SYSTEM_CALL_DISPATCHER) {
         while (dispatcher_->stop() != RTP_OK) {
-            /* fprintf(stderr, "here...\n"); */
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
     }
-#endif
 }
 
 void kvz_rtp::connection::set_payload(rtp_format_t fmt)
@@ -254,4 +251,9 @@ void kvz_rtp::connection::install_dealloc_hook(void (*dealloc_hook)(void *))
 kvz_rtp::rtcp *kvz_rtp::connection::get_rtcp()
 {
     return rtcp_;
+}
+
+rtp_ctx_conf_t& kvz_rtp::connection::get_ctx_conf()
+{
+    return conf_;
 }

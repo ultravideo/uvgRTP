@@ -2,10 +2,12 @@
 #include "dispatch.hh"
 #include "socket.hh"
 
-#ifdef __RTP_USE_SYSCALL_DISPATCHER__
+#include <easy/profiler.h>
+
 kvz_rtp::dispatcher::dispatcher(kvz_rtp::socket *socket):
     socket_(socket)
 {
+    LOG_ERROR("starting system call dispatcher!");
 }
 
 kvz_rtp::dispatcher::~dispatcher()
@@ -86,4 +88,3 @@ void kvz_rtp::dispatcher::dispatch_runner(kvz_rtp::dispatcher *dispatcher, kvz_r
         dispatcher->get_cvar().notify_one();
     }
 }
-#endif

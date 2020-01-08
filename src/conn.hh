@@ -25,7 +25,7 @@ namespace kvz_rtp {
 
     class connection : public runner {
         public:
-            connection(rtp_format_t fmt, bool reader);
+            connection(rtp_format_t fmt, rtp_ctx_conf_t& conf, bool reader);
             virtual ~connection();
 
             uint16_t get_sequence() const;
@@ -98,6 +98,8 @@ namespace kvz_rtp {
              * TODO make this const */
             kvz_rtp::rtcp *get_rtcp();
 
+            rtp_ctx_conf_t& get_ctx_conf();
+
         protected:
             void *config_;
             uint32_t id_;
@@ -120,5 +122,7 @@ namespace kvz_rtp {
             kvz_rtp::frame_queue *fqueue_;
 
             kvz_rtp::dispatcher *dispatcher_;
+
+            rtp_ctx_conf_t conf_;
     };
 };

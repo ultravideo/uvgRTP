@@ -16,15 +16,34 @@
 
 #include "formats/hevc.hh"
 
-kvz_rtp::frame_queue::frame_queue(rtp_format_t fmt):
-    active_(nullptr), fmt_(fmt)
+kvz_rtp::frame_queue::frame_queue(rtp_format_t fmt, rtp_ctx_conf_t& conf):
+    active_(nullptr), fmt_(fmt), dealloc_hook_(nullptr)
 {
-    active_ = nullptr;
-    free_.reserve(MAX_QUEUED_MSGS);
+    active_     = nullptr;
+    dispatcher_ = nullptr;
+
+    max_queued_ = conf.ctx_values[RCC_MAX_TRANSACTIONS];
+    max_mcount_ = conf.ctx_values[RCC_MAX_MESSAGES];
+    max_ccount_ = conf.ctx_values[RCC_MAX_CHUNKS_PER_MSG] * max_mcount_;
+
+    if (max_queued_ <= 0)
+        max_queued_ = MAX_QUEUED_MSGS;
+
+    if (max_mcount_ <= 0)
+        max_mcount_ = MAX_MSG_COUNT;
+
+    if (max_ccount_ <= 0)
+        max_ccount_ = MAX_CHUNK_COUNT * max_mcount_;
+
+    LOG_ERROR("max transactions: %u", max_queued_);
+    LOG_ERROR("max messages: %u", max_mcount_);
+    LOG_ERROR("max chunk: %u", max_ccount_);
+
+    free_.reserve(max_queued_);
 }
 
-kvz_rtp::frame_queue::frame_queue(rtp_format_t fmt, kvz_rtp::dispatcher *dispatcher):
-    frame_queue(fmt)
+kvz_rtp::frame_queue::frame_queue(rtp_format_t fmt, rtp_ctx_conf_t& conf, kvz_rtp::dispatcher *dispatcher):
+    frame_queue(fmt, conf)
 {
     dispatcher_ = dispatcher;
 }
@@ -37,14 +56,21 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn)
 {
     std::lock_guard<std::mutex> lock(transaction_mtx_);
 
-    if (active_ != nullptr) {
-        /* LOG_WARN("initializing a new transaction while previous is still active!"); */
+    if (active_ != nullptr)
         active_ = nullptr;
-    }
 
     if (free_.empty()) {
         active_      = new transaction_t;
         active_->key = kvz_rtp::random::generate_32();
+
+#ifdef __linux__
+        active_->headers     = new struct mmsghdr[max_mcount_];
+        active_->chunks      = new struct iovec[max_ccount_];
+#else
+        active_->headers     = nullptr;
+        active_->chunks      = nullptr;
+#endif
+        active_->rtp_headers = new kvz_rtp::frame::rtp_header[max_mcount_];
 
         switch (fmt_) {
             case RTP_FORMAT_HEVC:
@@ -133,7 +159,7 @@ rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
         transaction_it->second->data_raw = nullptr;
     }
 
-    if (free_.size() > MAX_QUEUED_MSGS) {
+    if (free_.size() > max_queued_) {
         switch (fmt_) {
             case RTP_FORMAT_HEVC:
                 delete (kvz_rtp::hevc::media_headers *)transaction_it->second->media_headers;
@@ -141,6 +167,9 @@ rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
                 break;
         }
 
+        delete transaction_it->second->headers;
+        delete transaction_it->second->chunks;
+        delete transaction_it->second->rtp_headers;
         delete transaction_it->second;
     } else {
         free_.push_back(transaction_it->second);
@@ -169,7 +198,7 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
         return RTP_INVALID_VALUE;
 
 #ifdef __linux__
-    if (active_->chunk_ptr + 2 >= MAX_CHUNK_COUNT || active_->hdr_ptr + 1 >= MAX_MSG_COUNT) {
+    if (active_->chunk_ptr + 2 >= max_ccount_ || active_->hdr_ptr + 1 >= max_mcount_) {
         LOG_ERROR("maximum amount of chunks (%zu) or messages (%zu) exceeded!", active_->chunk_ptr, active_->hdr_ptr);
         return RTP_MEMORY_ERROR;
     }
@@ -212,7 +241,7 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
         return RTP_INVALID_VALUE;
 
 #ifdef __linux__
-    if (active_->chunk_ptr + buffers.size() + 1 >= MAX_CHUNK_COUNT || active_->hdr_ptr + 1 >= MAX_MSG_COUNT) {
+    if (active_->chunk_ptr + buffers.size() + 1 >= max_ccount_ || active_->hdr_ptr + 1 >= max_mcount_) {
         LOG_ERROR("maximum amount of chunks (%zu) or messages (%zu) exceeded!", active_->chunk_ptr, active_->hdr_ptr);
         return RTP_MEMORY_ERROR;
     }
@@ -264,16 +293,12 @@ rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
     queued_.insert(std::make_pair(active_->key, active_));
     transaction_mtx_.unlock();
 
-#ifdef __RTP_USE_SYSCALL_DISPATCHER__
-    /* Dispatcher may be enabled but it doesn't necessarily
-     * mean that this frame queue uses it to send messages */
     if (dispatcher_) {
         dispatcher_->trigger_send(active_);
         active_ = nullptr;
         return RTP_OK;
     }
 
-#endif
     if (conn->get_socket().send_vecio(active_->headers, active_->hdr_ptr, 0) != RTP_OK) {
         LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
         (void)deinit_transaction();

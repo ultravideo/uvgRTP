@@ -4,12 +4,6 @@
 #include <ws2def.h>
 #else
 #include <netinet/in.h>
-
-#ifdef __RTP_PROBATION_ZONE_SIZE__
-#define PROBATION_MAX_PKTS __RTP_PROBATION_ZONE_SIZE__
-#else
-#define PROBATION_MAX_PKTS 8
-#endif
 #endif
 
 #include <string>
@@ -67,7 +61,6 @@ namespace kvz_rtp {
             size_t padding_len; /* non-zero if frame is padded */
             size_t payload_len; /* payload_len: total_len - header_len - padding length (if padded) */
 
-#if defined(__linux__) && defined(__RTP_USE_PROBATION_ZONE__)
             /* Probation zone is a small area of free-to-use memory for the frame receiver
              * when handling fragments. For example HEVC fragments that belong to future frames
              * but cannot be relocated there (start sequence missing) are copied to probation
@@ -80,7 +73,6 @@ namespace kvz_rtp {
             size_t probation_len;
             size_t probation_off;
             uint8_t *probation;
-#endif
             uint8_t *payload;
 
             rtp_format_t format;
@@ -158,6 +150,7 @@ namespace kvz_rtp {
 
         rtp_frame           *alloc_rtp_frame();
         rtp_frame           *alloc_rtp_frame(size_t payload_len);
+        rtp_frame           *alloc_rtp_frame(size_t payload_len, size_t pz_size);
         rtcp_app_frame      *alloc_rtcp_app_frame(std::string name, uint8_t subtype, size_t payload_len);
         rtcp_sdes_frame     *alloc_rtcp_sdes_frame(size_t ssrc_count, size_t total_len);
         rtcp_receiver_frame *alloc_rtcp_receiver_frame(size_t nblocks);
