@@ -2,8 +2,7 @@
 #include "dispatch.hh"
 #include "socket.hh"
 
-#include <easy/profiler.h>
-
+#ifndef _WIN32
 kvz_rtp::dispatcher::dispatcher(kvz_rtp::socket *socket):
     socket_(socket)
 {
@@ -88,3 +87,4 @@ void kvz_rtp::dispatcher::dispatch_runner(kvz_rtp::dispatcher *dispatcher, kvz_r
         dispatcher->get_cvar().notify_one();
     }
 }
+#endif

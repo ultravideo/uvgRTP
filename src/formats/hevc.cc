@@ -26,6 +26,15 @@
 #define haszero64_be(v) (((v) - 0x1010101010101010) & ~(v) & 0x0808080808080808UL)
 #define haszero32_be(v) (((v) - 0x10101010)         & ~(v) & 0x08080808UL)
 
+#ifndef __LITTLE_ENDIAN
+#define __LITTLE_ENDIAN 1337
+#endif
+
+#ifndef __BYTE_ORDER
+#warning "setting byte order to little endian"
+#define __BYTE_ORDER __LITTLE_ENDIAN
+#endif
+
 extern rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader);
 extern rtp_error_t __hevc_receiver(kvz_rtp::reader *reader);
 
@@ -517,7 +526,9 @@ rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, std::unique_ptr
 
 rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::reader *reader)
 {
+#ifdef __linux__
     if (reader->get_ctx_conf().flags & RCE_OPTIMISTIC_RECEIVER)
         return __hevc_receiver_optimistic(reader);
+#endif
     return __hevc_receiver(reader);
 }

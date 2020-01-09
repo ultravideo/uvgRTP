@@ -32,15 +32,19 @@ kvz_rtp::connection::connection(rtp_format_t fmt, rtp_ctx_conf_t& conf, bool rea
     rtp_payload_   = fmt;
 
     if (!reader) {
+#ifndef _WIN32
         if (fmt == RTP_FORMAT_HEVC &&
             conf_.flags & RCE_SYSTEM_CALL_DISPATCHER)
         {
             dispatcher_ = new kvz_rtp::dispatcher(&socket_);
             fqueue_     = new kvz_rtp::frame_queue(fmt, conf_, dispatcher_);
         } else {
+#endif
             fqueue_     = new kvz_rtp::frame_queue(fmt, conf_);
             dispatcher_ = nullptr;
+#ifndef _WIN32
         }
+#endif
     }
 
     set_payload(fmt);
