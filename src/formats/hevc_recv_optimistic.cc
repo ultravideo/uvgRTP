@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
@@ -15,24 +16,13 @@
 #define INVALID_SEQ  0x13371338
 #define INVALID_TS   0xffffffff
 
-#ifdef _WIN32
-/* For windows the MAX_DATAGRAMS is always 1, because crappy
- * Winsock interface won't allow us to read multiple packets with one system call */
-#define MAX_DATAGRAMS                  1
-#else
+/* How many datagrams should be read with one system call */
+#define MAX_DATAGRAMS  10
 
-#ifdef __RTP_N_PACKETS_PER_SYSCALL__
-#   define MAX_DATAGRAMS   __RTP_N_PACKETS_PER_SYSCALL__
-#else
-#   define MAX_DATAGRAMS   1
-#endif
-#endif
-
-#ifdef __RTP_MAX_PAYLOAD__
-#   define MAX_READ_SIZE   __RTP_MAX_PAYLOAD__
-#else
-#   define MAX_READ_SIZE   MAX_PAYLOAD
-#endif
+/* What is the maximum size of the payload carried in each UPD packet.
+ * Most of the UDP packets should have payloads of size MAX_PAYLOAD, othewise
+ * OFR does a lot of unnecessary work by shifting the memory to fill the gaps */
+#define MAX_READ_SIZE  MAX_PAYLOAD
 
 #define RTP_FRAME_MAX_DELAY           50
 
@@ -136,6 +126,11 @@ struct fsah {
     size_t arc;
     size_t avg_realloc_cnt;
 
+    size_t pkts;      /* how many packets in total we have received */
+    size_t syscalls;  /* how many syscalls in total we have executed */
+    size_t relocs;    /* how many relocatoins in total we have done */
+    size_t frames;    /* how many frames in total we have received */
+
     /* TODO */
     std::unordered_map<int, size_t> outliers;
 };
@@ -184,6 +179,7 @@ struct frame_info {
 
     size_t reallocs;      /* how many reallocations has this frame undergone */
     size_t relocs;        /* how many copy operations was performed on this frame (both shifting and relocation) */
+    size_t syscalls;      /* how many system calls were executed for this frame */
 
     /* next fragment slot in the frame */
     size_t next_off;
@@ -481,7 +477,7 @@ static void __resolve_relocations(struct frames& frames, uint32_t ts)
 
 rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
 {
-    LOG_INFO("Starting Optimistic HEVC Fragment Receiver...");
+    /* LOG_INFO("Starting Optimistic HEVC Fragment Receiver..."); */
 
     struct frames frames;
 
@@ -503,18 +499,13 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
     __create_frame_entry(frames, INVALID_TS, NULL, 0);
 
     std::memset(frames.headers, 0, sizeof(frames.headers));
+    std::memset(&frames.fsah,   0, sizeof(frames.fsah));
 
     int nread           = 0;
     rtp_ctx_conf_t conf = reader->get_ctx_conf();
 
     frames.pz_enabled = !!(conf.flags & RCE_PROBATION_ZONE);
     frames.pz_size    = conf.ctx_values[RCC_PROBATION_ZONE_SIZE];
-
-    if (!frames.pz_enabled) {
-        LOG_ERROR("probatoin zone dialbed");
-    } else {
-        LOG_ERROR("PZ enabled");
-    }
 
     while (reader->active()) {
 
@@ -542,9 +533,30 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
         if (WSARecvFrom(reader->get_raw_socket(), frame)) {
         }
 #else
-        if ((nread = recvmmsg(reader->get_raw_socket(), frames.headers, MAX_DATAGRAMS, MSG_WAITFORONE, nullptr)) < 0) {
-            LOG_ERROR("recvmmsg() failed, %s", strerror(errno));
-            continue;
+
+        size_t pkt_avg   = 0;
+        size_t datagrams = 1;
+
+        if (frames.fsah.frames != 0)
+            pkt_avg = frames.fsah.pkts / (float)frames.fsah.frames;
+
+        if ((float)ACTIVE.pkts_received > ((float)pkt_avg * 0.02f) &&
+            (float)ACTIVE.pkts_received < ((float)pkt_avg * 0.98f)) {
+            datagrams = MAX_DATAGRAMS;
+        }
+
+        ACTIVE.syscalls++;
+
+        if (datagrams > 1) {
+            if ((nread = recvmmsg(reader->get_raw_socket(), frames.headers, datagrams, 0, nullptr)) < 0) {
+                LOG_ERROR("recvmmsg() failed, %s", strerror(errno));
+                continue;
+            }
+        } else {
+            if ((nread = recvmmsg(reader->get_raw_socket(), frames.headers, datagrams, MSG_WAITFORONE, nullptr)) < 0) {
+                LOG_ERROR("recvmmsg() failed, %s", strerror(errno));
+                continue;
+            }
         }
 #endif
 
@@ -832,7 +844,21 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                         frames.total_bytes_received / 1000 / 1000);
 #endif
 
-                ACTIVE.frame->payload_len = ACTIVE.received_size;
+                ACTIVE.frame->payload_len  = ACTIVE.received_size;
+                frames.fsah.pkts          += ACTIVE.pkts_received;
+                frames.fsah.syscalls      += ACTIVE.syscalls;
+                frames.fsah.relocs        += ACTIVE.relocs;
+                frames.fsah.frames        += 1;
+
+                /* fprintf(stderr, "%d %d %d\n", */ 
+                /*         (int)(ceil(frames.fsah.syscalls / (float)frames.fsah.frames)), */
+                /*         (int)(ceil(frames.fsah.pkts     / (float)frames.fsah.frames)), */
+                /*         (int)(ceil(frames.fsah.relocs   / (float)frames.fsah.frames)) */
+                /* ); */
+
+                /* fprintf(stderr, "%f avg syscalls, %f avg packets, %f avg relocs\n", */
+                /* ); */
+
                 reader->return_frame(ACTIVE.frame);
                 frames.prev_eseq = ACTIVE.e_seq;
                 frames.finfo.erase(frames.active_ts);
