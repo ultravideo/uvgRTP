@@ -1,6 +1,6 @@
 # kvzRTP
 
-kvzRTP is a thread-safe, easy-to-use RTP library written for next-generation video conferencing solutions. In ideal conditions it's able to achieve up to 650 MB/s goodput for HEVC stream, with an average processing time of 1.49 µs per 1000 bytes.
+kvzRTP is a thread-safe, easy-to-use RTP library written for next-generation video conferencing solutions. In ideal conditions it's able to achieve up to 607 MB/s goodput for HEVC stream.
 
 There's no global state between the threads which results in no locking, it features a very easy-to-use and intuitive API and it's licensed under the permissive BSD 2-Clause License.
 
@@ -12,9 +12,9 @@ We provide several simple and thoroughly commented examples on how to use kvzRTP
 
 [How to create a simple RTP sender](examples/simple/rtp/sending.cc)
 
-[How to create a simple RTP receiver (hooking)](examples/simple/rtp/receiving_hook.cc)
-
 [How to configure RTP sender to send high-quality stream](examples/simple/rtp/sending_hq.cc)
+
+[How to create a simple RTP receiver (hooking)](examples/simple/rtp/receiving_hook.cc)
 
 NOTE: The hook should **not** be used for media processing. It should be rather used as interface between application and library where the frame handout happens.
 
@@ -106,65 +106,7 @@ By adhering to the memory ownership/deallocation scheme presented above, the app
 
 kvzRTP features a special kind of fragment receiver that tries to minimize the number of copies. The number of copies is minimized by assuming that UDP packets come in order even though the protocol itself doesn't guarantee that (hence optimistic).
 
-During very rudimentary tests using two computers in the same private network, only **1 %** of fragments needed relocations (ie. **99 %** of the packets were read to correct place using the system call) when `__RTP_N_PACKETS_PER_SYSCALL__` was set to `1`. TODO
-This is a significant optimization, especially when transferring large amounts of data per second (such 4K video call).
-
-NOTE: Using the OFR requires some extra defines so it can work optimally, please see "Configuring the OFR" below
-
-The process starts by allocating a large amount of memory (kvzRTP doesn't know the frame size when it's started). The amount of memory allocated can be much more than what is needed but kvzRTP learns from "its mistakes" and adjusts the default allocation size when it notices a pattern in the sizes of received frames. Predicting the frame size incorrectly incurs a large penalty (new allocation + copy all fragments from active frame to newly allocated frame), so kvzRTP favors larger internal fragmentation over memory preservation.
-
-When the actual fragments are received, they're read to the allocated frame with offsets so that first assumed fragment is stored at offset `0 * MAX_PAYLOAD`, second fragment at offset `1 * MAX_PAYLOAD`, third fragment at offset `2 * MAX_PAYLOAD` and so on.
-
-When the fragments are read into place, the OFR will check if they all are part of this active frame and that they're all in correct position. If OFR notices that a fragment is not in correct place it will do a relocation.
-
-#### Relocations
-There are three types of relocations:
-
-1) Relocation within read:
-	This relocation can be done efficiently as we only need to
-	shuffle memory around and the shuffled objects are spatially
-	very close (at most `MAX_DATAGRAMS` * `MAX_PAYLOAD` bytes apart)
-
-	Relocation within read is also called shifting (defined below).
-
-	Relocation within read can happen if during larger frame reception we receive f.ex. VPS or SPS packet.
-	It can also happen if a duplicate or invalid packet is received.
-
-2) Relocation to other frame:
-	This relocation must be done because the received fragment is not part of this frame
-
-	Relocation to other frame will try to copy the fragment to correct place and if it
-	cannot do that, it will copy the fragment to the frame's probation zone if that's enabled.
-	Otherwise a new temporary frame is created.
-
-3) Relocation within frame:
-	This is the most complex type of relocation. Previous two relocations can be resolved immediately
-	(except the rare case of relocation to other frame where the start sequence of the other frame is not known).
-
-	If the correct place of the fragment can be determined safely (start sequence is known and the offset for the fragment 
-	is less than the offset pointer [meaning there will be no conflicts/complex book keeping of free slots]), the fragment
-	can be copied to its correct place immediately
-
-	If on the other hand the place of the fragment is determined to be past next_off pointer or start sequence is missing,
-	the fragment will copied to probation zone.
-
-	In any case, relocation to other frame will leave a mark in the relocation table and when the frame becomes active, 
-	all these relocations are solved to the best of ability.
-
-	Relocation table can have three different relocations types: `RT_PAYLOAD`, `RT_PROBATION` and `RT_FRAME`
-
-	1) `RT_PAYLOAD` means that the fragment has been copied to frame but its place must be verified (it may be out of place)
-	2) `RT_PROBATION` means that the fragment was not copied to frame and it resides in the probation zone and should be copied to the frame 
-	3) `RT_FRAME` means that the fragment was not copied to frame (just like `RT_PROBATION`) but either probation zone has run out of memory or it was not enabled at all meaning this fragment was copied to temporary RTP frame. Frame should be relocated to the actual frame.
-	
-#### Shifting
-
-When a relocation-within-read condition is detected (and after proper handling if the packet was valid packet), the memory is considered garbage and it must be overwritten.
-This process of overwriting is called shifting and there's types of it: overwriting and appending.
-
-_Overwriting shifts_, as the name suggests, overwrite the previous content so the shift offset is not updated between shifts. Non-fragments and fragments that belong to other frames cause overwriting shifts. 
-
-Overwriting shifts also cause _appending shifts_ because when a fragment is removed, and a valid fragment is shifted on its place, this valid fragment must not be overwritten and all subsequent valid fragments must be appended.
+Though kvzRTP features an efficient receiver for HEVC that is able to reach the high goodput (~500 MB/s), it uses more CPU due to conservative assumptions about packet order. OFR reaches the same receive goodput but with 14% lower CPU usage and is thus recommended to be used for video conferencing situations with high bitrate and multiple participants.
 
 ## Defines
 
