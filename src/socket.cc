@@ -304,6 +304,80 @@ rtp_error_t kvz_rtp::socket::send_vecio(vecio_buf *buffers, size_t nbuffers, int
 #endif
 }
 
+rtp_error_t kvz_rtp::socket::recv_vecio(vecio_buf *buffers, size_t nbuffers, int flags, int *nread)
+{
+    if (buffers == nullptr || nbuffers == 0)
+        return RTP_INVALID_VALUE;
+
+    ssize_t dgrams_read = 0;
+
+#ifdef __linux__
+    if ((dgrams_read = ::recvmmsg(socket_, buffers, nbuffers, flags, nullptr)) < 0) {
+        LOG_ERROR("recvmmsg(2) failed: %s", strerror(errno));
+        set_bytes(nread, -1);
+        return RTP_GENERIC_ERROR;
+    }
+
+    set_bytes(nread, dgrams_read);
+    return RTP_OK;
+#else
+    /* TODO:  */
+#endif
+}
+
+rtp_error_t kvz_rtp::socket::__recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
+{
+    if (!buf || !buf_len) {
+        set_bytes(bytes_read, -1);
+        return RTP_INVALID_VALUE;
+    }
+
+#ifdef __linux__
+    int32_t ret = ::recv(socket_, buf, buf_len, flags);
+
+    if (ret == -1) {
+        if (errno == EAGAIN) {
+            set_bytes(bytes_read, 0);
+            return RTP_INTERRUPTED;
+        }
+        LOG_ERROR("recv(2) failed: %s", strerror(errno));
+
+        set_bytes(bytes_read, -1);
+        return RTP_GENERIC_ERROR;
+    }
+
+    set_bytes(bytes_read, ret);
+    return RTP_OK;
+#else
+    int rc, err;
+    WSABUF DataBuf;
+    DataBuf.len = (u_long)buf_len;
+    DataBuf.buf = (char *)buf;
+    DWORD bytes_received, flags_ = 0;
+
+    rc = ::WSARecv(socket_, &DataBuf, 1, &bytes_received, &flags_, NULL, NULL);
+
+    if ((rc == SOCKET_ERROR) && (WSA_IO_PENDING != (err = WSAGetLastError()))) {
+        win_get_last_error();
+        set_bytes(bytes_read, -1);
+        return RTP_GENERIC_ERROR;
+    }
+
+    set_bytes(bytes_read, bytes_received);
+    return RTP_OK;
+#endif
+}
+
+rtp_error_t kvz_rtp::socket::recv(uint8_t *buf, size_t buf_len, int flags)
+{
+    return kvz_rtp::socket::__recv(buf, buf_len, flags, nullptr);
+}
+
+rtp_error_t kvz_rtp::socket::recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
+{
+    return kvz_rtp::socket::__recv(buf, buf_len, flags, bytes_read);
+}
+
 rtp_error_t kvz_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read)
 {
     socklen_t *len_ptr = nullptr;

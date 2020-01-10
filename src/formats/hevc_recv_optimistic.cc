@@ -477,7 +477,7 @@ static void __resolve_relocations(struct frames& frames, uint32_t ts)
 
 rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
 {
-    /* LOG_INFO("Starting Optimistic HEVC Fragment Receiver..."); */
+    LOG_INFO("Starting Optimistic HEVC Fragment Receiver...");
 
     struct frames frames;
 
@@ -536,6 +536,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
 
         size_t pkt_avg   = 0;
         size_t datagrams = 1;
+        int flags        = MSG_WAITFORONE;
 
         if (frames.fsah.frames != 0)
             pkt_avg = frames.fsah.pkts / (float)frames.fsah.frames;
@@ -543,20 +544,14 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
         if ((float)ACTIVE.pkts_received > ((float)pkt_avg * 0.02f) &&
             (float)ACTIVE.pkts_received < ((float)pkt_avg * 0.98f)) {
             datagrams = MAX_DATAGRAMS;
+            flags     = 0;
         }
 
         ACTIVE.syscalls++;
 
-        if (datagrams > 1) {
-            if ((nread = recvmmsg(reader->get_raw_socket(), frames.headers, datagrams, 0, nullptr)) < 0) {
-                LOG_ERROR("recvmmsg() failed, %s", strerror(errno));
-                continue;
-            }
-        } else {
-            if ((nread = recvmmsg(reader->get_raw_socket(), frames.headers, datagrams, MSG_WAITFORONE, nullptr)) < 0) {
-                LOG_ERROR("recvmmsg() failed, %s", strerror(errno));
-                continue;
-            }
+        if (reader->get_socket().recv_vecio(frames.headers, datagrams, flags, &nread) != RTP_OK) {
+            LOG_ERROR("recv_vecio() failed, %s", strerror(errno));
+            continue;
         }
 #endif
 

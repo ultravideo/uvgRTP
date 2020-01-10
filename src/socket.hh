@@ -74,13 +74,36 @@ namespace kvz_rtp {
             rtp_error_t sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags);
             rtp_error_t sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent);
 
-            /* Special sendto() functions, used to send multiple UDP packets with one system call
+            /* Special sendto() function, used to send multiple UDP packets with one system call
              * Internally it uses sendmmsg(2) (Linux) or TransmitPackets (Windows)
              *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if one of the parameters is invalid
              * Return RTP_SEND_ERROR if sendmmsg/TransmitPackets failed */
             rtp_error_t send_vecio(vecio_buf *buffers, size_t nbuffers, int flags);
+
+            /* Special recv() function, used to receive multiple UDP packets with one system call
+             * Internally it uses recvmmsg(2) (Linux).
+             *
+             * TODO what about windows?
+             *
+             * Parameter "nread" is used to indicate how many packet were read from the OS.
+             * It may differ from "nbuffers"
+             *
+             * Return RTP_OK on success
+             * Return RTP_INVALID_VALUE if one of the parameters is invalid
+             * Return RTP_SEND_ERROR if sendmmsg/TransmitPackets failed */
+            rtp_error_t recv_vecio(vecio_buf *buffers, size_t nbuffers, int flags, int *nread);
+
+            /* Same as recv(2), receives a message from socket (remote address not known)
+             *
+             * Write the amount of bytes read to "bytes_read" if it's not NULL
+             *
+             * Return RTP_OK on success and write the amount of bytes received to "bytes_read"
+             * Return RTP_INTERRUPTED if the call was interrupted due to timeout and set "bytes_sent" to 0
+             * Return RTP_GENERIC_ERROR on error and set "bytes_sent" to -1 */
+            rtp_error_t recv(uint8_t *buf, size_t buf_len, int flags);
+            rtp_error_t recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read);
 
             /* Same as recvfrom(2), receives a message from remote
              *
@@ -123,6 +146,7 @@ namespace kvz_rtp {
         private:
             /* helper function for sending UPD packets, see documentation for sendto() above */
             rtp_error_t __sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
+            rtp_error_t __recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read);
             rtp_error_t __recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read);
 
             /* __sendtov() does the same as __sendto but it combines multiple buffers into one frame and sends them */
