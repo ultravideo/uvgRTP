@@ -10,17 +10,8 @@ namespace kvz_rtp {
     
     class context {
         public:
-            context(rtp_ctx_flags_t flags);
+            context();
             ~context();
-
-            /* Add configuration for a flag. Examples could be:
-             *
-             * rtp_ctx.configure(RTP_CTX_CONF_PROBATION_ZONE_SIZE, 10);
-             * rtp_ctx.configure(RTP_CTX_CONF_MAX_QUEUED_MSGS,     50); 
-             *
-             * The first one sets the probation zone size to 10 packets and the second 
-             * sets the maximum size of transaction queueu to 50 transactions */
-            void configure(rtp_ctx_conf_flags_t flag, ssize_t value);
 
             /* Start listening to incoming RTP packets form src_addr:src_port
              *
@@ -49,10 +40,6 @@ namespace kvz_rtp {
 
             /* CNAME is the same for all connections */
             std::string cname_;
-
-            /* RTP context configuration, holds both writer and reader configurations 
-             * that are passed to those objects when they're created  */
-            rtp_ctx_conf_t ctx_conf_;
 
             std::map<uint32_t, connection *> conns_;
         };

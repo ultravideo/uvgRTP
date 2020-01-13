@@ -10,8 +10,8 @@
 
 #define RTP_HEADER_VERSION  2
 
-kvz_rtp::reader::reader(rtp_format_t fmt, rtp_ctx_conf_t& conf, std::string src_addr, int src_port):
-    connection(fmt, conf, true),
+kvz_rtp::reader::reader(rtp_format_t fmt, std::string src_addr, int src_port):
+    connection(fmt, true),
     src_addr_(src_addr),
     src_port_(src_port),
     recv_hook_arg_(nullptr),
@@ -48,7 +48,7 @@ rtp_error_t kvz_rtp::reader::start()
         return ret;
 
     auto ctx_conf    = get_ctx_conf();
-    ssize_t buf_size = ctx_conf.ctx_values[RCC_READER_UDP_BUF_SIZE];
+    ssize_t buf_size = ctx_conf.ctx_values[RCC_UDP_BUF_SIZE];
 
     if (buf_size <= 0)
         buf_size = 4 * 1000 * 1000;

@@ -504,8 +504,8 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
     int nread           = 0;
     rtp_ctx_conf_t conf = reader->get_ctx_conf();
 
-    frames.pz_enabled = !!(conf.flags & RCE_PROBATION_ZONE);
     frames.pz_size    = conf.ctx_values[RCC_PROBATION_ZONE_SIZE];
+    frames.pz_enabled = !!(frames.pz_size > 0);
 
     while (reader->active()) {
 

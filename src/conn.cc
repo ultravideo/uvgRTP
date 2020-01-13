@@ -17,35 +17,19 @@
 #include "formats/hevc.hh"
 #include "formats/opus.hh"
 
-kvz_rtp::connection::connection(rtp_format_t fmt, rtp_ctx_conf_t& conf, bool reader):
+kvz_rtp::connection::connection(rtp_format_t fmt, bool reader):
     config_(nullptr),
     socket_(),
     rtcp_(nullptr),
     reader_(reader),
     wc_start_(0),
-    fqueue_(nullptr),
-    dispatcher_(nullptr),
-    conf_(conf)
+    fqueue_(nullptr)
 {
     rtp_sequence_  = 1; //kvz_rtp::random::generate_32();
     rtp_ssrc_      = kvz_rtp::random::generate_32();
     rtp_payload_   = fmt;
 
-    if (!reader) {
-#ifndef _WIN32
-        if (fmt == RTP_FORMAT_HEVC &&
-            conf_.flags & RCE_SYSTEM_CALL_DISPATCHER)
-        {
-            dispatcher_ = new kvz_rtp::dispatcher(&socket_);
-            fqueue_     = new kvz_rtp::frame_queue(fmt, conf_, dispatcher_);
-        } else {
-#endif
-            fqueue_     = new kvz_rtp::frame_queue(fmt, conf_);
-            dispatcher_ = nullptr;
-#ifndef _WIN32
-        }
-#endif
-    }
+    std::memset(&conf_, 0, sizeof(conf_));
 
     set_payload(fmt);
 }
@@ -55,12 +39,6 @@ kvz_rtp::connection::~connection()
     if (rtcp_) {
         rtcp_->stop();
         delete rtcp_;
-    }
-
-    if (!reader_ && rtp_payload_ == RTP_FORMAT_HEVC && conf_.flags & RCE_SYSTEM_CALL_DISPATCHER) {
-        while (dispatcher_->stop() != RTP_OK) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        }
     }
 }
 
@@ -108,7 +86,7 @@ void kvz_rtp::connection::set_ssrc(uint32_t ssrc)
     rtp_ssrc_ = ssrc;
 }
 
-uint8_t kvz_rtp::connection::get_payload() const
+rtp_format_t kvz_rtp::connection::get_payload() const
 {
     return rtp_payload_;
 }
@@ -239,9 +217,9 @@ kvz_rtp::frame_queue *kvz_rtp::connection::get_frame_queue()
     return fqueue_;
 }
 
-kvz_rtp::dispatcher *kvz_rtp::connection::get_dispatcher()
+void kvz_rtp::connection::set_frame_queue(kvz_rtp::frame_queue *fqueue)
 {
-    return dispatcher_;
+    fqueue_ = fqueue;
 }
 
 void kvz_rtp::connection::install_dealloc_hook(void (*dealloc_hook)(void *))
@@ -260,4 +238,20 @@ kvz_rtp::rtcp *kvz_rtp::connection::get_rtcp()
 rtp_ctx_conf_t& kvz_rtp::connection::get_ctx_conf()
 {
     return conf_;
+}
+
+rtp_error_t kvz_rtp::connection::configure(int flag, ssize_t value)
+{
+    if (flag < 0 || flag >= RCC_LAST || value < 0)
+        return RTP_INVALID_VALUE;
+
+    conf_.ctx_values[flag] = value;
+}
+
+rtp_error_t kvz_rtp::connection::configure(int flag)
+{
+    if (flag < 0 || flag >= RCE_LAST)
+        return RTP_INVALID_VALUE;
+
+    conf_.flags |= flag;
 }

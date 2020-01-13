@@ -10,7 +10,7 @@ namespace kvz_rtp {
 
     class reader : public connection {
         public:
-            reader(rtp_format_t fmt, rtp_ctx_conf_t& conf, std::string src_addr, int src_port);
+            reader(rtp_format_t fmt, std::string src_addr, int src_port);
             ~reader();
 
             /* NOTE: this operation is blocking */

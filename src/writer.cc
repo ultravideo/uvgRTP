@@ -22,22 +22,38 @@ using namespace mingw;
 #include "formats/hevc.hh"
 #include "formats/generic.hh"
 
-kvz_rtp::writer::writer(rtp_format_t fmt, rtp_ctx_conf_t& conf, std::string dst_addr, int dst_port):
-    connection(fmt, conf, false),
+kvz_rtp::writer::writer(rtp_format_t fmt, std::string dst_addr, int dst_port):
+    connection(fmt, false),
     dst_addr_(dst_addr),
     dst_port_(dst_port),
-    src_port_(0)
+    src_port_(0),
+    fqueue_(nullptr),
+    dispatcher_(nullptr)
 {
 }
 
-kvz_rtp::writer::writer(rtp_format_t fmt, rtp_ctx_conf_t& conf, std::string dst_addr, int dst_port, int src_port):
-    writer(fmt, conf, dst_addr, dst_port)
+kvz_rtp::writer::writer(rtp_format_t fmt, std::string dst_addr, int dst_port, int src_port):
+    writer(fmt, dst_addr, dst_port)
 {
     src_port_ = src_port;
 }
 
 kvz_rtp::writer::~writer()
 {
+    fprintf(stderr, "deallocate stuff\n");
+    delete fqueue_;
+    delete dispatcher_;
+}
+
+rtp_error_t kvz_rtp::writer::stop()
+{
+    if (get_payload() == RTP_FORMAT_HEVC && get_ctx_conf().flags & RCE_SYSTEM_CALL_DISPATCHER) {
+        while (dispatcher_->stop() != RTP_OK) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        }
+    }
+
+    return RTP_OK;
 }
 
 rtp_error_t kvz_rtp::writer::start()
@@ -48,7 +64,7 @@ rtp_error_t kvz_rtp::writer::start()
         return ret;
 
     auto ctx_conf    = get_ctx_conf();
-    ssize_t buf_size = ctx_conf.ctx_values[RCC_WRITER_UDP_BUF_SIZE];
+    ssize_t buf_size = ctx_conf.ctx_values[RCC_UDP_BUF_SIZE];
 
     if (buf_size <= 0)
         buf_size = 4 * 1000 * 1000;
@@ -73,13 +89,29 @@ rtp_error_t kvz_rtp::writer::start()
     addr_out_ = socket_.create_sockaddr(AF_INET, dst_addr_, dst_port_);
     socket_.set_sockaddr(addr_out_);
 
-    if (get_payload() == RTP_FORMAT_HEVC && get_ctx_conf().flags & RCE_SYSTEM_CALL_DISPATCHER) {
-        LOG_ERROR("get dispatcher");
-        auto dispatcher = get_dispatcher();
+    auto conf = get_ctx_conf();
+    auto fmt  = get_payload();
 
-        if (dispatcher)
-            dispatcher->start();
+#ifndef _WIN32
+    if (fmt == RTP_FORMAT_HEVC && conf.flags & RCE_SYSTEM_CALL_DISPATCHER) {
+        dispatcher_ = new kvz_rtp::dispatcher(&socket_);
+        fqueue_     = new kvz_rtp::frame_queue(fmt, conf, dispatcher_);
+
+        if (dispatcher_)
+            dispatcher_->start();
+    } else {
+#endif
+        fqueue_     = new kvz_rtp::frame_queue(fmt, conf);
+        dispatcher_ = nullptr;
+#ifndef _WIN32
     }
+#endif
+
+    /* save pointer frame queue pointer to frame queue to conn so push_frame()
+     * does not have to do a dynamic cast each time it's called 
+     *
+     * TODO why push_frame() takes conn instead of writer? */
+    set_frame_queue(fqueue_);
 
     if (rtcp_ == nullptr) {
         if ((rtcp_ = new kvz_rtp::rtcp(get_ssrc(), false)) == nullptr) {
