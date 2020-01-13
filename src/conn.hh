@@ -25,18 +25,19 @@ namespace kvz_rtp {
 
     class connection : public runner {
         public:
-            connection(rtp_format_t fmt, rtp_ctx_conf_t& conf, bool reader);
+            connection(rtp_format_t fmt, bool reader);
             virtual ~connection();
 
-            uint16_t get_sequence() const;
-            uint32_t get_ssrc() const;
-            uint8_t  get_payload() const;
+            uint16_t     get_sequence() const;
+            uint32_t     get_ssrc() const;
+            rtp_format_t get_payload() const;
 
             socket&  get_socket();
             socket_t get_raw_socket();
 
             void set_payload(rtp_format_t fmt);
             void set_ssrc(uint32_t ssrc);
+            void set_frame_queue(kvz_rtp::frame_queue *fqueue);
 
             /* Functions for increasing various RTP statistics
              * Overloaded functions without parameters increase the counter by 1
@@ -95,10 +96,16 @@ namespace kvz_rtp {
             /* Return pointer to RTCP object if RTCP has been enabled
              * Otherwise return nullptr
              *
-             * TODO make this const */
+             * TODO make this const (TODO ???) */
             kvz_rtp::rtcp *get_rtcp();
 
             rtp_ctx_conf_t& get_ctx_conf();
+
+            /* TODO:  */
+            rtp_error_t configure(int flag, ssize_t value);
+
+            /* TODO:  */
+            rtp_error_t configure(int flag);
 
         protected:
             void *config_;
@@ -112,17 +119,17 @@ namespace kvz_rtp {
 
             /* RTP */
             uint16_t rtp_sequence_;
-            uint8_t  rtp_payload_;
             uint32_t rtp_ssrc_;
             uint32_t rtp_timestamp_;
             uint64_t wc_start_;
+            rtp_format_t rtp_payload_;
             kvz_rtp::clock::hrc::hrc_t wc_start_2;
             uint32_t clock_rate_;
 
-            kvz_rtp::frame_queue *fqueue_;
-
-            kvz_rtp::dispatcher *dispatcher_;
-
             rtp_ctx_conf_t conf_;
+
+            /* After creation in writer.cc, pointer to frame queue is transferred
+             * to conn.cc so we can get rid of the dynamic cast in push_fram() */
+            kvz_rtp::frame_queue *fqueue_;
     };
 };

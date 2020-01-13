@@ -9,13 +9,11 @@
 
 namespace kvz_rtp {
 
-    /* typedef struct rtp_ctx_conf rtp_ctx_conf_t; */
-
     class writer : public connection {
         public:
             /* "src_port" is an optional argument, given if holepunching want to be used */
-            writer(rtp_format_t fmt, rtp_ctx_conf_t& conf, std::string dst_addr, int dst_port);
-            writer(rtp_format_t fmt, rtp_ctx_conf_t& conf, std::string dst_addr, int dst_port, int src_port);
+            writer(rtp_format_t fmt, std::string dst_addr, int dst_port);
+            writer(rtp_format_t fmt, std::string dst_addr, int dst_port, int src_port);
             ~writer();
 
             /* Open socket for sending frames and start SCD if enabled
@@ -27,6 +25,12 @@ namespace kvz_rtp {
              * Return RTP_MEMORY_ERROR if RTCP instance couldn't be allocated
              * Return RTP_GENERIC_ERROR for any other error condition */
             rtp_error_t start();
+
+            /* Stop and destroy SCD if it's enabled
+             * stop() will block until SCD is finished to ensure that all packet are sent to remote 
+             *
+             * Return RTP_OK on success */
+            rtp_error_t stop();
 
             /* Split "data" into 1500 byte chunks and send them to remote
              *
@@ -54,5 +58,8 @@ namespace kvz_rtp {
             int dst_port_;
             int src_port_;
             sockaddr_in addr_out_;
+
+            kvz_rtp::frame_queue *fqueue_;
+            kvz_rtp::dispatcher  *dispatcher_;
     };
 };

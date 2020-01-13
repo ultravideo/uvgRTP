@@ -10,13 +10,9 @@
 
 thread_local rtp_error_t rtp_errno;
 
-kvz_rtp::context::context(rtp_ctx_flags_t flags)
+kvz_rtp::context::context()
 {
-    cname_          = kvz_rtp::context::generate_cname();
-
-    std::memset(&ctx_conf_, 0, sizeof(ctx_conf_));
-
-    ctx_conf_.flags = flags;
+    cname_  = kvz_rtp::context::generate_cname();
 
 #ifdef _WIN32
     WSADATA wsd;
@@ -43,17 +39,9 @@ kvz_rtp::context::~context()
 #endif
 }
 
-void kvz_rtp::context::configure(rtp_ctx_conf_flags_t flag, ssize_t value)
-{
-    if (flag >= RTP_CTX_CONF_LAST)
-        return;
-
-    ctx_conf_.ctx_values[flag] = value;
-}
-
 kvz_rtp::reader *kvz_rtp::context::create_reader(std::string srcAddr, int srcPort, rtp_format_t fmt)
 {
-    kvz_rtp::reader *reader = new kvz_rtp::reader(fmt, ctx_conf_, srcAddr, srcPort);
+    kvz_rtp::reader *reader = new kvz_rtp::reader(fmt, srcAddr, srcPort);
 
     if (!reader) {
         std::cerr << "Failed to create kvz_rtp::reader for " << srcAddr << ":" << srcPort << "!" << std::endl;
@@ -67,7 +55,7 @@ kvz_rtp::reader *kvz_rtp::context::create_reader(std::string srcAddr, int srcPor
 
 kvz_rtp::writer *kvz_rtp::context::create_writer(std::string dstAddr, int dstPort, rtp_format_t fmt)
 {
-    kvz_rtp::writer *writer = new kvz_rtp::writer(fmt, ctx_conf_, dstAddr, dstPort);
+    kvz_rtp::writer *writer = new kvz_rtp::writer(fmt, dstAddr, dstPort);
 
     if (!writer) {
         LOG_ERROR("Failed to create writer for %s:%d!", dstAddr.c_str(), dstPort);
@@ -81,7 +69,7 @@ kvz_rtp::writer *kvz_rtp::context::create_writer(std::string dstAddr, int dstPor
 
 kvz_rtp::writer *kvz_rtp::context::create_writer(std::string dstAddr, int dstPort, int srcPort, rtp_format_t fmt)
 {
-    kvz_rtp::writer *writer = new kvz_rtp::writer(fmt, ctx_conf_, dstAddr, dstPort, srcPort);
+    kvz_rtp::writer *writer = new kvz_rtp::writer(fmt, dstAddr, dstPort, srcPort);
 
     if (!writer) {
         LOG_ERROR("Failed to create writer for %s:%d!", dstAddr.c_str(), dstPort);
@@ -97,6 +85,7 @@ rtp_error_t kvz_rtp::context::destroy_writer(kvz_rtp::writer *writer)
 {
     conns_.erase(writer->get_ssrc());
 
+    writer->stop();
     delete writer;
     return RTP_OK;
 }

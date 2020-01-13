@@ -70,22 +70,20 @@ typedef enum RTP_FLAGS {
 } rtp_flags_t;
 
 /* These flags are given when kvzRTP context is created */
-typedef enum RTP_CTX_ENABLE_FLAGS {
-    RTP_CTX_NO_FLAGS                      = 0 << 0,
+enum RTP_CTX_ENABLE_FLAGS {
+    RTP_CTX_NO_FLAGS           = 0 << 0,
 
     /* Use optimistic receiver (HEVC only) */
     RCE_OPTIMISTIC_RECEIVER    = 1 << 0,
 
-    /* Enable probation zone (enabled only if optimistic receiver is enabled) */
-    RCE_PROBATION_ZONE         = 1 << 1,
-
     /* Enable system call dispatcher (HEVC only) */
     RCE_SYSTEM_CALL_DISPATCHER = 1 << 2,
 
-} rtp_ctx_flags_t;
+    RCE_LAST
+};
 
 /* These options are given to configuration() */
-typedef enum RTP_CTX_CONFIGURATION_FLAGS {
+enum RTP_CTX_CONFIGURATION_FLAGS {
     /* No configuration flags */
     RCC_NO_FLAGS                  = 0,
 
@@ -121,29 +119,21 @@ typedef enum RTP_CTX_CONFIGURATION_FLAGS {
      * By default, this is set to 4 */
     RCC_MAX_CHUNKS_PER_MSG        = 4,
 
-    /* How large is the receive UDP buffer size
+    /* How large is the receiver/sender UDP buffer size
      *
      * Default value is 4 MB
      *
      * For video with high bitrate, it is advisable to set this
      * to a high number to prevent OS from dropping packets */
-    RCC_READER_UDP_BUF_SIZE       = 5,
+    RCC_UDP_BUF_SIZE              = 5,
 
-    /* How large is the send UDP buffer size
-     *
-     * Default value is 4 MB
-     *
-     * For video with high bitrate, it is advisable to set this
-     * to a high number to prevent OS from dropping packets */
-    RCC_WRITER_UDP_BUF_SIZE       = 6,
-
-    RTP_CTX_CONF_LAST
-} rtp_ctx_conf_flags_t;
+    RCC_LAST
+};
 
 /* see src/util.hh for more information */
 typedef struct rtp_ctx_conf {
-    rtp_ctx_flags_t flags;
-    ssize_t ctx_values[RTP_CTX_CONF_LAST];
+    int flags;
+    ssize_t ctx_values[RCC_LAST];
 } rtp_ctx_conf_t;
 
 extern thread_local rtp_error_t rtp_errno;

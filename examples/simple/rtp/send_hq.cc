@@ -4,20 +4,22 @@
 
 int main(int argc, char **argv)
 {
+    kvz_rtp::context ctx;
+
+    kvz_rtp::writer *writer = ctx.create_writer("127.0.0.1", 5566, 8888, RTP_FORMAT_HEVC);
+
     /* Enable system call dispatcher to improve sending speed */
-    kvz_rtp::context ctx(RCE_SYSTEM_CALL_DISPATCHER);
+    writer->configure(RCE_SYSTEM_CALL_DISPATCHER);
 
     /* Increase the send UDP buffer size to 40 MB */
-    ctx.configure(RCC_WRITER_UDP_BUF_SIZE, 40 * 1024 * 1024);
+    writer->configure(RCC_UDP_BUF_SIZE, 40 * 1024 * 1024);
 
     /* Cache 30 transactions to prevent constant (de)allocation */
-    ctx.configure(RCC_MAX_TRANSACTIONS, 30);
+    writer->configure(RCC_MAX_TRANSACTIONS, 30);
 
     /* Set max size for one input frame to 1.4 MB (1441 * 1000)
      * (1.4 MB frame would equal 43 MB bitrate for a 30 FPS video which is very large) */
-    ctx.configure(RCC_MAX_MESSAGES, 1000);
-
-    kvz_rtp::writer *writer = ctx.create_writer("127.0.0.1", 5566, 8888, RTP_FORMAT_HEVC);
+    writer->configure(RCC_MAX_MESSAGES, 1000);
 
     /* Before the writer can be used, it must be started. 
      * This initializes the underlying socket and all needed data structures */
@@ -43,6 +45,5 @@ int main(int argc, char **argv)
     /* Writer must be destroyed manually */
     ctx.destroy_writer(writer);
 
-    fprintf(stderr, "done\n");
     return 0;
 }

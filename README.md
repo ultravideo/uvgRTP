@@ -12,8 +12,6 @@ We provide several simple and thoroughly commented examples on how to use kvzRTP
 
 [How to create a simple RTP sender](examples/simple/rtp/sending.cc)
 
-[How to configure RTP sender to send high-quality stream](examples/simple/rtp/sending_hq.cc)
-
 [How to create a simple RTP receiver (hooking)](examples/simple/rtp/receiving_hook.cc)
 
 NOTE: The hook should **not** be used for media processing. It should be rather used as interface between application and library where the frame handout happens.
@@ -23,6 +21,13 @@ NOTE: The hook should **not** be used for media processing. It should be rather 
 [How to create an RTCP instance (polling)](examples/simple/rtcp/rtcp_poll.cc)
 
 [How to create an RTCP instance (hoooking)](examples/simple/rtcp/rtcp_hook.cc)
+
+### Configuration
+
+By default, kvzRTP does not require any configuration but if the participants are sending high-quality video, some things must be configured
+
+[How to configure RTP sender for high-quality video](examples/simple/rtp/send_hq.cc)
+[How to configure RTP receiver for high-quality video](examples/simple/rtp/recv_hq.cc)
 
 ### Memory ownership/deallocation
 
