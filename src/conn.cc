@@ -246,6 +246,8 @@ rtp_error_t kvz_rtp::connection::configure(int flag, ssize_t value)
         return RTP_INVALID_VALUE;
 
     conf_.ctx_values[flag] = value;
+
+    return RTP_OK;
 }
 
 rtp_error_t kvz_rtp::connection::configure(int flag)
@@ -254,4 +256,6 @@ rtp_error_t kvz_rtp::connection::configure(int flag)
         return RTP_INVALID_VALUE;
 
     conf_.flags |= flag;
+
+    return RTP_OK;
 }
