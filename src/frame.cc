@@ -94,7 +94,7 @@ kvz_rtp::frame::rtcp_sender_frame *kvz_rtp::frame::alloc_rtcp_sender_frame(size_
 
     frame->header.version  = 2;
     frame->header.padding  = 0;
-    frame->header.pkt_type = kvz_rtp::frame::FRAME_TYPE_SR;
+    frame->header.pkt_type = kvz_rtp::frame::RTCP_FT_SR;
     frame->header.length   = total_size;
     frame->header.count    = nblocks;
 
@@ -130,7 +130,7 @@ kvz_rtp::frame::rtcp_receiver_frame *kvz_rtp::frame::alloc_rtcp_receiver_frame(s
 
     frame->header.version  = 2;
     frame->header.padding  = 0;
-    frame->header.pkt_type = kvz_rtp::frame::FRAME_TYPE_RR;
+    frame->header.pkt_type = kvz_rtp::frame::RTCP_FT_RR;
     frame->header.length   = total_size;
     frame->header.count    = nblocks;
 
@@ -160,7 +160,7 @@ kvz_rtp::frame::rtcp_sdes_frame *kvz_rtp::frame::alloc_rtcp_sdes_frame(size_t ss
 
     frame->header.version  = 2;
     frame->header.padding  = 0;
-    frame->header.pkt_type = kvz_rtp::frame::FRAME_TYPE_SDES;
+    frame->header.pkt_type = kvz_rtp::frame::RTCP_FT_SDES;
     frame->header.length   = total_size;
     frame->header.count    = ssrc_count;
 
@@ -189,7 +189,7 @@ kvz_rtp::frame::rtcp_bye_frame *kvz_rtp::frame::alloc_rtcp_bye_frame(size_t ssrc
 
     frame->header.version  = 2;
     frame->header.padding  = 0;
-    frame->header.pkt_type = kvz_rtp::frame::FRAME_TYPE_BYE;
+    frame->header.pkt_type = kvz_rtp::frame::RTCP_FT_BYE;
     frame->header.length   = total_size;
     frame->header.count    = ssrc_count;
 
@@ -214,7 +214,7 @@ kvz_rtp::frame::rtcp_app_frame *kvz_rtp::frame::alloc_rtcp_app_frame(std::string
 
     frame->version     = 2;
     frame->padding     = 0;
-    frame->pkt_type    = kvz_rtp::frame::FRAME_TYPE_APP;
+    frame->pkt_type    = kvz_rtp::frame::RTCP_FT_APP;
     frame->pkt_subtype = subtype;
     frame->length      = total_size;
 
@@ -278,7 +278,7 @@ uint8_t *kvz_rtp::frame::get_rtp_header(kvz_rtp::frame::rtp_frame *frame)
 
 uint8_t *kvz_rtp::frame::get_opus_header(kvz_rtp::frame::rtp_frame *frame)
 {
-    if (!frame || !frame->payload || frame->type != FRAME_TYPE_OPUS) {
+    if (!frame || !frame->payload || frame->type != RTP_FT_OPUS) {
         rtp_errno = RTP_INVALID_VALUE;
         return nullptr;
     }
@@ -288,7 +288,7 @@ uint8_t *kvz_rtp::frame::get_opus_header(kvz_rtp::frame::rtp_frame *frame)
 
 uint8_t *kvz_rtp::frame::get_hevc_nal_header(kvz_rtp::frame::rtp_frame *frame)
 {
-    if (!frame || !frame->payload || frame->type != FRAME_TYPE_HEVC_FU) {
+    if (!frame || !frame->payload || frame->type != RTP_FT_HEVC_FU) {
         rtp_errno = RTP_INVALID_VALUE;
         return nullptr;
     }
@@ -298,7 +298,7 @@ uint8_t *kvz_rtp::frame::get_hevc_nal_header(kvz_rtp::frame::rtp_frame *frame)
 
 uint8_t *kvz_rtp::frame::get_hevc_fu_header(kvz_rtp::frame::rtp_frame *frame)
 {
-    if (!frame || !frame->payload || frame->type != FRAME_TYPE_HEVC_FU) {
+    if (!frame || !frame->payload || frame->type != RTP_FT_HEVC_FU) {
         rtp_errno = RTP_INVALID_VALUE;
         return nullptr;
     }

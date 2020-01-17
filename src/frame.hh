@@ -10,7 +10,7 @@
 
 #include "util.hh"
 
-#define INVALID_FRAME_TYPE(ft) (ft < FRAME_TYPE_GENERIC || ft > FRAME_TYPE_HEVC_FU)
+#define INVALID_FRAME_TYPE(ft) (ft < RTP_FT_GENERIC|| ft > RTP_FT_HEVC_FU)
 
 namespace kvz_rtp {
     namespace frame {
@@ -21,19 +21,19 @@ namespace kvz_rtp {
             HEADER_SIZE_HEVC_FU  =  1,
         };
 
-        typedef enum RTP_FRAME_TYPE {
-            FRAME_TYPE_GENERIC = 0, /* payload length + RTP Header size (N + 12) */
-            FRAME_TYPE_OPUS    = 1, /* payload length + RTP Header size + Opus header (N + 12 + 0 [for now]) */
-            FRAME_TYPE_HEVC_FU = 2, /* payload length + RTP Header size + HEVC NAL Header + FU Header (N + 12 + 2 + 1) */
-        } rtp_type_t;
+        enum RTP_FRAME_TYPE {
+            RTP_FT_GENERIC = 0, /* payload length + RTP Header size (N + 12) */
+            RTP_FT_OPUS    = 1, /* payload length + RTP Header size + Opus header (N + 12 + 0 [for now]) */
+            RTP_FT_HEVC_FU = 2, /* payload length + RTP Header size + HEVC NAL Header + FU Header (N + 12 + 2 + 1) */
+        };
 
-        typedef enum RTCP_FRAME_TYPE {
-            FRAME_TYPE_SR   = 200, /* Sender report */
-            FRAME_TYPE_RR   = 201, /* Receiver report */
-            FRAME_TYPE_SDES = 202, /* Source description */
-            FRAME_TYPE_BYE  = 203, /* Goodbye */
-            FRAME_TYPE_APP  = 204  /* Application-specific message */
-        } rtcp_type_t;
+        enum RTCP_FRAME_TYPE {
+            RTCP_FT_SR   = 200, /* Sender report */
+            RTCP_FT_RR   = 201, /* Receiver report */
+            RTCP_FT_SDES = 202, /* Source description */
+            RTCP_FT_BYE  = 203, /* Goodbye */
+            RTCP_FT_APP  = 204  /* Application-specific message */
+        };
 
         PACKED_STRUCT(rtp_header) {
             uint8_t version:2;
@@ -76,7 +76,7 @@ namespace kvz_rtp {
             uint8_t *payload;
 
             rtp_format_t format;
-            rtp_type_t type;
+            int  type;
             sockaddr_in src_addr;
         };
 
@@ -151,6 +151,7 @@ namespace kvz_rtp {
         rtp_frame           *alloc_rtp_frame();
         rtp_frame           *alloc_rtp_frame(size_t payload_len);
         rtp_frame           *alloc_rtp_frame(size_t payload_len, size_t pz_size);
+        zrtp_frame          *alloc_zrtp_frame(int mtype);
         rtcp_app_frame      *alloc_rtcp_app_frame(std::string name, uint8_t subtype, size_t payload_len);
         rtcp_sdes_frame     *alloc_rtcp_sdes_frame(size_t ssrc_count, size_t total_len);
         rtcp_receiver_frame *alloc_rtcp_receiver_frame(size_t nblocks);
