@@ -18,11 +18,9 @@
 namespace kvz_rtp {
 
 #ifdef _WIN32
-    typedef SOCKET socket_t;
     typedef unsigned socklen_t;
     typedef TRANSMIT_PACKETS_ELEMENT vecio_buf;
 #else
-    typedef int socket_t;
     typedef mmsghdr vecio_buf;
 #endif
 

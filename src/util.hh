@@ -22,6 +22,12 @@
 #define PACKED_STRUCT(name) struct name
 #endif
 
+#ifdef _WIN32
+    typedef SOCKET socket_t;
+#else
+    typedef int socket_t;
+#endif
+
 const int MAX_PACKET      = 65536;
 const int MAX_PAYLOAD     = 1441;
 

@@ -91,7 +91,7 @@ rtp_format_t kvz_rtp::connection::get_payload() const
     return rtp_payload_;
 }
 
-kvz_rtp::socket_t kvz_rtp::connection::get_raw_socket()
+socket_t kvz_rtp::connection::get_raw_socket()
 {
     return socket_.get_raw_socket();
 }

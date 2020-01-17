@@ -18,6 +18,7 @@ using namespace mingw;
 
 #include "debug.hh"
 #include "socket.hh"
+#include "util.hh"
 
 kvz_rtp::socket::socket():
     recv_handler_(nullptr),
@@ -117,7 +118,7 @@ void kvz_rtp::socket::set_sockaddr(sockaddr_in addr)
     addr_ = addr;
 }
 
-kvz_rtp::socket_t& kvz_rtp::socket::get_raw_socket()
+socket_t& kvz_rtp::socket::get_raw_socket()
 {
     return socket_;
 }
