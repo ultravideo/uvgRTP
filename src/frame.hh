@@ -148,19 +148,44 @@ namespace kvz_rtp {
             uint8_t payload[0];
         };
 
-        rtp_frame           *alloc_rtp_frame();
-        rtp_frame           *alloc_rtp_frame(size_t payload_len);
-        rtp_frame           *alloc_rtp_frame(size_t payload_len, size_t pz_size);
-        zrtp_frame          *alloc_zrtp_frame(int mtype);
+        /* Allocate an RTP frame
+         *
+         * First function allocates an empty RTP frame (no payload)
+         *
+         * Second allocates an RTP frame with payload of size "payload_len",
+         *
+         * Third allocate an RTP frame with payload of size "payload_len"
+         * + probation zone of size "pz_size" * MAX_PAYLOAD
+         *
+         * Return pointer to frame on success
+         * Return nullptr on error and set rtp_errno to:
+         *    RTP_MEMORY_ERROR if allocation of memory failed */
+        rtp_frame *alloc_rtp_frame();
+        rtp_frame *alloc_rtp_frame(size_t payload_len);
+        rtp_frame *alloc_rtp_frame(size_t payload_len, size_t pz_size);
+
+        /* Allocate various types of RTCP frames, see src/rtcp.cc for more details
+         *
+         * Return pointer to frame on success
+         * Return nullptr on error and set rtp_errno to:
+         *    RTP_MEMORY_ERROR if allocation of memory failed
+         *    RTP_INVALID_VALUE if one of the parameters was invalid */
         rtcp_app_frame      *alloc_rtcp_app_frame(std::string name, uint8_t subtype, size_t payload_len);
         rtcp_sdes_frame     *alloc_rtcp_sdes_frame(size_t ssrc_count, size_t total_len);
         rtcp_receiver_frame *alloc_rtcp_receiver_frame(size_t nblocks);
         rtcp_sender_frame   *alloc_rtcp_sender_frame(size_t nblocks);
         rtcp_bye_frame      *alloc_rtcp_bye_frame(size_t ssrc_count);
 
+        /* Deallocate RTP frame
+         *
+         * Return RTP_OK on successs
+         * Return RTP_INVALID_VALUE if "frame" is nullptr */
         rtp_error_t dealloc_frame(kvz_rtp::frame::rtp_frame *frame);
 
-        /* TODO: template??? */
+        /* Deallocate various types of RTCP frames
+         *
+         * Return RTP_OK on successs
+         * Return RTP_INVALID_VALUE if "frame" is nullptr */
         rtp_error_t dealloc_frame(rtcp_sender_frame *frame);
         rtp_error_t dealloc_frame(rtcp_receiver_frame *frame);
         rtp_error_t dealloc_frame(rtcp_sdes_frame *frame);
