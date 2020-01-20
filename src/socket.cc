@@ -475,6 +475,6 @@ void kvz_rtp::socket::install_ll_sendtov(
     rtp_error_t (*sendtov)(socket_t, sockaddr_in&, std::vector<std::pair<size_t, uint8_t *>>, int, int *)
 )
 {
-    assert(sendto != nullptr);
+    assert(sendtov != nullptr);
     sendtov_handler_ = sendtov;
 }

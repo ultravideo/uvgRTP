@@ -216,7 +216,7 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::reader::validate_rtp_frame(uint8_t *buffer, 
         LOG_DEBUG("frame contains csrc entries");
 
         if ((ssize_t)(frame->payload_len - frame->header.cc * sizeof(uint32_t)) < 0) {
-            LOG_DEBUG("invalid frame length, %u CSRC entries, total length %u", frame->header.cc, frame->payload_len);
+            LOG_DEBUG("invalid frame length, %d CSRC entries, total length %zu", frame->header.cc, frame->payload_len);
             rtp_errno = RTP_INVALID_VALUE;
             return nullptr;
         }

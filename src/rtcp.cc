@@ -691,7 +691,7 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
     frame->s_info.pkt_cnt  = sender_stats.sent_pkts;
     frame->s_info.byte_cnt = sender_stats.sent_bytes;
 
-    LOG_DEBUG("Sender Report from 0x%x has %u blocks %u", ssrc_, senders_);
+    LOG_DEBUG("Sender Report from 0x%x has %zu blocks", ssrc_, senders_);
 
     for (auto& participant : participants_) {
         if (!participant.second->sender)
