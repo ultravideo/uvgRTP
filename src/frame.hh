@@ -148,6 +148,15 @@ namespace kvz_rtp {
             uint8_t payload[0];
         };
 
+        PACKED_STRUCT(zrtp_frame) {
+            uint8_t version:4;
+            uint16_t unused:12;
+            uint16_t seq;
+            uint32_t magic;
+            uint32_t ssrc;
+            uint8_t payload[0];
+        };
+
         /* Allocate an RTP frame
          *
          * First function allocates an empty RTP frame (no payload)
@@ -163,6 +172,15 @@ namespace kvz_rtp {
         rtp_frame *alloc_rtp_frame();
         rtp_frame *alloc_rtp_frame(size_t payload_len);
         rtp_frame *alloc_rtp_frame(size_t payload_len, size_t pz_size);
+
+        /* Allocate ZRTP frame
+         * Parameter "payload_size" defines the length of the frame 
+         *
+         * Return pointer to frame on success
+         * Return nullptr on error and set rtp_errno to:
+         *    RTP_MEMORY_ERROR if allocation of memory failed
+         *    RTP_INVALID_VALUE if "payload_size" is 0 */
+        zrtp_frame *alloc_zrtp_frame(size_t payload_size);
 
         /* Allocate various types of RTCP frames, see src/rtcp.cc for more details
          *
@@ -181,6 +199,12 @@ namespace kvz_rtp {
          * Return RTP_OK on successs
          * Return RTP_INVALID_VALUE if "frame" is nullptr */
         rtp_error_t dealloc_frame(kvz_rtp::frame::rtp_frame *frame);
+
+        /* Deallocate ZRTP frame
+         *
+         * Return RTP_OK on successs
+         * Return RTP_INVALID_VALUE if "frame" is nullptr */
+        rtp_error_t dealloc_frame(kvz_rtp::frame::zrtp_frame *frame);
 
         /* Deallocate various types of RTCP frames
          *

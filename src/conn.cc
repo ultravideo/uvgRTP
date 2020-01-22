@@ -25,13 +25,16 @@ kvz_rtp::connection::connection(rtp_format_t fmt, bool reader):
     wc_start_(0),
     fqueue_(nullptr)
 {
-    rtp_sequence_  = 1; //kvz_rtp::random::generate_32();
+    rtp_sequence_  = kvz_rtp::random::generate_32();
     rtp_ssrc_      = kvz_rtp::random::generate_32();
     rtp_payload_   = fmt;
 
     std::memset(&conf_, 0, sizeof(conf_));
 
     set_payload(fmt);
+
+    srtp_key_.first  = nullptr;
+    srtp_key_.second = 0;
 }
 
 kvz_rtp::connection::~connection()
@@ -258,4 +261,23 @@ rtp_error_t kvz_rtp::connection::configure(int flag)
     conf_.flags |= flag;
 
     return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::connection::set_srtp_key(uint8_t *key, size_t keylen)
+{
+    if (!key || keylen == 0)
+        return RTP_INVALID_VALUE;
+
+    if (!(conf_.flags & RCE_SRTP_KMNGMNT_USER))
+        return RTP_NOT_SUPPORTED;
+
+    srtp_key_.first  = key;
+    srtp_key_.second = keylen;
+
+    return RTP_OK;
+}
+
+std::pair<uint8_t *, size_t>& kvz_rtp::connection::get_srtp_key()
+{
+    return srtp_key_;
 }

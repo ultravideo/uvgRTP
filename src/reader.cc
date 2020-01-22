@@ -47,8 +47,8 @@ rtp_error_t kvz_rtp::reader::start()
     if ((ret = socket_.setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int))) != RTP_OK)
         return ret;
 
-    auto ctx_conf    = get_ctx_conf();
-    ssize_t buf_size = ctx_conf.ctx_values[RCC_UDP_BUF_SIZE];
+    auto conf        = get_ctx_conf();
+    ssize_t buf_size = conf.ctx_values[RCC_UDP_BUF_SIZE];
 
     if (buf_size <= 0)
         buf_size = 4 * 1000 * 1000;
@@ -67,6 +67,20 @@ rtp_error_t kvz_rtp::reader::start()
         LOG_ERROR("Failed to allocate buffer for incoming data!");
         recv_buffer_len_ = 0;
     }
+
+    if (conf.flags & RCE_SRTP) {
+        /* Create socket address entry if SRTP has been enabled for the reader too,
+         * because we need to exchange keys with remote using ZRTP */
+        auto addr_out_ = socket_.create_sockaddr(AF_INET, src_addr_, src_port_);
+        socket_.set_sockaddr(addr_out_);
+
+        if ((ret = socket_.setup_srtp(get_ssrc())) != RTP_OK) {
+            LOG_ERROR("Failed to initialize SRTP, all traffic is unencrypted!");
+        } else {
+            LOG_WARN("Reader SRTP initialized!");
+        }
+    }
+    for (;;);
 
     active_ = true;
 

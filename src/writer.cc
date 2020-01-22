@@ -92,6 +92,16 @@ rtp_error_t kvz_rtp::writer::start()
     auto conf = get_ctx_conf();
     auto fmt  = get_payload();
 
+    if (conf.flags & RCE_SRTP) {
+        if ((ret = socket_.setup_srtp(get_ssrc())) != RTP_OK) {
+            LOG_ERROR("Failed to initialize SRTP, all traffic is unencrypted!");
+        } else {
+            LOG_WARN("Writer SRTP initialized!");
+        }
+    }
+
+    for (;;);
+
 #ifndef _WIN32
     if (fmt == RTP_FORMAT_HEVC && conf.flags & RCE_SYSTEM_CALL_DISPATCHER) {
         dispatcher_ = new kvz_rtp::dispatcher(&socket_);

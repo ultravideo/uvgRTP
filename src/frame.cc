@@ -76,6 +76,34 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtp_frame *frame)
     return RTP_OK;
 }
 
+kvz_rtp::frame::zrtp_frame *kvz_rtp::frame::alloc_zrtp_frame(size_t size)
+{
+    if (size == 0) {
+        rtp_errno = RTP_INVALID_VALUE;
+        return nullptr;
+    }
+
+    LOG_DEBUG("Allocate ZRTP frame, packet size %zu", size);
+
+    kvz_rtp::frame::zrtp_frame *frame = (kvz_rtp::frame::zrtp_frame *)new uint8_t[size];
+
+    if (frame == nullptr) {
+        rtp_errno = RTP_MEMORY_ERROR;
+        return nullptr;
+    }
+
+    return frame;
+}
+
+rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::zrtp_frame *frame)
+{
+    if (!frame)
+        return RTP_INVALID_VALUE;
+
+    delete[] frame;
+    return RTP_OK;
+}
+
 kvz_rtp::frame::rtcp_sender_frame *kvz_rtp::frame::alloc_rtcp_sender_frame(size_t nblocks)
 {
     size_t total_size =

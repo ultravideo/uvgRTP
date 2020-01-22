@@ -13,6 +13,7 @@
 #include <vector>
 #include <string>
 
+#include "srtp.hh"
 #include "util.hh"
 
 namespace kvz_rtp {
@@ -30,6 +31,38 @@ namespace kvz_rtp {
         public:
             socket();
             ~socket();
+
+            /* Setup Secure RTP/RTCP connection
+             *
+             * The process consists of initializing ZRTP context and
+             * exchaning keys with remote participant and finally
+             * initializing the SRTP context.
+             *
+             * NOTE: This function must be called **after** socket
+             * initialization but before any media exchange happens!
+             *
+             * Return RTP_OK if SRTP setup was successful
+             * Return RTP_NOT_SUPPORTED if remote does not support {SRTP,SRTCP}/ZRTP
+             * Return RTP_MEMORY_ERROR if allocation failed
+             * Return RTP_INITIALIZED if SRTP has already been initialized for this socket
+             * Return RTP_GENERIC_ERROR for any other error */
+            rtp_error_t setup_srtp(uint32_t ssrc);
+            rtp_error_t setup_srtcp(uint32_t ssrc);
+
+            /* Setup Secure RTP/RTCP connection
+             *
+             * The process consists of initializing SRTP context
+             * using the master key provided by the user (ie. no ZRTP)
+             *
+             * NOTE 2: This function must be called **after** socket
+             * initialization but before any media exchange happens!
+             *
+             * Return RTP_OK if SRTP setup was successful
+             * Return RTP_MEMORY_ERROR if allocation failed
+             * Return RTP_INITIALIZED if SRTP has already been initialized for this socket
+             * Return RTP_GENERIC_ERROR for any other error */
+            rtp_error_t setup_srtp(uint32_t  ssrc, std::pair<uint8_t *, size_t>& key);
+            rtp_error_t setup_srtcp(uint32_t ssrc, std::pair<uint8_t *, size_t>& key);
 
             /* Create socket using "family", "type" and "protocol"
              *
@@ -156,6 +189,8 @@ namespace kvz_rtp {
 
             socket_t socket_;
             sockaddr_in addr_;
+
+            kvz_rtp::srtp *srtp_;
 
 #ifdef _WIN32
             WSABUF buffers_[MAX_BUFFER_COUNT];

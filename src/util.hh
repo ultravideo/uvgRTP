@@ -32,16 +32,20 @@ const int MAX_PACKET      = 65536;
 const int MAX_PAYLOAD     = 1441;
 
 typedef enum RTP_ERROR {
-    RTP_INTERRUPTED    =  2,
-    RTP_NOT_READY      =  1,
-    RTP_OK             =  0,
-    RTP_GENERIC_ERROR  = -1,
-    RTP_SOCKET_ERROR   = -2,
-    RTP_BIND_ERROR     = -3,
-    RTP_INVALID_VALUE  = -4,
-    RTP_SEND_ERROR     = -5,
-    RTP_MEMORY_ERROR   = -6,
-    RTP_SSRC_COLLISION = -7,
+    RTP_INTERRUPTED     =  2,
+    RTP_NOT_READY       =  1,
+    RTP_OK              =  0,
+    RTP_GENERIC_ERROR   = -1,
+    RTP_SOCKET_ERROR    = -2,
+    RTP_BIND_ERROR      = -3,
+    RTP_INVALID_VALUE   = -4,
+    RTP_SEND_ERROR      = -5,
+    RTP_MEMORY_ERROR    = -6,
+    RTP_SSRC_COLLISION  = -7,
+    RTP_INITIALIZED     = -8,   /* object already initialized */
+    RTP_NOT_INITIALIZED = -9,   /* object has not been initialized */
+    RTP_NOT_SUPPORTED   = -10,  /* method/version/extension not supported */
+    RTP_RECV_ERROR      = -11,  /* recv(2) or one of its derivatives failed */
 } rtp_error_t;
 
 typedef enum RTP_FORMAT {
@@ -85,7 +89,20 @@ enum RTP_CTX_ENABLE_FLAGS {
     /* Enable system call dispatcher (HEVC only) */
     RCE_SYSTEM_CALL_DISPATCHER = 1 << 2,
 
-    RCE_LAST
+    /* Use SRTP for this connection */
+    RCE_SRTP               = 1 << 3,
+
+    /* Use ZRTP for key management
+     *
+     * TODO selitä paremmin */
+    RCE_SRTP_KMNGMNT_ZRTP      = 1 << 4,
+
+    /* Use user-defined way to manage keys
+     *
+     * TODO selitä paremmin */
+    RCE_SRTP_KMNGMNT_USER      = 1 << 4,
+
+    RCE_LAST                   = 1 << 5,
 };
 
 /* These options are given to configuration() */
@@ -101,7 +118,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      * NOTE: how many **packets**, not bytes */
     RCC_PROBATION_ZONE_SIZE       = 1,
 
-    /* How many transactions can be cached for later use 
+    /* How many transactions can be cached for later use
      * Caching transactions improves performance by reducing
      * the number of (de)allocations but increases the memory
      * footprint of the program
@@ -115,7 +132,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      * multiple UDP packets, each of size 1500 bytes. This UDP packets
      * are stored into a transaction object.
      *
-     * Video with high bitrate may require large value for "RCC_MAX_MESSAGES" 
+     * Video with high bitrate may require large value for "RCC_MAX_MESSAGES"
      *
      * By default, it is set to 500 (ie. one frame can take up to 500 * 1500 bytes) */
     RCC_MAX_MESSAGES              = 3,
