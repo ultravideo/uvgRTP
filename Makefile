@@ -2,9 +2,8 @@
 
 CXX = g++
 CXXFLAGS = -g -Wall -Wextra -Wuninitialized -O2 -std=c++11 -Isrc -fPIC #-DNDEBUG 
-
 SOURCES = $(wildcard src/*.cc)
-MODULES := src/formats
+MODULES := src/formats src/mzrtp
 -include $(patsubst %, %/module.mk, $(MODULES))
 OBJECTS := $(patsubst %.cc, %.o, $(filter %.cc, $(SOURCES)))
 
