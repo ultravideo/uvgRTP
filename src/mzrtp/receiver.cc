@@ -44,15 +44,16 @@ kvz_rtp::zrtp_msg::receiver::receiver()
 
 kvz_rtp::zrtp_msg::receiver::~receiver()
 {
+    LOG_DEBUG("destroy receiver");
     delete[] mem_;
 }
 
-int kvz_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket)
+int kvz_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
 {
     int nread = 0;
     rlen_     = 0;
 
-    if ((nread = ::recv(socket, mem_, len_, 0)) < 0) {
+    if ((nread = ::recv(socket, mem_, len_, flags)) < 0) {
         if (errno == EAGAIN)
             return -EAGAIN;
 

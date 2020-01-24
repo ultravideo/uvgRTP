@@ -38,7 +38,7 @@ namespace kvz_rtp {
             ~srtp();
 
             /* Initialize SRTP state using ZRTP
-             * Socket is needed to exchange keys using ZRTP
+             * Socket and address are needed to exchange keys using ZRTP
              * 
              * After this call, encrypt()/decrypt() functions can be called
              *

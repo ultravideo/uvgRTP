@@ -12,9 +12,11 @@
 #include <vector>
 
 #include "util.hh"
+#include "mzrtp/receiver.hh"
 
 namespace kvz_rtp {
 
+    /* TODO: move to defines.hh */
     typedef struct capabilities {
 
         /* Supported ZRTP version */
@@ -42,19 +44,29 @@ namespace kvz_rtp {
         std::vector<uint32_t> sas_types;
     } zrtp_capab_t;
 
-    typedef struct dh_commit {
-    } dh_commit_t;
+    /* Collection of algorithms that are used by ZRTP
+     * (based on information gathered from Hello message) */
+    typedef struct zrtp_session {
+        uint32_t hash_algo;
+        uint32_t cipher_algo;
+        uint32_t auth_tag_type;
+        uint32_t key_agreement_type;
+        uint32_t sas_type;
+        uint32_t hvi[8];
+    } zrtp_session_t;
 
     class zrtp {
         public:
             zrtp();
             ~zrtp();
 
-            /* TODO:  */
+            /* Initialize ZRTP session between us and remote
+             *
+             * Return RTP_OK on success
+             * Return RTP_TIMEOUT if remote did not send messages in timely manner */
             rtp_error_t init(uint32_t ssrc, socket_t& socket, sockaddr_in& addr);
 
         private:
-
             /* Set timeout for a socket, needed by backoff timers of ZRTP
              *
              * "timeout" tells the timeout in milliseconds
@@ -70,14 +82,21 @@ namespace kvz_rtp {
             uint8_t *generate_zid();
 
             /* Being the ZRTP session by sending a Hello message to remote,
-             * and responding to remote's Hello message using HelloAck message 
+             * and responding to remote's Hello message using HelloAck message
              *
              * If session begins successfully, remote zrtp_capab_t are put into
              * "remote_capab" for later use
              *
-             * Return RTP_OK on success 
+             * Return RTP_OK on success
              * Return RTP_NOT_SUPPORTED if remote did not answer to our Hello messages */
             rtp_error_t begin_session();
+
+            /* Select algorithms used by the session, exchange this information with remote
+             * and based on Commit messages, select roles for the participants (initiator/responder)
+             *
+             * Return RTP_OK on success
+             * Return RTP_TIMEOUT if no message is received from remote before T2 expires */
+            rtp_error_t init_session(bool& initiator);
 
             uint32_t ssrc_;
             socket_t socket_;
@@ -86,6 +105,11 @@ namespace kvz_rtp {
             /* Our own and remote capability structs */
             zrtp_capab_t capab_;
             zrtp_capab_t rcapab_;
+
+            kvz_rtp::zrtp_msg::receiver receiver_;
+
+            /* Initialized after Hello messages have been exchanged */
+            zrtp_session_t session_;
 
             uint8_t *zid_;
     };

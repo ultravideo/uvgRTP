@@ -21,4 +21,4 @@ $(TARGET): $(OBJECTS)
 	$(AR) rcs $@ $(OBJECTS)
 
 clean:
-	rm -f src/*.o src/formats/*.o $(TARGET)
+	rm -f src/*.o src/formats/*.o src/mzrtp/*.o $(TARGET)
