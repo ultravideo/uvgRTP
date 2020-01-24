@@ -5,6 +5,7 @@
 #include "zrtp.hh"
 
 #include "mzrtp/commit.hh"
+#include "mzrtp/dh_kxchng.hh"
 #include "mzrtp/hello.hh"
 #include "mzrtp/hello_ack.hh"
 #include "mzrtp/receiver.hh"
@@ -177,6 +178,69 @@ rtp_error_t kvz_rtp::zrtp::init_session(bool& initiator)
     return RTP_TIMEOUT;
 }
 
+rtp_error_t kvz_rtp::zrtp::dh_part1()
+{
+    rtp_error_t ret = RTP_OK;
+    auto dhpart     = kvz_rtp::zrtp_msg::dh_key_exchange(1);
+    size_t rto      = 150;
+    int type        = 0;
+
+    for (int i = 0; i < 10; ++i) {
+        set_timeout(rto);
+
+        if ((ret = dhpart.send_msg(socket_, addr_)) != RTP_OK) {
+            LOG_ERROR("Failed to send DHPart1 Message!");
+        }
+
+        if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
+            if (type == ZRTP_FT_DH_PART2) {
+                if ((ret = dhpart.parse_msg(receiver_, session_.them)) != RTP_OK) {
+                    LOG_ERROR("Failed to parse DHPart2 Message!");
+                    continue;
+                }
+                return RTP_OK;
+            }
+        }
+
+        if (rto < 1200)
+            rto *= 2;
+    }
+
+    return RTP_TIMEOUT;
+}
+
+rtp_error_t kvz_rtp::zrtp::dh_part2()
+{
+    int type        = 0;
+    size_t rto      = 0;
+    rtp_error_t ret = RTP_OK;
+    auto dhpart     = kvz_rtp::zrtp_msg::dh_key_exchange(2);
+
+    if ((ret = dhpart.parse_msg(receiver_, session_.them)) != RTP_OK) {
+        LOG_ERROR("Failed to parse DHPart1 Message!");
+        return RTP_INVALID_VALUE;
+    }
+
+    for (int i = 0; i < 10; ++i) {
+        set_timeout(rto);
+
+        if ((ret = dhpart.send_msg(socket_, addr_)) != RTP_OK) {
+            LOG_ERROR("Failed to send DHPart2 Message!");
+        }
+
+        if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
+            if (type == ZRTP_FT_CONFIRM1) {
+                LOG_ERROR("Confirm1 Message received");
+            }
+        }
+
+        if (rto < 1200)
+            rto *= 2;
+    }
+
+    return RTP_OK;
+}
+
 rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& addr)
 {
     bool initiator  = false;
@@ -187,6 +251,12 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
     addr_      = addr;
     capab_     = get_capabilities();
     capab_.zid = generate_zid();
+
+    /* TODO: initialize properly  */
+    session_.us.retained1[0]  = 1337;
+    session_.us.retained2[0]  = 1337;
+    session_.us.aux_secret[0] = 1337;
+    session_.us.pbx_secret[0] = 1337;
 
     /* Begin session by exchanging Hello and HelloACK messages.
      *
@@ -213,7 +283,21 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
         return ret;
     }
 
-    LOG_INFO("ALL DONE!");
+    /* From this point on, the execution deviates because both parties have their own roles
+     * and different message that they need to send in order to finalize the ZRTP connection */
+    if (initiator) {
+        if ((ret = dh_part2()) != RTP_OK) {
+            LOG_ERROR("Failed to perform Diffie-Hellman key exchange Part2");
+            return ret;
+        }
 
+    } else {
+        if ((ret = dh_part1()) != RTP_OK) {
+            LOG_ERROR("Failed to perform Diffie-Hellman key exchange Part1");
+            return ret;
+        }
+    }
+
+    /* Session has been initialized successfully*/
     return RTP_OK;
 }

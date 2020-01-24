@@ -44,6 +44,15 @@ namespace kvz_rtp {
         std::vector<uint32_t> sas_types;
     } zrtp_capab_t;
 
+    /* DH exchange related information */
+    typedef struct zrtp_dh {
+        uint32_t retained1[2]; /* hash of retained shared secret 1 */
+        uint32_t retained2[2]; /* hash of retained shared secret 2 */
+
+        uint32_t aux_secret[2]; /* hash of auxiliary secret */
+        uint32_t pbx_secret[2]; /* hash of MiTM PBX secret */
+    } zrtp_dh_t;
+
     /* Collection of algorithms that are used by ZRTP
      * (based on information gathered from Hello message) */
     typedef struct zrtp_session {
@@ -53,6 +62,9 @@ namespace kvz_rtp {
         uint32_t key_agreement_type;
         uint32_t sas_type;
         uint32_t hvi[8];
+
+        zrtp_dh_t us;
+        zrtp_dh_t them;
     } zrtp_session_t;
 
     class zrtp {
@@ -97,6 +109,17 @@ namespace kvz_rtp {
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if no message is received from remote before T2 expires */
             rtp_error_t init_session(bool& initiator);
+
+            /* Perform Diffie-Hellman key exchange Part1 (responder)
+             * This message also acts as an ACK to Commit message */
+            rtp_error_t dh_part1();
+
+            /* Perform Diffie-Hellman key exchange Part2 (initiator)
+             * This message also acts as an ACK to DHPart1 message
+             *
+             * Return RTP_OK if DHPart2 was successful
+             * Return RTP_TIMEOUT if no message is received from remote before T2 expires */
+            rtp_error_t dh_part2();
 
             uint32_t ssrc_;
             socket_t socket_;
