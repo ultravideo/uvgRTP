@@ -121,6 +121,12 @@ namespace kvz_rtp {
              * Return RTP_TIMEOUT if no message is received from remote before T2 expires */
             rtp_error_t dh_part2();
 
+            /* TODO:  */
+            rtp_error_t responder_finalize_session();
+
+            /* TODO:  */
+            rtp_error_t initiator_finalize_session();
+
             uint32_t ssrc_;
             socket_t socket_;
             sockaddr_in addr_;

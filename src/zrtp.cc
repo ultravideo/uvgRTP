@@ -5,6 +5,8 @@
 #include "zrtp.hh"
 
 #include "mzrtp/commit.hh"
+#include "mzrtp/confack.hh"
+#include "mzrtp/confirm.hh"
 #include "mzrtp/dh_kxchng.hh"
 #include "mzrtp/hello.hh"
 #include "mzrtp/hello_ack.hh"
@@ -125,7 +127,6 @@ rtp_error_t kvz_rtp::zrtp::init_session(bool& initiator)
      * If so, they are the initiator and we're the responder */
     while ((type = receiver_.recv_msg(socket_, MSG_DONTWAIT)) != -EAGAIN) {
         if (type == ZRTP_FT_COMMIT) {
-            LOG_ERROR("commit message received early");
             commit.parse_msg(receiver_, session_);
             initiator = false;
             return RTP_OK;
@@ -198,6 +199,8 @@ rtp_error_t kvz_rtp::zrtp::dh_part1()
                     LOG_ERROR("Failed to parse DHPart2 Message!");
                     continue;
                 }
+
+                LOG_DEBUG("DHPart2 received and parse successfully!");
                 return RTP_OK;
             }
         }
@@ -224,13 +227,13 @@ rtp_error_t kvz_rtp::zrtp::dh_part2()
     for (int i = 0; i < 10; ++i) {
         set_timeout(rto);
 
-        if ((ret = dhpart.send_msg(socket_, addr_)) != RTP_OK) {
+        if ((ret = dhpart.send_msg(socket_, addr_)) != RTP_OK)
             LOG_ERROR("Failed to send DHPart2 Message!");
-        }
 
         if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
             if (type == ZRTP_FT_CONFIRM1) {
-                LOG_ERROR("Confirm1 Message received");
+                LOG_DEBUG("Confirm1 Message received");
+                return RTP_OK;
             }
         }
 
@@ -238,7 +241,73 @@ rtp_error_t kvz_rtp::zrtp::dh_part2()
             rto *= 2;
     }
 
-    return RTP_OK;
+    return RTP_TIMEOUT;
+}
+
+rtp_error_t kvz_rtp::zrtp::responder_finalize_session()
+{
+    rtp_error_t ret = RTP_OK;
+    auto confirm    = kvz_rtp::zrtp_msg::confirm(1);
+    auto confack    = kvz_rtp::zrtp_msg::confack();
+    size_t rto      = 150;
+    int type        = 0;
+
+    for (int i = 0; i < 10; ++i) {
+        set_timeout(rto);
+
+        if ((ret = confirm.send_msg(socket_, addr_)) != RTP_OK) {
+            LOG_ERROR("Failed to send Confirm1 Message!");
+        }
+
+        if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
+            if (type == ZRTP_FT_CONFIRM2) {
+                if ((ret = confirm.parse_msg(receiver_)) != RTP_OK) {
+                    LOG_ERROR("Failed to parse Confirm2 Message!");
+                    continue;
+                }
+
+                /* TODO: send in a loop? */
+                confack.send_msg(socket_, addr_);
+                return RTP_OK;
+            }
+        }
+
+        if (rto < 1200)
+            rto *= 2;
+    }
+
+    return RTP_TIMEOUT;
+}
+
+rtp_error_t kvz_rtp::zrtp::initiator_finalize_session()
+{
+    rtp_error_t ret = RTP_OK;
+    auto confirm    = kvz_rtp::zrtp_msg::confirm(2);
+    size_t rto      = 150;
+    int type        = 0;
+
+    for (int i = 0; i < 10; ++i) {
+        set_timeout(rto);
+
+        if ((ret = confirm.send_msg(socket_, addr_)) != RTP_OK) {
+            LOG_ERROR("Failed to send Confirm2 Message!");
+        }
+
+        if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
+            if (type == ZRTP_FT_CONF2_ACK) {
+                LOG_DEBUG("Conf2ACK received successfully!");
+                return RTP_OK;
+            }
+        }
+
+        if (rto < 1200)
+            rto *= 2;
+    }
+
+    return RTP_TIMEOUT;
+
+    LOG_INFO("finalize initiator session");
+    for (;;);
 }
 
 rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& addr)
@@ -291,13 +360,27 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
             return ret;
         }
 
+        if ((ret = initiator_finalize_session()) != RTP_OK) {
+            LOG_ERROR("Failed to finalize session using Confirm2");
+            return ret;
+        }
+
+        LOG_INFO("INITIATOR INITIALIZED");
+
     } else {
         if ((ret = dh_part1()) != RTP_OK) {
             LOG_ERROR("Failed to perform Diffie-Hellman key exchange Part1");
             return ret;
         }
+
+        if ((ret = responder_finalize_session()) != RTP_OK) {
+            LOG_ERROR("Failed to finalize session using Confirm1/Conf2ACK");
+            return ret;
+        }
+
+        LOG_INFO("RESPONDER INITIALIZED");
     }
 
-    /* Session has been initialized successfully*/
+    /* Session has been initialized successfully and SRTP can start */
     return RTP_OK;
 }
