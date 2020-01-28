@@ -73,11 +73,14 @@ namespace kvz_rtp {
         uint32_t auth_tag_type;
         uint32_t key_agreement_type;
         uint32_t sas_type;
-        uint32_t hvi[8];
 
         /* Session capabilities (our and theirs) */
         zrtp_capab_t capabilities; /* TODO: rename to ocapab */
         zrtp_capab_t rcapab;
+
+        /* Hash value of initiator */
+        uint8_t hvi[32];
+        uint8_t remote_hvi[32];
 
         /* Section 9 of RFC 6189 */
         uint8_t hashes[4][32];
@@ -117,6 +120,9 @@ namespace kvz_rtp {
 
             /* Generate zid for this ZRTP instance. ZID is a unique, 96-bit long ID */
             void generate_zid();
+
+            /* Compare our and remote's hvi values to determine who is the initiator */
+            bool are_we_initiator(uint8_t *our_hvi, uint8_t *their_hvi);
 
             /* Initialize the four session hashes defined in Section 9 of RFC 6189 */
             void init_session_hashes();

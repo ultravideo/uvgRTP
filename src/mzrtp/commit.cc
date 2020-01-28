@@ -9,11 +9,14 @@
 
 kvz_rtp::zrtp_msg::commit::commit(zrtp_session_t& session)
 {
+    /* temporary storage for the full hmac hash */
+    uint8_t mac_full[32];
+
     LOG_DEBUG("Create ZRTP Commit message!");
 
     frame_  = kvz_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_commit));
-    len_    = sizeof(zrtp_commit);
     rframe_ = kvz_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_commit));
+    len_    = sizeof(zrtp_commit);
     rlen_   = sizeof(zrtp_commit);
 
     memset(frame_,  0, sizeof(zrtp_commit));
@@ -23,16 +26,16 @@ kvz_rtp::zrtp_msg::commit::commit(zrtp_session_t& session)
 
     msg->msg_start.header.version = 0;
     msg->msg_start.header.magic   = ZRTP_HEADER_MAGIC;
-
-    /* TODO: convert to network byte order */
+    msg->msg_start.header.ssrc    = session.ssrc;
+    msg->msg_start.header.seq     = session.seq++;
 
     msg->msg_start.magic  = ZRTP_MSG_MAGIC;
     msg->msg_start.length = len_ - sizeof(zrtp_header);
 
-    memcpy(&msg->msg_start.msgblock, ZRTP_COMMIT, 8);
-
-    /* TODO: hash image */
-    /* TODO: zid */
+    memcpy(&msg->msg_start.msgblock, ZRTP_COMMIT,               8);
+    memcpy(msg->hash,                session.hashes[2],        32); /* 256 bits */
+    memcpy(msg->zid,                 session.capabilities.zid, 12); /* 96 bits */
+    memcpy(msg->hvi,                 session.hvi,              32); /* 256 bits */
 
     msg->sas_type           = session.sas_type;
     msg->hash_algo          = session.hash_algo;
@@ -40,10 +43,12 @@ kvz_rtp::zrtp_msg::commit::commit(zrtp_session_t& session)
     msg->auth_tag_type      = session.auth_tag_type;
     msg->key_agreement_type = session.key_agreement_type;
 
-    /* TODO: hvi */
-    msg->hvi[0]  = session.hvi[0];
+    auto hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.hashes[1], 32);
 
-    /* TODO: mac */
+    hmac_sha256.update((uint8_t *)frame_, len_ - 8);
+    hmac_sha256.final(mac_full);
+
+    memcpy(&msg->mac, mac_full, sizeof(uint64_t));
 }
 
 kvz_rtp::zrtp_msg::commit::~commit()
@@ -62,7 +67,17 @@ rtp_error_t kvz_rtp::zrtp_msg::commit::send_msg(socket_t& socket, sockaddr_in& a
         return RTP_SEND_ERROR;
     }
 #else
-    /* TODO:  */
+    DWORD sent_bytes;
+    WSABUF data_buf;
+
+    data_buf.buf = (char *)frame_;
+    data_buf.len = len_;
+
+    if (WSASendTo(socket, &data_buf, 1, NULL, 0, (const struct sockaddr *)&addr, sizeof(addr), nullptr, nullptr) == -1) {
+        win_get_last_error();
+
+        return RTP_SEND_ERROR;
+    }
 #endif
 
     return RTP_OK;
@@ -85,9 +100,9 @@ rtp_error_t kvz_rtp::zrtp_msg::commit::parse_msg(kvz_rtp::zrtp_msg::receiver& re
     session.auth_tag_type      = msg->auth_tag_type;
     session.key_agreement_type = msg->key_agreement_type;
 
-    memcpy(session.hvi, msg->hvi, sizeof(uint32_t) * 8);
-
-    /* TODO: validate mac */
+    memcpy(&session.remote_macs[0],  &msg->mac,  8);
+    memcpy(session.remote_hvi,       msg->hvi,  32);
+    memcpy(session.remote_hashes[3], msg->hash, 32);
 
     return RTP_OK;
 }

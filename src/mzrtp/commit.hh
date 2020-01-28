@@ -12,14 +12,11 @@ namespace kvz_rtp {
 
     namespace zrtp_msg {
 
-        /* TODO: why isn't this struct typedeffed? 
-         * TODO: what is the convention with zrtp messages (typedef / no typedef?) */
-
         /* DH Commit Message */
         PACKED_STRUCT(zrtp_commit) {
             zrtp_msg msg_start;
 
-            uint32_t hash_image[8];
+            uint32_t hash[8];
             uint32_t zid[3];
             uint32_t hash_algo;
             uint32_t cipher_algo;

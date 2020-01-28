@@ -68,6 +68,20 @@ void kvz_rtp::zrtp::init_session_hashes()
     }
 }
 
+bool kvz_rtp::zrtp::are_we_initiator(uint8_t *our_hvi, uint8_t *their_hvi)
+{
+    for (int i = 31; i >= 0; --i) {
+
+        if (our_hvi[i] > their_hvi[i])
+            return true;
+
+        else if (our_hvi[i] < their_hvi[i])
+            return false;
+    }
+
+    return true; /* ??? */
+}
+
 rtp_error_t kvz_rtp::zrtp::begin_session()
 {
     rtp_error_t ret = RTP_OK;
@@ -126,9 +140,7 @@ rtp_error_t kvz_rtp::zrtp::begin_session()
 
 rtp_error_t kvz_rtp::zrtp::init_session(bool& initiator)
 {
-    /* Create ZRTP session from capabilities struct we've constructed
-     *
-     * TODO cross match the actual capabilities! */
+    /* Create ZRTP session from capabilities struct we've constructed */
     session_.hash_algo          = S256;
     session_.cipher_algo        = AES1;
     session_.auth_tag_type      = HS32;
@@ -153,11 +165,9 @@ rtp_error_t kvz_rtp::zrtp::init_session(bool& initiator)
 
     /* If we proceed to sending Commit message, we can assume we're the initiator.
      * This assumption may prove to be false if remote also sends Commit message
-     * and Commit contention is resolved in their favor.
-     *
-     * */
-    initiator = true;
-    rto       = 150;
+     * and Commit contention is resolved in their favor. */
+    initiator   = true;
+    rto         = 150;
 
     for (int i = 0; i < 10; ++i) {
         set_timeout(rto);
@@ -172,14 +182,13 @@ rtp_error_t kvz_rtp::zrtp::init_session(bool& initiator)
              *
              * TODO: do proper check and remove this hack */
             if (type == ZRTP_FT_COMMIT) {
-                uint32_t hvi = session_.hvi[0];
                 commit.parse_msg(receiver_, session_);
 
                 /* Our hvi is smaller than remote's meaning we are the responder.
                  *
                  * Commit message must be ACKed with DHPart1 messages so we need exit,
                  * construct that message and sent it to remote */
-                if (hvi < session_.hvi[0]) {
+                if (!are_we_initiator(session_.hvi, session_.remote_hvi)) {
                     initiator = false;
                     return RTP_OK;
                 }
