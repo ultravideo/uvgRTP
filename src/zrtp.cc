@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "debug.hh"
+#include "crypto/crypto.hh"
 #include "random.hh"
 #include "zrtp.hh"
 
@@ -47,7 +48,11 @@ kvz_rtp::zrtp_capab_t kvz_rtp::zrtp::get_capabilities()
 
 uint8_t *kvz_rtp::zrtp::generate_zid()
 {
-    return new uint8_t[12];
+    uint8_t *zid = new uint8_t[12];
+
+    kvz_rtp::crypto::random::generate_random(zid, 12);
+
+    return zid;
 }
 
 rtp_error_t kvz_rtp::zrtp::begin_session()
