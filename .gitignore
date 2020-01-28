@@ -1,6 +1,7 @@
 src/*.o
 src/formats/*.o
 src/mzrtp/*.o
+src/crypto/*.o
 libkvzrtp.a
 *main
 benchmarks/*/main_*
