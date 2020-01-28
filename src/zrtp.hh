@@ -63,9 +63,16 @@ namespace kvz_rtp {
         uint32_t sas_type;
         uint32_t hvi[8];
 
+        /* Section 9 of RFC 6189 */
+        uint8_t hashes[4][32];
+
         zrtp_dh_t us;
         zrtp_dh_t them;
     } zrtp_session_t;
+
+    typedef struct zrtp_crypto_ctx {
+        kvz_rtp::crypto::sha256 sha256;
+    } zrtp_crypto_ctx_t;
 
     class zrtp {
         public:
@@ -91,7 +98,10 @@ namespace kvz_rtp {
             zrtp_capab_t get_capabilities();
 
             /* Generate zid for this ZRTP instance. ZID is a unique, 96-bit long ID */
-            uint8_t *generate_zid();
+            void generate_zid();
+
+            /* Initialize the four session hashes defined in Section 9 of RFC 6189 */
+            void init_session_hashes();
 
             /* Being the ZRTP session by sending a Hello message to remote,
              * and responding to remote's Hello message using HelloAck message
@@ -141,5 +151,7 @@ namespace kvz_rtp {
             zrtp_session_t session_;
 
             uint8_t *zid_;
+
+            zrtp_crypto_ctx_t cctx_;
     };
 };

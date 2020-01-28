@@ -18,6 +18,7 @@ using namespace kvz_rtp::zrtp_msg;
 kvz_rtp::zrtp::zrtp():
     receiver_()
 {
+    cctx_.sha256 = kvz_rtp::crypto::sha256();
 }
 
 kvz_rtp::zrtp::~zrtp()
@@ -43,16 +44,26 @@ kvz_rtp::zrtp_capab_t kvz_rtp::zrtp::get_capabilities()
     zrtp_capab_t capabilities = {
     };
 
+    /* TODO:  set zid */
+
     return capabilities;
 }
 
-uint8_t *kvz_rtp::zrtp::generate_zid()
+void kvz_rtp::zrtp::generate_zid()
 {
-    uint8_t *zid = new uint8_t[12];
+    zid_ = new uint8_t[12];
 
-    kvz_rtp::crypto::random::generate_random(zid, 12);
+    kvz_rtp::crypto::random::generate_random(zid_, 12);
+}
 
-    return zid;
+void kvz_rtp::zrtp::init_session_hashes()
+{
+    kvz_rtp::crypto::random::generate_random(session_.hashes[0], 32);
+
+    for (size_t i = 1; i < 4; ++i) {
+        cctx_.sha256.update(session_.hashes[i - 1], 32);
+        cctx_.sha256.final(session_.hashes[i]);
+    }
 }
 
 rtp_error_t kvz_rtp::zrtp::begin_session()
@@ -320,17 +331,23 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
     bool initiator  = false;
     rtp_error_t ret = RTP_OK;
 
+    generate_zid();
+    init_session_hashes();
+
     ssrc_      = ssrc;
     socket_    = socket;
     addr_      = addr;
     capab_     = get_capabilities();
-    capab_.zid = generate_zid();
+    capab_.zid = zid_;
 
     /* TODO: initialize properly  */
     session_.us.retained1[0]  = 1337;
     session_.us.retained2[0]  = 1337;
     session_.us.aux_secret[0] = 1337;
     session_.us.pbx_secret[0] = 1337;
+
+    /* TODO: what is this doing here? */
+    kvz_rtp::crypto::dh dh__;
 
     /* Begin session by exchanging Hello and HelloACK messages.
      *
