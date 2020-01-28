@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "util.hh"
+#include "crypto/crypto.hh"
 #include "mzrtp/receiver.hh"
 
 namespace kvz_rtp {
@@ -53,9 +54,20 @@ namespace kvz_rtp {
         uint32_t pbx_secret[2]; /* hash of MiTM PBX secret */
     } zrtp_dh_t;
 
+    /* One common crypto contex for all ZRTP functions */
+    typedef struct zrtp_crypto_ctx {
+        kvz_rtp::crypto::hmac::sha256 *hmac_sha256;
+        kvz_rtp::crypto::sha256 *sha256;
+    } zrtp_crypto_ctx_t;
+
+    /* TODO: voisiko näitä structeja järjestellä jotenkin järkevämmin? */
+
     /* Collection of algorithms that are used by ZRTP
      * (based on information gathered from Hello message) */
     typedef struct zrtp_session {
+        uint32_t ssrc;
+        uint16_t seq;
+
         uint32_t hash_algo;
         uint32_t cipher_algo;
         uint32_t auth_tag_type;
@@ -63,16 +75,22 @@ namespace kvz_rtp {
         uint32_t sas_type;
         uint32_t hvi[8];
 
+        /* Session capabilities (our and theirs) */
+        zrtp_capab_t capabilities; /* TODO: rename to ocapab */
+        zrtp_capab_t rcapab;
+
         /* Section 9 of RFC 6189 */
         uint8_t hashes[4][32];
+        uint32_t remote_hashes[4][32];
+
+        uint64_t remote_macs[4];
 
         zrtp_dh_t us;
         zrtp_dh_t them;
-    } zrtp_session_t;
 
-    typedef struct zrtp_crypto_ctx {
-        kvz_rtp::crypto::sha256 sha256;
-    } zrtp_crypto_ctx_t;
+        /* Used by message classes */
+        zrtp_crypto_ctx_t cctx;
+    } zrtp_session_t;
 
     class zrtp {
         public:
@@ -147,11 +165,11 @@ namespace kvz_rtp {
 
             kvz_rtp::zrtp_msg::receiver receiver_;
 
+            zrtp_crypto_ctx_t cctx_;
+
             /* Initialized after Hello messages have been exchanged */
             zrtp_session_t session_;
 
             uint8_t *zid_;
-
-            zrtp_crypto_ctx_t cctx_;
     };
 };

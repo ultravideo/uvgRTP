@@ -12,13 +12,13 @@ namespace kvz_rtp {
 
     namespace zrtp_msg {
 
-        struct zrtp_hello {
+        PACKED_STRUCT(zrtp_hello) {
             zrtp_msg msg_start;
 
             uint32_t version;
             uint32_t client[4];
             uint32_t hash[8];
-            uint32_t zid[3]; /* TODO: ??? */
+            uint32_t zid[3];
 
             uint8_t zero:1;
             uint8_t s:1;
@@ -31,6 +31,7 @@ namespace kvz_rtp {
             uint8_t kc:4;
             uint8_t sc:4;
 
+            /* TODO: these won't work well */
             uint32_t hash_algos[0];
             uint32_t cipher_algos[0];
             uint32_t auth_tags[0];
@@ -42,14 +43,14 @@ namespace kvz_rtp {
 
         class hello {
             public:
-                hello(zrtp_capab_t& capab);
+                hello(zrtp_session_t& session);
                 ~hello();
 
                 /* TODO:  */
                 rtp_error_t send_msg(socket_t& socket, sockaddr_in& addr);
 
                 /* TODO:  */
-                rtp_error_t parse_msg(kvz_rtp::zrtp_msg::receiver& receiver, zrtp_capab_t& capab);
+                rtp_error_t parse_msg(kvz_rtp::zrtp_msg::receiver& receiver, zrtp_session_t& session);
 
             private:
                 kvz_rtp::frame::zrtp_frame *frame_;

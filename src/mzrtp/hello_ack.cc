@@ -37,7 +37,17 @@ rtp_error_t kvz_rtp::zrtp_msg::hello_ack::send_msg(socket_t& socket, sockaddr_in
         return RTP_SEND_ERROR;
     }
 #else
-    /* TODO:  */
+    DWORD sent_bytes;
+    WSABUF data_buf;
+
+    data_buf.buf = (char *)frame_;
+    data_buf.len = len_;
+
+    if (WSASendTo(socket, &data_buf, 1, NULL, 0, (const struct sockaddr *)&addr, sizeof(addr), nullptr, nullptr) == -1) {
+        win_get_last_error();
+
+        return RTP_SEND_ERROR;
+    }
 #endif
 
     return RTP_OK;

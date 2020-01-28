@@ -18,12 +18,14 @@ using namespace kvz_rtp::zrtp_msg;
 kvz_rtp::zrtp::zrtp():
     receiver_()
 {
-    cctx_.sha256 = kvz_rtp::crypto::sha256();
+    cctx_.sha256 = new kvz_rtp::crypto::sha256();
 }
 
 kvz_rtp::zrtp::~zrtp()
 {
     delete[] zid_;
+
+    /* TODO: free crypto ctx */
 }
 
 rtp_error_t kvz_rtp::zrtp::set_timeout(size_t timeout)
@@ -61,15 +63,15 @@ void kvz_rtp::zrtp::init_session_hashes()
     kvz_rtp::crypto::random::generate_random(session_.hashes[0], 32);
 
     for (size_t i = 1; i < 4; ++i) {
-        cctx_.sha256.update(session_.hashes[i - 1], 32);
-        cctx_.sha256.final(session_.hashes[i]);
+        cctx_.sha256->update(session_.hashes[i - 1], 32);
+        cctx_.sha256->final(session_.hashes[i]);
     }
 }
 
 rtp_error_t kvz_rtp::zrtp::begin_session()
 {
     rtp_error_t ret = RTP_OK;
-    auto hello      = kvz_rtp::zrtp_msg::hello(capab_);
+    auto hello      = kvz_rtp::zrtp_msg::hello(session_);
     auto hello_ack  = kvz_rtp::zrtp_msg::hello_ack();
     bool hello_recv = false;
     size_t rto      = 50;
@@ -96,10 +98,10 @@ rtp_error_t kvz_rtp::zrtp::begin_session()
 
                     /* Copy interesting information from receiver's
                      * message buffer to remote capabilities struct for later use */
-                    hello.parse_msg(receiver_, rcapab_);
+                    hello.parse_msg(receiver_, session_);
 
-                    if (rcapab_.version != 110) {
-                        LOG_WARN("ZRTP Protocol version %u not supported!", rcapab_.version);
+                    if (session_.rcapab.version != 110) {
+                        LOG_WARN("ZRTP Protocol version %u not supported!", session_.rcapab.version);
                         hello_recv = false;
                     }
                 }
@@ -334,11 +336,13 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
     generate_zid();
     init_session_hashes();
 
-    ssrc_      = ssrc;
     socket_    = socket;
     addr_      = addr;
     capab_     = get_capabilities();
     capab_.zid = zid_;
+
+    session_.ssrc = ssrc;
+    session_.seq  = 0;
 
     /* TODO: initialize properly  */
     session_.us.retained1[0]  = 1337;
@@ -346,8 +350,13 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
     session_.us.aux_secret[0] = 1337;
     session_.us.pbx_secret[0] = 1337;
 
+    session_.capabilities     = capab_;
+    session_.capabilities.zid = zid_;
+
+    session_.cctx = cctx_;
+
     /* TODO: what is this doing here? */
-    kvz_rtp::crypto::dh dh__;
+    /* kvz_rtp::crypto::dh dh__; */
 
     /* Begin session by exchanging Hello and HelloACK messages.
      *
