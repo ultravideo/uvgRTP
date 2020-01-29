@@ -49,6 +49,11 @@ kvz_rtp::zrtp_msg::commit::commit(zrtp_session_t& session)
     hmac_sha256.final(mac_full);
 
     memcpy(&msg->mac, mac_full, sizeof(uint64_t));
+
+    /* Finally make a copy of the message and save it for later use */
+    session.l_msg.commit.first  = len_;
+    session.l_msg.commit.second = (kvz_rtp::zrtp_msg::zrtp_commit *)new uint8_t[len_];
+    memcpy(session.l_msg.commit.second, msg, len_);
 }
 
 kvz_rtp::zrtp_msg::commit::~commit()
@@ -103,6 +108,11 @@ rtp_error_t kvz_rtp::zrtp_msg::commit::parse_msg(kvz_rtp::zrtp_msg::receiver& re
     memcpy(&session.remote_macs[0],  &msg->mac,  8);
     memcpy(session.remote_hvi,       msg->hvi,  32);
     memcpy(session.remote_hashes[3], msg->hash, 32);
+
+    /* Finally make a copy of the message and save it for later use */
+    session.r_msg.commit.first  = len;
+    session.r_msg.commit.second = (kvz_rtp::zrtp_msg::zrtp_commit *)new uint8_t[len];
+    memcpy(session.r_msg.commit.second, msg, len);
 
     return RTP_OK;
 }

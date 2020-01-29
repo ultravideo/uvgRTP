@@ -8,9 +8,18 @@
 #define ZRTP_DH_PART1       "DHPart1 "
 #define ZRTP_DH_PART2       "DHPart2 "
 
-kvz_rtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session)
+kvz_rtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int part)
 {
-    LOG_DEBUG("Create ZRTP Commit message!");
+    const char *strs[2][2] = {
+        {
+            ZRTP_DH_PART1, "Responder"
+        },
+        {
+            ZRTP_DH_PART2, "Initiator"
+        }
+    };
+
+    LOG_DEBUG("Create ZRTP DHPart%d message", part);
 
     frame_  = kvz_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_dh));
     rframe_ = kvz_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_dh));
@@ -31,30 +40,6 @@ kvz_rtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session)
     msg->msg_start.magic  = ZRTP_MSG_MAGIC;
     msg->msg_start.length = len_ - sizeof(zrtp_header);
     msg->crc = 0;
-
-    session.cctx.sha256->update((uint8_t *)msg, msg->msg_start.length);
-}
-
-kvz_rtp::zrtp_msg::dh_key_exchange::~dh_key_exchange()
-{
-    LOG_DEBUG("Freeing DHPartN message...");
-
-    (void)kvz_rtp::frame::dealloc_frame(frame_);
-    (void)kvz_rtp::frame::dealloc_frame(rframe_);
-}
-
-rtp_error_t kvz_rtp::zrtp_msg::dh_key_exchange::set_role(zrtp_session_t& session, int part)
-{
-    zrtp_dh *msg = (zrtp_dh *)frame_;
-
-    const char *strs[2][2] = {
-        {
-            ZRTP_DH_PART1, "Responder"
-        },
-        {
-            ZRTP_DH_PART2, "Initiator"
-        }
-    };
 
     memcpy(&msg->msg_start.msgblock, strs[part - 1][0],  8);
     memcpy(msg->hash,                session.hashes[1], 32);
@@ -100,7 +85,23 @@ rtp_error_t kvz_rtp::zrtp_msg::dh_key_exchange::set_role(zrtp_session_t& session
 
     memcpy(msg->mac, mac_full, 8);
 
-    return RTP_OK;
+    /* Finally make a copy of the message and save it for later use */
+    session.l_msg.dh.first  = len_;
+    session.l_msg.dh.second = (kvz_rtp::zrtp_msg::zrtp_dh *)new uint8_t[len_];
+    memcpy(session.l_msg.dh.second, msg, len_);
+}
+
+kvz_rtp::zrtp_msg::dh_key_exchange::dh_key_exchange(struct zrtp_dh *dh)
+{
+    (void)dh;
+}
+
+kvz_rtp::zrtp_msg::dh_key_exchange::~dh_key_exchange()
+{
+    LOG_DEBUG("Freeing DHPartN message...");
+
+    (void)kvz_rtp::frame::dealloc_frame(frame_);
+    (void)kvz_rtp::frame::dealloc_frame(rframe_);
 }
 
 rtp_error_t kvz_rtp::zrtp_msg::dh_key_exchange::send_msg(socket_t& socket, sockaddr_in& addr)
@@ -149,6 +150,11 @@ rtp_error_t kvz_rtp::zrtp_msg::dh_key_exchange::parse_msg(kvz_rtp::zrtp_msg::rec
     session.s1 = nullptr;
     session.s2 = nullptr;
     session.s3 = nullptr;
+
+    /* Finally make a copy of the message and save it for later use */
+    session.r_msg.dh.first  = len;
+    session.r_msg.dh.second = (kvz_rtp::zrtp_msg::zrtp_dh *)new uint8_t[len];
+    memcpy(session.r_msg.dh.second, msg, len);
 
     return RTP_OK;
 }

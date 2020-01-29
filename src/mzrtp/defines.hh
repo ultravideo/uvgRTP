@@ -6,6 +6,11 @@ namespace kvz_rtp {
 
     namespace zrtp_msg {
 
+        struct zrtp_confirm;
+        struct zrtp_commit;
+        struct zrtp_hello;
+        struct zrtp_dh;
+
         PACKED_STRUCT(zrtp_header) {
             uint8_t version:4;
             uint16_t unused:12;

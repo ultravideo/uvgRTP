@@ -1,4 +1,8 @@
-#pragma once
+/* #pragma once */
+#ifndef UTIL_HH_2USO9BF5
+#define UTIL_HH_2USO9BF5
+
+
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -198,3 +202,5 @@ static inline std::string generate_string(size_t length)
     std::generate_n(str.begin(), length, randchar);
     return str;
 }
+#endif /* UTIL_HH_2USO9BF5 */
+

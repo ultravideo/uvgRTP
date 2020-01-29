@@ -11,8 +11,8 @@
 
 #include <vector>
 
-#include "util.hh"
 #include "crypto/crypto.hh"
+#include "mzrtp/defines.hh"
 #include "mzrtp/receiver.hh"
 
 namespace kvz_rtp {
@@ -74,6 +74,13 @@ namespace kvz_rtp {
         kvz_rtp::crypto::dh *dh;
     } zrtp_crypto_ctx_t;
 
+    typedef struct zrtp_messages {
+        std::pair<size_t, struct kvz_rtp::zrtp_msg::zrtp_confirm *> confirm;
+        std::pair<size_t, struct kvz_rtp::zrtp_msg::zrtp_commit  *> commit;
+        std::pair<size_t, struct kvz_rtp::zrtp_msg::zrtp_hello   *> hello;
+        std::pair<size_t, struct kvz_rtp::zrtp_msg::zrtp_dh      *> dh;
+    } zrtp_messages_t;
+
     /* TODO: voisiko näitä structeja järjestellä jotenkin järkevämmin? */
 
     /* Collection of algorithms that are used by ZRTP
@@ -125,6 +132,12 @@ namespace kvz_rtp {
 
         /* Used by message classes */
         zrtp_crypto_ctx_t cctx;
+
+        /* Pointers to messages sent by us and messages received from remote.
+         * These are just to calculate various hash values */
+        zrtp_messages_t l_msg;
+        zrtp_messages_t r_msg;
+
     } zrtp_session_t;
 
     class zrtp {
@@ -189,6 +202,9 @@ namespace kvz_rtp {
              * Return RTP_OK if DHPart2 was successful
              * Return RTP_TIMEOUT if no message is received from remote before T2 expires */
             rtp_error_t dh_part2();
+
+            /* TODO:  */
+            rtp_error_t calculate_shared_secret();
 
             /* TODO:  */
             rtp_error_t responder_finalize_session();

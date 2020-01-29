@@ -164,7 +164,6 @@ rtp_error_t kvz_rtp::zrtp::init_session(bool& initiator)
     session_.auth_tag_type      = HS32;
     session_.key_agreement_type = DH3k;
     session_.sas_type           = B32;
-    session_.hvi[0]             = kvz_rtp::random::generate_32();
 
     int type        = 0;
     size_t rto      = 0;
@@ -227,11 +226,9 @@ rtp_error_t kvz_rtp::zrtp::init_session(bool& initiator)
 rtp_error_t kvz_rtp::zrtp::dh_part1()
 {
     rtp_error_t ret = RTP_OK;
-    auto dhpart     = kvz_rtp::zrtp_msg::dh_key_exchange(session_);
+    auto dhpart     = kvz_rtp::zrtp_msg::dh_key_exchange(session_, 1);
     size_t rto      = 150;
     int type        = 0;
-
-    dhpart.set_role(session_, 1);
 
     for (int i = 0; i < 10; ++i) {
         set_timeout(rto);
@@ -267,9 +264,7 @@ rtp_error_t kvz_rtp::zrtp::dh_part2()
     int type        = 0;
     size_t rto      = 0;
     rtp_error_t ret = RTP_OK;
-    auto dhpart     = kvz_rtp::zrtp_msg::dh_key_exchange(session_);
-
-    dhpart.set_role(session_, 2);
+    auto dhpart     = kvz_rtp::zrtp_msg::dh_key_exchange(session_, 2);
 
     if ((ret = dhpart.parse_msg(receiver_, session_)) != RTP_OK) {
         LOG_ERROR("Failed to parse DHPart1 Message!");
@@ -391,34 +386,30 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
     session_.capabilities     = get_capabilities();
     session_.capabilities.zid = zid_;
 
-    /* Now that our session parameters have been created, we can create
-     * DHPart2 message which is used, in conjunction with Hello message,
-     * to create the hash value of initiator (hvi) for Commit message
-     *
-     * dh_key_exchange() creates a DHPart2 message but this messages
-     * is used by both parties so responder will update the Message
-     * Block type in dh_part1() function once the execution gets
-     * there
-     *
-     * dh_key_exchange() will update crypto context's sha256 object */
-    auto dh_msg = kvz_rtp::zrtp_msg::dh_key_exchange(session_);
-    dh_msg.set_role(session_, 2);
-
     /* Begin session by exchanging Hello and HelloACK messages.
      *
      * After begin_session() we know what remote is capable of
-     * and whether we are compatible implementations
-     *
-     * begin_session() will update crypto context's sha256 object */
+     * and whether we are compatible implementations */
     if ((ret = begin_session()) != RTP_OK) {
         LOG_ERROR("Session initialization failed, ZRTP cannot be used!");
         return ret;
     }
 
-    /* begin_session() has updated current sha256 value with Hello message.
-     * We can now obtain the digest of DHPart2 and Hello to get our hvi
-     * which is used in the next step when creating Commit message */
-    cctx_.sha256->final(session_.hvi);
+    /* After begin_session() we have remote's Hello message and we can craft
+     * DHPart2 in the hopes that we're the Initiator.
+     *
+     * If this assumption proves to be false, we just discard the message
+     * and create DHPart1.
+     *
+     * Commit message contains hash value of initiator (hvi) which is the
+     * the hashed value of Initiators DHPart2 message and Responder's Hello
+     * message. This should be calculated now because the next step is choosing
+     * the the roles for participants. */
+    auto dh_msg = kvz_rtp::zrtp_msg::dh_key_exchange(session_, 2);
+
+    cctx_.sha256->update((uint8_t *)session_.l_msg.dh.second,    session_.l_msg.dh.first);
+    cctx_.sha256->update((uint8_t *)session_.r_msg.hello.second, session_.r_msg.hello.first);
+    cctx_.sha256->final((uint8_t *)session_.hvi);
 
     /* We're here which means that remote respond to us and sent a Hello message
      * with same version number as ours. This means that the implementations are
@@ -442,6 +433,8 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
             return ret;
         }
 
+        /* TODO: calculate shared secret here? */
+
         if ((ret = initiator_finalize_session()) != RTP_OK) {
             LOG_ERROR("Failed to finalize session using Confirm2");
             return ret;
@@ -454,6 +447,8 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
             LOG_ERROR("Failed to perform Diffie-Hellman key exchange Part1");
             return ret;
         }
+
+        /* TODO: calculate shared secret here? */
 
         if ((ret = responder_finalize_session()) != RTP_OK) {
             LOG_ERROR("Failed to finalize session using Confirm1/Conf2ACK");

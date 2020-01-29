@@ -24,7 +24,8 @@ namespace kvz_rtp {
 
         class dh_key_exchange {
             public:
-                dh_key_exchange(zrtp_session_t& session);
+                dh_key_exchange(zrtp_session_t& session, int part);
+                dh_key_exchange(struct zrtp_dh *dh);
                 ~dh_key_exchange();
 
                 /* TODO:  */
@@ -32,9 +33,6 @@ namespace kvz_rtp {
 
                 /* TODO:  */
                 rtp_error_t parse_msg(kvz_rtp::zrtp_msg::receiver& receiver, zrtp_session_t& session);
-
-                /* TODO:  */
-                rtp_error_t set_role(zrtp_session_t& session, int part);
 
             private:
                 kvz_rtp::frame::zrtp_frame *frame_;
