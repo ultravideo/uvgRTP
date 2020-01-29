@@ -1,4 +1,5 @@
 #include <cstring>
+#include <thread>
 
 #include "debug.hh"
 #include "crypto/crypto.hh"
@@ -19,6 +20,7 @@ kvz_rtp::zrtp::zrtp():
     receiver_()
 {
     cctx_.sha256 = new kvz_rtp::crypto::sha256();
+    cctx_.dh     = new kvz_rtp::crypto::dh;
 }
 
 kvz_rtp::zrtp::~zrtp()
@@ -56,6 +58,22 @@ void kvz_rtp::zrtp::generate_zid()
     zid_ = new uint8_t[12];
 
     kvz_rtp::crypto::random::generate_random(zid_, 12);
+}
+
+void kvz_rtp::zrtp::generate_secrets()
+{
+    cctx_.dh->generate_keys();
+    cctx_.dh->get_pk(session_.public_key, 384);
+
+    /* kvzRTP does not support Preshared mode (for now at least) so
+     * there will be no shared secrets between the endpoints.
+     *
+     * Generate random data for the retained secret values that are sent
+     * in the DHPart1/DHPart2 message and, due to mismatch, ignored by remote */
+    kvz_rtp::crypto::random::generate_random(session_.us.rs1,  32);
+    kvz_rtp::crypto::random::generate_random(session_.us.s2,   32);
+    kvz_rtp::crypto::random::generate_random(session_.us.raux, 32);
+    kvz_rtp::crypto::random::generate_random(session_.us.rpbx, 32);
 }
 
 void kvz_rtp::zrtp::init_session_hashes()
@@ -209,9 +227,11 @@ rtp_error_t kvz_rtp::zrtp::init_session(bool& initiator)
 rtp_error_t kvz_rtp::zrtp::dh_part1()
 {
     rtp_error_t ret = RTP_OK;
-    auto dhpart     = kvz_rtp::zrtp_msg::dh_key_exchange(1);
+    auto dhpart     = kvz_rtp::zrtp_msg::dh_key_exchange(session_);
     size_t rto      = 150;
     int type        = 0;
+
+    dhpart.set_role(session_, 1);
 
     for (int i = 0; i < 10; ++i) {
         set_timeout(rto);
@@ -222,10 +242,13 @@ rtp_error_t kvz_rtp::zrtp::dh_part1()
 
         if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
             if (type == ZRTP_FT_DH_PART2) {
-                if ((ret = dhpart.parse_msg(receiver_, session_.them)) != RTP_OK) {
+                if ((ret = dhpart.parse_msg(receiver_, session_)) != RTP_OK) {
                     LOG_ERROR("Failed to parse DHPart2 Message!");
                     continue;
                 }
+
+                cctx_.dh->set_remote_pk(session_.remote_public, 384);
+                cctx_.dh->get_shared_secret(session_.dh_result, 384);
 
                 LOG_DEBUG("DHPart2 received and parse successfully!");
                 return RTP_OK;
@@ -244,12 +267,18 @@ rtp_error_t kvz_rtp::zrtp::dh_part2()
     int type        = 0;
     size_t rto      = 0;
     rtp_error_t ret = RTP_OK;
-    auto dhpart     = kvz_rtp::zrtp_msg::dh_key_exchange(2);
+    auto dhpart     = kvz_rtp::zrtp_msg::dh_key_exchange(session_);
 
-    if ((ret = dhpart.parse_msg(receiver_, session_.them)) != RTP_OK) {
+    dhpart.set_role(session_, 2);
+
+    if ((ret = dhpart.parse_msg(receiver_, session_)) != RTP_OK) {
         LOG_ERROR("Failed to parse DHPart1 Message!");
         return RTP_INVALID_VALUE;
     }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    cctx_.dh->set_remote_pk(session_.remote_public, 384);
+    cctx_.dh->get_shared_secret(session_.dh_result, 384);
 
     for (int i = 0; i < 10; ++i) {
         set_timeout(rto);
@@ -342,7 +371,12 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
     bool initiator  = false;
     rtp_error_t ret = RTP_OK;
 
+    /* TODO: set all fields initially to zero */
+
     generate_zid();
+    generate_secrets();
+
+    /* Initialize the session hashes H0 - H3 defined in Section 9 of RFC 6189 */
     init_session_hashes();
 
     socket_    = socket;
@@ -350,33 +384,41 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
     capab_     = get_capabilities();
     capab_.zid = zid_;
 
-    session_.ssrc = ssrc;
     session_.seq  = 0;
-
-    /* TODO: initialize properly  */
-    session_.us.retained1[0]  = 1337;
-    session_.us.retained2[0]  = 1337;
-    session_.us.aux_secret[0] = 1337;
-    session_.us.pbx_secret[0] = 1337;
-
-    session_.capabilities     = capab_;
-    session_.capabilities.zid = zid_;
-
+    session_.ssrc = ssrc;
     session_.cctx = cctx_;
 
-    /* TODO: what is this doing here? */
-    /* kvz_rtp::crypto::dh dh__; */
+    session_.capabilities     = get_capabilities();
+    session_.capabilities.zid = zid_;
+
+    /* Now that our session parameters have been created, we can create
+     * DHPart2 message which is used, in conjunction with Hello message,
+     * to create the hash value of initiator (hvi) for Commit message
+     *
+     * dh_key_exchange() creates a DHPart2 message but this messages
+     * is used by both parties so responder will update the Message
+     * Block type in dh_part1() function once the execution gets
+     * there
+     *
+     * dh_key_exchange() will update crypto context's sha256 object */
+    auto dh_msg = kvz_rtp::zrtp_msg::dh_key_exchange(session_);
+    dh_msg.set_role(session_, 2);
 
     /* Begin session by exchanging Hello and HelloACK messages.
      *
      * After begin_session() we know what remote is capable of
      * and whether we are compatible implementations
      *
-     * Remote participant's capabilities are stored to rcapab_ */
+     * begin_session() will update crypto context's sha256 object */
     if ((ret = begin_session()) != RTP_OK) {
         LOG_ERROR("Session initialization failed, ZRTP cannot be used!");
         return ret;
     }
+
+    /* begin_session() has updated current sha256 value with Hello message.
+     * We can now obtain the digest of DHPart2 and Hello to get our hvi
+     * which is used in the next step when creating Commit message */
+    cctx_.sha256->final(session_.hvi);
 
     /* We're here which means that remote respond to us and sent a Hello message
      * with same version number as ours. This means that the implementations are

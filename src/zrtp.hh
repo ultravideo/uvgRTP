@@ -47,17 +47,31 @@ namespace kvz_rtp {
 
     /* DH exchange related information */
     typedef struct zrtp_dh {
-        uint32_t retained1[2]; /* hash of retained shared secret 1 */
-        uint32_t retained2[2]; /* hash of retained shared secret 2 */
+        /* uint32_t retained1[2]; /1* hash of retained shared secret 1 *1/ */
+        /* uint32_t retained2[2]; /1* hash of retained shared secret 2 *1/ */
+        /* uint32_t aux_secret[2]; /1* hash of auxiliary secret *1/ */
+        /* uint32_t pbx_secret[2]; /1* hash of MiTM PBX secret *1/ */
 
-        uint32_t aux_secret[2]; /* hash of auxiliary secret */
-        uint32_t pbx_secret[2]; /* hash of MiTM PBX secret */
+        /* Retained (for kvzRTP, preshared mode is not supported so we're
+         * going to generate just some random values for these) */
+        uint8_t rs1[32];
+        uint8_t rs2[32];
+        uint8_t raux[32];
+        uint8_t rpbx[32];
+
+        /* Shared between  parties */
+        uint8_t s1[8];
+        uint8_t s2[8];
+        uint8_t aux[8];
+        uint8_t pbx[8];
+
     } zrtp_dh_t;
 
     /* One common crypto contex for all ZRTP functions */
     typedef struct zrtp_crypto_ctx {
         kvz_rtp::crypto::hmac::sha256 *hmac_sha256;
         kvz_rtp::crypto::sha256 *sha256;
+        kvz_rtp::crypto::dh *dh;
     } zrtp_crypto_ctx_t;
 
     /* TODO: voisiko näitä structeja järjestellä jotenkin järkevämmin? */
@@ -78,15 +92,33 @@ namespace kvz_rtp {
         zrtp_capab_t capabilities; /* TODO: rename to ocapab */
         zrtp_capab_t rcapab;
 
+        uint8_t private_key[22];
+        uint8_t public_key[384];
+
+        uint8_t remote_public[384];
+
+        uint8_t dh_result[384];
+
         /* Hash value of initiator */
         uint8_t hvi[32];
         uint8_t remote_hvi[32];
 
         /* Section 9 of RFC 6189 */
         uint8_t hashes[4][32];
-        uint32_t remote_hashes[4][32];
+        uint8_t remote_hashes[4][32];
 
         uint64_t remote_macs[4];
+
+        kvz_rtp::crypto::sha256 *aux_total_hash;
+
+        /* Shared secrets
+         *
+         * Because kvzRTP supports only DH mode,
+         * other shared secrets (s1 - s3) are null */
+        uint8_t s0[1];
+        uint8_t *s1;
+        uint8_t *s2;
+        uint8_t *s3;
 
         zrtp_dh_t us;
         zrtp_dh_t them;
@@ -120,6 +152,9 @@ namespace kvz_rtp {
 
             /* Generate zid for this ZRTP instance. ZID is a unique, 96-bit long ID */
             void generate_zid();
+
+            /* TODO:  */
+            void generate_secrets();
 
             /* Compare our and remote's hvi values to determine who is the initiator */
             bool are_we_initiator(uint8_t *our_hvi, uint8_t *their_hvi);
@@ -172,7 +207,6 @@ namespace kvz_rtp {
             kvz_rtp::zrtp_msg::receiver receiver_;
 
             zrtp_crypto_ctx_t cctx_;
-
             /* Initialized after Hello messages have been exchanged */
             zrtp_session_t session_;
 

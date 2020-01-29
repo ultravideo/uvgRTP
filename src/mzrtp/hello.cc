@@ -142,5 +142,7 @@ rtp_error_t kvz_rtp::zrtp_msg::hello::parse_msg(kvz_rtp::zrtp_msg::receiver& rec
     memcpy(&session.remote_macs[0],   &msg->mac,  8);
     memcpy(&session.remote_hashes[3], msg->hash, 32);
 
+    session.cctx.sha256->update((uint8_t *)msg, msg->msg_start.length);
+
     return RTP_OK;
 }

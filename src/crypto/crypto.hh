@@ -65,17 +65,28 @@ namespace kvz_rtp {
                 CryptoPP::CTR_Mode<CryptoPP::AES>::Decryption dec_;
         };
 
-        /* diffie-hellman key derivation */
+        /* diffie-hellman key derivation, 3072-bits */
         class dh {
             public:
                 dh();
                 ~dh();
 
-                /* TODO: generate keys? */
+                /* TODO:  */
+                void generate_keys();
+
+                /* TODO:  */
+                void get_pk(uint8_t *pk, size_t len);
+
+                /* TODO:  */
+                void set_remote_pk(uint8_t *pk, size_t len);
+
+                /* TODO:  */
+                void get_shared_secret(uint8_t *ss, size_t len);
 
             private:
                 CryptoPP::AutoSeededRandomPool prng_;
                 CryptoPP::DH dh_;
+                CryptoPP::Integer sk_, pk_, rpk_;
         };
 
         /* base32 */
