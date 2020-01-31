@@ -80,7 +80,6 @@ namespace kvz_rtp {
     } zrtp_crypto_ctx_t;
 
     typedef struct zrtp_messages {
-        std::pair<size_t, struct kvz_rtp::zrtp_msg::zrtp_confirm *> confirm;
         std::pair<size_t, struct kvz_rtp::zrtp_msg::zrtp_commit  *> commit;
         std::pair<size_t, struct kvz_rtp::zrtp_msg::zrtp_hello   *> hello;
         std::pair<size_t, struct kvz_rtp::zrtp_msg::zrtp_dh      *> dh;
@@ -120,7 +119,6 @@ namespace kvz_rtp {
         uint8_t remote_hashes[4][32];
 
         uint64_t remote_macs[4];
-        uint64_t confirm_mac;
 
         uint8_t total_hash[32];
 

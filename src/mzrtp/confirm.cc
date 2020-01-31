@@ -108,26 +108,42 @@ rtp_error_t kvz_rtp::zrtp_msg::confirm::send_msg(socket_t& socket, sockaddr_in& 
 
 rtp_error_t kvz_rtp::zrtp_msg::confirm::parse_msg(kvz_rtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
-    ssize_t len = 0;
+    ssize_t len          = 0;
+    uint64_t mac         = 0;
+    uint64_t cmac        = 0;
+    uint8_t mac_full[32] = { 0 };
 
     if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
         LOG_ERROR("Failed to get message from ZRTP receiver");
         return RTP_INVALID_VALUE;
     }
 
-    kvz_rtp::crypto::aes::cfb *aes_cfb = nullptr;
-    zrtp_confirm *msg                  = (zrtp_confirm *)rframe_;
+    kvz_rtp::crypto::hmac::sha256 *hmac_sha256 = nullptr;
+    kvz_rtp::crypto::aes::cfb *aes_cfb         = nullptr;
+    zrtp_confirm *msg                          = (zrtp_confirm *)rframe_;
 
-    if (!memcmp(&msg->msg_start.msgblock, (const void *)ZRTP_CONFRIM1, sizeof(uint64_t)))
-        aes_cfb = new kvz_rtp::crypto::aes::cfb(session.zrtp_keyr, 16, msg->cfb_iv);
-    else
-        aes_cfb = new kvz_rtp::crypto::aes::cfb(session.zrtp_keyi, 16, msg->cfb_iv);
+    if (!memcmp(&msg->msg_start.msgblock, (const void *)ZRTP_CONFRIM1, sizeof(uint64_t))) {
+        aes_cfb     = new kvz_rtp::crypto::aes::cfb(session.zrtp_keyr, 16, msg->cfb_iv);
+        hmac_sha256 = new kvz_rtp::crypto::hmac::sha256(session.hmac_keyr, 32);
+    } else {
+        aes_cfb     = new kvz_rtp::crypto::aes::cfb(session.zrtp_keyi, 16, msg->cfb_iv);
+        hmac_sha256 = new kvz_rtp::crypto::hmac::sha256(session.hmac_keyi, 32);
+    }
+
+    /* Verify confirm_mac before decrypting the message */
+    hmac_sha256->update((uint8_t *)msg->hash, 40);
+    hmac_sha256->final(mac_full);
+
+    memcpy(&mac,  mac_full,         sizeof(uint64_t));
+    memcpy(&cmac, msg->confirm_mac, sizeof(uint64_t));
+
+    if (mac != cmac)
+        return RTP_INVALID_VALUE;
 
     aes_cfb->decrypt((uint8_t *)msg->hash, (uint8_t *)msg->hash, 40);
 
-    /* Save the MAC value so we can check if later */
-    memcpy(&session.confirm_mac,      &msg->confirm_mac,   8);
-    memcpy(&session.remote_hashes[0], &msg->hash,         32);
+    /* Finally save the first hash H0 so we can verify other MAC values received */
+    memcpy(&session.remote_hashes[0], &msg->hash, 32);
 
     delete aes_cfb;
     return RTP_OK;
