@@ -147,6 +147,9 @@ rtp_error_t kvz_rtp::zrtp_msg::hello::parse_msg(kvz_rtp::zrtp_msg::receiver& rec
     memcpy(&session.remote_macs[0],   &msg->mac,  8);
     memcpy(&session.remote_hashes[3], msg->hash, 32);
 
+    /* Save ZID */
+    memcpy(session.remote_zid, msg->zid, 12);
+
     /* Finally make a copy of the message and save it for later use */
     session.r_msg.hello.first  = len;
     session.r_msg.hello.second = (kvz_rtp::zrtp_msg::zrtp_hello *)new uint8_t[len];

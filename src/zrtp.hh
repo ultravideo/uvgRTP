@@ -17,6 +17,11 @@
 
 namespace kvz_rtp {
 
+    enum ROLE {
+        INITIATOR,
+        RESPONDER
+    };
+
     /* TODO: move to defines.hh */
     typedef struct capabilities {
 
@@ -116,19 +121,34 @@ namespace kvz_rtp {
 
         uint64_t remote_macs[4];
 
-        kvz_rtp::crypto::sha256 *aux_total_hash;
+        uint8_t total_hash[32];
+
+        uint8_t zrtp_sess_key[32];
+        uint8_t sas_hash[32];
+        uint8_t zrtp_keyi[16];
+        uint8_t zrtp_keyr[16];
+        uint8_t hmac_keyi[32];
+        uint8_t hmac_keyr[32];
+
+        /* TODO: zid initiator */
+        /* TODO: zid responder */
 
         /* Shared secrets
          *
          * Because kvzRTP supports only DH mode,
          * other shared secrets (s1 - s3) are null */
-        uint8_t s0[1];
+        uint8_t s0[32];
         uint8_t *s1;
         uint8_t *s2;
         uint8_t *s3;
 
         zrtp_dh_t us;
         zrtp_dh_t them;
+
+        /* Are we the initiator or the responder? */
+        int role;
+
+        uint8_t remote_zid[12];
 
         /* Used by message classes */
         zrtp_crypto_ctx_t cctx;
@@ -166,14 +186,20 @@ namespace kvz_rtp {
             /* Generate zid for this ZRTP instance. ZID is a unique, 96-bit long ID */
             void generate_zid();
 
-            /* TODO:  */
+            /* Create private/public key pair and generate random values for retained secrets */
             void generate_secrets();
+
+            /* Calculate DHResult, total_hash, and s0 according to rules defined in RFC 6189 */
+            void generate_shared_secrets();
 
             /* Compare our and remote's hvi values to determine who is the initiator */
             bool are_we_initiator(uint8_t *our_hvi, uint8_t *their_hvi);
 
             /* Initialize the four session hashes defined in Section 9 of RFC 6189 */
             void init_session_hashes();
+
+            /* Derive new key using s0 as HMAC key */
+            void derive_key(const char *label, uint32_t key_len, uint8_t *key);
 
             /* Being the ZRTP session by sending a Hello message to remote,
              * and responding to remote's Hello message using HelloAck message
@@ -190,7 +216,7 @@ namespace kvz_rtp {
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if no message is received from remote before T2 expires */
-            rtp_error_t init_session(bool& initiator);
+            rtp_error_t init_session();
 
             /* Perform Diffie-Hellman key exchange Part1 (responder)
              * This message also acts as an ACK to Commit message */

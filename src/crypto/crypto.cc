@@ -165,8 +165,9 @@ void kvz_rtp::crypto::dh::get_shared_secret(uint8_t *ss, size_t len)
     );
 
     CryptoPP::ModularArithmetic ma(p);
+    CryptoPP::Integer dhres = ma.Exponentiate(rpk_, sk_);
 
-    std::cout << std::hex << ma.Exponentiate(rpk_, sk_) << std::endl;
+    dhres.Encode(ss, len);
 }
 
 /* ***************** base32 ***************** */
