@@ -422,7 +422,7 @@ rtp_error_t kvz_rtp::zrtp::responder_finalize_session()
 {
     rtp_error_t ret = RTP_OK;
     auto confirm    = kvz_rtp::zrtp_msg::confirm(session_, 1);
-    auto confack    = kvz_rtp::zrtp_msg::confack();
+    auto confack    = kvz_rtp::zrtp_msg::confack(session_);
     size_t rto      = 150;
     int type        = 0;
 

@@ -16,7 +16,7 @@ namespace kvz_rtp {
 
         class confack {
             public:
-                confack();
+                confack(zrtp_session_t& session);
                 ~confack();
 
                 /* TODO:  */

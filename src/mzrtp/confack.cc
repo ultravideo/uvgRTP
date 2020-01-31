@@ -7,7 +7,7 @@
 
 #define ZRTP_CONFACK "Conf2ACK"
 
-kvz_rtp::zrtp_msg::confack::confack()
+kvz_rtp::zrtp_msg::confack::confack(zrtp_session_t& session)
 {
     LOG_DEBUG("Create ZRTP Conf2ACK message!");
 
@@ -27,12 +27,14 @@ kvz_rtp::zrtp_msg::confack::confack()
 
     /* TODO: convert to network byte order */
 
-    msg->msg_start.magic  = ZRTP_MSG_MAGIC;
-    msg->msg_start.length = len_ - sizeof(zrtp_header);
+    msg->msg_start.magic          = ZRTP_MSG_MAGIC;
+    msg->msg_start.header.version = 0;
+    msg->msg_start.header.magic   = ZRTP_HEADER_MAGIC;
+    msg->msg_start.header.ssrc    = session.ssrc;
+    msg->msg_start.header.seq     = session.seq++;
+    msg->msg_start.length         = len_ - sizeof(zrtp_header);
 
     memcpy(&msg->msg_start.msgblock, ZRTP_CONFACK, 8);
-
-    /* TODO: everything */
 }
 
 kvz_rtp::zrtp_msg::confack::~confack()
