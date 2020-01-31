@@ -421,7 +421,7 @@ rtp_error_t kvz_rtp::zrtp::dh_part2()
 rtp_error_t kvz_rtp::zrtp::responder_finalize_session()
 {
     rtp_error_t ret = RTP_OK;
-    auto confirm    = kvz_rtp::zrtp_msg::confirm(1);
+    auto confirm    = kvz_rtp::zrtp_msg::confirm(session_, 1);
     auto confack    = kvz_rtp::zrtp_msg::confack();
     size_t rto      = 150;
     int type        = 0;
@@ -435,7 +435,7 @@ rtp_error_t kvz_rtp::zrtp::responder_finalize_session()
 
         if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
             if (type == ZRTP_FT_CONFIRM2) {
-                if ((ret = confirm.parse_msg(receiver_)) != RTP_OK) {
+                if ((ret = confirm.parse_msg(receiver_, session_)) != RTP_OK) {
                     LOG_ERROR("Failed to parse Confirm2 Message!");
                     continue;
                 }
@@ -456,9 +456,14 @@ rtp_error_t kvz_rtp::zrtp::responder_finalize_session()
 rtp_error_t kvz_rtp::zrtp::initiator_finalize_session()
 {
     rtp_error_t ret = RTP_OK;
-    auto confirm    = kvz_rtp::zrtp_msg::confirm(2);
+    auto confirm    = kvz_rtp::zrtp_msg::confirm(session_, 2);
     size_t rto      = 150;
     int type        = 0;
+
+    if ((ret = confirm.parse_msg(receiver_, session_)) != RTP_OK) {
+        LOG_ERROR("Failed to parse Confirm1 Message!");
+        return RTP_INVALID_VALUE;
+    }
 
     for (int i = 0; i < 10; ++i) {
         set_timeout(rto);

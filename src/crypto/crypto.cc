@@ -2,8 +2,6 @@
 
 #include <iostream>
 
-using namespace std;
-
 /* ***************** hmac-sha1 ***************** */
 
 kvz_rtp::crypto::hmac::sha1::sha1(uint8_t *key, size_t key_size):
@@ -69,24 +67,44 @@ void kvz_rtp::crypto::sha256::final(uint8_t *digest)
 
 /* ***************** aes-128 ***************** */
 
-kvz_rtp::crypto::aes::aes(uint8_t *key, size_t key_size, uint8_t *iv):
+kvz_rtp::crypto::aes::ctr::ctr(uint8_t *key, size_t key_size, uint8_t *iv):
     enc_(key, key_size, iv),
     dec_(key, key_size, iv)
 {
 }
 
-kvz_rtp::crypto::aes::~aes()
+kvz_rtp::crypto::aes::ctr::~ctr()
 {
 }
 
-void kvz_rtp::crypto::aes::encrypt(uint8_t *input, uint8_t *output, size_t len)
+void kvz_rtp::crypto::aes::ctr::encrypt(uint8_t *input, uint8_t *output, size_t len)
 {
     enc_.ProcessData(input, output, len);
 }
 
-void kvz_rtp::crypto::aes::decrypt(uint8_t *input, uint8_t *output, size_t len)
+void kvz_rtp::crypto::aes::ctr::decrypt(uint8_t *input, uint8_t *output, size_t len)
 {
     dec_.ProcessData(input, output, len);
+}
+
+kvz_rtp::crypto::aes::cfb::cfb(uint8_t *key, size_t key_size, uint8_t *iv):
+    enc_(key, key_size, iv),
+    dec_(key, key_size, iv)
+{
+}
+
+kvz_rtp::crypto::aes::cfb::~cfb()
+{
+}
+
+void kvz_rtp::crypto::aes::cfb::encrypt(uint8_t *output, uint8_t *input, size_t len)
+{
+    enc_.ProcessData(output, input, len);
+}
+
+void kvz_rtp::crypto::aes::cfb::decrypt(uint8_t *output, uint8_t *input, size_t len)
+{
+    dec_.ProcessData(output, input, len);
 }
 
 /* ***************** diffie-hellman 3072 ***************** */

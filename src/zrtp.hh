@@ -120,6 +120,7 @@ namespace kvz_rtp {
         uint8_t remote_hashes[4][32];
 
         uint64_t remote_macs[4];
+        uint64_t confirm_mac;
 
         uint8_t total_hash[32];
 

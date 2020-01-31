@@ -8,8 +8,11 @@
 #define ZRTP_CONFRIM1 "Confirm1"
 #define ZRTP_CONFRIM2 "Confirm2"
 
-kvz_rtp::zrtp_msg::confirm::confirm(int part)
+kvz_rtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part)
 {
+    /* temporary storage for the full hmac hash */
+    uint8_t mac_full[32];
+
     LOG_DEBUG("Create ZRTP Confirm%d message!", part);
 
     frame_  = kvz_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_confirm));
@@ -25,15 +28,50 @@ kvz_rtp::zrtp_msg::confirm::confirm(int part)
 
     msg->msg_start.header.version = 0;
     msg->msg_start.header.magic   = ZRTP_HEADER_MAGIC;
-
-    /* TODO: convert to network byte order */
+    msg->msg_start.header.ssrc    = session.ssrc;
+    msg->msg_start.header.seq     = session.seq++;
 
     msg->msg_start.magic  = ZRTP_MSG_MAGIC;
     msg->msg_start.length = len_ - sizeof(zrtp_header);
 
+    /* Message Type Block and H0 */
     memcpy(&msg->msg_start.msgblock, (part == 1) ? ZRTP_CONFRIM1 : ZRTP_CONFRIM2, 8);
+    memcpy(&msg->hash,               session.hashes[0],                          32); /* 256 bits */
 
-    /* TODO: everything */
+    /* Generate random 128-bit nonce for CFB IV */
+    kvz_rtp::crypto::random::generate_random(msg->cfb_iv, 16);
+
+    kvz_rtp::crypto::hmac::sha256 *hmac_sha256;
+    kvz_rtp::crypto::aes::cfb     *aes_cfb;
+
+    /* Responder */
+    if (part == 1) {
+        aes_cfb     = new kvz_rtp::crypto::aes::cfb(session.zrtp_keyr, 16, msg->cfb_iv);
+        hmac_sha256 = new kvz_rtp::crypto::hmac::sha256(session.hmac_keyr, 32);
+
+    /* Initiator */
+    } else {
+        aes_cfb     = new kvz_rtp::crypto::aes::cfb(session.zrtp_keyi, 16, msg->cfb_iv);
+        hmac_sha256 = new kvz_rtp::crypto::hmac::sha256(session.hmac_keyi, 32);
+    }
+
+    msg->e          = 0;
+    msg->v          = 0;
+    msg->d          = 0;
+    msg->a          = 0;
+    msg->unused     = 0;
+    msg->zeros      = 0;
+    msg->sig_len    = 0;
+    msg->cache_expr = 0;
+
+    aes_cfb->encrypt((uint8_t *)msg->hash, (uint8_t *)msg->hash, 40);
+
+    hmac_sha256->update((uint8_t *)msg->hash, 40);
+    hmac_sha256->final(mac_full);
+    memcpy(&msg->confirm_mac, mac_full, sizeof(uint64_t));
+
+    delete hmac_sha256;
+    delete aes_cfb;
 }
 
 kvz_rtp::zrtp_msg::confirm::~confirm()
@@ -52,13 +90,23 @@ rtp_error_t kvz_rtp::zrtp_msg::confirm::send_msg(socket_t& socket, sockaddr_in& 
         return RTP_SEND_ERROR;
     }
 #else
-    /* TODO:  */
+    DWORD sent_bytes;
+    WSABUF data_buf;
+
+    data_buf.buf = (char *)frame_;
+    data_buf.len = len_;
+
+    if (WSASendTo(socket, &data_buf, 1, NULL, 0, (const struct sockaddr *)&addr, sizeof(addr), nullptr, nullptr) == -1) {
+        win_get_last_error();
+
+        return RTP_SEND_ERROR;
+    }
 #endif
 
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::zrtp_msg::confirm::parse_msg(kvz_rtp::zrtp_msg::receiver& receiver)
+rtp_error_t kvz_rtp::zrtp_msg::confirm::parse_msg(kvz_rtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
     ssize_t len = 0;
 
@@ -67,5 +115,20 @@ rtp_error_t kvz_rtp::zrtp_msg::confirm::parse_msg(kvz_rtp::zrtp_msg::receiver& r
         return RTP_INVALID_VALUE;
     }
 
+    kvz_rtp::crypto::aes::cfb *aes_cfb = nullptr;
+    zrtp_confirm *msg                  = (zrtp_confirm *)rframe_;
+
+    if (!memcmp(&msg->msg_start.msgblock, (const void *)ZRTP_CONFRIM1, sizeof(uint64_t)))
+        aes_cfb = new kvz_rtp::crypto::aes::cfb(session.zrtp_keyr, 16, msg->cfb_iv);
+    else
+        aes_cfb = new kvz_rtp::crypto::aes::cfb(session.zrtp_keyi, 16, msg->cfb_iv);
+
+    aes_cfb->decrypt((uint8_t *)msg->hash, (uint8_t *)msg->hash, 40);
+
+    /* Save the MAC value so we can check if later */
+    memcpy(&session.confirm_mac,      &msg->confirm_mac,   8);
+    memcpy(&session.remote_hashes[0], &msg->hash,         32);
+
+    delete aes_cfb;
     return RTP_OK;
 }

@@ -52,17 +52,33 @@ namespace kvz_rtp {
                 CryptoPP::SHA256 sha_;
         };
 
-        class aes {
-            public:
-                aes(uint8_t *key, size_t key_size, uint8_t *iv);
-                ~aes();
+        namespace aes {
 
-                void encrypt(uint8_t *input, uint8_t *output, size_t len);
-                void decrypt(uint8_t *input, uint8_t *output, size_t len);
+            class cfb {
+                public:
+                    cfb(uint8_t *key, size_t key_size, uint8_t *iv);
+                    ~cfb();
 
-            private:
-                CryptoPP::CTR_Mode<CryptoPP::AES>::Encryption enc_;
-                CryptoPP::CTR_Mode<CryptoPP::AES>::Decryption dec_;
+                    void encrypt(uint8_t *input, uint8_t *output, size_t len);
+                    void decrypt(uint8_t *input, uint8_t *output, size_t len);
+
+                private:
+                    CryptoPP::CFB_Mode<CryptoPP::AES>::Encryption enc_;
+                    CryptoPP::CFB_Mode<CryptoPP::AES>::Decryption dec_;
+            };
+
+            class ctr {
+                public:
+                    ctr(uint8_t *key, size_t key_size, uint8_t *iv);
+                    ~ctr();
+
+                    void encrypt(uint8_t *input, uint8_t *output, size_t len);
+                    void decrypt(uint8_t *input, uint8_t *output, size_t len);
+
+                private:
+                    CryptoPP::CTR_Mode<CryptoPP::AES>::Encryption enc_;
+                    CryptoPP::CTR_Mode<CryptoPP::AES>::Decryption dec_;
+            };
         };
 
         /* diffie-hellman key derivation, 3072-bits */
