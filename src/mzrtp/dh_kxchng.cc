@@ -80,7 +80,7 @@ kvz_rtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int
 
     /* Finally calculate MAC code for the message */
     hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.hashes[0], 32);
-    hmac_sha256.update((uint8_t *)frame_, len_ - 8);
+    hmac_sha256.update((uint8_t *)frame_, len_ - 8 - 4);
     hmac_sha256.final(mac_full);
 
     memcpy(msg->mac, mac_full, 8);
@@ -150,6 +150,10 @@ rtp_error_t kvz_rtp::zrtp_msg::dh_key_exchange::parse_msg(kvz_rtp::zrtp_msg::rec
     session.s1 = nullptr;
     session.s2 = nullptr;
     session.s3 = nullptr;
+
+    /* Save the MAC value so we can check if later */
+    memcpy(&session.remote_macs[1],   &msg->mac,  8);
+    memcpy(&session.remote_hashes[1], msg->hash, 32);
 
     /* Finally make a copy of the message and save it for later use */
     session.r_msg.dh.first  = len;

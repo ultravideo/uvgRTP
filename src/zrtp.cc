@@ -199,6 +199,76 @@ void kvz_rtp::zrtp::generate_shared_secrets()
     derive_key("Responder HMAC key", 256, session_.hmac_keyr);
 }
 
+rtp_error_t kvz_rtp::zrtp::verify_hash(uint8_t *key, uint8_t *buf, size_t len, uint64_t mac)
+{
+    uint64_t truncated = 0;
+    uint8_t full[32]   = { 0 };
+    auto hmac_sha256   = kvz_rtp::crypto::hmac::sha256(key, 32);
+
+    hmac_sha256.update((uint8_t *)buf, len);
+    hmac_sha256.final(full);
+
+    memcpy(&truncated, full, sizeof(uint64_t));
+
+    return (mac == truncated) ? RTP_OK : RTP_INVALID_VALUE;
+}
+
+rtp_error_t kvz_rtp::zrtp::validate_session()
+{
+    /* Verify all MACs received from various messages in order starting from Hello message
+     * Calculate HMAC-SHA256 over the saved message using H(i - 1) as the HMAC key and
+     * compare the truncated hash against the hash was saved to the message */
+    uint8_t hashes[4][32];
+    memcpy(hashes[0], session_.remote_hashes[0], 32);
+
+    for (size_t i = 1; i < 4; ++i) {
+        cctx_.sha256->update(hashes[i - 1], 32);
+        cctx_.sha256->final(hashes[i]);
+    }
+
+    /* Hello message */
+    if (RTP_INVALID_VALUE == verify_hash(
+            (uint8_t *)hashes[2],
+            (uint8_t *)session_.r_msg.hello.second,
+            81,
+            session_.remote_macs[3]
+        ))
+    {
+        LOG_ERROR("Hash mismatch for Hello Message!");
+        return RTP_INVALID_VALUE;
+    }
+
+    /* Check commit message only if our role is responder
+     * because the initator might not have gotten a Commit message at all */
+    if (session_.role == RESPONDER) {
+        if (RTP_INVALID_VALUE == verify_hash(
+                (uint8_t *)hashes[1],
+                (uint8_t *)session_.r_msg.commit.second,
+                session_.r_msg.commit.first - 8,
+                session_.remote_macs[2]
+            ))
+        {
+            LOG_ERROR("Hash mismatch for Commit Message!");
+            return RTP_INVALID_VALUE;
+        }
+    }
+
+    /* DHPart1/DHPart2 message */
+    if (RTP_INVALID_VALUE == verify_hash(
+            (uint8_t *)hashes[0],
+            (uint8_t *)session_.r_msg.dh.second,
+            session_.r_msg.dh.first - 8 - 4,
+            session_.remote_macs[1]
+        ))
+    {
+        LOG_ERROR("Hash mismatch for DHPart1/DHPart2 Message!");
+        return RTP_INVALID_VALUE;
+    }
+
+    LOG_DEBUG("All hashes match!");
+    return RTP_OK;
+}
+
 void kvz_rtp::zrtp::init_session_hashes()
 {
     kvz_rtp::crypto::random::generate_random(session_.hashes[0], 32);
@@ -440,6 +510,11 @@ rtp_error_t kvz_rtp::zrtp::responder_finalize_session()
                     continue;
                 }
 
+                if ((ret = validate_session()) != RTP_OK) {
+                    LOG_ERROR("Mismatch on one of the received MACs/Hashes, session cannot continue");
+                    return RTP_INVALID_VALUE;
+                }
+
                 /* TODO: send in a loop? */
                 confack.send_msg(socket_, addr_);
                 return RTP_OK;
@@ -462,6 +537,11 @@ rtp_error_t kvz_rtp::zrtp::initiator_finalize_session()
 
     if ((ret = confirm.parse_msg(receiver_, session_)) != RTP_OK) {
         LOG_ERROR("Failed to parse Confirm1 Message!");
+        return RTP_INVALID_VALUE;
+    }
+
+    if ((ret = validate_session()) != RTP_OK) {
+        LOG_ERROR("Mismatch on one of the received MACs/Hashes, session cannot continue");
         return RTP_INVALID_VALUE;
     }
 

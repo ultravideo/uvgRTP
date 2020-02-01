@@ -144,7 +144,7 @@ rtp_error_t kvz_rtp::zrtp_msg::hello::parse_msg(kvz_rtp::zrtp_msg::receiver& rec
     session.rcapab.sas_types.push_back(B32);
 
     /* Save the MAC value so we can check if later */
-    memcpy(&session.remote_macs[0],   &msg->mac,  8);
+    memcpy(&session.remote_macs[3],   &msg->mac,  8);
     memcpy(&session.remote_hashes[3], msg->hash, 32);
 
     /* Save ZID */

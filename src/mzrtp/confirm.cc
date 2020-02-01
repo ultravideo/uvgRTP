@@ -35,8 +35,8 @@ kvz_rtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part)
     msg->msg_start.length = len_ - sizeof(zrtp_header);
 
     /* Message Type Block and H0 */
-    memcpy(&msg->msg_start.msgblock, (part == 1) ? ZRTP_CONFRIM1 : ZRTP_CONFRIM2, 8);
-    memcpy(&msg->hash,               session.hashes[0],                          32); /* 256 bits */
+    memcpy(&msg->msg_start.msgblock, (part == 1) ? ZRTP_CONFRIM1 : ZRTP_CONFRIM2,  8);
+    memcpy(&msg->hash,               session.hashes[0],                           32); /* 256 bits */
 
     /* Generate random 128-bit nonce for CFB IV */
     kvz_rtp::crypto::random::generate_random(msg->cfb_iv, 16);
@@ -142,8 +142,10 @@ rtp_error_t kvz_rtp::zrtp_msg::confirm::parse_msg(kvz_rtp::zrtp_msg::receiver& r
 
     aes_cfb->decrypt((uint8_t *)msg->hash, (uint8_t *)msg->hash, 40);
 
-    /* Finally save the first hash H0 so we can verify other MAC values received */
+    /* Finally save the first hash H0 so we can verify other MAC values received.
+     * The first (last) remote mac is not used */
     memcpy(&session.remote_hashes[0], &msg->hash, 32);
+    session.remote_macs[0] = 0;
 
     delete aes_cfb;
     return RTP_OK;

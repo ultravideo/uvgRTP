@@ -217,6 +217,17 @@ namespace kvz_rtp {
              * Return RTP_TIMEOUT if no message is received from remote before T2 expires */
             rtp_error_t init_session();
 
+            /* Calculate HMAC-SHA256 using "key" for "buf" of "len" bytes
+             * and compare the truncated, 64-bit hash digest against "mac".
+             *
+             * Return RTP_OK if they match
+             * Return RTP_INVALID if they do not match */
+            rtp_error_t verify_hash(uint8_t *key, uint8_t *buf, size_t len, uint64_t mac);
+
+            /* Validate all received MACs and Hashes to make sure that we're really
+             * talking with the correct person */
+            rtp_error_t validate_session();
+
             /* Perform Diffie-Hellman key exchange Part1 (responder)
              * This message also acts as an ACK to Commit message */
             rtp_error_t dh_part1();
@@ -228,13 +239,15 @@ namespace kvz_rtp {
              * Return RTP_TIMEOUT if no message is received from remote before T2 expires */
             rtp_error_t dh_part2();
 
-            /* TODO:  */
+            /* Calculate all the shared secrets (f.ex. DHResult and ZRTP Session Keys) */
             rtp_error_t calculate_shared_secret();
 
-            /* TODO:  */
+            /* Finalize the session for responder by sending Confirm1 and Conf2ACK messages
+             * Before this step validate_session() is called to make sure we have a valid session */
             rtp_error_t responder_finalize_session();
 
-            /* TODO:  */
+            /* Finalize the session for initiator by sending Confirm2 message
+             * Before this step validate_session() is called to make sure we have a valid session */
             rtp_error_t initiator_finalize_session();
 
             uint32_t ssrc_;

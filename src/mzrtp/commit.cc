@@ -1,3 +1,4 @@
+#include <cassert>
 #include <cstring>
 
 #include "debug.hh"
@@ -105,9 +106,9 @@ rtp_error_t kvz_rtp::zrtp_msg::commit::parse_msg(kvz_rtp::zrtp_msg::receiver& re
     session.auth_tag_type      = msg->auth_tag_type;
     session.key_agreement_type = msg->key_agreement_type;
 
-    memcpy(&session.remote_macs[0],  &msg->mac,  8);
     memcpy(session.remote_hvi,       msg->hvi,  32);
-    memcpy(session.remote_hashes[3], msg->hash, 32);
+    memcpy(&session.remote_macs[2],  &msg->mac,  8);
+    memcpy(session.remote_hashes[2], msg->hash, 32);
 
     /* Finally make a copy of the message and save it for later use */
     session.r_msg.commit.first  = len;
