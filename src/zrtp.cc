@@ -41,16 +41,6 @@ rtp_error_t kvz_rtp::zrtp::set_timeout(size_t timeout)
     return RTP_OK;
 }
 
-kvz_rtp::zrtp_capab_t kvz_rtp::zrtp::get_capabilities()
-{
-    zrtp_capab_t capabilities = {
-    };
-
-    /* TODO:  set zid */
-
-    return capabilities;
-}
-
 void kvz_rtp::zrtp::generate_zid()
 {
     kvz_rtp::crypto::random::generate_random(session_.o_zid, 12);
@@ -323,8 +313,8 @@ rtp_error_t kvz_rtp::zrtp::begin_session()
                      * message buffer to remote capabilities struct for later use */
                     hello.parse_msg(receiver_, session_);
 
-                    if (session_.rcapab.version != 110) {
-                        LOG_WARN("ZRTP Protocol version %u not supported!", session_.rcapab.version);
+                    if (session_.capabilities.version != 110) {
+                        LOG_WARN("ZRTP Protocol version %u not supported!", session_.capabilities.version);
                         hello_recv = false;
                     }
                 }
@@ -572,22 +562,18 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
     /* TODO: set all fields initially to zero */
     memset(session_.hash_ctx.o_hvi, 0, sizeof(session_.hash_ctx.o_hvi));
 
+    /* Generate ZID and random data for the retained secrets */
     generate_zid();
     generate_secrets();
 
     /* Initialize the session hashes H0 - H3 defined in Section 9 of RFC 6189 */
     init_session_hashes();
 
-    socket_    = socket;
-    addr_      = addr;
-    capab_     = get_capabilities();
-    capab_.zid = session_.o_zid;
+    socket_ = socket;
+    addr_   = addr;
 
     session_.seq  = 0;
     session_.ssrc = ssrc;
-
-    session_.capabilities     = get_capabilities();
-    session_.capabilities.zid = session_.o_zid;
 
     /* Begin session by exchanging Hello and HelloACK messages.
      *

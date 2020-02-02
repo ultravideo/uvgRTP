@@ -32,13 +32,6 @@ namespace kvz_rtp {
             uint8_t kc:4;
             uint8_t sc:4;
 
-            /* TODO: these won't work well */
-            uint32_t hash_algos[0];
-            uint32_t cipher_algos[0];
-            uint32_t auth_tags[0];
-            uint32_t key_agreements[0];
-            uint32_t sas_types[0];
-
             uint64_t mac;
             uint32_t crc;
         };

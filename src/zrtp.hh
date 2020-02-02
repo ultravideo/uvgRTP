@@ -22,17 +22,9 @@ namespace kvz_rtp {
         RESPONDER
     };
 
-    /* TODO: move to defines.hh */
     typedef struct capabilities {
-
         /* Supported ZRTP version */
         uint32_t version;
-
-        /* ZID of this ZRTP instance */
-        uint8_t *zid;
-
-        /* Header of the supported algos etc. */
-        uint32_t header;
 
         /* Supported hash algorithms (empty for us) */
         std::vector<uint32_t> hash_algos;
@@ -134,9 +126,8 @@ namespace kvz_rtp {
         uint32_t key_agreement_type;
         uint32_t sas_type;
 
-        /* Session capabilities (our and theirs) */
-        zrtp_capab_t capabilities; /* TODO: rename to ocapab */
-        zrtp_capab_t rcapab;
+        /* Session capabilities */
+        zrtp_capab_t capabilities;
 
         /* Various hash values of the ZRTP session */
         zrtp_hash_ctx_t hash_ctx;
@@ -178,9 +169,6 @@ namespace kvz_rtp {
              * Return RTP_OK on success
              * Return RTP_GENERIC_ERROR if timeout could not be set */
             rtp_error_t set_timeout(size_t timeout);
-
-            /* Get our own capabilities, see struct capabilities above for more details */
-            zrtp_capab_t get_capabilities();
 
             /* Generate zid for this ZRTP instance. ZID is a unique, 96-bit long ID */
             void generate_zid();

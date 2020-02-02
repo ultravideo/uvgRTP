@@ -17,13 +17,10 @@ kvz_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
     uint8_t mac_full[32];
 
     /* We support only the mandatory algorithms etc. defined in RFC 6189
-     * so for us all the hash algos and key agreement types are set to zero  */
-    /* size_t common_size = sizeof(zrtp_hello) - sizeof(zrtp_header); */
-    /* size_t our_size    = common_size; */
-
-    /* assume remote supports everything so allocate space for all possible elements */
-    /* size_t their_size = common_size + 5 * 8 * sizeof(uint32_t); */
-
+     * so for us all the hash algos and key agreement types are set to zero 
+     *
+     * We need to assume that remote supports everything and thus need to
+     * allocate the maximum amount of memory for the message  */
     len_  = sizeof(zrtp_hello);
     rlen_ = sizeof(zrtp_hello) + 5 * 8;
 
@@ -32,8 +29,6 @@ kvz_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
 
     memset(frame_,  0, sizeof(zrtp_hello));
     memset(rframe_, 0, sizeof(zrtp_hello) + 5 * 8);
-
-    fprintf(stderr, "%zu\n", len_);
 
     zrtp_hello *msg = (zrtp_hello *)frame_;
 
@@ -49,13 +44,13 @@ kvz_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
     memcpy(&msg->version,            ZRTP_VERSION,                4);
     memcpy(&msg->client,             ZRTP_CLIENT_ID,             16);
     memcpy(&msg->hash,               session.hash_ctx.o_hash[3], 32); /* 256 bits */
-    memcpy(&msg->zid,                session.capabilities.zid,   12); /* 96 bits */
+    memcpy(&msg->zid,                session.o_zid,              12); /* 96 bits */
 
     msg->zero   = 0;
     msg->s      = 0;
     msg->m      = 0;
     msg->p      = 0;
-    /* msg->unused = 0; */
+    msg->unused = 0;
     msg->hc     = 0;
     msg->ac     = 0;
     msg->kc     = 0;
@@ -123,35 +118,17 @@ rtp_error_t kvz_rtp::zrtp_msg::hello::parse_msg(kvz_rtp::zrtp_msg::receiver& rec
     /* Make sure the version of the message is the one we support.
      * If it's not, there's no reason to parse the message any further */
     if (memcmp(&msg->version, ZRTP_VERSION, 4) == 0)
-        session.rcapab.version = 110;
+        session.capabilities.version = 110;
     else
         return RTP_NOT_SUPPORTED;
 
-    /* TODO: collect preferred algorithms from hello message */
-    /* TODO: not needed until new release */
-
-    if (msg->hc != 0) {
-    }
-
-    if (msg->cc != 0) {
-    }
-
-    if (msg->ac != 0) {
-    }
-
-    if (msg->kc != 0) {
-    }
-
-    if (msg->sc != 0) {
-    }
-
     /* finally add mandatory algorithms required by the specification to remote capabilities */
-    session.rcapab.hash_algos.push_back(S256);
-    session.rcapab.cipher_algos.push_back(AES1);
-    session.rcapab.auth_tags.push_back(HS32);
-    session.rcapab.auth_tags.push_back(HS80);
-    session.rcapab.key_agreements.push_back(DH3k);
-    session.rcapab.sas_types.push_back(B32);
+    session.capabilities.hash_algos.push_back(S256);
+    session.capabilities.cipher_algos.push_back(AES1);
+    session.capabilities.auth_tags.push_back(HS32);
+    session.capabilities.auth_tags.push_back(HS80);
+    session.capabilities.key_agreements.push_back(DH3k);
+    session.capabilities.sas_types.push_back(B32);
 
     /* Save the MAC value so we can check if later */
     memcpy(&session.hash_ctx.r_mac[3],  &msg->mac,  8);

@@ -34,7 +34,7 @@ kvz_rtp::zrtp_msg::commit::commit(zrtp_session_t& session)
     msg->msg_start.length = len_ - sizeof(zrtp_header);
 
     memcpy(&msg->msg_start.msgblock, ZRTP_COMMIT,                 8);
-    memcpy(msg->zid,                 session.capabilities.zid,   12); /* 96 bits */
+    memcpy(msg->zid,                 session.o_zid,              12); /* 96 bits */
     memcpy(msg->hash,                session.hash_ctx.o_hash[2], 32); /* 256 bits */
     memcpy(msg->hvi,                 session.hash_ctx.o_hvi,     32); /* 256 bits */
 
