@@ -50,13 +50,13 @@ namespace kvz_rtp {
         std::vector<uint32_t> sas_types;
     } zrtp_capab_t;
 
-    /* DH exchange related information */
-    typedef struct zrtp_dh {
-        /* uint32_t retained1[2]; /1* hash of retained shared secret 1 *1/ */
-        /* uint32_t retained2[2]; /1* hash of retained shared secret 2 *1/ */
-        /* uint32_t aux_secret[2]; /1* hash of auxiliary secret *1/ */
-        /* uint32_t pbx_secret[2]; /1* hash of MiTM PBX secret *1/ */
+	typedef struct zrtp_crypto_ctx {
+        kvz_rtp::crypto::hmac::sha256 *hmac_sha256;
+        kvz_rtp::crypto::sha256 *sha256;
+        kvz_rtp::crypto::dh *dh;
+    } zrtp_crypto_ctx_t;
 
+    typedef struct zrtp_secrets {
         /* Retained (for kvzRTP, preshared mode is not supported so we're
          * going to generate just some random values for these) */
         uint8_t rs1[32];
@@ -64,20 +64,15 @@ namespace kvz_rtp {
         uint8_t raux[32];
         uint8_t rpbx[32];
 
-        /* Shared between  parties */
-        uint8_t s1[8];
-        uint8_t s2[8];
-        uint8_t aux[8];
-        uint8_t pbx[8];
-
-    } zrtp_dh_t;
-
-    /* One common crypto contex for all ZRTP functions */
-    typedef struct zrtp_crypto_ctx {
-        kvz_rtp::crypto::hmac::sha256 *hmac_sha256;
-        kvz_rtp::crypto::sha256 *sha256;
-        kvz_rtp::crypto::dh *dh;
-    } zrtp_crypto_ctx_t;
+        /* Shared secrets
+         *
+         * Because kvzRTP supports only DH mode,
+         * other shared secrets (s1 - s3) are null */
+        uint8_t s0[32];
+        uint8_t *s1;
+        uint8_t *s2;
+        uint8_t *s3;
+    } zrtp_secrets_t;
 
     typedef struct zrtp_messages {
         std::pair<size_t, struct kvz_rtp::zrtp_msg::zrtp_commit  *> commit;
@@ -85,11 +80,51 @@ namespace kvz_rtp {
         std::pair<size_t, struct kvz_rtp::zrtp_msg::zrtp_dh      *> dh;
     } zrtp_messages_t;
 
-    /* TODO: voisiko näitä structeja järjestellä jotenkin järkevämmin? */
+    /* Various ZRTP-related keys */
+    typedef struct zrtp_key_ctx {
+        uint8_t zrtp_sess_key[32];
+        uint8_t sas_hash[32];
+
+        /* ZRTP keys used to encrypt Confirm1/Confirm2 messages */
+        uint8_t zrtp_keyi[16];
+        uint8_t zrtp_keyr[16];
+
+        /* HMAC keys used to authenticate Confirm1/Confirm2 messages */
+        uint8_t hmac_keyi[32];
+        uint8_t hmac_keyr[32];
+    } zrtp_key_ctx_t;
+
+    /* Diffie-Hellman context for the ZRTP session */
+    typedef struct zrtp_dh_ctx {
+        /* Our public/private key pair */
+        uint8_t private_key[22];
+        uint8_t public_key[384];
+
+        /* Remote public key received in DHPart1/DHPart2 Message */
+        uint8_t remote_public[384];
+
+        /* DHResult aka "remote_public ^ private_key mod p" (see src/crypto/crypto.cc) */
+        uint8_t dh_result[384];
+    } zrtp_dh_ctx_t;
+
+    typedef struct zrtp_hash_ctx {
+        uint8_t o_hvi[32]; /* our hash value of initator (if we're the initiator) */
+        uint8_t r_hvi[32]; /* remote's hash value of initiator (if they're the initiator) */
+
+        /* Session hashes (H0 - H3), Section 9 of RFC 6189 */
+        uint8_t o_hash[4][32]; /* our session hashes */
+        uint8_t r_hash[4][32]; /* remote's session hashes */
+
+        uint64_t r_mac[4];
+
+        /* Section 4.4.1.4 */
+        uint8_t total_hash[32];
+    } zrtp_hash_ctx_t;
 
     /* Collection of algorithms that are used by ZRTP
      * (based on information gathered from Hello message) */
     typedef struct zrtp_session {
+        int role;       /* initiator/responder */
         uint32_t ssrc;
         uint16_t seq;
 
@@ -103,60 +138,25 @@ namespace kvz_rtp {
         zrtp_capab_t capabilities; /* TODO: rename to ocapab */
         zrtp_capab_t rcapab;
 
-        uint8_t private_key[22];
-        uint8_t public_key[384];
+        /* Various hash values of the ZRTP session */
+        zrtp_hash_ctx_t hash_ctx;
 
-        uint8_t remote_public[384];
+        /* DH-related variables */
+        zrtp_dh_ctx_t dh_ctx;
 
-        uint8_t dh_result[384];
+        /* ZRTP keying material (for HMAC/AES etc) */
+        zrtp_key_ctx_t key_ctx;
 
-        /* Hash value of initiator */
-        uint8_t hvi[32];
-        uint8_t remote_hvi[32];
+        /* Retained and shared secrets of the ZRTP session */
+        zrtp_secrets_t secrets;
 
-        /* Section 9 of RFC 6189 */
-        uint8_t hashes[4][32];
-        uint8_t remote_hashes[4][32];
-
-        uint64_t remote_macs[4];
-
-        uint8_t total_hash[32];
-
-        uint8_t zrtp_sess_key[32];
-        uint8_t sas_hash[32];
-        uint8_t zrtp_keyi[16];
-        uint8_t zrtp_keyr[16];
-        uint8_t hmac_keyi[32];
-        uint8_t hmac_keyr[32];
-
-        /* TODO: zid initiator */
-        /* TODO: zid responder */
-
-        /* Shared secrets
-         *
-         * Because kvzRTP supports only DH mode,
-         * other shared secrets (s1 - s3) are null */
-        uint8_t s0[32];
-        uint8_t *s1;
-        uint8_t *s2;
-        uint8_t *s3;
-
-        zrtp_dh_t us;
-        zrtp_dh_t them;
-
-        /* Are we the initiator or the responder? */
-        int role;
-
-        uint8_t remote_zid[12];
-
-        /* Used by message classes */
-        zrtp_crypto_ctx_t cctx;
+        uint8_t o_zid[12]; /* our ZID */
+        uint8_t r_zid[12]; /* remote ZID */
 
         /* Pointers to messages sent by us and messages received from remote.
-         * These are just to calculate various hash values */
+         * These are used to calculate various hash values */
         zrtp_messages_t l_msg;
         zrtp_messages_t r_msg;
-
     } zrtp_session_t;
 
     class zrtp {
@@ -258,12 +258,10 @@ namespace kvz_rtp {
             zrtp_capab_t capab_;
             zrtp_capab_t rcapab_;
 
+            /* ZRTP packet receiver */
             kvz_rtp::zrtp_msg::receiver receiver_;
 
             zrtp_crypto_ctx_t cctx_;
-            /* Initialized after Hello messages have been exchanged */
             zrtp_session_t session_;
-
-            uint8_t *zid_;
     };
 };

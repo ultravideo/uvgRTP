@@ -25,9 +25,7 @@ kvz_rtp::zrtp::zrtp():
 
 kvz_rtp::zrtp::~zrtp()
 {
-    delete[] zid_;
-
-    /* TODO: free crypto ctx */
+    /* TODO: free everything */
 }
 
 rtp_error_t kvz_rtp::zrtp::set_timeout(size_t timeout)
@@ -55,9 +53,7 @@ kvz_rtp::zrtp_capab_t kvz_rtp::zrtp::get_capabilities()
 
 void kvz_rtp::zrtp::generate_zid()
 {
-    zid_ = new uint8_t[12];
-
-    kvz_rtp::crypto::random::generate_random(zid_, 12);
+    kvz_rtp::crypto::random::generate_random(session_.o_zid, 12);
 }
 
 /* ZRTP Key Derivation Function (KDF) (Section 4.5.2)
@@ -72,7 +68,7 @@ void kvz_rtp::zrtp::generate_zid()
  */
 void kvz_rtp::zrtp::derive_key(const char *label, uint32_t key_len, uint8_t *out_key)
 {
-    auto hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session_.s0, 32);
+    auto hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session_.secrets.s0, 32);
     uint8_t tmp[32]  = { 0 };
     uint32_t length  = htonl(key_len);
     uint32_t counter = 0x1;
@@ -82,16 +78,16 @@ void kvz_rtp::zrtp::derive_key(const char *label, uint32_t key_len, uint8_t *out
     hmac_sha256.update((uint8_t *)label,     strlen(label));
 
     if (session_.role == INITIATOR) {
-        hmac_sha256.update((uint8_t *)zid_,                12);
-        hmac_sha256.update((uint8_t *)session_.remote_zid, 12);
+        hmac_sha256.update((uint8_t *)session_.o_zid, 12);
+        hmac_sha256.update((uint8_t *)session_.r_zid, 12);
     } else {
-        hmac_sha256.update((uint8_t *)session_.remote_zid, 12);
-        hmac_sha256.update((uint8_t *)zid_,                12);
+        hmac_sha256.update((uint8_t *)session_.r_zid, 12);
+        hmac_sha256.update((uint8_t *)session_.o_zid, 12);
     }
 
-    hmac_sha256.update((uint8_t *)session_.total_hash, 32);
-    hmac_sha256.update((uint8_t *)&delim,               1);
-    hmac_sha256.update((uint8_t *)&length,              4);
+    hmac_sha256.update((uint8_t *)session_.hash_ctx.total_hash, 32);
+    hmac_sha256.update((uint8_t *)&delim,                        1);
+    hmac_sha256.update((uint8_t *)&length,                       4);
 
     /* Key length might differ from the digest length in which case the digest
      * must be generated to a temporary buffer and truncated to fit the "out_key" buffer */
@@ -108,23 +104,23 @@ void kvz_rtp::zrtp::derive_key(const char *label, uint32_t key_len, uint8_t *out
 void kvz_rtp::zrtp::generate_secrets()
 {
     cctx_.dh->generate_keys();
-    cctx_.dh->get_pk(session_.public_key, 384);
+    cctx_.dh->get_pk(session_.dh_ctx.public_key, 384);
 
     /* kvzRTP does not support Preshared mode (for now at least) so
      * there will be no shared secrets between the endpoints.
      *
      * Generate random data for the retained secret values that are sent
      * in the DHPart1/DHPart2 message and, due to mismatch, ignored by remote */
-    kvz_rtp::crypto::random::generate_random(session_.us.rs1,  32);
-    kvz_rtp::crypto::random::generate_random(session_.us.s2,   32);
-    kvz_rtp::crypto::random::generate_random(session_.us.raux, 32);
-    kvz_rtp::crypto::random::generate_random(session_.us.rpbx, 32);
+    kvz_rtp::crypto::random::generate_random(session_.secrets.rs1,  32);
+    kvz_rtp::crypto::random::generate_random(session_.secrets.rs2,  32);
+    kvz_rtp::crypto::random::generate_random(session_.secrets.raux, 32);
+    kvz_rtp::crypto::random::generate_random(session_.secrets.rpbx, 32);
 }
 
 void kvz_rtp::zrtp::generate_shared_secrets()
 {
-    cctx_.dh->set_remote_pk(session_.remote_public, 384);
-    cctx_.dh->get_shared_secret(session_.dh_result, 384);
+    cctx_.dh->set_remote_pk(session_.dh_ctx.remote_public, 384);
+    cctx_.dh->get_shared_secret(session_.dh_ctx.dh_result, 384);
 
     /* Section 4.4.1.4, calculation of total_hash includes:
      *    - Hello   (responder)
@@ -143,7 +139,7 @@ void kvz_rtp::zrtp::generate_shared_secrets()
         cctx_.sha256->update((uint8_t *)session_.l_msg.dh.second,     session_.l_msg.dh.first);
         cctx_.sha256->update((uint8_t *)session_.r_msg.dh.second,     session_.r_msg.dh.first);
     }
-    cctx_.sha256->final((uint8_t *)session_.total_hash);
+    cctx_.sha256->final((uint8_t *)session_.hash_ctx.total_hash);
 
     /* Finally calculate s0 which is considered to be the final keying material (Section 4.4.1.4)
      *
@@ -164,19 +160,19 @@ void kvz_rtp::zrtp::generate_shared_secrets()
     uint32_t value  = htonl(0x1);
     const char *kdf = "ZRTP-HMAC-KDF";
 
-    cctx_.sha256->update((uint8_t *)&value,             sizeof(value));              /* counter */
-    cctx_.sha256->update((uint8_t *)session_.dh_result, sizeof(session_.dh_result)); /* dh result */
-    cctx_.sha256->update((uint8_t *)kdf,                13);
+    cctx_.sha256->update((uint8_t *)&value,                    sizeof(value));              /* counter */
+    cctx_.sha256->update((uint8_t *)session_.dh_ctx.dh_result, sizeof(session_.dh_ctx.dh_result));
+    cctx_.sha256->update((uint8_t *)kdf,                       13);
 
     if (session_.role == INITIATOR) {
-        cctx_.sha256->update((uint8_t *)zid_,                12);
-        cctx_.sha256->update((uint8_t *)session_.remote_zid, 12);
+        cctx_.sha256->update((uint8_t *)session_.o_zid, 12);
+        cctx_.sha256->update((uint8_t *)session_.r_zid, 12);
     } else {
-        cctx_.sha256->update((uint8_t *)session_.remote_zid, 12);
-        cctx_.sha256->update((uint8_t *)zid_,                12);
+        cctx_.sha256->update((uint8_t *)session_.r_zid, 12);
+        cctx_.sha256->update((uint8_t *)session_.o_zid, 12);
     }
 
-    cctx_.sha256->update((uint8_t *)session_.total_hash, sizeof(session_.total_hash));
+    cctx_.sha256->update((uint8_t *)session_.hash_ctx.total_hash, sizeof(session_.hash_ctx.total_hash));
 
     value = 0;
     cctx_.sha256->update((uint8_t *)&value, sizeof(value)); /* len(s1) */
@@ -184,19 +180,19 @@ void kvz_rtp::zrtp::generate_shared_secrets()
     cctx_.sha256->update((uint8_t *)&value, sizeof(value)); /* len(s3) */
 
     /* Calculate digest for s0 and erase DHResult from memory as required by the spec */
-    cctx_.sha256->final((uint8_t *)session_.s0);
-    memset(session_.dh_result, 0, sizeof(session_.dh_result));
+    cctx_.sha256->final((uint8_t *)session_.secrets.s0);
+    memset(session_.dh_ctx.dh_result, 0, sizeof(session_.dh_ctx.dh_result));
 
     /* Derive ZRTP Session Key and SAS hash */
-    derive_key("ZRTP Session Key", 256, session_.zrtp_sess_key);
-    derive_key("SAS",              256, session_.sas_hash); /* TODO: crc32? */
+    derive_key("ZRTP Session Key", 256, session_.key_ctx.zrtp_sess_key);
+    derive_key("SAS",              256, session_.key_ctx.sas_hash); /* TODO: crc32? */
 
     /* Finally derive ZRTP keys and HMAC keys
      * which are used to encrypt and authenticate Confirm messages */
-    derive_key("Initiator ZRTP key", 128, session_.zrtp_keyi);
-    derive_key("Responder ZRTP key", 128, session_.zrtp_keyr);
-    derive_key("Initiator HMAC key", 256, session_.hmac_keyi);
-    derive_key("Responder HMAC key", 256, session_.hmac_keyr);
+    derive_key("Initiator ZRTP key", 128, session_.key_ctx.zrtp_keyi);
+    derive_key("Responder ZRTP key", 128, session_.key_ctx.zrtp_keyr);
+    derive_key("Initiator HMAC key", 256, session_.key_ctx.hmac_keyi);
+    derive_key("Responder HMAC key", 256, session_.key_ctx.hmac_keyr);
 }
 
 rtp_error_t kvz_rtp::zrtp::verify_hash(uint8_t *key, uint8_t *buf, size_t len, uint64_t mac)
@@ -219,7 +215,7 @@ rtp_error_t kvz_rtp::zrtp::validate_session()
      * Calculate HMAC-SHA256 over the saved message using H(i - 1) as the HMAC key and
      * compare the truncated hash against the hash was saved to the message */
     uint8_t hashes[4][32];
-    memcpy(hashes[0], session_.remote_hashes[0], 32);
+    memcpy(hashes[0], session_.hash_ctx.r_hash[0], 32);
 
     for (size_t i = 1; i < 4; ++i) {
         cctx_.sha256->update(hashes[i - 1], 32);
@@ -231,7 +227,7 @@ rtp_error_t kvz_rtp::zrtp::validate_session()
             (uint8_t *)hashes[2],
             (uint8_t *)session_.r_msg.hello.second,
             81,
-            session_.remote_macs[3]
+            session_.hash_ctx.r_mac[3]
         ))
     {
         LOG_ERROR("Hash mismatch for Hello Message!");
@@ -245,7 +241,7 @@ rtp_error_t kvz_rtp::zrtp::validate_session()
                 (uint8_t *)hashes[1],
                 (uint8_t *)session_.r_msg.commit.second,
                 session_.r_msg.commit.first - 8 - 4,
-                session_.remote_macs[2]
+                session_.hash_ctx.r_mac[2]
             ))
         {
             LOG_ERROR("Hash mismatch for Commit Message!");
@@ -258,7 +254,7 @@ rtp_error_t kvz_rtp::zrtp::validate_session()
             (uint8_t *)hashes[0],
             (uint8_t *)session_.r_msg.dh.second,
             session_.r_msg.dh.first - 8 - 4,
-            session_.remote_macs[1]
+            session_.hash_ctx.r_mac[1]
         ))
     {
         LOG_ERROR("Hash mismatch for DHPart1/DHPart2 Message!");
@@ -271,11 +267,11 @@ rtp_error_t kvz_rtp::zrtp::validate_session()
 
 void kvz_rtp::zrtp::init_session_hashes()
 {
-    kvz_rtp::crypto::random::generate_random(session_.hashes[0], 32);
+    kvz_rtp::crypto::random::generate_random(session_.hash_ctx.o_hash[0], 32);
 
     for (size_t i = 1; i < 4; ++i) {
-        cctx_.sha256->update(session_.hashes[i - 1], 32);
-        cctx_.sha256->final(session_.hashes[i]);
+        cctx_.sha256->update(session_.hash_ctx.o_hash[i - 1], 32);
+        cctx_.sha256->final(session_.hash_ctx.o_hash[i]);
     }
 }
 
@@ -399,7 +395,7 @@ rtp_error_t kvz_rtp::zrtp::init_session()
                  *
                  * Commit message must be ACKed with DHPart1 messages so we need exit,
                  * construct that message and sent it to remote */
-                if (!are_we_initiator(session_.hvi, session_.remote_hvi)) {
+                if (!are_we_initiator(session_.hash_ctx.o_hvi, session_.hash_ctx.r_hvi)) {
                     session_.role = RESPONDER;
                     return RTP_OK;
                 }
@@ -574,7 +570,7 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
     rtp_error_t ret = RTP_OK;
 
     /* TODO: set all fields initially to zero */
-    memset(session_.hvi, 0, sizeof(session_.hvi));
+    memset(session_.hash_ctx.o_hvi, 0, sizeof(session_.hash_ctx.o_hvi));
 
     generate_zid();
     generate_secrets();
@@ -585,14 +581,13 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
     socket_    = socket;
     addr_      = addr;
     capab_     = get_capabilities();
-    capab_.zid = zid_;
+    capab_.zid = session_.o_zid;
 
     session_.seq  = 0;
     session_.ssrc = ssrc;
-    session_.cctx = cctx_;
 
     session_.capabilities     = get_capabilities();
-    session_.capabilities.zid = zid_;
+    session_.capabilities.zid = session_.o_zid;
 
     /* Begin session by exchanging Hello and HelloACK messages.
      *
@@ -617,7 +612,7 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
 
     cctx_.sha256->update((uint8_t *)session_.l_msg.dh.second,    session_.l_msg.dh.first);
     cctx_.sha256->update((uint8_t *)session_.r_msg.hello.second, session_.r_msg.hello.first);
-    cctx_.sha256->final((uint8_t *)session_.hvi);
+    cctx_.sha256->final((uint8_t *)session_.hash_ctx.o_hvi);
 
     /* We're here which means that remote respond to us and sent a Hello message
      * with same version number as ours. This means that the implementations are

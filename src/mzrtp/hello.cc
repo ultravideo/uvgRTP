@@ -45,11 +45,11 @@ kvz_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
     msg->msg_start.magic  = ZRTP_MSG_MAGIC;
     msg->msg_start.length = len_ - sizeof(kvz_rtp::frame::zrtp_frame);
 
-    memcpy(&msg->msg_start.msgblock, ZRTP_HELLO,                8);
-    memcpy(&msg->version,            ZRTP_VERSION,              4);
-    memcpy(&msg->client,             ZRTP_CLIENT_ID,           16);
-    memcpy(&msg->hash,               session.hashes[3],        32); /* 256 bits */
-    memcpy(&msg->zid,                session.capabilities.zid, 12); /* 96 bits */
+    memcpy(&msg->msg_start.msgblock, ZRTP_HELLO,                  8);
+    memcpy(&msg->version,            ZRTP_VERSION,                4);
+    memcpy(&msg->client,             ZRTP_CLIENT_ID,             16);
+    memcpy(&msg->hash,               session.hash_ctx.o_hash[3], 32); /* 256 bits */
+    memcpy(&msg->zid,                session.capabilities.zid,   12); /* 96 bits */
 
     msg->zero   = 0;
     msg->s      = 0;
@@ -62,7 +62,7 @@ kvz_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
     msg->sc     = 0;
 
     /* Calculate MAC for the Hello message (only the ZRTP message part) */
-    auto hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.hashes[2], 32);
+    auto hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.hash_ctx.o_hash[2], 32);
 
     hmac_sha256.update((uint8_t *)frame_, 81);
     hmac_sha256.final(mac_full);
@@ -154,11 +154,11 @@ rtp_error_t kvz_rtp::zrtp_msg::hello::parse_msg(kvz_rtp::zrtp_msg::receiver& rec
     session.rcapab.sas_types.push_back(B32);
 
     /* Save the MAC value so we can check if later */
-    memcpy(&session.remote_macs[3],   &msg->mac,  8);
-    memcpy(&session.remote_hashes[3], msg->hash, 32);
+    memcpy(&session.hash_ctx.r_mac[3],  &msg->mac,  8);
+    memcpy(&session.hash_ctx.r_hash[3], msg->hash, 32);
 
     /* Save ZID */
-    memcpy(session.remote_zid, msg->zid, 12);
+    memcpy(session.r_zid, msg->zid, 12);
 
     /* Finally make a copy of the message and save it for later use */
     session.r_msg.hello.first  = len;

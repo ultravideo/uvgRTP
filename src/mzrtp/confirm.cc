@@ -36,7 +36,7 @@ kvz_rtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part)
 
     /* Message Type Block and H0 */
     memcpy(&msg->msg_start.msgblock, (part == 1) ? ZRTP_CONFRIM1 : ZRTP_CONFRIM2,  8);
-    memcpy(&msg->hash,               session.hashes[0],                           32); /* 256 bits */
+    memcpy(&msg->hash,               session.hash_ctx.o_hash[0],                  32); /* 256 bits */
 
     /* Generate random 128-bit nonce for CFB IV */
     kvz_rtp::crypto::random::generate_random(msg->cfb_iv, 16);
@@ -46,13 +46,13 @@ kvz_rtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part)
 
     /* Responder */
     if (part == 1) {
-        aes_cfb     = new kvz_rtp::crypto::aes::cfb(session.zrtp_keyr, 16, msg->cfb_iv);
-        hmac_sha256 = new kvz_rtp::crypto::hmac::sha256(session.hmac_keyr, 32);
+        aes_cfb     = new kvz_rtp::crypto::aes::cfb(session.key_ctx.zrtp_keyr, 16, msg->cfb_iv);
+        hmac_sha256 = new kvz_rtp::crypto::hmac::sha256(session.key_ctx.hmac_keyr, 32);
 
     /* Initiator */
     } else {
-        aes_cfb     = new kvz_rtp::crypto::aes::cfb(session.zrtp_keyi, 16, msg->cfb_iv);
-        hmac_sha256 = new kvz_rtp::crypto::hmac::sha256(session.hmac_keyi, 32);
+        aes_cfb     = new kvz_rtp::crypto::aes::cfb(session.key_ctx.zrtp_keyi, 16, msg->cfb_iv);
+        hmac_sha256 = new kvz_rtp::crypto::hmac::sha256(session.key_ctx.hmac_keyi, 32);
     }
 
     msg->e          = 0;
@@ -127,11 +127,11 @@ rtp_error_t kvz_rtp::zrtp_msg::confirm::parse_msg(kvz_rtp::zrtp_msg::receiver& r
     zrtp_confirm *msg                          = (zrtp_confirm *)rframe_;
 
     if (!memcmp(&msg->msg_start.msgblock, (const void *)ZRTP_CONFRIM1, sizeof(uint64_t))) {
-        aes_cfb     = new kvz_rtp::crypto::aes::cfb(session.zrtp_keyr, 16, msg->cfb_iv);
-        hmac_sha256 = new kvz_rtp::crypto::hmac::sha256(session.hmac_keyr, 32);
+        aes_cfb     = new kvz_rtp::crypto::aes::cfb(session.key_ctx.zrtp_keyr, 16, msg->cfb_iv);
+        hmac_sha256 = new kvz_rtp::crypto::hmac::sha256(session.key_ctx.hmac_keyr, 32);
     } else {
-        aes_cfb     = new kvz_rtp::crypto::aes::cfb(session.zrtp_keyi, 16, msg->cfb_iv);
-        hmac_sha256 = new kvz_rtp::crypto::hmac::sha256(session.hmac_keyi, 32);
+        aes_cfb     = new kvz_rtp::crypto::aes::cfb(session.key_ctx.zrtp_keyi, 16, msg->cfb_iv);
+        hmac_sha256 = new kvz_rtp::crypto::hmac::sha256(session.key_ctx.hmac_keyi, 32);
     }
 
     /* Verify confirm_mac before decrypting the message */
@@ -148,8 +148,8 @@ rtp_error_t kvz_rtp::zrtp_msg::confirm::parse_msg(kvz_rtp::zrtp_msg::receiver& r
 
     /* Finally save the first hash H0 so we can verify other MAC values received.
      * The first (last) remote mac is not used */
-    memcpy(&session.remote_hashes[0], &msg->hash, 32);
-    session.remote_macs[0] = 0;
+    memcpy(&session.hash_ctx.r_hash[0], &msg->hash, 32);
+    session.hash_ctx.r_mac[0] = 0;
 
     delete aes_cfb;
     return RTP_OK;

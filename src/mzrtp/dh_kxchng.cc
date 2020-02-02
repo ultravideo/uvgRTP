@@ -41,8 +41,8 @@ kvz_rtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int
     msg->msg_start.length = len_ - sizeof(zrtp_header);
     msg->crc = 0;
 
-    memcpy(&msg->msg_start.msgblock, strs[part - 1][0],  8);
-    memcpy(msg->hash,                session.hashes[1], 32);
+    memcpy(&msg->msg_start.msgblock, strs[part - 1][0],           8);
+    memcpy(msg->hash,                session.hash_ctx.o_hash[1], 32);
 
     /* Calculate hashes for the secrets (as defined in Section 4.3.1)
      *
@@ -52,34 +52,34 @@ kvz_rtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int
     uint8_t mac_full[32];
 
     /* rs1IDr */
-    auto hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.us.rs1, 32);
+    auto hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.secrets.rs1, 32);
     hmac_sha256.update((uint8_t *)strs[part - 1][1], 9);
     hmac_sha256.final(mac_full);
     memcpy(msg->rs1_id, mac_full, 8);
 
     /* rs2IDr */
-    hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.us.rs2, 32);
+    hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.secrets.rs2, 32);
     hmac_sha256.update((uint8_t *)strs[part - 1][1], 9);
     hmac_sha256.final(mac_full);
     memcpy(msg->rs2_id, mac_full, 8);
 
     /* auxsecretIDr */
-    hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.us.raux, 32);
-    hmac_sha256.update(session.hashes[3], 32);
+    hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.secrets.raux, 32);
+    hmac_sha256.update(session.hash_ctx.o_hash[3], 32);
     hmac_sha256.final(mac_full);
     memcpy(msg->aux_secret, mac_full, 8);
 
     /* pbxsecretIDr */
-    hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.us.rpbx, 32);
+    hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.secrets.rpbx, 32);
     hmac_sha256.update((uint8_t *)strs[part - 1][1], 9);
     hmac_sha256.final(mac_full);
     memcpy(msg->pbx_secret, mac_full, 8);
 
     /* public key */
-    memcpy(msg->pk, session.public_key, sizeof(session.public_key));
+    memcpy(msg->pk, session.dh_ctx.public_key, sizeof(session.dh_ctx.public_key));
 
     /* Calculate truncated HMAC-SHA256 for the Commit Message */
-    hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.hashes[0], 32);
+    hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.hash_ctx.o_hash[0], 32);
     hmac_sha256.update((uint8_t *)frame_, len_ - 8 - 4);
     hmac_sha256.final(mac_full);
 
@@ -144,19 +144,19 @@ rtp_error_t kvz_rtp::zrtp_msg::dh_key_exchange::parse_msg(kvz_rtp::zrtp_msg::rec
 
     zrtp_dh *msg = (zrtp_dh *)rframe_;
 
-    memcpy(session.remote_public, msg->pk, 384);
+    memcpy(session.dh_ctx.remote_public, msg->pk, 384);
 
     /* Because kvzRTP only supports DH mode, the retained secrets sent in this
      * DHPartN message are not going to match our own so there not point in parsing them.
      *
      * TODO support maybe preshared at some point? */
-    session.s1 = nullptr;
-    session.s2 = nullptr;
-    session.s3 = nullptr;
+    session.secrets.s1 = nullptr;
+    session.secrets.s2 = nullptr;
+    session.secrets.s3 = nullptr;
 
     /* Save the MAC value so we can check if later */
-    memcpy(&session.remote_macs[1],   &msg->mac,  8);
-    memcpy(&session.remote_hashes[1], msg->hash, 32);
+    memcpy(&session.hash_ctx.r_mac[1],  &msg->mac,  8);
+    memcpy(&session.hash_ctx.r_hash[1], msg->hash, 32);
 
     /* Finally make a copy of the message and save it for later use */
     session.r_msg.dh.first  = len;

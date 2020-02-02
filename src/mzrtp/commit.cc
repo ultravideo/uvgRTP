@@ -33,10 +33,10 @@ kvz_rtp::zrtp_msg::commit::commit(zrtp_session_t& session)
     msg->msg_start.magic  = ZRTP_MSG_MAGIC;
     msg->msg_start.length = len_ - sizeof(zrtp_header);
 
-    memcpy(&msg->msg_start.msgblock, ZRTP_COMMIT,               8);
-    memcpy(msg->hash,                session.hashes[2],        32); /* 256 bits */
-    memcpy(msg->zid,                 session.capabilities.zid, 12); /* 96 bits */
-    memcpy(msg->hvi,                 session.hvi,              32); /* 256 bits */
+    memcpy(&msg->msg_start.msgblock, ZRTP_COMMIT,                 8);
+    memcpy(msg->zid,                 session.capabilities.zid,   12); /* 96 bits */
+    memcpy(msg->hash,                session.hash_ctx.o_hash[2], 32); /* 256 bits */
+    memcpy(msg->hvi,                 session.hash_ctx.o_hvi,     32); /* 256 bits */
 
     msg->sas_type           = session.sas_type;
     msg->hash_algo          = session.hash_algo;
@@ -45,7 +45,7 @@ kvz_rtp::zrtp_msg::commit::commit(zrtp_session_t& session)
     msg->key_agreement_type = session.key_agreement_type;
 
     /* Calculate truncated HMAC-SHA256 for the Commit Message */
-    auto hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.hashes[1], 32);
+    auto hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.hash_ctx.o_hash[1], 32);
 
     hmac_sha256.update((uint8_t *)frame_, len_ - 8 - 4);
     hmac_sha256.final(mac_full);
@@ -110,9 +110,9 @@ rtp_error_t kvz_rtp::zrtp_msg::commit::parse_msg(kvz_rtp::zrtp_msg::receiver& re
     session.auth_tag_type      = msg->auth_tag_type;
     session.key_agreement_type = msg->key_agreement_type;
 
-    memcpy(session.remote_hvi,       msg->hvi,  32);
-    memcpy(&session.remote_macs[2],  &msg->mac,  8);
-    memcpy(session.remote_hashes[2], msg->hash, 32);
+    memcpy(session.hash_ctx.r_hvi,     msg->hvi,  32);
+    memcpy(&session.hash_ctx.r_mac[2], &msg->mac,  8);
+    memcpy(session.hash_ctx.r_hash[2], msg->hash, 32);
 
     /* Finally make a copy of the message and save it for later use */
     session.r_msg.commit.first  = len;
