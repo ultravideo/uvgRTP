@@ -217,3 +217,24 @@ void kvz_rtp::crypto::random::generate_random(uint8_t *out, size_t len)
     /* do not block ever */
     CryptoPP::OS_GenerateRandomBlock(false, out, len);
 }
+
+/* ***************** crc32 ***************** */
+
+void kvz_rtp::crypto::crc32::get_crc32(uint8_t *input, size_t len, uint32_t *output)
+{
+    CryptoPP::CRC32 crc32;
+
+    crc32.Update(input, len);
+    crc32.TruncatedFinal((uint8_t *)output, sizeof(uint32_t));
+}
+
+bool kvz_rtp::crypto::crc32::verify_crc32(uint8_t *input, size_t len, uint32_t old_crc)
+{
+    CryptoPP::CRC32 crc32;
+    uint32_t new_crc;
+
+    crc32.Update(input, len);
+    crc32.TruncatedFinal((uint8_t *)&new_crc, sizeof(uint32_t));
+
+    return new_crc == old_crc;
+}

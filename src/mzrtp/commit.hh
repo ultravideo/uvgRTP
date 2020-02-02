@@ -26,6 +26,7 @@ namespace kvz_rtp {
 
             uint32_t hvi[8];
             uint32_t mac[2];
+            uint32_t crc;
         };
 
         class commit {

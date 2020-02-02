@@ -244,7 +244,7 @@ rtp_error_t kvz_rtp::zrtp::validate_session()
         if (RTP_INVALID_VALUE == verify_hash(
                 (uint8_t *)hashes[1],
                 (uint8_t *)session_.r_msg.commit.second,
-                session_.r_msg.commit.first - 8,
+                session_.r_msg.commit.first - 8 - 4,
                 session_.remote_macs[2]
             ))
         {
@@ -307,8 +307,9 @@ rtp_error_t kvz_rtp::zrtp::begin_session()
     for (i = 0; i < 20; ++i) {
         set_timeout(rto);
 
-        if ((ret = hello.send_msg(socket_, addr_)) != RTP_OK)
+        if ((ret = hello.send_msg(socket_, addr_)) != RTP_OK) {
             LOG_ERROR("Failed to send Hello message");
+        }
 
         if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
             /* We received something interesting, either Hello message from remote in which case
@@ -383,8 +384,9 @@ rtp_error_t kvz_rtp::zrtp::init_session()
     for (int i = 0; i < 10; ++i) {
         set_timeout(rto);
 
-        if ((ret = commit.send_msg(socket_, addr_)) != RTP_OK)
+        if ((ret = commit.send_msg(socket_, addr_)) != RTP_OK) {
             LOG_ERROR("Failed to send Commit message!");
+        }
 
         if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
 
@@ -471,8 +473,9 @@ rtp_error_t kvz_rtp::zrtp::dh_part2()
     for (int i = 0; i < 10; ++i) {
         set_timeout(rto);
 
-        if ((ret = dhpart.send_msg(socket_, addr_)) != RTP_OK)
+        if ((ret = dhpart.send_msg(socket_, addr_)) != RTP_OK) {
             LOG_ERROR("Failed to send DHPart2 Message!");
+        }
 
         if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
             if (type == ZRTP_FT_CONFIRM1) {
@@ -571,6 +574,7 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
     rtp_error_t ret = RTP_OK;
 
     /* TODO: set all fields initially to zero */
+    memset(session_.hvi, 0, sizeof(session_.hvi));
 
     generate_zid();
     generate_secrets();

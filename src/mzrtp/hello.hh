@@ -9,6 +9,7 @@
 namespace kvz_rtp {
 
     typedef struct capabilities zrtp_capab_t;
+    typedef struct zrtp_session zrtp_session_t;
 
     namespace zrtp_msg {
 
@@ -39,6 +40,7 @@ namespace kvz_rtp {
             uint32_t sas_types[0];
 
             uint64_t mac;
+            uint32_t crc;
         };
 
         class hello {

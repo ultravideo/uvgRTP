@@ -66,9 +66,13 @@ kvz_rtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part)
 
     aes_cfb->encrypt((uint8_t *)msg->hash, (uint8_t *)msg->hash, 40);
 
+    /* Calculate HMAC-SHA256 of the encrypted portion of the message */
     hmac_sha256->update((uint8_t *)msg->hash, 40);
     hmac_sha256->final(mac_full);
     memcpy(&msg->confirm_mac, mac_full, sizeof(uint64_t));
+
+    /* Calculate CRC32 for the whole ZRTP packet */
+    kvz_rtp::crypto::crc32::get_crc32((uint8_t *)frame_, len_ - 4, &msg->crc);
 
     delete hmac_sha256;
     delete aes_cfb;

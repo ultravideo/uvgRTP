@@ -78,12 +78,15 @@ kvz_rtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int
     /* public key */
     memcpy(msg->pk, session.public_key, sizeof(session.public_key));
 
-    /* Finally calculate MAC code for the message */
+    /* Calculate truncated HMAC-SHA256 for the Commit Message */
     hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.hashes[0], 32);
     hmac_sha256.update((uint8_t *)frame_, len_ - 8 - 4);
     hmac_sha256.final(mac_full);
 
     memcpy(msg->mac, mac_full, 8);
+
+    /* Calculate CRC32 for the whole ZRTP packet */
+    kvz_rtp::crypto::crc32::get_crc32((uint8_t *)frame_, len_ - 4, &msg->crc);
 
     /* Finally make a copy of the message and save it for later use */
     session.l_msg.dh.first  = len_;

@@ -12,7 +12,14 @@
 
 #include "debug.hh"
 #include "util.hh"
+#include "crypto/crypto.hh"
 #include "mzrtp/defines.hh"
+#include "mzrtp/dh_kxchng.hh"
+#include "mzrtp/commit.hh"
+#include "mzrtp/confack.hh"
+#include "mzrtp/confirm.hh"
+#include "mzrtp/hello.hh"
+#include "mzrtp/hello_ack.hh"
 #include "mzrtp/receiver.hh"
 
 using namespace kvz_rtp::zrtp_msg;
@@ -77,36 +84,92 @@ int kvz_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
 
     switch (msg->msgblock) {
         case ZRTP_MSG_HELLO:
-            LOG_DEBUG("Hello message received");
-            return ZRTP_FT_HELLO;
+        {
+            LOG_DEBUG("Hello message received, verify CRC32!");
+
+            zrtp_hello *hello = (zrtp_hello *)msg;
+
+            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, hello->crc))
+                return -EOPNOTSUPP;
+        }
+        return ZRTP_FT_HELLO;
 
         case ZRTP_MSG_HELLO_ACK:
-            LOG_DEBUG("HelloACK message received");
-            return ZRTP_FT_HELLO_ACK;
+        {
+            LOG_DEBUG("HelloACK message received, verify CRC32!");
+
+            zrtp_hello_ack *ha_msg = (zrtp_hello_ack *)msg;
+
+            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, ha_msg->crc))
+                return -EOPNOTSUPP;
+        }
+        return ZRTP_FT_HELLO_ACK;
 
         case ZRTP_MSG_COMMIT:
-            LOG_DEBUG("Commit message received");
-            return ZRTP_FT_COMMIT;
+        {
+            LOG_DEBUG("Commit message received, verify CRC32!");
+
+            zrtp_commit *commit = (zrtp_commit *)msg;
+
+            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, commit->crc))
+                return -EOPNOTSUPP;
+        }
+        return ZRTP_FT_COMMIT;
 
         case ZRTP_MSG_DH_PART1:
-            LOG_DEBUG("DH Part1 message received");
-            return ZRTP_FT_DH_PART1;
+        {
+            LOG_DEBUG("DH Part1 message received, verify CRC32!");
+
+            zrtp_dh *dh = (zrtp_dh *)msg;
+
+            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
+                return -EOPNOTSUPP;
+        }
+        return ZRTP_FT_DH_PART1;
 
         case ZRTP_MSG_DH_PART2:
-            LOG_DEBUG("DH Part2 message received");
-            return ZRTP_FT_DH_PART2;
+        {
+            LOG_DEBUG("DH Part2 message received, verify CRC32!");
+
+            zrtp_dh *dh = (zrtp_dh *)msg;
+
+            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
+                return -EOPNOTSUPP;
+        }
+        return ZRTP_FT_DH_PART2;
 
         case ZRTP_MSG_CONFIRM1:
-            LOG_DEBUG("Confirm1 message received");
-            return ZRTP_FT_CONFIRM1;
+        {
+            LOG_DEBUG("Confirm1 message received, verify CRC32!");
+
+            zrtp_confirm *dh = (zrtp_confirm *)msg;
+
+            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
+                return -EOPNOTSUPP;
+        }
+        return ZRTP_FT_CONFIRM1;
 
         case ZRTP_MSG_CONFIRM2:
-            LOG_DEBUG("Confirm2 message received");
-            return ZRTP_FT_CONFIRM2;
+        {
+            LOG_DEBUG("Confirm2 message received, verify CRC32!");
+
+            zrtp_confirm *dh = (zrtp_confirm *)msg;
+
+            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
+                return -EOPNOTSUPP;
+        }
+        return ZRTP_FT_CONFIRM2;
 
         case ZRTP_MSG_CONF2_ACK:
-            LOG_DEBUG("Conf2 ACK message received");
-            return ZRTP_FT_CONF2_ACK;
+        {
+            LOG_DEBUG("Conf2 ACK message received, verify CRC32!");
+
+            zrtp_confack *ca = (zrtp_confack *)msg;
+
+            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, ca->crc))
+                return -EOPNOTSUPP;
+        }
+        return ZRTP_FT_CONF2_ACK;
 
         case ZRTP_MSG_ERROR:
             LOG_DEBUG("Error message received");

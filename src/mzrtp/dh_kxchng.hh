@@ -8,6 +8,8 @@
 
 namespace kvz_rtp {
 
+    typedef struct zrtp_session zrtp_session_t;
+
     namespace zrtp_msg {
 
         struct zrtp_dh {

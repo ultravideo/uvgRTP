@@ -6,6 +6,7 @@ namespace kvz_rtp {
 
     namespace zrtp_msg {
 
+        struct zrtp_hello_ack;
         struct zrtp_commit;
         struct zrtp_hello;
         struct zrtp_dh;

@@ -12,6 +12,7 @@ namespace kvz_rtp {
 
         struct zrtp_confack {
             zrtp_msg msg_start;
+            uint32_t crc;
         };
 
         class confack {

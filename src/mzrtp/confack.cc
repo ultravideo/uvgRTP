@@ -35,6 +35,9 @@ kvz_rtp::zrtp_msg::confack::confack(zrtp_session_t& session)
     msg->msg_start.length         = len_ - sizeof(zrtp_header);
 
     memcpy(&msg->msg_start.msgblock, ZRTP_CONFACK, 8);
+
+    /* Calculate CRC32 for the whole ZRTP packet */
+    kvz_rtp::crypto::crc32::get_crc32((uint8_t *)frame_, len_ - 4, &msg->crc);
 }
 
 kvz_rtp::zrtp_msg::confack::~confack()

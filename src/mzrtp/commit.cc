@@ -11,7 +11,7 @@
 kvz_rtp::zrtp_msg::commit::commit(zrtp_session_t& session)
 {
     /* temporary storage for the full hmac hash */
-    uint8_t mac_full[32];
+    uint8_t mac_full[32] = { 0 };
 
     LOG_DEBUG("Create ZRTP Commit message!");
 
@@ -44,12 +44,16 @@ kvz_rtp::zrtp_msg::commit::commit(zrtp_session_t& session)
     msg->auth_tag_type      = session.auth_tag_type;
     msg->key_agreement_type = session.key_agreement_type;
 
+    /* Calculate truncated HMAC-SHA256 for the Commit Message */
     auto hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.hashes[1], 32);
 
-    hmac_sha256.update((uint8_t *)frame_, len_ - 8);
+    hmac_sha256.update((uint8_t *)frame_, len_ - 8 - 4);
     hmac_sha256.final(mac_full);
 
     memcpy(&msg->mac, mac_full, sizeof(uint64_t));
+
+    /* Calculate CRC32 for the whole ZRTP packet */
+    kvz_rtp::crypto::crc32::get_crc32((uint8_t *)frame_, len_ - 4, &msg->crc);
 
     /* Finally make a copy of the message and save it for later use */
     session.l_msg.commit.first  = len_;

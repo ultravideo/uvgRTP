@@ -8,6 +8,7 @@
 #include "crypto/3rdparty/cryptopp/modes.h"
 #include "crypto/3rdparty/cryptopp/osrng.h"
 #include "crypto/3rdparty/cryptopp/sha.h"
+#include "crypto/3rdparty/cryptopp/crc.h"
 
 namespace kvz_rtp {
 
@@ -119,6 +120,11 @@ namespace kvz_rtp {
 
         namespace random {
             void generate_random(uint8_t *out, size_t len);
+        };
+
+        namespace crc32 {
+            void get_crc32(uint8_t *input, size_t len, uint32_t *output);
+            bool verify_crc32(uint8_t *input, size_t len, uint32_t old_crc);
         };
     };
 };

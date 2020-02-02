@@ -14,6 +14,8 @@ kvz_rtp::zrtp_msg::hello_ack::hello_ack()
 
     zrtp_hello_ack *msg = (zrtp_hello_ack *)frame_;
 
+    memset(msg, 0, sizeof(zrtp_hello_ack));
+
     msg->msg_start.header.version = 0;
     msg->msg_start.header.magic   = ZRTP_HEADER_MAGIC;
 
@@ -21,6 +23,8 @@ kvz_rtp::zrtp_msg::hello_ack::hello_ack()
     msg->msg_start.length = 3;
 
     memcpy(&msg->msg_start.msgblock, ZRTP_HELLO_ACK, 8);
+
+    kvz_rtp::crypto::crc32::get_crc32((uint8_t *)frame_, len_ - 4, &msg->crc);
 }
 
 kvz_rtp::zrtp_msg::hello_ack::~hello_ack()

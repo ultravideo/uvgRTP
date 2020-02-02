@@ -9,8 +9,9 @@ namespace kvz_rtp {
 
     namespace zrtp_msg {
 
-        struct zrtp_hello_ack {
+        PACKED_STRUCT(zrtp_hello_ack) {
             zrtp_msg msg_start;
+            uint32_t crc;
         };
 
         class hello_ack {
