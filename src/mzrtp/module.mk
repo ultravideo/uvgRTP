@@ -5,4 +5,5 @@ SOURCES += \
 	src/mzrtp/commit.cc \
 	src/mzrtp/dh_kxchng.cc \
 	src/mzrtp/confirm.cc \
-	src/mzrtp/confack.cc
+	src/mzrtp/confack.cc \
+	src/mzrtp/error.cc

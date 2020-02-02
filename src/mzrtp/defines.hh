@@ -84,5 +84,28 @@ namespace kvz_rtp {
             B32  = 0x20323342,
             B256 = 0x36353242
         };
-    }
+
+        enum ERRORS {
+            ZRTP_ERR_MALFORED_PKT        = 0x10,  /* Malformed packet */
+            ZRTP_ERR_SOFTWARE            = 0x20,  /* Critical software error */
+            ZRTP_ERR_VERSION             = 0x30,  /* Unsupported version */
+            ZRTP_ERR_COMPONENT_MISMATCH  = 0x40,  /* Hello message component mismatch */
+            ZRTP_ERR_NS_HASH_TYPE        = 0x51,  /* Hash type not supported */
+            ZRTP_ERR_NS_CIPHER_TYPE      = 0x52,  /* Cipher type not supported  */
+            ZRTP_ERR_NS_PBKEY_EXCHANGE   = 0x53,  /* Public key exchange not supported */
+            ZRTP_ERR_NS_SRTP_AUTH_TAG    = 0x54,  /* SRTP auth tag not supported */
+            ZRTP_ERR_NS_SAS_RENDERING    = 0x55,  /* SAS Rendering Scheme not supported */
+            ZRTP_ERR_NO_SHARED_SECRET    = 0x56,  /* No shared secret available */
+            ZRTP_ERR_DHE_BAD_PVI         = 0x61,  /* DH Error: Bad pvi or pvr */
+            ZRTP_ERR_DHE_HVI_MISMATCH    = 0x62,  /* DH Error: hvi != hashed data */
+            ZRTP_ERR_UNTRUSTED_MITM      = 0x63,  /* Received relayed SAS from untrusted MiTM */
+            ZRTP_ERR_BAD_CONFIRM_MAC     = 0x70,  /* Bad Confirm Packet MAC */
+            ZRTP_ERR_NONCE_REUSE         = 0x80,  /* Nonce reuse */
+            ZRTP_ERR_EQUAL_ZID           = 0x90,  /* Equal ZID in Hello */
+            ZRTP_ERR_SSRC_COLLISION      = 0x91,  /* SSRC collision */
+            ZRTP_ERR_SERVICE_UNAVAILABLE = 0xA0,  /* Service unavailable */
+            ZRTP_ERR_PROTOCOL_TIMEOUT    = 0xB0,  /* Protocol timeout error */
+            ZRTP_ERR_GOCLEAR_NOT_ALLOWED = 0x100, /* Goclear received but not supported */
+        };
+    };
 };

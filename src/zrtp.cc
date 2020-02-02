@@ -328,8 +328,6 @@ rtp_error_t kvz_rtp::zrtp::begin_session()
                             LOG_ERROR("Remote supports version %d, kvzRTP supports %d. Session cannot continue!",
                                 session_.capabilities.version, ZRTP_VERSION);
 
-                            /* TODO: send error message */
-
                             return RTP_NOT_SUPPORTED;
                         }
 
