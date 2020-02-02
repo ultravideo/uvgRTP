@@ -115,12 +115,9 @@ rtp_error_t kvz_rtp::zrtp_msg::hello::parse_msg(kvz_rtp::zrtp_msg::receiver& rec
 
     zrtp_hello *msg = (zrtp_hello *)rframe_;
 
-    /* Make sure the version of the message is the one we support.
-     * If it's not, there's no reason to parse the message any further */
-    if (memcmp(&msg->version, ZRTP_VERSION, 4) == 0)
-        session.capabilities.version = 110;
-    else
-        return RTP_NOT_SUPPORTED;
+    float version;
+    sscanf((const char *)&msg->version, "%f", &version);
+    session.capabilities.version = (int)(version * (float)10) * 10;
 
     /* finally add mandatory algorithms required by the specification to remote capabilities */
     session.capabilities.hash_algos.push_back(S256);

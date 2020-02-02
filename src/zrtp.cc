@@ -16,6 +16,8 @@
 
 using namespace kvz_rtp::zrtp_msg;
 
+#define ZRTP_VERSION 110
+
 kvz_rtp::zrtp::zrtp():
     receiver_()
 {
@@ -313,8 +315,26 @@ rtp_error_t kvz_rtp::zrtp::begin_session()
                      * message buffer to remote capabilities struct for later use */
                     hello.parse_msg(receiver_, session_);
 
-                    if (session_.capabilities.version != 110) {
-                        LOG_WARN("ZRTP Protocol version %u not supported!", session_.capabilities.version);
+                    if (session_.capabilities.version != ZRTP_VERSION) {
+
+                        /* Section 4.1.1:
+                         *
+                         * "If an endpoint receives a Hello message with an unsupported
+                         *  version number that is lower than the endpoint's current Hello
+                         *  message, the endpoint MUST send an Error message (Section 5.9)
+                         *  indicating failure to support this ZRTP version."
+                         */
+                        if (session_.capabilities.version < ZRTP_VERSION) {
+                            LOG_ERROR("Remote supports version %d, kvzRTP supports %d. Session cannot continue!",
+                                session_.capabilities.version, ZRTP_VERSION);
+
+                            /* TODO: send error message */
+
+                            return RTP_NOT_SUPPORTED;
+                        }
+
+                        LOG_WARN("ZRTP Protocol version %u not supported, keep sending Hello Messages",
+                                session_.capabilities.version);
                         hello_recv = false;
                     }
                 }
