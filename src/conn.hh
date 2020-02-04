@@ -94,18 +94,40 @@ namespace kvz_rtp {
             void install_dealloc_hook(void (*dealloc_hook)(void *));
 
             /* Return pointer to RTCP object if RTCP has been enabled
-             * Otherwise return nullptr
-             *
-             * TODO make this const (TODO ???) */
+             * Otherwise return nullptr */
             kvz_rtp::rtcp *get_rtcp();
 
+            /* Get the connection-specific context configuration 
+             * Used by both readers and writers */
             rtp_ctx_conf_t& get_ctx_conf();
 
-            /* TODO:  */
+            /* Enable some feature of kvzRTP that does not require extra configuration. 
+             *
+             * F.ex: writer->configure(RCE_SYSTEM_CALL_DISPATCHER);
+             *
+             * Return RTP_OK on success 
+             * Return RTP_INVALID_VALUE if "flag" is not valid configuration option */
+            rtp_error_t configure(int flag);
+
+            /* Enable some feature of kvzRTP with additional parameter
+             *
+             * F.ex: writer->configure(RCC_UDP_BUF_SIZE, 4 * 1024 * 1024);
+             *
+             * Return RTP_OK on success 
+             * Return RTP_INVALID_VALUE if "flag" is not valid configuration option */
             rtp_error_t configure(int flag, ssize_t value);
 
-            /* TODO:  */
-            rtp_error_t configure(int flag);
+            /* If user does not want to use ZRTP for key management but wishes to do it
+             * by himself, a master key and its length must be provided 
+             *
+             * Return RTP_OK on success
+             * Return RTP_INVALID_VALUE if "key" or keylen are invalid
+             * Return RTP_NOT_SUPPORTED if RCE_SRTP_KMNGMNT_USER is not set and set_srtp_key() is called */
+            rtp_error_t set_srtp_key(uint8_t *key, size_t keylen);
+
+            /* Called internally by socket.cc to retrieve master key user provided 
+             * when initializing SRTP context */
+            std::pair<uint8_t *, size_t>& get_srtp_key();
 
         protected:
             void *config_;
@@ -131,5 +153,8 @@ namespace kvz_rtp {
             /* After creation in writer.cc, pointer to frame queue is transferred
              * to conn.cc so we can get rid of the dynamic cast in push_fram() */
             kvz_rtp::frame_queue *fqueue_;
+
+            /* Store key temporarily here before SRTP context is initialized */
+            std::pair<uint8_t *, size_t> srtp_key_;
     };
 };

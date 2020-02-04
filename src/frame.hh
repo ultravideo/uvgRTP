@@ -10,7 +10,7 @@
 
 #include "util.hh"
 
-#define INVALID_FRAME_TYPE(ft) (ft < FRAME_TYPE_GENERIC || ft > FRAME_TYPE_HEVC_FU)
+#define INVALID_FRAME_TYPE(ft) (ft < RTP_FT_GENERIC|| ft > RTP_FT_HEVC_FU)
 
 namespace kvz_rtp {
     namespace frame {
@@ -21,19 +21,19 @@ namespace kvz_rtp {
             HEADER_SIZE_HEVC_FU  =  1,
         };
 
-        typedef enum RTP_FRAME_TYPE {
-            FRAME_TYPE_GENERIC = 0, /* payload length + RTP Header size (N + 12) */
-            FRAME_TYPE_OPUS    = 1, /* payload length + RTP Header size + Opus header (N + 12 + 0 [for now]) */
-            FRAME_TYPE_HEVC_FU = 2, /* payload length + RTP Header size + HEVC NAL Header + FU Header (N + 12 + 2 + 1) */
-        } rtp_type_t;
+        enum RTP_FRAME_TYPE {
+            RTP_FT_GENERIC = 0, /* payload length + RTP Header size (N + 12) */
+            RTP_FT_OPUS    = 1, /* payload length + RTP Header size + Opus header (N + 12 + 0 [for now]) */
+            RTP_FT_HEVC_FU = 2, /* payload length + RTP Header size + HEVC NAL Header + FU Header (N + 12 + 2 + 1) */
+        };
 
-        typedef enum RTCP_FRAME_TYPE {
-            FRAME_TYPE_SR   = 200, /* Sender report */
-            FRAME_TYPE_RR   = 201, /* Receiver report */
-            FRAME_TYPE_SDES = 202, /* Source description */
-            FRAME_TYPE_BYE  = 203, /* Goodbye */
-            FRAME_TYPE_APP  = 204  /* Application-specific message */
-        } rtcp_type_t;
+        enum RTCP_FRAME_TYPE {
+            RTCP_FT_SR   = 200, /* Sender report */
+            RTCP_FT_RR   = 201, /* Receiver report */
+            RTCP_FT_SDES = 202, /* Source description */
+            RTCP_FT_BYE  = 203, /* Goodbye */
+            RTCP_FT_APP  = 204  /* Application-specific message */
+        };
 
         PACKED_STRUCT(rtp_header) {
             uint8_t version:2;
@@ -76,7 +76,7 @@ namespace kvz_rtp {
             uint8_t *payload;
 
             rtp_format_t format;
-            rtp_type_t type;
+            int  type;
             sockaddr_in src_addr;
         };
 
@@ -148,34 +148,72 @@ namespace kvz_rtp {
             uint8_t payload[0];
         };
 
-        rtp_frame           *alloc_rtp_frame();
-        rtp_frame           *alloc_rtp_frame(size_t payload_len);
-        rtp_frame           *alloc_rtp_frame(size_t payload_len, size_t pz_size);
+        PACKED_STRUCT(zrtp_frame) {
+            uint8_t version:4;
+            uint16_t unused:12;
+            uint16_t seq;
+            uint32_t magic;
+            uint32_t ssrc;
+            uint8_t payload[0];
+        };
+
+        /* Allocate an RTP frame
+         *
+         * First function allocates an empty RTP frame (no payload)
+         *
+         * Second allocates an RTP frame with payload of size "payload_len",
+         *
+         * Third allocate an RTP frame with payload of size "payload_len"
+         * + probation zone of size "pz_size" * MAX_PAYLOAD
+         *
+         * Return pointer to frame on success
+         * Return nullptr on error and set rtp_errno to:
+         *    RTP_MEMORY_ERROR if allocation of memory failed */
+        rtp_frame *alloc_rtp_frame();
+        rtp_frame *alloc_rtp_frame(size_t payload_len);
+        rtp_frame *alloc_rtp_frame(size_t payload_len, size_t pz_size);
+
+        /* Allocate ZRTP frame
+         * Parameter "payload_size" defines the length of the frame 
+         *
+         * Return pointer to frame on success
+         * Return nullptr on error and set rtp_errno to:
+         *    RTP_MEMORY_ERROR if allocation of memory failed
+         *    RTP_INVALID_VALUE if "payload_size" is 0 */
+        zrtp_frame *alloc_zrtp_frame(size_t payload_size);
+
+        /* Allocate various types of RTCP frames, see src/rtcp.cc for more details
+         *
+         * Return pointer to frame on success
+         * Return nullptr on error and set rtp_errno to:
+         *    RTP_MEMORY_ERROR if allocation of memory failed
+         *    RTP_INVALID_VALUE if one of the parameters was invalid */
         rtcp_app_frame      *alloc_rtcp_app_frame(std::string name, uint8_t subtype, size_t payload_len);
         rtcp_sdes_frame     *alloc_rtcp_sdes_frame(size_t ssrc_count, size_t total_len);
         rtcp_receiver_frame *alloc_rtcp_receiver_frame(size_t nblocks);
         rtcp_sender_frame   *alloc_rtcp_sender_frame(size_t nblocks);
         rtcp_bye_frame      *alloc_rtcp_bye_frame(size_t ssrc_count);
 
+        /* Deallocate RTP frame
+         *
+         * Return RTP_OK on successs
+         * Return RTP_INVALID_VALUE if "frame" is nullptr */
         rtp_error_t dealloc_frame(kvz_rtp::frame::rtp_frame *frame);
 
-        /* TODO: template??? */
+        /* Deallocate ZRTP frame
+         *
+         * Return RTP_OK on successs
+         * Return RTP_INVALID_VALUE if "frame" is nullptr */
+        rtp_error_t dealloc_frame(kvz_rtp::frame::zrtp_frame *frame);
+
+        /* Deallocate various types of RTCP frames
+         *
+         * Return RTP_OK on successs
+         * Return RTP_INVALID_VALUE if "frame" is nullptr */
         rtp_error_t dealloc_frame(rtcp_sender_frame *frame);
         rtp_error_t dealloc_frame(rtcp_receiver_frame *frame);
         rtp_error_t dealloc_frame(rtcp_sdes_frame *frame);
         rtp_error_t dealloc_frame(rtcp_bye_frame *frame);
         rtp_error_t dealloc_frame(rtcp_app_frame *frame);
-
-        /* get pointer to rtp header start or nullptr if frame is invalid */
-        uint8_t *get_rtp_header(rtp_frame *frame);
-
-        /* get pointer to opus header start or nullptr if frame is invalid */
-        uint8_t *get_opus_header(rtp_frame *frame);
-
-        /* get pointer to hevc rtp header start or nullptr if frame is invalid */
-        uint8_t *get_hevc_nal_header(rtp_frame *frame);
-
-        /* get pointer to hevc fu header start or nullptr if frame is invalid */
-        uint8_t *get_hevc_fu_header(rtp_frame *frame);
     };
 };

@@ -1,10 +1,9 @@
 .PHONY: all clean obj install
 
 CXX = g++
-CXXFLAGS = -g -Wall -Wextra -Wuninitialized -O2 -std=c++11 -DNDEBUG -Isrc -fPIC
-
+CXXFLAGS = -g -Wall -Wextra -Wuninitialized -O2 -std=c++11 -Isrc -fPIC #-DNDEBUG 
 SOURCES = $(wildcard src/*.cc)
-MODULES := src/formats
+MODULES := src/formats src/mzrtp src/crypto
 -include $(patsubst %, %/module.mk, $(MODULES))
 OBJECTS := $(patsubst %.cc, %.o, $(filter %.cc, $(SOURCES)))
 
@@ -22,4 +21,4 @@ $(TARGET): $(OBJECTS)
 	$(AR) rcs $@ $(OBJECTS)
 
 clean:
-	rm -f src/*.o src/formats/*.o $(TARGET)
+	rm -f src/*.o src/formats/*.o src/mzrtp/*.o $(TARGET)

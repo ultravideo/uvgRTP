@@ -691,7 +691,7 @@ rtp_error_t kvz_rtp::rtcp::generate_sender_report()
     frame->s_info.pkt_cnt  = sender_stats.sent_pkts;
     frame->s_info.byte_cnt = sender_stats.sent_bytes;
 
-    LOG_DEBUG("Sender Report from 0x%x has %u blocks %u", ssrc_, senders_);
+    LOG_DEBUG("Sender Report from 0x%x has %zu blocks", ssrc_, senders_);
 
     for (auto& participant : participants_) {
         if (!participant.second->sender)
@@ -1013,8 +1013,8 @@ rtp_error_t kvz_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
         return RTP_INVALID_VALUE;
     }
     
-    if (header->pkt_type > kvz_rtp::frame::FRAME_TYPE_BYE ||
-        header->pkt_type < kvz_rtp::frame::FRAME_TYPE_SR) {
+    if (header->pkt_type > kvz_rtp::frame::RTCP_FT_BYE ||
+        header->pkt_type < kvz_rtp::frame::RTCP_FT_SR) {
         LOG_ERROR("Invalid packet type (%u)!", header->pkt_type);
         return RTP_INVALID_VALUE;
     }
@@ -1024,23 +1024,23 @@ rtp_error_t kvz_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
     rtp_error_t ret = RTP_INVALID_VALUE;
 
     switch (header->pkt_type) {
-        case kvz_rtp::frame::FRAME_TYPE_SR:
+        case kvz_rtp::frame::RTCP_FT_SR:
             ret = handle_sender_report_packet((kvz_rtp::frame::rtcp_sender_frame *)buffer, size);
             break;
 
-        case kvz_rtp::frame::FRAME_TYPE_RR:
+        case kvz_rtp::frame::RTCP_FT_RR:
             ret = handle_receiver_report_packet((kvz_rtp::frame::rtcp_receiver_frame *)buffer, size);
             break;
 
-        case kvz_rtp::frame::FRAME_TYPE_SDES:
+        case kvz_rtp::frame::RTCP_FT_SDES:
             ret = handle_sdes_packet((kvz_rtp::frame::rtcp_sdes_frame *)buffer, size);
             break;
 
-        case kvz_rtp::frame::FRAME_TYPE_BYE:
+        case kvz_rtp::frame::RTCP_FT_BYE:
             ret = handle_bye_packet((kvz_rtp::frame::rtcp_bye_frame *)buffer, size);
             break;
 
-        case kvz_rtp::frame::FRAME_TYPE_APP:
+        case kvz_rtp::frame::RTCP_FT_APP:
             ret = handle_app_packet((kvz_rtp::frame::rtcp_app_frame *)buffer, size);
             break;
     }

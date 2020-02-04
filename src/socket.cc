@@ -18,12 +18,14 @@ using namespace mingw;
 
 #include "debug.hh"
 #include "socket.hh"
+#include "util.hh"
 
 kvz_rtp::socket::socket():
     recv_handler_(nullptr),
     sendto_handler_(nullptr),
     sendtov_handler_(nullptr),
-    socket_(-1)
+    socket_(-1),
+    srtp_(nullptr)
 {
 }
 
@@ -34,6 +36,68 @@ kvz_rtp::socket::~socket()
 #else
     closesocket(socket_);
 #endif
+
+    delete srtp_;
+}
+
+rtp_error_t kvz_rtp::socket::setup_srtp(uint32_t ssrc)
+{
+    if (srtp_) {
+        LOG_DEBUG("SRTP has already been initialized");
+        return RTP_INITIALIZED;
+    }
+
+    if ((srtp_ = new kvz_rtp::srtp(SRTP)) == nullptr) {
+        LOG_DEBUG("Failed to allocate SRTP context!");
+        return RTP_MEMORY_ERROR;
+    }
+
+    return srtp_->init_zrtp(ssrc, socket_, addr_);
+}
+
+rtp_error_t kvz_rtp::socket::setup_srtcp(uint32_t ssrc)
+{
+    if (srtp_) {
+        LOG_DEBUG("SRTP has already been initialized");
+        return RTP_INITIALIZED;
+    }
+
+    if ((srtp_ = new kvz_rtp::srtp(SRTCP)) == nullptr) {
+        LOG_DEBUG("Failed to allocate SRTP context!");
+        return RTP_MEMORY_ERROR;
+    }
+
+    return srtp_->init_zrtp(ssrc, socket_, addr_);
+}
+
+rtp_error_t kvz_rtp::socket::setup_srtp(uint32_t ssrc, std::pair<uint8_t *, size_t>& key)
+{
+    if (srtp_) {
+        LOG_DEBUG("SRTP has already been initialized");
+        return RTP_INITIALIZED;
+    }
+
+    if ((srtp_ = new kvz_rtp::srtp(SRTP)) == nullptr) {
+        LOG_DEBUG("Failed to allocate SRTP context!");
+        return RTP_MEMORY_ERROR;
+    }
+
+    return srtp_->init_user(ssrc, key);
+}
+
+rtp_error_t kvz_rtp::socket::setup_srtcp(uint32_t ssrc, std::pair<uint8_t *, size_t>& key)
+{
+    if (srtp_) {
+        LOG_DEBUG("SRTP has already been initialized");
+        return RTP_INITIALIZED;
+    }
+
+    if ((srtp_ = new kvz_rtp::srtp(SRTCP)) == nullptr) {
+        LOG_DEBUG("Failed to allocate SRTP context!");
+        return RTP_MEMORY_ERROR;
+    }
+
+    return srtp_->init_user(ssrc, key);
 }
 
 rtp_error_t kvz_rtp::socket::init(short family, int type, int protocol)
@@ -117,7 +181,7 @@ void kvz_rtp::socket::set_sockaddr(sockaddr_in addr)
     addr_ = addr;
 }
 
-kvz_rtp::socket_t& kvz_rtp::socket::get_raw_socket()
+socket_t& kvz_rtp::socket::get_raw_socket()
 {
     return socket_;
 }
@@ -474,6 +538,6 @@ void kvz_rtp::socket::install_ll_sendtov(
     rtp_error_t (*sendtov)(socket_t, sockaddr_in&, std::vector<std::pair<size_t, uint8_t *>>, int, int *)
 )
 {
-    assert(sendto != nullptr);
+    assert(sendtov != nullptr);
     sendtov_handler_ = sendtov;
 }
