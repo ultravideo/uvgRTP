@@ -35,10 +35,6 @@ kvz_rtp::frame_queue::frame_queue(rtp_format_t fmt, rtp_ctx_conf_t& conf):
     if (max_ccount_ <= 0)
         max_ccount_ = MAX_CHUNK_COUNT * max_mcount_;
 
-    LOG_ERROR("max transactions: %u", max_queued_);
-    LOG_ERROR("max messages: %u", max_mcount_);
-    LOG_ERROR("max chunk: %u", max_ccount_);
-
     free_.reserve(max_queued_);
 }
 

@@ -85,6 +85,7 @@ static ssize_t __get_hevc_start(uint8_t *data, size_t len, size_t offset, uint8_
     bool prev_z   = false;
     bool cur_z    = false;
     size_t pos    = offset;
+    size_t rpos   = len - (len % 8) - 1;
     uint8_t *ptr  = data + offset;
     uint8_t *tmp  = nullptr;
     uint8_t lb    = 0;
@@ -98,17 +99,11 @@ static ssize_t __get_hevc_start(uint8_t *data, size_t len, size_t offset, uint8_
      * non-zero 8 byte chunks by setting the last byte to zero.
      *
      * This added zero will make the last 8 byte zero check to fail
-     * and when we get out of the loop we can check if we've reached the end
-     *
-     * TODO: if the length is not divisible by 8 it will result in read-beyond-bounds
-     * in the innner loop that looks for non-zero bytes. FIX THIS!
-     *
-     * How to fix: Set the last byte of last full 8 byte chunk to zero.
-     * There like 0 chance that the remaining bytes contain a NAL unit so it's safe to ignore?? */
-    lb = data[len - 1];
-    data[len - 1] = 0;
+     * and when we get out of the loop we can check if we've reached the end */
+    lb = data[rpos];
+    data[rpos] = 0;
 
-    while (pos < len) {
+    while (pos + 8 < len) {
         prefetch = *(uint64_t *)ptr;
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -135,7 +130,7 @@ static ssize_t __get_hevc_start(uint8_t *data, size_t len, size_t offset, uint8_
 
             pos += PTR_DIFF(ptr, tmp);
 
-            if (pos >= len)
+            if (pos + 8 >= len)
                 break;
         }
 
@@ -162,7 +157,7 @@ static ssize_t __get_hevc_start(uint8_t *data, size_t len, size_t offset, uint8_
             if (((value >> 24) & 0xff) == 0x01 && ((prev >>  0) & 0xffff) == 0) {
                 start_len = (((prev >>  0) & 0xffffff) == 0) ? 4 : 3;
 #endif
-                data[len - 1] = lb;
+                data[rpos] = lb;
                 return pos + 1;
             }
         }
@@ -179,7 +174,7 @@ static ssize_t __get_hevc_start(uint8_t *data, size_t len, size_t offset, uint8_
 #endif
                 }
 
-                data[len - 1] = lb;
+                data[rpos] = lb;
                 return pos + ret;
             }
 
@@ -206,7 +201,7 @@ static ssize_t __get_hevc_start(uint8_t *data, size_t len, size_t offset, uint8_
                 /* previous dword 0xxxxx0000 and current dword is 0x0001XXXX */
                 if (t4) {
                     start_len = 4;
-                    data[len - 1] = lb;
+                    data[rpos] = lb;
                     return pos + 2;
                 }
             /* Previous dwod was 0xXXXXXX00 */
@@ -214,14 +209,14 @@ static ssize_t __get_hevc_start(uint8_t *data, size_t len, size_t offset, uint8_
                 /* Current dword is 0x000001XX */
                 if (t5) {
                     start_len = 4;
-                    data[len - 1] = lb;
+                    data[rpos] = lb;
                     return pos + 3;
                 }
 
                 /* Current dword is 0x0001XXXX */
                 else if (t4) {
                     start_len = 3;
-                    data[len - 1] = lb;
+                    data[rpos] = lb;
                     return pos + 2;
                 }
             }
@@ -234,7 +229,7 @@ end:
         prev = value;
     }
 
-    data[len - 1] = lb;
+    data[rpos] = lb;
     return -1;
 }
 
