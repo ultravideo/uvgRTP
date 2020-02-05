@@ -129,7 +129,7 @@ rtp_error_t __hevc_receiver(kvz_rtp::reader *reader)
         if (type == FT_INVALID) {
             LOG_WARN("invalid frame received!");
             (void)kvz_rtp::frame::dealloc_frame(frame);
-            break;
+            continue;
         }
 
         /* TODO: this is ugly */
