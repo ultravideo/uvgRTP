@@ -22,8 +22,9 @@ using namespace mingw;
 #include "formats/hevc.hh"
 #include "formats/generic.hh"
 
-kvz_rtp::sender::sender(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt):
+kvz_rtp::sender::sender(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt, kvz_rtp::rtp *rtp):
     socket_(socket),
+    rtp_(rtp),
     conf_(conf),
     fmt_(fmt)
 {
@@ -64,6 +65,7 @@ rtp_error_t kvz_rtp::sender::init()
             dispatcher_->start();
     } else {
 #endif
+        LOG_INFO("hereerererere");
         fqueue_     = new kvz_rtp::frame_queue(fmt_, conf_);
         dispatcher_ = nullptr;
 #ifndef _WIN32
@@ -84,7 +86,7 @@ rtp_error_t kvz_rtp::sender::push_frame(uint8_t *data, size_t data_len, int flag
 
     switch (fmt_) {
         case RTP_FORMAT_HEVC:
-            return kvz_rtp::hevc::push_frame(nullptr, data, data_len, flags);
+            return kvz_rtp::hevc::push_frame(this, data, data_len, flags);
 
         case RTP_FORMAT_OPUS:
             return kvz_rtp::opus::push_frame(nullptr, data, data_len, flags);
@@ -99,7 +101,7 @@ rtp_error_t kvz_rtp::sender::push_frame(std::unique_ptr<uint8_t[]> data, size_t 
 {
     switch (fmt_) {
         case RTP_FORMAT_HEVC:
-            return kvz_rtp::hevc::push_frame(nullptr, std::move(data), data_len, flags);
+            return kvz_rtp::hevc::push_frame(this, std::move(data), data_len, flags);
 
         case RTP_FORMAT_OPUS:
             return kvz_rtp::opus::push_frame(nullptr, std::move(data), data_len, flags);
@@ -108,4 +110,19 @@ rtp_error_t kvz_rtp::sender::push_frame(std::unique_ptr<uint8_t[]> data, size_t 
             LOG_DEBUG("Format not recognized, pushing the frame as generic");
             return kvz_rtp::generic::push_frame(nullptr, std::move(data), data_len, flags);
     }
+}
+
+kvz_rtp::frame_queue *kvz_rtp::sender::get_frame_queue()
+{
+    return fqueue_;
+}
+
+kvz_rtp::socket& kvz_rtp::sender::get_socket()
+{
+    return socket_;
+}
+
+kvz_rtp::rtp *kvz_rtp::sender::get_rtp_ctx()
+{
+    return rtp_;
 }

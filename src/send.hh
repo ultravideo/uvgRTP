@@ -5,7 +5,7 @@
 #include "util.hh"
 
 namespace kvz_rtp {
-    class connection;
+    class sender;
 
     namespace send {
         /* Send RTP Frame to remote
@@ -20,7 +20,7 @@ namespace kvz_rtp {
          * Return RTP_INVALID_VALUE if one of the values are invalid
          * Return RTP_SEND_ERROR if sending the frame failed */
         rtp_error_t send_frame(
-            kvz_rtp::connection *conn,
+            kvz_rtp::sender *sender,
             uint8_t *frame, size_t frame_len
         );
 
@@ -36,7 +36,7 @@ namespace kvz_rtp {
          * Return RTP_INVALID_VALUE if one of the values are invalid
          * Return RTP_SEND_ERROR if sending the frame failed */
         rtp_error_t send_frame(
-            kvz_rtp::connection *conn,
+            kvz_rtp::sender *sender,
             uint8_t *header, size_t header_len,
             uint8_t *payload, size_t payload_len
         );
@@ -57,7 +57,7 @@ namespace kvz_rtp {
          * Return RTP_INVALID_VALUE if one of the values are invalid
          * Return RTP_SEND_ERROR if sending the frame failed */
         rtp_error_t send_frame(
-            kvz_rtp::connection *conn,
+            kvz_rtp::sender *sender,
             std::vector<std::pair<size_t, uint8_t *>>& buffers
         );
 

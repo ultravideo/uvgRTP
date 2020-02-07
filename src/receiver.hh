@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rtp.hh"
 #include "runner.hh"
 #include "socket.hh"
 
@@ -7,7 +8,7 @@ namespace kvz_rtp {
 
     class receiver : public runner {
         public:
-            receiver(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt);
+            receiver(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt, kvz_rtp::rtp *rtp);
             ~receiver();
 
 
@@ -48,13 +49,21 @@ namespace kvz_rtp {
              *
              * Return valid RTP frame on success
              * Return nullptr if the frame is invalid */
+            /* TODO: move to rtp.cc */
             kvz_rtp::frame::rtp_frame *validate_rtp_frame(uint8_t *buffer, int size);
 
             /* Helper function for returning received RTP frames to user (just to make code look cleaner) */
             void return_frame(kvz_rtp::frame::rtp_frame *frame);
 
+            /* TODO:  */
+            kvz_rtp::socket& get_socket();
+
+            /* TODO:  */
+            kvz_rtp::rtp *get_rtp_ctx();
+
         private:
             kvz_rtp::socket socket_;
+            kvz_rtp::rtp *rtp_;
             rtp_ctx_conf conf_;
             rtp_format_t fmt_;
 

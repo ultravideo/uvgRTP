@@ -37,12 +37,83 @@ kvz_rtp::connection::connection(rtp_format_t fmt, bool reader):
     srtp_key_.second = 0;
 }
 
+kvz_rtp::connection::connection(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
+    config_(nullptr),
+    socket_(),
+    rtcp_(nullptr),
+    wc_start_(0),
+    fqueue_(nullptr)
+{
+    rtp_sequence_  = kvz_rtp::random::generate_32();
+    rtp_ssrc_      = kvz_rtp::random::generate_32();
+    rtp_payload_   = fmt;
+
+    std::memset(&conf_, 0, sizeof(conf_));
+
+    set_payload(fmt);
+
+    srtp_key_.first  = nullptr;
+    srtp_key_.second = 0;
+
+    fqueue_   = new kvz_rtp::frame_queue(fmt, conf_, nullptr);
+    fmt_      = fmt;
+    addr_     = addr;
+    flags_    = flags;
+    src_port_ = src_port;
+    dst_port_ = dst_port;
+}
+
+kvz_rtp::connection::connection(kvz_rtp::connection *conn)
+{
+    rtp_sequence_  = conn->get_sequence();
+    rtp_ssrc_      = conn->get_ssrc();
+    rtp_payload_   = conn->get_payload();
+
+    std::memset(&conf_, 0, sizeof(conf_));
+
+    srtp_key_.first  = nullptr;
+    srtp_key_.second = 0;
+
+    socket_ = conn->get_socket();
+    fqueue_ = conn->get_frame_queue();
+
+    fmt_      = conn->fmt_;
+    addr_     = conn->addr_;
+    flags_    = conn->flags_;
+    src_port_ = conn->src_port_;
+    dst_port_ = conn->dst_port_;
+}
+
 kvz_rtp::connection::~connection()
 {
     if (rtcp_) {
         rtcp_->stop();
         delete rtcp_;
     }
+}
+
+rtp_error_t kvz_rtp::connection::init()
+{
+    rtp_error_t ret;
+
+    if ((ret = socket_.init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
+        return ret;
+
+    int enable = 1;
+
+    if ((ret = socket_.setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int))) != RTP_OK)
+        return ret;
+
+    if (src_port_ == 0) {
+        LOG_ERROR("src port cannot be 0!\n");
+        for (;;);
+    }
+
+    /* if ((ret = socket_.bind(AF_INET, INADDR_ANY, src_port_)) != RTP_OK) */
+    /*     return ret; */
+
+    addr_out_ = socket_.create_sockaddr(AF_INET, addr_, dst_port_);
+    socket_.set_sockaddr(addr_out_);
 }
 
 void kvz_rtp::connection::set_payload(rtp_format_t fmt)

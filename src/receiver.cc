@@ -11,9 +11,9 @@
 
 #define RTP_HEADER_VERSION  2
 
-
-kvz_rtp::receiver::receiver(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt):
+kvz_rtp::receiver::receiver(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt, kvz_rtp::rtp *rtp):
     socket_(socket),
+    rtp_(rtp),
     conf_(conf),
     fmt_(fmt)
 {
@@ -46,12 +46,12 @@ rtp_error_t kvz_rtp::receiver::start()
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
             /* TODO: fix */
-            runner_ = new std::thread(kvz_rtp::generic::frame_receiver, nullptr);
+            runner_ = new std::thread(kvz_rtp::generic::frame_receiver, this);
             break;
 
         case RTP_FORMAT_HEVC:
             /* TODO: fix */
-            runner_ = new std::thread(kvz_rtp::hevc::frame_receiver, nullptr);
+            runner_ = new std::thread(kvz_rtp::hevc::frame_receiver, this, false);
             break;
     }
     runner_->detach();
@@ -229,4 +229,14 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::receiver::validate_rtp_frame(uint8_t *buffer
     std::memcpy(frame->payload, ptr, frame->payload_len);
 
     return frame;
+}
+
+kvz_rtp::socket& kvz_rtp::receiver::get_socket()
+{
+    return socket_;
+}
+
+kvz_rtp::rtp *kvz_rtp::receiver::get_rtp_ctx()
+{
+    return rtp_;
 }

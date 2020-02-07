@@ -28,11 +28,9 @@ INCLUDEPATH    += src
 
 SOURCES += \
     src/send.cc \
-    src/reader.cc \
     src/lib.cc \
     src/frame.cc \
     src/conn.cc \
-    src/writer.cc \
     src/mingw_inet.cc \
     src/multicast.cc \
     src/poll.cc \
@@ -47,14 +45,14 @@ SOURCES += \
     src/formats/opus.cc \
     src/formats/hevc.cc \
     src/formats/hevc_recv_normal.cc \
-    src/formats/generic.cc
+    src/formats/generic.cc \
+	src/sender.cc \
+	src/receiver.cc \
     #src/formats/hevc_recv_optimistic.cc \
 
 HEADERS += \
-    src/writer.hh \
     src/send.hh \
     src/rtcp.hh \
-    src/reader.hh \
     src/lib.hh \
     src/frame.hh \
     src/conn.hh \
@@ -71,6 +69,8 @@ HEADERS += \
     src/random.hh \
     src/dispatch.hh \
     src/runner.hh \
+	src/receiver.hh \
+	src/sender.hh \
     src/formats/opus.hh \
     src/formats/hevc.hh \
     src/formats/generic.hh

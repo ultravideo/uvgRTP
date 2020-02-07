@@ -541,3 +541,8 @@ void kvz_rtp::socket::install_ll_sendtov(
     assert(sendtov != nullptr);
     sendtov_handler_ = sendtov;
 }
+
+sockaddr_in& kvz_rtp::socket::get_out_address()
+{
+    return addr_;
+}

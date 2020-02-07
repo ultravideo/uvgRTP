@@ -12,6 +12,7 @@
 #include <thread>
 #include <vector>
 
+#include "clock.hh"
 #include "frame.hh"
 #include "rtcp.hh"
 #include "runner.hh"
@@ -26,11 +27,15 @@ namespace kvz_rtp {
     class connection : public runner {
         public:
             connection(rtp_format_t fmt, bool reader);
+            connection(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags);
+            connection(kvz_rtp::connection *conn);
             virtual ~connection();
 
             uint16_t     get_sequence() const;
-            uint32_t     get_ssrc() const;
-            rtp_format_t get_payload() const;
+            uint32_t     get_ssrc()     const;
+            rtp_format_t get_payload()  const;
+
+            rtp_error_t init();
 
             socket&  get_socket();
             socket_t get_raw_socket();
@@ -132,6 +137,13 @@ namespace kvz_rtp {
         protected:
             void *config_;
             uint32_t id_;
+
+            int src_port_;
+            int dst_port_;
+            sockaddr_in addr_out_;
+            std::string addr_;
+            rtp_format_t fmt_;
+            int flags_;
 
             kvz_rtp::socket socket_;
             kvz_rtp::rtcp *rtcp_;

@@ -5,59 +5,58 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #endif
-#include <stdint.h>
+
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 
-#include "debug.hh"
-#include "conn.hh"
-#include "formats/generic.hh"
+/* #include "debug.hh" */
+/* #include "formats/generic.hh" */
 #include "send.hh"
-#include "util.hh"
-#include "writer.hh"
+#include "sender.hh"
+/* #include "util.hh" */
+/* #include "sender.hh" */
 
 rtp_error_t kvz_rtp::send::send_frame(
-    kvz_rtp::connection *conn,
+    kvz_rtp::sender *sender,
     uint8_t *frame, size_t frame_len
 )
 {
-    if (!conn || !frame || frame_len == 0)
+    if (!sender || !frame || frame_len == 0)
         return RTP_INVALID_VALUE;
 
-    conn->inc_sent_bytes(frame_len);
-    conn->inc_sent_pkts();
-    conn->inc_rtp_sequence();
+    sender->get_rtp_ctx()->inc_sent_pkts();
+    sender->get_rtp_ctx()->inc_sequence();
 
-    return conn->get_socket().sendto(frame, frame_len, 0, NULL);
+    return sender->get_socket().sendto(frame, frame_len, 0, NULL);
 }
 
 rtp_error_t kvz_rtp::send::send_frame(
-    kvz_rtp::connection *conn,
+    kvz_rtp::sender *sender,
     uint8_t *header,  size_t header_len,
     uint8_t *payload, size_t payload_len
 )
 {
-    if (!conn || !header || header_len == 0 || !payload || payload_len == 0)
+    if (!sender || !header || header_len == 0 || !payload || payload_len == 0)
         return RTP_INVALID_VALUE;
 
     std::vector<std::pair<size_t, uint8_t *>> buffers;
 
-    conn->inc_sent_bytes(payload_len);
-    conn->inc_sent_pkts();
-    conn->inc_rtp_sequence();
+    sender->get_rtp_ctx()->inc_sent_pkts();
+    sender->get_rtp_ctx()->inc_sequence();
 
     buffers.push_back(std::make_pair(header_len,  header));
     buffers.push_back(std::make_pair(payload_len, payload));
 
-    return conn->get_socket().sendto(buffers, 0);
+    return sender->get_socket().sendto(buffers, 0);
 }
 
 rtp_error_t kvz_rtp::send::send_frame(
-    kvz_rtp::connection *conn,
+    kvz_rtp::sender *sender,
     std::vector<std::pair<size_t, uint8_t *>>& buffers
 )
 {
-    if (!conn)
+    if (!sender)
         return RTP_INVALID_VALUE;
 
     size_t total_size = 0;
@@ -67,9 +66,8 @@ rtp_error_t kvz_rtp::send::send_frame(
         total_size += buffers.at(i).first;
     }
 
-    conn->inc_sent_bytes(total_size);
-    conn->inc_sent_pkts();
-    conn->inc_rtp_sequence();
+    sender->get_rtp_ctx()->inc_sent_pkts();
+    sender->get_rtp_ctx()->inc_sequence();
 
-    return conn->get_socket().sendto(buffers, 0);
+    return sender->get_socket().sendto(buffers, 0);
 }

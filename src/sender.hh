@@ -2,16 +2,27 @@
 
 #include "dispatch.hh"
 #include "queue.hh"
+#include "rtp.hh"
 #include "socket.hh"
 
 namespace kvz_rtp {
 
+    class frame_queue;
+    class dispatcher;
+
     class sender {
         public:
-            sender(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt);
+            sender(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt, kvz_rtp::rtp *rtp);
             ~sender();
 
+            /* Initialize the RTP sender by adjusting UDP buffer size,
+             * creating a frame queue and possibly creating a dispatcher 
+             *
+             * Return RTP_OK on success
+             * Return RTP_MEMORY_ERROR if allocation failed */
             rtp_error_t init();
+
+            /* TODO:  */
             rtp_error_t destroy();
 
             /* Split "data" into 1500 byte chunks and send them to remote
@@ -32,8 +43,19 @@ namespace kvz_rtp {
              * memory to kvzRTP */
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags);
 
+            /* Get pointer to the frame queue */
+            kvz_rtp::frame_queue *get_frame_queue();
+
+            /* Get reference to the underlying socket object */
+            kvz_rtp::socket & get_socket();
+
+            /* Get pointer to RTP context where all clocking informatoin,
+             * SSRC, sequence number etc. are stored */
+            kvz_rtp::rtp *get_rtp_ctx();
+
         private:
             kvz_rtp::socket socket_;
+            kvz_rtp::rtp *rtp_;
             rtp_ctx_conf conf_;
             rtp_format_t fmt_;
 
