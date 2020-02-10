@@ -1,14 +1,14 @@
 #pragma once
 
-#include "crypto/3rdparty/cryptopp/aes.h"
-#include "crypto/3rdparty/cryptopp/base32.h"
-#include "crypto/3rdparty/cryptopp/cryptlib.h"
-#include "crypto/3rdparty/cryptopp/dh.h"
-#include "crypto/3rdparty/cryptopp/hmac.h"
-#include "crypto/3rdparty/cryptopp/modes.h"
-#include "crypto/3rdparty/cryptopp/osrng.h"
-#include "crypto/3rdparty/cryptopp/sha.h"
-#include "crypto/3rdparty/cryptopp/crc.h"
+#include "3rdparty/cryptopp/aes.h"
+#include "3rdparty/cryptopp/base32.h"
+#include "3rdparty/cryptopp/cryptlib.h"
+#include "3rdparty/cryptopp/dh.h"
+#include "3rdparty/cryptopp/hmac.h"
+#include "3rdparty/cryptopp/modes.h"
+#include "3rdparty/cryptopp/osrng.h"
+#include "3rdparty/cryptopp/sha.h"
+#include "3rdparty/cryptopp/crc.h"
 
 namespace kvz_rtp {
 

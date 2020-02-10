@@ -5,6 +5,7 @@
 #include "formats/generic.hh"
 
 namespace kvz_rtp {
+
     namespace opus {
         struct opus_config {
             uint32_t samplerate;
@@ -13,10 +14,10 @@ namespace kvz_rtp {
         };
 
         /* TODO:  */
-        rtp_error_t push_frame(connection *conn, uint8_t *data, uint32_t data_len, int flags);
+        rtp_error_t push_frame(kvz_rtp::sender *sender, uint8_t *data, uint32_t data_len, int flags);
 
         /* TODO:  */
-        rtp_error_t push_frame(connection *conn, std::unique_ptr<uint8_t[]> data, uint32_t data_len, int flags);
+        rtp_error_t push_frame(kvz_rtp::sender *sender, std::unique_ptr<uint8_t[]> data, uint32_t data_len, int flags);
 
         /* Process the incoming Opus frame
          * The RTP frame "frame" given as parameter should be considered invalid after calling this function

@@ -1,16 +1,15 @@
 #include <cstring>
 #include <iostream>
 
-#include "conn.hh"
 #include "debug.hh"
 #include "send.hh"
 
 #include "formats/opus.hh"
 
 /* Validity of arguments is checked by kvz_rtp::sender. We just need to relay them there */
-rtp_error_t kvz_rtp::opus::push_frame(connection *conn, uint8_t *data, uint32_t data_len, int flags)
+rtp_error_t kvz_rtp::opus::push_frame(kvz_rtp::sender *sender, uint8_t *data, uint32_t data_len, int flags)
 {
-    return kvz_rtp::generic::push_frame(conn, data, data_len, flags);
+    return kvz_rtp::generic::push_frame(sender, data, data_len, flags);
 
 #if 0
     rtp_error_t ret;
@@ -44,9 +43,9 @@ rtp_error_t kvz_rtp::opus::push_frame(connection *conn, uint8_t *data, uint32_t 
 #endif
 }
 
-rtp_error_t kvz_rtp::opus::push_frame(connection *conn, std::unique_ptr<uint8_t[]> data, uint32_t data_len, int flags)
+rtp_error_t kvz_rtp::opus::push_frame(kvz_rtp::sender *sender, std::unique_ptr<uint8_t[]> data, uint32_t data_len, int flags)
 {
-    return kvz_rtp::generic::push_frame(conn, std::move(data), data_len, flags);
+    return kvz_rtp::generic::push_frame(sender, std::move(data), data_len, flags);
 }
 
 kvz_rtp::frame::rtp_frame *kvz_rtp::opus::process_opus_frame(

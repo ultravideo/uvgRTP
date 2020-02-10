@@ -164,6 +164,9 @@ namespace kvz_rtp {
              * This is used when calling send() */
             void set_sockaddr(sockaddr_in addr);
 
+            /* Get the out address for the socket if it exists */
+            sockaddr_in& get_out_address();
+
             /* Some media types (such as HEVC) require finer control over the sending/receiving process
              * These functions can be used to install low-level (the higher level API will call these)
              * functions for dealing with media-specific details

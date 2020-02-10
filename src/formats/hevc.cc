@@ -9,12 +9,10 @@
 #include <unordered_map>
 #include <queue>
 
-#include "conn.hh"
 #include "debug.hh"
-#include "reader.hh"
 #include "queue.hh"
 #include "send.hh"
-#include "writer.hh"
+#include "sender.hh"
 
 #include "formats/hevc.hh"
 
@@ -35,8 +33,8 @@
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
-extern rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader);
-extern rtp_error_t __hevc_receiver(kvz_rtp::reader *reader);
+extern rtp_error_t __hevc_receiver_optimistic(kvz_rtp::receiver *receiver);
+extern rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver);
 
 static inline unsigned __find_hevc_start(uint32_t value)
 {
@@ -239,7 +237,7 @@ end:
 }
 
 static rtp_error_t __push_hevc_nal(
-    kvz_rtp::connection *conn,
+    kvz_rtp::sender *sender,
     kvz_rtp::frame_queue *fqueue,
     uint8_t *data, size_t data_len,
     bool more
@@ -252,14 +250,14 @@ static rtp_error_t __push_hevc_nal(
 
 #ifdef __linux__
     if (data_len <= MAX_PAYLOAD) {
-        if ((ret = fqueue->enqueue_message(conn, data, data_len)) != RTP_OK) {
+        if ((ret = fqueue->enqueue_message(sender, data, data_len)) != RTP_OK) {
             LOG_ERROR("enqeueu failed for small packet");
             return ret;
         }
 
         if (more)
             return RTP_NOT_READY;
-        return fqueue->flush_queue(conn);
+        return fqueue->flush_queue(sender);
     }
 
     /* The payload is larger than MTU (1500 bytes) so we must split it into smaller RTP frames
@@ -291,7 +289,7 @@ static rtp_error_t __push_hevc_nal(
         buffers.at(2).first  = MAX_PAYLOAD;
         buffers.at(2).second = &data[data_pos];
 
-        if ((ret = fqueue->enqueue_message(conn, buffers)) != RTP_OK) {
+        if ((ret = fqueue->enqueue_message(sender, buffers)) != RTP_OK) {
             LOG_ERROR("enqueue failed");
             fqueue->deinit_transaction();
             return ret;
@@ -310,7 +308,7 @@ static rtp_error_t __push_hevc_nal(
     buffers.at(2).first  = data_left;
     buffers.at(2).second = &data[data_pos];
 
-    if ((ret = fqueue->enqueue_message(conn, buffers)) != RTP_OK) {
+    if ((ret = fqueue->enqueue_message(sender, buffers)) != RTP_OK) {
         LOG_ERROR("Failed to send HEVC frame!");
         fqueue->deinit_transaction();
         return ret;
@@ -318,13 +316,13 @@ static rtp_error_t __push_hevc_nal(
 
     if (more)
         return RTP_NOT_READY;
-    return fqueue->flush_queue(conn);
+    return fqueue->flush_queue(sender);
 #else
     if (data_len <= MAX_PAYLOAD) {
         LOG_DEBUG("send unfrag size %zu, type %u", data_len, nalType);
 
-        if ((ret = kvz_rtp::generic::push_frame(conn, data, data_len, 0)) != RTP_OK) {
-            LOG_ERROR("failed to send small packet!");
+        if ((ret = kvz_rtp::generic::push_frame(sender, data, data_len, 0)) != RTP_OK) {
+            LOG_ERROR("failed to send small packet! %s", strerror(errno));
             return ret;
         }
 
@@ -340,7 +338,7 @@ static rtp_error_t __push_hevc_nal(
 
     uint8_t buffer[HEADER_SIZE + MAX_PAYLOAD];
 
-    conn->fill_rtp_header(buffer);
+    sender->get_rtp_ctx()->fill_header(buffer);
 
     buffer[kvz_rtp::frame::HEADER_SIZE_RTP + 0]  = 49 << 1;            /* fragmentation unit */
     buffer[kvz_rtp::frame::HEADER_SIZE_RTP + 1]  = 1;                  /* TID */
@@ -353,10 +351,10 @@ static rtp_error_t __push_hevc_nal(
     while (data_left > MAX_PAYLOAD) {
         memcpy(&buffer[HEADER_SIZE], &data[data_pos], MAX_PAYLOAD);
 
-        if ((ret = kvz_rtp::send::send_frame(conn, buffer, sizeof(buffer))) != RTP_OK)
+        if ((ret = kvz_rtp::send::send_frame(sender, buffer, sizeof(buffer))) != RTP_OK)
             return RTP_GENERIC_ERROR;
 
-        conn->update_rtp_sequence(buffer);
+        sender->get_rtp_ctx()->update_sequence(buffer);
 
         data_pos  += MAX_PAYLOAD;
         data_left -= MAX_PAYLOAD;
@@ -371,7 +369,7 @@ static rtp_error_t __push_hevc_nal(
 
     memcpy(&buffer[HEADER_SIZE], &data[data_pos], data_left);
 
-    if ((ret = kvz_rtp::send::send_frame(conn, buffer, HEADER_SIZE + data_left)) != RTP_OK) {
+    if ((ret = kvz_rtp::send::send_frame(sender, buffer, HEADER_SIZE + data_left)) != RTP_OK) {
         LOG_ERROR("Failed to send frame");
         return ret;
     }
@@ -383,7 +381,7 @@ static rtp_error_t __push_hevc_nal(
 }
 
 static rtp_error_t __push_hevc_slice(
-    kvz_rtp::connection *conn,
+    kvz_rtp::sender *sender,
     kvz_rtp::frame_queue *fqueue,
     uint8_t *data, size_t data_len,
     int flags
@@ -402,27 +400,27 @@ static rtp_error_t __push_hevc_slice(
         return RTP_INVALID_VALUE;
     }
 
-    if ((ret = fqueue->enqueue_message(conn, data, data_len)) != RTP_OK) {
+    if ((ret = fqueue->enqueue_message(sender, data, data_len)) != RTP_OK) {
         LOG_ERROR("Failed to enqueue HEVC slice!");
         (void)fqueue->deinit_transaction();
         return ret;
     }
 
     if ((flags & RTP_MORE) == 0)
-        ret = fqueue->flush_queue(conn);
+        ret = fqueue->flush_queue(sender);
 
     return ret;
 }
 
 static rtp_error_t __push_hevc_frame(
-    kvz_rtp::connection *conn,
+    kvz_rtp::sender *sender,
     kvz_rtp::frame_queue *fqueue,
     uint8_t *data, size_t data_len,
     int flags
 )
 {
     if (flags & RTP_SLICE)
-        return __push_hevc_slice(conn, fqueue, data, data_len, flags);
+        return __push_hevc_slice(sender, fqueue, data, data_len, flags);
 
 #ifdef __linux__
     /* find first start code */
@@ -435,14 +433,14 @@ static rtp_error_t __push_hevc_frame(
     if (data_len < MAX_PAYLOAD) {
         r_off = (offset < 0) ? 0 : offset; /* TODO: this looks ugly */
         fqueue->deinit_transaction();
-        return kvz_rtp::generic::push_frame(conn, data + r_off, data_len - r_off, flags);
+        return kvz_rtp::generic::push_frame(sender, data + r_off, data_len - r_off, flags);
     }
 
     while (offset != -1) {
         offset = __get_hevc_start(data, data_len, offset, start_len);
 
         if (offset != -1) {
-            ret = __push_hevc_nal(conn, fqueue, &data[prev_offset], offset - prev_offset - start_len, true);
+            ret = __push_hevc_nal(sender, fqueue, &data[prev_offset], offset - prev_offset - start_len, true);
 
             if (ret != RTP_NOT_READY)
                 goto error;
@@ -451,7 +449,7 @@ static rtp_error_t __push_hevc_frame(
         }
     }
 
-    if ((ret = __push_hevc_nal(conn, fqueue, &data[prev_offset], data_len - prev_offset, false)) == RTP_OK)
+    if ((ret = __push_hevc_nal(sender, fqueue, &data[prev_offset], data_len - prev_offset, false)) == RTP_OK)
         return RTP_OK;
 
 error:
@@ -467,7 +465,7 @@ error:
         offset = __get_hevc_start(data, data_len, offset, start_len);
 
         if (offset > 4 && offset != -1) {
-            if (__push_hevc_nal(conn, nullptr, &data[prev_offset], offset - prev_offset - start_len, false) == -1)
+            if (__push_hevc_nal(sender, nullptr, &data[prev_offset], offset - prev_offset - start_len, false) == -1)
                 return RTP_GENERIC_ERROR;
 
             prev_offset = offset;
@@ -477,38 +475,43 @@ error:
     if (prev_offset == -1)
         prev_offset = 0;
 
-    return __push_hevc_nal(conn, nullptr, &data[prev_offset], data_len - prev_offset, false);
+    return __push_hevc_nal(sender, nullptr, &data[prev_offset], data_len - prev_offset, false);
 #endif
 }
 
-rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, uint8_t *data, size_t data_len, int flags)
+rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::sender *sender, uint8_t *data, size_t data_len, int flags)
 {
-    if (!conn || !data || data_len == 0)
+    if (!sender || !data || data_len == 0)
         return RTP_INVALID_VALUE;
 
     rtp_error_t ret              = RTP_GENERIC_ERROR;
-    kvz_rtp::frame_queue *fqueue = conn->get_frame_queue();
+    kvz_rtp::frame_queue *fqueue = sender->get_frame_queue();
 
-    if (!fqueue || (ret = fqueue->init_transaction(conn, data)) != RTP_OK) {
+    if (!fqueue) {
+        LOG_ERROR("invalid frame queue");
+        return ret;
+    }
+
+    if ((ret = fqueue->init_transaction(sender, data)) != RTP_OK) {
         LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
         return ret;
     }
 
     if (flags & RTP_SLICE)
-        return __push_hevc_slice(conn, fqueue, data, data_len, flags);
-    return __push_hevc_frame(conn, fqueue, data, data_len, flags);
+        return __push_hevc_slice(sender, fqueue, data, data_len, flags);
+    return __push_hevc_frame(sender, fqueue, data, data_len, flags);
 }
 
-rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
+rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::sender *sender, std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
 {
-    if (!conn || !data || data_len == 0)
+    if (!sender || !data || data_len == 0)
         return RTP_INVALID_VALUE;
 
     uint8_t *data_ptr            = nullptr;
     rtp_error_t ret              = RTP_GENERIC_ERROR;
-    kvz_rtp::frame_queue *fqueue = conn->get_frame_queue();
+    kvz_rtp::frame_queue *fqueue = sender->get_frame_queue();
 
-    if (!fqueue || (ret = fqueue->init_transaction(conn, std::move(data))) != RTP_OK) {
+    if (!fqueue || (ret = fqueue->init_transaction(sender, std::move(data))) != RTP_OK) {
         LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
         return ret;
     }
@@ -519,16 +522,16 @@ rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::connection *conn, std::unique_ptr
     }
 
     if (flags & RTP_SLICE)
-        return __push_hevc_slice(conn, fqueue, data_ptr, data_len, flags);
-    return __push_hevc_frame(conn, fqueue, data_ptr, data_len, flags);
+        return __push_hevc_slice(sender, fqueue, data_ptr, data_len, flags);
+    return __push_hevc_frame(sender, fqueue, data_ptr, data_len, flags);
 
 }
 
-rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::reader *reader)
+rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::receiver *receiver, bool optimistic)
 {
 #ifdef __linux__
-    if (reader->get_ctx_conf().flags & RCE_OPTIMISTIC_RECEIVER)
-        return __hevc_receiver_optimistic(reader);
+    if (optimistic)
+        return __hevc_receiver_optimistic(receiver);
 #endif
-    return __hevc_receiver(reader);
+    return __hevc_receiver(receiver);
 }

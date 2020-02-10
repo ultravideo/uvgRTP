@@ -5,15 +5,20 @@
 #include <unordered_map>
 #include <vector>
 
-#include "conn.hh"
 #include "dispatch.hh"
+#include "frame.hh"
+#include "sender.hh"
 #include "util.hh"
 
-const int MAX_MSG_COUNT   = 500;
+const int MAX_MSG_COUNT   = 5000;
 const int MAX_QUEUED_MSGS =  10;
 const int MAX_CHUNK_COUNT =   4;
 
 namespace kvz_rtp {
+
+    class sender;
+    class dispatcher;
+    class frame_queue;
 
     typedef struct active_range {
         size_t h_start; size_t h_end;
@@ -91,9 +96,9 @@ namespace kvz_rtp {
             frame_queue(rtp_format_t fmt, rtp_ctx_conf_t& conf, kvz_rtp::dispatcher *dispatcher);
             ~frame_queue();
 
-            rtp_error_t init_transaction(kvz_rtp::connection *conn);
-            rtp_error_t init_transaction(kvz_rtp::connection *conn, uint8_t *data);
-            rtp_error_t init_transaction(kvz_rtp::connection *conn, std::unique_ptr<uint8_t[]> data);
+            rtp_error_t init_transaction(kvz_rtp::sender *sender);
+            rtp_error_t init_transaction(kvz_rtp::sender *sender, uint8_t *data);
+            rtp_error_t init_transaction(kvz_rtp::sender *sender, std::unique_ptr<uint8_t[]> data);
 
             /* If there are less than "MAX_QUEUED_MSGS" in the "free_" vector,
              * the transaction is moved there, otherwise it's destroyed
@@ -112,7 +117,7 @@ namespace kvz_rtp {
              * Return RTP_INVALID_VALUE if one of the parameters is invalid
              * Return RTP_MEMORY_ERROR if the maximum amount of chunks/messages is exceeded */
             rtp_error_t enqueue_message(
-                kvz_rtp::connection *conn,
+                kvz_rtp::sender *sender,
                 uint8_t *message, size_t message_len
             );
 
@@ -122,16 +127,16 @@ namespace kvz_rtp {
              * Return RTP_INVALID_VALUE if one of the parameters is invalid
              * Return RTP_MEMORY_ERROR if the maximum amount of chunks/messages is exceeded */
             rtp_error_t enqueue_message(
-                kvz_rtp::connection *conn,
+                kvz_rtp::sender *sender,
                 buff_vec& buffers
             );
 
             /* Flush the message queue
              *
              * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "conn" is nullptr or message buffer is empty
+             * Return RTP_INVALID_VALUE if "sender" is nullptr or message buffer is empty
              * return RTP_SEND_ERROR if send fails */
-            rtp_error_t flush_queue(kvz_rtp::connection *conn);
+            rtp_error_t flush_queue(kvz_rtp::sender *sender);
 
             /* Media may have extra headers (f.ex. NAL and FU headers for HEVC).
              * These headers must be valid until the message is sent (ie. they cannot be saved to
@@ -153,7 +158,7 @@ namespace kvz_rtp {
             void *get_media_headers();
 
             /* Update the active task's current packet's sequence number */
-            void update_rtp_header(kvz_rtp::connection *conn);
+            void update_rtp_header(kvz_rtp::sender *sender);
 
             /* Because frame queue supports both raw and smart pointers and the smart pointer ownership
              * is transferred to active transaction, the code that created the transaction must query
