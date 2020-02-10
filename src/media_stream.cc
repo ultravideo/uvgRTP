@@ -1,8 +1,9 @@
 #include "media_stream.hh"
 
 kvz_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
-    conn_(nullptr),
-    srtp_(nullptr)
+    socket_(),
+    srtp_(nullptr),
+    media_config_(nullptr)
 {
     fmt_      = fmt;
     addr_     = addr;
@@ -67,6 +68,41 @@ rtp_error_t kvz_rtp::media_stream::install_deallocation_hook(void (*hook)(void *
         return RTP_INVALID_VALUE;
 
     sender_->install_dealloc_hook(hook);
+
+    return RTP_OK;
+}
+
+void kvz_rtp::media_stream::set_media_config(void *config)
+{
+    media_config_ = config;
+}
+
+void *kvz_rtp::media_stream::get_media_config()
+{
+    return media_config_;
+}
+
+rtp_ctx_conf_t& kvz_rtp::media_stream::get_ctx_config()
+{
+    return ctx_config_;
+}
+
+rtp_error_t kvz_rtp::media_stream::configure_ctx(int flag, ssize_t value)
+{
+    if (flag < 0 || flag >= RCC_LAST || value < 0)
+        return RTP_INVALID_VALUE;
+
+    ctx_config_.ctx_values[flag] = value;
+
+    return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::media_stream::configure_ctx(int flag)
+{
+    if (flag < 0 || flag >= RCE_LAST)
+        return RTP_INVALID_VALUE;
+
+    ctx_config_.flags |= flag;
 
     return RTP_OK;
 }

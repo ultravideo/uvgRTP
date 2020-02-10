@@ -49,6 +49,15 @@ namespace kvz_rtp {
             /* TODO: document */
             rtp_error_t install_deallocation_hook(void (*hook)(void *));
 
+            /* TODO: document */
+            rtp_ctx_conf_t& get_ctx_config();
+            rtp_error_t configure_ctx(int flag, ssize_t value);
+            rtp_error_t configure_ctx(int flag);
+
+            /* TODO: document */
+            void  set_media_config(void *config);
+            void *get_media_config();
+
         private:
             uint32_t key_;
 
@@ -63,5 +72,11 @@ namespace kvz_rtp {
             int dst_port_;
             rtp_format_t fmt_;
             int flags_;
+
+            /* Media context config (SCD etc.) */
+            rtp_ctx_conf_t ctx_config_;
+
+            /* Media config f.ex. for Opus */
+            void *media_config_;
     };
 };
