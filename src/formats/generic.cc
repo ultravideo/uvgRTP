@@ -10,7 +10,6 @@
 #include <map>
 
 #include "debug.hh"
-#include "conn.hh"
 #include "receiver.hh"
 #include "send.hh"
 #include "sender.hh"

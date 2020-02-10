@@ -30,7 +30,6 @@ SOURCES += \
     src/send.cc \
     src/lib.cc \
     src/frame.cc \
-    src/conn.cc \
     src/mingw_inet.cc \
     src/multicast.cc \
     src/poll.cc \
@@ -55,7 +54,6 @@ HEADERS += \
     src/rtcp.hh \
     src/lib.hh \
     src/frame.hh \
-    src/conn.hh \
     src/debug.hh \
     src/util.hh \
     src/mingw_inet.hh \

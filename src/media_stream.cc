@@ -16,15 +16,39 @@ kvz_rtp::media_stream::~media_stream()
 {
 }
 
+rtp_error_t kvz_rtp::media_stream::init_connection()
+{
+    rtp_error_t ret = RTP_OK;
+
+    if ((ret = socket_.init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
+        return ret;
+
+#if 0
+    int enable = 1;
+    if ((ret = socket_.setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int))) != RTP_OK)
+        return ret;
+#endif
+
+    if ((ret = socket_.bind(AF_INET, INADDR_ANY, src_port_)) != RTP_OK)
+        return ret;
+
+    addr_out_ = socket_.create_sockaddr(AF_INET, addr_, dst_port_);
+    socket_.set_sockaddr(addr_out_);
+
+    return ret;
+}
+
 rtp_error_t kvz_rtp::media_stream::init()
 {
-    conn_ = new kvz_rtp::connection(addr_, src_port_, dst_port_, fmt_, flags_);
+    if (init_connection() != RTP_OK) {
+        LOG_ERROR("Failed to initialize the underlying socket: %s!", strerror(errno));
+        return RTP_GENERIC_ERROR;
+    }
+
     rtp_  = new kvz_rtp::rtp(fmt_);
 
-    conn_->init();
-
-    sender_   = new kvz_rtp::sender(conn_->get_socket(), conn_->get_ctx_conf(), fmt_, rtp_);
-    receiver_ = new kvz_rtp::receiver(conn_->get_socket(), conn_->get_ctx_conf(), fmt_, rtp_);
+    sender_   = new kvz_rtp::sender(socket_, ctx_config_, fmt_, rtp_);
+    receiver_ = new kvz_rtp::receiver(socket_, ctx_config_, fmt_, rtp_);
 
     sender_->init();
     receiver_->start();
@@ -34,7 +58,7 @@ rtp_error_t kvz_rtp::media_stream::init()
 
 rtp_error_t kvz_rtp::media_stream::init(kvz_rtp::zrtp& zrtp)
 {
-    conn_ = new kvz_rtp::connection(addr_, src_port_, dst_port_, fmt_, flags_);
+    /* TODO:  */
 }
 
 rtp_error_t kvz_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, int flags)

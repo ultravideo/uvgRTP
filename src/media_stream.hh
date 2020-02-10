@@ -3,7 +3,6 @@
 #include <unordered_map>
 #include <memory>
 
-#include "conn.hh"
 #include "receiver.hh"
 #include "rtcp.hh"
 #include "sender.hh"
@@ -59,14 +58,20 @@ namespace kvz_rtp {
             void *get_media_config();
 
         private:
+            /* Initialize the connection by initializing the socket
+             * and binding ourselves to specified interface and creating
+             * an outgoing address */
+            rtp_error_t init_connection();
+
             uint32_t key_;
 
-            kvz_rtp::connection *conn_;
+            kvz_rtp::socket     socket_;
             kvz_rtp::sender     *sender_;
             kvz_rtp::receiver   *receiver_;
             kvz_rtp::srtp       *srtp_;
             kvz_rtp::rtp        *rtp_;
 
+            sockaddr_in addr_out_;
             std::string addr_;
             int src_port_;
             int dst_port_;

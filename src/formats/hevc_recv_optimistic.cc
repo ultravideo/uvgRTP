@@ -6,7 +6,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "conn.hh"
 #include "debug.hh"
 #include "queue.hh"
 #include "receiver.hh"

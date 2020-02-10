@@ -9,7 +9,6 @@
 #include <unordered_map>
 #include <queue>
 
-/* #include "conn.hh" */
 #include "debug.hh"
 #include "queue.hh"
 #include "send.hh"

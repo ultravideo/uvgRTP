@@ -2,7 +2,6 @@
 #include <cstring>
 #include <iostream>
 
-#include "conn.hh"
 #include "debug.hh"
 #include "queue.hh"
 #include "receiver.hh"

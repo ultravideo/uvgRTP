@@ -1,7 +1,6 @@
 #include <cstring>
 #include <iostream>
 
-#include "conn.hh"
 #include "debug.hh"
 #include "send.hh"
 

@@ -3,7 +3,6 @@
 #include <iostream>
 
 #include "debug.hh"
-#include "conn.hh"
 #include "hostname.hh"
 #include "lib.hh"
 #include "random.hh"
@@ -28,11 +27,11 @@ kvz_rtp::context::context()
 
 kvz_rtp::context::~context()
 {
-    for (auto& conn : conns_) {
-        delete conn.second;
-    }
+    /* for (auto& conn : conns_) { */
+    /*     delete conn.second; */
+    /* } */
 
-    conns_.clear();
+    /* conns_.clear(); */
 
 #ifdef _WIN32
     WSACleanup();

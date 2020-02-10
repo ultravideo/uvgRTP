@@ -13,7 +13,8 @@
 kvz_rtp::rtp::rtp(rtp_format_t fmt)
     :sent_pkts_(0)
 {
-    seq_  = kvz_rtp::random::generate_32();
+    seq_  = kvz_rtp::random::generate_32() & 0xffff;
+    ts_   = kvz_rtp::random::generate_32();
     ssrc_ = kvz_rtp::random::generate_32();
     fmt_  = fmt;
 }
@@ -78,8 +79,10 @@ void kvz_rtp::rtp::fill_header(uint8_t *buffer)
      * and generate random RTP timestamp for this reading */
     if (wc_start_ == 0) {
         ts_        = kvz_rtp::random::generate_32();
-        wc_start_  = kvz_rtp::clock::ntp::now();
         wc_start_2 = kvz_rtp::clock::hrc::now();
+
+        /* fprintf(stderr, "hwreerere\n"); */
+        /* for (;;); */
     }
 
     buffer[0] = 2 << 6; // RTP version
@@ -88,7 +91,6 @@ void kvz_rtp::rtp::fill_header(uint8_t *buffer)
     *(uint16_t *)&buffer[2] = htons(seq_);
     *(uint32_t *)&buffer[4] = htonl(
         ts_
-        /* + kvz_rtp::clock::ntp::diff_now(wc_start_) */
         + kvz_rtp::clock::hrc::diff_now(wc_start_2)
         * clock_rate_
         / 1000

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "frame.hh"
 #include "rtp.hh"
 #include "runner.hh"
 #include "socket.hh"

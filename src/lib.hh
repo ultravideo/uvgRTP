@@ -1,7 +1,6 @@
 #pragma once
 
 #include <map>
-#include "conn.hh"
 #include "session.hh"
 
 namespace kvz_rtp {
@@ -24,6 +23,6 @@ namespace kvz_rtp {
             /* CNAME is the same for all connections */
             std::string cname_;
 
-            std::map<uint32_t, connection *> conns_;
+            /* std::map<uint32_t, connection *> conns_; */
         };
 };
