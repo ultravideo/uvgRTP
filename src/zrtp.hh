@@ -155,13 +155,29 @@ namespace kvz_rtp {
             zrtp();
             ~zrtp();
 
-            /* Initialize ZRTP session between us and remote
+            /* Initialize ZRTP for a multimedia session
+             *
+             * If this the first ZRTP session initialization for this object,
+             * ZRTP will perform DHMode initialization, otherwise Multistream Mode
+             * initialization is performed.
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
             rtp_error_t init(uint32_t ssrc, socket_t& socket, sockaddr_in& addr);
 
         private:
+            /* Initialize ZRTP session between us and remote using Diffie-Hellman Mode
+             *
+             * Return RTP_OK on success
+             * Return RTP_TIMEOUT if remote did not send messages in timely manner */
+            rtp_error_t init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in& addr);
+
+            /* Initialize ZRTP session between us and remote using Multistream mode
+             *
+             * Return RTP_OK on success
+             * Return RTP_TIMEOUT if remote did not send messages in timely manner */
+            rtp_error_t init_msm(uint32_t ssrc, socket_t& socket, sockaddr_in& addr);
+
             /* Set timeout for a socket, needed by backoff timers of ZRTP
              *
              * "timeout" tells the timeout in milliseconds
@@ -241,6 +257,9 @@ namespace kvz_rtp {
             uint32_t ssrc_;
             socket_t socket_;
             sockaddr_in addr_;
+
+            /* Has the ZRTP connection been initialized using DH */
+            bool initialized_;
 
             /* Our own and remote capability structs */
             zrtp_capab_t capab_;
