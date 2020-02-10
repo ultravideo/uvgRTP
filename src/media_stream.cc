@@ -2,8 +2,6 @@
 
 kvz_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     conn_(nullptr),
-    /* writer_(nullptr), */
-    /* reader_(nullptr), */
     srtp_(nullptr)
 {
     fmt_      = fmt;
@@ -48,7 +46,27 @@ rtp_error_t kvz_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, s
     return sender_->push_frame(std::move(data), data_len, flags);
 }
 
-rtp_error_t kvz_rtp::media_stream::pull_frame()
+kvz_rtp::frame::rtp_frame *kvz_rtp::media_stream::pull_frame()
 {
+    return receiver_->pull_frame();
 }
 
+rtp_error_t kvz_rtp::media_stream::install_receive_hook(void *arg, void (*hook)(void *, kvz_rtp::frame::rtp_frame *))
+{
+    if (!hook)
+        return RTP_INVALID_VALUE;
+
+    receiver_->install_recv_hook(arg, hook);
+
+    return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::media_stream::install_deallocation_hook(void (*hook)(void *))
+{
+    if (!hook)
+        return RTP_INVALID_VALUE;
+
+    sender_->install_dealloc_hook(hook);
+
+    return RTP_OK;
+}

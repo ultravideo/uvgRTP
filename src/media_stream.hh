@@ -41,13 +41,13 @@ namespace kvz_rtp {
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags);
 
             /* TODO: all reader-related stuff here with good documentation */
-            rtp_error_t pull_frame();
+            kvz_rtp::frame::rtp_frame *pull_frame();
 
-            /* TODO: explain */
+            /* TODO: document */
             rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, kvz_rtp::frame::rtp_frame *));
 
-            /* TODO:  */
-            rtp_error_t install_deallocation_hook(void *arg, void (*hook)(void *));
+            /* TODO: document */
+            rtp_error_t install_deallocation_hook(void (*hook)(void *));
 
         private:
             uint32_t key_;

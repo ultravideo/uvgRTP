@@ -69,11 +69,11 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::receiver::pull_frame()
         return nullptr;
 
     frames_mtx_.lock();
-    auto nextFrame = frames_.front();
+    auto frame = frames_.front();
     frames_.erase(frames_.begin());
     frames_mtx_.unlock();
 
-    return nextFrame;
+    return frame;
 }
 
 uint8_t *kvz_rtp::receiver::get_recv_buffer() const

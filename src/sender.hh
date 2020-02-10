@@ -46,6 +46,9 @@ namespace kvz_rtp {
             /* Get pointer to the frame queue */
             kvz_rtp::frame_queue *get_frame_queue();
 
+            /* Install deallocation hook to frame queue */
+            void install_dealloc_hook(void (*dealloc_hook)(void *));
+
             /* Get reference to the underlying socket object */
             kvz_rtp::socket & get_socket();
 

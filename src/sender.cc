@@ -126,3 +126,11 @@ kvz_rtp::rtp *kvz_rtp::sender::get_rtp_ctx()
 {
     return rtp_;
 }
+
+void kvz_rtp::sender::install_dealloc_hook(void (*dealloc_hook)(void *))
+{
+    if (!fqueue_)
+        return;
+
+    fqueue_->install_dealloc_hook(dealloc_hook);
+}
