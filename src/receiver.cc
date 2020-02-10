@@ -165,7 +165,14 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::receiver::validate_rtp_frame(uint8_t *buffer
     frame->payload_len = (size_t)size - sizeof(kvz_rtp::frame::rtp_header);
 
     if (frame->header.version != RTP_HEADER_VERSION) {
-        LOG_ERROR("inavlid version");
+
+        /* TODO: zrtp packet should not be ignored */
+        if (frame->header.version == 0 && (conf_.flags & RCE_SRTP_KMNGMNT_ZRTP)) {
+            rtp_errno = RTP_OK;
+            return nullptr;
+        }
+
+        LOG_ERROR("inavlid version %d", frame->header.version);
         rtp_errno = RTP_INVALID_VALUE;
         return nullptr;
     }
