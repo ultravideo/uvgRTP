@@ -64,14 +64,15 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
         ret = socket.recvfrom(receiver->get_recv_buffer(), receiver->get_recv_buffer_len(), 0, &sender_addr, &nread);
 
         if (ret != RTP_OK) {
-            LOG_ERROR("recvfrom failed! FrameReceiver cannot continue!");
+            LOG_ERROR("recvfrom failed! FrameReceiver cannot continue %s!", strerror(errno));
             return RTP_GENERIC_ERROR;;
         }
 
-        if ((frame = receiver->validate_rtp_frame(receiver->get_recv_buffer(), nread)) == nullptr) {
-            LOG_DEBUG("received an invalid frame, discarding");
+        /* Frame might be actually invalid or it might be a ZRTP frame, just continue to next frame */
+        if ((frame = receiver->validate_rtp_frame(receiver->get_recv_buffer(), nread)) == nullptr)
             continue;
-        }
+
+        /* TODO: ??? */
         memcpy(&frame->src_addr, &sender_addr, sizeof(sockaddr_in));
 
         /* Update session related statistics

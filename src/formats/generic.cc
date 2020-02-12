@@ -29,7 +29,7 @@ rtp_error_t kvz_rtp::generic::push_frame(kvz_rtp::sender *sender, uint8_t *data,
     uint8_t header[kvz_rtp::frame::HEADER_SIZE_RTP];
     sender->get_rtp_ctx()->fill_header(header);
 
-    /* return kvz_rtp::send::send_frame(conn, header, sizeof(header), data, data_len); */
+    return kvz_rtp::send::send_frame(sender, header, sizeof(header), data, data_len);
 }
 
 rtp_error_t kvz_rtp::generic::push_frame(kvz_rtp::sender *sender, std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
@@ -44,7 +44,7 @@ rtp_error_t kvz_rtp::generic::push_frame(kvz_rtp::sender *sender, std::unique_pt
     sender->get_rtp_ctx()->fill_header(header);
 
     /* We don't need to transfer the ownership of of "data" to socket because send_frame() executes immediately */
-    /* return kvz_rtp::send::send_frame(conn, header, sizeof(header), data.get(), data_len); */
+    return kvz_rtp::send::send_frame(sender, header, sizeof(header), data.get(), data_len);
 }
 
 rtp_error_t kvz_rtp::generic::frame_receiver(kvz_rtp::receiver *receiver)

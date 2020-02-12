@@ -19,6 +19,7 @@ using namespace kvz_rtp::zrtp_msg;
 #define ZRTP_VERSION 110
 
 kvz_rtp::zrtp::zrtp():
+    initialized_(false),
     receiver_()
 {
     cctx_.sha256 = new kvz_rtp::crypto::sha256;
@@ -575,6 +576,13 @@ rtp_error_t kvz_rtp::zrtp::initiator_finalize_session()
 
 rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& addr)
 {
+    if (!initialized_)
+        return init_dhm(ssrc, socket, addr);
+    return init_msm(ssrc, socket, addr);
+}
+
+rtp_error_t kvz_rtp::zrtp::init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in& addr)
+{
     rtp_error_t ret = RTP_OK;
 
     /* TODO: set all fields initially to zero */
@@ -645,8 +653,6 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
             return ret;
         }
 
-        LOG_INFO("INITIATOR INITIALIZED");
-
     } else {
         if ((ret = dh_part1()) != RTP_OK) {
             LOG_ERROR("Failed to perform Diffie-Hellman key exchange Part1");
@@ -657,10 +663,23 @@ rtp_error_t kvz_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
             LOG_ERROR("Failed to finalize session using Confirm1/Conf2ACK");
             return ret;
         }
-
-        LOG_INFO("RESPONDER INITIALIZED");
     }
+
+    /* ZRTP has been initialized using DHMode */
+    initialized_ = true;
+
+    /* reset the timeout (no longer needed) */
+    set_timeout(0);
 
     /* Session has been initialized successfully and SRTP can start */
     return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::zrtp::init_msm(uint32_t ssrc, socket_t& socket, sockaddr_in& addr)
+{
+    (void)ssrc, (void)socket, (void)addr;
+
+    LOG_WARN("not implemented!");
+
+    return RTP_TIMEOUT;
 }

@@ -65,7 +65,6 @@ rtp_error_t kvz_rtp::sender::init()
             dispatcher_->start();
     } else {
 #endif
-        LOG_INFO("hereerererere");
         fqueue_     = new kvz_rtp::frame_queue(fmt_, conf_);
         dispatcher_ = nullptr;
 #ifndef _WIN32
