@@ -1,4 +1,8 @@
-#pragma once
+/* #pragma once */
+#ifndef UTIL_HH_2USO9BF5
+#define UTIL_HH_2USO9BF5
+
+
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -22,20 +26,31 @@
 #define PACKED_STRUCT(name) struct name
 #endif
 
+#ifdef _WIN32
+    typedef SOCKET socket_t;
+#else
+    typedef int socket_t;
+#endif
+
 const int MAX_PACKET      = 65536;
 const int MAX_PAYLOAD     = 1441;
 
 typedef enum RTP_ERROR {
-    RTP_INTERRUPTED    =  2,
-    RTP_NOT_READY      =  1,
-    RTP_OK             =  0,
-    RTP_GENERIC_ERROR  = -1,
-    RTP_SOCKET_ERROR   = -2,
-    RTP_BIND_ERROR     = -3,
-    RTP_INVALID_VALUE  = -4,
-    RTP_SEND_ERROR     = -5,
-    RTP_MEMORY_ERROR   = -6,
-    RTP_SSRC_COLLISION = -7,
+    RTP_INTERRUPTED     =  2,
+    RTP_NOT_READY       =  1,
+    RTP_OK              =  0,
+    RTP_GENERIC_ERROR   = -1,
+    RTP_SOCKET_ERROR    = -2,
+    RTP_BIND_ERROR      = -3,
+    RTP_INVALID_VALUE   = -4,
+    RTP_SEND_ERROR      = -5,
+    RTP_MEMORY_ERROR    = -6,
+    RTP_SSRC_COLLISION  = -7,
+    RTP_INITIALIZED     = -8,   /* object already initialized */
+    RTP_NOT_INITIALIZED = -9,   /* object has not been initialized */
+    RTP_NOT_SUPPORTED   = -10,  /* method/version/extension not supported */
+    RTP_RECV_ERROR      = -11,  /* recv(2) or one of its derivatives failed */
+    RTP_TIMEOUT         = -12,
 } rtp_error_t;
 
 typedef enum RTP_FORMAT {
@@ -70,22 +85,33 @@ typedef enum RTP_FLAGS {
 } rtp_flags_t;
 
 /* These flags are given when kvzRTP context is created */
-typedef enum RTP_CTX_ENABLE_FLAGS {
-    RTP_CTX_NO_FLAGS                      = 0 << 0,
+enum RTP_CTX_ENABLE_FLAGS {
+    RTP_CTX_NO_FLAGS           = 0 << 0,
 
     /* Use optimistic receiver (HEVC only) */
     RCE_OPTIMISTIC_RECEIVER    = 1 << 0,
 
-    /* Enable probation zone (enabled only if optimistic receiver is enabled) */
-    RCE_PROBATION_ZONE         = 1 << 1,
-
     /* Enable system call dispatcher (HEVC only) */
     RCE_SYSTEM_CALL_DISPATCHER = 1 << 2,
 
-} rtp_ctx_flags_t;
+    /* Use SRTP for this connection */
+    RCE_SRTP               = 1 << 3,
+
+    /* Use ZRTP for key management
+     *
+     * TODO selitä paremmin */
+    RCE_SRTP_KMNGMNT_ZRTP      = 1 << 4,
+
+    /* Use user-defined way to manage keys
+     *
+     * TODO selitä paremmin */
+    RCE_SRTP_KMNGMNT_USER      = 1 << 4,
+
+    RCE_LAST                   = 1 << 5,
+};
 
 /* These options are given to configuration() */
-typedef enum RTP_CTX_CONFIGURATION_FLAGS {
+enum RTP_CTX_CONFIGURATION_FLAGS {
     /* No configuration flags */
     RCC_NO_FLAGS                  = 0,
 
@@ -97,7 +123,7 @@ typedef enum RTP_CTX_CONFIGURATION_FLAGS {
      * NOTE: how many **packets**, not bytes */
     RCC_PROBATION_ZONE_SIZE       = 1,
 
-    /* How many transactions can be cached for later use 
+    /* How many transactions can be cached for later use
      * Caching transactions improves performance by reducing
      * the number of (de)allocations but increases the memory
      * footprint of the program
@@ -111,7 +137,7 @@ typedef enum RTP_CTX_CONFIGURATION_FLAGS {
      * multiple UDP packets, each of size 1500 bytes. This UDP packets
      * are stored into a transaction object.
      *
-     * Video with high bitrate may require large value for "RCC_MAX_MESSAGES" 
+     * Video with high bitrate may require large value for "RCC_MAX_MESSAGES"
      *
      * By default, it is set to 500 (ie. one frame can take up to 500 * 1500 bytes) */
     RCC_MAX_MESSAGES              = 3,
@@ -121,29 +147,21 @@ typedef enum RTP_CTX_CONFIGURATION_FLAGS {
      * By default, this is set to 4 */
     RCC_MAX_CHUNKS_PER_MSG        = 4,
 
-    /* How large is the receive UDP buffer size
+    /* How large is the receiver/sender UDP buffer size
      *
      * Default value is 4 MB
      *
      * For video with high bitrate, it is advisable to set this
      * to a high number to prevent OS from dropping packets */
-    RCC_READER_UDP_BUF_SIZE       = 5,
+    RCC_UDP_BUF_SIZE              = 5,
 
-    /* How large is the send UDP buffer size
-     *
-     * Default value is 4 MB
-     *
-     * For video with high bitrate, it is advisable to set this
-     * to a high number to prevent OS from dropping packets */
-    RCC_WRITER_UDP_BUF_SIZE       = 6,
-
-    RTP_CTX_CONF_LAST
-} rtp_ctx_conf_flags_t;
+    RCC_LAST
+};
 
 /* see src/util.hh for more information */
 typedef struct rtp_ctx_conf {
-    rtp_ctx_flags_t flags;
-    ssize_t ctx_values[RTP_CTX_CONF_LAST];
+    int flags;
+    ssize_t ctx_values[RCC_LAST];
 } rtp_ctx_conf_t;
 
 extern thread_local rtp_error_t rtp_errno;
@@ -184,3 +202,5 @@ static inline std::string generate_string(size_t length)
     std::generate_n(str.begin(), length, randchar);
     return str;
 }
+#endif /* UTIL_HH_2USO9BF5 */
+

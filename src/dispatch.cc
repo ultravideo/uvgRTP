@@ -18,6 +18,8 @@ rtp_error_t kvz_rtp::dispatcher::start()
     if ((runner_ = new std::thread(dispatch_runner, this, socket_)) == nullptr)
         return RTP_MEMORY_ERROR;
 
+    runner_->detach();
+
     return kvz_rtp::runner::start();
 }
 
@@ -26,6 +28,7 @@ rtp_error_t kvz_rtp::dispatcher::stop()
     if (tasks_.size() > 0)
         return RTP_NOT_READY;
 
+    cv_.notify_one();
     return kvz_rtp::runner::stop();
 }
 
@@ -75,6 +78,9 @@ void kvz_rtp::dispatcher::dispatch_runner(kvz_rtp::dispatcher *dispatcher, kvz_r
         if ((t = dispatcher->get_transaction()) == nullptr) {
             dispatcher->get_cvar().wait(lk);
             t = dispatcher->get_transaction();
+
+            if (t == nullptr)
+                break;
         }
 
         do {
@@ -86,5 +92,7 @@ void kvz_rtp::dispatcher::dispatch_runner(kvz_rtp::dispatcher *dispatcher, kvz_r
 
         dispatcher->get_cvar().notify_one();
     }
+
+    std::exit(EXIT_SUCCESS);
 }
 #endif

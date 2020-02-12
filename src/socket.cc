@@ -18,12 +18,14 @@ using namespace mingw;
 
 #include "debug.hh"
 #include "socket.hh"
+#include "util.hh"
 
 kvz_rtp::socket::socket():
     recv_handler_(nullptr),
     sendto_handler_(nullptr),
     sendtov_handler_(nullptr),
-    socket_(-1)
+    socket_(-1),
+    srtp_(nullptr)
 {
 }
 
@@ -34,6 +36,68 @@ kvz_rtp::socket::~socket()
 #else
     closesocket(socket_);
 #endif
+
+    delete srtp_;
+}
+
+rtp_error_t kvz_rtp::socket::setup_srtp(uint32_t ssrc)
+{
+    if (srtp_) {
+        LOG_DEBUG("SRTP has already been initialized");
+        return RTP_INITIALIZED;
+    }
+
+    if ((srtp_ = new kvz_rtp::srtp(SRTP)) == nullptr) {
+        LOG_DEBUG("Failed to allocate SRTP context!");
+        return RTP_MEMORY_ERROR;
+    }
+
+    return srtp_->init_zrtp(ssrc, socket_, addr_);
+}
+
+rtp_error_t kvz_rtp::socket::setup_srtcp(uint32_t ssrc)
+{
+    if (srtp_) {
+        LOG_DEBUG("SRTP has already been initialized");
+        return RTP_INITIALIZED;
+    }
+
+    if ((srtp_ = new kvz_rtp::srtp(SRTCP)) == nullptr) {
+        LOG_DEBUG("Failed to allocate SRTP context!");
+        return RTP_MEMORY_ERROR;
+    }
+
+    return srtp_->init_zrtp(ssrc, socket_, addr_);
+}
+
+rtp_error_t kvz_rtp::socket::setup_srtp(uint32_t ssrc, std::pair<uint8_t *, size_t>& key)
+{
+    if (srtp_) {
+        LOG_DEBUG("SRTP has already been initialized");
+        return RTP_INITIALIZED;
+    }
+
+    if ((srtp_ = new kvz_rtp::srtp(SRTP)) == nullptr) {
+        LOG_DEBUG("Failed to allocate SRTP context!");
+        return RTP_MEMORY_ERROR;
+    }
+
+    return srtp_->init_user(ssrc, key);
+}
+
+rtp_error_t kvz_rtp::socket::setup_srtcp(uint32_t ssrc, std::pair<uint8_t *, size_t>& key)
+{
+    if (srtp_) {
+        LOG_DEBUG("SRTP has already been initialized");
+        return RTP_INITIALIZED;
+    }
+
+    if ((srtp_ = new kvz_rtp::srtp(SRTCP)) == nullptr) {
+        LOG_DEBUG("Failed to allocate SRTP context!");
+        return RTP_MEMORY_ERROR;
+    }
+
+    return srtp_->init_user(ssrc, key);
 }
 
 rtp_error_t kvz_rtp::socket::init(short family, int type, int protocol)
@@ -117,7 +181,7 @@ void kvz_rtp::socket::set_sockaddr(sockaddr_in addr)
     addr_ = addr;
 }
 
-kvz_rtp::socket_t& kvz_rtp::socket::get_raw_socket()
+socket_t& kvz_rtp::socket::get_raw_socket()
 {
     return socket_;
 }
@@ -304,6 +368,80 @@ rtp_error_t kvz_rtp::socket::send_vecio(vecio_buf *buffers, size_t nbuffers, int
 #endif
 }
 
+rtp_error_t kvz_rtp::socket::recv_vecio(vecio_buf *buffers, size_t nbuffers, int flags, int *nread)
+{
+    if (buffers == nullptr || nbuffers == 0)
+        return RTP_INVALID_VALUE;
+
+    ssize_t dgrams_read = 0;
+
+#ifdef __linux__
+    if ((dgrams_read = ::recvmmsg(socket_, buffers, nbuffers, flags, nullptr)) < 0) {
+        LOG_ERROR("recvmmsg(2) failed: %s", strerror(errno));
+        set_bytes(nread, -1);
+        return RTP_GENERIC_ERROR;
+    }
+
+    set_bytes(nread, dgrams_read);
+    return RTP_OK;
+#else
+    /* TODO:  */
+#endif
+}
+
+rtp_error_t kvz_rtp::socket::__recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
+{
+    if (!buf || !buf_len) {
+        set_bytes(bytes_read, -1);
+        return RTP_INVALID_VALUE;
+    }
+
+#ifdef __linux__
+    int32_t ret = ::recv(socket_, buf, buf_len, flags);
+
+    if (ret == -1) {
+        if (errno == EAGAIN) {
+            set_bytes(bytes_read, 0);
+            return RTP_INTERRUPTED;
+        }
+        LOG_ERROR("recv(2) failed: %s", strerror(errno));
+
+        set_bytes(bytes_read, -1);
+        return RTP_GENERIC_ERROR;
+    }
+
+    set_bytes(bytes_read, ret);
+    return RTP_OK;
+#else
+    int rc, err;
+    WSABUF DataBuf;
+    DataBuf.len = (u_long)buf_len;
+    DataBuf.buf = (char *)buf;
+    DWORD bytes_received, flags_ = 0;
+
+    rc = ::WSARecv(socket_, &DataBuf, 1, &bytes_received, &flags_, NULL, NULL);
+
+    if ((rc == SOCKET_ERROR) && (WSA_IO_PENDING != (err = WSAGetLastError()))) {
+        win_get_last_error();
+        set_bytes(bytes_read, -1);
+        return RTP_GENERIC_ERROR;
+    }
+
+    set_bytes(bytes_read, bytes_received);
+    return RTP_OK;
+#endif
+}
+
+rtp_error_t kvz_rtp::socket::recv(uint8_t *buf, size_t buf_len, int flags)
+{
+    return kvz_rtp::socket::__recv(buf, buf_len, flags, nullptr);
+}
+
+rtp_error_t kvz_rtp::socket::recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
+{
+    return kvz_rtp::socket::__recv(buf, buf_len, flags, bytes_read);
+}
+
 rtp_error_t kvz_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read)
 {
     socklen_t *len_ptr = nullptr;
@@ -402,4 +540,9 @@ void kvz_rtp::socket::install_ll_sendtov(
 {
     assert(sendtov != nullptr);
     sendtov_handler_ = sendtov;
+}
+
+sockaddr_in& kvz_rtp::socket::get_out_address()
+{
+    return addr_;
 }

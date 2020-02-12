@@ -45,7 +45,9 @@ rtp_error_t kvz_rtp::poll::poll(std::vector<kvz_rtp::socket>& sockets, uint8_t *
 
     for (size_t i = 0; i < sockets.size(); ++i) {
         if (fds[i].revents & POLLIN) {
-            if ((ret = recv(fds[i].fd, buf, buf_len, 0)) < 0) {
+            auto rtp_ret = sockets.at(i).recv(buf, buf_len, 0);
+
+            if (rtp_ret != RTP_OK) {
                 LOG_ERROR("recv() for socket %d failed: %s", fds[i].fd, strerror(errno));
                 return RTP_GENERIC_ERROR;
             }
@@ -82,7 +84,9 @@ rtp_error_t kvz_rtp::poll::poll(std::vector<kvz_rtp::socket>& sockets, uint8_t *
     }
 
     for (size_t i = 0; i < sockets.size(); ++i) {
-        if ((ret = ::recv(sockets.at(i).get_raw_socket(), (char *)buf, (int)buf_len, 0)) < 0) {
+        auto rtp_ret = sockets.at(i).recv((char *)buf, (int)buf_len, 0);
+
+        if (rtp_ret != RTP_OK) {
             if (WSAGetLastError() == WSAEWOULDBLOCK)
                 continue;
         } else {

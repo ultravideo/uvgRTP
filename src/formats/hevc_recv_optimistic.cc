@@ -6,12 +6,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "conn.hh"
 #include "debug.hh"
-#include "reader.hh"
 #include "queue.hh"
+#include "receiver.hh"
 #include "send.hh"
-#include "writer.hh"
 
 #define INVALID_SEQ  0x13371338
 #define INVALID_TS   0xffffffff
@@ -475,9 +473,9 @@ static void __resolve_relocations(struct frames& frames, uint32_t ts)
     GET_FRAME(ts).rinfo.clear();
 }
 
-rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
+rtp_error_t __hevc_receiver_optimistic(kvz_rtp::receiver *receiver)
 {
-    /* LOG_INFO("Starting Optimistic HEVC Fragment Receiver..."); */
+    LOG_INFO("Starting Optimistic HEVC Fragment Receiver...");
 
     struct frames frames;
 
@@ -502,12 +500,12 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
     std::memset(&frames.fsah,   0, sizeof(frames.fsah));
 
     int nread           = 0;
-    rtp_ctx_conf_t conf = reader->get_ctx_conf();
+    /* rtp_ctx_conf_t conf = receiver->get_ctx_conf(); */
 
-    frames.pz_enabled = !!(conf.flags & RCE_PROBATION_ZONE);
-    frames.pz_size    = conf.ctx_values[RCC_PROBATION_ZONE_SIZE];
+    /* frames.pz_size    = conf.ctx_values[RCC_PROBATION_ZONE_SIZE]; */
+    /* frames.pz_enabled = !!(frames.pz_size > 0); */
 
-    while (reader->active()) {
+    while (receiver->active()) {
 
         if (ACTIVE.next_off + MAX_DATAGRAMS * MAX_READ_SIZE > ACTIVE.total_size)
             __reallocate_frame(frames, frames.active_ts);
@@ -530,12 +528,13 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
         }
 
 #ifdef _WIN32
-        if (WSARecvFrom(reader->get_raw_socket(), frame)) {
+        if (WSARecvFrom(receiver->get_raw_socket(), frame)) {
         }
 #else
 
         size_t pkt_avg   = 0;
         size_t datagrams = 1;
+        int flags        = MSG_WAITFORONE;
 
         if (frames.fsah.frames != 0)
             pkt_avg = frames.fsah.pkts / (float)frames.fsah.frames;
@@ -543,20 +542,14 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
         if ((float)ACTIVE.pkts_received > ((float)pkt_avg * 0.02f) &&
             (float)ACTIVE.pkts_received < ((float)pkt_avg * 0.98f)) {
             datagrams = MAX_DATAGRAMS;
+            flags     = 0;
         }
 
         ACTIVE.syscalls++;
 
-        if (datagrams > 1) {
-            if ((nread = recvmmsg(reader->get_raw_socket(), frames.headers, datagrams, 0, nullptr)) < 0) {
-                LOG_ERROR("recvmmsg() failed, %s", strerror(errno));
-                continue;
-            }
-        } else {
-            if ((nread = recvmmsg(reader->get_raw_socket(), frames.headers, datagrams, MSG_WAITFORONE, nullptr)) < 0) {
-                LOG_ERROR("recvmmsg() failed, %s", strerror(errno));
-                continue;
-            }
+        if (receiver->get_socket().recv_vecio(frames.headers, datagrams, flags, &nread) != RTP_OK) {
+            LOG_ERROR("recv_vecio() failed, %s", strerror(errno));
+            continue;
         }
 #endif
 
@@ -628,7 +621,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                 std::memcpy(frame->payload + 3, ACTIVE.frame->payload + off, len - 3);
 
                 frames.prev_eseq = frames.prevr_eseq = c_seq;
-                reader->return_frame(frame);
+                receiver->return_frame(frame);
                 continue;
             }
 
@@ -859,7 +852,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::reader *reader)
                 /* fprintf(stderr, "%f avg syscalls, %f avg packets, %f avg relocs\n", */
                 /* ); */
 
-                reader->return_frame(ACTIVE.frame);
+                receiver->return_frame(ACTIVE.frame);
                 frames.prev_eseq = ACTIVE.e_seq;
                 frames.finfo.erase(frames.active_ts);
                 change_active_frame = true;

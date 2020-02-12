@@ -8,11 +8,10 @@
 #include <cstring>
 #endif
 
-#include "conn.hh"
 #include "debug.hh"
 #include "queue.hh"
 #include "random.hh"
-#include "writer.hh"
+#include "sender.hh"
 
 #include "formats/hevc.hh"
 
@@ -48,7 +47,7 @@ kvz_rtp::frame_queue::~frame_queue()
 {
 }
 
-rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn)
+rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::sender *sender)
 {
     std::lock_guard<std::mutex> lock(transaction_mtx_);
 
@@ -90,19 +89,19 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn)
     active_->data_smart   = nullptr;
     active_->dealloc_hook = dealloc_hook_;
 
-    active_->out_addr = dynamic_cast<kvz_rtp::writer *>(conn)->get_out_address();
-    conn->fill_rtp_header((uint8_t *)&active_->rtp_common);
+    active_->out_addr = sender->get_socket().get_out_address();
+    sender->get_rtp_ctx()->fill_header((uint8_t *)&active_->rtp_common);
     active_->buffers.clear();
 
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn, uint8_t *data)
+rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::sender *sender, uint8_t *data)
 {
-    if (!conn || !data)
+    if (!sender || !data)
         return RTP_INVALID_VALUE;
 
-    if (init_transaction(conn) != RTP_OK) {
+    if (init_transaction(sender) != RTP_OK) {
         LOG_ERROR("Failed to initialize transaction");
         return RTP_GENERIC_ERROR;
     }
@@ -113,12 +112,12 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn, ui
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::connection *conn, std::unique_ptr<uint8_t[]> data)
+rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::sender *sender, std::unique_ptr<uint8_t[]> data)
 {
-    if (!conn || !data)
+    if (!sender || !data)
         return RTP_INVALID_VALUE;
 
-    if (init_transaction(conn) != RTP_OK) {
+    if (init_transaction(sender) != RTP_OK) {
         LOG_ERROR("Failed to initialize transaction");
         return RTP_GENERIC_ERROR;
     }
@@ -155,7 +154,7 @@ rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
         transaction_it->second->data_raw = nullptr;
     }
 
-    if (free_.size() > max_queued_) {
+    if (free_.size() > (size_t)max_queued_) {
         switch (fmt_) {
             case RTP_FORMAT_HEVC:
                 delete (kvz_rtp::hevc::media_headers *)transaction_it->second->media_headers;
@@ -186,21 +185,21 @@ rtp_error_t kvz_rtp::frame_queue::deinit_transaction()
 }
 
 rtp_error_t kvz_rtp::frame_queue::enqueue_message(
-    kvz_rtp::connection *conn,
+    kvz_rtp::sender *sender,
     uint8_t *message, size_t message_len
 )
 {
-    if (!conn || !message || message_len == 0)
+    if (!sender || !message || message_len == 0)
         return RTP_INVALID_VALUE;
 
 #ifdef __linux__
-    if (active_->chunk_ptr + 2 >= max_ccount_ || active_->hdr_ptr + 1 >= max_mcount_) {
+    if (active_->chunk_ptr + 2 >= (size_t)max_ccount_ || active_->hdr_ptr + 1 >= (size_t)max_mcount_) {
         LOG_ERROR("maximum amount of chunks (%zu) or messages (%zu) exceeded!", active_->chunk_ptr, active_->hdr_ptr);
         return RTP_MEMORY_ERROR;
     }
 
     /* update the RTP header at "rtpheaders_ptr_" */
-    kvz_rtp::frame_queue::update_rtp_header(conn);
+    kvz_rtp::frame_queue::update_rtp_header(sender);
 
     active_->chunks[active_->chunk_ptr + 0].iov_base = &active_->rtp_headers[active_->rtphdr_ptr];
     active_->chunks[active_->chunk_ptr + 0].iov_len  = sizeof(active_->rtp_headers[active_->rtphdr_ptr]);
@@ -222,28 +221,28 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
     /* TODO: winsock stuff */
 #endif
 
-    conn->inc_rtp_sequence();
-    conn->inc_sent_pkts();
+    sender->get_rtp_ctx()->inc_sequence();
+    sender->get_rtp_ctx()->inc_sent_pkts();
 
     return RTP_OK;
 }
 
 rtp_error_t kvz_rtp::frame_queue::enqueue_message(
-    kvz_rtp::connection *conn,
+    kvz_rtp::sender *sender,
     std::vector<std::pair<size_t, uint8_t *>>& buffers
 )
 {
-    if (!conn || buffers.size() == 0)
+    if (!sender || buffers.size() == 0)
         return RTP_INVALID_VALUE;
 
 #ifdef __linux__
-    if (active_->chunk_ptr + buffers.size() + 1 >= max_ccount_ || active_->hdr_ptr + 1 >= max_mcount_) {
+    if (active_->chunk_ptr + buffers.size() + 1 >= (size_t)max_ccount_ || active_->hdr_ptr + 1 >= (size_t)max_mcount_) {
         LOG_ERROR("maximum amount of chunks (%zu) or messages (%zu) exceeded!", active_->chunk_ptr, active_->hdr_ptr);
         return RTP_MEMORY_ERROR;
     }
 
     /* update the RTP header at "rtpheaders_ptr_" */
-    kvz_rtp::frame_queue::update_rtp_header(conn);
+    kvz_rtp::frame_queue::update_rtp_header(sender);
 
     active_->chunks[active_->chunk_ptr].iov_len  = sizeof(active_->rtp_headers[active_->rtphdr_ptr]);
     active_->chunks[active_->chunk_ptr].iov_base = &active_->rtp_headers[active_->rtphdr_ptr];
@@ -267,15 +266,15 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
     /* TODO: winsock stuff */
 #endif
 
-    conn->inc_rtp_sequence();
-    conn->inc_sent_pkts();
+    sender->get_rtp_ctx()->inc_sequence();
+    sender->get_rtp_ctx()->inc_sent_pkts();
 
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
+rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::sender *sender)
 {
-    if (!conn || active_->hdr_ptr == 0 || active_->chunk_ptr == 0) {
+    if (!sender || active_->hdr_ptr == 0 || active_->chunk_ptr == 0) {
         LOG_ERROR("Cannot send 0 messages or messages containing 0 chunks!");
         (void)deinit_transaction();
         return RTP_INVALID_VALUE;
@@ -295,22 +294,22 @@ rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::connection *conn)
         return RTP_OK;
     }
 
-    if (conn->get_socket().send_vecio(active_->headers, active_->hdr_ptr, 0) != RTP_OK) {
+    if (sender->get_socket().send_vecio(active_->headers, active_->hdr_ptr, 0) != RTP_OK) {
         LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
         (void)deinit_transaction();
         return RTP_SEND_ERROR;
     }
 
-    LOG_DEBUG("full message took %d chunks and %d messages", active_->chunk_ptr, active_->hdr_ptr);
+    LOG_DEBUG("full message took %zu chunks and %zu messages", active_->chunk_ptr, active_->hdr_ptr);
 
     return deinit_transaction();
 #endif
 }
 
-void kvz_rtp::frame_queue::update_rtp_header(kvz_rtp::connection *conn)
+void kvz_rtp::frame_queue::update_rtp_header(kvz_rtp::sender *sender)
 {
     memcpy(&active_->rtp_headers[active_->rtphdr_ptr], &active_->rtp_common, sizeof(active_->rtp_common));
-    conn->update_rtp_sequence((uint8_t *)(&active_->rtp_headers[active_->rtphdr_ptr]));
+    sender->get_rtp_ctx()->update_sequence((uint8_t *)(&active_->rtp_headers[active_->rtphdr_ptr]));
 }
 
 kvz_rtp::buff_vec& kvz_rtp::frame_queue::get_buffer_vector()

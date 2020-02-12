@@ -1,32 +1,29 @@
 #pragma once
 
-#include <stdint.h>
-
-#include "conn.hh"
-#include "frame.hh"
+#include "dispatch.hh"
 #include "queue.hh"
+#include "rtp.hh"
 #include "socket.hh"
 
 namespace kvz_rtp {
 
-    /* typedef struct rtp_ctx_conf rtp_ctx_conf_t; */
+    class frame_queue;
+    class dispatcher;
 
-    class writer : public connection {
+    class sender {
         public:
-            /* "src_port" is an optional argument, given if holepunching want to be used */
-            writer(rtp_format_t fmt, rtp_ctx_conf_t& conf, std::string dst_addr, int dst_port);
-            writer(rtp_format_t fmt, rtp_ctx_conf_t& conf, std::string dst_addr, int dst_port, int src_port);
-            ~writer();
+            sender(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt, kvz_rtp::rtp *rtp);
+            ~sender();
 
-            /* Open socket for sending frames and start SCD if enabled
-             * Start RTCP instance if not already started
+            /* Initialize the RTP sender by adjusting UDP buffer size,
+             * creating a frame queue and possibly creating a dispatcher 
              *
              * Return RTP_OK on success
-             * Return RTP_SOCKET_ERROR if the socket couldn't be initialized
-             * Return RTP_BIND_ERROR   if binding to src_port_ failed
-             * Return RTP_MEMORY_ERROR if RTCP instance couldn't be allocated
-             * Return RTP_GENERIC_ERROR for any other error condition */
-            rtp_error_t start();
+             * Return RTP_MEMORY_ERROR if allocation failed */
+            rtp_error_t init();
+
+            /* TODO:  */
+            rtp_error_t destroy();
 
             /* Split "data" into 1500 byte chunks and send them to remote
              *
@@ -46,13 +43,28 @@ namespace kvz_rtp {
              * memory to kvzRTP */
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags);
 
-            /* TODO: remove */
-            sockaddr_in get_out_address();
+            /* Get pointer to the frame queue */
+            kvz_rtp::frame_queue *get_frame_queue();
+
+            /* Install deallocation hook to frame queue */
+            void install_dealloc_hook(void (*dealloc_hook)(void *));
+
+            /* Get reference to the underlying socket object */
+            kvz_rtp::socket & get_socket();
+
+            /* Get pointer to RTP context where all clocking informatoin,
+             * SSRC, sequence number etc. are stored */
+            kvz_rtp::rtp *get_rtp_ctx();
 
         private:
-            std::string dst_addr_;
-            int dst_port_;
-            int src_port_;
+            kvz_rtp::socket socket_;
+            kvz_rtp::rtp *rtp_;
+            rtp_ctx_conf conf_;
+            rtp_format_t fmt_;
+
             sockaddr_in addr_out_;
+
+            kvz_rtp::frame_queue *fqueue_;
+            kvz_rtp::dispatcher  *dispatcher_;
     };
 };

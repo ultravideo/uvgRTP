@@ -2,12 +2,10 @@
 #include <cstring>
 #include <iostream>
 
-#include "conn.hh"
 #include "debug.hh"
-#include "reader.hh"
 #include "queue.hh"
+#include "receiver.hh"
 #include "send.hh"
-#include "writer.hh"
 
 #define RTP_FRAME_MAX_DELAY           34
 #define INVALID_SEQ           0x13371338
@@ -48,32 +46,33 @@ static int __check_frame(kvz_rtp::frame::rtp_frame *frame)
     return FT_MIDDLE;
 }
 
-rtp_error_t __hevc_receiver(kvz_rtp::reader *reader)
+rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
 {
     LOG_INFO("frameReceiver starting listening...");
 
     int nread = 0;
     rtp_error_t ret;
     sockaddr_in sender_addr;
-    kvz_rtp::socket socket = reader->get_socket();
+    kvz_rtp::socket socket = receiver->get_socket();
     kvz_rtp::frame::rtp_frame *frame, *frames[0xffff + 1] = { 0 };
 
     uint8_t nal_header[2] = { 0 };
     std::map<uint32_t, hevc_fu_info> s_timers;
     std::map<uint32_t, size_t> dropped_frames;
 
-    while (reader->active()) {
-        ret = socket.recvfrom(reader->get_recv_buffer(), reader->get_recv_buffer_len(), 0, &sender_addr, &nread);
+    while (receiver->active()) {
+        ret = socket.recvfrom(receiver->get_recv_buffer(), receiver->get_recv_buffer_len(), 0, &sender_addr, &nread);
 
         if (ret != RTP_OK) {
-            LOG_ERROR("recvfrom failed! FrameReceiver cannot continue!");
+            LOG_ERROR("recvfrom failed! FrameReceiver cannot continue %s!", strerror(errno));
             return RTP_GENERIC_ERROR;;
         }
 
-        if ((frame = reader->validate_rtp_frame(reader->get_recv_buffer(), nread)) == nullptr) {
-            LOG_DEBUG("received an invalid frame, discarding");
+        /* Frame might be actually invalid or it might be a ZRTP frame, just continue to next frame */
+        if ((frame = receiver->validate_rtp_frame(receiver->get_recv_buffer(), nread)) == nullptr)
             continue;
-        }
+
+        /* TODO: ??? */
         memcpy(&frame->src_addr, &sender_addr, sizeof(sockaddr_in));
 
         /* Update session related statistics
@@ -81,8 +80,9 @@ rtp_error_t __hevc_receiver(kvz_rtp::reader *reader)
          *
          * Skip processing the packet if it was invalid. This is mostly likely caused
          * by an SSRC collision */
-        if (reader->update_receiver_stats(frame) != RTP_OK)
-            continue;
+        /* TODO:  */
+        /* if (receiver->update_receiver_stats(frame) != RTP_OK) */
+        /*     continue; */
 
         /* How to the frame is handled is based what its type is. Generic and Opus frames
          * don't require any extra processing so they can be returned to the user as soon as
@@ -122,7 +122,7 @@ rtp_error_t __hevc_receiver(kvz_rtp::reader *reader)
         int type = __check_frame(frame);
 
         if (type == FT_NOT_FRAG) {
-            reader->return_frame(frame);
+            receiver->return_frame(frame);
             continue;
         }
 
@@ -265,7 +265,7 @@ rtp_error_t __hevc_receiver(kvz_rtp::reader *reader)
                     frames[i] = nullptr;
                 }
 
-                reader->return_frame(out);
+                receiver->return_frame(out);
                 s_timers.erase(ts);
             }
         }

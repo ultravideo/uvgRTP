@@ -13,16 +13,15 @@
 #include <vector>
 #include <string>
 
+#include "srtp.hh"
 #include "util.hh"
 
 namespace kvz_rtp {
 
 #ifdef _WIN32
-    typedef SOCKET socket_t;
     typedef unsigned socklen_t;
     typedef TRANSMIT_PACKETS_ELEMENT vecio_buf;
 #else
-    typedef int socket_t;
     typedef mmsghdr vecio_buf;
 #endif
 
@@ -32,6 +31,38 @@ namespace kvz_rtp {
         public:
             socket();
             ~socket();
+
+            /* Setup Secure RTP/RTCP connection
+             *
+             * The process consists of initializing ZRTP context and
+             * exchaning keys with remote participant and finally
+             * initializing the SRTP context.
+             *
+             * NOTE: This function must be called **after** socket
+             * initialization but before any media exchange happens!
+             *
+             * Return RTP_OK if SRTP setup was successful
+             * Return RTP_NOT_SUPPORTED if remote does not support {SRTP,SRTCP}/ZRTP
+             * Return RTP_MEMORY_ERROR if allocation failed
+             * Return RTP_INITIALIZED if SRTP has already been initialized for this socket
+             * Return RTP_GENERIC_ERROR for any other error */
+            rtp_error_t setup_srtp(uint32_t ssrc);
+            rtp_error_t setup_srtcp(uint32_t ssrc);
+
+            /* Setup Secure RTP/RTCP connection
+             *
+             * The process consists of initializing SRTP context
+             * using the master key provided by the user (ie. no ZRTP)
+             *
+             * NOTE 2: This function must be called **after** socket
+             * initialization but before any media exchange happens!
+             *
+             * Return RTP_OK if SRTP setup was successful
+             * Return RTP_MEMORY_ERROR if allocation failed
+             * Return RTP_INITIALIZED if SRTP has already been initialized for this socket
+             * Return RTP_GENERIC_ERROR for any other error */
+            rtp_error_t setup_srtp(uint32_t  ssrc, std::pair<uint8_t *, size_t>& key);
+            rtp_error_t setup_srtcp(uint32_t ssrc, std::pair<uint8_t *, size_t>& key);
 
             /* Create socket using "family", "type" and "protocol"
              *
@@ -74,13 +105,36 @@ namespace kvz_rtp {
             rtp_error_t sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags);
             rtp_error_t sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent);
 
-            /* Special sendto() functions, used to send multiple UDP packets with one system call
+            /* Special sendto() function, used to send multiple UDP packets with one system call
              * Internally it uses sendmmsg(2) (Linux) or TransmitPackets (Windows)
              *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if one of the parameters is invalid
              * Return RTP_SEND_ERROR if sendmmsg/TransmitPackets failed */
             rtp_error_t send_vecio(vecio_buf *buffers, size_t nbuffers, int flags);
+
+            /* Special recv() function, used to receive multiple UDP packets with one system call
+             * Internally it uses recvmmsg(2) (Linux).
+             *
+             * TODO what about windows?
+             *
+             * Parameter "nread" is used to indicate how many packet were read from the OS.
+             * It may differ from "nbuffers"
+             *
+             * Return RTP_OK on success
+             * Return RTP_INVALID_VALUE if one of the parameters is invalid
+             * Return RTP_SEND_ERROR if sendmmsg/TransmitPackets failed */
+            rtp_error_t recv_vecio(vecio_buf *buffers, size_t nbuffers, int flags, int *nread);
+
+            /* Same as recv(2), receives a message from socket (remote address not known)
+             *
+             * Write the amount of bytes read to "bytes_read" if it's not NULL
+             *
+             * Return RTP_OK on success and write the amount of bytes received to "bytes_read"
+             * Return RTP_INTERRUPTED if the call was interrupted due to timeout and set "bytes_sent" to 0
+             * Return RTP_GENERIC_ERROR on error and set "bytes_sent" to -1 */
+            rtp_error_t recv(uint8_t *buf, size_t buf_len, int flags);
+            rtp_error_t recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read);
 
             /* Same as recvfrom(2), receives a message from remote
              *
@@ -110,6 +164,9 @@ namespace kvz_rtp {
              * This is used when calling send() */
             void set_sockaddr(sockaddr_in addr);
 
+            /* Get the out address for the socket if it exists */
+            sockaddr_in& get_out_address();
+
             /* Some media types (such as HEVC) require finer control over the sending/receiving process
              * These functions can be used to install low-level (the higher level API will call these)
              * functions for dealing with media-specific details
@@ -123,6 +180,7 @@ namespace kvz_rtp {
         private:
             /* helper function for sending UPD packets, see documentation for sendto() above */
             rtp_error_t __sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
+            rtp_error_t __recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read);
             rtp_error_t __recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read);
 
             /* __sendtov() does the same as __sendto but it combines multiple buffers into one frame and sends them */
@@ -134,6 +192,8 @@ namespace kvz_rtp {
 
             socket_t socket_;
             sockaddr_in addr_;
+
+            kvz_rtp::srtp *srtp_;
 
 #ifdef _WIN32
             WSABUF buffers_[MAX_BUFFER_COUNT];
