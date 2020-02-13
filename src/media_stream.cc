@@ -3,7 +3,8 @@
 kvz_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     socket_(),
     srtp_(nullptr),
-    media_config_(nullptr)
+    media_config_(nullptr),
+    ctx_config_()
 {
     fmt_      = fmt;
     addr_     = addr;
@@ -104,11 +105,6 @@ void kvz_rtp::media_stream::set_media_config(void *config)
 void *kvz_rtp::media_stream::get_media_config()
 {
     return media_config_;
-}
-
-rtp_ctx_conf_t& kvz_rtp::media_stream::get_ctx_config()
-{
-    return ctx_config_;
 }
 
 rtp_error_t kvz_rtp::media_stream::configure_ctx(int flag, ssize_t value)

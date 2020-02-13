@@ -13,21 +13,20 @@ namespace kvz_rtp {
             session(std::string addr);
             ~session();
 
-            /*
+            /* Create bidirectional media stream for media format "fmt"
              *
-             * TODO
-             * TODO
-             * TODO
-             * TODO
+             * "flags" shall contain configuration information global to the media stream such as "RCE_SRTP"
              *
-             * Return RTP_OK on success */
+             * kvzRTP binds itself to "src_port" and sends packets to "addr":"dst_port" ("addr" given to constructor)
+             *
+             * Return pointer to media stream on success
+             * Return nullptr if media stream allocation or initialization failed (more on initialization in media_stream.hh) */
             kvz_rtp::media_stream *create_stream(int src_port, int dst_port, rtp_format_t fmt, int flags);
 
-            /* TODO:  */
-            kvz_rtp::media_stream *create_receive_stream(int src_port, rtp_format_t fmt, int flags);
-            kvz_rtp::media_stream *create_send_stream(int dst_port, rtp_format_t fmt, int flags);
-
-            /* TODO:  */
+            /* Destroy media_stream "stream"
+             *
+             * Return RTP_OK on success
+             * Return RTP_INVALID_VALUE if "stream" is nullptr */
             rtp_error_t destroy_media_stream(kvz_rtp::media_stream *stream);
 
         private:

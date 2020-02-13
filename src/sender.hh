@@ -52,7 +52,7 @@ namespace kvz_rtp {
             /* Get reference to the underlying socket object */
             kvz_rtp::socket & get_socket();
 
-            /* Get pointer to RTP context where all clocking informatoin,
+            /* Get pointer to RTP context where all clocking information,
              * SSRC, sequence number etc. are stored */
             kvz_rtp::rtp *get_rtp_ctx();
 
