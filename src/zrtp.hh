@@ -1,3 +1,4 @@
+#ifdef __RTP_CRYPTO__
 #pragma once
 
 #ifdef _WIN32
@@ -11,7 +12,7 @@
 
 #include <vector>
 
-#include "crypto/crypto.hh"
+#include "crypto.hh"
 #include "mzrtp/defines.hh"
 #include "mzrtp/receiver.hh"
 
@@ -272,3 +273,4 @@ namespace kvz_rtp {
             zrtp_session_t session_;
     };
 };
+#endif

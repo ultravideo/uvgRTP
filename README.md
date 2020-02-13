@@ -24,17 +24,35 @@ sudo make install
 
 You can also use QtCreator to build the library. The library must be built using a 64-bit compiler!
 
-The library should be linked as a static library to your program.
+#### SRTP/ZRTP support
+
+If you want SRTP/ZRTP support, you must compile kvzRTP with `-D__RTP_CRYPTO__`
 
 ## Linking
 
+#### Linux
+`-lkvzrtp -lpthread`
+
+#### Windows
+`-L<path to library folder> -lkvzrtp -lpthread -lwsock32 -lws2_32`
+
+#### SRTP/ZRTP support
+
+If you want SRTP/ZRTP support, you must compile [Crypto++](https://www.cryptopp.com/) and link it as a static library
+
+#### Linux
+`-lkvzrtp -lpthread -lcryptopp`
+
+#### Windows
+`-L<path to library folder> -lkvzrtp -lpthread -lcryptopp -lwsock32 -lws2_32`
+
 Linux
 
-`-lkvzrtp -lpthread`
+`-lkvzrtp -lpthread -lcryptopp`
 
 Windows
 
-`-L<path to library folder> -lkvzrtp -lpthread -lwsock32 -lws2_32`
+`-L<path to library folder> -lkvzrtp -lpthread -lcryptopp -lwsock32 -lws2_32`
 
 ## Examples
 
@@ -77,6 +95,8 @@ If you have not enabled the system call dispatcher, you don't need to worry abou
 ## Defines
 
 Use `__RTP_SILENT__` to disable all prints
+
+Use `__RTP_CRYPTO__` to enable SRTP/ZRTP and crypto routines
 
 Use `NDEBUG` to disable `LOG_DEBUG` which is the most verbose level of logging
 

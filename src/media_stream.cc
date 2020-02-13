@@ -1,10 +1,16 @@
+#include "debug.hh"
 #include "media_stream.hh"
 
+#include <cstring>
+#include <errno.h>
+
 kvz_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
-    socket_(),
+#ifdef __RTP_CRYPTO__
     srtp_(nullptr),
-    media_config_(nullptr),
-    ctx_config_()
+#endif
+    socket_(),
+    ctx_config_(),
+    media_config_(nullptr)
 {
     fmt_      = fmt;
     addr_     = addr;
@@ -57,10 +63,12 @@ rtp_error_t kvz_rtp::media_stream::init()
     return RTP_OK;
 }
 
+#ifdef __RTP_CRYPTO__
 rtp_error_t kvz_rtp::media_stream::init(kvz_rtp::zrtp& zrtp)
 {
     /* TODO:  */
 }
+#endif
 
 rtp_error_t kvz_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, int flags)
 {

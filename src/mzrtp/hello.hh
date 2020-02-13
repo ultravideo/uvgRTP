@@ -1,3 +1,4 @@
+#ifdef __RTP_CRYPTO__
 #pragma once
 
 #include "frame.hh"
@@ -54,3 +55,4 @@ namespace kvz_rtp {
         };
     };
 };
+#endif

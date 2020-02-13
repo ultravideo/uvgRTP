@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "frame.hh"
 #include "rtp.hh"
 #include "runner.hh"

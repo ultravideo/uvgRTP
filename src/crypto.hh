@@ -1,14 +1,15 @@
+#ifdef __RTP_CRYPTO__
 #pragma once
 
-#include "3rdparty/cryptopp/aes.h"
-#include "3rdparty/cryptopp/base32.h"
-#include "3rdparty/cryptopp/cryptlib.h"
-#include "3rdparty/cryptopp/dh.h"
-#include "3rdparty/cryptopp/hmac.h"
-#include "3rdparty/cryptopp/modes.h"
-#include "3rdparty/cryptopp/osrng.h"
-#include "3rdparty/cryptopp/sha.h"
-#include "3rdparty/cryptopp/crc.h"
+#include <cryptopp/aes.h>
+#include <cryptopp/base32.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/dh.h>
+#include <cryptopp/hmac.h>
+#include <cryptopp/modes.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/crc.h>
 
 namespace kvz_rtp {
 
@@ -128,3 +129,4 @@ namespace kvz_rtp {
         };
     };
 };
+#endif

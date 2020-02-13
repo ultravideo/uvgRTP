@@ -24,8 +24,7 @@ kvz_rtp::socket::socket():
     recv_handler_(nullptr),
     sendto_handler_(nullptr),
     sendtov_handler_(nullptr),
-    socket_(-1),
-    srtp_(nullptr)
+    socket_(-1)
 {
 }
 
@@ -36,68 +35,6 @@ kvz_rtp::socket::~socket()
 #else
     closesocket(socket_);
 #endif
-
-    delete srtp_;
-}
-
-rtp_error_t kvz_rtp::socket::setup_srtp(uint32_t ssrc)
-{
-    if (srtp_) {
-        LOG_DEBUG("SRTP has already been initialized");
-        return RTP_INITIALIZED;
-    }
-
-    if ((srtp_ = new kvz_rtp::srtp(SRTP)) == nullptr) {
-        LOG_DEBUG("Failed to allocate SRTP context!");
-        return RTP_MEMORY_ERROR;
-    }
-
-    return srtp_->init_zrtp(ssrc, socket_, addr_);
-}
-
-rtp_error_t kvz_rtp::socket::setup_srtcp(uint32_t ssrc)
-{
-    if (srtp_) {
-        LOG_DEBUG("SRTP has already been initialized");
-        return RTP_INITIALIZED;
-    }
-
-    if ((srtp_ = new kvz_rtp::srtp(SRTCP)) == nullptr) {
-        LOG_DEBUG("Failed to allocate SRTP context!");
-        return RTP_MEMORY_ERROR;
-    }
-
-    return srtp_->init_zrtp(ssrc, socket_, addr_);
-}
-
-rtp_error_t kvz_rtp::socket::setup_srtp(uint32_t ssrc, std::pair<uint8_t *, size_t>& key)
-{
-    if (srtp_) {
-        LOG_DEBUG("SRTP has already been initialized");
-        return RTP_INITIALIZED;
-    }
-
-    if ((srtp_ = new kvz_rtp::srtp(SRTP)) == nullptr) {
-        LOG_DEBUG("Failed to allocate SRTP context!");
-        return RTP_MEMORY_ERROR;
-    }
-
-    return srtp_->init_user(ssrc, key);
-}
-
-rtp_error_t kvz_rtp::socket::setup_srtcp(uint32_t ssrc, std::pair<uint8_t *, size_t>& key)
-{
-    if (srtp_) {
-        LOG_DEBUG("SRTP has already been initialized");
-        return RTP_INITIALIZED;
-    }
-
-    if ((srtp_ = new kvz_rtp::srtp(SRTCP)) == nullptr) {
-        LOG_DEBUG("Failed to allocate SRTP context!");
-        return RTP_MEMORY_ERROR;
-    }
-
-    return srtp_->init_user(ssrc, key);
 }
 
 rtp_error_t kvz_rtp::socket::init(short family, int type, int protocol)

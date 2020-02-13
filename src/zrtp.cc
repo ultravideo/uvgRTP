@@ -1,8 +1,9 @@
+#ifdef __RTP_CRYPTO__
 #include <cstring>
 #include <thread>
 
 #include "debug.hh"
-#include "crypto/crypto.hh"
+#include "crypto.hh"
 #include "random.hh"
 #include "zrtp.hh"
 
@@ -683,3 +684,4 @@ rtp_error_t kvz_rtp::zrtp::init_msm(uint32_t ssrc, socket_t& socket, sockaddr_in
 
     return RTP_TIMEOUT;
 }
+#endif

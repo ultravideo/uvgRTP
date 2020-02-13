@@ -1,3 +1,4 @@
+#ifdef __RTP_CRYPTO__
 #pragma once
 
 #ifdef _WIN32
@@ -73,3 +74,4 @@ namespace kvz_rtp {
             secure_context *s_ctx;
     };
 };
+#endif

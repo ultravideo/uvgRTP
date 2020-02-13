@@ -1,3 +1,4 @@
+#ifdef __RTP_CRYPTO__
 #include <cassert>
 #include <cstring>
 
@@ -121,3 +122,4 @@ rtp_error_t kvz_rtp::zrtp_msg::commit::parse_msg(kvz_rtp::zrtp_msg::receiver& re
 
     return RTP_OK;
 }
+#endif

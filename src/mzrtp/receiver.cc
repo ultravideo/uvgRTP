@@ -1,3 +1,4 @@
+#ifdef __RTP_CRYPTO__
 #ifdef _WIN32
 #include <winsock2.h>
 #include <mswsock.h>
@@ -12,7 +13,7 @@
 
 #include "debug.hh"
 #include "util.hh"
-#include "crypto/crypto.hh"
+#include "crypto.hh"
 #include "mzrtp/defines.hh"
 #include "mzrtp/dh_kxchng.hh"
 #include "mzrtp/commit.hh"
@@ -212,3 +213,4 @@ ssize_t kvz_rtp::zrtp_msg::receiver::get_msg(void *ptr, size_t len)
     memcpy(ptr, mem_, cpy_len);
     return rlen_;
 }
+#endif

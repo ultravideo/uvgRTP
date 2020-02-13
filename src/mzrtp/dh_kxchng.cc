@@ -1,3 +1,4 @@
+#ifdef __RTP_CRYPTO__
 #include <cstring>
 
 #include "debug.hh"
@@ -165,3 +166,4 @@ rtp_error_t kvz_rtp::zrtp_msg::dh_key_exchange::parse_msg(kvz_rtp::zrtp_msg::rec
 
     return RTP_OK;
 }
+#endif

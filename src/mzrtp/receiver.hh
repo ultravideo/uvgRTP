@@ -1,3 +1,4 @@
+#ifdef __RTP_CRYPTO__
 #pragma once
 
 namespace kvz_rtp {
@@ -28,3 +29,4 @@ namespace kvz_rtp {
         };
     };
 };
+#endif

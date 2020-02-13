@@ -1,3 +1,4 @@
+#ifdef __RTP_CRYPTO__
 #include <cstring>
 
 #include "debug.hh"
@@ -73,3 +74,4 @@ rtp_error_t kvz_rtp::zrtp_msg::confack::parse_msg(kvz_rtp::zrtp_msg::receiver& r
 
     return RTP_OK;
 }
+#endif

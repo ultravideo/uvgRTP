@@ -1,4 +1,5 @@
-#include "crypto/crypto.hh"
+#ifdef __RTP_CRYPTO__
+#include "crypto.hh"
 
 #include <iostream>
 
@@ -238,3 +239,4 @@ bool kvz_rtp::crypto::crc32::verify_crc32(uint8_t *input, size_t len, uint32_t o
 
     return new_crc == old_crc;
 }
+#endif

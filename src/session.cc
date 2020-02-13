@@ -1,7 +1,10 @@
+#include "debug.hh"
 #include "session.hh"
 
 kvz_rtp::session::session(std::string addr):
+#ifdef __RTP_CRYPTO__
     zrtp_(),
+#endif
     addr_(addr)
 {
 }
@@ -15,6 +18,7 @@ kvz_rtp::media_stream *kvz_rtp::session::create_stream(int r_port, int s_port, r
 {
     kvz_rtp::media_stream *stream = new kvz_rtp::media_stream(addr_, r_port, s_port, fmt, flags);
 
+#ifdef __RTP_CRYPTO__
     int zrtp_flags = (RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP);
 
     if ((flags & zrtp_flags) == zrtp_flags) {
@@ -23,11 +27,15 @@ kvz_rtp::media_stream *kvz_rtp::session::create_stream(int r_port, int s_port, r
             return nullptr;
         }
     } else {
+#endif
         if (stream->init() != RTP_OK) {
             LOG_ERROR("Failed to initialize media stream %s:%d/%d", addr_.c_str(), r_port, s_port);
             return nullptr;
         }
+
+#ifdef __RTP_CRYPTO__
     }
+#endif
 
     return stream;
 }

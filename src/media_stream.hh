@@ -33,7 +33,9 @@ namespace kvz_rtp {
              * Return RTP_MEMORY_ERROR if allocation failed
              *
              * Other error return codes are defined in {conn,writer,reader,srtp}.hh */
+#ifdef __RTP_CRYPTO__
             rtp_error_t init(kvz_rtp::zrtp& zrtp);
+#endif
 
             /* Split "data" into 1500 byte chunks and send them to remote
              *
@@ -109,10 +111,12 @@ namespace kvz_rtp {
 
             uint32_t key_;
 
+#ifdef __RTP_CRYPTO__
+            kvz_rtp::srtp       *srtp_;
+#endif
             kvz_rtp::socket     socket_;
             kvz_rtp::sender     *sender_;
             kvz_rtp::receiver   *receiver_;
-            kvz_rtp::srtp       *srtp_;
             kvz_rtp::rtp        *rtp_;
 
             sockaddr_in addr_out_;

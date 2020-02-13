@@ -1,3 +1,4 @@
+#ifdef __RTP_CRYPTO__
 #include <cstring>
 
 #include "debug.hh"
@@ -154,3 +155,4 @@ rtp_error_t kvz_rtp::zrtp_msg::confirm::parse_msg(kvz_rtp::zrtp_msg::receiver& r
     delete aes_cfb;
     return RTP_OK;
 }
+#endif

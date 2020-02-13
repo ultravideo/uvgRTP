@@ -1,3 +1,4 @@
+#ifdef __RTP_CRYPTO__
 #include "srtp.hh"
 
 kvz_rtp::srtp::srtp(int type):
@@ -54,3 +55,4 @@ rtp_error_t kvz_rtp::srtp::decrypt(uint8_t *buf, size_t len)
 
     return RTP_OK;
 }
+#endif
