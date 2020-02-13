@@ -18,7 +18,7 @@ Based on Marko Viitanen's [fRTPlib](https://github.com/fador/fRTPlib)
 ## Building
 
 ```
-make -j8
+make -j4
 sudo make install
 ```
 
@@ -44,14 +44,6 @@ If you want SRTP/ZRTP support, you must compile [Crypto++](https://www.cryptopp.
 `-lkvzrtp -lpthread -lcryptopp`
 
 #### Windows
-`-L<path to library folder> -lkvzrtp -lpthread -lcryptopp -lwsock32 -lws2_32`
-
-Linux
-
-`-lkvzrtp -lpthread -lcryptopp`
-
-Windows
-
 `-L<path to library folder> -lkvzrtp -lpthread -lcryptopp -lwsock32 -lws2_32`
 
 ## Examples
