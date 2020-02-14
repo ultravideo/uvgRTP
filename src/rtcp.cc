@@ -77,10 +77,9 @@ rtp_error_t kvz_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, i
      *
      * This means that the socket is listened for 5s at a time and after the timeout, 
      * Send Report is sent to all participants */
-    struct timeval tv = {
-        .tv_sec  = 3,
-        .tv_usec = 0
-    };
+    struct timeval tv;
+    tv.tv_sec = 3;
+    tv.tv_usec = 0;
 
     if ((ret = p->socket->setsockopt(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))) != RTP_OK)
         return ret;

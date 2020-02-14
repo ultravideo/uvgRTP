@@ -1,5 +1,6 @@
 #ifdef _WIN32
 #include <winsock2.h>
+#include <Ws2tcpip.h>
 #include <ws2def.h>
 #else
 #include <unistd.h>
@@ -125,7 +126,7 @@ socket_t& kvz_rtp::socket::get_raw_socket()
 
 rtp_error_t kvz_rtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
 {
-    int nsend;
+    int nsend = 0;
 
 #ifdef __linux__
     if ((nsend = ::sendto(socket_, buf, buf_len, flags, (const struct sockaddr *)&addr, sizeof(addr_))) == -1) {
@@ -149,6 +150,7 @@ rtp_error_t kvz_rtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t bu
             *bytes_sent = -1;
         return RTP_SEND_ERROR;
     }
+    nsend = sent_bytes;
 #endif
 
     if (bytes_sent)

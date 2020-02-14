@@ -29,7 +29,7 @@
 #endif
 
 #ifndef __BYTE_ORDER
-#warning "setting byte order to little endian"
+//#warning "setting byte order to little endian"
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
