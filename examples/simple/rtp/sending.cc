@@ -2,47 +2,46 @@
 
 #define PAYLOAD_MAXLEN 100
 
-int main(int argc, char **argv)
+int main(void)
 {
-    /* To use the library, one must create one global RTP context object
-     * This object is used to create RTP readers/writers */
+    /* To use the library, one must create a global RTP context object */
     kvz_rtp::context ctx;
 
-    /* Creating a writer is very simple: all that needs to be provided is the
-     * destination address and port, and media type
-     *
-     * "RTP_FORMAT_GENERIC" means that no assumptions should be made about the data
-     * and it should be sent as it.
-     * This can be used for example raw video/raw audio or for media formats not supported
-     * by the library
-     *
-     * If "RTP_FORMAT_HEVC" is provided, push_frame() splits the buffer into NAL units
-     * and sends these NAL units in one or more RTP frames (if NAL unit size > MTU,
-     * the NAL unit is split into fragments)
-     * HEVC frame receiver will reconstruct the frame from these fragments and return
-     * complete NAL units back
-     *
-     * Source port is an optional argument that can be provided if UDP hole
-     * punching is utilized */
-    kvz_rtp::writer *writer = ctx.create_writer("127.0.0.1", 5566, 8888, RTP_FORMAT_GENERIC);
+    /* Each new IP address requires a separate RTP session.
+     * This session objects contains all media streams and an RTCP object (if enabled) */
+    kvz_rtp::session *sess = ctx.create_session("127.0.0.1");
 
-    /* Before the writer can be used, it must be started. 
-     * This initializes the underlying socket and all needed data structures */
-    (void)writer->start();
+    /* Each RTP session has one or more media streams. These media streams are bidirectional
+     * and they require both source and destination ports for the connection. One must also
+     * specify the media format for the stream and any configuration flags if needed
+     *
+     * If ZRTP is enabled, the first media stream instance shall do a Diffie-Hellman key exchange
+     * with remote and rest of the media streams use Multistream mode. ZRTP requires that both
+     * source and destination ports are known so it can perform the key exchange
+     *
+     * First port is source port aka the port that we listen to and second port is the port
+     * that remote listens to
+     *
+     * This same object is used for both sending and receiving media
+     *
+     * In this example, we have one media streams with remote participant: hevc */
+    kvz_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_HEVC, 0);
 
     uint8_t *buffer = new uint8_t[PAYLOAD_MAXLEN];
 
     for (int i = 0; i < 10; ++i) {
 
-        /* Sending data is as simple as calling push_frame() */
-        if (writer->push_frame(buffer, PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK) {
+        /* Sending data is as simple as calling push_frame().
+         *
+         * push_frame() will fragment the input buffer into payloads of 1500 bytes and send them to remote */
+        if (hevc->push_frame(buffer, PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK) {
             fprintf(stderr, "Failed to send RTP frame!");
         }
     }
 
-    /* Writer must be destroyed manually */
+    /* Session must be destroyed manually */
     delete[] buffer;
-    ctx.destroy_writer(writer);
+    ctx.destroy_session(sess);
 
     return 0;
 }

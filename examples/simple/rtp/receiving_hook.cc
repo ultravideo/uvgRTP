@@ -10,8 +10,8 @@ void receive_hook(void *arg, kvz_rtp::frame::rtp_frame *frame)
         return;
     }
 
-    /* Now we own the frame. Here you could give the frame the application 
-     * if f.ex arg pointed to some application-specfic pointer
+    /* Now we own the frame. Here you could give the frame to the application
+     * if f.ex "arg" was some application-specfic pointer
      *
      * arg->copy_frame(frame) etc.
      *
@@ -19,18 +19,32 @@ void receive_hook(void *arg, kvz_rtp::frame::rtp_frame *frame)
     (void)kvz_rtp::frame::dealloc_frame(frame);
 }
 
-int main(int argc, char **argv)
+int main(void)
 {
-    (void)argc, (void)argv;
-
-    /* See sending.cc for information about the session initialization */
+    /* To use the library, one must create a global RTP context object */
     kvz_rtp::context ctx;
 
-    /* Initialization for both receiving styles is similar */
-    kvz_rtp::reader *reader = ctx.create_reader("127.0.0.1", 5566, RTP_FORMAT_GENERIC);
+    /* Each new IP address requires a separate RTP session.
+     * This session objects contains all media streams and an RTCP object (if enabled) */
+    kvz_rtp::session *sess = ctx.create_session("127.0.0.1");
 
-    /* Receive hook can be installed and the receiver will call this hook 
-     * and an RTP frame is received 
+    /* Each RTP session has one or more media streams. These media streams are bidirectional
+     * and they require both source and destination ports for the connection. One must also
+     * specify the media format for the stream and any configuration flags if needed
+     *
+     * If ZRTP is enabled, the first media stream instance shall do a Diffie-Hellman key exchange
+     * with remote and rest of the media streams use Multistream mode. ZRTP requires that both
+     * source and destination ports are known so it can perform the key exchange
+     *
+     * First port is source port aka the port that we listen to and second port is the port
+     * that remote listens to
+     *
+     * This same object is used for both sending and receiving media
+     *
+     * In this example, we have one media streams with remote participant: hevc */
+    kvz_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_HEVC, 0);
+
+    /* Receive hook can be installed and the receiver will call this hook when an RTP frame is received
      *
      * This is a non-blocking operation
      *
@@ -38,20 +52,11 @@ int main(int argc, char **argv)
      * receive hook every time the hook is called. This argument could a pointer to application-
      * specfic object if the application needs to be called inside the hook
      *
-     * If it's not needed, it should be set to NULL */
-    reader->install_recv_hook(NULL, receive_hook);
+     * If it's not needed, it should be set to nullptr */
+    hevc->install_receive_hook(nullptr, receive_hook);
 
-    /* Now that the receive hook is in place, reader can be started */
-    (void)reader->start();
+    /* Session must be destroyed manually */
+    ctx.destroy_session(sess);
 
-    /* NOTE: Because we've only initalized reader, this example code will return immediately 
-     * because there's nothing blocking the main thread.
-     *
-     * Create RTP Sender (seen rtp/sending.cc) if you wish to construct full working 
-     * example code with both sender and receiver */
-
-    /* Reader object must be destroy explicitly */
-    (void)ctx.destroy_reader(reader);
-    
     return 0;
 }

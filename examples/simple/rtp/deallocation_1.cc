@@ -2,28 +2,34 @@
 
 #define PAYLOAD_MAXLEN 100
 
-int main(int argc, char **argv)
+int main(void)
 {
+    /* See sending.cc for more details */
     kvz_rtp::context ctx;
 
-    kvz_rtp::writer *writer = ctx.create_writer("127.0.0.1", 5566, RTP_FORMAT_GENERIC);
+    /* See sending.cc for more details */
+    kvz_rtp::session *sess = ctx.create_session("127.0.0.1");
 
-    (void)writer->start();
+    /* Pass "RCE_SYSTEM_CALL_DISPATCHER" to flags to indicate that we want to spawn SCD for this media stream.
+     * SCD requires that we provide some deallocation mechanism, this example is about the smart pointer approach 
+     *
+     * See sending.cc for more details about media stream initialization */
+    kvz_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_HEVC, RCE_SYSTEM_CALL_DISPATCHER);
 
     for (int i = 0; i < 10; ++i) {
         std::unique_ptr<uint8_t[]> buffer = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);
 
         /* This is very similiar to sending.cc but here we must use std::move to give the unique_ptr to kvzRTP 
-         * We can no longer use buffer and must reallocate new memory chunk on next iteration. 
+         * We can no longer use buffer and must reallocate new memory chunk on the next iteration. 
          *
          * The memory is deallocated automatically when system call dispatcher has finished processing the transaction */
-        if (writer->push_frame(std::move(buffer), PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK) {
+        if (hevc->push_frame(std::move(buffer), PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK) {
             fprintf(stderr, "Failed to send RTP frame!");
         }
     }
 
-    /* Writer must be destroyed manually */
-    ctx.destroy_writer(writer);
+    /* Session must be destroyed manually */
+    ctx.destroy_session(sess);
 
     return 0;
 }
