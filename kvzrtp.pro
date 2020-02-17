@@ -41,13 +41,16 @@ SOURCES += \
     src/random.cc \
     src/dispatch.cc \
     src/runner.cc \
+    src/sender.cc \
+    src/receiver.cc \
+    src/session.cc \
+    src/rtp.cc \
+    src/media_stream.cc \
     src/formats/opus.cc \
     src/formats/hevc.cc \
     src/formats/hevc_recv_normal.cc \
     src/formats/generic.cc \
-	src/sender.cc \
-	src/receiver.cc \
-    #src/formats/hevc_recv_optimistic.cc \
+    # src/formats/hevc_recv_optimistic.cc \
 
 HEADERS += \
     src/send.hh \
@@ -67,8 +70,11 @@ HEADERS += \
     src/random.hh \
     src/dispatch.hh \
     src/runner.hh \
-	src/receiver.hh \
-	src/sender.hh \
+    src/receiver.hh \
+    src/sender.hh \
+    src/session.hh \
+    src/rtp.hh \
+    src/media_stream.hh \
     src/formats/opus.hh \
     src/formats/hevc.hh \
     src/formats/generic.hh
