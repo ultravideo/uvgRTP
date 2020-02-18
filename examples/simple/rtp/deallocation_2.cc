@@ -2,25 +2,34 @@
 
 #define PAYLOAD_MAXLEN 100
 
-int main(int argc, char **argv)
+int main(void)
 {
+    /* See sending.cc for more details */
     kvz_rtp::context ctx;
 
-    kvz_rtp::writer *writer = ctx.create_writer("127.0.0.1", 5566, 8888, RTP_FORMAT_GENERIC);
+    /* See sending.cc for more details */
+    kvz_rtp::session *sess = ctx.create_session("127.0.0.1");
 
-    (void)writer->start();
+    /* Pass "RCE_SYSTEM_CALL_DISPATCHER" to flags to indicate that we want to spawn for SCD for this media stream.
+     * SCD requires that we provide some deallocation mechanism
+     *
+     * This example is about the copy approach
+     *
+     * See sending.cc for more details about media stream initialization */
+    kvz_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_HEVC, RCE_SYSTEM_CALL_DISPATCHER);
 
     uint8_t *buffer = new uint8_t[PAYLOAD_MAXLEN];
 
     for (int i = 0; i < 10; ++i) {
-        if (writer->push_frame(buffer, PAYLOAD_MAXLEN, RTP_COPY) != RTP_OK) {
+        /* Notice the "RTP_COPY" flag passed to push_frame().
+         * This forces kvzRTP to make copy of the input frame before doing anything else  */
+        if (hevc->push_frame(buffer, PAYLOAD_MAXLEN, RTP_COPY) != RTP_OK) {
             fprintf(stderr, "Failed to send RTP frame!");
         }
     }
 
-    /* Writer must be destroyed manually */
-    delete[] buffer;
-    ctx.destroy_writer(writer);
+    /* Session must be destroyed manually */
+    ctx.destroy_session(sess);
 
     return 0;
 }

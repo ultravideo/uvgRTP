@@ -84,7 +84,7 @@ rtp_error_t kvz_rtp::poll::poll(std::vector<kvz_rtp::socket>& sockets, uint8_t *
     }
 
     for (size_t i = 0; i < sockets.size(); ++i) {
-        auto rtp_ret = sockets.at(i).recv(buf, (int)buf_len, 0);
+        auto rtp_ret = sockets.at(i).recv((uint8_t *)buf, (int)buf_len, 0);
 
         if (rtp_ret != RTP_OK) {
             if (WSAGetLastError() == WSAEWOULDBLOCK)
