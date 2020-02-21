@@ -27,11 +27,10 @@ kvz_rtp::context::context()
 
 kvz_rtp::context::~context()
 {
-    /* for (auto& conn : conns_) { */
-    /*     delete conn.second; */
-    /* } */
-
-    /* conns_.clear(); */
+    for (auto& session : sessions_) {
+        (void)destroy_session(session.second);
+    }
+    sessions_.clear();
 
 #ifdef _WIN32
     WSACleanup();
@@ -40,9 +39,31 @@ kvz_rtp::context::~context()
 
 kvz_rtp::session *kvz_rtp::context::create_session(std::string address)
 {
-    /* TODO: make sure we don't already have a session with this IP ongoing! */
+    auto sess_it = sessions_.find(address);
 
-    return new kvz_rtp::session(address);
+    if (sess_it != sessions_.end())
+        return sess_it->second;
+
+    auto session = new kvz_rtp::session(address);
+    sessions_.insert(std::make_pair(address, session));
+
+    return session;
+}
+
+rtp_error_t kvz_rtp::context::destroy_session(kvz_rtp::session *session)
+{
+    if (!session)
+        return RTP_INVALID_VALUE;
+
+    auto session_it = sessions_.find(session->get_key());
+
+    if (session_it == sessions_.end())
+        return RTP_NOT_FOUND;
+
+    delete session_it->second;
+    session_it->second = nullptr;
+
+    return RTP_OK;
 }
 
 std::string kvz_rtp::context::generate_cname()

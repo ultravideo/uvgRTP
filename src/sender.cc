@@ -32,6 +32,8 @@ kvz_rtp::sender::sender(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_
 
 kvz_rtp::sender::~sender()
 {
+    delete dispatcher_;
+    delete fqueue_;
 }
 
 rtp_error_t kvz_rtp::sender::destroy()

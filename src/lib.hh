@@ -10,8 +10,13 @@ namespace kvz_rtp {
             context();
             ~context();
 
+            /* Create new session if "addr" is unique or return pointer to previously created session */
             kvz_rtp::session *create_session(std::string addr);
 
+            /* Destroy session and all media streams
+             *
+             * Return RTP_INVALID_VALUE if "session" is nullptr
+             * Return RTP_NOT_FOUND if "session" has not been allocated from this context */
             rtp_error_t destroy_session(kvz_rtp::session *session);
 
             std::string& get_cname();
@@ -23,6 +28,7 @@ namespace kvz_rtp {
             /* CNAME is the same for all connections */
             std::string cname_;
 
-            /* std::map<uint32_t, connection *> conns_; */
+            /* map of all the sessions created from this RTP context */
+            std::unordered_map<std::string, kvz_rtp::session *> sessions_;
         };
 };

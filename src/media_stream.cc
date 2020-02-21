@@ -1,8 +1,9 @@
-#include "debug.hh"
-#include "media_stream.hh"
-
 #include <cstring>
 #include <errno.h>
+
+#include "debug.hh"
+#include "media_stream.hh"
+#include "random.hh"
 
 kvz_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
 #ifdef __RTP_CRYPTO__
@@ -17,10 +18,19 @@ kvz_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port
     flags_    = flags;
     src_port_ = src_port;
     dst_port_ = dst_port;
+    key_      = kvz_rtp::random::generate_32();
+
+    ctx_config_.flags = flags;
 }
 
 kvz_rtp::media_stream::~media_stream()
 {
+    receiver_->stop();
+    sender_->destroy();
+
+    delete sender_;
+    delete receiver_;
+    delete rtp_;
 }
 
 rtp_error_t kvz_rtp::media_stream::init_connection()
@@ -52,8 +62,7 @@ rtp_error_t kvz_rtp::media_stream::init()
         return RTP_GENERIC_ERROR;
     }
 
-    rtp_  = new kvz_rtp::rtp(fmt_);
-
+    rtp_      = new kvz_rtp::rtp(fmt_);
     sender_   = new kvz_rtp::sender(socket_, ctx_config_, fmt_, rtp_);
     receiver_ = new kvz_rtp::receiver(socket_, ctx_config_, fmt_, rtp_);
 
@@ -133,4 +142,9 @@ rtp_error_t kvz_rtp::media_stream::configure_ctx(int flag)
     ctx_config_.flags |= flag;
 
     return RTP_OK;
+}
+
+uint32_t kvz_rtp::media_stream::get_key()
+{
+    return key_;
 }

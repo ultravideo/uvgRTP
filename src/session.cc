@@ -11,7 +11,10 @@ kvz_rtp::session::session(std::string addr):
 
 kvz_rtp::session::~session()
 {
-    /* TODO: free all resources */
+    for (auto&i : streams_) {
+        (void)destroy_stream(i.second);
+    }
+    streams_.clear();
 }
 
 kvz_rtp::media_stream *kvz_rtp::session::create_stream(int r_port, int s_port, rtp_format_t fmt, int flags)
@@ -37,12 +40,28 @@ kvz_rtp::media_stream *kvz_rtp::session::create_stream(int r_port, int s_port, r
     }
 #endif
 
+    streams_.insert(std::make_pair(stream->get_key(), stream));
+
     return stream;
 }
 
-rtp_error_t kvz_rtp::session::destroy_media_stream(kvz_rtp::media_stream *stream)
+rtp_error_t kvz_rtp::session::destroy_stream(kvz_rtp::media_stream *stream)
 {
-    (void)stream;
+    if (!stream)
+        return RTP_INVALID_VALUE;
+
+    auto mstream = streams_.find(stream->get_key());
+
+    if (mstream == streams_.end())
+        return RTP_NOT_FOUND;
+
+    delete mstream->second;
+    mstream->second = nullptr;
 
     return RTP_OK;
+}
+
+std::string& kvz_rtp::session::get_key()
+{
+    return addr_;
 }

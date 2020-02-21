@@ -103,6 +103,9 @@ namespace kvz_rtp {
             void  set_media_config(void *config);
             void *get_media_config();
 
+            /* TODO:  */
+            uint32_t get_key();
+
         private:
             /* Initialize the connection by initializing the socket
              * and binding ourselves to specified interface and creating

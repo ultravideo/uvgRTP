@@ -46,7 +46,8 @@ typedef enum RTP_ERROR {
     RTP_NOT_INITIALIZED = -9,   /* object has not been initialized */
     RTP_NOT_SUPPORTED   = -10,  /* method/version/extension not supported */
     RTP_RECV_ERROR      = -11,  /* recv(2) or one of its derivatives failed */
-    RTP_TIMEOUT         = -12,
+    RTP_TIMEOUT         = -12,  /* operation timed out */
+    RTP_NOT_FOUND       = -13,  /* object not found */
 } rtp_error_t;
 
 typedef enum RTP_FORMAT {

@@ -111,6 +111,12 @@ namespace kvz_rtp {
             rtp_error_t deinit_transaction();
             rtp_error_t deinit_transaction(uint32_t key);
 
+            /* Release all memory of transaction "t"
+             *
+             * Return RTP_OK on success
+             * Return RTP_INVALID_VALUE if "t" is nullptr */
+            rtp_error_t destroy_transaction(kvz_rtp::transaction_t *t);
+
             /* Cache "message" to frame queue
              *
              * Return RTP_OK on success

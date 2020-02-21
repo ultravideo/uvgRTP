@@ -26,8 +26,13 @@ namespace kvz_rtp {
             /* Destroy media_stream "stream"
              *
              * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "stream" is nullptr */
-            rtp_error_t destroy_media_stream(kvz_rtp::media_stream *stream);
+             * Return RTP_INVALID_VALUE if "stream" is nullptr
+             * Return RTP_NOT_FOUND if "stream" has not been allocated from this session */
+            rtp_error_t destroy_stream(kvz_rtp::media_stream *stream);
+
+            /* Get unique key of the session
+             * Used by context to index sessions */
+            std::string& get_key();
 
         private:
             /* Each RTP multimedia session shall have one ZRTP session from which all session are derived */

@@ -45,6 +45,13 @@ kvz_rtp::frame_queue::frame_queue(rtp_format_t fmt, rtp_ctx_conf_t& conf, kvz_rt
 
 kvz_rtp::frame_queue::~frame_queue()
 {
+    for (auto& i : free_) {
+        (void)destroy_transaction(i);
+    }
+    free_.clear();
+
+    if (active_)
+        (void)destroy_transaction(active_);
 }
 
 rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::sender *sender)
@@ -128,6 +135,36 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::sender *sender, std:
     return RTP_OK;
 }
 
+rtp_error_t kvz_rtp::frame_queue::destroy_transaction(kvz_rtp::transaction_t *t)
+{
+    if (!t)
+        return RTP_INVALID_VALUE;
+
+    delete[] t->headers;
+    delete[] t->chunks;
+    delete[] t->rtp_headers;
+
+    t->headers     = nullptr;
+    t->chunks      = nullptr;
+    t->rtp_headers = nullptr;
+
+    switch (fmt_) {
+        case RTP_FORMAT_HEVC:
+            delete (kvz_rtp::hevc::media_headers *)t->media_headers;
+            t->media_headers = nullptr;
+            break;
+
+        default:
+            break;
+    }
+    delete t;
+    t = nullptr;
+
+    fprintf(stderr, "transaction destroyed!\n");
+
+    return RTP_OK;
+}
+
 rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
 {
     std::lock_guard<std::mutex> lock(transaction_mtx_);
@@ -138,6 +175,7 @@ rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
         /* It's possible that the transaction has not been queued yet because
          * the chunk given by the application was smaller than MTU */
         if (active_ && active_->key == key) {
+            free_.push_back(active_);
             active_ = nullptr;
             return RTP_OK;
         }
@@ -145,8 +183,11 @@ rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
         return RTP_INVALID_VALUE;
     }
 
-    if (active_ && active_->key == key)
+    if (active_ && active_->key == key) {
+        free_.push_back(active_);
         active_ = nullptr;
+        return RTP_OK;
+    }
 
     /* Deallocate the raw data pointer using the deallocation hook provided by application */
     if (transaction_it->second->data_raw && transaction_it->second->dealloc_hook) {
@@ -154,18 +195,20 @@ rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
         transaction_it->second->data_raw = nullptr;
     }
 
-    if (free_.size() > (size_t)max_queued_) {
+    if (free_.size() >= (size_t)max_queued_) {
         switch (fmt_) {
             case RTP_FORMAT_HEVC:
                 delete (kvz_rtp::hevc::media_headers *)transaction_it->second->media_headers;
+                break;
+
             default:
                 break;
         }
 
-        delete transaction_it->second->headers;
-        delete transaction_it->second->chunks;
-        delete transaction_it->second->rtp_headers;
-        delete transaction_it->second;
+        delete[] transaction_it->second->headers;
+        delete[] transaction_it->second->chunks;
+        delete[] transaction_it->second->rtp_headers;
+        delete   transaction_it->second;
     } else {
         free_.push_back(transaction_it->second);
     }
