@@ -45,12 +45,10 @@ rtp_error_t kvz_rtp::receiver::start()
     switch (fmt_) {
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
-            /* TODO: fix */
             runner_ = new std::thread(kvz_rtp::generic::frame_receiver, this);
             break;
 
         case RTP_FORMAT_HEVC:
-            /* TODO: fix */
             runner_ = new std::thread(kvz_rtp::hevc::frame_receiver, this, false);
             break;
     }
