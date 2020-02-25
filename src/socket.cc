@@ -51,6 +51,13 @@ rtp_error_t kvz_rtp::socket::init(short family, int type, int protocol)
         return RTP_SOCKET_ERROR;
     }
 
+#ifdef _WIN32
+    BOOL bNewBehavior     = FALSE;
+    DWORD dwBytesReturned = 0;
+
+    WSAIoctl(socket_, _WSAIOW(IOC_VENDOR, 12), &bNewBehavior, sizeof(bNewBehavior), NULL, 0, &dwBytesReturned, NULL, NULL);
+#endif
+
     return RTP_OK;
 }
 
