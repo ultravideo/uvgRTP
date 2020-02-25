@@ -13,9 +13,10 @@ all: $(TARGET)
 
 install: $(TARGET)
 	install -m 577 $(TARGET) /usr/local/lib/
-	mkdir -p /usr/local/include/kvzrtp /usr/local/include/kvzrtp/formats
+	mkdir -p /usr/local/include/kvzrtp /usr/local/include/kvzrtp/formats /usr/local/include/kvzrtp/mzrtp
 	cp src/*.hh /usr/local/include/kvzrtp
 	cp src/formats/*.hh /usr/local/include/kvzrtp/formats
+	cp src/mzrtp/*.hh /usr/local/include/kvzrtp/mzrtp
 
 $(TARGET): $(OBJECTS)
 	$(AR) rcs $@ $(OBJECTS)

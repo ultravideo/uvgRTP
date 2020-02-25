@@ -78,14 +78,14 @@ kvz_rtp::crypto::aes::ctr::~ctr()
 {
 }
 
-void kvz_rtp::crypto::aes::ctr::encrypt(uint8_t *input, uint8_t *output, size_t len)
+void kvz_rtp::crypto::aes::ctr::encrypt(uint8_t *output, uint8_t *input, size_t len)
 {
-    enc_.ProcessData(input, output, len);
+    enc_.ProcessData(output, input, len);
 }
 
-void kvz_rtp::crypto::aes::ctr::decrypt(uint8_t *input, uint8_t *output, size_t len)
+void kvz_rtp::crypto::aes::ctr::decrypt(uint8_t *output, uint8_t *input, size_t len)
 {
-    dec_.ProcessData(input, output, len);
+    dec_.ProcessData(output, input, len);
 }
 
 kvz_rtp::crypto::aes::cfb::cfb(uint8_t *key, size_t key_size, uint8_t *iv):
@@ -104,6 +104,26 @@ void kvz_rtp::crypto::aes::cfb::encrypt(uint8_t *output, uint8_t *input, size_t 
 }
 
 void kvz_rtp::crypto::aes::cfb::decrypt(uint8_t *output, uint8_t *input, size_t len)
+{
+    dec_.ProcessData(output, input, len);
+}
+
+kvz_rtp::crypto::aes::ecb::ecb(uint8_t *key, size_t key_size):
+    enc_(key, key_size),
+    dec_(key, key_size)
+{
+}
+
+kvz_rtp::crypto::aes::ecb::~ecb()
+{
+}
+
+void kvz_rtp::crypto::aes::ecb::encrypt(uint8_t *output, uint8_t *input, size_t len)
+{
+    enc_.ProcessData(output, input, len);
+}
+
+void kvz_rtp::crypto::aes::ecb::decrypt(uint8_t *output, uint8_t *input, size_t len)
 {
     dec_.ProcessData(output, input, len);
 }

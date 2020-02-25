@@ -166,6 +166,22 @@ namespace kvz_rtp {
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
             rtp_error_t init(uint32_t ssrc, socket_t& socket, sockaddr_in& addr);
 
+            /* Get SRTP keys for the session that was just initialized
+             *
+             * NOTE: "key_len" and "salt_len" denote the lengths in **bits**
+             *
+             * TODO are there any requirements (thinking of Multistream Mode and keys getting overwritten?)
+             *
+             * Return RTP_OK on success
+             * Return RTP_NOT_INITIALIZED if init() has not been called yet
+             * Return RTP_INVALID_VALUE if one of the parameters is invalid */
+            rtp_error_t get_srtp_keys(
+                uint8_t *our_mkey,    size_t okey_len,
+                uint8_t *their_mkey,  size_t tkey_len,
+                uint8_t *our_msalt,   size_t osalt_len,
+                uint8_t *their_msalt, size_t tsalt_len
+            );
+
         private:
             /* Initialize ZRTP session between us and remote using Diffie-Hellman Mode
              *

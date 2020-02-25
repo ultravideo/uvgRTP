@@ -1,57 +1,230 @@
-#ifdef __RTP_CRYPTO__
+#include <cstring>
+#include <iostream>
+
 #include "srtp.hh"
 
-kvz_rtp::srtp::srtp(int type):
-    zrtp_(nullptr),
-    s_ctx(nullptr)
+#ifdef __RTP_CRYPTO__
+#include "crypto.hh"
+#include <cryptopp/hex.h>
+#endif
+
+kvz_rtp::srtp::srtp():
+    srtp_ctx_()
 {
-    (void)type;
 }
 
 kvz_rtp::srtp::~srtp()
 {
-    delete zrtp_;
 }
 
-rtp_error_t kvz_rtp::srtp::init_zrtp(uint32_t ssrc, socket_t& socket, sockaddr_in& addr)
+#ifdef __RTP_CRYPTO__
+/* TODO: explain this code and refactor it! */
+rtp_error_t kvz_rtp::srtp::derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t out_len)
 {
-    LOG_INFO("Begin SRTP initialization procedure...");
+    uint8_t input[AES_KEY_LENGTH] = { 0 };
+    memcpy(input, salt, SALT_LENGTH);
 
-    (void)socket, (void)ssrc;
+    input[7] ^= label;
 
-    if ((zrtp_ = new kvz_rtp::zrtp()) == nullptr) {
-        LOG_ERROR("Failed to allocate ZRTP context");
-        return RTP_MEMORY_ERROR;
+    memset(out, 0, out_len);
+
+    kvz_rtp::crypto::aes::ecb ecb(key, AES_KEY_LENGTH);
+
+    ecb.encrypt(out, input, AES_KEY_LENGTH);
+
+    return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t index, uint8_t *salt)
+{
+    if (!out || !salt)
+        return RTP_INVALID_VALUE;
+
+    uint8_t indexbuf[8];
+    int i;
+
+    memset(out, 0, 16);
+
+    memcpy(&out[4],  &ssrc,  sizeof(uint32_t));
+    memcpy(indexbuf, &index, sizeof(uint64_t));
+
+    /* TODO: rewrite this */
+
+    for (i = 0; i < 8; i++)
+        out[6 + i] ^= indexbuf[i];
+
+    for (i = 0; i < 14; i++)
+        out[i] ^= salt[i];
+
+    return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::srtp::__init(int type)
+{
+    srtp_ctx_.roc  = 0;
+    srtp_ctx_.type = type;
+    srtp_ctx_.enc  = AES_128;
+    srtp_ctx_.hmac = HMAC_SHA1;
+
+    srtp_ctx_.mki_size    = 0;
+    srtp_ctx_.mki_present = false;
+    srtp_ctx_.mki         = nullptr;
+
+    srtp_ctx_.master_key  = key_ctx_.master.local_key;
+    srtp_ctx_.master_salt = key_ctx_.master.local_salt;
+    srtp_ctx_.mk_cnt      = 0;
+
+    srtp_ctx_.n_e = AES_KEY_LENGTH;
+    srtp_ctx_.n_a = HMAC_KEY_LENGTH;
+
+    srtp_ctx_.s_l    = 0;
+    srtp_ctx_.replay = nullptr;
+
+    /* Local aka encryption keys */
+    (void)derive_key(
+        SRTP_ENCRYPTION,
+        key_ctx_.master.local_key,
+        key_ctx_.master.local_salt,
+        key_ctx_.local.enc_key,
+        AES_KEY_LENGTH
+    );
+    (void)derive_key(
+        SRTP_AUTHENTICATION,
+        key_ctx_.master.local_key,
+        key_ctx_.master.local_salt,
+        key_ctx_.local.auth_key,
+        AES_KEY_LENGTH
+    );
+    (void)derive_key(
+        SRTP_SALTING,
+        key_ctx_.master.local_key,
+        key_ctx_.master.local_salt,
+        key_ctx_.local.salt_key,
+        SALT_LENGTH
+    );
+
+    /* Remote aka decryption keys */
+    (void)derive_key(
+        SRTP_ENCRYPTION,
+        key_ctx_.master.remote_key,
+        key_ctx_.master.remote_salt,
+        key_ctx_.remote.enc_key,
+        AES_KEY_LENGTH
+    );
+    (void)derive_key(
+        SRTP_AUTHENTICATION,
+        key_ctx_.master.remote_key,
+        key_ctx_.master.remote_salt,
+        key_ctx_.remote.auth_key,
+        AES_KEY_LENGTH
+    );
+    (void)derive_key(
+        SRTP_SALTING,
+        key_ctx_.master.remote_key,
+        key_ctx_.master.remote_salt,
+        key_ctx_.remote.salt_key,
+        SALT_LENGTH
+    );
+
+    return RTP_OK;
+}
+
+rtp_error_t kvz_rtp::srtp::init_zrtp(int type, kvz_rtp::rtp *rtp, kvz_rtp::zrtp *zrtp)
+{
+    (void)rtp;
+
+    if (!zrtp)
+        return RTP_INVALID_VALUE;
+
+    if (type != SRTP) {
+        LOG_ERROR("SRTCP NOT SUPPORTED!");
+        return RTP_INVALID_VALUE;
     }
 
-    LOG_DEBUG("Begin ZRTP initialization procedure...");
+    /* ZRTP key derivation function expects the keys lengths to be given in bits */
+    rtp_error_t ret = zrtp->get_srtp_keys(
+        key_ctx_.master.local_key,   AES_KEY_LENGTH * 8,
+        key_ctx_.master.remote_key,  AES_KEY_LENGTH * 8,
+        key_ctx_.master.local_salt,  SALT_LENGTH    * 8,
+        key_ctx_.master.remote_salt, SALT_LENGTH    * 8
+    );
 
-    return zrtp_->init(ssrc, socket, addr);
+    if (ret != RTP_OK) {
+        LOG_ERROR("Failed to derive keys for SRTP session!");
+        return ret;
+    }
+
+    return __init(type);
 }
 
-rtp_error_t kvz_rtp::srtp::init_user(uint32_t ssrc, std::pair<uint8_t *, size_t>& key)
+rtp_error_t kvz_rtp::srtp::init_user(int type, uint8_t *key, uint8_t *salt)
 {
-    (void)ssrc, (void)key;
+    if (!key || !salt)
+        return RTP_INVALID_VALUE;
+
+    memcpy(key_ctx_.master.local_key,    key, AES_KEY_LENGTH);
+    memcpy(key_ctx_.master.remote_key,   key, AES_KEY_LENGTH);
+    memcpy(key_ctx_.master.local_salt,  salt, SALT_LENGTH);
+    memcpy(key_ctx_.master.remote_salt, salt, SALT_LENGTH);
+
+    return __init(type);
+}
+
+rtp_error_t kvz_rtp::srtp::__encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len)
+{
+    uint8_t iv[16] = { 0 };
+    uint64_t index = (((uint64_t)srtp_ctx_.roc) << 16) + seq;
+
+    /* Sequence number has wrapped around, update Roll-over Counter */
+    if (seq == 0xffff)
+        srtp_ctx_.roc++;
+
+    if (create_iv(iv, ssrc, index, key_ctx_.local.salt_key) != RTP_OK) {
+        LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
+        return RTP_INVALID_VALUE;
+    }
+
+    kvz_rtp::crypto::aes::ctr ctr(key_ctx_.local.enc_key, sizeof(key_ctx_.local.enc_key), iv);
+    ctr.encrypt(buffer, buffer, len);
 
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::srtp::encrypt(uint8_t *buf, size_t len)
+rtp_error_t kvz_rtp::srtp::encrypt(kvz_rtp::frame::rtp_frame *frame)
 {
-    (void)buf, (void)len;
-
-    if (!zrtp_)
-        return RTP_NOT_INITIALIZED;
-
-    return RTP_OK;
+    return __encrypt(ntohl(frame->header.ssrc), ntohs(frame->header.seq), frame->payload, frame->payload_len);
 }
 
-rtp_error_t kvz_rtp::srtp::decrypt(uint8_t *buf, size_t len)
+rtp_error_t kvz_rtp::srtp::encrypt(std::vector<std::pair<size_t, uint8_t *>>& buffers)
 {
-    (void)buf, (void)len;
+    auto frame = (kvz_rtp::frame::rtp_frame *)buffers.at(0).second;
+    auto rtp   = buffers.at(buffers.size() - 1);
 
-    if (!zrtp_)
-        return RTP_NOT_INITIALIZED;
+    return __encrypt(ntohl(frame->header.ssrc), ntohs(frame->header.seq), rtp.second, rtp.first);
+}
+
+rtp_error_t kvz_rtp::srtp::decrypt(uint8_t *buffer, size_t len)
+{
+    uint8_t iv[16] = { 0 };
+    auto hdr       = (kvz_rtp::frame::rtp_header *)buffer;
+    uint16_t seq   = ntohs(hdr->seq);
+    uint32_t ssrc  = ntohl(hdr->ssrc);
+    uint64_t index = (((uint64_t)srtp_ctx_.roc) << 16) + seq;
+
+    /* Sequence number has wrapped around, update Roll-over Counter */
+    if (seq == 0xffff)
+        srtp_ctx_.roc++;
+
+    if (create_iv(iv, ssrc, index, key_ctx_.remote.salt_key) != RTP_OK) {
+        LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
+        return RTP_INVALID_VALUE;
+    }
+
+    uint8_t *payload = buffer + sizeof(kvz_rtp::frame::rtp_header);
+
+    kvz_rtp::crypto::aes::ctr ctr(key_ctx_.remote.enc_key, sizeof(key_ctx_.remote.enc_key), iv);
+
+    ctr.decrypt(payload, payload, len - sizeof(kvz_rtp::frame::rtp_header));
 
     return RTP_OK;
 }

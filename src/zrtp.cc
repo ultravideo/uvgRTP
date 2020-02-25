@@ -664,6 +664,8 @@ rtp_error_t kvz_rtp::zrtp::init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in
             LOG_ERROR("Failed to finalize session using Confirm1/Conf2ACK");
             return ret;
         }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
     /* ZRTP has been initialized using DHMode */
@@ -683,5 +685,38 @@ rtp_error_t kvz_rtp::zrtp::init_msm(uint32_t ssrc, socket_t& socket, sockaddr_in
     LOG_WARN("not implemented!");
 
     return RTP_TIMEOUT;
+}
+
+rtp_error_t kvz_rtp::zrtp::get_srtp_keys(
+    uint8_t *our_mkey,    size_t okey_len,
+    uint8_t *their_mkey,  size_t tkey_len,
+    uint8_t *our_msalt,   size_t osalt_len,
+    uint8_t *their_msalt, size_t tsalt_len
+)
+{
+    if (!our_mkey || !their_mkey || !our_msalt || !their_msalt ||
+        !okey_len || !tkey_len   || !osalt_len || !tsalt_len)
+    {
+        return RTP_INVALID_VALUE;
+    }
+
+    if (!initialized_)
+        return RTP_NOT_INITIALIZED;
+
+    if (session_.role == INITIATOR) {
+        derive_key("Initiator SRTP master key",  okey_len,  our_mkey);
+        derive_key("Initiator SRTP master salt", osalt_len, our_msalt);
+
+        derive_key("Responder SRTP master key",  tkey_len,  their_mkey);
+        derive_key("Responder SRTP master salt", tsalt_len, their_msalt);
+    } else {
+        derive_key("Responder SRTP master key",  okey_len,  our_mkey);
+        derive_key("Responder SRTP master salt", tsalt_len, our_msalt);
+
+        derive_key("Initiator SRTP master key",  tkey_len,  their_mkey);
+        derive_key("Initiator SRTP master salt", tsalt_len, their_msalt);
+    }
+
+    return RTP_OK;
 }
 #endif

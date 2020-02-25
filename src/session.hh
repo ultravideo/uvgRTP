@@ -37,7 +37,7 @@ namespace kvz_rtp {
         private:
             /* Each RTP multimedia session shall have one ZRTP session from which all session are derived */
 #ifdef __RTP_CRYPTO__
-            kvz_rtp::zrtp zrtp_;
+            kvz_rtp::zrtp *zrtp_;
 #endif
 
             /* Each RTP multimedia session is always IP-specific */

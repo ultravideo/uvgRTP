@@ -24,7 +24,8 @@ kvz_rtp::socket::socket():
     recv_handler_(nullptr),
     sendto_handler_(nullptr),
     sendtov_handler_(nullptr),
-    socket_(-1)
+    socket_(-1),
+    srtp_(nullptr)
 {
 }
 
@@ -125,6 +126,11 @@ void kvz_rtp::socket::set_sockaddr(sockaddr_in addr)
     addr_ = addr;
 }
 
+void kvz_rtp::socket::set_srtp(kvz_rtp::srtp *srtp)
+{
+    srtp_ = srtp;
+}
+
 socket_t& kvz_rtp::socket::get_raw_socket()
 {
     return socket_;
@@ -143,7 +149,7 @@ rtp_error_t kvz_rtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t bu
         return RTP_SEND_ERROR;
     }
 #else
-    DWORD sent_bytes;
+    DWORD sent_bytes;%s
     WSABUF data_buf;
 
     data_buf.buf = (char *)buf;
@@ -204,6 +210,17 @@ rtp_error_t kvz_rtp::socket::__sendtov(
 {
 #ifdef __linux__
     int sent_bytes = 0;
+
+#ifdef __RTP_CRYPTO__
+    if (srtp_) {
+        auto ret = srtp_->encrypt(buffers);
+
+        if (ret != RTP_OK) {
+            LOG_ERROR("Failed to encrypt RTP packet!");
+            return ret;
+        }
+    }
+#endif
 
     for (size_t i = 0; i < buffers.size(); ++i) {
         chunks_[i].iov_len  = buffers.at(i).first;
@@ -407,6 +424,17 @@ rtp_error_t kvz_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags,
         set_bytes(bytes_read, -1);
         return RTP_GENERIC_ERROR;
     }
+
+#ifdef __RTP_CRYPTO__
+    if (srtp_) {
+        auto status = srtp_->decrypt(buf, (size_t)ret);
+
+        if (status != RTP_OK) {
+            LOG_ERROR("Failed to encrypt RTP packet!");
+            return status;
+        }
+    }
+#endif
 
     set_bytes(bytes_read, ret);
     return RTP_OK;

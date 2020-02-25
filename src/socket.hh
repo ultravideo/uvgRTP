@@ -132,6 +132,9 @@ namespace kvz_rtp {
              * This is used when calling send() */
             void set_sockaddr(sockaddr_in addr);
 
+            /* TODO:  */
+            void set_srtp(kvz_rtp::srtp *srtp);
+
             /* Get the out address for the socket if it exists */
             sockaddr_in& get_out_address();
 
@@ -160,6 +163,7 @@ namespace kvz_rtp {
 
             socket_t socket_;
             sockaddr_in addr_;
+            kvz_rtp::srtp *srtp_;
 
 #ifdef _WIN32
             WSABUF buffers_[MAX_BUFFER_COUNT];

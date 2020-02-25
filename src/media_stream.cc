@@ -73,9 +73,45 @@ rtp_error_t kvz_rtp::media_stream::init()
 }
 
 #ifdef __RTP_CRYPTO__
-rtp_error_t kvz_rtp::media_stream::init(kvz_rtp::zrtp& zrtp)
+rtp_error_t kvz_rtp::media_stream::init(kvz_rtp::zrtp *zrtp)
 {
-    /* TODO:  */
+    if (init_connection() != RTP_OK) {
+        LOG_ERROR("Failed to initialize the underlying socket: %s!", strerror(errno));
+        return RTP_GENERIC_ERROR;
+    }
+
+    /* First initialize the RTP context for this media stream (SSRC, sequence number, etc.)
+     * Then initialize ZRTP and using ZRTP, initialize SRTP.
+     *
+     * When ZRTP and SRTP have been initialized, create sender and receiver for the media type
+     * before returning the media stream for user */
+    rtp_error_t ret = RTP_OK;
+
+    if ((rtp_ = new kvz_rtp::rtp(fmt_)) == nullptr)
+        return RTP_MEMORY_ERROR;
+
+    if ((ret = zrtp->init(rtp_->get_ssrc(), socket_.get_raw_socket(), addr_out_)) != RTP_OK) {
+        LOG_WARN("Failed to initialize ZRTP for media stream!");
+        return ret;
+    }
+
+    if ((srtp_ = new kvz_rtp::srtp()) == nullptr)
+        return RTP_MEMORY_ERROR;
+
+    if ((ret = srtp_->init_zrtp(SRTP, rtp_, zrtp)) != RTP_OK) {
+        LOG_WARN("Failed to initialize SRTP for media stream!");
+        return ret;
+    }
+
+    socket_.set_srtp(srtp_);
+
+    sender_   = new kvz_rtp::sender(socket_, ctx_config_, fmt_, rtp_);
+    receiver_ = new kvz_rtp::receiver(socket_, ctx_config_, fmt_, rtp_);
+
+    sender_->init();
+    receiver_->start();
+
+    return ret;
 }
 #endif
 

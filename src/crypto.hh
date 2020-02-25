@@ -56,13 +56,26 @@ namespace kvz_rtp {
 
         namespace aes {
 
+            class ecb {
+                public:
+                    ecb(uint8_t *key, size_t key_size);
+                    ~ecb();
+
+                    void encrypt(uint8_t *output, uint8_t *input, size_t len);
+                    void decrypt(uint8_t *output, uint8_t *input, size_t len);
+
+                private:
+                    CryptoPP::ECB_Mode<CryptoPP::AES>::Encryption enc_;
+                    CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption dec_;
+            };
+
             class cfb {
                 public:
                     cfb(uint8_t *key, size_t key_size, uint8_t *iv);
                     ~cfb();
 
-                    void encrypt(uint8_t *input, uint8_t *output, size_t len);
-                    void decrypt(uint8_t *input, uint8_t *output, size_t len);
+                    void encrypt(uint8_t *output, uint8_t *input, size_t len);
+                    void decrypt(uint8_t *output, uint8_t *input, size_t len);
 
                 private:
                     CryptoPP::CFB_Mode<CryptoPP::AES>::Encryption enc_;
@@ -74,8 +87,8 @@ namespace kvz_rtp {
                     ctr(uint8_t *key, size_t key_size, uint8_t *iv);
                     ~ctr();
 
-                    void encrypt(uint8_t *input, uint8_t *output, size_t len);
-                    void decrypt(uint8_t *input, uint8_t *output, size_t len);
+                    void encrypt(uint8_t *output, uint8_t *input, size_t len);
+                    void decrypt(uint8_t *output, uint8_t *input, size_t len);
 
                 private:
                     CryptoPP::CTR_Mode<CryptoPP::AES>::Encryption enc_;

@@ -32,9 +32,11 @@ namespace kvz_rtp {
              * Return RTP_OK on success
              * Return RTP_MEMORY_ERROR if allocation failed
              *
+             * TODO document all error codes!
+             *
              * Other error return codes are defined in {conn,writer,reader,srtp}.hh */
 #ifdef __RTP_CRYPTO__
-            rtp_error_t init(kvz_rtp::zrtp& zrtp);
+            rtp_error_t init(kvz_rtp::zrtp *zrtp);
 #endif
 
             /* Split "data" into 1500 byte chunks and send them to remote
@@ -103,7 +105,8 @@ namespace kvz_rtp {
             void  set_media_config(void *config);
             void *get_media_config();
 
-            /* TODO:  */
+            /* Get unique key of the media stream
+             * Used by session to index media streams */
             uint32_t get_key();
 
         private:
@@ -114,9 +117,7 @@ namespace kvz_rtp {
 
             uint32_t key_;
 
-#ifdef __RTP_CRYPTO__
             kvz_rtp::srtp       *srtp_;
-#endif
             kvz_rtp::socket     socket_;
             kvz_rtp::sender     *sender_;
             kvz_rtp::receiver   *receiver_;
