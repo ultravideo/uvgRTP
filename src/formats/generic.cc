@@ -75,7 +75,7 @@ rtp_error_t kvz_rtp::generic::frame_receiver(kvz_rtp::receiver *receiver)
         /* Update session related statistics
          * If this is a new peer, RTCP will take care of initializing necessary stuff */
         /* if (receiver->update_receiver_stats(frame) == RTP_OK) */
-        /*     receiver->return_frame(frame); */
+            receiver->return_frame(frame);
     }
 
     return ret;
