@@ -149,7 +149,7 @@ rtp_error_t kvz_rtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t bu
         return RTP_SEND_ERROR;
     }
 #else
-    DWORD sent_bytes;%s
+    DWORD sent_bytes;
     WSABUF data_buf;
 
     data_buf.buf = (char *)buf;
