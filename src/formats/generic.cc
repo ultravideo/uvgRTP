@@ -51,31 +51,68 @@ rtp_error_t kvz_rtp::generic::frame_receiver(kvz_rtp::receiver *receiver)
 {
     LOG_INFO("Generic frame receiver starting...");
 
-    /* TODO: this looks super ugly */
-    rtp_error_t ret;
     int nread = 0;
     sockaddr_in sender_addr;
+    rtp_error_t ret = RTP_OK;
     kvz_rtp::socket socket = receiver->get_socket();
     kvz_rtp::frame::rtp_frame *frame;
 
-    while (receiver->active()) {
-        ret = socket.recvfrom(receiver->get_recv_buffer(), receiver->get_recv_buffer_len(), 0, &sender_addr, &nread);
+    fd_set read_fds;
+    struct timeval t_val;
 
-        if (ret != RTP_OK) {
-            LOG_ERROR("recvfrom failed! FrameReceiver cannot continue!");
+    FD_ZERO(&read_fds);
+    FD_SET(socket.get_raw_socket(), &read_fds);
+
+    t_val.tv_sec  = 0;
+    t_val.tv_usec = 1500;
+
+    while (receiver->active()) {
+        int sret = ::select(1, &read_fds, nullptr, nullptr, &t_val);
+
+        if (sret < 0) {
+#ifdef __linux__
+            LOG_ERROR("select failed: %s!", strerror(errno));
+#else
+            win_get_last_error();
+#endif
             return RTP_GENERIC_ERROR;
         }
 
-        if ((frame = receiver->validate_rtp_frame(receiver->get_recv_buffer(), nread)) == nullptr) {
-            LOG_DEBUG("received an invalid frame, discarding");
-            continue;
-        }
-        memcpy(&frame->src_addr, &sender_addr, sizeof(sockaddr_in));
+        do {
+#ifdef __linux__
+            ret = socket.recvfrom(receiver->get_recv_buffer(), receiver->get_recv_buffer_len(), MSG_DONTWAIT, &sender_addr, &nread);
 
-        /* Update session related statistics
-         * If this is a new peer, RTCP will take care of initializing necessary stuff */
-        /* if (receiver->update_receiver_stats(frame) == RTP_OK) */
-            receiver->return_frame(frame);
+            if (ret != RTP_OK) {
+                if (errno == EAGAIN || errno == EWOULDBLOCK)
+                    break;
+
+                LOG_ERROR("recvfrom failed! FrameReceiver cannot continue %s!", strerror(errno));
+                return RTP_GENERIC_ERROR;
+            }
+#else
+            ret = socket.recvfrom(receiver->get_recv_buffer(), receiver->get_recv_buffer_len(), 0, &sender_addr, &nread);
+
+            if (ret != RTP_OK) {
+                if (WSAGetLastError() == WSAEWOULDBLOCK)
+                    break;
+
+                LOG_ERROR("recvfrom failed! FrameReceiver cannot continue %s!", strerror(errno));
+                return RTP_GENERIC_ERROR;
+            }
+#endif
+
+
+            if ((frame = receiver->validate_rtp_frame(receiver->get_recv_buffer(), nread)) == nullptr) {
+                LOG_DEBUG("received an invalid frame, discarding");
+                continue;
+            }
+            memcpy(&frame->src_addr, &sender_addr, sizeof(sockaddr_in));
+
+            /* Update session related statistics
+             * If this is a new peer, RTCP will take care of initializing necessary stuff */
+            /* if (receiver->update_receiver_stats(frame) == RTP_OK) */
+                receiver->return_frame(frame);
+        } while (ret == RTP_OK);
     }
 
     return ret;

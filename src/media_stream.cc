@@ -40,10 +40,9 @@ rtp_error_t kvz_rtp::media_stream::init_connection()
     if ((ret = socket_.init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
         return ret;
 
-#if 0
-    int enable = 1;
-    if ((ret = socket_.setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int))) != RTP_OK)
-        return ret;
+#ifdef _WIN32
+    if (::ioctlsocket(socket_.get_raw_socket(), FIONREAD, nullptr) < 0)
+        LOG_ERROR("Failed to make the socket non-blocking!");
 #endif
 
     if ((ret = socket_.bind(AF_INET, INADDR_ANY, src_port_)) != RTP_OK)
