@@ -112,30 +112,30 @@ namespace kvz_rtp {
             struct rtcp_header header;
             uint32_t sender_ssrc;
             struct rtcp_sender_info s_info;
-            struct rtcp_report_block blocks[0];
+            struct rtcp_report_block blocks[1];
         };
 
         PACKED_STRUCT(rtcp_receiver_frame) {
             struct rtcp_header header;
             uint32_t sender_ssrc;
-            struct rtcp_report_block blocks[0];
+            struct rtcp_report_block blocks[1];
         };
 
         PACKED_STRUCT(rtcp_sdes_item) {
             uint8_t type;
             uint8_t length;
-            uint8_t data[0];
+            uint8_t data[1];
         };
 
         PACKED_STRUCT(rtcp_sdes_frame) {
             struct rtcp_header header;
             uint32_t sender_ssrc;
-            struct rtcp_sdes_item items[0];
+            struct rtcp_sdes_item items[1];
         };
 
         PACKED_STRUCT(rtcp_bye_frame) {
             struct rtcp_header header;
-            uint32_t ssrc[0];
+            uint32_t ssrc[1];
         };
 
         PACKED_STRUCT(rtcp_app_frame) {
@@ -147,7 +147,7 @@ namespace kvz_rtp {
 
             uint32_t ssrc;
             uint8_t name[4];
-            uint8_t payload[0];
+            uint8_t payload[1];
         };
 
         PACKED_STRUCT(zrtp_frame) {
@@ -156,7 +156,7 @@ namespace kvz_rtp {
             uint16_t seq;
             uint32_t magic;
             uint32_t ssrc;
-            uint8_t payload[0];
+            uint8_t payload[1];
         };
 
         /* Allocate an RTP frame

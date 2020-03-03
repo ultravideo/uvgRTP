@@ -50,7 +50,7 @@ static inline void win_get_last_error(void)
 
 #define debug(level, fmt, ...) \
 	fprintf(stderr, "[RTPLIB][%s][%s::%s] " fmt "\n", level, \
-            className(__PRETTY_FUNCTION__), __func__, ##__VA_ARGS__)
+            "", __func__, ##__VA_ARGS__)
 
 #ifndef NDEBUG
 #define LOG_DEBUG(fmt,  ...) debug(LOG_LEVEL_DEBUG,  fmt, ##__VA_ARGS__)

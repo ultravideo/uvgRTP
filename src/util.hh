@@ -13,12 +13,16 @@
 #include <cstdio>
 #include <string>
 
+#if defined(_MSC_VER)
+typedef SSIZE_T ssize_t;
+#endif
+
 
 #if defined(__MINGW32__) || defined(__MINGW64__) || defined(__linux__)
 #define PACKED_STRUCT(name) \
     struct __attribute__((packed)) name
 #else
-#warning "structures are not packed!"
+//#warning "structures are not packed!"
 #define PACKED_STRUCT(name) struct name
 #endif
 

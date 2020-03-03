@@ -10,6 +10,10 @@
 #include "sender.hh"
 #include "util.hh"
 
+#if defined(_MSC_VER)
+typedef SSIZE_T ssize_t;
+#endif
+
 const int MAX_MSG_COUNT   = 5000;
 const int MAX_QUEUED_MSGS =  10;
 const int MAX_CHUNK_COUNT =   4;
