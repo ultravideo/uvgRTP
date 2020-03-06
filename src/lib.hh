@@ -27,8 +27,5 @@ namespace kvz_rtp {
 
             /* CNAME is the same for all connections */
             std::string cname_;
-
-            /* map of all the sessions created from this RTP context */
-            std::unordered_map<std::string, kvz_rtp::session *> sessions_;
         };
 };
