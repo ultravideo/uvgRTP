@@ -42,7 +42,10 @@ rtp_error_t kvz_rtp::media_stream::init_connection()
         return ret;
 
 #ifdef _WIN32
-    if (::ioctlsocket(socket_.get_raw_socket(), FIONREAD, nullptr) < 0)
+    /* Make the socket non-blocking */
+    int enabled = 1;
+
+    if (::ioctlsocket(socket_.get_raw_socket(), FIONBIO, (char *)&enabled) < 0)
         LOG_ERROR("Failed to make the socket non-blocking!");
 #endif
 
