@@ -29,7 +29,22 @@ kvz_rtp::zrtp::zrtp():
 
 kvz_rtp::zrtp::~zrtp()
 {
-    /* TODO: free everything */
+    delete cctx_.sha256;
+    delete cctx_.dh;
+
+    if (session_.r_msg.commit.second)
+        delete[] session_.r_msg.commit.second;
+    if (session_.r_msg.hello.second)
+        delete[] session_.r_msg.hello.second;
+    if (session_.r_msg.dh.second)
+        delete[] session_.r_msg.dh.second;
+
+    if (session_.l_msg.commit.second)
+        delete[] session_.l_msg.commit.second;
+    if (session_.l_msg.hello.second)
+        delete[] session_.l_msg.hello.second;
+    if (session_.l_msg.dh.second)
+        delete[] session_.l_msg.dh.second;
 }
 
 rtp_error_t kvz_rtp::zrtp::set_timeout(size_t timeout)

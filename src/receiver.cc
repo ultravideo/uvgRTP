@@ -21,6 +21,7 @@ kvz_rtp::receiver::receiver(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_for
 
 kvz_rtp::receiver::~receiver()
 {
+    delete[] recv_buf_;
 }
 
 rtp_error_t kvz_rtp::receiver::start()

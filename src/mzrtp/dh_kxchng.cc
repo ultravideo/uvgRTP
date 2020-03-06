@@ -90,6 +90,9 @@ kvz_rtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int
     kvz_rtp::crypto::crc32::get_crc32((uint8_t *)frame_, len_ - 4, &msg->crc);
 
     /* Finally make a copy of the message and save it for later use */
+    if (session.l_msg.dh.second)
+        delete[] session.l_msg.dh.second ;
+
     session.l_msg.dh.first  = len_;
     session.l_msg.dh.second = (kvz_rtp::zrtp_msg::zrtp_dh *)new uint8_t[len_];
     memcpy(session.l_msg.dh.second, msg, len_);

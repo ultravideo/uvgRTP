@@ -153,6 +153,8 @@ rtp_error_t kvz_rtp::zrtp_msg::confirm::parse_msg(kvz_rtp::zrtp_msg::receiver& r
     session.hash_ctx.r_mac[0] = 0;
 
     delete aes_cfb;
+    delete hmac_sha256;
+
     return RTP_OK;
 }
 #endif

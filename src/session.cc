@@ -15,6 +15,10 @@ kvz_rtp::session::~session()
         (void)destroy_stream(i.second);
     }
     streams_.clear();
+
+#ifdef __RTP_CRYPTO__
+    delete zrtp_;
+#endif
 }
 
 kvz_rtp::media_stream *kvz_rtp::session::create_stream(int r_port, int s_port, rtp_format_t fmt, int flags)

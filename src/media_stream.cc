@@ -31,6 +31,7 @@ kvz_rtp::media_stream::~media_stream()
     delete sender_;
     delete receiver_;
     delete rtp_;
+    delete srtp_;
 }
 
 rtp_error_t kvz_rtp::media_stream::init_connection()
