@@ -45,7 +45,7 @@ rtp_error_t kvz_rtp::media_stream::init_connection()
     /* Make the socket non-blocking */
     int enabled = 1;
 
-    if (::ioctlsocket(socket_.get_raw_socket(), FIONBIO, (char *)&enabled) < 0)
+    if (::ioctlsocket(socket_.get_raw_socket(), FIONBIO, (u_long *)&enabled) < 0)
         LOG_ERROR("Failed to make the socket non-blocking!");
 #endif
 

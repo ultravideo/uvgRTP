@@ -331,7 +331,7 @@ static rtp_error_t __push_hevc_nal(
         kvz_rtp::frame::HEADER_SIZE_HEVC_NAL +
         kvz_rtp::frame::HEADER_SIZE_HEVC_FU;
 
-    uint8_t buffer[HEADER_SIZE + MAX_PAYLOAD];
+    uint8_t buffer[HEADER_SIZE + MAX_PAYLOAD] = { 0 };
 
     sender->get_rtp_ctx()->fill_header(buffer);
 
@@ -360,7 +360,7 @@ static rtp_error_t __push_hevc_nal(
     }
 
     buffer[kvz_rtp::frame::HEADER_SIZE_RTP +
-           kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] |= (1 << 6); /* set E bit to signal end of data */
+           kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] = nalType | (1 << 6); /* set E bit to signal end of data */
 
     memcpy(&buffer[HEADER_SIZE], &data[data_pos], data_left);
 
