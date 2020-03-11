@@ -61,13 +61,13 @@ rtp_error_t kvz_rtp::generic::frame_receiver(kvz_rtp::receiver *receiver)
     struct timeval t_val;
 
     FD_ZERO(&read_fds);
-    FD_SET(socket.get_raw_socket(), &read_fds);
 
     t_val.tv_sec  = 0;
     t_val.tv_usec = 1500;
 
     while (receiver->active()) {
-        int sret = ::select(1, &read_fds, nullptr, nullptr, &t_val);
+        FD_SET(socket.get_raw_socket(), &read_fds);
+        int sret = ::select(socket.get_raw_socket() + 1, &read_fds, nullptr, nullptr, &t_val);
 
         if (sret < 0) {
 #ifdef __linux__
