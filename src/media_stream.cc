@@ -6,9 +6,7 @@
 #include "random.hh"
 
 kvz_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
-#ifdef __RTP_CRYPTO__
     srtp_(nullptr),
-#endif
     socket_(),
     ctx_config_(),
     media_config_(nullptr)
