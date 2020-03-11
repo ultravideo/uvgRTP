@@ -45,6 +45,8 @@ SOURCES += \
     src/receiver.cc \
     src/session.cc \
     src/rtp.cc \
+    src/srtp.cc \
+    src/crypto.cc \
     src/media_stream.cc \
     src/formats/opus.cc \
     src/formats/hevc.cc \
