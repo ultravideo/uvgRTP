@@ -67,7 +67,7 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
     FD_ZERO(&read_fds);
 
     t_val.tv_sec  = 0;
-    t_val.tv_usec = 1500;
+    t_val.tv_usec = 1000;
 
     while (receiver->active()) {
         FD_SET(socket.get_raw_socket(), &read_fds);
