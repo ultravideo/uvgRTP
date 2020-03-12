@@ -450,7 +450,7 @@ rtp_error_t kvz_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags,
     rc = ::WSARecvFrom(socket_, &DataBuf, 1, &bytes_received, &flags_, (SOCKADDR *)sender, (int *)len_ptr, NULL, NULL);
 
     if ((rc == SOCKET_ERROR) && (WSA_IO_PENDING != (err = WSAGetLastError()))) {
-        win_get_last_error();
+        /* win_get_last_error(); */
         set_bytes(bytes_read, -1);
         return RTP_GENERIC_ERROR;
     }
