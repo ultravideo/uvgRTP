@@ -322,5 +322,8 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
         } while (ret == RTP_OK);
     }
 
+    for (int i = 0; i < 0xffff + 1; ++i)
+        (void)kvz_rtp::frame::dealloc_frame(frames[i]);
+
     return ret;
 }
