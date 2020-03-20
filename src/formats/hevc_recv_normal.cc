@@ -178,6 +178,15 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
             if (frames[frame->header.seq] == nullptr) {
                 frames[frame->header.seq] = frame;
                 duplicate                 = false;
+
+            } else if (frame->header.timestamp != frames[frame->header.seq]->header.timestamp) {
+                (void)kvz_rtp::frame::dealloc_frame(frames[frame->header.seq]);
+                frames[frame->header.seq] = frame;
+                duplicate                 = false;
+            } else {
+                LOG_INFO("valid duplicate packet, investigate!");
+                (void)kvz_rtp::frame::dealloc_frame(frame);
+                continue;
             }
 
             /* If frames[frame->header.seq] is not nullptr, there's actually two possibilites:
@@ -202,6 +211,7 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
                     kvz_rtp::frame::dealloc_frame(frames[frame->header.seq]);
                     frames[frame->header.seq] = frame;
                     duplicate = false;
+                    /* continue; */
                 } else {
                     fprintf(stderr, "not old enough\n");
                 }
@@ -241,7 +251,8 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
             uint64_t diff = kvz_rtp::clock::hrc::diff_now(s_timers[frame->header.timestamp].sframe_time);
 
             if (diff > RTP_FRAME_MAX_DELAY) {
-                LOG_ERROR("frame must be dropped, max delay reached");
+                LOG_ERROR("frame must be dropped, max delay reached: %lu!", diff);
+
                 if (dropped_frames.find(frame->header.timestamp) == dropped_frames.end()) {
                     dropped_frames[frame->header.timestamp] = 1;
                 } else {
