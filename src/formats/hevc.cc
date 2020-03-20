@@ -451,6 +451,7 @@ error:
     fqueue->deinit_transaction();
     return ret;
 #else
+    rtp_error_t ret = RTP_OK;
     uint8_t start_len;
     int32_t prev_offset = 0;
     int offset = __get_hevc_start(data, data_len, 0, start_len);
@@ -460,8 +461,8 @@ error:
         offset = __get_hevc_start(data, data_len, offset, start_len);
 
         if (offset > 4 && offset != -1) {
-            if (__push_hevc_nal(sender, nullptr, &data[prev_offset], offset - prev_offset - start_len, false) == -1)
-                return RTP_GENERIC_ERROR;
+            if ((ret = __push_hevc_nal(sender, nullptr, &data[prev_offset], offset - prev_offset - start_len, false)) == -1)
+                goto end;
 
             prev_offset = offset;
         }
@@ -470,7 +471,10 @@ error:
     if (prev_offset == -1)
         prev_offset = 0;
 
-    return __push_hevc_nal(sender, nullptr, &data[prev_offset], data_len - prev_offset, false);
+    ret = __push_hevc_nal(sender, nullptr, &data[prev_offset], data_len - prev_offset, false);
+end:
+    fqueue->deinit_transaction();
+    return ret;
 #endif
 }
 
