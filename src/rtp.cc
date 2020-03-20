@@ -10,13 +10,14 @@
 #include "random.hh"
 #include "rtp.hh"
 
-kvz_rtp::rtp::rtp(rtp_format_t fmt)
-    :sent_pkts_(0)
+kvz_rtp::rtp::rtp(rtp_format_t fmt):
+    wc_start_(0), sent_pkts_(0)
 {
     seq_  = kvz_rtp::random::generate_32() & 0xffff;
     ts_   = kvz_rtp::random::generate_32();
     ssrc_ = kvz_rtp::random::generate_32();
-    fmt_  = fmt;
+
+    set_payload(fmt);
 }
 
 kvz_rtp::rtp::~rtp()
@@ -80,9 +81,7 @@ void kvz_rtp::rtp::fill_header(uint8_t *buffer)
     if (wc_start_ == 0) {
         ts_        = kvz_rtp::random::generate_32();
         wc_start_2 = kvz_rtp::clock::hrc::now();
-
-        /* fprintf(stderr, "hwreerere\n"); */
-        /* for (;;); */
+        wc_start_  = 1;
     }
 
     buffer[0] = 2 << 6; // RTP version
