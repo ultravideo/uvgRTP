@@ -27,7 +27,7 @@ int main(int argc, char **argv)
     kvz_rtp::context rtp_ctx;
 
     kvz_rtp::session *sess      = rtp_ctx.create_session("127.0.0.1");
-    kvz_rtp::media_stream *hevc = sess->create_stream(8889, 8888, RTP_FORMAT_HEVC, RCE_SYSTEM_CALL_DISPATCHER);
+    kvz_rtp::media_stream *hevc = sess->create_stream(8889, 8888, RTP_FORMAT_HEVC, 0);
 
     std::chrono::high_resolution_clock::time_point start, fpt_start, fpt_end, end;
 
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
             fpt_end = std::chrono::high_resolution_clock::now();
             diff = std::chrono::duration_cast<std::chrono::milliseconds>(fpt_end - fpt_start).count();
 
-            std::this_thread::sleep_for(std::chrono::microseconds(4500));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
             frames     += 1;
             offset     += chunk_size;
