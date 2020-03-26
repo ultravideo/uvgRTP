@@ -3,7 +3,10 @@ src/formats/*.o
 src/mzrtp/*.o
 src/crypto/*.o
 libkvzrtp.a
+*.a
 *main
 benchmarks/*/main_*
 benchmarks/*/results
+benchmarks/*/*data
+benchmarks/*/*
 *.prof

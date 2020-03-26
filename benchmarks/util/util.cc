@@ -22,8 +22,8 @@ void *get_mem(int argc, char **argv, size_t& len)
     char *output = NULL;
 
     if (argc != 3) {
-        input  = (char *)"../util/video.raw";
-        output = (char *)"../util/out.hevc";
+        input  = (char *)"util/video.raw";
+        output = (char *)"util/out.hevc";
     } else {
         input  = argv[1];
         output = argv[2];
@@ -84,9 +84,8 @@ int kvazaar_encode(char *input, char *output)
     config->width = width;
     config->height = height;
     config->hash = kvz_hash::KVZ_HASH_NONE;
-    config->intra_period = 1;
-    /* config->vps_period = 64; */
-    config->qp = 22;
+    config->intra_period = 64;
+    config->qp = 18;
     config->framerate_num = 120;
     config->framerate_denom = 1;
 
