@@ -160,8 +160,6 @@ rtp_error_t kvz_rtp::frame_queue::destroy_transaction(kvz_rtp::transaction_t *t)
     delete t;
     t = nullptr;
 
-    fprintf(stderr, "transaction destroyed!\n");
-
     return RTP_OK;
 }
 
