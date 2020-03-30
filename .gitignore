@@ -8,7 +8,6 @@ libkvzrtp.a
 benchmarks/*/main_*
 benchmarks/*/results
 benchmarks/*/*data
-benchmarks/*/*
 benchmarks/*/receiver
 benchmarks/*/sender
 *.prof
