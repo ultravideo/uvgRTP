@@ -8,28 +8,27 @@
 
 extern void *get_mem(int argc, char **argv, size_t& len);
 
-size_t bytes_sent     = 0;
-size_t bytes_received = 0;
+std::atomic<int> nready(0);
 
-int main(int argc, char **argv)
+void thread_func(void *mem, size_t len, int thread_num, int sleep)
 {
+    size_t bytes_sent   = 0;
     uint64_t chunk_size = 0;
     uint64_t total_size = 0;
-    uint64_t fake_size  = 0;
-    uint64_t fpt_us     = 0;
     uint64_t diff       = 0;
-    uint64_t frames     = 0;
     rtp_error_t ret     = RTP_OK;
-
-    size_t len          = 0;
-    void *mem           = get_mem(argc, argv, len);
 
     kvz_rtp::context rtp_ctx;
 
-    kvz_rtp::session *sess      = rtp_ctx.create_session("127.0.0.1");
-    kvz_rtp::media_stream *hevc = sess->create_stream(8889, 8888, RTP_FORMAT_HEVC, 0);
+    auto sess = rtp_ctx.create_session("127.0.0.1");
+    auto hevc = sess->create_stream(
+        8889 + thread_num,
+        8888 + thread_num,
+        RTP_FORMAT_HEVC,
+        RCE_SYSTEM_CALL_DISPATCHER
+    );
 
-    std::chrono::high_resolution_clock::time_point start, fpt_start, fpt_end, end;
+    std::chrono::high_resolution_clock::time_point start, end;
 
     start = std::chrono::high_resolution_clock::now();
 
@@ -37,28 +36,22 @@ int main(int argc, char **argv)
         for (size_t offset = 0, k = 0; offset < len; ++k) {
             memcpy(&chunk_size, (uint8_t *)mem + offset, sizeof(uint64_t));
 
-            offset          += sizeof(uint64_t);
+            offset     += sizeof(uint64_t);
             total_size += chunk_size;
-
-            fpt_start = std::chrono::high_resolution_clock::now();
 
             if ((ret = hevc->push_frame((uint8_t *)mem + offset, chunk_size, 0)) != RTP_OK) {
                 fprintf(stderr, "push_frame() failed!\n");
                 for (;;);
             }
 
-            fpt_end = std::chrono::high_resolution_clock::now();
-            diff = std::chrono::duration_cast<std::chrono::milliseconds>(fpt_end - fpt_start).count();
+            if (sleep >= 100)
+                std::this_thread::sleep_for(std::chrono::microseconds(sleep));
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-            frames     += 1;
             offset     += chunk_size;
             bytes_sent += chunk_size;
-            fake_size  += chunk_size;
-            fpt_us     += diff;
         }
     }
+    rtp_ctx.destroy_session(sess);
 
     end  = std::chrono::high_resolution_clock::now();
     diff = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -68,5 +61,23 @@ int main(int argc, char **argv)
         diff, diff / 1000
     );
 
-    rtp_ctx.destroy_session(sess);
+    nready++;
+}
+
+int main(int argc, char **argv)
+{
+    if (argc != 3) {
+        fprintf(stderr, "usage: ./%s <number of threads> <us of sleep between frames>\n", __FILE__);
+        return -1;
+    }
+
+    size_t len   = 0;
+    void *mem    = get_mem(0, NULL, len);
+    int nthreads = atoi(argv[1]);
+
+    for (int i = 0; i < nthreads; ++i)
+        new std::thread(thread_func, mem, len, i * 2, atoi(argv[2]));
+
+    while (nready.load() != nthreads)
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
 }
