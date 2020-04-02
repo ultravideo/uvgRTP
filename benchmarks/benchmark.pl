@@ -12,9 +12,7 @@ sub send_benchmark {
 	my ($socket, $remote, $data);
 
 	$socket = IO::Socket::INET->new(
-		PeerAddr  => $addr,
-		PeerPort  => $port,
-		LocalAddr => "127.0.0.1",
+		LocalAddr => $addr,
 		LocalPort => $port,
 		Proto     => "tcp",
 		Type      => SOCK_STREAM,
@@ -47,7 +45,7 @@ sub recv_benchmark {
 }
 
 if ($#ARGV + 1 != 6) {
-	print "usage: perl benchmarks.pl"
+	print "usage: ./benchmarks.pl"
 	. "\n\t<kvzrtp|ffmpeg|gstreamer>"
 	. "\n\t<send|recv>"
 	. "\n\t<ip>"
