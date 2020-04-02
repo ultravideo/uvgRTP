@@ -85,7 +85,7 @@ int kvazaar_encode(char *input, char *output)
     config->height = height;
     config->hash = kvz_hash::KVZ_HASH_NONE;
     config->intra_period = 64;
-    config->qp = 18;
+    config->qp = 21;
     config->framerate_num = 120;
     config->framerate_denom = 1;
 
