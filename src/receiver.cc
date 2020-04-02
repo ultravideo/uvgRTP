@@ -62,7 +62,7 @@ rtp_error_t kvz_rtp::receiver::start()
             break;
 
         case RTP_FORMAT_HEVC:
-            runner_ = new std::thread(kvz_rtp::hevc::frame_receiver, this, false);
+            runner_ = new std::thread(kvz_rtp::hevc::frame_receiver, this, !!(conf_.flags & RCE_OPTIMISTIC_RECEIVER));
             break;
     }
     runner_->detach();
