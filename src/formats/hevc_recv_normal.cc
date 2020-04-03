@@ -8,7 +8,7 @@
 #include "receiver.hh"
 #include "send.hh"
 
-#define RTP_FRAME_MAX_DELAY           34
+#define RTP_FRAME_MAX_DELAY          100
 #define INVALID_SEQ           0x13371338
 
 enum FRAG_TYPES {
