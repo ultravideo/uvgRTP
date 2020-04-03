@@ -40,6 +40,14 @@ kvz_rtp::session *kvz_rtp::context::create_session(std::string address)
     return new kvz_rtp::session(address);
 }
 
+kvz_rtp::session *kvz_rtp::context::create_session(std::string remote_addr, std::string local_addr)
+{
+    if (remote_addr == "" || local_addr == "")
+        return nullptr;
+
+    return new kvz_rtp::session(remote_addr, local_addr);
+}
+
 rtp_error_t kvz_rtp::context::destroy_session(kvz_rtp::session *session)
 {
     if (!session)

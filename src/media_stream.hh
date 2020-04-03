@@ -15,6 +15,7 @@ namespace kvz_rtp {
     class media_stream {
         public:
             media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags);
+            media_stream(std::string remote_addr, std::string local_addr, int src_port, int dst_port, rtp_format_t fmt, int flags);
             ~media_stream();
 
             /* Initialize traditional RTP session
@@ -125,6 +126,7 @@ namespace kvz_rtp {
 
             sockaddr_in addr_out_;
             std::string addr_;
+            std::string laddr_;
             int src_port_;
             int dst_port_;
             rtp_format_t fmt_;

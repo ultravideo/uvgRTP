@@ -11,6 +11,7 @@ namespace kvz_rtp {
     class session {
         public:
             session(std::string addr);
+            session(std::string remote_addr, std::string local_addr);
             ~session();
 
             /* Create bidirectional media stream for media format "fmt"
@@ -42,6 +43,9 @@ namespace kvz_rtp {
 
             /* Each RTP multimedia session is always IP-specific */
             std::string addr_;
+
+            /* If user so wishes, the session can be bound to a certain interface */
+            std::string laddr_;
 
             /* All media streams of this session */
             std::unordered_map<uint32_t, kvz_rtp::media_stream *> streams_;

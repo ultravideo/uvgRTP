@@ -10,8 +10,12 @@ namespace kvz_rtp {
             context();
             ~context();
 
-            /* Create new session if "addr" is unique or return pointer to previously created session */
+            /* Create a new session with remote participant */
             kvz_rtp::session *create_session(std::string addr);
+
+            /* Create a new session with remote participant
+             * Bind ourselves to interface pointed to by "local_addr" */
+            kvz_rtp::session *create_session(std::string remote_addr, std::string local_addr);
 
             /* Destroy session and all media streams
              *

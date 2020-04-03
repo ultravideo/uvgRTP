@@ -5,8 +5,15 @@ kvz_rtp::session::session(std::string addr):
 #ifdef __RTP_CRYPTO__
     zrtp_(nullptr),
 #endif
-    addr_(addr)
+    addr_(addr),
+    laddr_("")
 {
+}
+
+kvz_rtp::session::session(std::string remote_addr, std::string local_addr):
+    session(remote_addr)
+{
+    laddr_ = local_addr;
 }
 
 kvz_rtp::session::~session()
@@ -23,7 +30,19 @@ kvz_rtp::session::~session()
 
 kvz_rtp::media_stream *kvz_rtp::session::create_stream(int r_port, int s_port, rtp_format_t fmt, int flags)
 {
-    kvz_rtp::media_stream *stream = new kvz_rtp::media_stream(addr_, r_port, s_port, fmt, flags);
+    kvz_rtp::media_stream *stream = nullptr;
+
+    if (laddr_ == "")
+        stream = new kvz_rtp::media_stream(addr_, r_port, s_port, fmt, flags);
+    else
+        stream = new kvz_rtp::media_stream(addr_, laddr_, r_port, s_port, fmt, flags);
+
+    if (!stream) {
+        LOG_ERROR("Failed to create media stream for %s:%d -> %s:%d",
+            (laddr_ == "") ? "0.0.0.0" : laddr_.c_str(), s_port, addr_.c_str(), r_port
+        );
+        return nullptr;
+    }
 
 #ifdef __RTP_CRYPTO__
     int zrtp_flags = (RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP);

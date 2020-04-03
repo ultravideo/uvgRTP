@@ -13,12 +13,23 @@ kvz_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port
 {
     fmt_      = fmt;
     addr_     = addr;
+    laddr_    = "";
     flags_    = flags;
     src_port_ = src_port;
     dst_port_ = dst_port;
     key_      = kvz_rtp::random::generate_32();
 
     ctx_config_.flags = flags;
+}
+
+kvz_rtp::media_stream::media_stream(
+    std::string remote_addr, std::string local_addr,
+    int src_port, int dst_port,
+    rtp_format_t fmt, int flags
+):
+    media_stream(remote_addr, src_port, dst_port, fmt, flags)
+{
+    laddr_ = local_addr;
 }
 
 kvz_rtp::media_stream::~media_stream()
@@ -47,8 +58,23 @@ rtp_error_t kvz_rtp::media_stream::init_connection()
         LOG_ERROR("Failed to make the socket non-blocking!");
 #endif
 
-    if ((ret = socket_.bind(AF_INET, INADDR_ANY, src_port_)) != RTP_OK)
-        return ret;
+    if (laddr_ != "") {
+        sockaddr_in bind_addr = socket_.create_sockaddr(AF_INET, laddr_, src_port_);
+        socket_t socket       = socket_.get_raw_socket();
+
+        if (bind(socket, (struct sockaddr *)&bind_addr, sizeof(bind_addr)) == -1) {
+#ifdef __linux__
+            LOG_ERROR("Bind failed: %s!", strerror(errno));
+#else
+            LOG_ERROR("Bind failed!");
+            win_get_last_error();
+#endif
+            return RTP_BIND_ERROR;
+        }
+    } else {
+        if ((ret = socket_.bind(AF_INET, INADDR_ANY, src_port_)) != RTP_OK)
+            return ret;
+    }
 
     addr_out_ = socket_.create_sockaddr(AF_INET, addr_, dst_port_);
     socket_.set_sockaddr(addr_out_);
