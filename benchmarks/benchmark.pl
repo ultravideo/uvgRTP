@@ -4,15 +4,18 @@ use warnings;
 use strict;
 use IO::Socket;
 use IO::Socket::INET;
+use Getopt::Long;
 
 $| = 1; # autoflush
 
 sub send_benchmark {
-	my ($lib, $addr, $port, $logname, $iter) = @_;
-	my ($socket, $remote, $data);
+	my ($lib, $addr, $port, $iter, $threads, $start, $end, $step) = @_;
+	my ($socket, $remote, $data, $istart);
 
 	$socket = IO::Socket::INET->new(
-		LocalAddr => $addr,
+		PeerAddr  => $addr,
+		PeerPort  => $port,
+		LocalAddr => "127.0.0.1",
 		LocalPort => $port,
 		Proto     => "tcp",
 		Type      => SOCK_STREAM,
@@ -21,14 +24,23 @@ sub send_benchmark {
 
 	$remote = $socket->accept();
 
-	for ((1 .. $iter)) {
-		$remote->recv($data, 16);
-		system ("time ./$lib/sender >> $lib/results/$logname 2>&1");
+	while ($threads ne 0) {
+		$istart = $start;
+		while ($istart le $end) {
+			my $logname = "send_results_$threads" . "threads_$istart". "us";
+			for ((1 .. $iter)) {
+				$remote->recv($data, 16);
+				system ("time ./$lib/sender $threads $start >> $lib/results/$logname 2>&1");
+			}
+			$istart += $step;
+		}
+
+		$threads--;
 	}
 }
 
 sub recv_benchmark {
-	my ($lib, $addr, $port, $logname, $iter) = @_;
+	my ($lib, $addr, $port, $iter, $threads, $start, $end, $step) = @_;
 
 	my $socket = IO::Socket::INET->new(
 		PeerAddr  => $addr,
@@ -38,28 +50,58 @@ sub recv_benchmark {
 		Timeout   => 1,
 	) or die "Couldn't connect to $addr:$port : $@\n";
 
-	for ((1 .. $iter)) {
-		$socket->send("start");
-		system ("time ./$lib/receiver >> $lib/results/$logname 2>&1");
+	while ($threads ne 0) {
+		my $istart = $start;
+		while ($istart le $end) {
+			my $logname = "recv_results_$threads" . "threads_$istart". "us";
+			for ((1 .. $iter)) {
+				$socket->send("start");
+				system ("time ./$lib/receiver $threads >> $lib/results/$logname 2>&1");
+			}
+			$istart += $step;
+		}
+
+		$threads--;
 	}
 }
 
-if ($#ARGV + 1 != 6) {
-	print "usage: ./benchmarks.pl"
-	. "\n\t<kvzrtp|ffmpeg|gstreamer>"
-	. "\n\t<send|recv>"
-	. "\n\t<ip>"
-	. "\n\t<port>"
-	. "\n\t<log_name>"
-	. "\n\t<# of iterations>\n" and exit;
+GetOptions(
+	"lib=s"     => \(my $lib = ""),
+	"role=s"    => \(my $role = ""),
+	"addr=s"    => \(my $addr = ""),
+	"port=i"    => \(my $port = 0),
+	"iter=i"    => \(my $iter = 100),
+	"sleep=i"   => \(my $sleep = 0),
+	"threads=i" => \(my $threads = 1),
+	"start=i"   => \(my $start = 0),
+	"end=i"     => \(my $end = 0),
+	"step=i"    => \(my $step = 0)
+) or die "failed to parse command line!\n";
+
+if ($lib eq "") {
+	print "library not defined!\n" and exit;
 }
 
-if ($ARGV[1] eq "send") {
-	system ("make $ARGV[0]_sender");
-	send_benchmark($ARGV[0], $ARGV[2], $ARGV[3], $ARGV[4], $ARGV[5]);
-} elsif ($ARGV[1] eq "recv" ){
-	system ("make $ARGV[0]_receiver");
-	recv_benchmark($ARGV[0], $ARGV[2], $ARGV[3], $ARGV[4], $ARGV[5]);
+if ($sleep ne 0) {
+	if ($start ne 0 or $end ne 0 or $step ne 0) {
+		print "start/end/step and sleep are mutually exclusive\n" and exit;
+	}
+
+	$start = $sleep;
+	$end   = $sleep + 1;
+	$step  = 1;
+}
+
+if ($addr eq "" or $port eq 0) {
+	print "address and port must be defined!\n" and exit;
+}
+
+if ($role eq "send") {
+	system ("make $lib" . "_sender");
+	send_benchmark($lib, $addr, $port, $iter, $threads, $start, $end, $step);
+} elsif ($role eq "recv" ){
+	system ("make $lib" . "_receiver");
+	recv_benchmark($lib, $addr, $port, $iter, $threads, $start, $end, $step);
 } else {
-	print "invalid role: '$ARGV[1]'\n" and exit;
+	print "invalid role: '$role'\n" and exit;
 }
