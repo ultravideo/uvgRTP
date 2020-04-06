@@ -1,8 +1,28 @@
 # kvzRTP example codes
 
-This directory contains directories full and simple. Simple directory contains code snippets that demonstrate how the library should be used. These miminal examples also show how the library can be used, but don't themselves do anything.
+We provide several simple and thoroughly commented examples on how to use kvzRTP.
 
-Full directory on the other hand shows the complete flow: these snippts encode HEVC/Opus from raw video, send this encoded data using the library and receive and reconstruct the received frames.
-These code snippets contain a lot of code unrelated to kvzRTP.
+[How to create a simple RTP sender](sending.cc)
 
-You can also use [Kvazzup](https://github.com/ultravideo/Kvazzup) to see a real-world example.
+[How to use fragmented input with kvzRTP \(HEVC slices\)](sending_fragmented.cc)
+
+[How to create a simple RTP receiver (hooking)](receiving_hook.cc)
+
+NOTE: The hook should **not** be used for media processing. It should be rather used as interface between application and library where the frame handout happens.
+
+[How to create a simple RTP receiver (polling)](receiving_poll.cc)
+
+[How to create an RTCP instance (polling)](rtcp_poll.cc)
+
+[How to create an RTCP instance (hoooking)](rtcp_hook.cc)
+
+### Memory ownership/deallocation
+
+If you have not enabled the system call dispatcher, you don't need to worry about these
+
+[Method 1, unique_ptr](deallocation_1.cc)
+
+[Method 2, copying](deallocation_2.cc)
+
+[Method 3, deallocation hook](deallocation_3.cc)
+

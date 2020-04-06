@@ -1,9 +1,0 @@
-o=User 0 0 IN IP4 127.0.0.1
-s=No Name
-c=IN IP4 127.0.0.1
-t=0 0
-m=audio 8890 RTP/AVP 97
-a=rtpmap:97 opus/48000/2
-a=fmtp:97 stereo=1; useinbandfec=1; usedtx=0
-a=ptime:20
-a=maxptime:20

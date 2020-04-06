@@ -1,8 +1,6 @@
 #include <kvzrtp/lib.hh>
 #include <thread>
 
-#define USE_RECV_HOOK
-
 void receive_hook(void *arg, kvz_rtp::frame::rtp_frame *frame)
 {
     if (!frame) {

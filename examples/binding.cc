@@ -4,6 +4,7 @@
 
 int main(void)
 {
+    /* See sending.cc for more details */
     kvz_rtp::context rtp_ctx;
 
     /* start session with remote at ip 10.21.25.2
