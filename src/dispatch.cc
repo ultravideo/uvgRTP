@@ -6,7 +6,6 @@
 kvz_rtp::dispatcher::dispatcher(kvz_rtp::socket *socket):
     socket_(socket)
 {
-    LOG_ERROR("starting system call dispatcher!");
 }
 
 kvz_rtp::dispatcher::~dispatcher()
