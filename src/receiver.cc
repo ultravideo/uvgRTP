@@ -24,6 +24,17 @@ kvz_rtp::receiver::~receiver()
     delete[] recv_buf_;
 }
 
+rtp_error_t kvz_rtp::receiver::stop()
+{
+    r_mtx_.lock();
+    active_ = false;
+
+    while (!r_mtx_.try_lock())
+        ;
+
+    return RTP_OK;
+}
+
 rtp_error_t kvz_rtp::receiver::start()
 {
     rtp_error_t ret  = RTP_OK;
@@ -245,4 +256,9 @@ kvz_rtp::socket& kvz_rtp::receiver::get_socket()
 kvz_rtp::rtp *kvz_rtp::receiver::get_rtp_ctx()
 {
     return rtp_;
+}
+
+std::mutex& kvz_rtp::receiver::get_mutex()
+{
+    return r_mtx_;
 }

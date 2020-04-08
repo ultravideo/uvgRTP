@@ -35,6 +35,8 @@ namespace kvz_rtp {
              * Return RTP_GENERIC_ERROR for any other error */
             rtp_error_t start();
 
+            rtp_error_t stop();
+
             bool recv_hook_installed();
             void recv_hook(kvz_rtp::frame::rtp_frame *frame);
             void install_recv_hook(void *arg, void (*hook)(void *arg, kvz_rtp::frame::rtp_frame *));
@@ -64,6 +66,8 @@ namespace kvz_rtp {
             /* TODO:  */
             kvz_rtp::rtp *get_rtp_ctx();
 
+            std::mutex& get_mutex();
+
         private:
             kvz_rtp::socket socket_;
             kvz_rtp::rtp *rtp_;
@@ -76,6 +80,7 @@ namespace kvz_rtp {
             /* Received frames are pushed here and they can fetched using pull_frame() */
             std::vector<kvz_rtp::frame::rtp_frame *> frames_;
             std::mutex frames_mtx_;
+            std::mutex r_mtx_;
 
             /* An an alternative to pull_frame(), user can install
              * a receive hook which is called every time a frame is received */

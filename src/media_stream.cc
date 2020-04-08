@@ -34,8 +34,8 @@ kvz_rtp::media_stream::media_stream(
 
 kvz_rtp::media_stream::~media_stream()
 {
-    receiver_->stop();
     sender_->destroy();
+    receiver_->stop();
 
     delete sender_;
     delete receiver_;

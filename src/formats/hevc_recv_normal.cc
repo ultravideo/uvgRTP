@@ -69,6 +69,9 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
     t_val.tv_sec  = 0;
     t_val.tv_usec = 1000;
 
+    while (!receiver->active())
+        ;
+
     while (receiver->active()) {
         FD_SET(socket.get_raw_socket(), &read_fds);
         int sret = ::select(socket.get_raw_socket() + 1, &read_fds, nullptr, nullptr, &t_val);
@@ -325,5 +328,6 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
     for (int i = 0; i < 0xffff + 1; ++i)
         (void)kvz_rtp::frame::dealloc_frame(frames[i]);
 
+    receiver->get_mutex().unlock();
     return ret;
 }
