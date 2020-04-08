@@ -27,7 +27,7 @@ sub send_benchmark {
 			my $logname = "send_results_$threads" . "threads_$i". "us";
 			for ((1 .. $iter)) {
 				$remote->recv($data, 16);
-				system ("time ./$lib/sender $threads $start >> $lib/results/$logname 2>&1");
+				system ("time ./$lib/sender $threads $i >> $lib/results/$logname 2>&1");
 			}
 		}
 
