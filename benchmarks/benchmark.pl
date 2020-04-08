@@ -26,13 +26,11 @@ sub send_benchmark {
 
 	while ($threads ne 0) {
 		$istart = $start;
-		while ($istart le $end) {
-			my $logname = "send_results_$threads" . "threads_$istart". "us";
+		for (my $i = $start; $i <= $end; $i += $step) {
 			for ((1 .. $iter)) {
 				$remote->recv($data, 16);
 				system ("time ./$lib/sender $threads $start >> $lib/results/$logname 2>&1");
 			}
-			$istart += $step;
 		}
 
 		$threads--;
@@ -51,14 +49,12 @@ sub recv_benchmark {
 	) or die "Couldn't connect to $addr:$port : $@\n";
 
 	while ($threads ne 0) {
-		my $istart = $start;
-		while ($istart le $end) {
-			my $logname = "recv_results_$threads" . "threads_$istart". "us";
+		$istart = $start;
+		for (my $i = $start; $i <= $end; $i += $step) {
 			for ((1 .. $iter)) {
 				$socket->send("start");
 				system ("time ./$lib/receiver $threads >> $lib/results/$logname 2>&1");
 			}
-			$istart += $step;
 		}
 
 		$threads--;
