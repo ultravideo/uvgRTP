@@ -59,6 +59,14 @@ namespace kvz_rtp {
              * the dispatcher that it can start the send process. */
             std::condition_variable& get_cvar();
 
+            /* When the stream is stopped, it is not a good idea to use condition variable to
+             * notify main thread that dispatcher is stopped because of the race condition between
+             * main thread's notify + wait and dispatcher's wait + notify
+             *
+             * The safest way is to lock the dispatcher mutex when waiting for dispatcher to stop
+             * and let it reopen it when it has sent all transactions */
+            std::mutex& get_mutex();
+
             /* Get next transaction from task queue
              * Return nullptr if the task queue is empty */
             kvz_rtp::transaction_t *get_transaction();
@@ -68,7 +76,7 @@ namespace kvz_rtp {
 
             std::condition_variable cv_;
 
-            std::mutex q_mtx_;
+            std::mutex d_mtx_;
             std::queue<kvz_rtp::transaction_t *> tasks_;
 
             kvz_rtp::socket *socket_;

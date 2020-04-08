@@ -28,8 +28,15 @@ rtp_error_t kvz_rtp::dispatcher::stop()
     if (tasks_.size() > 0)
         return RTP_NOT_READY;
 
+    /* notify dispatcher that we must stop now, lock the dispatcher mutex
+     * and wait until it's unlocked by the dispatcher at which point it is safe
+     * to return and release all memory */
+    (void)kvz_rtp::runner::stop();
+    d_mtx_.lock();
     cv_.notify_one();
-    return kvz_rtp::runner::stop();
+    while (d_mtx_.try_lock());
+
+    return RTP_OK;
 }
 
 std::condition_variable& kvz_rtp::dispatcher::get_cvar()
@@ -37,9 +44,14 @@ std::condition_variable& kvz_rtp::dispatcher::get_cvar()
     return cv_;
 }
 
+std::mutex& kvz_rtp::dispatcher::get_mutex()
+{
+    return d_mtx_;
+}
+
 rtp_error_t kvz_rtp::dispatcher::trigger_send(kvz_rtp::transaction_t *t)
 {
-    std::lock_guard<std::mutex> lock(q_mtx_);
+    std::lock_guard<std::mutex> lock(d_mtx_);
 
     if (!t)
         return RTP_INVALID_VALUE;
@@ -52,7 +64,7 @@ rtp_error_t kvz_rtp::dispatcher::trigger_send(kvz_rtp::transaction_t *t)
 
 kvz_rtp::transaction_t *kvz_rtp::dispatcher::get_transaction()
 {
-    std::lock_guard<std::mutex> lock(q_mtx_);
+    std::lock_guard<std::mutex> lock(d_mtx_);
 
     if (tasks_.size() == 0)
         return nullptr;
@@ -93,6 +105,6 @@ void kvz_rtp::dispatcher::dispatch_runner(kvz_rtp::dispatcher *dispatcher, kvz_r
         dispatcher->get_cvar().notify_one();
     }
 
-    /* std::exit(EXIT_SUCCESS); */
+    dispatcher->get_mutex().unlock();
 }
 #endif
