@@ -86,6 +86,9 @@ void kvz_rtp::dispatcher::dispatch_runner(kvz_rtp::dispatcher *dispatcher, kvz_r
     std::unique_lock<std::mutex> lk(m);
     kvz_rtp::transaction_t *t = nullptr;
 
+    while (!dispatcher->active())
+        ;
+
     while (dispatcher->active()) {
         if ((t = dispatcher->get_transaction()) == nullptr) {
             dispatcher->get_cvar().wait(lk);
