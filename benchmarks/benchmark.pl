@@ -10,7 +10,7 @@ $| = 1; # autoflush
 
 sub send_benchmark {
 	my ($lib, $addr, $port, $iter, $threads, $start, $end, $step) = @_;
-	my ($socket, $remote, $data, $istart);
+	my ($socket, $remote, $data);
 
 	$socket = IO::Socket::INET->new(
 		LocalAddr => $addr,
@@ -23,8 +23,8 @@ sub send_benchmark {
 	$remote = $socket->accept();
 
 	while ($threads ne 0) {
-		$istart = $start;
 		for (my $i = $start; $i <= $end; $i += $step) {
+			my $logname = "send_results_$threads" . "threads_$i". "us";
 			for ((1 .. $iter)) {
 				$remote->recv($data, 16);
 				system ("time ./$lib/sender $threads $start >> $lib/results/$logname 2>&1");
@@ -47,8 +47,8 @@ sub recv_benchmark {
 	) or die "Couldn't connect to $addr:$port : $@\n";
 
 	while ($threads ne 0) {
-		$istart = $start;
 		for (my $i = $start; $i <= $end; $i += $step) {
+			my $logname = "recv_results_$threads" . "threads_$i". "us";
 			for ((1 .. $iter)) {
 				$socket->send("start");
 				system ("time ./$lib/receiver $threads >> $lib/results/$logname 2>&1");
