@@ -74,10 +74,17 @@ int main(int argc, char **argv)
     size_t len   = 0;
     void *mem    = get_mem(0, NULL, len);
     int nthreads = atoi(argv[1]);
+    std::thread **threads = (std::thread **)malloc(sizeof(std::thread *) * nthreads);
 
     for (int i = 0; i < nthreads; ++i)
-        new std::thread(thread_func, mem, len, i * 2, atoi(argv[2]));
+        threads[i] = new std::thread(thread_func, mem, len, i * 2, atoi(argv[2]));
 
     while (nready.load() != nthreads)
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+    for (int i = 0; i < nthreads; ++i) {
+        threads[i]->join();
+        delete threads[i];
+    }
+    free(threads);
 }
