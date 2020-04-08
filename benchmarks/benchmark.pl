@@ -13,9 +13,7 @@ sub send_benchmark {
 	my ($socket, $remote, $data, $istart);
 
 	$socket = IO::Socket::INET->new(
-		PeerAddr  => $addr,
-		PeerPort  => $port,
-		LocalAddr => "127.0.0.1",
+		LocalAddr => $addr,
 		LocalPort => $port,
 		Proto     => "tcp",
 		Type      => SOCK_STREAM,
