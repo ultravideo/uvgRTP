@@ -4,7 +4,8 @@ use warnings;
 use strict;
 use Getopt::Long;
 
-my $TOTAL_BYTES = 411410113;
+my $TOTAL_FRAMES = 602;
+my $TOTAL_BYTES  = 411410113;
 
 sub parse_kvzrtp_send {
     my ($threads, $path) = @_;
@@ -75,16 +76,42 @@ sub parse_kvzrtp_recv {
 
     open(my $fh, '<', $path) or die "failed to open file";
 
-    my ($t_usr, $t_sys, $t_cpu, $t_total, $t_time, $t_bytes, $lines);
+    my ($t_usr, $t_sys, $t_cpu, $t_total, $tb_avg, $tf_avg, $lines);
 
     # each iteration parses one benchmark run
     while (my $line = <$fh>) {
-        $line = <$fh>;
-        my @nums = $line =~ /(\d+)/g;
-        $t_bytes += $nums[0];
-        $t_time  += $nums[1];
+        my ($w_f, $b_f, $a_f, $w_b, $b_b, $a_b) = (0) x 6;
 
-        $line = <$fh>;
+        $w_f = $TOTAL_FRAMES;
+        $w_b = $TOTAL_BYTES;
+
+        # Because packets can get dropped, we get three figures for receive output:
+        #   - Most frames/bytes received
+        #   - Least frames/bytes received
+        #   - Average frames/bytes received
+        for (my $i = 0; $i < $threads; $i++) {
+            my @nums = $line =~ /(\d+)/g;
+
+            $a_b += $nums[0];
+            $a_f += $nums[1];
+
+            if ($nums[0] < $w_b) {
+                $w_b = $nums[0];
+            } elsif ($nums[0] > $b_b) {
+                $b_b = $nums[0];
+            }
+
+            if ($nums[1] < $w_f) {
+                $w_f = $nums[1];
+            } elsif ($nums[1] > $b_f) {
+                $b_f = $nums[1];
+            }
+            $line = <$fh>;
+        }
+
+        $tf_avg += ($a_f / $threads);
+        $tb_avg += ($a_b / $threads);
+
         my ($usr, $sys, $total, $cpu) = ($line =~ m/(\d+\.\d+)user\s(\d+\.\d+)system\s0:(\d+.\d+)elapsed\s(\d+)%CPU/);
 
         # discard line about inputs, outputs and pagefaults
@@ -98,15 +125,13 @@ sub parse_kvzrtp_recv {
         $lines   += 1;
     }
 
-    my $gp = int((($t_bytes / $lines) / 1000 / 1000 / ($t_time  / $lines)) * 1000);
-
     print "$path: \n";
-    print "\tuser:    " .  $t_usr   / $lines . "\n";
-    print "\tsystem:  " .  $t_sys   / $lines . "\n";
-    print "\tcpu:     " .  $t_cpu   / $lines . "\n";
-    print "\ttotal:   " .  $t_total / $lines . "\n";
-    print "\ttime:    " .  $t_time  / $lines . " ms\n";
-    print "\tgoodput: " .  $gp . " MB/s\n";
+    print "\tuser:       " . $t_usr   / $lines . "\n";
+    print "\tsystem:     " . $t_sys   / $lines . "\n";
+    print "\tcpu:        " . $t_cpu   / $lines . "\n";
+    print "\ttotal:      " . $t_total / $lines . "\n";
+    print "\tavg frames: " . (100 * (($tf_avg  / $lines) / $TOTAL_FRAMES)) . "\n";
+    print "\tavg bytes:  " . (100 * (($tb_avg  / $lines) / $TOTAL_BYTES))  . "\n";
 
     close $fh;
 }
