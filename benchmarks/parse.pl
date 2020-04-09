@@ -16,7 +16,7 @@ sub parse_kvzrtp_send {
 
     # each iteration parses one benchmark run
     # and each benchmark run can have 1..N entries, one for each thread
-	while (my $line = <$fh>) {
+    while (my $line = <$fh>) {
         my $rt_avg = 0;
         my $rb_avg = 0;
 
@@ -37,10 +37,10 @@ sub parse_kvzrtp_send {
 
         my $gp = ($TOTAL_BYTES / 1000 / 1000) / $rt_avg * 1000;
 
-		my ($usr, $sys, $total, $cpu) = ($line =~ m/(\d+\.\d+)user\s(\d+\.\d+)system\s0:(\d+.\d+)elapsed\s(\d+)%CPU/);
+        my ($usr, $sys, $total, $cpu) = ($line =~ m/(\d+\.\d+)user\s(\d+\.\d+)system\s0:(\d+.\d+)elapsed\s(\d+)%CPU/);
 
-		# discard line about inputs, outputs and pagefaults
-		$line = <$fh>;
+        # discard line about inputs, outputs and pagefaults
+        $line = <$fh>;
 
         # update total
         $t_usr   += $usr;
@@ -48,8 +48,8 @@ sub parse_kvzrtp_send {
         $t_cpu   += $cpu;
         $t_total += $total;
         $t_sgp   += $gp;
-		$lines   += 1;
-	}
+        $lines   += 1;
+    }
 
     $t_sgp = int($t_sgp / $lines);
 
@@ -59,15 +59,15 @@ sub parse_kvzrtp_send {
         $t_sgp = int($t_sgp / $lines);
     }
 
-	print "$path: \n";
-	print "\tuser:            " . $t_usr   / $lines . "\n";
-	print "\tsystem:          " . $t_sys   / $lines . "\n";
-	print "\tcpu:             " . $t_cpu   / $lines . "\n";
-	print "\ttotal:           " . $t_total / $lines . "\n";
+    print "$path: \n";
+    print "\tuser:            " . $t_usr   / $lines . "\n";
+    print "\tsystem:          " . $t_sys   / $lines . "\n";
+    print "\tcpu:             " . $t_cpu   / $lines . "\n";
+    print "\ttotal:           " . $t_total / $lines . "\n";
     print "\tgoodput, single: " . $t_sgp            . " MB/s\n";
     print "\tgoodput, total:  " . $t_tgp            . " MB/s\n";
 
-	close $fh;
+    close $fh;
 }
 
 sub parse_kvzrtp_recv {
@@ -75,57 +75,57 @@ sub parse_kvzrtp_recv {
 
     open(my $fh, '<', $path) or die "failed to open file";
 
-	my ($t_usr, $t_sys, $t_cpu, $t_total, $t_time, $t_bytes, $lines);
+    my ($t_usr, $t_sys, $t_cpu, $t_total, $t_time, $t_bytes, $lines);
 
-	# each iteration parses one benchmark run
-	while (my $line = <$fh>) {
-		$line = <$fh>;
-		my @nums = $line =~ /(\d+)/g;
-		$t_bytes += $nums[0];
-		$t_time  += $nums[1];
+    # each iteration parses one benchmark run
+    while (my $line = <$fh>) {
+        $line = <$fh>;
+        my @nums = $line =~ /(\d+)/g;
+        $t_bytes += $nums[0];
+        $t_time  += $nums[1];
 
-		$line = <$fh>;
-		my ($usr, $sys, $total, $cpu) = ($line =~ m/(\d+\.\d+)user\s(\d+\.\d+)system\s0:(\d+.\d+)elapsed\s(\d+)%CPU/);
+        $line = <$fh>;
+        my ($usr, $sys, $total, $cpu) = ($line =~ m/(\d+\.\d+)user\s(\d+\.\d+)system\s0:(\d+.\d+)elapsed\s(\d+)%CPU/);
 
-		# discard line about inputs, outputs and pagefaults
-		$line = <$fh>;
+        # discard line about inputs, outputs and pagefaults
+        $line = <$fh>;
 
-		# update total
-		$t_usr   += $usr;
-		$t_sys   += $sys;
-		$t_cpu   += $cpu;
-		$t_total += $total;
-		$lines   += 1;
-	}
+        # update total
+        $t_usr   += $usr;
+        $t_sys   += $sys;
+        $t_cpu   += $cpu;
+        $t_total += $total;
+        $lines   += 1;
+    }
 
-	my $gp = int((($t_bytes / $lines) / 1000 / 1000 / ($t_time  / $lines)) * 1000);
+    my $gp = int((($t_bytes / $lines) / 1000 / 1000 / ($t_time  / $lines)) * 1000);
 
-	print "$path: \n";
-	print "\tuser:    " .  $t_usr   / $lines . "\n";
-	print "\tsystem:  " .  $t_sys   / $lines . "\n";
-	print "\tcpu:     " .  $t_cpu   / $lines . "\n";
-	print "\ttotal:   " .  $t_total / $lines . "\n";
-	print "\ttime:    " .  $t_time  / $lines . " ms\n";
-	print "\tgoodput: " .  $gp . " MB/s\n";
+    print "$path: \n";
+    print "\tuser:    " .  $t_usr   / $lines . "\n";
+    print "\tsystem:  " .  $t_sys   / $lines . "\n";
+    print "\tcpu:     " .  $t_cpu   / $lines . "\n";
+    print "\ttotal:   " .  $t_total / $lines . "\n";
+    print "\ttime:    " .  $t_time  / $lines . " ms\n";
+    print "\tgoodput: " .  $gp . " MB/s\n";
 
-	close $fh;
+    close $fh;
 }
 
 GetOptions(
-	"lib=s"     => \(my $lib = ""),
-	"role=s"    => \(my $role = ""),
+    "lib=s"     => \(my $lib = ""),
+    "role=s"    => \(my $role = ""),
     "path=s"    => \(my $path = ""),
-	"threads=i" => \(my $threads = 1),
+    "threads=i" => \(my $threads = 1),
 ) or die "failed to parse command line!\n";
 
 if ($lib eq "kvzrtp") {
     if ($role eq "send") {
-	    parse_kvzrtp_send($threads, $path);
+        parse_kvzrtp_send($threads, $path);
     } else {
-	    parse_kvzrtp_recv($threads, $path);
+        parse_kvzrtp_recv($threads, $path);
     }
 } elsif ($lib eq "ffmpeg") {
-	die "not implemented";
+    die "not implemented";
 } elsif ($lib eq "gstreamer") {
-	die "not implemented";
+    die "not implemented";
 }
