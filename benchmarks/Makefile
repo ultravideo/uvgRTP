@@ -16,8 +16,12 @@ ffmpeg_sender:
 	$(CXX) $(CXXFLAGS) -o ffmpeg/sender ffmpeg/sender.cc util/util.cc -lkvazaar `pkg-config --libs libavformat` \
 		-Wno-unused -Wno-deprecated-declarations -Wno-unused-result
 
+ffmpeg_receiver:
+	$(CXX) $(CXXFLAGS) -o ffmpeg/receiver ffmpeg/receiver.cc util/util.cc -lkvazaar `pkg-config --libs libavformat` \
+		-Wno-unused -Wno-deprecated-declarations -Wno-unused-result
+
 clean:
-	rm -f kvzrtp/receiver kvzrtp/sender ffmpeg/sender
+	rm -f kvzrtp/receiver kvzrtp/sender ffmpeg/sender ffmpeg/receiver
 
 # jrtp:
 # 	$(CXX) $(CXXFLAGS) -o main_jrtp jrtp.cc ../util/util.cc -lkvazaar -ljrtp -lpthread
