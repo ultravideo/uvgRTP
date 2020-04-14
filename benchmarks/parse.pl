@@ -7,13 +7,30 @@ use Getopt::Long;
 my $TOTAL_FRAMES = 602;
 my $TOTAL_BYTES  = 411410113;
 
+# open the file, validate it and return file handle to caller
+sub open_file {
+    my ($path, $expect) = @_;
+    my $lines  = 0;
+
+    open(my $fh, '<', $path) or die "failed to open file";
+    $lines++ while (<$fh>);
+
+    if ($lines != $expect) {
+        print "invalid file: $path!\n" and exit;
+    }
+
+    seek $fh, 0, 0;
+    return $fh;
+}
+
 sub parse_kvzrtp_send {
     my ($threads, $path) = @_;
 
-    open(my $fh, '<', $path) or die "failed to open file";
-
     my ($t_usr, $t_sys, $t_cpu, $t_total, $t_time);
     my ($t_sgp, $t_tgp, $lines);
+
+    my $e  = (100 * ($threads + 2));
+    my $fh = open_file($path, $e);
 
     # each iteration parses one benchmark run
     # and each benchmark run can have 1..N entries, one for each thread
@@ -73,10 +90,10 @@ sub parse_kvzrtp_send {
 
 sub parse_kvzrtp_recv {
     my ($threads, $path) = @_;
-
-    open(my $fh, '<', $path) or die "failed to open file";
-
     my ($t_usr, $t_sys, $t_cpu, $t_total, $tb_avg, $tf_avg, $lines);
+
+    my $e  = (100 * ($threads + 2));
+    my $fh = open_file($path, $e);
 
     # each iteration parses one benchmark run
     while (my $line = <$fh>) {
