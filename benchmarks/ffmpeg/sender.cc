@@ -10,7 +10,7 @@ extern "C" {
 #include <libavutil/samplefmt.h>
 #include <stdbool.h>
 }
-
+#include <atomic>
 #include <chrono>
 #include <thread>
 
@@ -22,11 +22,11 @@ extern void *get_mem(int argc, char **argv, size_t& len);
 #define FPS     250
 #define SLEEP     4
 
-int main() {
-    avcodec_register_all();
-    av_register_all();
-    avformat_network_init();
+std::atomic<int> nready(0);
 
+void thread_func(void *mem, size_t len, int thread_num, int sleep)
+{
+    char addr[64] = { 0 };
     enum AVCodecID codec_id = AV_CODEC_ID_H265;
     AVCodec *codec;
     AVCodecContext *c = NULL;
@@ -57,13 +57,8 @@ int main() {
     AVFormatContext* avfctx;
     AVOutputFormat* fmt = av_guess_format("rtp", NULL, NULL);
 
-#if 1
-    ret = avformat_alloc_output_context2(&avfctx, fmt, fmt->name,
-        "rtp://127.0.0.1:8888");
-#else
-    ret = avformat_alloc_output_context2(&avfctx, fmt, fmt->name,
-        "rtp://10.21.25.2:8888");
-#endif
+    snprintf(addr, 64, "rtp://127.0.0.1:%d", 8888 + thread_num);
+    ret = avformat_alloc_output_context2(&avfctx, fmt, fmt->name, addr);
 
     avio_open(&avfctx->pb, avfctx->filename, AVIO_FLAG_WRITE);
 
@@ -83,9 +78,6 @@ int main() {
     uint64_t fsize  = 0;
     uint32_t frames = 0;
 
-    size_t len = 0;
-    void *mem  = get_mem(NULL, NULL, len);
-
     std::chrono::high_resolution_clock::time_point start, fpt_start, fpt_end, end;
     start = std::chrono::high_resolution_clock::now();
 
@@ -100,25 +92,13 @@ int main() {
             pkt.data = (uint8_t *)mem + i;
             pkt.size = chunk_size;
 
-            fpt_start = std::chrono::high_resolution_clock::now();
             av_interleaved_write_frame(avfctx, &pkt);
-            fpt_end = std::chrono::high_resolution_clock::now();
-
-            uint64_t diff = std::chrono::duration_cast<std::chrono::milliseconds>(fpt_end - fpt_start).count();
-
             av_packet_unref(&pkt);
-            /* std::this_thread::sleep_for(std::chrono::microseconds(800)); */
-            /* std::this_thread::sleep_for(std::chrono::milliseconds(50)); */
-            if (diff < SLEEP) {
-               std::this_thread::sleep_for(std::chrono::milliseconds(SLEEP - diff));
-            } else {
-                fprintf(stderr, "cannot send this fast!\n");
-            }
+            std::this_thread::sleep_for(std::chrono::microseconds(sleep));
 
             i += chunk_size;
             frames++;
             fsize += chunk_size;
-            fpt_ms += diff;
         }
     }
     end = std::chrono::high_resolution_clock::now();
@@ -129,17 +109,40 @@ int main() {
         fsize, fsize / 1000, fsize / 1000 / 1000,
         diff, diff / 1000
     );
-
-    fprintf(stderr, "# of frames: %u\n", frames);
-    fprintf(stderr, "avg frame size: %lu\n", fsize / frames);
-    fprintf(stderr, "avg processing time of frame: %lu us\n", fpt_ms / frames);
-
-    ret = avcodec_send_frame(c, NULL);
+    nready++;
 
     avcodec_close(c);
     av_free(c);
     av_freep(&frame->data[0]);
     av_frame_free(&frame);
-    printf("\n");
-    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    if (argc != 3) {
+        fprintf(stderr, "usage: ./%s <number of threads> <us of sleep between frames>\n", __FILE__);
+        return -1;
+    }
+
+    avcodec_register_all();
+    av_register_all();
+    avformat_network_init();
+
+    size_t len   = 0;
+    void *mem    = get_mem(0, NULL, len);
+    int nthreads = atoi(argv[1]);
+    std::thread **threads = (std::thread **)malloc(sizeof(std::thread *) * nthreads);
+
+    for (int i = 0; i < nthreads; ++i)
+        threads[i] = new std::thread(thread_func, mem, len, i * 2, atoi(argv[2]));
+
+    while (nready.load() != nthreads)
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+    for (int i = 0; i < nthreads; ++i) {
+        threads[i]->join();
+        delete threads[i];
+    }
+    free(threads);
+
 }

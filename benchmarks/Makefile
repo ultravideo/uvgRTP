@@ -1,9 +1,7 @@
-.PHONY: all clean kvzrtp live555 ffmpeg gstreamer
+.PHONY: all clean kvzrtp ffmpeg gstreamer
 
 CXX = g++
 CXXFLAGS = -Wall -Wextra -O2 -std=c++11 -g
-
-#all: kvzrtp live555 ffmpeg gstreamer
 
 kvzrtp_receiver:
 	$(CXX) $(CXXFLAGS) -o kvzrtp/receiver kvzrtp/receiver.cc util/util.cc -lkvzrtp -lkvazaar -lpthread -lcryptopp
@@ -13,6 +11,13 @@ kvzrtp_sender:
 
 kvzrtp_latency:
 	$(CXX) $(CXXFLAGS) -o kvzrtp/latency kvzrtp/latency.cc util/util.cc -lkvzrtp -lkvazaar -lpthread
+
+ffmpeg_sender:
+	$(CXX) $(CXXFLAGS) -o ffmpeg/sender ffmpeg/sender.cc util/util.cc -lkvazaar `pkg-config --libs libavformat` \
+		-Wno-unused -Wno-deprecated-declarations -Wno-unused-result
+
+clean:
+	rm -f kvzrtp/receiver kvzrtp/sender ffmpeg/sender
 
 # jrtp:
 # 	$(CXX) $(CXXFLAGS) -o main_jrtp jrtp.cc ../util/util.cc -lkvazaar -ljrtp -lpthread
@@ -34,9 +39,6 @@ kvzrtp_latency:
 
 # ortp:
 # 	$(CXX) $(CXXFLAGS) -o main_ortp ortp.cc ../util/util.cc -lkvazaar -lpthread -lortp
-
-# ffmpeg:
-# 	$(CXX) $(CXXFLAGS) -o main_ffmpeg ffmpeg.cc ../util/util.cc -lkvazaar `pkg-config --libs libavformat`
 
 # latency_ffmpeg:
 # 	$(CXX) $(CXXFLAGS) -o main_latency_ffmpeg latency_ffmpeg.cc ../util/util.cc -lkvazaar `pkg-config --libs libavformat`
