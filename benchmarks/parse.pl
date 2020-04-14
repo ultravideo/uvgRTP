@@ -141,7 +141,16 @@ GetOptions(
     "role=s"    => \(my $role = ""),
     "path=s"    => \(my $path = ""),
     "threads=i" => \(my $threads = 1),
+    "help"      => \(my $help = 0)
 ) or die "failed to parse command line!\n";
+
+if ($help == 1) {
+    print "usage: ./parse.pl \n"
+    . "\t--lib <kvzrtp|ffmpeg|gstreamer>\n"
+    . "\t--role <send|recv>\n"
+    . "\t--path <path to log file>\n"
+    . "\t--threads <# of threads used in the benchmark> (defaults to 1)\n" and exit;
+}
 
 if ($lib eq "kvzrtp") {
     if ($role eq "send") {
