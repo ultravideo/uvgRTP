@@ -50,7 +50,7 @@ void thread_func(int thread_num)
 {
     kvz_rtp::context rtp_ctx;
 
-    auto sess = rtp_ctx.create_session("127.0.0.1");
+    auto sess = rtp_ctx.create_session("10.21.25.200");
     auto hevc = sess->create_stream(
         8888 + thread_num,
         8889 + thread_num,
