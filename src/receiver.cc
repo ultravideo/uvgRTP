@@ -15,7 +15,8 @@ kvz_rtp::receiver::receiver(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_for
     socket_(socket),
     rtp_(rtp),
     conf_(conf),
-    fmt_(fmt)
+    fmt_(fmt),
+    recv_hook_(nullptr)
 {
 }
 
