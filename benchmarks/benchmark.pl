@@ -27,7 +27,7 @@ sub send_benchmark {
 			my $logname = "send_results_$threads" . "threads_$i". "fps";
 			for ((1 .. $iter)) {
 				$remote->recv($data, 16);
-				system ("time ./$lib/sender $threads $i >> $lib/results/$logname 2>&1");
+				system ("time ./$lib/sender $addr $threads $i >> $lib/results/$logname 2>&1");
 			}
 		}
 
@@ -51,7 +51,7 @@ sub recv_benchmark {
 			my $logname = "recv_results_$threads" . "threads_$i". "fps";
 			for ((1 .. $iter)) {
 				$socket->send("start");
-				system ("time ./$lib/receiver $threads >> $lib/results/$logname 2>&1");
+				system ("time ./$lib/receiver $addr $threads >> $lib/results/$logname 2>&1");
 			}
 		}
 

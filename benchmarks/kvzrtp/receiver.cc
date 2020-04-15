@@ -46,11 +46,12 @@ void hook(void *arg, kvz_rtp::frame::rtp_frame *frame)
     }
 }
 
-void thread_func(int thread_num)
+void thread_func(char *addr, int thread_num)
 {
+    std::string addr_(addr);
     kvz_rtp::context rtp_ctx;
 
-    auto sess = rtp_ctx.create_session("10.21.25.200");
+    auto sess = rtp_ctx.create_session(addr_);
     auto hevc = sess->create_stream(
         8888 + thread_num,
         8889 + thread_num,
@@ -70,16 +71,16 @@ void thread_func(int thread_num)
 
 int main(int argc, char **argv)
 {
-    if (argc != 2) {
-        fprintf(stderr, "usage: ./%s <number of threads>\n", __FILE__);
+    if (argc != 3) {
+        fprintf(stderr, "usage: ./%s <remote address> <number of threads>\n", __FILE__);
         return -1;
     }
 
-    int nthreads = atoi(argv[1]);
+    int nthreads = atoi(argv[2]);
     thread_info  = (struct thread_info *)calloc(nthreads, sizeof(*thread_info));
 
     for (int i = 0; i < nthreads; ++i)
-        new std::thread(thread_func, i * 2);
+        new std::thread(thread_func, argv[1], i * 2);
 
     while (nready.load() != nthreads)
         std::this_thread::sleep_for(std::chrono::milliseconds(20));

@@ -18,7 +18,7 @@ struct thread_info {
 
 std::atomic<int> nready(0);
 
-void thread_func(int thread_num)
+void thread_func(char *addr, int thread_num)
 {
     AVFormatContext *format_ctx = avformat_alloc_context();
     AVCodecContext *codec_ctx = NULL;
@@ -60,7 +60,10 @@ void thread_func(int thread_num)
     snprintf(buf, sizeof(buf), "%d", 2);
     av_dict_set(&d, "fpsprobesize", buf, 32);
 
-    snprintf(buf, sizeof(buf), "ffmpeg/sdp/hevc_%d.sdp", thread_num / 2);
+    if (!strcmp(addr, "127.0.0.1"))
+        snprintf(buf, sizeof(buf), "ffmpeg/sdp/localhost/hevc_%d.sdp", thread_num / 2);
+    else
+        snprintf(buf, sizeof(buf), "ffmpeg/sdp/lan/hevc_%d.sdp", thread_num / 2);
 
     if (avformat_open_input(&format_ctx, buf, NULL, &d)) {
         fprintf(stderr, "failed to open input file\n");
@@ -124,16 +127,16 @@ void thread_func(int thread_num)
 
 int main(int argc, char **argv)
 {
-    if (argc != 2) {
-        fprintf(stderr, "usage: ./%s <number of threads>\n", __FILE__);
+    if (argc != 3) {
+        fprintf(stderr, "usage: ./%s <remote address> <number of threads>\n", __FILE__);
         return -1;
     }
 
-    int nthreads = atoi(argv[1]);
+    int nthreads = atoi(argv[2]);
     thread_info  = (struct thread_info *)calloc(nthreads, sizeof(*thread_info));
 
     for (int i = 0; i < nthreads; ++i)
-        new std::thread(thread_func, i * 2);
+        new std::thread(thread_func, argv[1], i * 2);
 
     while (nready.load() != nthreads)
         std::this_thread::sleep_for(std::chrono::milliseconds(20));

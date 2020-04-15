@@ -24,7 +24,7 @@ extern void *get_mem(int argc, char **argv, size_t& len);
 
 std::atomic<int> nready(0);
 
-void thread_func(void *mem, size_t len, int thread_num, double fps)
+void thread_func(void *mem, size_t len, char *addr_, int thread_num, double fps)
 {
     char addr[64] = { 0 };
     enum AVCodecID codec_id = AV_CODEC_ID_H265;
@@ -57,7 +57,7 @@ void thread_func(void *mem, size_t len, int thread_num, double fps)
     AVFormatContext* avfctx;
     AVOutputFormat* fmt = av_guess_format("rtp", NULL, NULL);
 
-    snprintf(addr, 64, "rtp://127.0.0.1:%d", 8888 + thread_num);
+    snprintf(addr, 64, "rtp://%s:%d", addr_, 8888 + thread_num);
     ret = avformat_alloc_output_context2(&avfctx, fmt, fmt->name, addr);
 
     avio_open(&avfctx->pb, avfctx->filename, AVIO_FLAG_WRITE);
@@ -119,8 +119,8 @@ void thread_func(void *mem, size_t len, int thread_num, double fps)
 
 int main(int argc, char **argv)
 {
-    if (argc != 3) {
-        fprintf(stderr, "usage: ./%s <number of threads> <fps>\n", __FILE__);
+    if (argc != 4) {
+        fprintf(stderr, "usage: ./%s <remote address> <number of threads> <fps>\n", __FILE__);
         return -1;
     }
 
@@ -130,11 +130,11 @@ int main(int argc, char **argv)
 
     size_t len   = 0;
     void *mem    = get_mem(0, NULL, len);
-    int nthreads = atoi(argv[1]);
+    int nthreads = atoi(argv[2]);
     std::thread **threads = (std::thread **)malloc(sizeof(std::thread *) * nthreads);
 
     for (int i = 0; i < nthreads; ++i)
-        threads[i] = new std::thread(thread_func, mem, len, i * 2, atof(argv[2]));
+        threads[i] = new std::thread(thread_func, mem, len, argv[1], i * 2, atof(argv[3]));
 
     while (nready.load() != nthreads)
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
