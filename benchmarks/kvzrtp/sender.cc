@@ -10,7 +10,7 @@ extern void *get_mem(int argc, char **argv, size_t& len);
 
 std::atomic<int> nready(0);
 
-void thread_func(void *mem, size_t len, int thread_num, int sleep)
+void thread_func(void *mem, size_t len, int thread_num, double fps)
 {
     size_t bytes_sent   = 0;
     uint64_t chunk_size = 0;
@@ -44,8 +44,7 @@ void thread_func(void *mem, size_t len, int thread_num, int sleep)
                 for (;;);
             }
 
-            if (sleep >= 100)
-                std::this_thread::sleep_for(std::chrono::microseconds(sleep));
+            std::this_thread::sleep_for(std::chrono::microseconds((int)((1000 / fps) * 1000)));
 
             offset     += chunk_size;
             bytes_sent += chunk_size;
@@ -67,7 +66,7 @@ void thread_func(void *mem, size_t len, int thread_num, int sleep)
 int main(int argc, char **argv)
 {
     if (argc != 3) {
-        fprintf(stderr, "usage: ./%s <number of threads> <us of sleep between frames>\n", __FILE__);
+        fprintf(stderr, "usage: ./%s <number of threads> <fps>\n", __FILE__);
         return -1;
     }
 
@@ -77,7 +76,7 @@ int main(int argc, char **argv)
     std::thread **threads = (std::thread **)malloc(sizeof(std::thread *) * nthreads);
 
     for (int i = 0; i < nthreads; ++i)
-        threads[i] = new std::thread(thread_func, mem, len, i * 2, atoi(argv[2]));
+        threads[i] = new std::thread(thread_func, mem, len, i * 2, atof(argv[2]));
 
     while (nready.load() != nthreads)
         std::this_thread::sleep_for(std::chrono::milliseconds(20));

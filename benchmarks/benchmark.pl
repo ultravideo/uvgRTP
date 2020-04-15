@@ -9,7 +9,7 @@ use Getopt::Long;
 $| = 1; # autoflush
 
 sub send_benchmark {
-	my ($lib, $addr, $port, $iter, $threads, $start, $end, $step) = @_;
+	my ($lib, $addr, $port, $iter, $threads, $start, $end) = @_;
 	my ($socket, $remote, $data);
 
 	$socket = IO::Socket::INET->new(
@@ -23,8 +23,8 @@ sub send_benchmark {
 	$remote = $socket->accept();
 
 	while ($threads ne 0) {
-		for (my $i = $start; $i <= $end; $i += $step) {
-			my $logname = "send_results_$threads" . "threads_$i". "us";
+		for (my $i = $start; $i <= $end; $i *= 2) {
+			my $logname = "send_results_$threads" . "threads_$i". "fps";
 			for ((1 .. $iter)) {
 				$remote->recv($data, 16);
 				system ("time ./$lib/sender $threads $i >> $lib/results/$logname 2>&1");
@@ -36,7 +36,7 @@ sub send_benchmark {
 }
 
 sub recv_benchmark {
-	my ($lib, $addr, $port, $iter, $threads, $start, $end, $step) = @_;
+	my ($lib, $addr, $port, $iter, $threads, $start, $end) = @_;
 
 	my $socket = IO::Socket::INET->new(
 		PeerAddr  => $addr,
@@ -47,8 +47,8 @@ sub recv_benchmark {
 	) or die "Couldn't connect to $addr:$port : $@\n";
 
 	while ($threads ne 0) {
-		for (my $i = $start; $i <= $end; $i += $step) {
-			my $logname = "recv_results_$threads" . "threads_$i". "us";
+		for (my $i = $start; $i <= $end; $i *= 2) {
+			my $logname = "recv_results_$threads" . "threads_$i". "fps";
 			for ((1 .. $iter)) {
 				$socket->send("start");
 				system ("time ./$lib/receiver $threads >> $lib/results/$logname 2>&1");
@@ -65,25 +65,17 @@ GetOptions(
 	"addr=s"    => \(my $addr = ""),
 	"port=i"    => \(my $port = 0),
 	"iter=i"    => \(my $iter = 100),
-	"sleep=i"   => \(my $sleep = 0),
 	"threads=i" => \(my $threads = 1),
-	"start=i"   => \(my $start = 0),
-	"end=i"     => \(my $end = 0),
-	"step=i"    => \(my $step = 0)
+	"start=f"   => \(my $start = 0),
+	"end=f"     => \(my $end = 0),
 ) or die "failed to parse command line!\n";
 
 if ($lib eq "") {
 	print "library not defined!\n" and exit;
 }
 
-if ($sleep ne 0) {
-	if ($start ne 0 or $end ne 0 or $step ne 0) {
-		print "start/end/step and sleep are mutually exclusive\n" and exit;
-	}
-
-	$start = $sleep;
-	$end   = $sleep + 1;
-	$step  = 1;
+if (!$start or !$end) {
+	print "start and end FPS values must be defined!\n" and exit;
 }
 
 if ($addr eq "" or $port eq 0) {
@@ -92,10 +84,10 @@ if ($addr eq "" or $port eq 0) {
 
 if ($role eq "send") {
 	system ("make $lib" . "_sender");
-	send_benchmark($lib, $addr, $port, $iter, $threads, $start, $end, $step);
+	send_benchmark($lib, $addr, $port, $iter, $threads, $start, $end);
 } elsif ($role eq "recv" ){
 	system ("make $lib" . "_receiver");
-	recv_benchmark($lib, $addr, $port, $iter, $threads, $start, $end, $step);
+	recv_benchmark($lib, $addr, $port, $iter, $threads, $start, $end);
 } else {
 	print "invalid role: '$role'\n" and exit;
 }
