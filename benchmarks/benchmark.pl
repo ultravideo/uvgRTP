@@ -8,8 +8,19 @@ use Getopt::Long;
 
 $| = 1; # autoflush
 
+sub clamp {
+	my ($start, $end) = @_;
+	my @clamped = (0, 0);
+
+	$clamped[0] = $start < 0.9375 ? 0.9375 : $start;
+	$clamped[1] = $end   > 960    ? 960    : $end;
+
+	return @clamped;
+}
+
 sub send_benchmark {
 	my ($lib, $addr, $port, $iter, $threads, $start, $end) = @_;
+	my ($sfps, $efps) = clamp($start, $end);
 	my ($socket, $remote, $data);
 
 	$socket = IO::Socket::INET->new(
@@ -23,7 +34,7 @@ sub send_benchmark {
 	$remote = $socket->accept();
 
 	while ($threads ne 0) {
-		for (my $i = $start; $i <= $end; $i *= 2) {
+		for (my $i = $sfps; $i <= $efps; $i *= 2) {
 			my $logname = "send_results_$threads" . "threads_$i". "fps";
 			for ((1 .. $iter)) {
 				$remote->recv($data, 16);
@@ -37,6 +48,7 @@ sub send_benchmark {
 
 sub recv_benchmark {
 	my ($lib, $addr, $port, $iter, $threads, $start, $end) = @_;
+	my ($sfps, $efps) = clamp($start, $end);
 
 	my $socket = IO::Socket::INET->new(
 		PeerAddr  => $addr,
@@ -47,7 +59,7 @@ sub recv_benchmark {
 	) or die "Couldn't connect to $addr:$port : $@\n";
 
 	while ($threads ne 0) {
-		for (my $i = $start; $i <= $end; $i *= 2) {
+		for (my $i = $sfps; $i <= $efps; $i *= 2) {
 			my $logname = "recv_results_$threads" . "threads_$i". "fps";
 			for ((1 .. $iter)) {
 				$socket->send("start");
