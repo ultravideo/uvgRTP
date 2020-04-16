@@ -159,6 +159,12 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
     RCC_LAST
 };
 
+enum NOTIFY_REASON {
+
+    /* Timer for the active frame has expired and it has been dropped */
+    NR_FRAME_DROPPED = 0,
+};
+
 /* see src/util.hh for more information */
 typedef struct rtp_ctx_conf {
     int flags;

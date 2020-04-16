@@ -121,6 +121,17 @@ void kvz_rtp::receiver::install_recv_hook(void *arg, void (*hook)(void *arg, kvz
     recv_hook_arg_ = arg;
 }
 
+void kvz_rtp::receiver::install_notify_hook(void *arg, void (*hook)(void *arg, int notify))
+{
+    if (hook == nullptr) {
+        LOG_ERROR("Unable to install receive hook, function pointer is nullptr!");
+        return;
+    }
+
+    notify_hook_     = hook;
+    notify_hook_arg_ = arg;
+}
+
 void kvz_rtp::receiver::recv_hook(kvz_rtp::frame::rtp_frame *frame)
 {
     if (recv_hook_)

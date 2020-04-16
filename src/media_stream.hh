@@ -91,6 +91,21 @@ namespace kvz_rtp {
              * Return RTP_INVALID_VALUE if "hook" is nullptr */
             rtp_error_t install_deallocation_hook(void (*hook)(void *));
 
+            /* If needed, a notification hook can be installed to kvzRTP that can be used as
+             * an information side channel to the internal state of the library.
+             *
+             * When kvzRTP encouters a situation it doesn't know how to react to,
+             * it calls the notify hook with certain notify reason number (src/util.hh).
+             * Upon receiving a notification, application may ignore it or act on it somehow
+             *
+             * Currently only one notification type is supported and only receiver uses notifications
+             *
+             * "arg" is optional argument that is passed to hook when it is called. It may be nullptr
+             *
+             * Return RTP_OK on success
+             * Return RTP_INVALID_VALUE if "hook" is nullptr */
+            rtp_error_t install_notify_hook(void *arg, void (*hook)(void *, int));
+
             /* Configure the media stream in various ways
              * The first version takes a configuration flag and value for that configuration (f.ex. UDP buffer size)
              * The second version only takes a flag that enables some functionality (f.ex. SCD)

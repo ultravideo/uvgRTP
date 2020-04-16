@@ -177,6 +177,16 @@ rtp_error_t kvz_rtp::media_stream::install_deallocation_hook(void (*hook)(void *
     return RTP_OK;
 }
 
+rtp_error_t kvz_rtp::media_stream::install_notify_hook(void *arg, void (*hook)(void *, int))
+{
+    if (!hook)
+        return RTP_INVALID_VALUE;
+
+    receiver_->install_notify_hook(arg, hook);
+
+    return RTP_OK;
+}
+
 void kvz_rtp::media_stream::set_media_config(void *config)
 {
     media_config_ = config;

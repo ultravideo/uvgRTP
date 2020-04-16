@@ -40,6 +40,7 @@ namespace kvz_rtp {
             bool recv_hook_installed();
             void recv_hook(kvz_rtp::frame::rtp_frame *frame);
             void install_recv_hook(void *arg, void (*hook)(void *arg, kvz_rtp::frame::rtp_frame *));
+            void install_notify_hook(void *arg, void (*hook)(void *arg, int notify));
 
             uint8_t *get_recv_buffer() const;
             uint32_t get_recv_buffer_len() const;
@@ -86,5 +87,10 @@ namespace kvz_rtp {
              * a receive hook which is called every time a frame is received */
             void *recv_hook_arg_;
             void (*recv_hook_)(void *arg, kvz_rtp::frame::rtp_frame *frame);
+
+            /* If user so wishes, he may install a notify hook that is used
+             * by the frame receiver to inform, for example, that a frame is late or lost */
+            void *notify_hook_arg_;
+            void (*notify_hook_)(void *arg, int notify);
     };
 };
