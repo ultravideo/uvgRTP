@@ -1,5 +1,23 @@
 # kvzRTP example codes
 
+## Instructions for Windows
+
+1) Run prepare.bat in this directory to prepare testing environment for kvzRTP
+   * The script creates lib/ and include/ directories to project root directory
+2) Build kvzRTP using QtCreator
+3) When kvzRTP has been built, copy the libkvzrtp.a from the Qt build directory to lib/ created by the script
+4) Open the example.pro and build & run it
+   * Make sure the Qt build directory for example.pro is located in the same directory as lib/ and include/ (projects root directory) or tweak the include/lib paths accordingly
+
+## Instructions for Linux
+
+```
+sudo make --directory=.. all install
+g++ sending.cc -lkvzrtp -lpthread && ./a.out
+```
+
+## Available examples
+
 We provide several simple and thoroughly commented examples on how to use kvzRTP.
 
 [How to create a simple RTP sender](sending.cc)
@@ -25,4 +43,3 @@ If you have not enabled the system call dispatcher, you don't need to worry abou
 [Method 2, copying](deallocation_2.cc)
 
 [Method 3, deallocation hook](deallocation_3.cc)
-
