@@ -1,6 +1,6 @@
 # Building
 
-There are two ways to build kvzRTP: GNU make and QtCreator
+There are three ways to build kvzRTP: GNU make, CMake or QtCreator
 
 NB: kvzRTP must be built with a 64-bit compiler!
 
@@ -11,6 +11,14 @@ The only dependency vanilla kvzRTP has is pthreads
 ## Qt Creator
 
 Open kvzrtp.pro in Qt Creator and build the library
+
+## CMake + Ninja
+
+```
+mkdir build && cd build
+cmake -GNinja ..
+ninja
+```
 
 ## GNU make
 
