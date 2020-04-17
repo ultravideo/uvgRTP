@@ -11,6 +11,9 @@
 #define RTP_FRAME_MAX_DELAY          100
 #define INVALID_SEQ           0x13371338
 
+#define TS(x)  ((x)->header.timestamp)
+#define SEQ(x) ((x)->header.seq)
+
 enum FRAG_TYPES {
     FT_INVALID   = -2, /* invalid combination of S and E bits */
     FT_NOT_FRAG  = -1, /* frame doesn't contain HEVC fragment */
@@ -178,21 +181,21 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
             /* Save the received frame to "frames" array where frames are indexed using
              * their sequence number. This way when all fragments of a frame are received,
              * we can loop through the range sframe_seq - eframe_seq and merge all fragments */
-            if (frames[frame->header.seq] == nullptr) {
-                frames[frame->header.seq] = frame;
-                duplicate                 = false;
+            if (frames[SEQ(frame)] == nullptr) {
+                frames[SEQ(frame)] = frame;
+                duplicate          = false;
 
-            } else if (frame->header.timestamp != frames[frame->header.seq]->header.timestamp) {
-                (void)kvz_rtp::frame::dealloc_frame(frames[frame->header.seq]);
-                frames[frame->header.seq] = frame;
-                duplicate                 = false;
+            } else if (TS(frame) != frames[SEQ(frame)]->header.timestamp) {
+                (void)kvz_rtp::frame::dealloc_frame(frames[SEQ(frame)]);
+                frames[SEQ(frame)] = frame;
+                duplicate          = false;
             } else {
                 LOG_INFO("valid duplicate packet, investigate!");
                 (void)kvz_rtp::frame::dealloc_frame(frame);
                 continue;
             }
 
-            /* If frames[frame->header.seq] is not nullptr, there's actually two possibilites:
+            /* If frames[SEQ(frame)] is not nullptr, there's actually two possibilites:
              *    - The RTP frame is actually duplicate (quite rare)
              *    - Previous HEVC was never returned to user and the RTP frames are still in the array
              *
@@ -201,20 +204,19 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
              * constructing multiple frames at once.
              *
              * This actually results in quite unintended behaviour where no data is returned to user.
-             * This problem can be averted by checking the timestamp of frames[frame->header.seq].
+             * This problem can be averted by checking the timestamp of frames[SEQ(frame)].
              *
              * If the entry is more than RTP_FRAME_MAX_DELAY milliseconds old, it can be released and
              * the entry is replaced with this current RTP frame */
             if (duplicate) {
                 uint64_t diff = kvz_rtp::clock::hrc::diff_now(
-                    s_timers[frames[frame->header.seq]->header.timestamp].sframe_time);
+                    s_timers[frames[SEQ(frame)]->header.timestamp].sframe_time);
 
                 if (diff >= RTP_FRAME_MAX_DELAY) {
                     LOG_ERROR("duplicate frame must be dropped");
-                    kvz_rtp::frame::dealloc_frame(frames[frame->header.seq]);
-                    frames[frame->header.seq] = frame;
+                    kvz_rtp::frame::dealloc_frame(frames[SEQ(frame)]);
+                    frames[SEQ(frame)] = frame;
                     duplicate = false;
-                    /* continue; */
                 } else {
                     fprintf(stderr, "not old enough\n");
                 }
@@ -225,7 +227,7 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
              *
              * This timestamp is used to keep track of how long we've been receiving chunks
              * and if the time exceeds RTP_FRAME_MAX_DELAY, we drop the frame */
-            if (s_timers.find(frame->header.timestamp) == s_timers.end()) {
+            if (s_timers.find(TS(frame)) == s_timers.end()) {
                 /* UDP being unreliable, we can't know for sure in what order the packets are arriving.
                  * Especially on linux where the fragment frames are batched and sent together it possible
                  * that the first fragment we receive is the fragment containing the E-bit which sounds weird
@@ -235,53 +237,53 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
                  * full HEVC frame if/when all fragments have been received */
 
                 if (type == FT_START) {
-                    s_timers[frame->header.timestamp].sframe_seq = frame->header.seq;
-                    s_timers[frame->header.timestamp].eframe_seq = INVALID_SEQ;
+                    s_timers[TS(frame)].sframe_seq = SEQ(frame);
+                    s_timers[TS(frame)].eframe_seq = INVALID_SEQ;
                 } else if (type == FT_END) {
-                    s_timers[frame->header.timestamp].eframe_seq = frame->header.seq;
-                    s_timers[frame->header.timestamp].sframe_seq = INVALID_SEQ;
+                    s_timers[TS(frame)].eframe_seq = SEQ(frame);
+                    s_timers[TS(frame)].sframe_seq = INVALID_SEQ;
                 } else {
-                    s_timers[frame->header.timestamp].sframe_seq = INVALID_SEQ;
-                    s_timers[frame->header.timestamp].eframe_seq = INVALID_SEQ;
+                    s_timers[TS(frame)].sframe_seq = INVALID_SEQ;
+                    s_timers[TS(frame)].eframe_seq = INVALID_SEQ;
                 }
 
-                s_timers[frame->header.timestamp].sframe_time   = kvz_rtp::clock::hrc::now();
-                s_timers[frame->header.timestamp].total_size    = frame->payload_len - HEVC_HDR_SIZE;
-                s_timers[frame->header.timestamp].pkts_received = 1;
+                s_timers[TS(frame)].sframe_time   = kvz_rtp::clock::hrc::now();
+                s_timers[TS(frame)].total_size    = frame->payload_len - HEVC_HDR_SIZE;
+                s_timers[TS(frame)].pkts_received = 1;
                 continue;
             }
 
-            uint64_t diff = kvz_rtp::clock::hrc::diff_now(s_timers[frame->header.timestamp].sframe_time);
+            uint64_t diff = kvz_rtp::clock::hrc::diff_now(s_timers[TS(frame)].sframe_time);
 
             if (diff > RTP_FRAME_MAX_DELAY) {
                 LOG_ERROR("frame must be dropped, max delay reached: %lu!", diff);
 
-                if (dropped_frames.find(frame->header.timestamp) == dropped_frames.end()) {
-                    dropped_frames[frame->header.timestamp] = 1;
+                if (dropped_frames.find(TS(frame)) == dropped_frames.end()) {
+                    dropped_frames[TS(frame)] = 1;
                 } else {
-                    dropped_frames[frame->header.timestamp]++;
+                    dropped_frames[TS(frame)]++;
                 }
 
-                frames[frame->header.seq] = nullptr;
+                frames[SEQ(frame)] = nullptr;
                 (void)kvz_rtp::frame::dealloc_frame(frame);
                 continue;
             }
 
             if (!duplicate) {
-                s_timers[frame->header.timestamp].pkts_received++;
-                s_timers[frame->header.timestamp].total_size += (frame->payload_len - HEVC_HDR_SIZE);
+                s_timers[TS(frame)].pkts_received++;
+                s_timers[TS(frame)].total_size += (frame->payload_len - HEVC_HDR_SIZE);
             }
 
             if (type == FT_START)
-                s_timers[frame->header.timestamp].sframe_seq = frame->header.seq;
+                s_timers[TS(frame)].sframe_seq = SEQ(frame);
 
             if (type == FT_END)
-                s_timers[frame->header.timestamp].eframe_seq = frame->header.seq;
+                s_timers[TS(frame)].eframe_seq = SEQ(frame);
 
-            if (s_timers[frame->header.timestamp].sframe_seq != INVALID_SEQ &&
-                s_timers[frame->header.timestamp].eframe_seq != INVALID_SEQ)
+            if (s_timers[TS(frame)].sframe_seq != INVALID_SEQ &&
+                s_timers[TS(frame)].eframe_seq != INVALID_SEQ)
             {
-                uint32_t ts     = frame->header.timestamp;
+                uint32_t ts     = TS(frame);
                 uint16_t s_seq  = s_timers[ts].sframe_seq;
                 uint16_t e_seq  = s_timers[ts].eframe_seq;
                 size_t ptr      = 0;
@@ -293,13 +295,13 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
                     received = e_seq - s_seq + 1;
 
                 /* we've received every fragment and the frame can be reconstructed */
-                if (received == s_timers[frame->header.timestamp].pkts_received) {
+                if (received == s_timers[TS(frame)].pkts_received) {
                     nal_header[0] = (frames[s_seq]->payload[0] & 0x81) | ((frame->payload[2] & 0x3f) << 1);
                     nal_header[1] =  frames[s_seq]->payload[1];
 
                     kvz_rtp::frame::rtp_frame *out = kvz_rtp::frame::alloc_rtp_frame();
 
-                    out->payload_len = s_timers[frame->header.timestamp].total_size + kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
+                    out->payload_len = s_timers[TS(frame)].total_size + kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
                     out->payload     = new uint8_t[out->payload_len];
 
                     std::memcpy(&out->header,  &frames[s_seq]->header, kvz_rtp::frame::HEADER_SIZE_RTP);
