@@ -15,48 +15,13 @@ Supported specifications:
 
 Based on Marko Viitanen's [fRTPlib](https://github.com/fador/fRTPlib)
 
-## Building
+## Building and linking
 
-```
-make -j4
-sudo make install
-```
-
-You can also use QtCreator to build the library. The library must be built using a 64-bit compiler!
-
-#### SRTP/ZRTP support
-
-If you want SRTP/ZRTP support, you must compile kvzRTP with `-D__RTP_CRYPTO__`
-
-## Linking
-
-#### Linux
-`-lkvzrtp -lpthread`
-
-#### Windows
-`-L<path to library folder> -lkvzrtp -lpthread -lwsock32 -lws2_32`
-
-#### SRTP/ZRTP support
-
-If you want SRTP/ZRTP support, you must compile [Crypto++](https://www.cryptopp.com/) and link it as a static library
-
-#### Linux
-`-lkvzrtp -lpthread -lcryptopp`
-
-#### Windows
-`-L<path to library folder> -lkvzrtp -lpthread -lcryptopp -lwsock32 -lws2_32`
+See [Building](BUILDING.md) for instructions on how to build and use kvzRTP
 
 ## Examples
 
 Please see [examples](examples/) directory for different kvzRTP examples
-
-## Defines
-
-Use `__RTP_SILENT__` to disable all prints
-
-Use `__RTP_CRYPTO__` to enable SRTP/ZRTP and crypto routines
-
-Use `NDEBUG` to disable `LOG_DEBUG` which is the most verbose level of logging
 
 # Adding support for new media types
 
