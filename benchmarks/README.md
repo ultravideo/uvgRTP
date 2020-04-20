@@ -2,34 +2,32 @@
 
 Send benchmark is the coordinator in the benchmarks so it must be started first.
 
-## Example 1
+## Example 3
 
-Run the benchmark one time with 5 threads and sleep 3ms between frames
+Benchmark kvzRTP's send goodput using netcat
 
+Sender
 ```
 ./benchmark.pl \
    --lib kvzrtp \
    --role send \
-   --addr 10.21.25.2 \
+   --use-nc \
+   --addr 127.0.0.1 \
    --port 9999 \
-   --iter 100 \
-   --threads 5 \
-   --sleep 3000
+   --threads 3 \
+   --start 30 \
+   --end 60 \
 ```
 
-## Example 2
-
-Run the benchmark with 3..1 threads 10 times, first sleeping 2.1ms between frames, then 2.2ms etc.
-
+Receiver
 ```
 ./benchmark.pl \
    --lib kvzrtp \
-   --role send \
-   --addr 10.21.25.2 \
+   --role recv \
+   --use-nc \
+   --addr 127.0.0.1 \
    --port 9999 \
-   --iter 100 \
-   --threads 2 \
-   --start 2000 \
-   --end 3000 \
-   --step 100
+   --threads 3 \
+   --start 30 \
+   --end 60 \
 ```

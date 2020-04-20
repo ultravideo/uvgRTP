@@ -19,7 +19,7 @@ sub clamp {
 }
 
 sub send_benchmark {
-	my ($lib, $addr, $port, $iter, $threads, $start, $end) = @_;
+	my ($lib, $addr, $port, $iter, $threads, $start, $end, $gen_recv) = @_;
 	my ($sfps, $efps) = clamp($start, $end);
 	my ($socket, $remote, $data);
 
@@ -39,6 +39,7 @@ sub send_benchmark {
 			for ((1 .. $iter)) {
 				$remote->recv($data, 16);
 				system ("time ./$lib/sender $addr $threads $i >> $lib/results/$logname 2>&1");
+                $remote->send("end") if $gen_recv;
 			}
 		}
 
@@ -71,6 +72,42 @@ sub recv_benchmark {
 	}
 }
 
+# use netcat to capture the stream
+sub recv_generic {
+    my ($lib, $addr, $port, $iter, $threads, $start, $end) = @_;
+    my ($sfps, $efps) = clamp($start, $end);
+    my $ports = "";
+
+    my $socket = IO::Socket::INET->new(
+        PeerAddr  => $addr,
+        PeerPort  => $port,
+        Proto     => "tcp",
+        Type      => SOCK_STREAM,
+        Timeout   => 1,
+    ) or die "Couldn't connect to $addr:$port : $@\n";
+
+    # spawn N netcats using gnu parallel, send message to sender to start sending,
+    # wait for message from sender that all the packets have been sent, sleep a tiny bit
+    # move receiver output from separate files to one common file and proceed to next iteration
+
+    for (my $i = 0; $i < $threads; ++$i) {
+        $ports .= 8888 + $i * 2 . " ";
+    }
+
+    while ($threads ne 0) {
+        for (my $i = $sfps; $i <= $efps; $i *= 2) {
+            system "parallel --files nc -kluvw 0 $addr ::: $ports &";
+            $socket->send("start");
+            $socket->recv(my $data, 16);
+            sleep 1;
+            system "killall nc";
+            # TODO parse output
+        }
+
+        $threads--;
+    }
+}
+
 GetOptions(
 	"lib=s"     => \(my $lib = ""),
 	"role=s"    => \(my $role = ""),
@@ -80,6 +117,7 @@ GetOptions(
 	"threads=i" => \(my $threads = 1),
 	"start=f"   => \(my $start = 0),
 	"end=f"     => \(my $end = 0),
+    "use-nc"    => \(my $nc = 0)
 ) or die "failed to parse command line!\n";
 
 if ($lib eq "") {
@@ -96,10 +134,14 @@ if ($addr eq "" or $port eq 0) {
 
 if ($role eq "send") {
 	system ("make $lib" . "_sender");
-	send_benchmark($lib, $addr, $port, $iter, $threads, $start, $end);
-} elsif ($role eq "recv" ){
-	system ("make $lib" . "_receiver");
-	recv_benchmark($lib, $addr, $port, $iter, $threads, $start, $end);
+	send_benchmark($lib, $addr, $port, $iter, $threads, $start, $end, $nc);
+} elsif ($role eq "recv" ) {
+    if (!$nc) {
+        system ("make $lib" . "_receiver");
+        recv_benchmark($lib, $addr, $port, $iter, $threads, $start, $end);
+    } else {
+        recv_generic($lib, $addr, $port, $iter, $threads, $start, $end);
+    }
 } else {
 	print "invalid role: '$role'\n" and exit;
 }
