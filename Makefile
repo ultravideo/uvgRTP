@@ -1,7 +1,7 @@
 .PHONY: all clean obj install
 
 CXX = g++
-CXXFLAGS = -g -Wall -Wextra -Wuninitialized -O0 -std=c++11 -Isrc -fPIC -DNDEBUG
+CXXFLAGS = -g -Wall -Wextra -Wuninitialized -O2 -std=c++11 -Iinclude -fPIC -DNDEBUG
 SOURCES = $(wildcard src/*.cc)
 MODULES := src/formats src/mzrtp
 -include $(patsubst %, %/module.mk, $(MODULES))
@@ -14,9 +14,9 @@ all: $(TARGET)
 install: $(TARGET)
 	install -m 577 $(TARGET) /usr/local/lib/
 	mkdir -p /usr/local/include/kvzrtp /usr/local/include/kvzrtp/formats /usr/local/include/kvzrtp/mzrtp
-	cp src/*.hh /usr/local/include/kvzrtp
-	cp src/formats/*.hh /usr/local/include/kvzrtp/formats
-	cp src/mzrtp/*.hh /usr/local/include/kvzrtp/mzrtp
+	cp include/*.hh /usr/local/include/kvzrtp
+	cp include/formats/*.hh /usr/local/include/kvzrtp/formats
+	cp include/mzrtp/*.hh /usr/local/include/kvzrtp/mzrtp
 
 $(TARGET): $(OBJECTS)
 	$(AR) rcs $@ $(OBJECTS)

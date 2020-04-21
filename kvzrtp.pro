@@ -24,7 +24,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 QMAKE_CXXFLAGS += -DNDEBUG
-INCLUDEPATH    += src
+INCLUDEPATH    += include
 
 SOURCES += \
     src/send.cc \
@@ -55,31 +55,31 @@ SOURCES += \
     # src/formats/hevc_recv_optimistic.cc \
 
 HEADERS += \
-    src/send.hh \
-    src/rtcp.hh \
-    src/lib.hh \
-    src/frame.hh \
-    src/debug.hh \
-    src/util.hh \
-    src/mingw_inet.hh \
-    src/multicast.hh \
-    src/poll.hh \
-    src/rtcp.hh \
-    src/socket.hh \
-    src/clock.hh \
-    src/hostname.hh \
-    src/queue.hh \
-    src/random.hh \
-    src/dispatch.hh \
-    src/runner.hh \
-    src/receiver.hh \
-    src/sender.hh \
-    src/session.hh \
-    src/rtp.hh \
-    src/media_stream.hh \
-    src/formats/opus.hh \
-    src/formats/hevc.hh \
-    src/formats/generic.hh
+    include/send.hh \
+    include/rtcp.hh \
+    include/lib.hh \
+    include/frame.hh \
+    include/debug.hh \
+    include/util.hh \
+    include/mingw_inet.hh \
+    include/multicast.hh \
+    include/poll.hh \
+    include/rtcp.hh \
+    include/socket.hh \
+    include/clock.hh \
+    include/hostname.hh \
+    include/queue.hh \
+    include/random.hh \
+    include/dispatch.hh \
+    include/runner.hh \
+    include/receiver.hh \
+    include/sender.hh \
+    include/session.hh \
+    include/rtp.hh \
+    include/media_stream.hh \
+    include/formats/opus.hh \
+    include/formats/hevc.hh \
+    include/formats/generic.hh
 
 unix {
     target.path = /usr/lib

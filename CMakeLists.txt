@@ -34,8 +34,9 @@ add_library(kvzrtp STATIC
 
 target_include_directories(kvzrtp
     PUBLIC
-        ${PROJECT_SOURCE_DIR}/src
-		${PROJECT_SOURCE_DIR}/src/formats
+        ${PROJECT_SOURCE_DIR}/include
+		${PROJECT_SOURCE_DIR}/include/formats
+		${PROJECT_SOURCE_DIR}/include/mzrtp
 )
 
 if (UNIX)
