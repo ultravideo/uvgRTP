@@ -50,11 +50,14 @@ namespace kvz_rtp {
             void install_dealloc_hook(void (*dealloc_hook)(void *));
 
             /* Get reference to the underlying socket object */
-            kvz_rtp::socket & get_socket();
+            kvz_rtp::socket& get_socket();
 
             /* Get pointer to RTP context where all clocking information,
              * SSRC, sequence number etc. are stored */
             kvz_rtp::rtp *get_rtp_ctx();
+
+            /* Get reference to the media stream's config structure */
+            rtp_ctx_conf& get_conf();
 
         private:
             kvz_rtp::socket socket_;

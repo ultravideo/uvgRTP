@@ -67,7 +67,11 @@ namespace kvz_rtp {
             /* TODO:  */
             kvz_rtp::rtp *get_rtp_ctx();
 
+            /* TODO:  */
             std::mutex& get_mutex();
+
+            /* Get reference to the media stream's config structure */
+            rtp_ctx_conf& get_conf();
 
         private:
             kvz_rtp::socket socket_;

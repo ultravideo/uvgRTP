@@ -274,3 +274,8 @@ std::mutex& kvz_rtp::receiver::get_mutex()
 {
     return r_mtx_;
 }
+
+rtp_ctx_conf& kvz_rtp::receiver::get_conf()
+{
+    return conf_;
+}
