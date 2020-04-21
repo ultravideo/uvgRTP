@@ -60,23 +60,27 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
     kvz_rtp::socket socket = receiver->get_socket();
     kvz_rtp::frame::rtp_frame *frame, *frames[0xffff + 1] = { 0 };
 
+    fd_set read_fds;
+    struct timeval t_val;
+    FD_ZERO(&read_fds);
+
     uint8_t nal_header[2] = { 0 };
     std::map<uint32_t, hevc_fu_info> s_timers;
     std::map<uint32_t, size_t> dropped_frames;
-
-    fd_set read_fds;
-    struct timeval t_val;
-
-    FD_ZERO(&read_fds);
-
-    t_val.tv_sec  = 0;
-    t_val.tv_usec = 1000;
 
     while (!receiver->active())
         ;
 
     while (receiver->active()) {
+
+        /* Reset select() parameters.
+         *
+         * FD_SET() must be called every time before calling select() at least on Windows
+         * and on Linux, select() changes the timeout values of t_val to relect the time waited
+         * on the file descriptors */
         FD_SET(socket.get_raw_socket(), &read_fds);
+        t_val = { 0, 1000 };
+
         int sret = ::select(socket.get_raw_socket() + 1, &read_fds, nullptr, nullptr, &t_val);
 
         if (sret < 0) {
@@ -115,7 +119,6 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
             if ((frame = receiver->validate_rtp_frame(receiver->get_recv_buffer(), nread)) == nullptr)
                 continue;
 
-            /* TODO: ??? */
             memcpy(&frame->src_addr, &sender_addr, sizeof(sockaddr_in));
 
             /* Update session related statistics
@@ -123,7 +126,6 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
              *
              * Skip processing the packet if it was invalid. This is mostly likely caused
              * by an SSRC collision */
-            /* TODO:  */
             /* if (receiver->update_receiver_stats(frame) != RTP_OK) */
             /*     continue; */
 
@@ -175,7 +177,6 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
                 continue;
             }
 
-            /* TODO: this is ugly */
             bool duplicate = true;
 
             /* Save the received frame to "frames" array where frames are indexed using
@@ -190,7 +191,6 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
                 frames[SEQ(frame)] = frame;
                 duplicate          = false;
             } else {
-                LOG_INFO("valid duplicate packet, investigate!");
                 (void)kvz_rtp::frame::dealloc_frame(frame);
                 continue;
             }
