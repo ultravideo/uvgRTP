@@ -1,6 +1,6 @@
 # kvzRTP
 
-kvzRTP is a thread-safe, easy-to-use RTP library written in C++ especially designed for high-speed multimedia applications. In ideal conditions it's able to receive up to ~610 MB/s goodput for HEVC stream. It features a very intuitive and easy-to-use API.
+kvzRTP is an RTP library written in C++ with a focus on usability and efficiency. It features a very intuitive and easy-to-use API, built-in support for HEVC and Opus, SRTP and ZRTP. In ideal conditions it is able to receive a goodput of 600 MB/s for HEVC stream.
 
 kvzRTP is licensed under the permissive BSD 2-Clause License
 
