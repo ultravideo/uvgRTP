@@ -297,5 +297,10 @@ namespace kvz_rtp {
             void (*receiver_hook_)(kvz_rtp::frame::rtcp_receiver_frame *);
             void (*sdes_hook_)(kvz_rtp::frame::rtcp_sdes_frame *);
             void (*app_hook_)(kvz_rtp::frame::rtcp_app_frame *);
+
+            /* Because struct statistics contains kvzRTP clock object we cannot
+             * zero it out without compiler complaining about it so all the fields
+             * must be set to zero manually */
+            void zero_stats(kvz_rtp::rtcp::statistics *stats);
     };
 };

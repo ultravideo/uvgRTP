@@ -498,7 +498,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::receiver *receiver)
     __create_frame_entry(frames, INVALID_TS, NULL, 0);
 
     std::memset(frames.headers, 0, sizeof(frames.headers));
-    std::memset(&frames.fsah,   0, sizeof(frames.fsah));
+    /* std::memset(&frames.fsah,   0, sizeof(frames.fsah)); */
 
     int nread           = 0;
     /* rtp_ctx_conf_t conf = receiver->get_ctx_conf(); */

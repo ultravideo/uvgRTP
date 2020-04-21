@@ -32,7 +32,7 @@ kvz_rtp::rtcp::rtcp(uint32_t ssrc, bool receiver):
     rtp_ts_start_ = 0;
     runner_       = nullptr;
 
-    memset(&sender_stats, 0, sizeof(sender_stats));
+    zero_stats(&sender_stats);
 }
 
 kvz_rtp::rtcp::~rtcp()
@@ -53,7 +53,7 @@ rtp_error_t kvz_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, i
     if ((p = new struct participant) == nullptr)
         return RTP_MEMORY_ERROR;
 
-    memset(&p->stats, 0, sizeof(struct statistics));
+    zero_stats(&p->stats);
 
     if ((p->socket = new kvz_rtp::socket()) == nullptr)
         return RTP_MEMORY_ERROR;
@@ -116,6 +116,30 @@ void kvz_rtp::rtcp::update_rtcp_bandwidth(size_t pkt_size)
     rtcp_pkt_count_++;
     rtcp_byte_count_  += pkt_size + UDP_HEADER_SIZE + IP_HEADER_SIZE;
     avg_rtcp_pkt_pize_ = rtcp_byte_count_ / rtcp_pkt_count_;
+}
+
+
+void kvz_rtp::rtcp::zero_stats(kvz_rtp::rtcp::statistics *stats)
+{
+    stats->received_pkts  = 0;
+    stats->dropped_pkts   = 0;
+    stats->received_bytes = 0;
+
+    stats->sent_pkts  = 0;
+    stats->sent_bytes = 0;
+
+    stats->jitter  = 0;
+    stats->transit = 0;
+
+    stats->initial_ntp = 0;
+    stats->initial_rtp = 0;
+    stats->clock_rate  = 0;
+    stats->lsr         = 0;
+
+    stats->max_seq  = 0;
+    stats->base_seq = 0;
+    stats->bad_seq  = 0;
+    stats->cycles   = 0;
 }
 
 rtp_error_t kvz_rtp::rtcp::start()
