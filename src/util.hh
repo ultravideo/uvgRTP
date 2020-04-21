@@ -111,6 +111,32 @@ enum RTP_CTX_ENABLE_FLAGS {
     RCE_LAST                   = 1 << 5,
 };
 
+enum RTP_CTX_ENABLE_MEDIA_FLAGS {
+    RCE_MEDIA_NO_FLAGS = 0 << 0,
+
+    /* When kvzRTP is receiving HEVC stream, as an attempt to improve
+     * QoS, it will set frame delay for intra frames to be the same
+     * as intra period.
+     *
+     * What this means is that if the regular timer expires for frame
+     * (100 ms) and the frame type is intra, kvzRTP will not drop the
+     * frame but will continue receiving packets in hopes that all the
+     * packets of the intra frame will be received and the frame can be
+     * returned to user. During this period, when the intra frame is deemed
+     * to be late and incomplete, kvzRTP will drop all inter frames until
+     * a) all the packets of late intra frame are received or
+     * b) a new intra frame is received
+     *
+     * This behaviour should reduce the number of gray screens during
+     * HEVC decoding but might cause the video stream to freeze for a while
+     * which is subjectively lesser of two evils
+     *
+     * This behavior can be disabled with RCE_HEVC_NO_INTRA_DELAY
+     * If this flag is given, kvzRTP treats all frame types
+     * equally and drops all frames that are late */
+    RCE_HEVC_NO_INTRA_DELAY = 1 << 0
+};
+
 /* These options are given to configuration() */
 enum RTP_CTX_CONFIGURATION_FLAGS {
     /* No configuration flags */
