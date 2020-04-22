@@ -111,11 +111,24 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
     int nread = 0;
     frame_info_t finfo;
     rtp_error_t ret = RTP_OK;
-    uint32_t intra  = INVALID_TS;
     kvz_rtp::socket socket = receiver->get_socket();
     kvz_rtp::frame::rtp_frame *frame, *frames[0xffff + 1] = { 0 };
     bool enable_idelay = !(receiver->get_conf().flags & RCE_HEVC_NO_INTRA_DELAY);
     std::unordered_set<uint32_t> dropped;
+
+    /* Use "intra" to keep track of intra frames
+     *
+     * If kvzRTP is in the process of receiving fragments of an incomplete intra frame,
+     * "intra" shall be the timestamp value of that intra frame.
+     * This means that when we're receiving packets out of order and an inter frame is complete
+     * while "intra" contains value other than INVALID_TS, we drop the inter frame and wait for
+     * the intra frame to complete.
+     *
+     * If "intra" contains INVALID_TS and all packets of an inter frame have been received,
+     * the inter frame is returned to user.  If intra contains a value other than INVALID_TS
+     * (meaning an intra frame is in progress) and a new intra frame is received, the old intra frame
+     * pointed to by "intra" and new intra frame shall take the place of active intra frame */
+    uint32_t intra  = INVALID_TS;
 
     fd_set read_fds;
     struct timeval t_val;
