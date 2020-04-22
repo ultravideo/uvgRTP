@@ -334,6 +334,13 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
                         (void)kvz_rtp::frame::dealloc_frame(fragment.second);
                     }
 
+                    /* intra is still in progress, do not return the inter */
+                    if (nal_type == NT_INTER && intra != INVALID_TS) {
+                        __drop_frame(finfo, c_ts);
+                        dropped.insert(c_ts);
+                        continue;
+                    }
+
                     if (nal_type == NT_INTRA)
                         intra = INVALID_TS;
 
