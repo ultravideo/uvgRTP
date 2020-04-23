@@ -252,17 +252,6 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
                     continue;
                 }
 
-                /* when initializing a new frame, we need to keep twothings in mind:
-                 * 1) new intra frame will supersede older intra frame 
-                 * 2) new inter fame is accepted only if current intra has been returned 
-                 *    to user or if it's still in progress, its timer has not run out  */
-
-                /* if intra is incomplete and late, drop all inters */
-                if (intra != INVALID_TS && nal_type == NT_INTER) {
-                    if (__frame_late(finfo.at(intra)))
-                        continue;
-                }
-
                 /* drop old intra if a new one is received */
                 if (nal_type == NT_INTRA) {
                     if (intra != INVALID_TS) {
