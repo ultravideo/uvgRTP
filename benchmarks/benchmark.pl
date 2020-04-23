@@ -12,8 +12,8 @@ sub clamp {
 	my ($start, $end) = @_;
 	my @clamped = (0, 0);
 
-	$clamped[0] = $start < 0.9375 ? 0.9375 : $start;
-	$clamped[1] = $end   > 960    ? 960    : $end;
+	$clamped[0] = $start < 15   ? 15   : $start;
+	$clamped[1] = $end   > 1500 ? 1500 : $end;
 
 	return @clamped;
 }
