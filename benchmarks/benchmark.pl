@@ -89,19 +89,26 @@ sub recv_generic {
     # spawn N netcats using gnu parallel, send message to sender to start sending,
     # wait for message from sender that all the packets have been sent, sleep a tiny bit
     # move receiver output from separate files to one common file and proceed to next iteration
-
-    for (my $i = 0; $i < $threads; ++$i) {
-        $ports .= 8888 + $i * 2 . " ";
-    }
+    $ports .= (8888 + $_ * 2) . " " for ((0 .. $threads - 1));
 
     while ($threads ne 0) {
         for (my $i = $sfps; $i <= $efps; $i *= 2) {
+            my $logname = "recv_results_$threads" . "threads_$i". "fps";
             system "parallel --files nc -kluvw 0 $addr ::: $ports &";
             $socket->send("start");
             $socket->recv(my $data, 16);
             sleep 1;
             system "killall nc";
-            # TODO parse output
+
+            open my $fhz, '>>', "$lib/results/$logname";
+            opendir my $dir, "/tmp";
+
+            foreach $of (grep (/par.+\.par/i, readdir $dir)) {
+                print $fhz -s "/tmp/$of";
+                print $fhz "\n";
+                unlink "/tmp/$of";
+            }
+            closedir $dir;
         }
 
         $threads--;
