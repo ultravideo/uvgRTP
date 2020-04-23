@@ -298,11 +298,18 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
 
                 /* we've received every fragment and the frame can be reconstructed */
                 if (received == finfo[c_ts].pkts_received) {
+
+                    /* intra is still in progress, do not return the inter */
+                    if (nal_type == NT_INTER && intra != INVALID_TS && enable_idelay) {
+                        __drop_frame(finfo, c_ts);
+                        dropped.insert(c_ts);
+                        continue;
+                    }
+
                     uint8_t nal_header[2] = {
                         (uint8_t)((FRAME(c_ts, s_seq)->payload[0] & 0x81) | ((frame->payload[2] & 0x3f) << 1)),
                         (uint8_t)FRAME(c_ts, s_seq)->payload[1]
                     };
-
                     kvz_rtp::frame::rtp_frame *out = kvz_rtp::frame::alloc_rtp_frame();
 
                     out->payload_len = finfo[c_ts].total_size + kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
@@ -321,13 +328,6 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
                         );
                         fptr += fragment.second->payload_len - HEVC_HDR_SIZE;
                         (void)kvz_rtp::frame::dealloc_frame(fragment.second);
-                    }
-
-                    /* intra is still in progress, do not return the inter */
-                    if (nal_type == NT_INTER && intra != INVALID_TS && enable_idelay) {
-                        __drop_frame(finfo, c_ts);
-                        dropped.insert(c_ts);
-                        continue;
                     }
 
                     if (nal_type == NT_INTRA)
