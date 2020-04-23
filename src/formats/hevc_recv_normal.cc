@@ -254,7 +254,7 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
 
                 /* drop old intra if a new one is received */
                 if (nal_type == NT_INTRA) {
-                    if (intra != INVALID_TS) {
+                    if (intra != INVALID_TS && enable_idelay) {
                         __drop_frame(finfo, intra);
                         dropped.insert(intra);
                     }
@@ -324,7 +324,7 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
                     }
 
                     /* intra is still in progress, do not return the inter */
-                    if (nal_type == NT_INTER && intra != INVALID_TS) {
+                    if (nal_type == NT_INTER && intra != INVALID_TS && enable_idelay) {
                         __drop_frame(finfo, c_ts);
                         dropped.insert(c_ts);
                         continue;
