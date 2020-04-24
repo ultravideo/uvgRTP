@@ -130,7 +130,21 @@ enum RTP_CTX_ENABLE_FLAGS {
      * equally and drops all frames that are late */
     RCE_HEVC_NO_INTRA_DELAY    = 1 << 5,
 
-    RCE_LAST                   = 1 << 6,
+    /* Fragment generic frames into RTP packets of 1500 bytes.
+     *
+     * If RCE_FRAGMENT_GENERIC is given to create_stream(), kvzRTP will split frames
+     * of type RTP_FORMAT_GENERIC into packets of 1500 bytes automatically and reconstruct
+     * the full frame from the fragments in the receiver
+     *
+     * This behavior is not from any specification and only supported by kvzRTP so it
+     * will break interoperability between libraries if enabled.
+     *
+     * RCE_FRAGMENT_GENERIC can be used, for example, when you're using kvzRTP for
+     * both sender and receiver and the media stream you wish to stream is not supported
+     * by kvzRTP but requires packetization because MEDIA_FRAME_SIZE > MTU */
+    RCE_FRAGMENT_GENERIC       = 1 << 6,
+
+    RCE_LAST                   = 1 << 7,
 };
 
 /* These options are given to configuration() */
