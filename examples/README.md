@@ -24,6 +24,8 @@ We provide several simple and thoroughly commented examples on how to use kvzRTP
 
 [How to use fragmented input with kvzRTP \(HEVC slices\)](sending_fragmented.cc)
 
+[How to fragment generic media types](sending_generic.cc)
+
 [How to create a simple RTP receiver (hooking)](receiving_hook.cc)
 
 NOTE: The hook should **not** be used for media processing. It should be rather used as interface between application and library where the frame handout happens.
