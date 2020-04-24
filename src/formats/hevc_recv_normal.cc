@@ -18,7 +18,6 @@
 
 #define TS(x)        ((x)->header.timestamp)
 #define SEQ(x)       ((x)->header.seq)
-#define FRAME(t, s)  (finfo[(t)].fragments[(s)])
 
 enum FRAG_TYPES {
     FT_INVALID   = -2, /* invalid combination of S and E bits */
@@ -111,8 +110,8 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
     int nread = 0;
     frame_info_t finfo;
     rtp_error_t ret = RTP_OK;
+    kvz_rtp::frame::rtp_frame *frame;
     kvz_rtp::socket socket = receiver->get_socket();
-    kvz_rtp::frame::rtp_frame *frame, *frames[0xffff + 1] = { 0 };
     bool enable_idelay = !(receiver->get_conf().flags & RCE_HEVC_NO_INTRA_DELAY);
     std::unordered_set<uint32_t> dropped;
 
@@ -307,16 +306,16 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
                     }
 
                     uint8_t nal_header[2] = {
-                        (uint8_t)((FRAME(c_ts, s_seq)->payload[0] & 0x81) | ((frame->payload[2] & 0x3f) << 1)),
-                        (uint8_t)FRAME(c_ts, s_seq)->payload[1]
+                        (uint8_t)((frame->payload[0] & 0x81) | ((frame->payload[2] & 0x3f) << 1)),
+                        (uint8_t)frame->payload[1]
                     };
                     kvz_rtp::frame::rtp_frame *out = kvz_rtp::frame::alloc_rtp_frame();
 
                     out->payload_len = finfo[c_ts].total_size + kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
                     out->payload     = new uint8_t[out->payload_len];
 
-                    std::memcpy(&out->header,  &FRAME(c_ts, s_seq)->header, RTP_HDR_SIZE);
-                    std::memcpy(out->payload,  nal_header,                  NAL_HDR_SIZE);
+                    std::memcpy(&out->header,  &frame->header, RTP_HDR_SIZE);
+                    std::memcpy(out->payload,  nal_header,     NAL_HDR_SIZE);
 
                     fptr += kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
 
@@ -347,9 +346,6 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
             }
         } while (ret == RTP_OK);
     }
-
-    for (int i = 0; i < 0xffff + 1; ++i)
-        (void)kvz_rtp::frame::dealloc_frame(frames[i]);
 
     receiver->get_mutex().unlock();
     return ret;
