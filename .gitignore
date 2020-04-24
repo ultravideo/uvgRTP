@@ -11,3 +11,4 @@ benchmarks/*/*data
 benchmarks/*/receiver
 benchmarks/*/sender
 *.prof
+tags
