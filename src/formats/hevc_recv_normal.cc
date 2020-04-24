@@ -16,9 +16,6 @@
 #define RTP_HDR_SIZE  12
 #define NAL_HDR_SIZE   2
 
-#define TS(x)        ((x)->header.timestamp)
-#define SEQ(x)       ((x)->header.seq)
-
 enum FRAG_TYPES {
     FT_INVALID   = -2, /* invalid combination of S and E bits */
     FT_NOT_FRAG  = -1, /* frame doesn't contain HEVC fragment */
@@ -56,7 +53,7 @@ struct hevc_info {
     std::map<uint16_t, kvz_rtp::frame::rtp_frame *> fragments;
 };
 
-static int FRAG(kvz_rtp::frame::rtp_frame *frame)
+static int __get_frag(kvz_rtp::frame::rtp_frame *frame)
 {
     bool first_frag = frame->payload[2] & 0x80;
     bool last_frag  = frame->payload[2] & 0x40;
@@ -76,7 +73,7 @@ static int FRAG(kvz_rtp::frame::rtp_frame *frame)
     return FT_MIDDLE;
 }
 
-static inline uint8_t NAL(kvz_rtp::frame::rtp_frame *frame)
+static inline uint8_t __get_nal(kvz_rtp::frame::rtp_frame *frame)
 {
     switch (frame->payload[2] & 0x3f) {
         case 19: return NT_INTRA;
@@ -226,10 +223,10 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
                 kvz_rtp::frame::HEADER_SIZE_HEVC_NAL +
                 kvz_rtp::frame::HEADER_SIZE_HEVC_FU;
 
-            uint32_t c_ts    = TS(frame);
-            uint32_t c_seq   = SEQ(frame);
-            int frag_type    = FRAG(frame);
-            uint8_t nal_type = NAL(frame);
+            uint32_t c_ts    = frame->header.timestamp;
+            uint32_t c_seq   = frame->header.seq;
+            int frag_type    = __get_frag(frame);
+            uint8_t nal_type = __get_nal(frame);
 
             if (frag_type == FT_NOT_FRAG) {
                 receiver->return_frame(frame);
@@ -275,8 +272,8 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
             }
             finfo[c_ts].fragments[c_seq] = frame;
 
-            finfo[TS(frame)].pkts_received += 1;
-            finfo[TS(frame)].total_size    += (frame->payload_len - HEVC_HDR_SIZE);
+            finfo[c_ts].pkts_received += 1;
+            finfo[c_ts].total_size    += (frame->payload_len - HEVC_HDR_SIZE);
 
             if (frag_type == FT_START)
                 finfo[c_ts].s_seq = c_seq;
