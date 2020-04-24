@@ -1,12 +1,16 @@
 # Building
 
-There are three ways to build kvzRTP: GNU make, CMake or QtCreator
+There are several ways to build kvzRTP: GNU make, CMake, QtCreator or Visual Studio
 
 NB: kvzRTP must be built with a 64-bit compiler!
 
 ## Dependencies
 
 The only dependency vanilla kvzRTP has is pthreads
+
+## Visual Studio
+
+Open kvzRTP.sln in Visual Studio and build the library
 
 ## Qt Creator
 
