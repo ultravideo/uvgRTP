@@ -17,19 +17,8 @@ Based on Marko Viitanen's [fRTPlib](https://github.com/fador/fRTPlib)
 
 ## Building and linking
 
-See [Building](BUILDING.md) for instructions on how to build and use kvzRTP
+See [BUILDING.md](BUILDING.md) for instructions on how to build and use kvzRTP
 
 ## Examples
 
-Please see [examples](examples/) directory for different kvzRTP examples
-
-# Adding support for new media types
-
-Adding support for new media types quite straight-forward:
-* add the payload to util.hh's `RTP_FORMAT` list
-* create files to src/formats/`format_name`.{cc, hh}
-* create `namespace format_name` inside `namespace kvz_rtp`
-* Add functions `push_frame()` and `frame_receiver()`
-   * You need to implement all (de)fragmentation required by the media type
-
-See src/formats/hevc.cc and src/formats/hevc.hh for help when in doubt.
+See [examples](examples/) directory for different kvzRTP examples
