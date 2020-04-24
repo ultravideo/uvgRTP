@@ -96,7 +96,7 @@ enum RTP_CTX_ENABLE_FLAGS {
     RCE_SYSTEM_CALL_DISPATCHER = 1 << 2,
 
     /* Use SRTP for this connection */
-    RCE_SRTP               = 1 << 3,
+    RCE_SRTP                   = 1 << 3,
 
     /* Use ZRTP for key management
      *
@@ -107,12 +107,6 @@ enum RTP_CTX_ENABLE_FLAGS {
      *
      * TODO selitä paremmin */
     RCE_SRTP_KMNGMNT_USER      = 1 << 4,
-
-    RCE_LAST                   = 1 << 5,
-};
-
-enum RTP_CTX_ENABLE_MEDIA_FLAGS {
-    RCE_MEDIA_NO_FLAGS = 0 << 0,
 
     /* When kvzRTP is receiving HEVC stream, as an attempt to improve
      * QoS, it will set frame delay for intra frames to be the same
@@ -134,7 +128,9 @@ enum RTP_CTX_ENABLE_MEDIA_FLAGS {
      * This behavior can be disabled with RCE_HEVC_NO_INTRA_DELAY
      * If this flag is given, kvzRTP treats all frame types
      * equally and drops all frames that are late */
-    RCE_HEVC_NO_INTRA_DELAY = 1 << 0
+    RCE_HEVC_NO_INTRA_DELAY    = 1 << 5,
+
+    RCE_LAST                   = 1 << 6,
 };
 
 /* These options are given to configuration() */
