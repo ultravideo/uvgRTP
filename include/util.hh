@@ -33,7 +33,7 @@ typedef SSIZE_T ssize_t;
 #endif
 
 const int MAX_PACKET      = 65536;
-const int MAX_PAYLOAD     = 1441;
+const int MAX_PAYLOAD     = 1443;
 
 typedef enum RTP_ERROR {
     RTP_INTERRUPTED     =  2,
