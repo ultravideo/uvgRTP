@@ -238,13 +238,16 @@ static rtp_error_t __push_hevc_nal(
     bool more
 )
 {
+    if (data_len <= 3)
+        return RTP_INVALID_VALUE;
+
     uint8_t nalType  = (data[0] >> 1) & 0x3F;
     rtp_error_t ret  = RTP_OK;
     size_t data_left = data_len;
     size_t data_pos  = 0;
 
 #ifdef __linux__
-    if (data_len <= MAX_PAYLOAD) {
+    if (data_len - 3 <= MAX_PAYLOAD) {
         if ((ret = fqueue->enqueue_message(sender, data, data_len)) != RTP_OK) {
             LOG_ERROR("enqeueu failed for small packet");
             return ret;
@@ -313,7 +316,7 @@ static rtp_error_t __push_hevc_nal(
         return RTP_NOT_READY;
     return fqueue->flush_queue(sender);
 #else
-    if (data_len <= MAX_PAYLOAD) {
+    if (data_len - 3 <= MAX_PAYLOAD) {
         LOG_DEBUG("send unfrag size %zu, type %u", data_len, nalType);
 
         if ((ret = kvz_rtp::generic::push_frame(sender, data, data_len, 0)) != RTP_OK) {
