@@ -1,5 +1,5 @@
-#include <kvzrtp/lib.hh>
-#include <kvzrtp/clock.hh>
+#include <uvgrtp/lib.hh>
+#include <uvgrtp/clock.hh>
 #include <cstring>
 #include<algorithm> 
 #include <easy/profiler.h>
@@ -19,7 +19,7 @@ void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps)
     rtp_error_t ret     = RTP_OK;
     std::string addr_(addr);
 
-    kvz_rtp::context rtp_ctx;
+    uvg_rtp::context rtp_ctx;
 
     auto sess = rtp_ctx.create_session(addr_);
     auto hevc = sess->create_stream(

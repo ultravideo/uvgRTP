@@ -11,7 +11,7 @@
 #include "socket.hh"
 #include "util.hh"
 
-namespace kvz_rtp {
+namespace uvg_rtp {
 
     class connection;
 
@@ -53,11 +53,11 @@ namespace kvz_rtp {
              * querying these reports is implemented
              *
              * Return RTP_OK on success and RTP_ERROR on error */
-            rtp_error_t handle_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame, size_t size);
-            rtp_error_t handle_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *frame, size_t size);
-            rtp_error_t handle_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame, size_t size);
-            rtp_error_t handle_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame, size_t size);
-            rtp_error_t handle_app_packet(kvz_rtp::frame::rtcp_app_frame *frame, size_t size);
+            rtp_error_t handle_sender_report_packet(uvg_rtp::frame::rtcp_sender_frame *frame, size_t size);
+            rtp_error_t handle_receiver_report_packet(uvg_rtp::frame::rtcp_receiver_frame *frame, size_t size);
+            rtp_error_t handle_sdes_packet(uvg_rtp::frame::rtcp_sdes_frame *frame, size_t size);
+            rtp_error_t handle_bye_packet(uvg_rtp::frame::rtcp_bye_frame *frame, size_t size);
+            rtp_error_t handle_app_packet(uvg_rtp::frame::rtcp_app_frame *frame, size_t size);
 
             /* Handle incoming RTCP packet (first make sure it's a valid RTCP packet)
              * This function will call one of the above functions internally
@@ -72,26 +72,26 @@ namespace kvz_rtp {
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "frame" is in some way invalid
              * Return RTP_SEND_ERROR if sending "frame" did not succeed (see socket.hh for details) */
-            rtp_error_t send_sender_report_packet(kvz_rtp::frame::rtcp_sender_frame *frame);
-            rtp_error_t send_receiver_report_packet(kvz_rtp::frame::rtcp_receiver_frame *frame);
-            rtp_error_t send_sdes_packet(kvz_rtp::frame::rtcp_sdes_frame *frame);
-            rtp_error_t send_bye_packet(kvz_rtp::frame::rtcp_bye_frame *frame);
-            rtp_error_t send_app_packet(kvz_rtp::frame::rtcp_app_frame *frame);
+            rtp_error_t send_sender_report_packet(uvg_rtp::frame::rtcp_sender_frame *frame);
+            rtp_error_t send_receiver_report_packet(uvg_rtp::frame::rtcp_receiver_frame *frame);
+            rtp_error_t send_sdes_packet(uvg_rtp::frame::rtcp_sdes_frame *frame);
+            rtp_error_t send_bye_packet(uvg_rtp::frame::rtcp_bye_frame *frame);
+            rtp_error_t send_app_packet(uvg_rtp::frame::rtcp_app_frame *frame);
 
             /* Return the latest RTCP packet received from participant of "ssrc"
              * Return nullptr if we haven't received this kind of packet or if "ssrc" doesn't exist
              *
              * NOTE: Caller is responsible for deallocating the memory */
-            kvz_rtp::frame::rtcp_sender_frame   *get_sender_packet(uint32_t ssrc);
-            kvz_rtp::frame::rtcp_receiver_frame *get_receiver_packet(uint32_t ssrc);
-            kvz_rtp::frame::rtcp_sdes_frame     *get_sdes_packet(uint32_t ssrc);
-            kvz_rtp::frame::rtcp_app_frame      *get_app_packet(uint32_t ssrc);
+            uvg_rtp::frame::rtcp_sender_frame   *get_sender_packet(uint32_t ssrc);
+            uvg_rtp::frame::rtcp_receiver_frame *get_receiver_packet(uint32_t ssrc);
+            uvg_rtp::frame::rtcp_sdes_frame     *get_sdes_packet(uint32_t ssrc);
+            uvg_rtp::frame::rtcp_app_frame      *get_app_packet(uint32_t ssrc);
 
             /* create RTCP BYE packet using our own SSRC and send it to all participants */
             rtp_error_t terminate_self();
 
             /* TODO:  */
-            std::vector<kvz_rtp::socket>& get_sockets();
+            std::vector<uvg_rtp::socket>& get_sockets();
 
             /* Somebody joined the multicast group the owner of this RTCP instance is part of
              * Add it to RTCP participant list so we can start listening for reports 
@@ -107,7 +107,7 @@ namespace kvz_rtp {
             void sender_inc_seq_cycle_count();
             void sender_inc_sent_pkts(size_t n);
             void sender_inc_sent_bytes(size_t n);
-            void sender_update_stats(kvz_rtp::frame::rtp_frame *frame);
+            void sender_update_stats(uvg_rtp::frame::rtp_frame *frame);
 
             void receiver_inc_sent_bytes(uint32_t sender_ssrc, size_t n);
             void receiver_inc_overhead_bytes(uint32_t sender_ssrc, size_t n);
@@ -119,7 +119,7 @@ namespace kvz_rtp {
              * Return RTP_OK if packet is valid
              * Return RTP_INVALID_VALUE if SSRCs of remotes have collided or the packet is invalid in some way
              * return RTP_SSRC_COLLISION if our own SSRC has collided and we need to reinitialize it */
-            rtp_error_t receiver_update_stats(kvz_rtp::frame::rtp_frame *frame);
+            rtp_error_t receiver_update_stats(uvg_rtp::frame::rtp_frame *frame);
 
             /* If we've detected that our SSRC has collided with someone else's SSRC, we need to
              * generate new random SSRC and reinitialize our own RTCP state.
@@ -138,10 +138,10 @@ namespace kvz_rtp {
             std::vector<uint32_t> get_participants();
 
             /* TODO:  */
-            rtp_error_t install_sender_hook(void (*hook)(kvz_rtp::frame::rtcp_sender_frame *));
-            rtp_error_t install_receiver_hook(void (*hook)(kvz_rtp::frame::rtcp_receiver_frame *));
-            rtp_error_t install_sdes_hook(void (*hook)(kvz_rtp::frame::rtcp_sdes_frame *));
-            rtp_error_t install_app_hook(void (*hook)(kvz_rtp::frame::rtcp_app_frame *));
+            rtp_error_t install_sender_hook(void (*hook)(uvg_rtp::frame::rtcp_sender_frame *));
+            rtp_error_t install_receiver_hook(void (*hook)(uvg_rtp::frame::rtcp_receiver_frame *));
+            rtp_error_t install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_frame *));
+            rtp_error_t install_app_hook(void (*hook)(uvg_rtp::frame::rtcp_app_frame *));
 
         private:
             static void rtcp_runner(rtcp *rtcp);
@@ -164,7 +164,7 @@ namespace kvz_rtp {
 
             /* We've got a message from new source (the SSRC of the frame is not known to us)
              * Initialize statistics for the peer and move it to participants_ */
-            void init_new_participant(kvz_rtp::frame::rtp_frame *frame);
+            void init_new_participant(uvg_rtp::frame::rtp_frame *frame);
 
             /* Initialize the RTP Sequence related stuff of peer
              * This function assumes that the peer already exists in the participants_ map */
@@ -254,7 +254,7 @@ namespace kvz_rtp {
                 uint32_t clock_rate;  /* Rate of the clock (used for jitter calculations) */
 
                 uint32_t lsr;                     /* Middle 32 bits of the 64-bit NTP timestamp of previous SR */
-                kvz_rtp::clock::hrc::hrc_t sr_ts; /* When the last SR was received (used to calculate delay) */
+                uvg_rtp::clock::hrc::hrc_t sr_ts; /* When the last SR was received (used to calculate delay) */
 
                 uint16_t max_seq;  /* Highest sequence number received */
                 uint16_t base_seq; /* First sequence number received */
@@ -263,7 +263,7 @@ namespace kvz_rtp {
             };
 
             struct participant {
-                kvz_rtp::socket *socket; /* socket associated with this participant */
+                uvg_rtp::socket *socket; /* socket associated with this participant */
                 sockaddr_in address;     /* address of the participant */
                 struct statistics stats; /* RTCP session statistics of the participant */
 
@@ -272,10 +272,10 @@ namespace kvz_rtp {
 
                 /* Save the latest RTCP packets received from this participant
                  * Users can query these packets using the SSRC of participant */
-                kvz_rtp::frame::rtcp_sender_frame   *s_frame;
-                kvz_rtp::frame::rtcp_receiver_frame *r_frame;
-                kvz_rtp::frame::rtcp_sdes_frame     *sdes_frame;
-                kvz_rtp::frame::rtcp_app_frame      *app_frame;
+                uvg_rtp::frame::rtcp_sender_frame   *s_frame;
+                uvg_rtp::frame::rtcp_receiver_frame *r_frame;
+                uvg_rtp::frame::rtcp_sdes_frame     *sdes_frame;
+                uvg_rtp::frame::rtcp_app_frame      *app_frame;
             };
 
             std::map<uint32_t, struct participant *> participants_;
@@ -291,16 +291,16 @@ namespace kvz_rtp {
              *
              * The socket are also stored here (in addition to participants_ map) so they're easier
              * to pass to poll when RTCP runner is listening to incoming packets */
-            std::vector<kvz_rtp::socket> sockets_;
+            std::vector<uvg_rtp::socket> sockets_;
 
-            void (*sender_hook_)(kvz_rtp::frame::rtcp_sender_frame *);
-            void (*receiver_hook_)(kvz_rtp::frame::rtcp_receiver_frame *);
-            void (*sdes_hook_)(kvz_rtp::frame::rtcp_sdes_frame *);
-            void (*app_hook_)(kvz_rtp::frame::rtcp_app_frame *);
+            void (*sender_hook_)(uvg_rtp::frame::rtcp_sender_frame *);
+            void (*receiver_hook_)(uvg_rtp::frame::rtcp_receiver_frame *);
+            void (*sdes_hook_)(uvg_rtp::frame::rtcp_sdes_frame *);
+            void (*app_hook_)(uvg_rtp::frame::rtcp_app_frame *);
 
-            /* Because struct statistics contains kvzRTP clock object we cannot
+            /* Because struct statistics contains uvgRTP clock object we cannot
              * zero it out without compiler complaining about it so all the fields
              * must be set to zero manually */
-            void zero_stats(kvz_rtp::rtcp::statistics *stats);
+            void zero_stats(uvg_rtp::rtcp::statistics *stats);
     };
 };

@@ -11,18 +11,18 @@
 #include "multicast.hh"
 #include "poll.hh"
 
-rtp_error_t kvz_rtp::poll::poll(std::vector<kvz_rtp::socket>& sockets, uint8_t *buf, size_t buf_len, int timeout, int *bytes_read)
+rtp_error_t uvg_rtp::poll::poll(std::vector<uvg_rtp::socket>& sockets, uint8_t *buf, size_t buf_len, int timeout, int *bytes_read)
 {
     if (buf == nullptr || buf_len == 0)
         return RTP_INVALID_VALUE;
 
-    if (sockets.size() >= kvz_rtp::MULTICAST_MAX_PEERS) {
+    if (sockets.size() >= uvg_rtp::MULTICAST_MAX_PEERS) {
         LOG_ERROR("Too many participants!");
         return RTP_INVALID_VALUE;
     }
 
 #ifdef __linux__
-    struct pollfd fds[kvz_rtp::MULTICAST_MAX_PEERS];
+    struct pollfd fds[uvg_rtp::MULTICAST_MAX_PEERS];
     int ret;
 
     for (size_t i = 0; i < sockets.size(); ++i) {

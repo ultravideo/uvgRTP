@@ -8,11 +8,11 @@
 
 #define ZRTP_VERSION     "1.10"
 #define ZRTP_HELLO       "Hello   "
-#define ZRTP_CLIENT_ID   "kvzRTP,UVG,TUNI "
+#define ZRTP_CLIENT_ID   "uvgRTP,UVG,TUNI "
 
-using namespace kvz_rtp::zrtp_msg;
+using namespace uvg_rtp::zrtp_msg;
 
-kvz_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
+uvg_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
 {
     /* temporary storage for the full hmac hash */
     uint8_t mac_full[32];
@@ -25,8 +25,8 @@ kvz_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
     len_  = sizeof(zrtp_hello);
     rlen_ = sizeof(zrtp_hello) + 5 * 8;
 
-    frame_  = kvz_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_hello));
-    rframe_ = kvz_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_hello) + 5 * 8);
+    frame_  = uvg_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_hello));
+    rframe_ = uvg_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_hello) + 5 * 8);
 
     memset(frame_,  0, sizeof(zrtp_hello));
     memset(rframe_, 0, sizeof(zrtp_hello) + 5 * 8);
@@ -39,7 +39,7 @@ kvz_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
     msg->msg_start.header.seq     = session.seq++;
 
     msg->msg_start.magic  = ZRTP_MSG_MAGIC;
-    msg->msg_start.length = len_ - sizeof(kvz_rtp::frame::zrtp_frame);
+    msg->msg_start.length = len_ - sizeof(uvg_rtp::frame::zrtp_frame);
 
     memcpy(&msg->msg_start.msgblock, ZRTP_HELLO,                  8);
     memcpy(&msg->version,            ZRTP_VERSION,                4);
@@ -58,7 +58,7 @@ kvz_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
     msg->sc     = 0;
 
     /* Calculate MAC for the Hello message (only the ZRTP message part) */
-    auto hmac_sha256 = kvz_rtp::crypto::hmac::sha256(session.hash_ctx.o_hash[2], 32);
+    auto hmac_sha256 = uvg_rtp::crypto::hmac::sha256(session.hash_ctx.o_hash[2], 32);
 
     hmac_sha256.update((uint8_t *)frame_, 81);
     hmac_sha256.final(mac_full);
@@ -66,22 +66,22 @@ kvz_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
     memcpy(&msg->mac, mac_full, sizeof(uint64_t));
 
     /* Calculate CRC32 of the whole packet (excluding crc) */
-    kvz_rtp::crypto::crc32::get_crc32((uint8_t *)frame_, len_ - 4, &msg->crc);
+    uvg_rtp::crypto::crc32::get_crc32((uint8_t *)frame_, len_ - 4, &msg->crc);
 
     /* Finally make a copy of the message and save it for later use */
     session.l_msg.hello.first  = len_;
-    session.l_msg.hello.second = (kvz_rtp::zrtp_msg::zrtp_hello *)new uint8_t[len_];
+    session.l_msg.hello.second = (uvg_rtp::zrtp_msg::zrtp_hello *)new uint8_t[len_];
     memcpy(session.l_msg.hello.second, msg, len_);
 }
 
-kvz_rtp::zrtp_msg::hello::~hello()
+uvg_rtp::zrtp_msg::hello::~hello()
 {
     LOG_DEBUG("Freeing ZRTP hello message...");
-    (void)kvz_rtp::frame::dealloc_frame(frame_);
-    (void)kvz_rtp::frame::dealloc_frame(rframe_);
+    (void)uvg_rtp::frame::dealloc_frame(frame_);
+    (void)uvg_rtp::frame::dealloc_frame(rframe_);
 }
 
-rtp_error_t kvz_rtp::zrtp_msg::hello::send_msg(socket_t& socket, sockaddr_in& addr)
+rtp_error_t uvg_rtp::zrtp_msg::hello::send_msg(socket_t& socket, sockaddr_in& addr)
 {
 #ifdef __linux
     if (::sendto(socket, (void *)frame_, len_, 0, (const struct sockaddr *)&addr, (socklen_t)sizeof(addr)) < 0) {
@@ -105,7 +105,7 @@ rtp_error_t kvz_rtp::zrtp_msg::hello::send_msg(socket_t& socket, sockaddr_in& ad
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::zrtp_msg::hello::parse_msg(kvz_rtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
+rtp_error_t uvg_rtp::zrtp_msg::hello::parse_msg(uvg_rtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
     ssize_t len = 0;
 
@@ -137,7 +137,7 @@ rtp_error_t kvz_rtp::zrtp_msg::hello::parse_msg(kvz_rtp::zrtp_msg::receiver& rec
 
     /* Finally make a copy of the message and save it for later use */
     session.r_msg.hello.first  = len;
-    session.r_msg.hello.second = (kvz_rtp::zrtp_msg::zrtp_hello *)new uint8_t[len];
+    session.r_msg.hello.second = (uvg_rtp::zrtp_msg::zrtp_hello *)new uint8_t[len];
     memcpy(session.r_msg.hello.second, msg, len);
 
     return RTP_OK;

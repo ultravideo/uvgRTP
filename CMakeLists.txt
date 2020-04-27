@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(kvzrtp)
+project(uvgrtp)
 
-add_library(kvzrtp STATIC
+add_library(uvgrtp STATIC
 	src/clock.cc
 	src/crypto.cc
 	src/dispatch.cc
@@ -32,7 +32,7 @@ add_library(kvzrtp STATIC
 	src/formats/hevc_recv_optimistic.cc
 )
 
-target_include_directories(kvzrtp
+target_include_directories(uvgrtp
     PUBLIC
         ${PROJECT_SOURCE_DIR}/include
 		${PROJECT_SOURCE_DIR}/include/formats
@@ -40,17 +40,17 @@ target_include_directories(kvzrtp
 )
 
 if (UNIX)
-	install(TARGETS kvzrtp
+	install(TARGETS uvgrtp
 			ARCHIVE
 			DESTINATION /usr/local/lib
 	)
-	install(DIRECTORY src/ DESTINATION /usr/local/include/kvzrtp
+	install(DIRECTORY src/ DESTINATION /usr/local/include/uvgrtp
 			FILES_MATCHING PATTERN "*.hh"
 	)
 endif (UNIX)
 
 if (WIN32)
-	install(TARGETS kvzrtp
+	install(TARGETS uvgrtp
 		    ARCHIVE
 			DESTINATION ${PROJECT_BINARY_DIR}/lib
 	)

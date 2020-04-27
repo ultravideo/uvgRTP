@@ -1,7 +1,7 @@
 
 #include "util.hh"
 
-namespace kvz_rtp {
+namespace uvg_rtp {
     namespace random {
 
         /* Initialize the PSRNG of standard lib and for windows

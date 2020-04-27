@@ -1,17 +1,17 @@
-#include <kvzrtp/lib.hh>
+#include <uvgrtp/lib.hh>
 
 #define PAYLOAD_MAXLEN 100
 
 int main(void)
 {
     /* See sending.cc for more details */
-    kvz_rtp::context ctx;
+    uvg_rtp::context ctx;
 
     /* See sending.cc for more details */
-    kvz_rtp::session *sess = ctx.create_session("127.0.0.1");
+    uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
 
     /* See sending.cc for more details */
-    kvz_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_HEVC, 0);
+    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_HEVC, 0);
 
     /* Three buffers that create one discrete frame (perhaps three NAL units) that all should have the same timestamp */
     auto buffer1 = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);

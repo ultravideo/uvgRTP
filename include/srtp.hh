@@ -24,7 +24,7 @@
 #define HMAC_KEY_LENGTH  32 /* 256 bits */
 #define SALT_LENGTH      14 /* 112 bits */
 
-namespace kvz_rtp {
+namespace uvg_rtp {
 
     enum STYPE {
         SRTP  = 0,
@@ -112,7 +112,7 @@ namespace kvz_rtp {
              * Return RTP_OK if SRTP setup was successful
              * Return RTP_INVALID_VALUE if "zrtp" is nullptr
              * Return RTP_MEMORY allocation failed */
-            rtp_error_t init_zrtp(int type, kvz_rtp::rtp *rtp, kvz_rtp::zrtp *zrtp);
+            rtp_error_t init_zrtp(int type, uvg_rtp::rtp *rtp, uvg_rtp::zrtp *zrtp);
 
             /* Setup Secure RTP/RTCP connection using user-managed keys
              *
@@ -129,7 +129,7 @@ namespace kvz_rtp {
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "frame" is nullptr
              * Return RTP_NOT_INITIALIZED if SRTP has not been initialized */
-            rtp_error_t encrypt(kvz_rtp::frame::rtp_frame *frame);
+            rtp_error_t encrypt(uvg_rtp::frame::rtp_frame *frame);
 
             /* Encrypt the payload of "buffers" vector using the private session key
              * The payload that is encrypted is the last buffer of "buffers" and the
@@ -151,7 +151,7 @@ namespace kvz_rtp {
              *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "frame" is nullptr or if authentication failed */
-            rtp_error_t authenticate(kvz_rtp::frame::rtp_frame *frame);
+            rtp_error_t authenticate(uvg_rtp::frame::rtp_frame *frame);
 #endif
 
         private:

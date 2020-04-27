@@ -4,7 +4,7 @@
 #include "clock.hh"
 #include "util.hh"
 
-namespace kvz_rtp {
+namespace uvg_rtp {
 
     class rtp {
         public:
@@ -31,7 +31,7 @@ namespace kvz_rtp {
 
             uint32_t clock_rate_;
             uint32_t wc_start_;
-            kvz_rtp::clock::hrc::hrc_t wc_start_2;
+            uvg_rtp::clock::hrc::hrc_t wc_start_2;
 
             size_t sent_pkts_;
     };

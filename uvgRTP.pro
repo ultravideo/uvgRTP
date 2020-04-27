@@ -6,11 +6,11 @@
 
 QT -= core gui
 
-TARGET   = kvzrtp
+TARGET   = uvgrtp
 TEMPLATE = lib
 CONFIG  += staticlib
 
-DEFINES += KVZRTP_LIBRARY
+DEFINES += UVGRTP_LIBRARY
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which has been marked as deprecated (the exact warnings

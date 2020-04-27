@@ -85,7 +85,7 @@ typedef enum RTP_FLAGS {
     RTP_COPY = 1 << 2,
 } rtp_flags_t;
 
-/* These flags are given when kvzRTP context is created */
+/* These flags are given when uvgRTP context is created */
 enum RTP_CTX_ENABLE_FLAGS {
     RTP_CTX_NO_FLAGS           = 0 << 0,
 
@@ -108,16 +108,16 @@ enum RTP_CTX_ENABLE_FLAGS {
      * TODO selitä paremmin */
     RCE_SRTP_KMNGMNT_USER      = 1 << 4,
 
-    /* When kvzRTP is receiving HEVC stream, as an attempt to improve
+    /* When uvgRTP is receiving HEVC stream, as an attempt to improve
      * QoS, it will set frame delay for intra frames to be the same
      * as intra period.
      *
      * What this means is that if the regular timer expires for frame
-     * (100 ms) and the frame type is intra, kvzRTP will not drop the
+     * (100 ms) and the frame type is intra, uvgRTP will not drop the
      * frame but will continue receiving packets in hopes that all the
      * packets of the intra frame will be received and the frame can be
      * returned to user. During this period, when the intra frame is deemed
-     * to be late and incomplete, kvzRTP will drop all inter frames until
+     * to be late and incomplete, uvgRTP will drop all inter frames until
      * a) all the packets of late intra frame are received or
      * b) a new intra frame is received
      *
@@ -126,26 +126,26 @@ enum RTP_CTX_ENABLE_FLAGS {
      * which is subjectively lesser of two evils
      *
      * This behavior can be disabled with RCE_HEVC_NO_INTRA_DELAY
-     * If this flag is given, kvzRTP treats all frame types
+     * If this flag is given, uvgRTP treats all frame types
      * equally and drops all frames that are late */
     RCE_HEVC_NO_INTRA_DELAY    = 1 << 5,
 
     /* Fragment generic frames into RTP packets of 1500 bytes.
      *
-     * If RCE_FRAGMENT_GENERIC is given to create_stream(), kvzRTP will split frames
+     * If RCE_FRAGMENT_GENERIC is given to create_stream(), uvgRTP will split frames
      * of type RTP_FORMAT_GENERIC into packets of 1500 bytes automatically and reconstruct
      * the full frame from the fragments in the receiver
      *
-     * This behavior is not from any specification and only supported by kvzRTP so it
+     * This behavior is not from any specification and only supported by uvgRTP so it
      * will break interoperability between libraries if enabled.
      *
-     * RCE_FRAGMENT_GENERIC can be used, for example, when you're using kvzRTP for
+     * RCE_FRAGMENT_GENERIC can be used, for example, when you're using uvgRTP for
      * both sender and receiver and the media stream you wish to stream is not supported
-     * by kvzRTP but requires packetization because MEDIA_FRAME_SIZE > MTU */
+     * by uvgRTP but requires packetization because MEDIA_FRAME_SIZE > MTU */
     RCE_FRAGMENT_GENERIC       = 1 << 6,
 
     /* If SRTP is enabled and RCE_INPLACE_ENCRYPTION flag is *not* given,
-     * kvzRTP will make a copy of the frame given to push_frame().
+     * uvgRTP will make a copy of the frame given to push_frame().
      *
      * If the frame is writable and the application no longer needs the frame,
      * RCE_INPLACE_ENCRYPTION should be given to create_stream() to prevent
@@ -180,7 +180,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
 
     /* How many UDP packets does one transaction object hold.
      *
-     * kvzRTP splits one input frame [argument of push_frame()] into
+     * uvgRTP splits one input frame [argument of push_frame()] into
      * multiple UDP packets, each of size 1500 bytes. This UDP packets
      * are stored into a transaction object.
      *

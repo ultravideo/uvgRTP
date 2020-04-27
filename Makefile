@@ -7,16 +7,16 @@ MODULES := src/formats src/mzrtp
 -include $(patsubst %, %/module.mk, $(MODULES))
 OBJECTS := $(patsubst %.cc, %.o, $(filter %.cc, $(SOURCES)))
 
-TARGET = libkvzrtp.a
+TARGET = libuvgrtp.a
 
 all: $(TARGET)
 
 install: $(TARGET)
 	install -m 577 $(TARGET) /usr/local/lib/
-	mkdir -p /usr/local/include/kvzrtp /usr/local/include/kvzrtp/formats /usr/local/include/kvzrtp/mzrtp
-	cp include/*.hh /usr/local/include/kvzrtp
-	cp include/formats/*.hh /usr/local/include/kvzrtp/formats
-	cp include/mzrtp/*.hh /usr/local/include/kvzrtp/mzrtp
+	mkdir -p /usr/local/include/uvgrtp /usr/local/include/uvgrtp/formats /usr/local/include/uvgrtp/mzrtp
+	cp include/*.hh /usr/local/include/uvgrtp
+	cp include/formats/*.hh /usr/local/include/uvgrtp/formats
+	cp include/mzrtp/*.hh /usr/local/include/uvgrtp/mzrtp
 
 $(TARGET): $(OBJECTS)
 	$(AR) rcs $@ $(OBJECTS)

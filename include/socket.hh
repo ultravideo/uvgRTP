@@ -16,7 +16,7 @@
 #include "srtp.hh"
 #include "util.hh"
 
-namespace kvz_rtp {
+namespace uvg_rtp {
 
 #ifdef _WIN32
     typedef unsigned socklen_t;
@@ -133,7 +133,7 @@ namespace kvz_rtp {
             void set_sockaddr(sockaddr_in addr);
 
             /* TODO:  */
-            void set_srtp(kvz_rtp::srtp *srtp);
+            void set_srtp(uvg_rtp::srtp *srtp);
 
             /* Get the out address for the socket if it exists */
             sockaddr_in& get_out_address();
@@ -163,7 +163,7 @@ namespace kvz_rtp {
 
             socket_t socket_;
             sockaddr_in addr_;
-            kvz_rtp::srtp *srtp_;
+            uvg_rtp::srtp *srtp_;
 
 #ifdef _WIN32
             WSABUF buffers_[MAX_BUFFER_COUNT];

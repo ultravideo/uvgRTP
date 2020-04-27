@@ -1,5 +1,5 @@
-#include <kvzrtp/lib.hh>
-#include <kvzrtp/clock.hh>
+#include <uvgrtp/lib.hh>
+#include <uvgrtp/clock.hh>
 #include <cstring>
 #include<algorithm> 
 #include <easy/profiler.h>
@@ -12,7 +12,7 @@ struct thread_info {
 
 std::atomic<int> nready(0);
 
-void hook(void *arg, kvz_rtp::frame::rtp_frame *frame)
+void hook(void *arg, uvg_rtp::frame::rtp_frame *frame)
 {
     int tid = *(int *)arg;
 
@@ -33,7 +33,7 @@ void hook(void *arg, kvz_rtp::frame::rtp_frame *frame)
 
     thread_info[tid].bytes += frame->payload_len;
 
-    (void)kvz_rtp::frame::dealloc_frame(frame);
+    (void)uvg_rtp::frame::dealloc_frame(frame);
 
     if (++thread_info[tid].pkts == 602) {
         fprintf(stderr, "%zu %lu\n", thread_info[tid].bytes,
@@ -49,7 +49,7 @@ void hook(void *arg, kvz_rtp::frame::rtp_frame *frame)
 void thread_func(char *addr, int thread_num)
 {
     std::string addr_(addr);
-    kvz_rtp::context rtp_ctx;
+    uvg_rtp::context rtp_ctx;
 
     auto sess = rtp_ctx.create_session(addr_);
     auto hevc = sess->create_stream(

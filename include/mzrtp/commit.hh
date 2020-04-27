@@ -7,7 +7,7 @@
 #include "mzrtp/defines.hh"
 #include "mzrtp/receiver.hh"
 
-namespace kvz_rtp {
+namespace uvg_rtp {
 
     typedef struct zrtp_session zrtp_session_t;
 
@@ -39,11 +39,11 @@ namespace kvz_rtp {
                 rtp_error_t send_msg(socket_t& socket, sockaddr_in& addr);
 
                 /* TODO:  */
-                rtp_error_t parse_msg(kvz_rtp::zrtp_msg::receiver& receiver, zrtp_session_t& session);
+                rtp_error_t parse_msg(uvg_rtp::zrtp_msg::receiver& receiver, zrtp_session_t& session);
 
             private:
-                kvz_rtp::frame::zrtp_frame *frame_;
-                kvz_rtp::frame::zrtp_frame *rframe_;
+                uvg_rtp::frame::zrtp_frame *frame_;
+                uvg_rtp::frame::zrtp_frame *rframe_;
                 size_t len_, rlen_;
 
         };

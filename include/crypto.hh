@@ -11,7 +11,7 @@
 #include <cryptopp/sha.h>
 #include <cryptopp/crc.h>
 
-namespace kvz_rtp {
+namespace uvg_rtp {
 
     namespace crypto {
 

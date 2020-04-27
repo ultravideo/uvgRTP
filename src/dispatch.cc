@@ -3,26 +3,26 @@
 #include "socket.hh"
 
 #ifndef _WIN32
-kvz_rtp::dispatcher::dispatcher(kvz_rtp::socket *socket):
+uvg_rtp::dispatcher::dispatcher(uvg_rtp::socket *socket):
     socket_(socket)
 {
 }
 
-kvz_rtp::dispatcher::~dispatcher()
+uvg_rtp::dispatcher::~dispatcher()
 {
 }
 
-rtp_error_t kvz_rtp::dispatcher::start()
+rtp_error_t uvg_rtp::dispatcher::start()
 {
     if ((runner_ = new std::thread(dispatch_runner, this, socket_)) == nullptr)
         return RTP_MEMORY_ERROR;
 
     runner_->detach();
 
-    return kvz_rtp::runner::start();
+    return uvg_rtp::runner::start();
 }
 
-rtp_error_t kvz_rtp::dispatcher::stop()
+rtp_error_t uvg_rtp::dispatcher::stop()
 {
     if (tasks_.size() > 0)
         return RTP_NOT_READY;
@@ -30,7 +30,7 @@ rtp_error_t kvz_rtp::dispatcher::stop()
     /* notify dispatcher that we must stop now, lock the dispatcher mutex
      * and wait until it's unlocked by the dispatcher at which point it is safe
      * to return and release all memory */
-    (void)kvz_rtp::runner::stop();
+    (void)uvg_rtp::runner::stop();
     d_mtx_.lock();
     cv_.notify_one();
     while (d_mtx_.try_lock());
@@ -38,17 +38,17 @@ rtp_error_t kvz_rtp::dispatcher::stop()
     return RTP_OK;
 }
 
-std::condition_variable& kvz_rtp::dispatcher::get_cvar()
+std::condition_variable& uvg_rtp::dispatcher::get_cvar()
 {
     return cv_;
 }
 
-std::mutex& kvz_rtp::dispatcher::get_mutex()
+std::mutex& uvg_rtp::dispatcher::get_mutex()
 {
     return d_mtx_;
 }
 
-rtp_error_t kvz_rtp::dispatcher::trigger_send(kvz_rtp::transaction_t *t)
+rtp_error_t uvg_rtp::dispatcher::trigger_send(uvg_rtp::transaction_t *t)
 {
     std::lock_guard<std::mutex> lock(d_mtx_);
 
@@ -61,7 +61,7 @@ rtp_error_t kvz_rtp::dispatcher::trigger_send(kvz_rtp::transaction_t *t)
     return RTP_OK;
 }
 
-kvz_rtp::transaction_t *kvz_rtp::dispatcher::get_transaction()
+uvg_rtp::transaction_t *uvg_rtp::dispatcher::get_transaction()
 {
     std::lock_guard<std::mutex> lock(d_mtx_);
 
@@ -74,7 +74,7 @@ kvz_rtp::transaction_t *kvz_rtp::dispatcher::get_transaction()
     return elem;
 }
 
-void kvz_rtp::dispatcher::dispatch_runner(kvz_rtp::dispatcher *dispatcher, kvz_rtp::socket *socket)
+void uvg_rtp::dispatcher::dispatch_runner(uvg_rtp::dispatcher *dispatcher, uvg_rtp::socket *socket)
 {
     if (!dispatcher || !socket) {
         LOG_ERROR("System call dispatcher cannot continue, invalid value given!");
@@ -83,7 +83,7 @@ void kvz_rtp::dispatcher::dispatch_runner(kvz_rtp::dispatcher *dispatcher, kvz_r
 
     std::mutex m;
     std::unique_lock<std::mutex> lk(m);
-    kvz_rtp::transaction_t *t = nullptr;
+    uvg_rtp::transaction_t *t = nullptr;
 
     while (!dispatcher->active())
         ;

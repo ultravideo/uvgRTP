@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ "$#" -ne 3 ]]; then
-    echo "usage: ./find_best.sh <kvzrtp|ffmpeg|gstreamer> <send|recv> <path to folder with results>"
+    echo "usage: ./find_best.sh <uvgrtp|ffmpeg|gstreamer> <send|recv> <path to folder with results>"
     exit;
 fi
 

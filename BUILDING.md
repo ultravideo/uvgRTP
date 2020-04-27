@@ -1,20 +1,20 @@
 # Building
 
-There are several ways to build kvzRTP: GNU make, CMake, QtCreator or Visual Studio
+There are several ways to build uvgRTP: GNU make, CMake, QtCreator or Visual Studio
 
-NB: kvzRTP must be built with a 64-bit compiler!
+NB: uvgRTP must be built with a 64-bit compiler!
 
 ## Dependencies
 
-The only dependency vanilla kvzRTP has is pthreads
+The only dependency vanilla uvgRTP has is pthreads
 
 ## Visual Studio
 
-Open kvzRTP.sln in Visual Studio and build the library
+Open uvgRTP.sln in Visual Studio and build the library
 
 ## Qt Creator
 
-Open kvzrtp.pro in Qt Creator and build the library
+Open uvgrtp.pro in Qt Creator and build the library
 
 ## CMake + Ninja
 
@@ -33,10 +33,10 @@ sudo make install
 
 # Linking
 
-Building kvzRTP produces a static library and it should be linked to the application as such:
+Building uvgRTP produces a static library and it should be linked to the application as such:
 
 ```
--lkvzrtp -lpthread
+-luvgrtp -lpthread
 ```
 
 # Defines

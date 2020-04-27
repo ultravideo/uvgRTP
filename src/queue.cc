@@ -15,7 +15,7 @@
 
 #include "formats/hevc.hh"
 
-kvz_rtp::frame_queue::frame_queue(rtp_format_t fmt, rtp_ctx_conf_t& conf):
+uvg_rtp::frame_queue::frame_queue(rtp_format_t fmt, rtp_ctx_conf_t& conf):
     active_(nullptr), fmt_(fmt), dealloc_hook_(nullptr)
 {
     active_     = nullptr;
@@ -37,13 +37,13 @@ kvz_rtp::frame_queue::frame_queue(rtp_format_t fmt, rtp_ctx_conf_t& conf):
     free_.reserve(max_queued_);
 }
 
-kvz_rtp::frame_queue::frame_queue(rtp_format_t fmt, rtp_ctx_conf_t& conf, kvz_rtp::dispatcher *dispatcher):
+uvg_rtp::frame_queue::frame_queue(rtp_format_t fmt, rtp_ctx_conf_t& conf, uvg_rtp::dispatcher *dispatcher):
     frame_queue(fmt, conf)
 {
     dispatcher_ = dispatcher;
 }
 
-kvz_rtp::frame_queue::~frame_queue()
+uvg_rtp::frame_queue::~frame_queue()
 {
     for (auto& i : free_) {
         (void)destroy_transaction(i);
@@ -54,7 +54,7 @@ kvz_rtp::frame_queue::~frame_queue()
         (void)destroy_transaction(active_);
 }
 
-rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::sender *sender)
+rtp_error_t uvg_rtp::frame_queue::init_transaction(uvg_rtp::sender *sender)
 {
     std::lock_guard<std::mutex> lock(transaction_mtx_);
 
@@ -63,7 +63,7 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::sender *sender)
 
     if (free_.empty()) {
         active_      = new transaction_t;
-        active_->key = kvz_rtp::random::generate_32();
+        active_->key = uvg_rtp::random::generate_32();
 
 #ifdef __linux__
         active_->headers     = new struct mmsghdr[max_mcount_];
@@ -72,11 +72,11 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::sender *sender)
         active_->headers     = nullptr;
         active_->chunks      = nullptr;
 #endif
-        active_->rtp_headers = new kvz_rtp::frame::rtp_header[max_mcount_];
+        active_->rtp_headers = new uvg_rtp::frame::rtp_header[max_mcount_];
 
         switch (fmt_) {
             case RTP_FORMAT_HEVC:
-                active_->media_headers = new kvz_rtp::hevc::media_headers;
+                active_->media_headers = new uvg_rtp::hevc::media_headers;
                 break;
 
             default:
@@ -103,7 +103,7 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::sender *sender)
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::sender *sender, uint8_t *data)
+rtp_error_t uvg_rtp::frame_queue::init_transaction(uvg_rtp::sender *sender, uint8_t *data)
 {
     if (!sender || !data)
         return RTP_INVALID_VALUE;
@@ -119,7 +119,7 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::sender *sender, uint
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::sender *sender, std::unique_ptr<uint8_t[]> data)
+rtp_error_t uvg_rtp::frame_queue::init_transaction(uvg_rtp::sender *sender, std::unique_ptr<uint8_t[]> data)
 {
     if (!sender || !data)
         return RTP_INVALID_VALUE;
@@ -135,7 +135,7 @@ rtp_error_t kvz_rtp::frame_queue::init_transaction(kvz_rtp::sender *sender, std:
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::frame_queue::destroy_transaction(kvz_rtp::transaction_t *t)
+rtp_error_t uvg_rtp::frame_queue::destroy_transaction(uvg_rtp::transaction_t *t)
 {
     if (!t)
         return RTP_INVALID_VALUE;
@@ -150,7 +150,7 @@ rtp_error_t kvz_rtp::frame_queue::destroy_transaction(kvz_rtp::transaction_t *t)
 
     switch (fmt_) {
         case RTP_FORMAT_HEVC:
-            delete (kvz_rtp::hevc::media_headers *)t->media_headers;
+            delete (uvg_rtp::hevc::media_headers *)t->media_headers;
             t->media_headers = nullptr;
             break;
 
@@ -163,7 +163,7 @@ rtp_error_t kvz_rtp::frame_queue::destroy_transaction(kvz_rtp::transaction_t *t)
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
+rtp_error_t uvg_rtp::frame_queue::deinit_transaction(uint32_t key)
 {
     std::lock_guard<std::mutex> lock(transaction_mtx_);
 
@@ -196,7 +196,7 @@ rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
     if (free_.size() >= (size_t)max_queued_) {
         switch (fmt_) {
             case RTP_FORMAT_HEVC:
-                delete (kvz_rtp::hevc::media_headers *)transaction_it->second->media_headers;
+                delete (uvg_rtp::hevc::media_headers *)transaction_it->second->media_headers;
                 break;
 
             default:
@@ -215,18 +215,18 @@ rtp_error_t kvz_rtp::frame_queue::deinit_transaction(uint32_t key)
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::frame_queue::deinit_transaction()
+rtp_error_t uvg_rtp::frame_queue::deinit_transaction()
 {
     if (active_ == nullptr) {
         LOG_WARN("Trying to deinit transaction, no active transaction!");
         return RTP_INVALID_VALUE;
     }
 
-    return kvz_rtp::frame_queue::deinit_transaction(active_->key);
+    return uvg_rtp::frame_queue::deinit_transaction(active_->key);
 }
 
-rtp_error_t kvz_rtp::frame_queue::enqueue_message(
-    kvz_rtp::sender *sender,
+rtp_error_t uvg_rtp::frame_queue::enqueue_message(
+    uvg_rtp::sender *sender,
     uint8_t *message, size_t message_len
 )
 {
@@ -240,7 +240,7 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
     }
 
     /* update the RTP header at "rtpheaders_ptr_" */
-    kvz_rtp::frame_queue::update_rtp_header(sender);
+    uvg_rtp::frame_queue::update_rtp_header(sender);
 
     active_->chunks[active_->chunk_ptr + 0].iov_base = &active_->rtp_headers[active_->rtphdr_ptr];
     active_->chunks[active_->chunk_ptr + 0].iov_len  = sizeof(active_->rtp_headers[active_->rtphdr_ptr]);
@@ -268,8 +268,8 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::frame_queue::enqueue_message(
-    kvz_rtp::sender *sender,
+rtp_error_t uvg_rtp::frame_queue::enqueue_message(
+    uvg_rtp::sender *sender,
     std::vector<std::pair<size_t, uint8_t *>>& buffers
 )
 {
@@ -283,7 +283,7 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
     }
 
     /* update the RTP header at "rtpheaders_ptr_" */
-    kvz_rtp::frame_queue::update_rtp_header(sender);
+    uvg_rtp::frame_queue::update_rtp_header(sender);
 
     active_->chunks[active_->chunk_ptr].iov_len  = sizeof(active_->rtp_headers[active_->rtphdr_ptr]);
     active_->chunks[active_->chunk_ptr].iov_base = &active_->rtp_headers[active_->rtphdr_ptr];
@@ -313,7 +313,7 @@ rtp_error_t kvz_rtp::frame_queue::enqueue_message(
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::sender *sender)
+rtp_error_t uvg_rtp::frame_queue::flush_queue(uvg_rtp::sender *sender)
 {
     if (!sender || active_->hdr_ptr == 0 || active_->chunk_ptr == 0) {
         LOG_ERROR("Cannot send 0 messages or messages containing 0 chunks!");
@@ -347,23 +347,23 @@ rtp_error_t kvz_rtp::frame_queue::flush_queue(kvz_rtp::sender *sender)
 #endif
 }
 
-void kvz_rtp::frame_queue::update_rtp_header(kvz_rtp::sender *sender)
+void uvg_rtp::frame_queue::update_rtp_header(uvg_rtp::sender *sender)
 {
     memcpy(&active_->rtp_headers[active_->rtphdr_ptr], &active_->rtp_common, sizeof(active_->rtp_common));
     sender->get_rtp_ctx()->update_sequence((uint8_t *)(&active_->rtp_headers[active_->rtphdr_ptr]));
 }
 
-kvz_rtp::buff_vec& kvz_rtp::frame_queue::get_buffer_vector()
+uvg_rtp::buff_vec& uvg_rtp::frame_queue::get_buffer_vector()
 {
     return active_->buffers;
 }
 
-void *kvz_rtp::frame_queue::get_media_headers()
+void *uvg_rtp::frame_queue::get_media_headers()
 {
     return active_->media_headers;
 }
 
-uint8_t *kvz_rtp::frame_queue::get_active_dataptr()
+uint8_t *uvg_rtp::frame_queue::get_active_dataptr()
 {
     if (!active_)
         return nullptr;
@@ -373,7 +373,7 @@ uint8_t *kvz_rtp::frame_queue::get_active_dataptr()
     return active_->data_raw;
 }
 
-void kvz_rtp::frame_queue::install_dealloc_hook(void (*dealloc_hook)(void *))
+void uvg_rtp::frame_queue::install_dealloc_hook(void (*dealloc_hook)(void *))
 {
     if (!dealloc_hook)
         return;

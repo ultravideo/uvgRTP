@@ -6,20 +6,20 @@
 
 #include "formats/opus.hh"
 
-/* Validity of arguments is checked by kvz_rtp::sender. We just need to relay them there */
-rtp_error_t kvz_rtp::opus::push_frame(kvz_rtp::sender *sender, uint8_t *data, uint32_t data_len, int flags)
+/* Validity of arguments is checked by uvg_rtp::sender. We just need to relay them there */
+rtp_error_t uvg_rtp::opus::push_frame(uvg_rtp::sender *sender, uint8_t *data, uint32_t data_len, int flags)
 {
-    return kvz_rtp::generic::push_frame(sender, data, data_len, flags);
+    return uvg_rtp::generic::push_frame(sender, data, data_len, flags);
 
 #if 0
     rtp_error_t ret;
 
-    if ((ret = kvz_rtp::sender::write_rtp_header(conn, timestamp)) != RTP_OK) {
+    if ((ret = uvg_rtp::sender::write_rtp_header(conn, timestamp)) != RTP_OK) {
         LOG_ERROR("Failed to write RTP Header for Opus frame!");
         return ret;
     }
 
-    return kvz_rtp::sender::write_payload(conn, data, data_len);
+    return uvg_rtp::sender::write_payload(conn, data, data_len);
 
     uint8_t buffer[MAX_PACKET]  = { 0 };
     RTPOpus::OpusConfig *config = (RTPOpus::OpusConfig *)conn->getConfig();
@@ -43,7 +43,7 @@ rtp_error_t kvz_rtp::opus::push_frame(kvz_rtp::sender *sender, uint8_t *data, ui
 #endif
 }
 
-rtp_error_t kvz_rtp::opus::push_frame(kvz_rtp::sender *sender, std::unique_ptr<uint8_t[]> data, uint32_t data_len, int flags)
+rtp_error_t uvg_rtp::opus::push_frame(uvg_rtp::sender *sender, std::unique_ptr<uint8_t[]> data, uint32_t data_len, int flags)
 {
-    return kvz_rtp::generic::push_frame(sender, std::move(data), data_len, flags);
+    return uvg_rtp::generic::push_frame(sender, std::move(data), data_len, flags);
 }

@@ -23,7 +23,7 @@ sub open_file {
     return $fh;
 }
 
-sub parse_kvzrtp_send {
+sub parse_uvgrtp_send {
     my ($threads, $path) = @_;
 
     my ($t_usr, $t_sys, $t_cpu, $t_total, $t_time);
@@ -88,7 +88,7 @@ sub parse_kvzrtp_send {
     close $fh;
 }
 
-sub parse_kvzrtp_recv {
+sub parse_uvgrtp_recv {
     my ($threads, $path) = @_;
     my ($t_usr, $t_sys, $t_cpu, $t_total, $tb_avg, $tf_avg, $lines);
 
@@ -163,17 +163,17 @@ GetOptions(
 
 if ($help == 1) {
     print "usage: ./parse.pl \n"
-    . "\t--lib <kvzrtp|ffmpeg|gstreamer>\n"
+    . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
     . "\t--role <send|recv>\n"
     . "\t--path <path to log file>\n"
     . "\t--threads <# of threads used in the benchmark> (defaults to 1)\n" and exit;
 }
 
-if ($lib eq "kvzrtp") {
+if ($lib eq "uvgrtp") {
     if ($role eq "send") {
-        parse_kvzrtp_send($threads, $path);
+        parse_uvgrtp_send($threads, $path);
     } else {
-        parse_kvzrtp_recv($threads, $path);
+        parse_uvgrtp_recv($threads, $path);
     }
 } elsif ($lib eq "ffmpeg") {
     die "not implemented";

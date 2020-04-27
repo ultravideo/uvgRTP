@@ -5,4 +5,4 @@ CONFIG -= qt
 
 SOURCES += sending.cc
 INCLUDEPATH = $$PWD/../include
-LIBS += -L$$PWD/../lib -lkvzrtp -lws2_32 -lpthread
+LIBS += -L$$PWD/../lib -luvgrtp -lws2_32 -lpthread

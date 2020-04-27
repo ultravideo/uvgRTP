@@ -1,35 +1,35 @@
-#include <kvzrtp/lib.hh>
+#include <uvgrtp/lib.hh>
 #include <cstring>
 
-/* kvzRTP calls this hook when it receives an RTCP Sender Report
+/* uvgRTP calls this hook when it receives an RTCP Sender Report
  * In this example, this doesn't get called because there's only one sender
  *
  * NOTE: If application uses hook, it must also free the frame when it's done with i
- * Frame must deallocated using kvz_rtp::frame::dealloc_frame() function */
-void sender_hook(kvz_rtp::frame::rtcp_sender_frame *frame)
+ * Frame must deallocated using uvg_rtp::frame::dealloc_frame() function */
+void sender_hook(uvg_rtp::frame::rtcp_sender_frame *frame)
 {
     fprintf(stderr, "Got RTCP Sender Report\n");
 
-    (void)kvz_rtp::frame::dealloc_frame(frame);
+    (void)uvg_rtp::frame::dealloc_frame(frame);
 }
-/* kvzRTP calls this hook when it receives an RTCP Receiver Report
+/* uvgRTP calls this hook when it receives an RTCP Receiver Report
  *
  * NOTE: If application uses hook, it must also free the frame when it's done with i
- * Frame must deallocated using kvz_rtp::frame::dealloc_frame() function */
-void receiver_hook(kvz_rtp::frame::rtcp_receiver_frame *frame)
+ * Frame must deallocated using uvg_rtp::frame::dealloc_frame() function */
+void receiver_hook(uvg_rtp::frame::rtcp_receiver_frame *frame)
 {
     fprintf(stderr, "got RTCP Receiver Report\n");
 
-    (void)kvz_rtp::frame::dealloc_frame(frame);
+    (void)uvg_rtp::frame::dealloc_frame(frame);
 }
 
 int main(void)
 {
     /* See rtp/sending.cc for more information about session initialization */
-    kvz_rtp::context rtp_ctx;
+    uvg_rtp::context rtp_ctx;
 
-    kvz_rtp::writer *writer = rtp_ctx.create_writer("127.0.0.1", 8888, RTP_FORMAT_GENERIC);
-    kvz_rtp::reader *reader = rtp_ctx.create_reader("127.0.0.1", 8888, RTP_FORMAT_GENERIC);
+    uvg_rtp::writer *writer = rtp_ctx.create_writer("127.0.0.1", 8888, RTP_FORMAT_GENERIC);
+    uvg_rtp::reader *reader = rtp_ctx.create_reader("127.0.0.1", 8888, RTP_FORMAT_GENERIC);
 
     /* Send Sender Reports 127.0.0.1:8889 and receive RTCP Reports to 5566
      * Add hook for the Receiver Report */

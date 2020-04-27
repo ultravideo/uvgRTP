@@ -16,7 +16,7 @@
 #include "mzrtp/defines.hh"
 #include "mzrtp/receiver.hh"
 
-namespace kvz_rtp {
+namespace uvg_rtp {
 
     enum ROLE {
         INITIATOR,
@@ -44,13 +44,13 @@ namespace kvz_rtp {
     } zrtp_capab_t;
 
 	typedef struct zrtp_crypto_ctx {
-        kvz_rtp::crypto::hmac::sha256 *hmac_sha256;
-        kvz_rtp::crypto::sha256 *sha256;
-        kvz_rtp::crypto::dh *dh;
+        uvg_rtp::crypto::hmac::sha256 *hmac_sha256;
+        uvg_rtp::crypto::sha256 *sha256;
+        uvg_rtp::crypto::dh *dh;
     } zrtp_crypto_ctx_t;
 
     typedef struct zrtp_secrets {
-        /* Retained (for kvzRTP, preshared mode is not supported so we're
+        /* Retained (for uvgRTP, preshared mode is not supported so we're
          * going to generate just some random values for these) */
         uint8_t rs1[32];
         uint8_t rs2[32];
@@ -59,7 +59,7 @@ namespace kvz_rtp {
 
         /* Shared secrets
          *
-         * Because kvzRTP supports only DH mode,
+         * Because uvgRTP supports only DH mode,
          * other shared secrets (s1 - s3) are null */
         uint8_t s0[32];
         uint8_t *s1;
@@ -68,9 +68,9 @@ namespace kvz_rtp {
     } zrtp_secrets_t;
 
     typedef struct zrtp_messages {
-        std::pair<size_t, struct kvz_rtp::zrtp_msg::zrtp_commit  *> commit;
-        std::pair<size_t, struct kvz_rtp::zrtp_msg::zrtp_hello   *> hello;
-        std::pair<size_t, struct kvz_rtp::zrtp_msg::zrtp_dh      *> dh;
+        std::pair<size_t, struct uvg_rtp::zrtp_msg::zrtp_commit  *> commit;
+        std::pair<size_t, struct uvg_rtp::zrtp_msg::zrtp_hello   *> hello;
+        std::pair<size_t, struct uvg_rtp::zrtp_msg::zrtp_dh      *> dh;
     } zrtp_messages_t;
 
     /* Various ZRTP-related keys */
@@ -283,7 +283,7 @@ namespace kvz_rtp {
             zrtp_capab_t rcapab_;
 
             /* ZRTP packet receiver */
-            kvz_rtp::zrtp_msg::receiver receiver_;
+            uvg_rtp::zrtp_msg::receiver receiver_;
 
             zrtp_crypto_ctx_t cctx_;
             zrtp_session_t session_;

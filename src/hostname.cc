@@ -13,7 +13,7 @@
 
 #define NAME_MAXLEN 512
 
-std::string kvz_rtp::hostname::get_hostname()
+std::string uvg_rtp::hostname::get_hostname()
 {
 #ifdef _WIN32
     char buffer[NAME_MAXLEN];
@@ -36,7 +36,7 @@ std::string kvz_rtp::hostname::get_hostname()
 #endif
 }
 
-std::string kvz_rtp::hostname::get_username()
+std::string uvg_rtp::hostname::get_username()
 {
 #ifdef _WIN32
     char buffer[NAME_MAXLEN];

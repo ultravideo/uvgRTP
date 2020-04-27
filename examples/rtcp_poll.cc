@@ -1,15 +1,15 @@
-#include <kvzrtp/lib.hh>
+#include <uvgrtp/lib.hh>
 #include <cstring>
 
 /* The poller is run in a separate thread to prevent blocking of main thread
  * Polling is not the advised way of handling RTCP packet retrival
  *
  * See rtcp/rtcp_hook.cc */
-void rtcp_thread(kvz_rtp::writer *writer)
+void rtcp_thread(uvg_rtp::writer *writer)
 {
     fprintf(stderr, "Staring RTCP Receiver Report poller...\n");
 
-    kvz_rtp::rtcp *rtcp = writer->get_rtcp();
+    uvg_rtp::rtcp *rtcp = writer->get_rtcp();
 
     while (true) {
         /* Participants must be polled on
@@ -20,10 +20,10 @@ void rtcp_thread(kvz_rtp::writer *writer)
             auto report_block = rtcp->get_receiver_packet(i);
 
             /* If a Receiver Report is received, it must be deallocated manually by
-             * calling kvz_rtp::frame::dealloc_frame() */
+             * calling uvg_rtp::frame::dealloc_frame() */
             if (report_block) {
                 fprintf(stderr, "got receiver packet\n");
-                (void)kvz_rtp::frame::dealloc_frame(report_block);
+                (void)uvg_rtp::frame::dealloc_frame(report_block);
             }
         }
 
@@ -34,10 +34,10 @@ void rtcp_thread(kvz_rtp::writer *writer)
 int main(void)
 {
     /* See rtp/sending.cc for information about session initialization */
-    kvz_rtp::context rtp_ctx;
+    uvg_rtp::context rtp_ctx;
 
-    kvz_rtp::writer *writer = rtp_ctx.create_writer("127.0.0.1", 8888, RTP_FORMAT_GENERIC);
-    kvz_rtp::reader *reader = rtp_ctx.create_reader("127.0.0.1", 8888, RTP_FORMAT_GENERIC);
+    uvg_rtp::writer *writer = rtp_ctx.create_writer("127.0.0.1", 8888, RTP_FORMAT_GENERIC);
+    uvg_rtp::reader *reader = rtp_ctx.create_reader("127.0.0.1", 8888, RTP_FORMAT_GENERIC);
 
     /* Send Sender Reports 127.0.0.1:8889 and receive RTCP Reports to 5566 */
     (void)writer->create_rtcp("127.0.0.1", 8889, 5566);

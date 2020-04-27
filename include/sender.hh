@@ -5,14 +5,14 @@
 #include "rtp.hh"
 #include "socket.hh"
 
-namespace kvz_rtp {
+namespace uvg_rtp {
 
     class frame_queue;
     class dispatcher;
 
     class sender {
         public:
-            sender(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt, kvz_rtp::rtp *rtp);
+            sender(uvg_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt, uvg_rtp::rtp *rtp);
             ~sender();
 
             /* Initialize the RTP sender by adjusting UDP buffer size,
@@ -34,27 +34,27 @@ namespace kvz_rtp {
              * Return RTP_OK success
              * Return RTP_INVALID_VALUE if one of the parameters are invalid
              * Return RTP_MEMORY_ERROR  if the data chunk is too large to be processed
-             * Return RTP_SEND_ERROR    if kvzRTP failed to send the data to remote
+             * Return RTP_SEND_ERROR    if uvgRTP failed to send the data to remote
              * Return RTP_GENERIC_ERROR for any other error condition */
             rtp_error_t push_frame(uint8_t *data, size_t data_len, int flags);
 
             /* Same as push_frame() defined above but no callback nor RTP_COPY must be provided
              * One must call this like: push_frame(std::move(data), ...) to give ownership of the
-             * memory to kvzRTP */
+             * memory to uvgRTP */
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags);
 
             /* Get pointer to the frame queue */
-            kvz_rtp::frame_queue *get_frame_queue();
+            uvg_rtp::frame_queue *get_frame_queue();
 
             /* Install deallocation hook to frame queue */
             void install_dealloc_hook(void (*dealloc_hook)(void *));
 
             /* Get reference to the underlying socket object */
-            kvz_rtp::socket& get_socket();
+            uvg_rtp::socket& get_socket();
 
             /* Get pointer to RTP context where all clocking information,
              * SSRC, sequence number etc. are stored */
-            kvz_rtp::rtp *get_rtp_ctx();
+            uvg_rtp::rtp *get_rtp_ctx();
 
             /* Get reference to the media stream's config structure */
             rtp_ctx_conf& get_conf();
@@ -63,14 +63,14 @@ namespace kvz_rtp {
             rtp_error_t __push_frame(uint8_t *data, size_t data_len, int flags);
             rtp_error_t __push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags);
 
-            kvz_rtp::socket socket_;
-            kvz_rtp::rtp *rtp_;
+            uvg_rtp::socket socket_;
+            uvg_rtp::rtp *rtp_;
             rtp_ctx_conf conf_;
             rtp_format_t fmt_;
 
             sockaddr_in addr_out_;
 
-            kvz_rtp::frame_queue *fqueue_;
-            kvz_rtp::dispatcher  *dispatcher_;
+            uvg_rtp::frame_queue *fqueue_;
+            uvg_rtp::dispatcher  *dispatcher_;
     };
 };

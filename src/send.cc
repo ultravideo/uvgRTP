@@ -17,8 +17,8 @@
 /* #include "util.hh" */
 /* #include "sender.hh" */
 
-rtp_error_t kvz_rtp::send::send_frame(
-    kvz_rtp::sender *sender,
+rtp_error_t uvg_rtp::send::send_frame(
+    uvg_rtp::sender *sender,
     uint8_t *frame, size_t frame_len
 )
 {
@@ -31,8 +31,8 @@ rtp_error_t kvz_rtp::send::send_frame(
     return sender->get_socket().sendto(frame, frame_len, 0, NULL);
 }
 
-rtp_error_t kvz_rtp::send::send_frame(
-    kvz_rtp::sender *sender,
+rtp_error_t uvg_rtp::send::send_frame(
+    uvg_rtp::sender *sender,
     uint8_t *header,  size_t header_len,
     uint8_t *payload, size_t payload_len
 )
@@ -51,8 +51,8 @@ rtp_error_t kvz_rtp::send::send_frame(
     return sender->get_socket().sendto(buffers, 0);
 }
 
-rtp_error_t kvz_rtp::send::send_frame(
-    kvz_rtp::sender *sender,
+rtp_error_t uvg_rtp::send::send_frame(
+    uvg_rtp::sender *sender,
     std::vector<std::pair<size_t, uint8_t *>>& buffers
 )
 {

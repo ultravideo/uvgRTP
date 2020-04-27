@@ -1,7 +1,7 @@
 #include "debug.hh"
 #include "session.hh"
 
-kvz_rtp::session::session(std::string addr):
+uvg_rtp::session::session(std::string addr):
 #ifdef __RTP_CRYPTO__
     zrtp_(nullptr),
 #endif
@@ -10,13 +10,13 @@ kvz_rtp::session::session(std::string addr):
 {
 }
 
-kvz_rtp::session::session(std::string remote_addr, std::string local_addr):
+uvg_rtp::session::session(std::string remote_addr, std::string local_addr):
     session(remote_addr)
 {
     laddr_ = local_addr;
 }
 
-kvz_rtp::session::~session()
+uvg_rtp::session::~session()
 {
     for (auto&i : streams_) {
         (void)destroy_stream(i.second);
@@ -28,14 +28,14 @@ kvz_rtp::session::~session()
 #endif
 }
 
-kvz_rtp::media_stream *kvz_rtp::session::create_stream(int r_port, int s_port, rtp_format_t fmt, int flags)
+uvg_rtp::media_stream *uvg_rtp::session::create_stream(int r_port, int s_port, rtp_format_t fmt, int flags)
 {
-    kvz_rtp::media_stream *stream = nullptr;
+    uvg_rtp::media_stream *stream = nullptr;
 
     if (laddr_ == "")
-        stream = new kvz_rtp::media_stream(addr_, r_port, s_port, fmt, flags);
+        stream = new uvg_rtp::media_stream(addr_, r_port, s_port, fmt, flags);
     else
-        stream = new kvz_rtp::media_stream(addr_, laddr_, r_port, s_port, fmt, flags);
+        stream = new uvg_rtp::media_stream(addr_, laddr_, r_port, s_port, fmt, flags);
 
     if (!stream) {
         LOG_ERROR("Failed to create media stream for %s:%d -> %s:%d",
@@ -48,7 +48,7 @@ kvz_rtp::media_stream *kvz_rtp::session::create_stream(int r_port, int s_port, r
     int zrtp_flags = (RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP);
 
     if ((flags & zrtp_flags) == zrtp_flags) {
-        if ((zrtp_ = new kvz_rtp::zrtp()) == nullptr) {
+        if ((zrtp_ = new uvg_rtp::zrtp()) == nullptr) {
             rtp_errno = RTP_MEMORY_ERROR;
             return nullptr;
         }
@@ -73,7 +73,7 @@ kvz_rtp::media_stream *kvz_rtp::session::create_stream(int r_port, int s_port, r
     return stream;
 }
 
-rtp_error_t kvz_rtp::session::destroy_stream(kvz_rtp::media_stream *stream)
+rtp_error_t uvg_rtp::session::destroy_stream(uvg_rtp::media_stream *stream)
 {
     if (!stream)
         return RTP_INVALID_VALUE;
@@ -89,7 +89,7 @@ rtp_error_t kvz_rtp::session::destroy_stream(kvz_rtp::media_stream *stream)
     return RTP_OK;
 }
 
-std::string& kvz_rtp::session::get_key()
+std::string& uvg_rtp::session::get_key()
 {
     return addr_;
 }

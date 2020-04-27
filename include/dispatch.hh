@@ -9,7 +9,7 @@
 #include "runner.hh"
 #include "util.hh"
 
-namespace kvz_rtp {
+namespace uvg_rtp {
 
     /* System call dispatcher is an optimization technique which aims to minimize
      * the delay application experiences when calling push_frame().
@@ -33,12 +33,12 @@ namespace kvz_rtp {
 
     class dispatcher : public runner {
         public:
-            dispatcher(kvz_rtp::socket *socket);
+            dispatcher(uvg_rtp::socket *socket);
             ~dispatcher();
 
             /* Add new transaction to dispatcher's task queue
              * The task queue is emptied in FIFO style */
-            rtp_error_t trigger_send(kvz_rtp::transaction_t *transaction);
+            rtp_error_t trigger_send(uvg_rtp::transaction_t *transaction);
 
             /* Create new thread object and start the dispatcher thread
              *
@@ -69,16 +69,16 @@ namespace kvz_rtp {
 
             /* Get next transaction from task queue
              * Return nullptr if the task queue is empty */
-            kvz_rtp::transaction_t *get_transaction();
+            uvg_rtp::transaction_t *get_transaction();
 
         private:
-            static void dispatch_runner(kvz_rtp::dispatcher *dispatcher, kvz_rtp::socket *socket);
+            static void dispatch_runner(uvg_rtp::dispatcher *dispatcher, uvg_rtp::socket *socket);
 
             std::condition_variable cv_;
 
             std::mutex d_mtx_;
-            std::queue<kvz_rtp::transaction_t *> tasks_;
+            std::queue<uvg_rtp::transaction_t *> tasks_;
 
-            kvz_rtp::socket *socket_;
+            uvg_rtp::socket *socket_;
     };
 };

@@ -1,16 +1,16 @@
-.PHONY: all clean kvzrtp ffmpeg gstreamer
+.PHONY: all clean uvgrtp ffmpeg gstreamer
 
 CXX = g++
 CXXFLAGS = -Wall -Wextra -O2 -std=c++11 -g
 
-kvzrtp_receiver:
-	$(CXX) $(CXXFLAGS) -o kvzrtp/receiver kvzrtp/receiver.cc util/util.cc -lkvzrtp -lkvazaar -lpthread -lcryptopp
+uvgrtp_receiver:
+	$(CXX) $(CXXFLAGS) -o uvgrtp/receiver uvgrtp/receiver.cc util/util.cc -luvgrtp -lkvazaar -lpthread -lcryptopp
 
-kvzrtp_sender:
-	$(CXX) $(CXXFLAGS) -o kvzrtp/sender kvzrtp/sender.cc util/util.cc -lkvzrtp -lkvazaar -lpthread -lcryptopp
+uvgrtp_sender:
+	$(CXX) $(CXXFLAGS) -o uvgrtp/sender uvgrtp/sender.cc util/util.cc -luvgrtp -lkvazaar -lpthread -lcryptopp
 
-kvzrtp_latency:
-	$(CXX) $(CXXFLAGS) -o kvzrtp/latency kvzrtp/latency.cc util/util.cc -lkvzrtp -lkvazaar -lpthread
+uvgrtp_latency:
+	$(CXX) $(CXXFLAGS) -o uvgrtp/latency uvgrtp/latency.cc util/util.cc -luvgrtp -lkvazaar -lpthread
 
 ffmpeg_sender:
 	$(CXX) $(CXXFLAGS) -o ffmpeg/sender ffmpeg/sender.cc util/util.cc -lkvazaar `pkg-config --libs libavformat` \
@@ -21,7 +21,7 @@ ffmpeg_receiver:
 		-Wno-unused -Wno-deprecated-declarations -Wno-unused-result
 
 clean:
-	rm -f kvzrtp/receiver kvzrtp/sender ffmpeg/sender ffmpeg/receiver
+	rm -f uvgrtp/receiver uvgrtp/sender ffmpeg/sender ffmpeg/receiver
 
 # jrtp:
 # 	$(CXX) $(CXXFLAGS) -o main_jrtp jrtp.cc ../util/util.cc -lkvazaar -ljrtp -lpthread
@@ -48,4 +48,4 @@ clean:
 # 	$(CXX) $(CXXFLAGS) -o main_latency_ffmpeg latency_ffmpeg.cc ../util/util.cc -lkvazaar `pkg-config --libs libavformat`
 
 # clean:
-# 	rm -f main_kvzrtp main_jrtp main_ccrtp main_live555 main_ortp main_ffmpeg main_latency_kvzrtp main_latency_ffmpeg main_gstreamer
+# 	rm -f main_uvgrtp main_jrtp main_ccrtp main_live555 main_ortp main_ffmpeg main_latency_uvgrtp main_latency_ffmpeg main_gstreamer

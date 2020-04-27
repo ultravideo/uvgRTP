@@ -10,31 +10,31 @@
 #include "random.hh"
 #include "rtp.hh"
 
-kvz_rtp::rtp::rtp(rtp_format_t fmt):
+uvg_rtp::rtp::rtp(rtp_format_t fmt):
     wc_start_(0), sent_pkts_(0)
 {
-    seq_  = kvz_rtp::random::generate_32() & 0xffff;
-    ts_   = kvz_rtp::random::generate_32();
-    ssrc_ = kvz_rtp::random::generate_32();
+    seq_  = uvg_rtp::random::generate_32() & 0xffff;
+    ts_   = uvg_rtp::random::generate_32();
+    ssrc_ = uvg_rtp::random::generate_32();
 
     set_payload(fmt);
 }
 
-kvz_rtp::rtp::~rtp()
+uvg_rtp::rtp::~rtp()
 {
 }
 
-uint32_t kvz_rtp::rtp::get_ssrc()
+uint32_t uvg_rtp::rtp::get_ssrc()
 {
     return ssrc_;
 }
 
-uint16_t kvz_rtp::rtp::get_sequence()
+uint16_t uvg_rtp::rtp::get_sequence()
 {
     return seq_;
 }
 
-void kvz_rtp::rtp::set_payload(rtp_format_t fmt)
+void uvg_rtp::rtp::set_payload(rtp_format_t fmt)
 {
     fmt_ = fmt;
 
@@ -54,17 +54,17 @@ void kvz_rtp::rtp::set_payload(rtp_format_t fmt)
     }
 }
 
-void kvz_rtp::rtp::inc_sequence()
+void uvg_rtp::rtp::inc_sequence()
 {
     seq_++;
 }
 
-void kvz_rtp::rtp::inc_sent_pkts()
+void uvg_rtp::rtp::inc_sent_pkts()
 {
     sent_pkts_++;
 }
 
-void kvz_rtp::rtp::update_sequence(uint8_t *buffer)
+void uvg_rtp::rtp::update_sequence(uint8_t *buffer)
 {
     if (!buffer)
         return;
@@ -72,7 +72,7 @@ void kvz_rtp::rtp::update_sequence(uint8_t *buffer)
     *(uint16_t *)&buffer[2] = htons(seq_);
 }
 
-void kvz_rtp::rtp::fill_header(uint8_t *buffer)
+void uvg_rtp::rtp::fill_header(uint8_t *buffer)
 {
     if (!buffer)
         return;
@@ -80,8 +80,8 @@ void kvz_rtp::rtp::fill_header(uint8_t *buffer)
     /* This is the first RTP message, get wall clock reading (t = 0)
      * and generate random RTP timestamp for this reading */
     if (wc_start_ == 0) {
-        ts_        = kvz_rtp::random::generate_32();
-        wc_start_2 = kvz_rtp::clock::hrc::now();
+        ts_        = uvg_rtp::random::generate_32();
+        wc_start_2 = uvg_rtp::clock::hrc::now();
         wc_start_  = 1;
     }
 
@@ -91,7 +91,7 @@ void kvz_rtp::rtp::fill_header(uint8_t *buffer)
     *(uint16_t *)&buffer[2] = htons(seq_);
     *(uint32_t *)&buffer[4] = htonl(
         ts_
-        + kvz_rtp::clock::hrc::diff_now(wc_start_2)
+        + uvg_rtp::clock::hrc::diff_now(wc_start_2)
         * clock_rate_
         / 1000
     );

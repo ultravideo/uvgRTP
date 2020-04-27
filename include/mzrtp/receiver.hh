@@ -1,7 +1,7 @@
 #ifdef __RTP_CRYPTO__
 #pragma once
 
-namespace kvz_rtp {
+namespace uvg_rtp {
     namespace zrtp_msg {
 
         class receiver {

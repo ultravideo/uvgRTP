@@ -146,7 +146,7 @@ int inet_pton6(const char *src, struct in_addr *dst)
     return 1;
 }
 
-int kvz_rtp::mingw::inet_pton(int af, const char *src, struct in_addr *dst)
+int uvg_rtp::mingw::inet_pton(int af, const char *src, struct in_addr *dst)
 {
     switch (af) {
         case AF_INET:

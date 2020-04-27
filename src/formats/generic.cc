@@ -22,11 +22,11 @@
 /* The generic frames are fragmented using the marker bit of the RTP header.
  * First and last fragment of a larger frame have marker bits set and middle fragments don't.
  * All fragments have the same timestamp so the receiver knows which fragments are part of a larger frame. */
-rtp_error_t kvz_rtp::generic::push_frame(kvz_rtp::sender *sender, uint8_t *data, size_t data_len, int flags)
+rtp_error_t uvg_rtp::generic::push_frame(uvg_rtp::sender *sender, uint8_t *data, size_t data_len, int flags)
 {
     (void)flags;
 
-    uint8_t header[kvz_rtp::frame::HEADER_SIZE_RTP];
+    uint8_t header[uvg_rtp::frame::HEADER_SIZE_RTP];
     sender->get_rtp_ctx()->fill_header(header);
 
     if (data_len > MAX_PAYLOAD) {
@@ -40,7 +40,7 @@ rtp_error_t kvz_rtp::generic::push_frame(kvz_rtp::sender *sender, uint8_t *data,
             header[1] |= (1 << 7);
 
             while (data_left > MAX_PAYLOAD) {
-                ret = kvz_rtp::send::send_frame(sender, header, sizeof(header), data + data_pos, MAX_PAYLOAD);
+                ret = uvg_rtp::send::send_frame(sender, header, sizeof(header), data + data_pos, MAX_PAYLOAD);
 
                 if (ret != RTP_OK)
                     return ret;
@@ -56,36 +56,36 @@ rtp_error_t kvz_rtp::generic::push_frame(kvz_rtp::sender *sender, uint8_t *data,
 
             /* set marker bit for the last frame */
             header[1] |= (1 << 7);
-            return kvz_rtp::send::send_frame(sender, header, sizeof(header), data + data_pos, data_left);
+            return uvg_rtp::send::send_frame(sender, header, sizeof(header), data + data_pos, data_left);
 
         } else {
             LOG_WARN("packet is larger (%zu bytes) than MAX_PAYLOAD (%u bytes)", data_len, MAX_PAYLOAD);
         }
     }
 
-    return kvz_rtp::send::send_frame(sender, header, sizeof(header), data, data_len);
+    return uvg_rtp::send::send_frame(sender, header, sizeof(header), data, data_len);
 }
 
-rtp_error_t kvz_rtp::generic::push_frame(kvz_rtp::sender *sender, std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
+rtp_error_t uvg_rtp::generic::push_frame(uvg_rtp::sender *sender, std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
 {
-    return kvz_rtp::generic::push_frame(sender, data.get(), data_len, flags);
+    return uvg_rtp::generic::push_frame(sender, data.get(), data_len, flags);
 }
 
-static rtp_error_t __fragment_receiver(kvz_rtp::receiver *receiver)
+static rtp_error_t __fragment_receiver(uvg_rtp::receiver *receiver)
 {
     LOG_INFO("use fragment receiver");
 
     int nread = 0;
     sockaddr_in sender_addr;
     rtp_error_t ret = RTP_OK;
-    kvz_rtp::socket socket = receiver->get_socket();
-    kvz_rtp::frame::rtp_frame *frame;
+    uvg_rtp::socket socket = receiver->get_socket();
+    uvg_rtp::frame::rtp_frame *frame;
 
     struct frame_info {
         uint32_t s_seq;
         uint32_t e_seq;
         size_t npkts;
-        std::map<uint16_t, kvz_rtp::frame::rtp_frame *> fragments;
+        std::map<uint16_t, uvg_rtp::frame::rtp_frame *> fragments;
     };
     std::unordered_map<uint32_t, frame_info> frames;
 
@@ -160,7 +160,7 @@ static rtp_error_t __fragment_receiver(kvz_rtp::receiver *receiver)
                         recv = frames[ts].e_seq - frames[ts].s_seq + 1;
 
                     if (recv == frames[ts].npkts) {
-                        auto retframe = kvz_rtp::frame::alloc_rtp_frame(recv * MAX_PAYLOAD);
+                        auto retframe = uvg_rtp::frame::alloc_rtp_frame(recv * MAX_PAYLOAD);
                         size_t ptr    = 0;
 
                         std::memcpy(&retframe->header, &frame->header, sizeof(frame->header));
@@ -172,7 +172,7 @@ static rtp_error_t __fragment_receiver(kvz_rtp::receiver *receiver)
                                 frag.second->payload_len
                             );
                             ptr += frag.second->payload_len;
-                            (void)kvz_rtp::frame::dealloc_frame(frag.second);
+                            (void)uvg_rtp::frame::dealloc_frame(frag.second);
                         }
 
                         frames.erase(ts);
@@ -196,7 +196,7 @@ static rtp_error_t __fragment_receiver(kvz_rtp::receiver *receiver)
     return ret;
 }
 
-rtp_error_t kvz_rtp::generic::frame_receiver(kvz_rtp::receiver *receiver)
+rtp_error_t uvg_rtp::generic::frame_receiver(uvg_rtp::receiver *receiver)
 {
     /* If user uses fragmented generic frames, start the fragment receiver instead */
     if (receiver->get_conf().flags & RCE_FRAGMENT_GENERIC)
@@ -205,8 +205,8 @@ rtp_error_t kvz_rtp::generic::frame_receiver(kvz_rtp::receiver *receiver)
     int nread = 0;
     sockaddr_in sender_addr;
     rtp_error_t ret = RTP_OK;
-    kvz_rtp::socket socket = receiver->get_socket();
-    kvz_rtp::frame::rtp_frame *frame;
+    uvg_rtp::socket socket = receiver->get_socket();
+    uvg_rtp::frame::rtp_frame *frame;
 
     fd_set read_fds;
     struct timeval t_val;

@@ -1,10 +1,10 @@
-# kvzRTP
+# uvgRTP
 
-kvzRTP is an RTP library written in C++ with a focus on usability and efficiency. It features a very intuitive and easy-to-use API, built-in support for HEVC and Opus, SRTP and ZRTP. In ideal conditions it is able to receive a goodput of 600 MB/s for HEVC stream.
+uvgRTP is an RTP library written in C++ with a focus on usability and efficiency. It features a very intuitive and easy-to-use API, built-in support for HEVC and Opus, SRTP and ZRTP. In ideal conditions it is able to receive a goodput of 600 MB/s for HEVC stream.
 
-kvzRTP is licensed under the permissive BSD 2-Clause License
+uvgRTP is licensed under the permissive BSD 2-Clause License
 
-For SRTP/ZRTP support, kvzRTP uses [Crypto++](https://www.cryptopp.com/)
+For SRTP/ZRTP support, uvgRTP uses [Crypto++](https://www.cryptopp.com/)
 
 Supported specifications:
    * [RFC 3350: RTP: A Transport Protocol for Real-Time Applications](https://tools.ietf.org/html/rfc3550)
@@ -17,8 +17,8 @@ Based on Marko Viitanen's [fRTPlib](https://github.com/fador/fRTPlib)
 
 ## Building and linking
 
-See [BUILDING.md](BUILDING.md) for instructions on how to build and use kvzRTP
+See [BUILDING.md](BUILDING.md) for instructions on how to build and use uvgRTP
 
 ## Examples
 
-See [examples](examples/) directory for different kvzRTP examples
+See [examples](examples/) directory for different uvgRTP examples

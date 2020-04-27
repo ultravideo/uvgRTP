@@ -9,9 +9,9 @@
 
 thread_local rtp_error_t rtp_errno;
 
-kvz_rtp::context::context()
+uvg_rtp::context::context()
 {
-    cname_  = kvz_rtp::context::generate_cname();
+    cname_  = uvg_rtp::context::generate_cname();
 
 #ifdef _WIN32
     WSADATA wsd;
@@ -22,33 +22,33 @@ kvz_rtp::context::context()
     }
 #endif
 
-    kvz_rtp::random::init();
+    uvg_rtp::random::init();
 }
 
-kvz_rtp::context::~context()
+uvg_rtp::context::~context()
 {
 #ifdef _WIN32
     WSACleanup();
 #endif
 }
 
-kvz_rtp::session *kvz_rtp::context::create_session(std::string address)
+uvg_rtp::session *uvg_rtp::context::create_session(std::string address)
 {
     if (address == "")
         return nullptr;
 
-    return new kvz_rtp::session(address);
+    return new uvg_rtp::session(address);
 }
 
-kvz_rtp::session *kvz_rtp::context::create_session(std::string remote_addr, std::string local_addr)
+uvg_rtp::session *uvg_rtp::context::create_session(std::string remote_addr, std::string local_addr)
 {
     if (remote_addr == "" || local_addr == "")
         return nullptr;
 
-    return new kvz_rtp::session(remote_addr, local_addr);
+    return new uvg_rtp::session(remote_addr, local_addr);
 }
 
-rtp_error_t kvz_rtp::context::destroy_session(kvz_rtp::session *session)
+rtp_error_t uvg_rtp::context::destroy_session(uvg_rtp::session *session)
 {
     if (!session)
         return RTP_INVALID_VALUE;
@@ -58,10 +58,10 @@ rtp_error_t kvz_rtp::context::destroy_session(kvz_rtp::session *session)
     return RTP_OK;
 }
 
-std::string kvz_rtp::context::generate_cname()
+std::string uvg_rtp::context::generate_cname()
 {
-    std::string host = kvz_rtp::hostname::get_hostname();
-    std::string user = kvz_rtp::hostname::get_username();
+    std::string host = uvg_rtp::hostname::get_hostname();
+    std::string user = uvg_rtp::hostname::get_username();
 
     if (host == "")
         host = generate_string(10);
@@ -72,7 +72,7 @@ std::string kvz_rtp::context::generate_cname()
     return host + "@" + user;
 }
 
-std::string& kvz_rtp::context::get_cname()
+std::string& uvg_rtp::context::get_cname()
 {
     return cname_;
 }

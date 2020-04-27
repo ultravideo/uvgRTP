@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace kvz_rtp {
+namespace uvg_rtp {
     namespace hostname {
         std::string get_hostname();
         std::string get_username();

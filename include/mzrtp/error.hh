@@ -6,7 +6,7 @@
 #include "mzrtp/defines.hh"
 #include "mzrtp/receiver.hh"
 
-namespace kvz_rtp {
+namespace uvg_rtp {
 
     namespace zrtp_msg {
 
@@ -23,10 +23,10 @@ namespace kvz_rtp {
 
                 rtp_error_t send_msg(socket_t& socket, sockaddr_in& addr);
 
-                rtp_error_t parse_msg(kvz_rtp::zrtp_msg::receiver& receiver);
+                rtp_error_t parse_msg(uvg_rtp::zrtp_msg::receiver& receiver);
 
             private:
-                kvz_rtp::frame::zrtp_frame *frame_;
+                uvg_rtp::frame::zrtp_frame *frame_;
                 size_t len_;
         };
 

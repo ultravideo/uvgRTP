@@ -11,7 +11,7 @@
 
 #define RTP_HEADER_VERSION  2
 
-kvz_rtp::receiver::receiver(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt, kvz_rtp::rtp *rtp):
+uvg_rtp::receiver::receiver(uvg_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt, uvg_rtp::rtp *rtp):
     socket_(socket),
     rtp_(rtp),
     conf_(conf),
@@ -20,12 +20,12 @@ kvz_rtp::receiver::receiver(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_for
 {
 }
 
-kvz_rtp::receiver::~receiver()
+uvg_rtp::receiver::~receiver()
 {
     delete[] recv_buf_;
 }
 
-rtp_error_t kvz_rtp::receiver::stop()
+rtp_error_t uvg_rtp::receiver::stop()
 {
     r_mtx_.lock();
     active_ = false;
@@ -36,7 +36,7 @@ rtp_error_t kvz_rtp::receiver::stop()
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::receiver::start()
+rtp_error_t uvg_rtp::receiver::start()
 {
     rtp_error_t ret  = RTP_OK;
     ssize_t buf_size = conf_.ctx_values[RCC_UDP_BUF_SIZE];
@@ -58,11 +58,11 @@ rtp_error_t kvz_rtp::receiver::start()
     switch (fmt_) {
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
-            runner_ = new std::thread(kvz_rtp::generic::frame_receiver, this);
+            runner_ = new std::thread(uvg_rtp::generic::frame_receiver, this);
             break;
 
         case RTP_FORMAT_HEVC:
-            runner_ = new std::thread(kvz_rtp::hevc::frame_receiver, this, !!(conf_.flags & RCE_OPTIMISTIC_RECEIVER));
+            runner_ = new std::thread(uvg_rtp::hevc::frame_receiver, this, !!(conf_.flags & RCE_OPTIMISTIC_RECEIVER));
             break;
     }
     runner_->detach();
@@ -70,7 +70,7 @@ rtp_error_t kvz_rtp::receiver::start()
     return RTP_OK;
 }
 
-kvz_rtp::frame::rtp_frame *kvz_rtp::receiver::pull_frame()
+uvg_rtp::frame::rtp_frame *uvg_rtp::receiver::pull_frame()
 {
     while (frames_.empty() && this->active()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -87,17 +87,17 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::receiver::pull_frame()
     return frame;
 }
 
-uint8_t *kvz_rtp::receiver::get_recv_buffer() const
+uint8_t *uvg_rtp::receiver::get_recv_buffer() const
 {
     return recv_buf_;
 }
 
-uint32_t kvz_rtp::receiver::get_recv_buffer_len() const
+uint32_t uvg_rtp::receiver::get_recv_buffer_len() const
 {
     return recv_buf_len_;
 }
 
-void kvz_rtp::receiver::add_outgoing_frame(kvz_rtp::frame::rtp_frame *frame)
+void uvg_rtp::receiver::add_outgoing_frame(uvg_rtp::frame::rtp_frame *frame)
 {
     if (!frame)
         return;
@@ -105,12 +105,12 @@ void kvz_rtp::receiver::add_outgoing_frame(kvz_rtp::frame::rtp_frame *frame)
     frames_.push_back(frame);
 }
 
-bool kvz_rtp::receiver::recv_hook_installed()
+bool uvg_rtp::receiver::recv_hook_installed()
 {
     return recv_hook_ != nullptr;
 }
 
-void kvz_rtp::receiver::install_recv_hook(void *arg, void (*hook)(void *arg, kvz_rtp::frame::rtp_frame *))
+void uvg_rtp::receiver::install_recv_hook(void *arg, void (*hook)(void *arg, uvg_rtp::frame::rtp_frame *))
 {
     if (hook == nullptr) {
         LOG_ERROR("Unable to install receive hook, function pointer is nullptr!");
@@ -121,7 +121,7 @@ void kvz_rtp::receiver::install_recv_hook(void *arg, void (*hook)(void *arg, kvz
     recv_hook_arg_ = arg;
 }
 
-void kvz_rtp::receiver::install_notify_hook(void *arg, void (*hook)(void *arg, int notify))
+void uvg_rtp::receiver::install_notify_hook(void *arg, void (*hook)(void *arg, int notify))
 {
     if (hook == nullptr) {
         LOG_ERROR("Unable to install receive hook, function pointer is nullptr!");
@@ -132,13 +132,13 @@ void kvz_rtp::receiver::install_notify_hook(void *arg, void (*hook)(void *arg, i
     notify_hook_arg_ = arg;
 }
 
-void kvz_rtp::receiver::recv_hook(kvz_rtp::frame::rtp_frame *frame)
+void uvg_rtp::receiver::recv_hook(uvg_rtp::frame::rtp_frame *frame)
 {
     if (recv_hook_)
         return recv_hook_(recv_hook_arg_, frame);
 }
 
-void kvz_rtp::receiver::return_frame(kvz_rtp::frame::rtp_frame *frame)
+void uvg_rtp::receiver::return_frame(uvg_rtp::frame::rtp_frame *frame)
 {
     if (recv_hook_installed())
         recv_hook(frame);
@@ -146,7 +146,7 @@ void kvz_rtp::receiver::return_frame(kvz_rtp::frame::rtp_frame *frame)
         add_outgoing_frame(frame);
 }
 
-rtp_error_t kvz_rtp::receiver::read_rtp_header(kvz_rtp::frame::rtp_header *dst, uint8_t *src)
+rtp_error_t uvg_rtp::receiver::read_rtp_header(uvg_rtp::frame::rtp_header *dst, uint8_t *src)
 {
     if (!dst || !src)
         return RTP_INVALID_VALUE;
@@ -164,7 +164,7 @@ rtp_error_t kvz_rtp::receiver::read_rtp_header(kvz_rtp::frame::rtp_header *dst, 
     return RTP_OK;
 }
 
-kvz_rtp::frame::rtp_frame *kvz_rtp::receiver::validate_rtp_frame(uint8_t *buffer, int size)
+uvg_rtp::frame::rtp_frame *uvg_rtp::receiver::validate_rtp_frame(uint8_t *buffer, int size)
 {
     if (!buffer || size < 12) {
         rtp_errno = RTP_INVALID_VALUE;
@@ -172,19 +172,19 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::receiver::validate_rtp_frame(uint8_t *buffer
     }
 
     uint8_t *ptr                     = buffer;
-    kvz_rtp::frame::rtp_frame *frame = kvz_rtp::frame::alloc_rtp_frame();
+    uvg_rtp::frame::rtp_frame *frame = uvg_rtp::frame::alloc_rtp_frame();
 
     if (!frame) {
         LOG_ERROR("failed to allocate memory for RTP frame");
         return nullptr;
     }
 
-    if (kvz_rtp::receiver::read_rtp_header(&frame->header, buffer) != RTP_OK) {
+    if (uvg_rtp::receiver::read_rtp_header(&frame->header, buffer) != RTP_OK) {
         LOG_ERROR("failed to read the RTP header");
         return nullptr;
     }
 
-    frame->payload_len = (size_t)size - sizeof(kvz_rtp::frame::rtp_header);
+    frame->payload_len = (size_t)size - sizeof(uvg_rtp::frame::rtp_header);
 
     if (frame->header.version != RTP_HEADER_VERSION) {
 
@@ -206,7 +206,7 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::receiver::validate_rtp_frame(uint8_t *buffer
     /* Skip the generic RTP header
      * There may be 0..N CSRC entries after the header, so check those
      * After CSRC there may be extension header */
-    ptr += sizeof(kvz_rtp::frame::rtp_header);
+    ptr += sizeof(uvg_rtp::frame::rtp_header);
 
     if (frame->header.cc > 0) {
         LOG_DEBUG("frame contains csrc entries");
@@ -229,7 +229,7 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::receiver::validate_rtp_frame(uint8_t *buffer
 
     if (frame->header.ext) {
         LOG_DEBUG("frame contains extension information");
-        frame->ext = new kvz_rtp::frame::ext_header;
+        frame->ext = new uvg_rtp::frame::ext_header;
 
         frame->ext->type = ntohs(*(uint16_t *)&ptr[0]);
         frame->ext->len  = ntohs(*(uint32_t *)&ptr[1]);
@@ -260,22 +260,22 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::receiver::validate_rtp_frame(uint8_t *buffer
     return frame;
 }
 
-kvz_rtp::socket& kvz_rtp::receiver::get_socket()
+uvg_rtp::socket& uvg_rtp::receiver::get_socket()
 {
     return socket_;
 }
 
-kvz_rtp::rtp *kvz_rtp::receiver::get_rtp_ctx()
+uvg_rtp::rtp *uvg_rtp::receiver::get_rtp_ctx()
 {
     return rtp_;
 }
 
-std::mutex& kvz_rtp::receiver::get_mutex()
+std::mutex& uvg_rtp::receiver::get_mutex()
 {
     return r_mtx_;
 }
 
-rtp_ctx_conf& kvz_rtp::receiver::get_conf()
+rtp_ctx_conf& uvg_rtp::receiver::get_conf()
 {
     return conf_;
 }

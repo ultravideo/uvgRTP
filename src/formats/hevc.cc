@@ -33,8 +33,8 @@
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
-extern rtp_error_t __hevc_receiver_optimistic(kvz_rtp::receiver *receiver);
-extern rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver);
+extern rtp_error_t __hevc_receiver_optimistic(uvg_rtp::receiver *receiver);
+extern rtp_error_t __hevc_receiver(uvg_rtp::receiver *receiver);
 
 static inline unsigned __find_hevc_start(uint32_t value)
 {
@@ -232,8 +232,8 @@ end:
 }
 
 static rtp_error_t __push_hevc_nal(
-    kvz_rtp::sender *sender,
-    kvz_rtp::frame_queue *fqueue,
+    uvg_rtp::sender *sender,
+    uvg_rtp::frame_queue *fqueue,
     uint8_t *data, size_t data_len,
     bool more
 )
@@ -267,7 +267,7 @@ static rtp_error_t __push_hevc_nal(
      * During Connection initialization, the frame queue was given HEVC as the payload format so the
      * transaction also contains our media-specifi headers [get_media_headers()]. */
     auto buffers = fqueue->get_buffer_vector();
-    auto headers = (kvz_rtp::hevc::media_headers_t *)fqueue->get_media_headers();
+    auto headers = (uvg_rtp::hevc::media_headers_t *)fqueue->get_media_headers();
 
     headers->nal_header[0] = 49 << 1; /* fragmentation unit */
     headers->nal_header[1] = 1;       /* temporal id */
@@ -280,8 +280,8 @@ static rtp_error_t __push_hevc_nal(
     buffers.push_back(std::make_pair(sizeof(uint8_t),             &headers->fu_headers[0]));
     buffers.push_back(std::make_pair(MAX_PAYLOAD,                 nullptr));
 
-    data_pos   = kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
-    data_left -= kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
+    data_pos   = uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
+    data_left -= uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
 
     while (data_left > MAX_PAYLOAD) {
         buffers.at(2).first  = MAX_PAYLOAD;
@@ -319,7 +319,7 @@ static rtp_error_t __push_hevc_nal(
     if (data_len - 3 <= MAX_PAYLOAD) {
         LOG_DEBUG("send unfrag size %zu, type %u", data_len, nalType);
 
-        if ((ret = kvz_rtp::generic::push_frame(sender, data, data_len, 0)) != RTP_OK) {
+        if ((ret = uvg_rtp::generic::push_frame(sender, data, data_len, 0)) != RTP_OK) {
             LOG_ERROR("failed to send small packet! %s", strerror(errno));
             return ret;
         }
@@ -330,26 +330,26 @@ static rtp_error_t __push_hevc_nal(
     }
 
     const size_t HEADER_SIZE =
-        kvz_rtp::frame::HEADER_SIZE_RTP +
-        kvz_rtp::frame::HEADER_SIZE_HEVC_NAL +
-        kvz_rtp::frame::HEADER_SIZE_HEVC_FU;
+        uvg_rtp::frame::HEADER_SIZE_RTP +
+        uvg_rtp::frame::HEADER_SIZE_HEVC_NAL +
+        uvg_rtp::frame::HEADER_SIZE_HEVC_FU;
 
     uint8_t buffer[HEADER_SIZE + MAX_PAYLOAD] = { 0 };
 
     sender->get_rtp_ctx()->fill_header(buffer);
 
-    buffer[kvz_rtp::frame::HEADER_SIZE_RTP + 0]  = 49 << 1;            /* fragmentation unit */
-    buffer[kvz_rtp::frame::HEADER_SIZE_RTP + 1]  = 1;                  /* TID */
-    buffer[kvz_rtp::frame::HEADER_SIZE_RTP +
-           kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] = (1 << 7) | nalType; /* Start bit + NAL type */
+    buffer[uvg_rtp::frame::HEADER_SIZE_RTP + 0]  = 49 << 1;            /* fragmentation unit */
+    buffer[uvg_rtp::frame::HEADER_SIZE_RTP + 1]  = 1;                  /* TID */
+    buffer[uvg_rtp::frame::HEADER_SIZE_RTP +
+           uvg_rtp::frame::HEADER_SIZE_HEVC_NAL] = (1 << 7) | nalType; /* Start bit + NAL type */
 
-    data_pos   = kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
-    data_left -= kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
+    data_pos   = uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
+    data_left -= uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
 
     while (data_left > MAX_PAYLOAD) {
         memcpy(&buffer[HEADER_SIZE], &data[data_pos], MAX_PAYLOAD);
 
-        if ((ret = kvz_rtp::send::send_frame(sender, buffer, sizeof(buffer))) != RTP_OK)
+        if ((ret = uvg_rtp::send::send_frame(sender, buffer, sizeof(buffer))) != RTP_OK)
             return RTP_GENERIC_ERROR;
 
         sender->get_rtp_ctx()->update_sequence(buffer);
@@ -358,16 +358,16 @@ static rtp_error_t __push_hevc_nal(
         data_left -= MAX_PAYLOAD;
 
         /* Clear extra bits */
-        buffer[kvz_rtp::frame::HEADER_SIZE_RTP +
-               kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] = nalType;
+        buffer[uvg_rtp::frame::HEADER_SIZE_RTP +
+               uvg_rtp::frame::HEADER_SIZE_HEVC_NAL] = nalType;
     }
 
-    buffer[kvz_rtp::frame::HEADER_SIZE_RTP +
-           kvz_rtp::frame::HEADER_SIZE_HEVC_NAL] = nalType | (1 << 6); /* set E bit to signal end of data */
+    buffer[uvg_rtp::frame::HEADER_SIZE_RTP +
+           uvg_rtp::frame::HEADER_SIZE_HEVC_NAL] = nalType | (1 << 6); /* set E bit to signal end of data */
 
     memcpy(&buffer[HEADER_SIZE], &data[data_pos], data_left);
 
-    if ((ret = kvz_rtp::send::send_frame(sender, buffer, HEADER_SIZE + data_left)) != RTP_OK) {
+    if ((ret = uvg_rtp::send::send_frame(sender, buffer, HEADER_SIZE + data_left)) != RTP_OK) {
         LOG_ERROR("Failed to send frame");
         return ret;
     }
@@ -379,8 +379,8 @@ static rtp_error_t __push_hevc_nal(
 }
 
 static rtp_error_t __push_hevc_slice(
-    kvz_rtp::sender *sender,
-    kvz_rtp::frame_queue *fqueue,
+    uvg_rtp::sender *sender,
+    uvg_rtp::frame_queue *fqueue,
     uint8_t *data, size_t data_len,
     int flags
 )
@@ -411,8 +411,8 @@ static rtp_error_t __push_hevc_slice(
 }
 
 static rtp_error_t __push_hevc_frame(
-    kvz_rtp::sender *sender,
-    kvz_rtp::frame_queue *fqueue,
+    uvg_rtp::sender *sender,
+    uvg_rtp::frame_queue *fqueue,
     uint8_t *data, size_t data_len,
     int flags
 )
@@ -431,7 +431,7 @@ static rtp_error_t __push_hevc_frame(
     if (data_len < MAX_PAYLOAD) {
         r_off = (offset < 0) ? 0 : offset; /* TODO: this looks ugly */
         fqueue->deinit_transaction();
-        return kvz_rtp::generic::push_frame(sender, data + r_off, data_len - r_off, flags);
+        return uvg_rtp::generic::push_frame(sender, data + r_off, data_len - r_off, flags);
     }
 
     while (offset != -1) {
@@ -481,13 +481,13 @@ end:
 #endif
 }
 
-rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::sender *sender, uint8_t *data, size_t data_len, int flags)
+rtp_error_t uvg_rtp::hevc::push_frame(uvg_rtp::sender *sender, uint8_t *data, size_t data_len, int flags)
 {
     if (!sender || !data || data_len == 0)
         return RTP_INVALID_VALUE;
 
     rtp_error_t ret              = RTP_GENERIC_ERROR;
-    kvz_rtp::frame_queue *fqueue = sender->get_frame_queue();
+    uvg_rtp::frame_queue *fqueue = sender->get_frame_queue();
 
     if (!fqueue) {
         LOG_ERROR("invalid frame queue");
@@ -504,14 +504,14 @@ rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::sender *sender, uint8_t *data, si
     return __push_hevc_frame(sender, fqueue, data, data_len, flags);
 }
 
-rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::sender *sender, std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
+rtp_error_t uvg_rtp::hevc::push_frame(uvg_rtp::sender *sender, std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
 {
     if (!sender || !data || data_len == 0)
         return RTP_INVALID_VALUE;
 
     uint8_t *data_ptr            = nullptr;
     rtp_error_t ret              = RTP_GENERIC_ERROR;
-    kvz_rtp::frame_queue *fqueue = sender->get_frame_queue();
+    uvg_rtp::frame_queue *fqueue = sender->get_frame_queue();
 
     if (!fqueue || (ret = fqueue->init_transaction(sender, std::move(data))) != RTP_OK) {
         LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
@@ -529,7 +529,7 @@ rtp_error_t kvz_rtp::hevc::push_frame(kvz_rtp::sender *sender, std::unique_ptr<u
 
 }
 
-rtp_error_t kvz_rtp::hevc::frame_receiver(kvz_rtp::receiver *receiver, bool optimistic)
+rtp_error_t uvg_rtp::hevc::frame_receiver(uvg_rtp::receiver *receiver, bool optimistic)
 {
 #ifdef __linux__
     if (optimistic)

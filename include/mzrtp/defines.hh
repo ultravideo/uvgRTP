@@ -3,7 +3,7 @@
 
 #include "../util.hh"
 
-namespace kvz_rtp {
+namespace uvg_rtp {
 
     namespace zrtp_msg {
 

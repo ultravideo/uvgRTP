@@ -7,7 +7,7 @@
 
 #if defined(__MINGW32__) || defined(__MINGW64__)
 #include "mingw_inet.hh"
-using namespace kvz_rtp;
+using namespace uvg_rtp;
 using namespace mingw;
 #endif
 
@@ -22,7 +22,7 @@ using namespace mingw;
 #include "formats/hevc.hh"
 #include "formats/generic.hh"
 
-kvz_rtp::sender::sender(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt, kvz_rtp::rtp *rtp):
+uvg_rtp::sender::sender(uvg_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt, uvg_rtp::rtp *rtp):
     socket_(socket),
     rtp_(rtp),
     conf_(conf),
@@ -30,13 +30,13 @@ kvz_rtp::sender::sender(kvz_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_
 {
 }
 
-kvz_rtp::sender::~sender()
+uvg_rtp::sender::~sender()
 {
     delete dispatcher_;
     delete fqueue_;
 }
 
-rtp_error_t kvz_rtp::sender::destroy()
+rtp_error_t uvg_rtp::sender::destroy()
 {
     if (fmt_ == RTP_FORMAT_HEVC && conf_.flags & RCE_SYSTEM_CALL_DISPATCHER) {
         while (dispatcher_->stop() != RTP_OK) {
@@ -47,7 +47,7 @@ rtp_error_t kvz_rtp::sender::destroy()
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::sender::init()
+rtp_error_t uvg_rtp::sender::init()
 {
     rtp_error_t ret  = RTP_OK;
     ssize_t buf_size = conf_.ctx_values[RCC_UDP_BUF_SIZE];
@@ -60,14 +60,14 @@ rtp_error_t kvz_rtp::sender::init()
 
 #ifndef _WIN32
     if (fmt_ == RTP_FORMAT_HEVC && conf_.flags & RCE_SYSTEM_CALL_DISPATCHER) {
-        dispatcher_ = new kvz_rtp::dispatcher(&socket_);
-        fqueue_     = new kvz_rtp::frame_queue(fmt_, conf_, dispatcher_);
+        dispatcher_ = new uvg_rtp::dispatcher(&socket_);
+        fqueue_     = new uvg_rtp::frame_queue(fmt_, conf_, dispatcher_);
 
         if (dispatcher_)
             dispatcher_->start();
     } else {
 #endif
-        fqueue_     = new kvz_rtp::frame_queue(fmt_, conf_);
+        fqueue_     = new uvg_rtp::frame_queue(fmt_, conf_);
         dispatcher_ = nullptr;
 #ifndef _WIN32
     }
@@ -76,37 +76,37 @@ rtp_error_t kvz_rtp::sender::init()
     return ret;
 }
 
-rtp_error_t kvz_rtp::sender::__push_frame(uint8_t *data, size_t data_len, int flags)
+rtp_error_t uvg_rtp::sender::__push_frame(uint8_t *data, size_t data_len, int flags)
 {
     switch (fmt_) {
         case RTP_FORMAT_HEVC:
-            return kvz_rtp::hevc::push_frame(this, data, data_len, flags);
+            return uvg_rtp::hevc::push_frame(this, data, data_len, flags);
 
         case RTP_FORMAT_OPUS:
-            return kvz_rtp::opus::push_frame(this, data, data_len, flags);
+            return uvg_rtp::opus::push_frame(this, data, data_len, flags);
 
         default:
             LOG_DEBUG("Format not recognized, pushing the frame as generic");
-            return kvz_rtp::generic::push_frame(this, data, data_len, flags);
+            return uvg_rtp::generic::push_frame(this, data, data_len, flags);
     }
 }
 
-rtp_error_t kvz_rtp::sender::__push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
+rtp_error_t uvg_rtp::sender::__push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
 {
     switch (fmt_) {
         case RTP_FORMAT_HEVC:
-            return kvz_rtp::hevc::push_frame(this, std::move(data), data_len, flags);
+            return uvg_rtp::hevc::push_frame(this, std::move(data), data_len, flags);
 
         case RTP_FORMAT_OPUS:
-            return kvz_rtp::opus::push_frame(this, std::move(data), data_len, flags);
+            return uvg_rtp::opus::push_frame(this, std::move(data), data_len, flags);
 
         default:
             LOG_DEBUG("Format not recognized, pushing the frame as generic");
-            return kvz_rtp::generic::push_frame(this, std::move(data), data_len, flags);
+            return uvg_rtp::generic::push_frame(this, std::move(data), data_len, flags);
     }
 }
 
-rtp_error_t kvz_rtp::sender::push_frame(uint8_t *data, size_t data_len, int flags)
+rtp_error_t uvg_rtp::sender::push_frame(uint8_t *data, size_t data_len, int flags)
 {
     if (flags & RTP_COPY || (conf_.flags & RCE_SRTP && !(conf_.flags & RCE_INPLACE_ENCRYPTION))) {
         std::unique_ptr<uint8_t[]> data_ptr = std::unique_ptr<uint8_t[]>(new uint8_t[data_len]);
@@ -118,7 +118,7 @@ rtp_error_t kvz_rtp::sender::push_frame(uint8_t *data, size_t data_len, int flag
     return __push_frame(data, data_len, flags);
 }
 
-rtp_error_t kvz_rtp::sender::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
+rtp_error_t uvg_rtp::sender::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
 {
     std::unique_ptr<uint8_t[]> data_ptr = std::move(data);
 
@@ -130,22 +130,22 @@ rtp_error_t kvz_rtp::sender::push_frame(std::unique_ptr<uint8_t[]> data, size_t 
     return __push_frame(std::move(data_ptr), data_len, flags);
 }
 
-kvz_rtp::frame_queue *kvz_rtp::sender::get_frame_queue()
+uvg_rtp::frame_queue *uvg_rtp::sender::get_frame_queue()
 {
     return fqueue_;
 }
 
-kvz_rtp::socket& kvz_rtp::sender::get_socket()
+uvg_rtp::socket& uvg_rtp::sender::get_socket()
 {
     return socket_;
 }
 
-kvz_rtp::rtp *kvz_rtp::sender::get_rtp_ctx()
+uvg_rtp::rtp *uvg_rtp::sender::get_rtp_ctx()
 {
     return rtp_;
 }
 
-void kvz_rtp::sender::install_dealloc_hook(void (*dealloc_hook)(void *))
+void uvg_rtp::sender::install_dealloc_hook(void (*dealloc_hook)(void *))
 {
     if (!fqueue_)
         return;
@@ -153,7 +153,7 @@ void kvz_rtp::sender::install_dealloc_hook(void (*dealloc_hook)(void *))
     fqueue_->install_dealloc_hook(dealloc_hook);
 }
 
-rtp_ctx_conf& kvz_rtp::sender::get_conf()
+rtp_ctx_conf& uvg_rtp::sender::get_conf()
 {
     return conf_;
 }

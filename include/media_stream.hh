@@ -10,7 +10,7 @@
 #include "srtp.hh"
 #include "util.hh"
 
-namespace kvz_rtp {
+namespace uvg_rtp {
 
     class media_stream {
         public:
@@ -37,7 +37,7 @@ namespace kvz_rtp {
              *
              * Other error return codes are defined in {conn,writer,reader,srtp}.hh */
 #ifdef __RTP_CRYPTO__
-            rtp_error_t init(kvz_rtp::zrtp *zrtp);
+            rtp_error_t init(uvg_rtp::zrtp *zrtp);
 #endif
 
             /* Split "data" into 1500 byte chunks and send them to remote
@@ -48,7 +48,7 @@ namespace kvz_rtp {
              *
              * NOTE: Each push_frame() sends one discrete frame of data. If the input frame
              * is fragmented, calling application should call push_frame() with RTP_MORE
-             * and RTP_SLICE flags to prevent kvzRTP from flushing the frame queue after
+             * and RTP_SLICE flags to prevent uvgRTP from flushing the frame queue after
              * push_frame().
              *
              * push_frame(..., RTP_MORE | RTP_SLICE); // more data coming in, do not flush queue
@@ -58,7 +58,7 @@ namespace kvz_rtp {
              * Return RTP_OK success
              * Return RTP_INVALID_VALUE if one of the parameters are invalid
              * Return RTP_MEMORY_ERROR  if the data chunk is too large to be processed
-             * Return RTP_SEND_ERROR    if kvzRTP failed to send the data to remote
+             * Return RTP_SEND_ERROR    if uvgRTP failed to send the data to remote
              * Return RTP_GENERIC_ERROR for any other error condition */
             rtp_error_t push_frame(uint8_t *data, size_t data_len, int flags);
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags);
@@ -70,18 +70,18 @@ namespace kvz_rtp {
              * spawned for it!
              *
              * Return pointer to RTP frame on success */
-            kvz_rtp::frame::rtp_frame *pull_frame();
+            uvg_rtp::frame::rtp_frame *pull_frame();
 
             /* Alternative to pull_frame(). The provided hook is called when a frame is received.
              *
              * "arg" is optional argument that is passed to hook when it is called. It may be nullptr
              *
              * NOTE: Hook should not be used to process the frame but it should be a place where the
-             * frame handout happens from kvzRTP to application
+             * frame handout happens from uvgRTP to application
              *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "hook" is nullptr */
-            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, kvz_rtp::frame::rtp_frame *));
+            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvg_rtp::frame::rtp_frame *));
 
             /* If system call dispatcher is enabled and calling application has special requirements
              * for the deallocation of a frame, it may install a deallocation hook which is called
@@ -91,10 +91,10 @@ namespace kvz_rtp {
              * Return RTP_INVALID_VALUE if "hook" is nullptr */
             rtp_error_t install_deallocation_hook(void (*hook)(void *));
 
-            /* If needed, a notification hook can be installed to kvzRTP that can be used as
+            /* If needed, a notification hook can be installed to uvgRTP that can be used as
              * an information side channel to the internal state of the library.
              *
-             * When kvzRTP encouters a situation it doesn't know how to react to,
+             * When uvgRTP encouters a situation it doesn't know how to react to,
              * it calls the notify hook with certain notify reason number (src/util.hh).
              * Upon receiving a notification, application may ignore it or act on it somehow
              *
@@ -133,11 +133,11 @@ namespace kvz_rtp {
 
             uint32_t key_;
 
-            kvz_rtp::srtp       *srtp_;
-            kvz_rtp::socket     socket_;
-            kvz_rtp::sender     *sender_;
-            kvz_rtp::receiver   *receiver_;
-            kvz_rtp::rtp        *rtp_;
+            uvg_rtp::srtp       *srtp_;
+            uvg_rtp::socket     socket_;
+            uvg_rtp::sender     *sender_;
+            uvg_rtp::receiver   *receiver_;
+            uvg_rtp::rtp        *rtp_;
 
             sockaddr_in addr_out_;
             std::string addr_;

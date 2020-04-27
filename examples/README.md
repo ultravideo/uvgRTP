@@ -1,11 +1,11 @@
-# kvzRTP example codes
+# uvgRTP example codes
 
 ## Instructions for Windows
 
-1) Run prepare.bat in this directory to prepare testing environment for kvzRTP
+1) Run prepare.bat in this directory to prepare testing environment for uvgRTP
    * The script creates lib/ and include/ directories to project root directory
-2) Build kvzRTP using QtCreator
-3) When kvzRTP has been built, copy the libkvzrtp.a from the Qt build directory to lib/ created by the script
+2) Build uvgRTP using QtCreator
+3) When uvgRTP has been built, copy the libuvgrtp.a from the Qt build directory to lib/ created by the script
 4) Open the example.pro and build & run it
    * Make sure the Qt build directory for example.pro is located in the same directory as lib/ and include/ (projects root directory) or tweak the include/lib paths accordingly
 
@@ -13,16 +13,16 @@
 
 ```
 sudo make --directory=.. all install
-g++ sending.cc -lkvzrtp -lpthread && ./a.out
+g++ sending.cc -luvgrtp -lpthread && ./a.out
 ```
 
 ## Available examples
 
-We provide several simple and thoroughly commented examples on how to use kvzRTP.
+We provide several simple and thoroughly commented examples on how to use uvgRTP.
 
 [How to create a simple RTP sender](sending.cc)
 
-[How to use fragmented input with kvzRTP \(HEVC slices\)](sending_fragmented.cc)
+[How to use fragmented input with uvgRTP \(HEVC slices\)](sending_fragmented.cc)
 
 [How to fragment generic media types](sending_generic.cc)
 

@@ -8,18 +8,18 @@
 #include <cryptopp/hex.h>
 #endif
 
-kvz_rtp::srtp::srtp():
+uvg_rtp::srtp::srtp():
     srtp_ctx_()
 {
 }
 
-kvz_rtp::srtp::~srtp()
+uvg_rtp::srtp::~srtp()
 {
 }
 
 #ifdef __RTP_CRYPTO__
 /* TODO: explain this code and refactor it! */
-rtp_error_t kvz_rtp::srtp::derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t out_len)
+rtp_error_t uvg_rtp::srtp::derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t out_len)
 {
     uint8_t input[AES_KEY_LENGTH] = { 0 };
     memcpy(input, salt, SALT_LENGTH);
@@ -28,14 +28,14 @@ rtp_error_t kvz_rtp::srtp::derive_key(int label, uint8_t *key, uint8_t *salt, ui
 
     memset(out, 0, out_len);
 
-    kvz_rtp::crypto::aes::ecb ecb(key, AES_KEY_LENGTH);
+    uvg_rtp::crypto::aes::ecb ecb(key, AES_KEY_LENGTH);
 
     ecb.encrypt(out, input, AES_KEY_LENGTH);
 
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t index, uint8_t *salt)
+rtp_error_t uvg_rtp::srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t index, uint8_t *salt)
 {
     if (!out || !salt)
         return RTP_INVALID_VALUE;
@@ -59,7 +59,7 @@ rtp_error_t kvz_rtp::srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t index
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::srtp::__init(int type)
+rtp_error_t uvg_rtp::srtp::__init(int type)
 {
     srtp_ctx_.roc  = 0;
     srtp_ctx_.type = type;
@@ -129,7 +129,7 @@ rtp_error_t kvz_rtp::srtp::__init(int type)
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::srtp::init_zrtp(int type, kvz_rtp::rtp *rtp, kvz_rtp::zrtp *zrtp)
+rtp_error_t uvg_rtp::srtp::init_zrtp(int type, uvg_rtp::rtp *rtp, uvg_rtp::zrtp *zrtp)
 {
     (void)rtp;
 
@@ -157,7 +157,7 @@ rtp_error_t kvz_rtp::srtp::init_zrtp(int type, kvz_rtp::rtp *rtp, kvz_rtp::zrtp 
     return __init(type);
 }
 
-rtp_error_t kvz_rtp::srtp::init_user(int type, uint8_t *key, uint8_t *salt)
+rtp_error_t uvg_rtp::srtp::init_user(int type, uint8_t *key, uint8_t *salt)
 {
     if (!key || !salt)
         return RTP_INVALID_VALUE;
@@ -170,7 +170,7 @@ rtp_error_t kvz_rtp::srtp::init_user(int type, uint8_t *key, uint8_t *salt)
     return __init(type);
 }
 
-rtp_error_t kvz_rtp::srtp::__encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len)
+rtp_error_t uvg_rtp::srtp::__encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len)
 {
     uint8_t iv[16] = { 0 };
     uint64_t index = (((uint64_t)srtp_ctx_.roc) << 16) + seq;
@@ -184,29 +184,29 @@ rtp_error_t kvz_rtp::srtp::__encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffe
         return RTP_INVALID_VALUE;
     }
 
-    kvz_rtp::crypto::aes::ctr ctr(key_ctx_.local.enc_key, sizeof(key_ctx_.local.enc_key), iv);
+    uvg_rtp::crypto::aes::ctr ctr(key_ctx_.local.enc_key, sizeof(key_ctx_.local.enc_key), iv);
     ctr.encrypt(buffer, buffer, len);
 
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::srtp::encrypt(kvz_rtp::frame::rtp_frame *frame)
+rtp_error_t uvg_rtp::srtp::encrypt(uvg_rtp::frame::rtp_frame *frame)
 {
     return __encrypt(ntohl(frame->header.ssrc), ntohs(frame->header.seq), frame->payload, frame->payload_len);
 }
 
-rtp_error_t kvz_rtp::srtp::encrypt(std::vector<std::pair<size_t, uint8_t *>>& buffers)
+rtp_error_t uvg_rtp::srtp::encrypt(std::vector<std::pair<size_t, uint8_t *>>& buffers)
 {
-    auto frame = (kvz_rtp::frame::rtp_frame *)buffers.at(0).second;
+    auto frame = (uvg_rtp::frame::rtp_frame *)buffers.at(0).second;
     auto rtp   = buffers.at(buffers.size() - 1);
 
     return __encrypt(ntohl(frame->header.ssrc), ntohs(frame->header.seq), rtp.second, rtp.first);
 }
 
-rtp_error_t kvz_rtp::srtp::decrypt(uint8_t *buffer, size_t len)
+rtp_error_t uvg_rtp::srtp::decrypt(uint8_t *buffer, size_t len)
 {
     uint8_t iv[16] = { 0 };
-    auto hdr       = (kvz_rtp::frame::rtp_header *)buffer;
+    auto hdr       = (uvg_rtp::frame::rtp_header *)buffer;
     uint16_t seq   = ntohs(hdr->seq);
     uint32_t ssrc  = ntohl(hdr->ssrc);
     uint64_t index = (((uint64_t)srtp_ctx_.roc) << 16) + seq;
@@ -220,11 +220,11 @@ rtp_error_t kvz_rtp::srtp::decrypt(uint8_t *buffer, size_t len)
         return RTP_INVALID_VALUE;
     }
 
-    uint8_t *payload = buffer + sizeof(kvz_rtp::frame::rtp_header);
+    uint8_t *payload = buffer + sizeof(uvg_rtp::frame::rtp_header);
 
-    kvz_rtp::crypto::aes::ctr ctr(key_ctx_.remote.enc_key, sizeof(key_ctx_.remote.enc_key), iv);
+    uvg_rtp::crypto::aes::ctr ctr(key_ctx_.remote.enc_key, sizeof(key_ctx_.remote.enc_key), iv);
 
-    ctr.decrypt(payload, payload, len - sizeof(kvz_rtp::frame::rtp_header));
+    ctr.decrypt(payload, payload, len - sizeof(uvg_rtp::frame::rtp_header));
 
     return RTP_OK;
 }

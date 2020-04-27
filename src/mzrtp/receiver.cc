@@ -23,7 +23,7 @@
 #include "mzrtp/hello_ack.hh"
 #include "mzrtp/receiver.hh"
 
-using namespace kvz_rtp::zrtp_msg;
+using namespace uvg_rtp::zrtp_msg;
 
 enum MSG_TYPES {
     ZRTP_MSG_HELLO     = 0x2020206f6c6c6548,
@@ -44,19 +44,19 @@ enum MSG_TYPES {
     ZRTP_MSG_PING_ACK  = 0x204b4341676e6950,
 };
 
-kvz_rtp::zrtp_msg::receiver::receiver()
+uvg_rtp::zrtp_msg::receiver::receiver()
 {
     mem_ = new uint8_t[1024];
     len_  = 1024;
 }
 
-kvz_rtp::zrtp_msg::receiver::~receiver()
+uvg_rtp::zrtp_msg::receiver::~receiver()
 {
     LOG_DEBUG("destroy receiver");
     delete[] mem_;
 }
 
-int kvz_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
+int uvg_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
 {
     int nread = 0;
     rlen_     = 0;
@@ -90,7 +90,7 @@ int kvz_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
 
             zrtp_hello *hello = (zrtp_hello *)msg;
 
-            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, hello->crc))
+            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, hello->crc))
                 return -EOPNOTSUPP;
         }
         return ZRTP_FT_HELLO;
@@ -101,7 +101,7 @@ int kvz_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
 
             zrtp_hello_ack *ha_msg = (zrtp_hello_ack *)msg;
 
-            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, ha_msg->crc))
+            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, ha_msg->crc))
                 return -EOPNOTSUPP;
         }
         return ZRTP_FT_HELLO_ACK;
@@ -112,7 +112,7 @@ int kvz_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
 
             zrtp_commit *commit = (zrtp_commit *)msg;
 
-            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, commit->crc))
+            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, commit->crc))
                 return -EOPNOTSUPP;
         }
         return ZRTP_FT_COMMIT;
@@ -123,7 +123,7 @@ int kvz_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
 
             zrtp_dh *dh = (zrtp_dh *)msg;
 
-            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
+            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
                 return -EOPNOTSUPP;
         }
         return ZRTP_FT_DH_PART1;
@@ -134,7 +134,7 @@ int kvz_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
 
             zrtp_dh *dh = (zrtp_dh *)msg;
 
-            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
+            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
                 return -EOPNOTSUPP;
         }
         return ZRTP_FT_DH_PART2;
@@ -145,7 +145,7 @@ int kvz_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
 
             zrtp_confirm *dh = (zrtp_confirm *)msg;
 
-            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
+            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
                 return -EOPNOTSUPP;
         }
         return ZRTP_FT_CONFIRM1;
@@ -156,7 +156,7 @@ int kvz_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
 
             zrtp_confirm *dh = (zrtp_confirm *)msg;
 
-            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
+            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
                 return -EOPNOTSUPP;
         }
         return ZRTP_FT_CONFIRM2;
@@ -167,7 +167,7 @@ int kvz_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
 
             zrtp_confack *ca = (zrtp_confack *)msg;
 
-            if (!kvz_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, ca->crc))
+            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, ca->crc))
                 return -EOPNOTSUPP;
         }
         return ZRTP_FT_CONF2_ACK;
@@ -197,7 +197,7 @@ int kvz_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
     return -EOPNOTSUPP;
 }
 
-ssize_t kvz_rtp::zrtp_msg::receiver::get_msg(void *ptr, size_t len)
+ssize_t uvg_rtp::zrtp_msg::receiver::get_msg(void *ptr, size_t len)
 {
     if (!ptr || len == 0) {
         return -EINVAL;

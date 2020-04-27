@@ -4,7 +4,7 @@
 
 #include "util.hh"
 
-namespace kvz_rtp {
+namespace uvg_rtp {
     class runner {
         public:
             runner();

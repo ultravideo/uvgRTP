@@ -10,7 +10,7 @@
 
 #if defined(__MINGW32__) || defined(__MINGW64__)
 #include "mingw_inet.hh"
-using namespace kvz_rtp;
+using namespace uvg_rtp;
 using namespace mingw;
 #endif
 
@@ -21,7 +21,7 @@ using namespace mingw;
 #include "socket.hh"
 #include "util.hh"
 
-kvz_rtp::socket::socket():
+uvg_rtp::socket::socket():
     recv_handler_(nullptr),
     sendto_handler_(nullptr),
     sendtov_handler_(nullptr),
@@ -30,7 +30,7 @@ kvz_rtp::socket::socket():
 {
 }
 
-kvz_rtp::socket::~socket()
+uvg_rtp::socket::~socket()
 {
 #ifdef __linux__
     close(socket_);
@@ -39,7 +39,7 @@ kvz_rtp::socket::~socket()
 #endif
 }
 
-rtp_error_t kvz_rtp::socket::init(short family, int type, int protocol)
+rtp_error_t uvg_rtp::socket::init(short family, int type, int protocol)
 {
     assert(family == AF_INET);
 
@@ -63,7 +63,7 @@ rtp_error_t kvz_rtp::socket::init(short family, int type, int protocol)
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::socket::setsockopt(int level, int optname, const void *optval, socklen_t optlen)
+rtp_error_t uvg_rtp::socket::setsockopt(int level, int optname, const void *optval, socklen_t optlen)
 {
     if (::setsockopt(socket_, level, optname, (const char *)optval, optlen) < 0) {
         LOG_ERROR("Failed to set socket options: %s", strerror(errno));
@@ -73,7 +73,7 @@ rtp_error_t kvz_rtp::socket::setsockopt(int level, int optname, const void *optv
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::socket::bind(short family, unsigned host, short port)
+rtp_error_t uvg_rtp::socket::bind(short family, unsigned host, short port)
 {
     assert(family == AF_INET);
 
@@ -92,7 +92,7 @@ rtp_error_t kvz_rtp::socket::bind(short family, unsigned host, short port)
     return RTP_OK;
 }
 
-sockaddr_in kvz_rtp::socket::create_sockaddr(short family, unsigned host, short port)
+sockaddr_in uvg_rtp::socket::create_sockaddr(short family, unsigned host, short port)
 {
     assert(family == AF_INET);
 
@@ -107,7 +107,7 @@ sockaddr_in kvz_rtp::socket::create_sockaddr(short family, unsigned host, short 
     return addr;
 }
 
-sockaddr_in kvz_rtp::socket::create_sockaddr(short family, std::string host, short port)
+sockaddr_in uvg_rtp::socket::create_sockaddr(short family, std::string host, short port)
 {
     assert(family == AF_INET);
 
@@ -122,22 +122,22 @@ sockaddr_in kvz_rtp::socket::create_sockaddr(short family, std::string host, sho
     return addr;
 }
 
-void kvz_rtp::socket::set_sockaddr(sockaddr_in addr)
+void uvg_rtp::socket::set_sockaddr(sockaddr_in addr)
 {
     addr_ = addr;
 }
 
-void kvz_rtp::socket::set_srtp(kvz_rtp::srtp *srtp)
+void uvg_rtp::socket::set_srtp(uvg_rtp::srtp *srtp)
 {
     srtp_ = srtp;
 }
 
-socket_t& kvz_rtp::socket::get_raw_socket()
+socket_t& uvg_rtp::socket::get_raw_socket()
 {
     return socket_;
 }
 
-rtp_error_t kvz_rtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
+rtp_error_t uvg_rtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
 {
     int nsend = 0;
 
@@ -172,7 +172,7 @@ rtp_error_t kvz_rtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t bu
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags)
+rtp_error_t uvg_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags)
 {
     if (sendto_handler_)
         return sendto_handler_(socket_, addr_, buf, buf_len, flags, nullptr);
@@ -180,7 +180,7 @@ rtp_error_t kvz_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags)
     return __sendto(addr_, buf, buf_len, flags, nullptr);
 }
 
-rtp_error_t kvz_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
+rtp_error_t uvg_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
 {
     if (sendto_handler_)
         return sendto_handler_(socket_, addr_, buf, buf_len, flags, bytes_sent);
@@ -188,7 +188,7 @@ rtp_error_t kvz_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags, int
     return __sendto(addr_, buf, buf_len, flags, bytes_sent);
 }
 
-rtp_error_t kvz_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
+rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
 {
     if (sendto_handler_)
         return sendto_handler_(socket_, addr, buf, buf_len, flags, bytes_sent);
@@ -196,7 +196,7 @@ rtp_error_t kvz_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_
     return __sendto(addr, buf, buf_len, flags, bytes_sent);
 }
 
-rtp_error_t kvz_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags)
+rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags)
 {
     if (sendto_handler_)
         return sendto_handler_(socket_, addr, buf, buf_len, flags, nullptr);
@@ -204,7 +204,7 @@ rtp_error_t kvz_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_
     return __sendto(addr, buf, buf_len, flags, nullptr);
 }
 
-rtp_error_t kvz_rtp::socket::__sendtov(
+rtp_error_t uvg_rtp::socket::__sendtov(
     sockaddr_in& addr,
     std::vector<std::pair<size_t, uint8_t *>> buffers,
     int flags, int *bytes_sent
@@ -268,7 +268,7 @@ rtp_error_t kvz_rtp::socket::__sendtov(
 #endif
 }
 
-rtp_error_t kvz_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags)
+rtp_error_t uvg_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags)
 {
     if (sendtov_handler_)
         return sendtov_handler_(socket_, addr_, buffers, flags, nullptr);
@@ -276,7 +276,7 @@ rtp_error_t kvz_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> bu
     return __sendtov(addr_, buffers, flags, nullptr);
 }
 
-rtp_error_t kvz_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent)
+rtp_error_t uvg_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent)
 {
     if (sendtov_handler_)
         return sendtov_handler_(socket_, addr_, buffers, flags, bytes_sent);
@@ -284,7 +284,7 @@ rtp_error_t kvz_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> bu
     return __sendtov(addr_, buffers, flags, bytes_sent);
 }
 
-rtp_error_t kvz_rtp::socket::sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags)
+rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags)
 {
     if (sendtov_handler_)
         return sendtov_handler_(socket_, addr, buffers, flags, nullptr);
@@ -292,7 +292,7 @@ rtp_error_t kvz_rtp::socket::sendto(sockaddr_in& addr, std::vector<std::pair<siz
     return __sendtov(addr, buffers, flags, nullptr);
 }
 
-rtp_error_t kvz_rtp::socket::sendto(
+rtp_error_t uvg_rtp::socket::sendto(
     sockaddr_in& addr,
     std::vector<std::pair<size_t, uint8_t *>> buffers,
     int flags, int *bytes_sent
@@ -304,7 +304,7 @@ rtp_error_t kvz_rtp::socket::sendto(
     return __sendtov(addr, buffers, flags, bytes_sent);
 }
 
-rtp_error_t kvz_rtp::socket::send_vecio(vecio_buf *buffers, size_t nbuffers, int flags)
+rtp_error_t uvg_rtp::socket::send_vecio(vecio_buf *buffers, size_t nbuffers, int flags)
 {
     if (buffers == nullptr || nbuffers == 0)
         return RTP_INVALID_VALUE;
@@ -331,7 +331,7 @@ rtp_error_t kvz_rtp::socket::send_vecio(vecio_buf *buffers, size_t nbuffers, int
 #endif
 }
 
-rtp_error_t kvz_rtp::socket::recv_vecio(vecio_buf *buffers, size_t nbuffers, int flags, int *nread)
+rtp_error_t uvg_rtp::socket::recv_vecio(vecio_buf *buffers, size_t nbuffers, int flags, int *nread)
 {
     if (buffers == nullptr || nbuffers == 0)
         return RTP_INVALID_VALUE;
@@ -352,7 +352,7 @@ rtp_error_t kvz_rtp::socket::recv_vecio(vecio_buf *buffers, size_t nbuffers, int
 #endif
 }
 
-rtp_error_t kvz_rtp::socket::__recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
+rtp_error_t uvg_rtp::socket::__recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
 {
     if (!buf || !buf_len) {
         set_bytes(bytes_read, -1);
@@ -395,17 +395,17 @@ rtp_error_t kvz_rtp::socket::__recv(uint8_t *buf, size_t buf_len, int flags, int
 #endif
 }
 
-rtp_error_t kvz_rtp::socket::recv(uint8_t *buf, size_t buf_len, int flags)
+rtp_error_t uvg_rtp::socket::recv(uint8_t *buf, size_t buf_len, int flags)
 {
-    return kvz_rtp::socket::__recv(buf, buf_len, flags, nullptr);
+    return uvg_rtp::socket::__recv(buf, buf_len, flags, nullptr);
 }
 
-rtp_error_t kvz_rtp::socket::recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
+rtp_error_t uvg_rtp::socket::recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
 {
-    return kvz_rtp::socket::__recv(buf, buf_len, flags, bytes_read);
+    return uvg_rtp::socket::__recv(buf, buf_len, flags, bytes_read);
 }
 
-rtp_error_t kvz_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read)
+rtp_error_t uvg_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read)
 {
     socklen_t *len_ptr = nullptr;
     socklen_t len      = sizeof(sockaddr_in);
@@ -460,7 +460,7 @@ rtp_error_t kvz_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags,
 #endif
 }
 
-rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read)
+rtp_error_t uvg_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read)
 {
     if (recv_handler_)
         return recv_handler_(socket_, buf, buf_len, flags, sender, bytes_read);
@@ -468,7 +468,7 @@ rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, s
     return __recvfrom(buf, buf_len, flags, sender, bytes_read);
 }
 
-rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
+rtp_error_t uvg_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
 {
     if (recv_handler_)
         return recv_handler_(socket_, buf, buf_len, flags, nullptr, bytes_read);
@@ -476,7 +476,7 @@ rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, i
     return __recvfrom(buf, buf_len, flags, nullptr, bytes_read);
 }
 
-rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender)
+rtp_error_t uvg_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender)
 {
     if (recv_handler_)
         return recv_handler_(socket_, buf, buf_len, flags, sender, nullptr);
@@ -484,7 +484,7 @@ rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, s
     return __recvfrom(buf, buf_len, flags, sender, nullptr);
 }
 
-rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags)
+rtp_error_t uvg_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags)
 {
     if (recv_handler_)
         return recv_handler_(socket_, buf, buf_len, flags, nullptr, nullptr);
@@ -492,7 +492,7 @@ rtp_error_t kvz_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags)
     return __recvfrom(buf, buf_len, flags, nullptr, nullptr);
 }
 
-void kvz_rtp::socket::install_ll_recv(
+void uvg_rtp::socket::install_ll_recv(
     rtp_error_t (*recv)(socket_t, uint8_t *, size_t , int , sockaddr_in *, int *)
 )
 {
@@ -500,7 +500,7 @@ void kvz_rtp::socket::install_ll_recv(
     recv_handler_ = recv;
 }
 
-void kvz_rtp::socket::install_ll_sendto(
+void uvg_rtp::socket::install_ll_sendto(
     rtp_error_t (*sendto)(socket_t, sockaddr_in&, uint8_t *, size_t, int, int *)
 )
 {
@@ -508,7 +508,7 @@ void kvz_rtp::socket::install_ll_sendto(
     sendto_handler_ = sendto;
 }
 
-void kvz_rtp::socket::install_ll_sendtov(
+void uvg_rtp::socket::install_ll_sendtov(
     rtp_error_t (*sendtov)(socket_t, sockaddr_in&, std::vector<std::pair<size_t, uint8_t *>>, int, int *)
 )
 {
@@ -516,7 +516,7 @@ void kvz_rtp::socket::install_ll_sendtov(
     sendtov_handler_ = sendtov;
 }
 
-sockaddr_in& kvz_rtp::socket::get_out_address()
+sockaddr_in& uvg_rtp::socket::get_out_address()
 {
     return addr_;
 }

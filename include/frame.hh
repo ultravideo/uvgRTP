@@ -14,7 +14,7 @@
 
 #define INVALID_FRAME_TYPE(ft) (ft < RTP_FT_GENERIC|| ft > RTP_FT_HEVC_FU)
 
-namespace kvz_rtp {
+namespace uvg_rtp {
     namespace frame {
         enum HEADER_SIZES {
             HEADER_SIZE_RTP      = 12,
@@ -200,13 +200,13 @@ namespace kvz_rtp {
          *
          * Return RTP_OK on successs
          * Return RTP_INVALID_VALUE if "frame" is nullptr */
-        rtp_error_t dealloc_frame(kvz_rtp::frame::rtp_frame *frame);
+        rtp_error_t dealloc_frame(uvg_rtp::frame::rtp_frame *frame);
 
         /* Deallocate ZRTP frame
          *
          * Return RTP_OK on successs
          * Return RTP_INVALID_VALUE if "frame" is nullptr */
-        rtp_error_t dealloc_frame(kvz_rtp::frame::zrtp_frame *frame);
+        rtp_error_t dealloc_frame(uvg_rtp::frame::zrtp_frame *frame);
 
         /* Deallocate various types of RTCP frames
          *

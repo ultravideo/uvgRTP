@@ -5,7 +5,7 @@
 #include "media_stream.hh"
 #include "random.hh"
 
-kvz_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
+uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     srtp_(nullptr),
     socket_(),
     ctx_config_(),
@@ -17,12 +17,12 @@ kvz_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port
     flags_    = flags;
     src_port_ = src_port;
     dst_port_ = dst_port;
-    key_      = kvz_rtp::random::generate_32();
+    key_      = uvg_rtp::random::generate_32();
 
     ctx_config_.flags = flags;
 }
 
-kvz_rtp::media_stream::media_stream(
+uvg_rtp::media_stream::media_stream(
     std::string remote_addr, std::string local_addr,
     int src_port, int dst_port,
     rtp_format_t fmt, int flags
@@ -32,7 +32,7 @@ kvz_rtp::media_stream::media_stream(
     laddr_ = local_addr;
 }
 
-kvz_rtp::media_stream::~media_stream()
+uvg_rtp::media_stream::~media_stream()
 {
     sender_->destroy();
     receiver_->stop();
@@ -43,7 +43,7 @@ kvz_rtp::media_stream::~media_stream()
     delete srtp_;
 }
 
-rtp_error_t kvz_rtp::media_stream::init_connection()
+rtp_error_t uvg_rtp::media_stream::init_connection()
 {
     rtp_error_t ret = RTP_OK;
 
@@ -82,16 +82,16 @@ rtp_error_t kvz_rtp::media_stream::init_connection()
     return ret;
 }
 
-rtp_error_t kvz_rtp::media_stream::init()
+rtp_error_t uvg_rtp::media_stream::init()
 {
     if (init_connection() != RTP_OK) {
         LOG_ERROR("Failed to initialize the underlying socket: %s!", strerror(errno));
         return RTP_GENERIC_ERROR;
     }
 
-    rtp_      = new kvz_rtp::rtp(fmt_);
-    sender_   = new kvz_rtp::sender(socket_, ctx_config_, fmt_, rtp_);
-    receiver_ = new kvz_rtp::receiver(socket_, ctx_config_, fmt_, rtp_);
+    rtp_      = new uvg_rtp::rtp(fmt_);
+    sender_   = new uvg_rtp::sender(socket_, ctx_config_, fmt_, rtp_);
+    receiver_ = new uvg_rtp::receiver(socket_, ctx_config_, fmt_, rtp_);
 
     sender_->init();
     receiver_->start();
@@ -100,7 +100,7 @@ rtp_error_t kvz_rtp::media_stream::init()
 }
 
 #ifdef __RTP_CRYPTO__
-rtp_error_t kvz_rtp::media_stream::init(kvz_rtp::zrtp *zrtp)
+rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
 {
     if (init_connection() != RTP_OK) {
         LOG_ERROR("Failed to initialize the underlying socket: %s!", strerror(errno));
@@ -114,7 +114,7 @@ rtp_error_t kvz_rtp::media_stream::init(kvz_rtp::zrtp *zrtp)
      * before returning the media stream for user */
     rtp_error_t ret = RTP_OK;
 
-    if ((rtp_ = new kvz_rtp::rtp(fmt_)) == nullptr)
+    if ((rtp_ = new uvg_rtp::rtp(fmt_)) == nullptr)
         return RTP_MEMORY_ERROR;
 
     if ((ret = zrtp->init(rtp_->get_ssrc(), socket_.get_raw_socket(), addr_out_)) != RTP_OK) {
@@ -122,7 +122,7 @@ rtp_error_t kvz_rtp::media_stream::init(kvz_rtp::zrtp *zrtp)
         return ret;
     }
 
-    if ((srtp_ = new kvz_rtp::srtp()) == nullptr)
+    if ((srtp_ = new uvg_rtp::srtp()) == nullptr)
         return RTP_MEMORY_ERROR;
 
     if ((ret = srtp_->init_zrtp(SRTP, rtp_, zrtp)) != RTP_OK) {
@@ -132,8 +132,8 @@ rtp_error_t kvz_rtp::media_stream::init(kvz_rtp::zrtp *zrtp)
 
     socket_.set_srtp(srtp_);
 
-    sender_   = new kvz_rtp::sender(socket_, ctx_config_, fmt_, rtp_);
-    receiver_ = new kvz_rtp::receiver(socket_, ctx_config_, fmt_, rtp_);
+    sender_   = new uvg_rtp::sender(socket_, ctx_config_, fmt_, rtp_);
+    receiver_ = new uvg_rtp::receiver(socket_, ctx_config_, fmt_, rtp_);
 
     sender_->init();
     receiver_->start();
@@ -142,22 +142,22 @@ rtp_error_t kvz_rtp::media_stream::init(kvz_rtp::zrtp *zrtp)
 }
 #endif
 
-rtp_error_t kvz_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, int flags)
+rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, int flags)
 {
     return sender_->push_frame(data, data_len, flags);
 }
 
-rtp_error_t kvz_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
+rtp_error_t uvg_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
 {
     return sender_->push_frame(std::move(data), data_len, flags);
 }
 
-kvz_rtp::frame::rtp_frame *kvz_rtp::media_stream::pull_frame()
+uvg_rtp::frame::rtp_frame *uvg_rtp::media_stream::pull_frame()
 {
     return receiver_->pull_frame();
 }
 
-rtp_error_t kvz_rtp::media_stream::install_receive_hook(void *arg, void (*hook)(void *, kvz_rtp::frame::rtp_frame *))
+rtp_error_t uvg_rtp::media_stream::install_receive_hook(void *arg, void (*hook)(void *, uvg_rtp::frame::rtp_frame *))
 {
     if (!hook)
         return RTP_INVALID_VALUE;
@@ -167,7 +167,7 @@ rtp_error_t kvz_rtp::media_stream::install_receive_hook(void *arg, void (*hook)(
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::media_stream::install_deallocation_hook(void (*hook)(void *))
+rtp_error_t uvg_rtp::media_stream::install_deallocation_hook(void (*hook)(void *))
 {
     if (!hook)
         return RTP_INVALID_VALUE;
@@ -177,7 +177,7 @@ rtp_error_t kvz_rtp::media_stream::install_deallocation_hook(void (*hook)(void *
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::media_stream::install_notify_hook(void *arg, void (*hook)(void *, int))
+rtp_error_t uvg_rtp::media_stream::install_notify_hook(void *arg, void (*hook)(void *, int))
 {
     if (!hook)
         return RTP_INVALID_VALUE;
@@ -187,17 +187,17 @@ rtp_error_t kvz_rtp::media_stream::install_notify_hook(void *arg, void (*hook)(v
     return RTP_OK;
 }
 
-void kvz_rtp::media_stream::set_media_config(void *config)
+void uvg_rtp::media_stream::set_media_config(void *config)
 {
     media_config_ = config;
 }
 
-void *kvz_rtp::media_stream::get_media_config()
+void *uvg_rtp::media_stream::get_media_config()
 {
     return media_config_;
 }
 
-rtp_error_t kvz_rtp::media_stream::configure_ctx(int flag, ssize_t value)
+rtp_error_t uvg_rtp::media_stream::configure_ctx(int flag, ssize_t value)
 {
     if (flag < 0 || flag >= RCC_LAST || value < 0)
         return RTP_INVALID_VALUE;
@@ -207,7 +207,7 @@ rtp_error_t kvz_rtp::media_stream::configure_ctx(int flag, ssize_t value)
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::media_stream::configure_ctx(int flag)
+rtp_error_t uvg_rtp::media_stream::configure_ctx(int flag)
 {
     if (flag < 0 || flag >= RCE_LAST)
         return RTP_INVALID_VALUE;
@@ -217,7 +217,7 @@ rtp_error_t kvz_rtp::media_stream::configure_ctx(int flag)
     return RTP_OK;
 }
 
-uint32_t kvz_rtp::media_stream::get_key()
+uint32_t uvg_rtp::media_stream::get_key()
 {
     return key_;
 }

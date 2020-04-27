@@ -34,7 +34,7 @@ typedef std::unordered_map<uint32_t, struct hevc_info> frame_info_t;
 
 struct hevc_info {
     /* clock reading when the first fragment is received */
-    kvz_rtp::clock::hrc::hrc_t sframe_time;
+    uvg_rtp::clock::hrc::hrc_t sframe_time;
 
     /* sequence number of the frame with s-bit */
     uint32_t s_seq;
@@ -50,10 +50,10 @@ struct hevc_info {
 
     /* map of frame's fragments,
      * allows out-of-order insertion and loop-through in order */
-    std::map<uint16_t, kvz_rtp::frame::rtp_frame *> fragments;
+    std::map<uint16_t, uvg_rtp::frame::rtp_frame *> fragments;
 };
 
-static int __get_frag(kvz_rtp::frame::rtp_frame *frame)
+static int __get_frag(uvg_rtp::frame::rtp_frame *frame)
 {
     bool first_frag = frame->payload[2] & 0x80;
     bool last_frag  = frame->payload[2] & 0x40;
@@ -73,7 +73,7 @@ static int __get_frag(kvz_rtp::frame::rtp_frame *frame)
     return FT_MIDDLE;
 }
 
-static inline uint8_t __get_nal(kvz_rtp::frame::rtp_frame *frame)
+static inline uint8_t __get_nal(uvg_rtp::frame::rtp_frame *frame)
 {
     switch (frame->payload[2] & 0x3f) {
         case 19: return NT_INTRA;
@@ -86,7 +86,7 @@ static inline uint8_t __get_nal(kvz_rtp::frame::rtp_frame *frame)
 
 static inline bool __frame_late(hevc_info& hinfo)
 {
-    return (kvz_rtp::clock::hrc::diff_now(hinfo.sframe_time) >= RTP_FRAME_MAX_DELAY);
+    return (uvg_rtp::clock::hrc::diff_now(hinfo.sframe_time) >= RTP_FRAME_MAX_DELAY);
 }
 
 static void __drop_frame(frame_info_t& finfo, uint32_t ts)
@@ -97,24 +97,24 @@ static void __drop_frame(frame_info_t& finfo, uint32_t ts)
     LOG_INFO("Dropping frame %u, %u - %u", ts, s_seq, e_seq);
 
     for (auto& fragment : finfo.at(ts).fragments)
-        (void)kvz_rtp::frame::dealloc_frame(fragment.second);
+        (void)uvg_rtp::frame::dealloc_frame(fragment.second);
 
     finfo.erase(ts);
 }
 
-rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
+rtp_error_t __hevc_receiver(uvg_rtp::receiver *receiver)
 {
     int nread = 0;
     frame_info_t finfo;
     rtp_error_t ret = RTP_OK;
-    kvz_rtp::frame::rtp_frame *frame;
-    kvz_rtp::socket socket = receiver->get_socket();
+    uvg_rtp::frame::rtp_frame *frame;
+    uvg_rtp::socket socket = receiver->get_socket();
     bool enable_idelay = !(receiver->get_conf().flags & RCE_HEVC_NO_INTRA_DELAY);
     std::unordered_set<uint32_t> dropped;
 
     /* Use "intra" to keep track of intra frames
      *
-     * If kvzRTP is in the process of receiving fragments of an incomplete intra frame,
+     * If uvgRTP is in the process of receiving fragments of an incomplete intra frame,
      * "intra" shall be the timestamp value of that intra frame.
      * This means that when we're receiving packets out of order and an inter frame is complete
      * while "intra" contains value other than INVALID_TS, we drop the inter frame and wait for
@@ -220,8 +220,8 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
              *
              * Invalid packets (such as very late packets) are discarded automatically without further processing */
             const size_t HEVC_HDR_SIZE =
-                kvz_rtp::frame::HEADER_SIZE_HEVC_NAL +
-                kvz_rtp::frame::HEADER_SIZE_HEVC_FU;
+                uvg_rtp::frame::HEADER_SIZE_HEVC_NAL +
+                uvg_rtp::frame::HEADER_SIZE_HEVC_FU;
 
             uint32_t c_ts    = frame->header.timestamp;
             uint32_t c_seq   = frame->header.seq;
@@ -235,7 +235,7 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
 
             if (frag_type == FT_INVALID) {
                 LOG_WARN("invalid frame received!");
-                (void)kvz_rtp::frame::dealloc_frame(frame);
+                (void)uvg_rtp::frame::dealloc_frame(frame);
                 continue;
             }
 
@@ -263,7 +263,7 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
                 if (frag_type == FT_START) finfo[c_ts].s_seq = c_seq;
                 if (frag_type == FT_END)   finfo[c_ts].e_seq = c_seq;
 
-                finfo[c_ts].sframe_time   = kvz_rtp::clock::hrc::now();
+                finfo[c_ts].sframe_time   = uvg_rtp::clock::hrc::now();
                 finfo[c_ts].total_size    = frame->payload_len - HEVC_HDR_SIZE;
                 finfo[c_ts].pkts_received = 1;
 
@@ -306,15 +306,15 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
                         (uint8_t)((frame->payload[0] & 0x81) | ((frame->payload[2] & 0x3f) << 1)),
                         (uint8_t)frame->payload[1]
                     };
-                    kvz_rtp::frame::rtp_frame *out = kvz_rtp::frame::alloc_rtp_frame();
+                    uvg_rtp::frame::rtp_frame *out = uvg_rtp::frame::alloc_rtp_frame();
 
-                    out->payload_len = finfo[c_ts].total_size + kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
+                    out->payload_len = finfo[c_ts].total_size + uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
                     out->payload     = new uint8_t[out->payload_len];
 
                     std::memcpy(&out->header,  &frame->header, RTP_HDR_SIZE);
                     std::memcpy(out->payload,  nal_header,     NAL_HDR_SIZE);
 
-                    fptr += kvz_rtp::frame::HEADER_SIZE_HEVC_NAL;
+                    fptr += uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
 
                     for (auto& fragment : finfo.at(c_ts).fragments) {
                         std::memcpy(
@@ -323,7 +323,7 @@ rtp_error_t __hevc_receiver(kvz_rtp::receiver *receiver)
                             fragment.second->payload_len - HEVC_HDR_SIZE
                         );
                         fptr += fragment.second->payload_len - HEVC_HDR_SIZE;
-                        (void)kvz_rtp::frame::dealloc_frame(fragment.second);
+                        (void)uvg_rtp::frame::dealloc_frame(fragment.second);
                     }
 
                     if (nal_type == NT_INTRA)

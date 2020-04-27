@@ -8,10 +8,10 @@
 
 #define ZRTP_ERROR "Error   "
 
-kvz_rtp::zrtp_msg::error::error(int error_code)
+uvg_rtp::zrtp_msg::error::error(int error_code)
 {
     len_   = sizeof(zrtp_error);
-    frame_ = kvz_rtp::frame::alloc_zrtp_frame(len_);
+    frame_ = uvg_rtp::frame::alloc_zrtp_frame(len_);
 
     zrtp_error *msg = (zrtp_error *)frame_;
 
@@ -27,16 +27,16 @@ kvz_rtp::zrtp_msg::error::error(int error_code)
 
     msg->error = error_code;
 
-    kvz_rtp::crypto::crc32::get_crc32((uint8_t *)frame_, len_ - 4, &msg->crc);
+    uvg_rtp::crypto::crc32::get_crc32((uint8_t *)frame_, len_ - 4, &msg->crc);
 }
 
-kvz_rtp::zrtp_msg::error::~error()
+uvg_rtp::zrtp_msg::error::~error()
 {
     LOG_DEBUG("Freeing ZRTP Error message...");
-    (void)kvz_rtp::frame::dealloc_frame(frame_);
+    (void)uvg_rtp::frame::dealloc_frame(frame_);
 }
 
-rtp_error_t kvz_rtp::zrtp_msg::error::send_msg(socket_t& socket, sockaddr_in& addr)
+rtp_error_t uvg_rtp::zrtp_msg::error::send_msg(socket_t& socket, sockaddr_in& addr)
 {
 #ifdef __linux
     if (::sendto(socket, (void *)frame_, len_, 0, (const struct sockaddr *)&addr, (socklen_t)sizeof(addr)) < 0) {
@@ -60,7 +60,7 @@ rtp_error_t kvz_rtp::zrtp_msg::error::send_msg(socket_t& socket, sockaddr_in& ad
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::zrtp_msg::error::parse_msg(kvz_rtp::zrtp_msg::receiver& receiver)
+rtp_error_t uvg_rtp::zrtp_msg::error::parse_msg(uvg_rtp::zrtp_msg::receiver& receiver)
 {
     (void)receiver;
 

@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-namespace kvz_rtp {
+namespace uvg_rtp {
     namespace clock {
 
         /* network time protocol */

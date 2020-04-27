@@ -3,7 +3,7 @@
 #include <map>
 #include "session.hh"
 
-namespace kvz_rtp {
+namespace uvg_rtp {
     
     class context {
         public:
@@ -11,17 +11,17 @@ namespace kvz_rtp {
             ~context();
 
             /* Create a new session with remote participant */
-            kvz_rtp::session *create_session(std::string addr);
+            uvg_rtp::session *create_session(std::string addr);
 
             /* Create a new session with remote participant
              * Bind ourselves to interface pointed to by "local_addr" */
-            kvz_rtp::session *create_session(std::string remote_addr, std::string local_addr);
+            uvg_rtp::session *create_session(std::string remote_addr, std::string local_addr);
 
             /* Destroy session and all media streams
              *
              * Return RTP_INVALID_VALUE if "session" is nullptr
              * Return RTP_NOT_FOUND if "session" has not been allocated from this context */
-            rtp_error_t destroy_session(kvz_rtp::session *session);
+            rtp_error_t destroy_session(uvg_rtp::session *session);
 
             std::string& get_cname();
 

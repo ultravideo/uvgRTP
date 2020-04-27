@@ -5,17 +5,17 @@
 #include "send.hh"
 #include "util.hh"
 
-kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame()
+uvg_rtp::frame::rtp_frame *uvg_rtp::frame::alloc_rtp_frame()
 {
-    kvz_rtp::frame::rtp_frame *frame = new kvz_rtp::frame::rtp_frame;
+    uvg_rtp::frame::rtp_frame *frame = new uvg_rtp::frame::rtp_frame;
 
     if (!frame) {
         rtp_errno = RTP_MEMORY_ERROR;
         return nullptr;
     }
 
-    std::memset(&frame->header, 0, sizeof(kvz_rtp::frame::rtp_header));
-    std::memset(frame,          0, sizeof(kvz_rtp::frame::rtp_frame));
+    std::memset(&frame->header, 0, sizeof(uvg_rtp::frame::rtp_header));
+    std::memset(frame,          0, sizeof(uvg_rtp::frame::rtp_frame));
 
     frame->payload   = nullptr;
     frame->probation = nullptr;
@@ -23,11 +23,11 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame()
     return frame;
 }
 
-kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame(size_t payload_len)
+uvg_rtp::frame::rtp_frame *uvg_rtp::frame::alloc_rtp_frame(size_t payload_len)
 {
-    kvz_rtp::frame::rtp_frame *frame = nullptr;
+    uvg_rtp::frame::rtp_frame *frame = nullptr;
 
-    if ((frame = kvz_rtp::frame::alloc_rtp_frame()) == nullptr)
+    if ((frame = uvg_rtp::frame::alloc_rtp_frame()) == nullptr)
         return nullptr;
 
     frame->payload     = new uint8_t[payload_len];
@@ -36,11 +36,11 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame(size_t payload_len)
     return frame;
 }
 
-kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame(size_t payload_len, size_t pz_size)
+uvg_rtp::frame::rtp_frame *uvg_rtp::frame::alloc_rtp_frame(size_t payload_len, size_t pz_size)
 {
-    kvz_rtp::frame::rtp_frame *frame = nullptr;
+    uvg_rtp::frame::rtp_frame *frame = nullptr;
 
-    if ((frame = kvz_rtp::frame::alloc_rtp_frame()) == nullptr)
+    if ((frame = uvg_rtp::frame::alloc_rtp_frame()) == nullptr)
         return nullptr;
 
     frame->probation     = new uint8_t[pz_size * MAX_PAYLOAD + payload_len];
@@ -53,7 +53,7 @@ kvz_rtp::frame::rtp_frame *kvz_rtp::frame::alloc_rtp_frame(size_t payload_len, s
     return frame;
 }
 
-rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtp_frame *frame)
+rtp_error_t uvg_rtp::frame::dealloc_frame(uvg_rtp::frame::rtp_frame *frame)
 {
     if (!frame)
         return RTP_INVALID_VALUE;
@@ -76,7 +76,7 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtp_frame *frame)
     return RTP_OK;
 }
 
-kvz_rtp::frame::zrtp_frame *kvz_rtp::frame::alloc_zrtp_frame(size_t size)
+uvg_rtp::frame::zrtp_frame *uvg_rtp::frame::alloc_zrtp_frame(size_t size)
 {
     if (size == 0) {
         rtp_errno = RTP_INVALID_VALUE;
@@ -85,7 +85,7 @@ kvz_rtp::frame::zrtp_frame *kvz_rtp::frame::alloc_zrtp_frame(size_t size)
 
     LOG_DEBUG("Allocate ZRTP frame, packet size %zu", size);
 
-    kvz_rtp::frame::zrtp_frame *frame = (kvz_rtp::frame::zrtp_frame *)new uint8_t[size];
+    uvg_rtp::frame::zrtp_frame *frame = (uvg_rtp::frame::zrtp_frame *)new uint8_t[size];
 
     if (frame == nullptr) {
         rtp_errno = RTP_MEMORY_ERROR;
@@ -95,7 +95,7 @@ kvz_rtp::frame::zrtp_frame *kvz_rtp::frame::alloc_zrtp_frame(size_t size)
     return frame;
 }
 
-rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::zrtp_frame *frame)
+rtp_error_t uvg_rtp::frame::dealloc_frame(uvg_rtp::frame::zrtp_frame *frame)
 {
     if (!frame)
         return RTP_INVALID_VALUE;
@@ -104,7 +104,7 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::zrtp_frame *frame)
     return RTP_OK;
 }
 
-kvz_rtp::frame::rtcp_sender_frame *kvz_rtp::frame::alloc_rtcp_sender_frame(size_t nblocks)
+uvg_rtp::frame::rtcp_sender_frame *uvg_rtp::frame::alloc_rtcp_sender_frame(size_t nblocks)
 {
     size_t total_size =
         sizeof(rtcp_header) +
@@ -112,7 +112,7 @@ kvz_rtp::frame::rtcp_sender_frame *kvz_rtp::frame::alloc_rtcp_sender_frame(size_
         sizeof(rtcp_sender_info) +
         sizeof(rtcp_report_block) * nblocks;
 
-    auto *frame = (kvz_rtp::frame::rtcp_sender_frame *)new uint8_t[total_size];
+    auto *frame = (uvg_rtp::frame::rtcp_sender_frame *)new uint8_t[total_size];
 
     if (!frame) {
         LOG_ERROR("Failed to allocate memory for RTCP sender report");
@@ -122,7 +122,7 @@ kvz_rtp::frame::rtcp_sender_frame *kvz_rtp::frame::alloc_rtcp_sender_frame(size_
 
     frame->header.version  = 2;
     frame->header.padding  = 0;
-    frame->header.pkt_type = kvz_rtp::frame::RTCP_FT_SR;
+    frame->header.pkt_type = uvg_rtp::frame::RTCP_FT_SR;
     frame->header.length   = total_size;
     frame->header.count    = nblocks;
 
@@ -135,7 +135,7 @@ kvz_rtp::frame::rtcp_sender_frame *kvz_rtp::frame::alloc_rtcp_sender_frame(size_
     return frame;
 }
 
-kvz_rtp::frame::rtcp_receiver_frame *kvz_rtp::frame::alloc_rtcp_receiver_frame(size_t nblocks)
+uvg_rtp::frame::rtcp_receiver_frame *uvg_rtp::frame::alloc_rtcp_receiver_frame(size_t nblocks)
 {
     if (nblocks == 0) {
         LOG_ERROR("Cannot send 0 report blocks!");
@@ -148,7 +148,7 @@ kvz_rtp::frame::rtcp_receiver_frame *kvz_rtp::frame::alloc_rtcp_receiver_frame(s
         sizeof(uint32_t) +
         sizeof(rtcp_report_block) * nblocks;
 
-    auto *frame = (kvz_rtp::frame::rtcp_receiver_frame *)new uint8_t[total_size];
+    auto *frame = (uvg_rtp::frame::rtcp_receiver_frame *)new uint8_t[total_size];
 
     if (!frame) {
         LOG_ERROR("Failed to allocate memory for RTCP sender report");
@@ -158,7 +158,7 @@ kvz_rtp::frame::rtcp_receiver_frame *kvz_rtp::frame::alloc_rtcp_receiver_frame(s
 
     frame->header.version  = 2;
     frame->header.padding  = 0;
-    frame->header.pkt_type = kvz_rtp::frame::RTCP_FT_RR;
+    frame->header.pkt_type = uvg_rtp::frame::RTCP_FT_RR;
     frame->header.length   = total_size;
     frame->header.count    = nblocks;
 
@@ -168,7 +168,7 @@ kvz_rtp::frame::rtcp_receiver_frame *kvz_rtp::frame::alloc_rtcp_receiver_frame(s
     return frame;
 }
 
-kvz_rtp::frame::rtcp_sdes_frame *kvz_rtp::frame::alloc_rtcp_sdes_frame(size_t ssrc_count, size_t total_len)
+uvg_rtp::frame::rtcp_sdes_frame *uvg_rtp::frame::alloc_rtcp_sdes_frame(size_t ssrc_count, size_t total_len)
 {
     if (total_len == 0) {
         LOG_ERROR("Cannot allocate empty SDES packet!");
@@ -178,7 +178,7 @@ kvz_rtp::frame::rtcp_sdes_frame *kvz_rtp::frame::alloc_rtcp_sdes_frame(size_t ss
 
     size_t total_size = sizeof(rtcp_header) + total_len;
 
-    auto *frame = (kvz_rtp::frame::rtcp_sdes_frame *)new uint8_t[total_size];
+    auto *frame = (uvg_rtp::frame::rtcp_sdes_frame *)new uint8_t[total_size];
 
     if (!frame) {
         LOG_ERROR("Failed to allocate memory for RTCP sender report");
@@ -188,7 +188,7 @@ kvz_rtp::frame::rtcp_sdes_frame *kvz_rtp::frame::alloc_rtcp_sdes_frame(size_t ss
 
     frame->header.version  = 2;
     frame->header.padding  = 0;
-    frame->header.pkt_type = kvz_rtp::frame::RTCP_FT_SDES;
+    frame->header.pkt_type = uvg_rtp::frame::RTCP_FT_SDES;
     frame->header.length   = total_size;
     frame->header.count    = ssrc_count;
 
@@ -198,7 +198,7 @@ kvz_rtp::frame::rtcp_sdes_frame *kvz_rtp::frame::alloc_rtcp_sdes_frame(size_t ss
     return frame;
 }
 
-kvz_rtp::frame::rtcp_bye_frame *kvz_rtp::frame::alloc_rtcp_bye_frame(size_t ssrc_count)
+uvg_rtp::frame::rtcp_bye_frame *uvg_rtp::frame::alloc_rtcp_bye_frame(size_t ssrc_count)
 {
     if (ssrc_count == 0) {
         LOG_ERROR("Cannot have 0 SSRC/CSRC!");
@@ -207,7 +207,7 @@ kvz_rtp::frame::rtcp_bye_frame *kvz_rtp::frame::alloc_rtcp_bye_frame(size_t ssrc
     }
 
     size_t total_size = sizeof(rtcp_header) + sizeof(uint32_t) * ssrc_count;
-    auto *frame       = (kvz_rtp::frame::rtcp_bye_frame *)new uint8_t[total_size];
+    auto *frame       = (uvg_rtp::frame::rtcp_bye_frame *)new uint8_t[total_size];
 
     if (!frame) {
         LOG_ERROR("Failed to allocate memory for RTCP sender report");
@@ -217,14 +217,14 @@ kvz_rtp::frame::rtcp_bye_frame *kvz_rtp::frame::alloc_rtcp_bye_frame(size_t ssrc
 
     frame->header.version  = 2;
     frame->header.padding  = 0;
-    frame->header.pkt_type = kvz_rtp::frame::RTCP_FT_BYE;
+    frame->header.pkt_type = uvg_rtp::frame::RTCP_FT_BYE;
     frame->header.length   = total_size;
     frame->header.count    = ssrc_count;
 
     return frame;
 }
 
-kvz_rtp::frame::rtcp_app_frame *kvz_rtp::frame::alloc_rtcp_app_frame(std::string name, uint8_t subtype, size_t payload_len)
+uvg_rtp::frame::rtcp_app_frame *uvg_rtp::frame::alloc_rtcp_app_frame(std::string name, uint8_t subtype, size_t payload_len)
 {
     if (name == "" || payload_len == 0) {
         rtp_errno = RTP_INVALID_VALUE;
@@ -232,7 +232,7 @@ kvz_rtp::frame::rtcp_app_frame *kvz_rtp::frame::alloc_rtcp_app_frame(std::string
     }
 
     size_t total_size = sizeof(rtcp_app_frame) + payload_len;
-    auto *frame       = (kvz_rtp::frame::rtcp_app_frame *)new uint8_t[total_size];
+    auto *frame       = (uvg_rtp::frame::rtcp_app_frame *)new uint8_t[total_size];
 
     if (!frame) {
         LOG_ERROR("Failed to allocate memory for RTCP sender report");
@@ -242,14 +242,14 @@ kvz_rtp::frame::rtcp_app_frame *kvz_rtp::frame::alloc_rtcp_app_frame(std::string
 
     frame->version     = 2;
     frame->padding     = 0;
-    frame->pkt_type    = kvz_rtp::frame::RTCP_FT_APP;
+    frame->pkt_type    = uvg_rtp::frame::RTCP_FT_APP;
     frame->pkt_subtype = subtype;
     frame->length      = total_size;
 
     return frame;
 }
 
-rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtcp_sender_frame *frame)
+rtp_error_t uvg_rtp::frame::dealloc_frame(uvg_rtp::frame::rtcp_sender_frame *frame)
 {
     if (!frame)
         return RTP_INVALID_VALUE;
@@ -258,7 +258,7 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtcp_sender_frame *fra
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtcp_receiver_frame *frame)
+rtp_error_t uvg_rtp::frame::dealloc_frame(uvg_rtp::frame::rtcp_receiver_frame *frame)
 {
     if (!frame)
         return RTP_INVALID_VALUE;
@@ -267,7 +267,7 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(kvz_rtp::frame::rtcp_receiver_frame *f
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::frame::dealloc_frame(rtcp_sdes_frame *frame)
+rtp_error_t uvg_rtp::frame::dealloc_frame(rtcp_sdes_frame *frame)
 {
     if (!frame)
         return RTP_INVALID_VALUE;
@@ -276,7 +276,7 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(rtcp_sdes_frame *frame)
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::frame::dealloc_frame(rtcp_bye_frame *frame)
+rtp_error_t uvg_rtp::frame::dealloc_frame(rtcp_bye_frame *frame)
 {
     if (!frame)
         return RTP_INVALID_VALUE;
@@ -285,7 +285,7 @@ rtp_error_t kvz_rtp::frame::dealloc_frame(rtcp_bye_frame *frame)
     return RTP_OK;
 }
 
-rtp_error_t kvz_rtp::frame::dealloc_frame(rtcp_app_frame *frame)
+rtp_error_t uvg_rtp::frame::dealloc_frame(rtcp_app_frame *frame)
 {
     if (!frame)
         return RTP_INVALID_VALUE;

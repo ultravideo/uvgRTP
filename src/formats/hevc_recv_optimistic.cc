@@ -151,7 +151,7 @@ struct inactive_info {
     size_t total_size;
     size_t received_size;
 
-    kvz_rtp::frame::rtp_frame *frame;
+    uvg_rtp::frame::rtp_frame *frame;
 
     size_t next_off;
 
@@ -161,7 +161,7 @@ struct inactive_info {
     uint32_t s_seq;
     uint32_t e_seq;
 
-    kvz_rtp::clock::hrc::hrc_t start; /* clock reading when the first fragment is received */
+    uvg_rtp::clock::hrc::hrc_t start; /* clock reading when the first fragment is received */
 };
 
 /* TODO: muuta recv_buffer sisältämään kaiken tämän turhan datan sijaan
@@ -170,7 +170,7 @@ struct inactive_info {
 
 struct frame_info {
     /* One big frame for all fragments, this is resized if all space is consumed */
-    kvz_rtp::frame::rtp_frame *frame;
+    uvg_rtp::frame::rtp_frame *frame;
 
     size_t total_size;    /* allocated size */
     size_t received_size; /* used size */
@@ -189,7 +189,7 @@ struct frame_info {
     /* If probation zone is disabled or all its memory has been used
      * fragments that cannot be relocated are pushed here and when all
      * fragments have been received, the fragments are copied from probation to the frame */
-    std::vector<kvz_rtp::frame::rtp_frame *> probation;
+    std::vector<uvg_rtp::frame::rtp_frame *> probation;
 
     /* Store all received sequence numbers here so we can detect duplicate packets */
     std::unordered_set<uint32_t> seqs;
@@ -201,12 +201,12 @@ struct frame_info {
     uint32_t last_seq;
 
     /* clock reading when the first fragment is received */
-    kvz_rtp::clock::hrc::hrc_t start;
+    uvg_rtp::clock::hrc::hrc_t start;
 };
 
 struct frames {
     /* Global (and overwritable) buffers used for fragment receiving */
-    kvz_rtp::frame::rtp_header rtp_headers[MAX_DATAGRAMS];
+    uvg_rtp::frame::rtp_header rtp_headers[MAX_DATAGRAMS];
     uint8_t hevc_ext_buf[MAX_DATAGRAMS][NAL_HDR_SIZE + FU_HDR_SIZE];
 
 #ifdef _WIN32
@@ -252,7 +252,7 @@ struct frames {
     std::map<uint32_t, uint16_t> all_seqs;
 
     /* Keep track of late frames so that they can be discarded without further processing */
-    std::unordered_map<uint32_t, kvz_rtp::clock::hrc::hrc_t> late_frames;
+    std::unordered_map<uint32_t, uvg_rtp::clock::hrc::hrc_t> late_frames;
 
     /* Sequence number of the previous frame/previous frames's last fragment
      *
@@ -334,8 +334,8 @@ static inline size_t __calculate_offset(size_t start, size_t index)
 }
 
 static inline void __init_headers(
-    kvz_rtp::frame::rtp_frame *frame,
-    kvz_rtp::frame::rtp_header *header,
+    uvg_rtp::frame::rtp_frame *frame,
+    uvg_rtp::frame::rtp_header *header,
     uint8_t *hevc_ext_buf
 )
 {
@@ -378,7 +378,7 @@ static void __relocate_temporarily(
     }
 
 alloc_normal:
-    auto tmp_frame = kvz_rtp::frame::alloc_rtp_frame(size);
+    auto tmp_frame = uvg_rtp::frame::alloc_rtp_frame(size);
     src.relocs++;
 
     std::memcpy(tmp_frame->payload, src.frame->payload + offset, size);
@@ -387,15 +387,15 @@ alloc_normal:
 
 static void __reallocate_frame(struct frames& frames, uint32_t timestamp)
 {
-    kvz_rtp::frame::rtp_frame *tmp_frame = nullptr;
+    uvg_rtp::frame::rtp_frame *tmp_frame = nullptr;
     
     if (frames.pz_enabled)
-        tmp_frame = kvz_rtp::frame::alloc_rtp_frame(GET_FRAME(timestamp).total_size + frames.fsah.ras, frames.pz_size);
+        tmp_frame = uvg_rtp::frame::alloc_rtp_frame(GET_FRAME(timestamp).total_size + frames.fsah.ras, frames.pz_size);
     else
-        tmp_frame = kvz_rtp::frame::alloc_rtp_frame(GET_FRAME(timestamp).total_size + frames.fsah.ras);
+        tmp_frame = uvg_rtp::frame::alloc_rtp_frame(GET_FRAME(timestamp).total_size + frames.fsah.ras);
 
     std::memcpy(tmp_frame->payload, GET_FRAME(timestamp).frame->payload, GET_FRAME(timestamp).total_size);
-    (void)kvz_rtp::frame::dealloc_frame(GET_FRAME(timestamp).frame);
+    (void)uvg_rtp::frame::dealloc_frame(GET_FRAME(timestamp).frame);
 
     GET_FRAME(timestamp).frame       = tmp_frame;
     GET_FRAME(timestamp).total_size += frames.fsah.ras;
@@ -409,9 +409,9 @@ static void __create_frame_entry(struct frames& frames, uint32_t timestamp, void
     (void)payload, (void)size;
 
     if (frames.pz_enabled)
-        GET_FRAME(timestamp).frame     = kvz_rtp::frame::alloc_rtp_frame(frames.fsah.das, frames.pz_size);
+        GET_FRAME(timestamp).frame     = uvg_rtp::frame::alloc_rtp_frame(frames.fsah.das, frames.pz_size);
     else
-        GET_FRAME(timestamp).frame     = kvz_rtp::frame::alloc_rtp_frame(frames.fsah.das);
+        GET_FRAME(timestamp).frame     = uvg_rtp::frame::alloc_rtp_frame(frames.fsah.das);
 
     GET_FRAME(timestamp).total_size    = frames.fsah.das;
     GET_FRAME(timestamp).next_off      = NAL_HDR_SIZE;
@@ -461,9 +461,9 @@ static void __resolve_relocations(struct frames& frames, uint32_t ts)
 
             case RT_FRAME:
             {
-                auto frame__ = (kvz_rtp::frame::rtp_frame *)i.second.ptr;
+                auto frame__ = (uvg_rtp::frame::rtp_frame *)i.second.ptr;
                 std::memcpy(GET_FRAME(ts).frame->payload + off, frame__->payload, i.second.size);
-                (void)kvz_rtp::frame::dealloc_frame(frame__);
+                (void)uvg_rtp::frame::dealloc_frame(frame__);
             }
             break;
         }
@@ -474,7 +474,7 @@ static void __resolve_relocations(struct frames& frames, uint32_t ts)
     GET_FRAME(ts).rinfo.clear();
 }
 
-rtp_error_t __hevc_receiver_optimistic(kvz_rtp::receiver *receiver)
+rtp_error_t __hevc_receiver_optimistic(uvg_rtp::receiver *receiver)
 {
     LOG_INFO("Starting Optimistic HEVC Fragment Receiver...");
 
@@ -601,7 +601,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::receiver *receiver)
 
             if (type == FT_NOT_FRAG) {
                 size_t len = frames.headers[i].msg_len - RTP_HDR_SIZE;
-                auto frame = kvz_rtp::frame::alloc_rtp_frame(len);
+                auto frame = uvg_rtp::frame::alloc_rtp_frame(len);
                 size_t off = __calculate_offset(ACTIVE.next_off, i);
 
                 /* If previous packet set "shift_needed" to true, we don't need to
@@ -660,7 +660,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::receiver *receiver)
                 frames.active_ts   = c_ts;
 
                 frames.finfo.erase(INVALID_TS);
-                GET_FRAME(c_ts).start = kvz_rtp::clock::hrc::now();
+                GET_FRAME(c_ts).start = uvg_rtp::clock::hrc::now();
             }
 
             if (frames.active_ts == c_ts) {
@@ -702,7 +702,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::receiver *receiver)
                     frames.tss.push(c_ts);
 
                     __create_frame_entry(frames, c_ts, NULL, 0);
-                    GET_FRAME(c_ts).start = kvz_rtp::clock::hrc::now();
+                    GET_FRAME(c_ts).start = uvg_rtp::clock::hrc::now();
 
                     if (type == FT_START) {
                         std::memcpy(
@@ -806,8 +806,8 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::receiver *receiver)
          * The second case will move the active frame to inactive hashmap */
         bool change_active_frame = false;
 
-        if (kvz_rtp::clock::hrc::diff_now(ACTIVE.start) > RTP_FRAME_MAX_DELAY && ACTIVE.pkts_received > 0) {
-            fprintf(stderr, "\nframe %u deadline missed! (%zu ms)\n", frames.active_ts, kvz_rtp::clock::hrc::diff_now(ACTIVE.start));
+        if (uvg_rtp::clock::hrc::diff_now(ACTIVE.start) > RTP_FRAME_MAX_DELAY && ACTIVE.pkts_received > 0) {
+            fprintf(stderr, "\nframe %u deadline missed! (%zu ms)\n", frames.active_ts, uvg_rtp::clock::hrc::diff_now(ACTIVE.start));
             fprintf(stderr, "s_seq 0x%x | e_seq 0x%x\n", ACTIVE.s_seq, ACTIVE.e_seq);
 
             frames.late_frames.insert(std::make_pair(frames.active_ts, ACTIVE.start));
@@ -870,7 +870,7 @@ rtp_error_t __hevc_receiver_optimistic(kvz_rtp::receiver *receiver)
             /* Frames are resolved in order meaning that the oldest frame is resolved next */
             if (frames.tss.size() != 0) {
                 frames.active_ts = __get_next_ts(frames.tss);
-                ACTIVE.start     = kvz_rtp::clock::hrc::now();
+                ACTIVE.start     = uvg_rtp::clock::hrc::now();
 
                 /* Resolve all relocations (if any)
                  * Record in relocation info vector doesn't necessarily mean that the
