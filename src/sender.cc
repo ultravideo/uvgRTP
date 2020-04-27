@@ -82,7 +82,7 @@ rtp_error_t kvz_rtp::sender::push_frame(uint8_t *data, size_t data_len, int flag
         std::unique_ptr<uint8_t[]> data_ptr = std::unique_ptr<uint8_t[]>(new uint8_t[data_len]);
         std::memcpy(data_ptr.get(), data, data_len);
 
-        return push_frame(std::move(data_ptr), data_len, 0);
+        return push_frame(std::move(data_ptr), data_len, flags & ~RTP_COPY);
     }
 
     switch (fmt_) {
@@ -100,16 +100,23 @@ rtp_error_t kvz_rtp::sender::push_frame(uint8_t *data, size_t data_len, int flag
 
 rtp_error_t kvz_rtp::sender::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
 {
+    std::unique_ptr<uint8_t[]> data_ptr = std::move(data);
+
+    if (flags & RTP_COPY) {
+        data_ptr = std::unique_ptr<uint8_t[]>(new uint8_t[data_len]);
+        std::memcpy(data_ptr.get(), data.get(), data_len);
+    }
+
     switch (fmt_) {
         case RTP_FORMAT_HEVC:
-            return kvz_rtp::hevc::push_frame(this, std::move(data), data_len, flags);
+            return kvz_rtp::hevc::push_frame(this, std::move(data_ptr), data_len, flags);
 
         case RTP_FORMAT_OPUS:
-            return kvz_rtp::opus::push_frame(this, std::move(data), data_len, flags);
+            return kvz_rtp::opus::push_frame(this, std::move(data_ptr), data_len, flags);
 
         default:
             LOG_DEBUG("Format not recognized, pushing the frame as generic");
-            return kvz_rtp::generic::push_frame(this, std::move(data), data_len, flags);
+            return kvz_rtp::generic::push_frame(this, std::move(data_ptr), data_len, flags);
     }
 }
 
