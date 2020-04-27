@@ -12,3 +12,4 @@ benchmarks/*/receiver
 benchmarks/*/sender
 *.prof
 tags
+*a.out
