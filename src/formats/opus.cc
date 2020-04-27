@@ -47,22 +47,3 @@ rtp_error_t kvz_rtp::opus::push_frame(kvz_rtp::sender *sender, std::unique_ptr<u
 {
     return kvz_rtp::generic::push_frame(sender, std::move(data), data_len, flags);
 }
-
-kvz_rtp::frame::rtp_frame *kvz_rtp::opus::process_opus_frame(
-    kvz_rtp::frame::rtp_frame *frame,
-    std::pair<size_t, std::vector<kvz_rtp::frame::rtp_frame *>>& fu,
-    rtp_error_t& error
-)
-{
-    (void)fu;
-
-    if (!frame) {
-        error = RTP_INVALID_VALUE;
-        
-        LOG_ERROR("Invalid value, unable to process frame!");
-        return nullptr;
-    }
-
-    error = RTP_OK;
-    return frame;
-}
