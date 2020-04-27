@@ -144,7 +144,17 @@ enum RTP_CTX_ENABLE_FLAGS {
      * by kvzRTP but requires packetization because MEDIA_FRAME_SIZE > MTU */
     RCE_FRAGMENT_GENERIC       = 1 << 6,
 
-    RCE_LAST                   = 1 << 7,
+    /* If SRTP is enabled and RCE_INPLACE_ENCRYPTION flag is *not* given,
+     * kvzRTP will make a copy of the frame given to push_frame().
+     *
+     * If the frame is writable and the application no longer needs the frame,
+     * RCE_INPLACE_ENCRYPTION should be given to create_stream() to prevent
+     * unnecessary copy operations.
+     *
+     * If RCE_INPLACE_ENCRYPTION is given to push_frame(), the input pointer must be writable! */
+    RCE_INPLACE_ENCRYPTION     = 1 << 7,
+
+    RCE_LAST                   = 1 << 8,
 };
 
 /* These options are given to configuration() */

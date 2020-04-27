@@ -60,6 +60,9 @@ namespace kvz_rtp {
             rtp_ctx_conf& get_conf();
 
         private:
+            rtp_error_t __push_frame(uint8_t *data, size_t data_len, int flags);
+            rtp_error_t __push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags);
+
             kvz_rtp::socket socket_;
             kvz_rtp::rtp *rtp_;
             rtp_ctx_conf conf_;
