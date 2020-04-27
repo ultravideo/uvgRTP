@@ -36,7 +36,7 @@ uint16_t uvg_rtp::rtp::get_sequence()
 
 void uvg_rtp::rtp::set_payload(rtp_format_t fmt)
 {
-    fmt_ = fmt;
+    payload_ = fmt_ = fmt;
 
     switch (fmt_) {
         case RTP_FORMAT_HEVC:
@@ -52,6 +52,11 @@ void uvg_rtp::rtp::set_payload(rtp_format_t fmt)
             clock_rate_ = 10000;
             break;
     }
+}
+
+void uvg_rtp::rtp::set_dynamic_payload(uint8_t payload)
+{
+    payload_ = payload;
 }
 
 void uvg_rtp::rtp::inc_sequence()
@@ -86,7 +91,7 @@ void uvg_rtp::rtp::fill_header(uint8_t *buffer)
     }
 
     buffer[0] = 2 << 6; // RTP version
-    buffer[1] = (fmt_ & 0x7f) | (0 << 7);
+    buffer[1] = (payload_ & 0x7f) | (0 << 7);
 
     *(uint16_t *)&buffer[2] = htons(seq_);
     *(uint32_t *)&buffer[4] = htonl(

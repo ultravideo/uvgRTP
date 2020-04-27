@@ -221,3 +221,8 @@ uint32_t uvg_rtp::media_stream::get_key()
 {
     return key_;
 }
+
+void uvg_rtp::media_stream::set_dynamic_payload(uint8_t payload)
+{
+    rtp_->set_dynamic_payload(payload);
+}

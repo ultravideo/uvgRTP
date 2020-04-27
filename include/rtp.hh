@@ -19,6 +19,7 @@ namespace uvg_rtp {
 
             void set_clock_rate(size_t rate);
             void set_payload(rtp_format_t fmt);
+            void set_dynamic_payload(uint8_t payload);
 
             void fill_header(uint8_t *buffer);
             void update_sequence(uint8_t *buffer);
@@ -28,6 +29,7 @@ namespace uvg_rtp {
             uint32_t ts_;
             uint16_t seq_;
             uint8_t fmt_;
+            uint8_t payload_;
 
             uint32_t clock_rate_;
             uint32_t wc_start_;

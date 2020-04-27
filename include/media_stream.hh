@@ -121,6 +121,9 @@ namespace uvg_rtp {
             void  set_media_config(void *config);
             void *get_media_config();
 
+            /* Overwrite the payload type set during initialization */
+            void set_dynamic_payload(uint8_t payload);
+
             /* Get unique key of the media stream
              * Used by session to index media streams */
             uint32_t get_key();
