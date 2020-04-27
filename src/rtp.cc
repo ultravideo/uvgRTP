@@ -48,7 +48,8 @@ void kvz_rtp::rtp::set_payload(rtp_format_t fmt)
             break;
 
         default:
-            LOG_WARN("Unknown RTP format, clock rate must be set manually");
+            LOG_WARN("Unknown RTP format, setting clock rate to 10000");
+            clock_rate_ = 10000;
             break;
     }
 }
