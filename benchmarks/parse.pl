@@ -74,7 +74,7 @@ sub parse_uvgrtp_send {
     if ($threads gt 1) {
         $t_tgp = int((($TOTAL_BYTES / 1000 / 1000) * 8) / (($t_total / $lines) * 1000) * 1000);
     } else {
-        $t_sgp = int($t_sgp / $lines);
+        $t_tgp = $t_sgp;
     }
 
     print "$path: \n";
