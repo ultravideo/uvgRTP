@@ -1,15 +1,16 @@
 #!/bin/bash
 
-if [[ "$#" -ne 3 ]]; then
-    echo "usage: ./find_best.sh <uvgrtp|ffmpeg|gstreamer> <send|recv> <path to folder with results>"
+if [[ "$#" -ne 4 ]]; then
+    echo "usage: ./find_best.sh <uvgrtp|ffmpeg|gstreamer> <send|recv> <iter> <path to folder with results>"
     exit;
 fi
 
 if [[ $2 = "recv" || $2 = "send" ]]; then
-    for f in $(ls $3 | grep $2); do
+    for f in $(ls $4 | grep $2); do
         ./parse.pl \
             --threads $(echo "$f" | egrep -o "([0-9]+)" | head -n1) \
-            --path "$3/$f" \
+            --iter "$3" \
+            --path "$4/$f" \
             --role $2 \
             --lib $1 2>&1 >> /tmp/results_out
     done

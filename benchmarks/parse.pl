@@ -16,7 +16,7 @@ sub open_file {
     $lines++ while (<$fh>);
 
     if ($lines != $expect) {
-        print "invalid file: $path!\n" and exit;
+        print "invalid file: $path ($lines != $expect)!\n" and exit;
     }
 
     seek $fh, 0, 0;
@@ -24,12 +24,12 @@ sub open_file {
 }
 
 sub parse_uvgrtp_send {
-    my ($threads, $path) = @_;
+    my ($iter, $threads, $path) = @_;
 
     my ($t_usr, $t_sys, $t_cpu, $t_total, $t_time);
     my ($t_sgp, $t_tgp, $lines);
 
-    my $e  = (100 * ($threads + 2));
+    my $e  = ($iter * ($threads + 2));
     my $fh = open_file($path, $e);
 
     # each iteration parses one benchmark run
@@ -89,10 +89,10 @@ sub parse_uvgrtp_send {
 }
 
 sub parse_uvgrtp_recv {
-    my ($threads, $path) = @_;
+    my ($iter, $threads, $path) = @_;
     my ($t_usr, $t_sys, $t_cpu, $t_total, $tb_avg, $tf_avg, $lines);
 
-    my $e  = (100 * ($threads + 2));
+    my $e  = ($iter * ($threads + 2));
     my $fh = open_file($path, $e);
 
     # each iteration parses one benchmark run
@@ -158,6 +158,7 @@ GetOptions(
     "role=s"    => \(my $role = ""),
     "path=s"    => \(my $path = ""),
     "threads=i" => \(my $threads = 1),
+    "iter=i"    => \(my $iter = 100),
     "help"      => \(my $help = 0)
 ) or die "failed to parse command line!\n";
 
@@ -166,14 +167,15 @@ if ($help == 1) {
     . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
     . "\t--role <send|recv>\n"
     . "\t--path <path to log file>\n"
+    . "\t--iter <# of iterations> (defaults to 100)\n"
     . "\t--threads <# of threads used in the benchmark> (defaults to 1)\n" and exit;
 }
 
 if ($lib eq "uvgrtp") {
     if ($role eq "send") {
-        parse_uvgrtp_send($threads, $path);
+        parse_uvgrtp_send($iter, $threads, $path);
     } else {
-        parse_uvgrtp_recv($threads, $path);
+        parse_uvgrtp_recv($iter, $threads, $path);
     }
 } elsif ($lib eq "ffmpeg") {
     die "not implemented";
