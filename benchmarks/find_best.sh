@@ -16,11 +16,11 @@ if [[ $2 = "recv" || $2 = "send" ]]; then
     done
 
     if [ $2 = "recv" ]; then
-        f_res=$(grep "$(grep "avg frames" </tmp/results_out | sort -r | head -n1)" -B 6 </tmp/results_out)
-        b_res=$(grep "$(grep "avg bytes" </tmp/results_out | sort -r | head -n1)" -B 6 </tmp/results_out)
+        f_res=$(grep "$(grep "avg frames" </tmp/results_out | sort -Vr | head -n1)" -B 6 </tmp/results_out)
+        b_res=$(grep "$(grep "avg bytes" </tmp/results_out | sort -Vr | head -n1)" -B 6 </tmp/results_out)
     else
-        f_res=$(grep "$(grep "goodput, total" </tmp/results_out | sort -r | head -n1)" -B 6 </tmp/results_out)
-        b_res=$(grep "$(grep "goodput, single" </tmp/results_out | sort -r | head -n1)" -B 6 </tmp/results_out)
+        f_res=$(grep "$(grep "goodput, total" </tmp/results_out | sort -Vr | head -n1)" -B 6 </tmp/results_out)
+        b_res=$(grep "$(grep "goodput, single" </tmp/results_out | sort -Vr | head -n1)" -B 6 </tmp/results_out)
     fi
 
     f_config=$(echo "$f_res" | grep $1)
