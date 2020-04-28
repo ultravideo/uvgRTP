@@ -26,6 +26,8 @@ We provide several simple and thoroughly commented examples on how to use uvgRTP
 
 [How to fragment generic media types](sending_generic.cc)
 
+[How to configure uvgRTP to send high-quality video](configuration.cc)
+
 [How to create a simple RTP receiver (hooking)](receiving_hook.cc)
 
 NOTE: The hook should **not** be used for media processing. It should be rather used as interface between application and library where the frame handout happens.
