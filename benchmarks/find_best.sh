@@ -16,11 +16,15 @@ if [[ $2 = "recv" || $2 = "send" ]]; then
     done
 
     if [ $2 = "recv" ]; then
-        f_res=$(grep "$(grep "avg frames" </tmp/results_out | sort -Vr | head -n1)" -B 6 </tmp/results_out)
-        b_res=$(grep "$(grep "avg bytes" </tmp/results_out | sort -Vr | head -n1)" -B 6 </tmp/results_out)
+		fu_res=$(grep "avg frames" </tmp/results_out | sort -Vr | head -n1)
+		bu_res=$(grep "avg bytes" </tmp/results_out | sort -Vr | head -n1)
+        f_res=$(grep "$fu_res" -B 6 </tmp/results_out)
+        b_res=$(grep "$bu_res" -B 6 </tmp/results_out)
     else
-        f_res=$(grep "$(grep "goodput, total" </tmp/results_out | sort -Vr | head -n1)" -B 6 </tmp/results_out)
-        b_res=$(grep "$(grep "goodput, single" </tmp/results_out | sort -Vr | head -n1)" -B 6 </tmp/results_out)
+		fu_res=$(grep "goodput, total" </tmp/results_out | sort -Vr | head -n1)
+		bu_res=$(grep "goodput, single" </tmp/results_out | sort -Vr | head -n1)
+        f_res=$(grep "$fu_res" -B 6 </tmp/results_out)
+        b_res=$(grep "$bu_res" -B 6 </tmp/results_out)
     fi
 
     f_config=$(echo "$f_res" | grep $1)
@@ -31,11 +35,11 @@ if [[ $2 = "recv" || $2 = "send" ]]; then
     b_slp=$(echo "$b_config" | egrep -o "([0-9]+)" | tail -n1)
 
     if [ $2 = "recv" ]; then
-        echo "Most frames, best config: $f_thr threads, $f_slp us sleep"
-        echo "Most bytes,  best config: $b_thr threads, $b_slp us sleep"
+        echo "Most frames, best config: $f_thr threads, $f_slp us sleep: $fu_res"
+        echo "Most bytes,  best config: $b_thr threads, $b_slp us sleep: $bu_res"
     else
-        echo "Total goodput,  best config: $f_thr threads, $f_slp us sleep"
-        echo "Single goodput, best config: $b_thr threads, $b_slp us sleep"
+        echo "Total goodput,  best config: $f_thr threads, $f_slp us sleep: $fu_res"
+        echo "Single goodput, best config: $b_thr threads, $b_slp us sleep: $bu_res"
     fi
     rm /tmp/results_out
 else
