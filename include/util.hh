@@ -160,39 +160,7 @@ enum RTP_CTX_ENABLE_FLAGS {
 /* These options are given to configuration() */
 enum RTP_CTX_CONFIGURATION_FLAGS {
     /* No configuration flags */
-    RCC_NO_FLAGS                  = 0,
-
-    /* How many packets can be fit into
-     * probation zone until they overflow to separate frames.
-     *
-     * By default, probation zone is disabled
-     *
-     * NOTE: how many **packets**, not bytes */
-    RCC_PROBATION_ZONE_SIZE       = 1,
-
-    /* How many transactions can be cached for later use
-     * Caching transactions improves performance by reducing
-     * the number of (de)allocations but increases the memory
-     * footprint of the program
-     *
-     * By default, 10 transactions are cached */
-    RCC_MAX_TRANSACTIONS          = 2,
-
-    /* How many UDP packets does one transaction object hold.
-     *
-     * uvgRTP splits one input frame [argument of push_frame()] into
-     * multiple UDP packets, each of size 1500 bytes. This UDP packets
-     * are stored into a transaction object.
-     *
-     * Video with high bitrate may require large value for "RCC_MAX_MESSAGES"
-     *
-     * By default, it is set to 500 (ie. one frame can take up to 500 * 1500 bytes) */
-    RCC_MAX_MESSAGES              = 3,
-
-    /* How many chunks each UDP packet can at most contain
-     *
-     * By default, this is set to 4 */
-    RCC_MAX_CHUNKS_PER_MSG        = 4,
+    RCC_NO_FLAGS         = 0,
 
     /* How large is the receiver/sender UDP buffer size
      *
@@ -200,7 +168,8 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      *
      * For video with high bitrate, it is advisable to set this
      * to a high number to prevent OS from dropping packets */
-    RCC_UDP_BUF_SIZE              = 5,
+    RCC_UDP_RCV_BUF_SIZE = 1,
+    RCC_UDP_SND_BUF_SIZE = 2,
 
     RCC_LAST
 };

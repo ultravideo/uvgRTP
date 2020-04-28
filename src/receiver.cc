@@ -39,10 +39,7 @@ rtp_error_t uvg_rtp::receiver::stop()
 rtp_error_t uvg_rtp::receiver::start()
 {
     rtp_error_t ret  = RTP_OK;
-    ssize_t buf_size = conf_.ctx_values[RCC_UDP_BUF_SIZE];
-
-    if (buf_size <= 0)
-        buf_size = 4 * 1000 * 1000;
+    ssize_t buf_size = 4 * 1000 * 1000;
 
     if ((ret = socket_.setsockopt(SOL_SOCKET, SO_RCVBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
         return ret;

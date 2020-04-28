@@ -50,10 +50,7 @@ rtp_error_t uvg_rtp::sender::destroy()
 rtp_error_t uvg_rtp::sender::init()
 {
     rtp_error_t ret  = RTP_OK;
-    ssize_t buf_size = conf_.ctx_values[RCC_UDP_BUF_SIZE];
-
-    if (buf_size <= 0)
-        buf_size = 4 * 1000 * 1000;
+    ssize_t buf_size = 4 * 1000 * 1000;
 
     if ((ret = socket_.setsockopt(SOL_SOCKET, SO_SNDBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
         return ret;
@@ -61,13 +58,13 @@ rtp_error_t uvg_rtp::sender::init()
 #ifndef _WIN32
     if (fmt_ == RTP_FORMAT_HEVC && conf_.flags & RCE_SYSTEM_CALL_DISPATCHER) {
         dispatcher_ = new uvg_rtp::dispatcher(&socket_);
-        fqueue_     = new uvg_rtp::frame_queue(fmt_, conf_, dispatcher_);
+        fqueue_     = new uvg_rtp::frame_queue(fmt_, dispatcher_);
 
         if (dispatcher_)
             dispatcher_->start();
     } else {
 #endif
-        fqueue_     = new uvg_rtp::frame_queue(fmt_, conf_);
+        fqueue_     = new uvg_rtp::frame_queue(fmt_);
         dispatcher_ = nullptr;
 #ifndef _WIN32
     }

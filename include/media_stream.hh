@@ -107,15 +107,12 @@ namespace uvg_rtp {
             rtp_error_t install_notify_hook(void *arg, void (*hook)(void *, int));
 
             /* Configure the media stream in various ways
-             * The first version takes a configuration flag and value for that configuration (f.ex. UDP buffer size)
-             * The second version only takes a flag that enables some functionality (f.ex. SCD)
              *
              * See utils.hh for more details
              *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "flag" is not recognized or "value" is invalid */
             rtp_error_t configure_ctx(int flag, ssize_t value);
-            rtp_error_t configure_ctx(int flag);
 
             /* Setter and getter for media-specific config that can be used f.ex with Opus */
             void  set_media_config(void *config);

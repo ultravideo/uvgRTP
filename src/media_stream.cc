@@ -199,22 +199,34 @@ void *uvg_rtp::media_stream::get_media_config()
 
 rtp_error_t uvg_rtp::media_stream::configure_ctx(int flag, ssize_t value)
 {
-    if (flag < 0 || flag >= RCC_LAST || value < 0)
-        return RTP_INVALID_VALUE;
+    rtp_error_t ret = RTP_OK;
 
-    ctx_config_.ctx_values[flag] = value;
+    switch (flag) {
+        case RCC_UDP_SND_BUF_SIZE: {
+            if (value <= 0)
+                return RTP_INVALID_VALUE;
 
-    return RTP_OK;
-}
+            int buf_size = value;
+            if ((ret = socket_.setsockopt(SOL_SOCKET, SO_SNDBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
+                return ret;
+        }
+        break;
 
-rtp_error_t uvg_rtp::media_stream::configure_ctx(int flag)
-{
-    if (flag < 0 || flag >= RCE_LAST)
-        return RTP_INVALID_VALUE;
+        case RCC_UDP_RCV_BUF_SIZE: {
+            if (value <= 0)
+                return RTP_INVALID_VALUE;
 
-    ctx_config_.flags |= flag;
+            int buf_size = value;
+            if ((ret = socket_.setsockopt(SOL_SOCKET, SO_RCVBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
+                return ret;
+        }
+        break;
 
-    return RTP_OK;
+        default:
+            return RTP_INVALID_VALUE;
+    }
+
+    return ret;
 }
 
 uint32_t uvg_rtp::media_stream::get_key()
