@@ -90,44 +90,29 @@ sub parse_uvgrtp_send {
 
 sub parse_uvgrtp_recv {
     my ($iter, $threads, $path) = @_;
-    my ($t_usr, $t_sys, $t_cpu, $t_total, $tb_avg, $tf_avg, $lines);
+    my ($t_usr, $t_sys, $t_cpu, $t_total, $tb_avg, $tf_avg, $tt_avg, $lines);
 
     my $e  = ($iter * ($threads + 2));
     my $fh = open_file($path, $e);
 
     # each iteration parses one benchmark run
     while (my $line = <$fh>) {
-        my ($w_f, $b_f, $a_f, $w_b, $b_b, $a_b) = (0) x 6;
+        my ($a_f, $a_b, $a_t) = (0) x 7;
 
-        $w_f = $TOTAL_FRAMES;
-        $w_b = $TOTAL_BYTES;
-
-        # Because packets can get dropped, we get three figures for receive output:
-        #   - Most frames/bytes received
-        #   - Least frames/bytes received
-        #   - Average frames/bytes received
+        # calculate avg bytes/frames/time
         for (my $i = 0; $i < $threads; $i++) {
             my @nums = $line =~ /(\d+)/g;
 
             $a_b += $nums[0];
             $a_f += $nums[1];
+            $a_t += $nums[2];
 
-            if ($nums[0] < $w_b) {
-                $w_b = $nums[0];
-            } elsif ($nums[0] > $b_b) {
-                $b_b = $nums[0];
-            }
-
-            if ($nums[1] < $w_f) {
-                $w_f = $nums[1];
-            } elsif ($nums[1] > $b_f) {
-                $b_f = $nums[1];
-            }
             $line = <$fh>;
         }
 
         $tf_avg += ($a_f / $threads);
         $tb_avg += ($a_b / $threads);
+        $tt_avg += ($a_t / $threads);
 
         my ($usr, $sys, $total, $cpu) = ($line =~ m/(\d+\.\d+)user\s(\d+\.\d+)system\s0:(\d+.\d+)elapsed\s(\d+)%CPU/);
 
@@ -149,6 +134,7 @@ sub parse_uvgrtp_recv {
     print "\ttotal:      " . $t_total / $lines . "\n";
     print "\tavg frames: " . (100 * (($tf_avg  / $lines) / $TOTAL_FRAMES)) . "\n";
     print "\tavg bytes:  " . (100 * (($tb_avg  / $lines) / $TOTAL_BYTES))  . "\n";
+    print "\tavg time    " . (100 * (($tt_avg  / $lines))) . "\n";
 
     close $fh;
 }
