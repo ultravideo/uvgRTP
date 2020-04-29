@@ -23,20 +23,26 @@ sub open_file {
     return $fh;
 }
 
-sub parse_uvgrtp_send {
-    my ($iter, $threads, $path) = @_;
+sub parse_generic_send {
+    my ($lib, $iter, $threads, $path) = @_;
 
     my ($t_usr, $t_sys, $t_cpu, $t_total, $t_time);
-    my ($t_sgp, $t_tgp, $lines);
+    my ($t_sgp, $t_tgp, $fh, $lines);
 
-    my $e  = ($iter * ($threads + 2));
-    my $fh = open_file($path, $e);
+    if ($lib eq "uvgrtp") {
+        my $e  = ($iter * ($threads + 2));
+        $fh = open_file($path, $e);
+    } else {
+        open $fh, '<', $path or die "failed to open file\n";
+    }
 
     # each iteration parses one benchmark run
     # and each benchmark run can have 1..N entries, one for each thread
     while (my $line = <$fh>) {
         my $rt_avg = 0;
         my $rb_avg = 0;
+
+        next if index ($line, "kB") == -1 or index ($line, "MB") == -1;
 
         # for multiple threads there are two numbers:
         #  - single thread performance
@@ -159,12 +165,16 @@ if ($help == 1) {
 
 if ($lib eq "uvgrtp") {
     if ($role eq "send") {
-        parse_uvgrtp_send($iter, $threads, $path);
+        parse_generic_send($lib, $iter, $threads, $path);
     } else {
         parse_uvgrtp_recv($iter, $threads, $path);
     }
 } elsif ($lib eq "ffmpeg") {
-    die "not implemented";
+    if ($role eq "send") {
+        parse_generic_send($lib, $iter, $threads, $path);
+    } else {
+        die "not implemented";
+    }
 } elsif ($lib eq "gstreamer") {
     die "not implemented";
 }
