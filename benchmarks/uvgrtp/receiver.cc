@@ -19,8 +19,6 @@ void hook(void *arg, uvg_rtp::frame::rtp_frame *frame)
     if (thread_info[tid].pkts == 0)
         thread_info[tid].start = std::chrono::high_resolution_clock::now();
 
-    thread_info[tid].last = std::chrono::high_resolution_clock::now();
-
     /* receiver returns NULL to indicate that it has not received a frame in 10s 
      * and the sender has likely stopped sending frames long time ago so the benchmark 
      * can proceed to next run and ma*/
@@ -35,6 +33,7 @@ void hook(void *arg, uvg_rtp::frame::rtp_frame *frame)
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
+    thread_info[tid].last = std::chrono::high_resolution_clock::now();
     thread_info[tid].bytes += frame->payload_len;
 
     (void)uvg_rtp::frame::dealloc_frame(frame);
