@@ -28,7 +28,7 @@ sub parse_generic_send {
     my ($lib, $iter, $threads, $path) = @_;
 
     my ($t_usr, $t_sys, $t_cpu, $t_total, $t_time);
-    my ($t_sgp, $t_tgp, $fh, $lines);
+    my ($t_sgp, $t_tgp, $fh);
 
     if ($lib eq "uvgrtp") {
         my $e  = ($iter * ($threads + 2));
@@ -73,22 +73,21 @@ sub parse_generic_send {
         $t_cpu   += $cpu;
         $t_total += $total;
         $t_sgp   += $gp;
-        $lines   += 1;
     }
 
-    $t_sgp = int($t_sgp / $lines);
+    $t_sgp = int($t_sgp / $iter);
 
     if ($threads gt 1) {
-        $t_tgp = int((($TOTAL_BYTES / 1000 / 1000) * $threads) / (($t_total / $lines) * 1000) * 1000);
+        $t_tgp = int((($TOTAL_BYTES / 1000 / 1000) * $threads) / (($t_total / $iter) * 1000) * 1000);
     } else {
         $t_tgp = $t_sgp;
     }
 
     print "$path: \n";
-    print "\tuser:            " . $t_usr   / $lines . "\n";
-    print "\tsystem:          " . $t_sys   / $lines . "\n";
-    print "\tcpu:             " . $t_cpu   / $lines . "\n";
-    print "\ttotal:           " . $t_total / $lines . "\n";
+    print "\tuser:            " . $t_usr   / $iter . "\n";
+    print "\tsystem:          " . $t_sys   / $iter . "\n";
+    print "\tcpu:             " . $t_cpu   / $iter . "\n";
+    print "\ttotal:           " . $t_total / $iter . "\n";
     print "\tgoodput, single: " . $t_sgp            . " MB/s\n";
     print "\tgoodput, total:  " . $t_tgp            . " MB/s\n";
 
@@ -97,7 +96,7 @@ sub parse_generic_send {
 
 sub parse_generic_recv {
     my ($lib, $iter, $threads, $path) = @_;
-    my ($t_usr, $t_sys, $t_cpu, $t_total, $tb_avg, $tf_avg, $tt_avg, $fh, $lines);
+    my ($t_usr, $t_sys, $t_cpu, $t_total, $tb_avg, $tf_avg, $tt_avg, $fh);
 
     if ($lib eq "uvgrtp") {
         my $e  = ($iter * ($threads + 2));
@@ -141,7 +140,6 @@ sub parse_generic_recv {
         $t_sys   += $sys;
         $t_cpu   += $cpu;
         $t_total += $total;
-        $lines   += 1;
     }
 
     print "$path: \n";
