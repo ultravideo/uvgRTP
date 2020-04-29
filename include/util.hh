@@ -106,7 +106,7 @@ enum RTP_CTX_ENABLE_FLAGS {
     /* Use user-defined way to manage keys
      *
      * TODO selitä paremmin */
-    RCE_SRTP_KMNGMNT_USER      = 1 << 4,
+    RCE_SRTP_KMNGMNT_USER      = 1 << 5,
 
     /* When uvgRTP is receiving HEVC stream, as an attempt to improve
      * QoS, it will set frame delay for intra frames to be the same

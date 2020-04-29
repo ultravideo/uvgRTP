@@ -38,6 +38,21 @@ namespace uvg_rtp {
              * Other error return codes are defined in {conn,writer,reader,srtp}.hh */
 #ifdef __RTP_CRYPTO__
             rtp_error_t init(uvg_rtp::zrtp *zrtp);
+
+            /* Add key for user-managed SRTP session
+             *
+             * For user-managed SRTP session, the media stream is not started
+             * until SRTP key has been added and all calls to push_frame() will fail
+             *
+             * Currently uvgRTP only supports key length of 16 bytes (128 bits)
+             * and salt length of 14 bytes (112 bits).
+             * If the key/salt is longer, it is implicitly truncated to correct length
+             * and if the key/salt is shorter a memory violation may occur
+             *
+             * Return RTP_OK on success
+             * Return RTP_INVALID_VALUE if "key" or "salt" is invalid
+             * Return RTP_NOT_SUPPORTED if user-managed SRTP was not specified in create_stream() */
+            rtp_error_t add_srtp_ctx(uint8_t *key, uint8_t *salt);
 #endif
 
             /* Split "data" into 1500 byte chunks and send them to remote
@@ -119,7 +134,7 @@ namespace uvg_rtp {
             void *get_media_config();
 
             /* Overwrite the payload type set during initialization */
-            void set_dynamic_payload(uint8_t payload);
+            rtp_error_t set_dynamic_payload(uint8_t payload);
 
             /* Get unique key of the media stream
              * Used by session to index media streams */
@@ -152,5 +167,8 @@ namespace uvg_rtp {
 
             /* Media config f.ex. for Opus */
             void *media_config_;
+
+            /* Has the media stream been initialized */
+            bool initialized_;
     };
 };

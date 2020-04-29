@@ -8,8 +8,12 @@
 uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     srtp_(nullptr),
     socket_(),
+    sender_(nullptr),
+    receiver_(nullptr),
+    rtp_(nullptr),
     ctx_config_(),
-    media_config_(nullptr)
+    media_config_(nullptr),
+    initialized_(false)
 {
     fmt_      = fmt;
     addr_     = addr;
@@ -34,8 +38,10 @@ uvg_rtp::media_stream::media_stream(
 
 uvg_rtp::media_stream::~media_stream()
 {
-    sender_->destroy();
-    receiver_->stop();
+    if (initialized_) {
+        sender_->destroy();
+        receiver_->stop();
+    }
 
     delete sender_;
     delete receiver_;
@@ -96,6 +102,8 @@ rtp_error_t uvg_rtp::media_stream::init()
     sender_->init();
     receiver_->start();
 
+    initialized_ = true;
+
     return RTP_OK;
 }
 
@@ -138,27 +146,90 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
     sender_->init();
     receiver_->start();
 
+    initialized_ = true;
+
+    return ret;
+}
+
+rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
+{
+    if (!key || !salt)
+        return RTP_INVALID_VALUE;
+
+    unsigned srtp_flags = RCE_SRTP | RCE_SRTP_KMNGMNT_USER;
+    rtp_error_t ret     = RTP_OK;
+
+    if ((flags_ & srtp_flags) != srtp_flags)
+        return RTP_NOT_SUPPORTED;
+
+    if (init_connection() != RTP_OK) {
+        LOG_ERROR("Failed to initialize the underlying socket: %s!", strerror(errno));
+        return RTP_GENERIC_ERROR;
+    }
+
+    if ((rtp_ = new uvg_rtp::rtp(fmt_)) == nullptr)
+        return RTP_MEMORY_ERROR;
+
+    if ((srtp_ = new uvg_rtp::srtp()) == nullptr)
+        return RTP_MEMORY_ERROR;
+
+    if ((ret = srtp_->init_user(SRTP, key, salt)) != RTP_OK) {
+        LOG_WARN("Failed to initialize SRTP for media stream!");
+        return ret;
+    }
+
+    socket_.set_srtp(srtp_);
+
+    sender_   = new uvg_rtp::sender(socket_, ctx_config_, fmt_, rtp_);
+    receiver_ = new uvg_rtp::receiver(socket_, ctx_config_, fmt_, rtp_);
+
+    sender_->init();
+    receiver_->start();
+
+    initialized_ = true;
+
     return ret;
 }
 #endif
 
 rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, int flags)
 {
+    if (!initialized_) {
+        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        return RTP_NOT_INITIALIZED;
+    }
+
     return sender_->push_frame(data, data_len, flags);
 }
 
 rtp_error_t uvg_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
 {
+    if (!initialized_) {
+        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        return RTP_NOT_INITIALIZED;
+    }
+
     return sender_->push_frame(std::move(data), data_len, flags);
 }
 
 uvg_rtp::frame::rtp_frame *uvg_rtp::media_stream::pull_frame()
 {
+    if (!initialized_) {
+        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        rtp_errno = RTP_NOT_INITIALIZED;
+        return nullptr;
+    }
+
     return receiver_->pull_frame();
 }
 
 rtp_error_t uvg_rtp::media_stream::install_receive_hook(void *arg, void (*hook)(void *, uvg_rtp::frame::rtp_frame *))
 {
+    if (!initialized_) {
+        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        return RTP_NOT_INITIALIZED;
+    }
+
     if (!hook)
         return RTP_INVALID_VALUE;
 
@@ -169,6 +240,11 @@ rtp_error_t uvg_rtp::media_stream::install_receive_hook(void *arg, void (*hook)(
 
 rtp_error_t uvg_rtp::media_stream::install_deallocation_hook(void (*hook)(void *))
 {
+    if (!initialized_) {
+        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        return RTP_NOT_INITIALIZED;
+    }
+
     if (!hook)
         return RTP_INVALID_VALUE;
 
@@ -179,6 +255,11 @@ rtp_error_t uvg_rtp::media_stream::install_deallocation_hook(void (*hook)(void *
 
 rtp_error_t uvg_rtp::media_stream::install_notify_hook(void *arg, void (*hook)(void *, int))
 {
+    if (!initialized_) {
+        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        return RTP_NOT_INITIALIZED;
+    }
+
     if (!hook)
         return RTP_INVALID_VALUE;
 
@@ -199,6 +280,11 @@ void *uvg_rtp::media_stream::get_media_config()
 
 rtp_error_t uvg_rtp::media_stream::configure_ctx(int flag, ssize_t value)
 {
+    if (!initialized_) {
+        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        return RTP_NOT_INITIALIZED;
+    }
+
     rtp_error_t ret = RTP_OK;
 
     switch (flag) {
@@ -234,7 +320,14 @@ uint32_t uvg_rtp::media_stream::get_key()
     return key_;
 }
 
-void uvg_rtp::media_stream::set_dynamic_payload(uint8_t payload)
+rtp_error_t uvg_rtp::media_stream::set_dynamic_payload(uint8_t payload)
 {
+    if (!initialized_) {
+        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        return RTP_NOT_INITIALIZED;
+    }
+
     rtp_->set_dynamic_payload(payload);
+
+    return RTP_OK;
 }
