@@ -4,8 +4,9 @@ use warnings;
 use strict;
 use Getopt::Long;
 
-my $TOTAL_FRAMES = 602;
-my $TOTAL_BYTES  = 411410113;
+my $TOTAL_FRAMES_UVGRTP = 602;
+my $TOTAL_FRAMES_FFMPEG = 1196;
+my $TOTAL_BYTES         = 411410113;
 
 # open the file, validate it and return file handle to caller
 sub open_file {
@@ -94,16 +95,26 @@ sub parse_generic_send {
     close $fh;
 }
 
-sub parse_uvgrtp_recv {
-    my ($iter, $threads, $path) = @_;
-    my ($t_usr, $t_sys, $t_cpu, $t_total, $tb_avg, $tf_avg, $tt_avg, $lines);
+sub parse_generic_recv {
+    my ($lib, $iter, $threads, $path) = @_;
+    my ($t_usr, $t_sys, $t_cpu, $t_total, $tb_avg, $tf_avg, $tt_avg, $fh, $lines);
 
-    my $e  = ($iter * ($threads + 2));
-    my $fh = open_file($path, $e);
+    if ($lib eq "uvgrtp") {
+        my $e  = ($iter * ($threads + 2));
+        $fh = open_file($path, $e);
+    } else {
+        open $fh, '<', $path or die "failed to open file\n";
+    }
 
     # each iteration parses one benchmark run
     while (my $line = <$fh>) {
-        my ($a_f, $a_b, $a_t) = (0) x 7;
+        my ($a_f, $a_b, $a_t) = (0) x 3;
+
+        # make sure this is a line produced by the benchmarking script before proceeding
+        if ($lib eq "ffmpeg") {
+            my @nums = $line =~ /(\d+)/g;
+            next if $#nums != 2 or grep /jitter/, $line;
+        }
 
         # calculate avg bytes/frames/time
         for (my $i = 0; $i < $threads; $i++) {
@@ -134,13 +145,17 @@ sub parse_uvgrtp_recv {
     }
 
     print "$path: \n";
-    print "\tuser:       " . $t_usr   / $lines . "\n";
-    print "\tsystem:     " . $t_sys   / $lines . "\n";
-    print "\tcpu:        " . $t_cpu   / $lines . "\n";
-    print "\ttotal:      " . $t_total / $lines . "\n";
-    print "\tavg frames: " . (100 * (($tf_avg  / $lines) / $TOTAL_FRAMES)) . "\n";
-    print "\tavg bytes:  " . (100 * (($tb_avg  / $lines) / $TOTAL_BYTES))  . "\n";
-    print "\tavg time    " . (100 * (($tt_avg  / $lines))) . "\n";
+    print "\tuser:       " . $t_usr   / $iter . "\n";
+    print "\tsystem:     " . $t_sys   / $iter . "\n";
+    print "\tcpu:        " . $t_cpu   / $iter . "\n";
+    print "\ttotal:      " . $t_total / $iter . "\n";
+    if ($lib eq "uvgrtp") {
+        print "\tavg frames: " . (100 * (($tf_avg  / $iter) / $TOTAL_FRAMES_UVGRTP)) . "\n";
+    } else {
+        print "\tavg frames: " . (100 * (($tf_avg  / $iter) / $TOTAL_FRAMES_FFMPEG)) . "\n";
+    }
+    print "\tavg bytes:  " . (100 * (($tb_avg  / $iter) / $TOTAL_BYTES))  . "\n";
+    print "\tavg time    " . (100 * (($tt_avg  / $iter))) . "\n";
 
     close $fh;
 }
@@ -163,18 +178,14 @@ if ($help == 1) {
     . "\t--threads <# of threads used in the benchmark> (defaults to 1)\n" and exit;
 }
 
-if ($lib eq "uvgrtp") {
+my @libs = ("uvgrtp", "ffmpeg");
+
+if (grep (/$lib/, @libs)) {
     if ($role eq "send") {
         parse_generic_send($lib, $iter, $threads, $path);
     } else {
-        parse_uvgrtp_recv($iter, $threads, $path);
+        parse_generic_recv($lib, $iter, $threads, $path);
     }
-} elsif ($lib eq "ffmpeg") {
-    if ($role eq "send") {
-        parse_generic_send($lib, $iter, $threads, $path);
-    } else {
-        die "not implemented";
-    }
-} elsif ($lib eq "gstreamer") {
-    die "not implemented";
+} else {
+    die "not implemented\n";
 }
