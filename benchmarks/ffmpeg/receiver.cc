@@ -103,18 +103,18 @@ void thread_func(char *addr, int thread_num)
         av_free_packet(&packet);
         av_init_packet(&packet);
 
-        if (++pkts == 597)
+        if (++pkts == 1196)
             break;
     }
 
-    if (pkts == 597) {
-        fprintf(stderr, "%zu %zu\n", size,
+    if (pkts == 1196) {
+        fprintf(stderr, "%zu %zu %zu\n", size, pkts,
             std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::high_resolution_clock::now() - start
             ).count()
         );
     } else {
-        fprintf(stderr, "discard %zu %zu\n", size,
+        fprintf(stderr, "discard %zu %zu %zu\n", size, pkts,
             std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::high_resolution_clock::now() - start
             ).count()
