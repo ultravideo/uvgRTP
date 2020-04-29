@@ -103,7 +103,7 @@ sub recv_generic {
             open my $fhz, '>>', "$lib/results/$logname";
             opendir my $dir, "/tmp";
 
-            foreach $of (grep (/par.+\.par/i, readdir $dir)) {
+            foreach my $of (grep (/par.+\.par/i, readdir $dir)) {
                 print $fhz -s "/tmp/$of";
                 print $fhz "\n";
                 unlink "/tmp/$of";
