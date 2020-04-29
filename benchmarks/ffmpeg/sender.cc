@@ -19,9 +19,6 @@ extern void *get_mem(int argc, char **argv, size_t& len);
 #define WIDTH  3840
 #define HEIGHT 2160
 
-#define FPS     250
-#define SLEEP     4
-
 std::atomic<int> nready(0);
 
 void thread_func(void *mem, size_t len, char *addr_, int thread_num, double fps)
@@ -40,7 +37,7 @@ void thread_func(void *mem, size_t len, char *addr_, int thread_num, double fps)
     c->width = HEIGHT;
     c->height = WIDTH;
     c->time_base.num = 1;
-    c->time_base.den = FPS;
+    c->time_base.den = fps;
     c->pix_fmt = AV_PIX_FMT_YUV420P;
     c->codec_type = AVMEDIA_TYPE_VIDEO;
     c->flags = AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -69,7 +66,7 @@ void thread_func(void *mem, size_t len, char *addr_, int thread_num, double fps)
     stream->codecpar->codec_id = AV_CODEC_ID_HEVC;
     stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
     stream->time_base.num = 1;
-    stream->time_base.den = FPS;
+    stream->time_base.den = fps;
 
     (void)avformat_write_header(avfctx, NULL);
 
