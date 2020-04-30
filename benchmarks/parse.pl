@@ -39,7 +39,7 @@ sub parse_generic_send {
 
     # each iteration parses one benchmark run
     # and each benchmark run can have 1..N entries, one for each thread
-    while (my $line = <$fh>) {
+    START: while (my $line = <$fh>) {
         my $rt_avg = 0;
         my $rb_avg = 0;
 
@@ -54,6 +54,7 @@ sub parse_generic_send {
         #     -> (amount of data * number of threads) / total time spent
         #
         for (my $i = 0; $i < $threads; $i++) {
+            next START if grep /terminated/, $line;
             my @nums = $line =~ /(\d+)/g;
             $rt_avg += $nums[3];
             $line = <$fh>;
