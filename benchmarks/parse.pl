@@ -3,28 +3,30 @@
 use warnings;
 use strict;
 use Getopt::Long;
+use Cwd qw(realpath);
 
 my $TOTAL_FRAMES_UVGRTP = 602;
 my $TOTAL_FRAMES_FFMPEG = 1196;
 my $TOTAL_BYTES         = 411410113;
+my $THRESHOLD           = 99;
 
 # open the file, validate it and return file handle to caller
 sub open_file {
     my ($path, $expect) = @_;
     my $lines  = 0;
 
-    open(my $fh, '<', $path) or die "failed to open file";
+    open(my $fh, '<', $path) or die "failed to open file: $path";
     $lines++ while (<$fh>);
 
     if ($lines != $expect) {
-        print "invalid file: $path ($lines != $expect)!\n" and exit;
+        return undef;
     }
 
     seek $fh, 0, 0;
     return $fh;
 }
 
-sub parse_generic_send {
+sub parse_send {
     my ($lib, $iter, $threads, $path) = @_;
 
     my ($t_usr, $t_sys, $t_cpu, $t_total, $t_time);
@@ -33,6 +35,7 @@ sub parse_generic_send {
     if ($lib eq "uvgrtp") {
         my $e  = ($iter * ($threads + 2));
         $fh = open_file($path, $e);
+        return if not defined $fh;
     } else {
         open $fh, '<', $path or die "failed to open file\n";
     }
@@ -84,26 +87,20 @@ sub parse_generic_send {
         $t_tgp = $t_sgp;
     }
 
-    print "$path: \n";
-    print "\tuser:            " . $t_usr   / $iter . "\n";
-    print "\tsystem:          " . $t_sys   / $iter . "\n";
-    print "\tcpu:             " . $t_cpu   / $iter . "\n";
-    print "\ttotal:           " . $t_total / $iter . "\n";
-    print "\tgoodput, single: " . $t_sgp            . " MB/s\n";
-    print "\tgoodput, total:  " . $t_tgp            . " MB/s\n";
-
     close $fh;
+    return ($path, $t_usr / $iter, $t_sys / $iter, $t_cpu / $iter, $t_total / $iter, $t_sgp, $t_tgp);
 }
 
-sub parse_generic_recv {
+sub parse_recv {
     my ($lib, $iter, $threads, $path) = @_;
     my ($t_usr, $t_sys, $t_cpu, $t_total, $tb_avg, $tf_avg, $tt_avg, $fh);
+    my $tf = ($lib eq "uvgrtp") ? $TOTAL_FRAMES_UVGRTP : $TOTAL_FRAMES_FFMPEG;
 
     if ($lib eq "uvgrtp") {
         my $e  = ($iter * ($threads + 2));
         $fh = open_file($path, $e);
     } else {
-        open $fh, '<', $path or die "failed to open file\n";
+        open $fh, '<', $path or die "failed to open file $path\n";
     }
 
     # each iteration parses one benchmark run
@@ -143,47 +140,125 @@ sub parse_generic_recv {
         $t_total += $total;
     }
 
-    print "$path: \n";
-    print "\tuser:       " . $t_usr   / $iter . "\n";
-    print "\tsystem:     " . $t_sys   / $iter . "\n";
-    print "\tcpu:        " . $t_cpu   / $iter . "\n";
-    print "\ttotal:      " . $t_total / $iter . "\n";
-    if ($lib eq "uvgrtp") {
-        print "\tavg frames: " . (100 * (($tf_avg  / $iter) / $TOTAL_FRAMES_UVGRTP)) . "\n";
-    } else {
-        print "\tavg frames: " . (100 * (($tf_avg  / $iter) / $TOTAL_FRAMES_FFMPEG)) . "\n";
-    }
-    print "\tavg bytes:  " . (100 * (($tb_avg  / $iter) / $TOTAL_BYTES))  . "\n";
-    print "\tavg time    " . (100 * (($tt_avg  / $iter))) . "\n";
-
     close $fh;
+    return (
+        $path,
+        $t_usr / $iter, $t_sys / $iter, $t_cpu / $iter, $t_total / $iter,
+        (100 * (($tf_avg  / $iter) / $tf)),
+        (100 * (($tb_avg  / $iter) / $TOTAL_BYTES)),
+        (100 * (($tt_avg  / $iter)))
+    );
+}
+
+sub print_recv {
+    my ($path, $usr, $sys, $cpu, $total, $a_f, $a_b, $a_t) = parse_recv(@_);
+
+    if (defined $path) {
+        print "$path: \n";
+        print "\tuser:       $usr  \n";
+        print "\tsystem:     $sys  \n";
+        print "\tcpu:        $cpu  \n";
+        print "\ttotal:      $total\n";
+        print "\tavg frames: $a_f\n";
+        print "\tavg bytes:  $a_b\n";
+        print "\tavg time    $a_t\n";
+    }
+}
+
+sub print_send {
+    my ($path, $usr, $sys, $cpu, $total, $sgp, $tgp) = parse_send(@_);
+
+    if (defined $path) {
+        print "$path: \n";
+        print "\tuser:            $usr\n";
+        print "\tsystem:          $sys\n";
+        print "\tcpu:             $cpu\n";
+        print "\ttotal:           $total\n";
+        print "\tgoodput, single: $sgp MB/s\n";
+        print "\tgoodput, total:  $tgp MB/s\n";
+    }
+}
+
+sub parse_all {
+    my ($lib, $iter, $path, $th) = @_;
+    my ($tgp, $tgp_k, $sgp, $sgp_k, $threads, $fps, %a) = (0) x 6;
+    opendir my $dir, realpath($path);
+
+    foreach my $fh (grep /recv/, readdir $dir) {
+        ($threads, $fps) = ($fh =~ /(\d+)threads_(\d+)/g);
+        my @values = parse_recv($lib, $iter, $threads, realpath($path) . "/" . $fh);
+
+        # we're only interested in benchmark runs where at least 99% of the frames were received
+        if ($values[5] >= $th or $values[6] >= $th) {
+            $a{"$threads $fps"} = $path;
+        }
+    }
+
+    rewinddir $dir;
+
+    foreach my $fh (grep /send/, readdir $dir) {
+        ($threads, $fps) = ($fh =~ /(\d+)threads_(\d+)/g);
+        my @values = parse_send($lib, $iter, $threads, realpath($path) . "/" . $fh);
+
+        if (exists $a{"$threads $fps"}) {
+            if ($values[5] > $sgp) {
+                $sgp   = $values[5];
+                $sgp_k = $fh;
+            }
+
+            if ($values[6] > $tgp) {
+                $tgp = $values[6];
+                $tgp_k = $fh;
+            }
+        }
+    }
+
+    print "\nbest goodput, single thread: $sgp_k\n";
+    ($threads, $fps) = ($sgp_k =~ /(\d+)threads_(\d+)/g);
+    print_send($lib, $iter, $threads, realpath($path) . "/" . $sgp_k);
+
+    print "\nbest goodput, total: $tgp_k\n";
+    ($threads, $fps) = ($tgp_k =~ /(\d+)threads_(\d+)/g);
+    print_send($lib, $iter, $threads, realpath($path) . "/" . $tgp_k);
+
+    closedir $dir;
 }
 
 GetOptions(
-    "lib=s"     => \(my $lib = ""),
-    "role=s"    => \(my $role = ""),
-    "path=s"    => \(my $path = ""),
-    "threads=i" => \(my $threads = 1),
-    "iter=i"    => \(my $iter = 100),
-    "help"      => \(my $help = 0)
+    "lib=s"       => \(my $lib = ""),
+    "role=s"      => \(my $role = ""),
+    "path=s"      => \(my $path = ""),
+    "threads=i"   => \(my $threads = 1),
+    "iter=i"      => \(my $iter = 0),
+    "best"        => \(my $best = 0),
+    "threshold=i" => \(my $th = $THRESHOLD),
+    "help"        => \(my $help = 0)
 ) or die "failed to parse command line!\n";
 
-if ($help == 1) {
-    print "usage: ./parse.pl \n"
+if ($help or !$lib or !$iter) {
+    print "usage (one file):\n  ./parse.pl \n"
     . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
     . "\t--role <send|recv>\n"
     . "\t--path <path to log file>\n"
-    . "\t--iter <# of iterations> (defaults to 100)\n"
-    . "\t--threads <# of threads used in the benchmark> (defaults to 1)\n" and exit;
+    . "\t--iter <# of iterations>)\n"
+    . "\t--threads <# of threads used in the benchmark> (defaults to 1)\n\n";
+
+    print "usage (all files):\n  ./parse.pl \n"
+    . "\t--best\n"
+    . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
+    . "\t--iter <# of iterations>)\n"
+    . "\t--path <path to folder with send and recv output files>\n" and exit;
 }
 
 my @libs = ("uvgrtp", "ffmpeg");
 
 if (grep (/$lib/, @libs)) {
-    if ($role eq "send") {
-        parse_generic_send($lib, $iter, $threads, $path);
+    if ($best) {
+        parse_all($lib, $iter, $path, $th);
+    } elsif ($role eq "send") {
+        print_send($lib, $iter, $threads, $path);
     } else {
-        parse_generic_recv($lib, $iter, $threads, $path);
+        print_recv($lib, $iter, $threads, $path);
     }
 } else {
     die "not implemented\n";
