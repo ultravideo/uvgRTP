@@ -226,7 +226,7 @@ GetOptions(
     "lib=s"         => \(my $lib = ""),
     "role=s"        => \(my $role = ""),
     "path=s"        => \(my $path = ""),
-    "threads=i"     => \(my $threads = 1),
+    "threads=i"     => \(my $threads = 0),
     "iter=i"        => \(my $iter = 0),
     "best"          => \(my $best = 0),
     "packet-loss=f" => \(my $pkt_loss = 100.0),
@@ -238,7 +238,19 @@ if (!$lib and $path =~ m/.*(uvgrtp|ffmpeg|gstreamer).*/i) {
     $lib = $1;
 }
 
-if ($help or !$lib or !$iter) {
+if (!$role and $path =~ m/.*(recv|send).*/i) {
+    $role = $1;
+}
+
+if (!$threads and $path =~ m/.*_(\d+)threads.*/i) {
+    $threads = $1;
+}
+
+if (!$iter and $path =~ m/.*_(\d+)iter.*/i) {
+    $iter = $1;
+}
+
+if ($help or !$lib or !$iter or !$role or !$threads) {
     print "usage (one file):\n  ./parse.pl \n"
     . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
     . "\t--role <send|recv>\n"
