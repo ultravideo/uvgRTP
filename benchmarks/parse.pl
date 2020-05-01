@@ -234,6 +234,10 @@ GetOptions(
     "help"          => \(my $help = 0)
 ) or die "failed to parse command line!\n";
 
+if (!$lib and $path =~ m/.*(uvgrtp|ffmpeg|gstreamer).*/i) {
+    $lib = $1;
+}
+
 if ($help or !$lib or !$iter) {
     print "usage (one file):\n  ./parse.pl \n"
     . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
