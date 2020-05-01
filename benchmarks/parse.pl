@@ -251,47 +251,34 @@ sub print_help {
 }
 
 GetOptions(
-    "lib=s"         => \(my $lib = ""),
-    "role=s"        => \(my $role = ""),
-    "path=s"        => \(my $path = ""),
-    "threads=i"     => \(my $threads = 0),
-    "iter=i"        => \(my $iter = 0),
-    "best"          => \(my $best = 0),
-    "packet-loss=f" => \(my $pkt_loss = 100.0),
-    "frame-loss=f"  => \(my $frame_loss = 100.0),
-    "help"          => \(my $help = 0)
+    "lib|l=s"         => \(my $lib = ""),
+    "role|r=s"        => \(my $role = ""),
+    "path|p=s"        => \(my $path = ""),
+    "threadst|=i"     => \(my $threads = 0),
+    "iter|i=i"        => \(my $iter = 0),
+    "parse|s=s"       => \(my $parse = ""),
+    "packet-loss|p=f" => \(my $pkt_loss = 100.0),
+    "frame-loss|f=f"  => \(my $frame_loss = 100.0),
+    "help"            => \(my $help = 0)
 ) or die "failed to parse command line!\n";
 
-if (!$lib and $path =~ m/.*(uvgrtp|ffmpeg|gstreamer).*/i) {
-    $lib = $1;
-}
-
-if (!$role and $path =~ m/.*(recv|send).*/i) {
-    $role = $1;
-}
-
-if (!$threads and $path =~ m/.*_(\d+)threads.*/i) {
-    $threads = $1;
-}
-
-if (!$iter and $path =~ m/.*_(\d+)iter.*/i) {
-    $iter = $1;
-}
+$lib     = $1 if (!$lib     and $path =~ m/.*(uvgrtp|ffmpeg|gstreamer).*/i);
+$role    = $1 if (!$role    and $path =~ m/.*(recv|send).*/i);
+$threads = $1 if (!$threads and $path =~ m/.*_(\d+)threads.*/i);
+$iter    = $1 if (!$iter    and $path =~ m/.*_(\d+)iter.*/i);
 
 print_help() if $help or !$lib;
-print_help() if !$iter and !$best and !$csv;
-print_help() if (!$best and !$csv and (!$role or !$threads));
+print_help() if !$iter and !$parse;
+print_help() if (!$parse and (!$role or !$threads));
 
 my @libs = ("uvgrtp", "ffmpeg");
 
-if (grep (/$lib/, @libs)) {
-    if ($best) {
-        parse_all($lib, $iter, $path, $pkt_loss, $frame_loss);
-    } elsif ($role eq "send") {
-        print_send($lib, $iter, $threads, $path);
-    } else {
-        print_recv($lib, $iter, $threads, $path);
-    }
+die "not implemented\n" if !grep (/$lib/, @libs);
+
+if ($parse eq "best") {
+    parse_all($lib, $iter, $path, $pkt_loss, $frame_loss);
+} elsif ($role eq "send") {
+    print_send($lib, $iter, $threads, $path);
 } else {
-    die "not implemented\n";
+    print_recv($lib, $iter, $threads, $path);
 }
