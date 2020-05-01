@@ -8,7 +8,6 @@ use Cwd qw(realpath);
 my $TOTAL_FRAMES_UVGRTP = 602;
 my $TOTAL_FRAMES_FFMPEG = 1196;
 my $TOTAL_BYTES         = 411410113;
-my $THRESHOLD           = 99;
 
 # open the file, validate it and return file handle to caller
 sub open_file {
@@ -18,9 +17,9 @@ sub open_file {
     open(my $fh, '<', $path) or die "failed to open file: $path";
     $lines++ while (<$fh>);
 
-    if ($lines != $expect) {
-        return undef;
-    }
+    # if ($lines != $expect) {
+    #     return undef;
+    # }
 
     seek $fh, 0, 0;
     return $fh;
@@ -57,7 +56,7 @@ sub parse_send {
         #     -> (amount of data * number of threads) / total time spent
         #
         for (my $i = 0; $i < $threads; $i++) {
-            next START if grep /terminated/, $line;
+            next START if grep /terminated|corrupt/, $line;
             my @nums = $line =~ /(\d+)/g;
             $rt_avg += $nums[3];
             $line = <$fh>;
@@ -180,7 +179,7 @@ sub print_send {
 }
 
 sub parse_all {
-    my ($lib, $iter, $path, $th) = @_;
+    my ($lib, $iter, $path, $pkt_loss, $frame_loss) = @_;
     my ($tgp, $tgp_k, $sgp, $sgp_k, $threads, $fps, %a) = (0) x 6;
     opendir my $dir, realpath($path);
 
@@ -188,8 +187,7 @@ sub parse_all {
         ($threads, $fps) = ($fh =~ /(\d+)threads_(\d+)/g);
         my @values = parse_recv($lib, $iter, $threads, realpath($path) . "/" . $fh);
 
-        # we're only interested in benchmark runs where at least 99% of the frames were received
-        if ($values[5] >= $th or $values[6] >= $th) {
+        if (100.0 - $values[5] <= $frame_loss and 100.0 - $values[6] <= $pkt_loss) {
             $a{"$threads $fps"} = $path;
         }
     }
@@ -225,14 +223,15 @@ sub parse_all {
 }
 
 GetOptions(
-    "lib=s"       => \(my $lib = ""),
-    "role=s"      => \(my $role = ""),
-    "path=s"      => \(my $path = ""),
-    "threads=i"   => \(my $threads = 1),
-    "iter=i"      => \(my $iter = 0),
-    "best"        => \(my $best = 0),
-    "threshold=i" => \(my $th = $THRESHOLD),
-    "help"        => \(my $help = 0)
+    "lib=s"         => \(my $lib = ""),
+    "role=s"        => \(my $role = ""),
+    "path=s"        => \(my $path = ""),
+    "threads=i"     => \(my $threads = 1),
+    "iter=i"        => \(my $iter = 0),
+    "best"          => \(my $best = 0),
+    "packet-loss=f" => \(my $pkt_loss = 100.0),
+    "frame-loss=f"  => \(my $frame_loss = 100.0),
+    "help"          => \(my $help = 0)
 ) or die "failed to parse command line!\n";
 
 if ($help or !$lib or !$iter) {
@@ -247,6 +246,8 @@ if ($help or !$lib or !$iter) {
     . "\t--best\n"
     . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
     . "\t--iter <# of iterations>)\n"
+    . "\t--packet-loss <allowed percentage of dropped packets> (optional)\n"
+    . "\t--frame-loss <allowed percentage of dropped frames> (optional)\n"
     . "\t--path <path to folder with send and recv output files>\n" and exit;
 }
 
@@ -254,7 +255,7 @@ my @libs = ("uvgrtp", "ffmpeg");
 
 if (grep (/$lib/, @libs)) {
     if ($best) {
-        parse_all($lib, $iter, $path, $th);
+        parse_all($lib, $iter, $path, $pkt_loss, $frame_loss);
     } elsif ($role eq "send") {
         print_send($lib, $iter, $threads, $path);
     } else {
