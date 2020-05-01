@@ -195,7 +195,10 @@ sub parse_all {
     rewinddir $dir;
 
     foreach my $fh (grep /send/, readdir $dir) {
-        ($threads, $fps) = ($fh =~ /(\d+)threads_(\d+)/g);
+        ($threads, $fps, $fiter) = ($fh =~ /(\d+)threads_(\d+)fps_(\d+)iter/g);
+        $iter = $fiter if $fiter;
+        print "unable to determine iter, skipping file $fh\n" and next if !$iter;
+
         my @values = parse_send($lib, $iter, $threads, realpath($path) . "/" . $fh);
 
         if (exists $a{"$threads $fps"}) {
@@ -211,15 +214,40 @@ sub parse_all {
         }
     }
 
-    print "\nbest goodput, single thread: $sgp_k\n";
-    ($threads, $fps) = ($sgp_k =~ /(\d+)threads_(\d+)/g);
-    print_send($lib, $iter, $threads, realpath($path) . "/" . $sgp_k);
+    if ($sgp_k) {
+        print "best goodput, single thread: $sgp_k\n";
+        ($threads, $fps) = ($sgp_k =~ /(\d+)threads_(\d+)/g);
+        print_send($lib, $iter, $threads, realpath($path) . "/" . $sgp_k);
+    } else {
+        print "nothing found for single best goodput\n";
+    }
 
-    print "\nbest goodput, total: $tgp_k\n";
-    ($threads, $fps) = ($tgp_k =~ /(\d+)threads_(\d+)/g);
-    print_send($lib, $iter, $threads, realpath($path) . "/" . $tgp_k);
+    if ($tgp_k) {
+        print "\nbest goodput, total: $tgp_k\n";
+        ($threads, $fps) = ($tgp_k =~ /(\d+)threads_(\d+)/g);
+        print_send($lib, $iter, $threads, realpath($path) . "/" . $tgp_k);
+    } else {
+        print "nothing found for total best goodput\n";
+    }
 
     closedir $dir;
+}
+
+sub print_help {
+    print "usage (one file):\n  ./parse.pl \n"
+    . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
+    . "\t--role <send|recv>\n"
+    . "\t--path <path to log file>\n"
+    . "\t--iter <# of iterations>)\n"
+    . "\t--threads <# of threads used in the benchmark> (defaults to 1)\n\n";
+
+    print "usage (all files):\n  ./parse.pl \n"
+    . "\t--best\n"
+    . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
+    . "\t--iter <# of iterations>)\n"
+    . "\t--packet-loss <allowed percentage of dropped packets> (optional)\n"
+    . "\t--frame-loss <allowed percentage of dropped frames> (optional)\n"
+    . "\t--path <path to folder with send and recv output files>\n" and exit;
 }
 
 GetOptions(
@@ -250,22 +278,9 @@ if (!$iter and $path =~ m/.*_(\d+)iter.*/i) {
     $iter = $1;
 }
 
-if ($help or !$lib or !$iter or !$role or !$threads) {
-    print "usage (one file):\n  ./parse.pl \n"
-    . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
-    . "\t--role <send|recv>\n"
-    . "\t--path <path to log file>\n"
-    . "\t--iter <# of iterations>)\n"
-    . "\t--threads <# of threads used in the benchmark> (defaults to 1)\n\n";
-
-    print "usage (all files):\n  ./parse.pl \n"
-    . "\t--best\n"
-    . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
-    . "\t--iter <# of iterations>)\n"
-    . "\t--packet-loss <allowed percentage of dropped packets> (optional)\n"
-    . "\t--frame-loss <allowed percentage of dropped frames> (optional)\n"
-    . "\t--path <path to folder with send and recv output files>\n" and exit;
-}
+print_help() if $help or !$lib;
+print_help() if !$iter and !$best and !$csv;
+print_help() if (!$best and !$csv and (!$role or !$threads));
 
 my @libs = ("uvgrtp", "ffmpeg");
 
