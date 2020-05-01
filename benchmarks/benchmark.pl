@@ -35,7 +35,7 @@ sub send_benchmark {
 
 	while ($threads ne 0) {
 		for (my $i = $sfps; $i <= $efps; $i *= 2) {
-			my $logname = "send_results_$threads" . "threads_$i". "fps";
+			my $logname = "send_results_$threads" . "threads_$i". "fps_$iter" . "iter";
 			for ((1 .. $iter)) {
 				$remote->recv($data, 16);
 				system ("time ./$lib/sender $addr $threads $i >> $lib/results/$logname 2>&1");
@@ -61,7 +61,7 @@ sub recv_benchmark {
 
 	while ($threads ne 0) {
 		for (my $i = $sfps; $i <= $efps; $i *= 2) {
-			my $logname = "recv_results_$threads" . "threads_$i". "fps";
+			my $logname = "recv_results_$threads" . "threads_$i". "fps_$iter" . "iter";
 			for ((1 .. $iter)) {
 				$socket->send("start");
 				system ("time ./$lib/receiver $addr $threads >> $lib/results/$logname 2>&1");
@@ -120,7 +120,7 @@ GetOptions(
 	"role=s"    => \(my $role = ""),
 	"addr=s"    => \(my $addr = ""),
 	"port=i"    => \(my $port = 0),
-	"iter=i"    => \(my $iter = 100),
+	"iter=i"    => \(my $iter = 10),
 	"threads=i" => \(my $threads = 1),
 	"start=f"   => \(my $start = 0),
 	"end=f"     => \(my $end = 0),
