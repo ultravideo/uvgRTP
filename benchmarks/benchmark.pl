@@ -115,29 +115,33 @@ sub recv_generic {
     }
 }
 
+sub print_help {
+    print "usage (benchmark):\n  ./benchmark.pl \n"
+    . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
+    . "\t--role <send|recv>\n"
+    . "\t--addr <server address>\n"
+    . "\t--port <server port>\n"
+    . "\t--threads <# of threads>\n"
+    . "\t--start <start fps>\n"
+    . "\t--end <end fps>\n" and exit;
+}
+    
 GetOptions(
-    "lib=s"     => \(my $lib = ""),
-    "role=s"    => \(my $role = ""),
-    "addr=s"    => \(my $addr = ""),
-    "port=i"    => \(my $port = 0),
-    "iter=i"    => \(my $iter = 10),
-    "threads=i" => \(my $threads = 1),
-    "start=f"   => \(my $start = 0),
-    "end=f"     => \(my $end = 0),
-    "use-nc"    => \(my $nc = 0)
+    "lib|l=s"     => \(my $lib = ""),
+    "role|r=s"    => \(my $role = ""),
+    "addr|a=s"    => \(my $addr = ""),
+    "port|p=i"    => \(my $port = 0),
+    "iter|i=i"    => \(my $iter = 10),
+    "threads|t=i" => \(my $threads = 1),
+    "start|s=f"   => \(my $start = 0),
+    "end|e=f"     => \(my $end = 0),
+    "use-nc"      => \(my $nc = 0),
+    "help"        => \(my $help = 0)
 ) or die "failed to parse command line!\n";
 
-if ($lib eq "") {
-    print "library not defined!\n" and exit;
-}
-
-if (!$start or !$end) {
-    print "start and end FPS values must be defined!\n" and exit;
-}
-
-if ($addr eq "" or $port eq 0) {
-    print "address and port must be defined!\n" and exit;
-}
+print_help() if $help;
+print_help() if !$lib or !$addr or !$port;
+print_help() if !$start or !$end;
 
 if ($role eq "send") {
     system ("make $lib" . "_sender");
