@@ -178,13 +178,74 @@ sub print_send {
     }
 }
 
-sub parse_all {
+sub parse_csv {
     my ($lib, $iter, $path, $pkt_loss, $frame_loss) = @_;
     my ($tgp, $tgp_k, $sgp, $sgp_k, $threads, $fps, %a) = (0) x 6;
     opendir my $dir, realpath($path);
 
-    foreach my $fh (grep /recv/, readdir $dir) {
+    foreach my $fh (grep /(recv|send)/, readdir $dir) {
         ($threads, $fps) = ($fh =~ /(\d+)threads_(\d+)/g);
+        $fps = sprintf("%05d", $fps);
+        my @values;
+
+        if (grep /recv/, $fh) {
+            @values = parse_recv($lib, $iter, $threads, realpath($path) . "/" . $fh);
+
+            if (not exists $a{"$threads $fps"}) {
+                $a{"$threads $fps"} = "$values[5]";
+            } else {
+                $a{"$threads $fps"} = "$values[5] " . $a{"$threads $fps"};
+            }
+
+        } else {
+            @values = parse_send($lib, $iter, $threads, realpath($path) . "/" . $fh);
+
+            if (not exists $a{"$threads $fps"}) {
+                $a{"$threads $fps"} = "$values[5]";
+            } else {
+                $a{"$threads $fps"} = $a{"$threads $fps"} . " $values[5]";
+            }
+        }
+    }
+
+    my $c_key = 0;
+    open my $cfh, '>', "$lib.csv" or die "failed to open file: $lib.csv";
+    my (@y_val, @x_val) = () x 2;
+
+    foreach my $key (sort(keys %a)) {
+        my $spz = (split " ", $key)[0];
+
+        if ($spz != $c_key){
+            if ($spz ne 1) {
+                print $cfh "frames received;" . join(";", @y_val) . "\n";
+                print $cfh "goodput;" . join(";", @x_val) . "\n";
+            }
+
+            print $cfh "$spz threads;\n";
+            $c_key = $spz;
+            (@x_val, @y_val) = () x 2;
+        }
+
+        my @comp = split " ", $a{$key};
+        push @y_val, $comp[0];
+        push @x_val, $comp[1];
+    }
+
+    print $cfh "frames received;" . join(";", @y_val) . "\n";
+    print $cfh "goodput;" . join(";", @x_val) . "\n";
+    close $cfh;
+}
+
+sub parse_best {
+    my ($lib, $iter, $path, $pkt_loss, $frame_loss) = @_;
+    my ($tgp, $tgp_k, $sgp, $sgp_k, $threads, $fps, $fiter, %a) = (0) x 7;
+    opendir my $dir, realpath($path);
+
+    foreach my $fh (grep /recv/, readdir $dir) {
+        ($threads, $fps, $fiter) = ($fh =~ /(\d+)threads_(\d+)fps_(\d+)iter/g);
+        $iter = $fiter if $fiter;
+        print "unable to determine iter, skipping file $fh\n" and next if !$iter;
+
         my @values = parse_recv($lib, $iter, $threads, realpath($path) . "/" . $fh);
 
         if (100.0 - $values[5] <= $frame_loss and 100.0 - $values[6] <= $pkt_loss) {
@@ -241,8 +302,8 @@ sub print_help {
     . "\t--iter <# of iterations>)\n"
     . "\t--threads <# of threads used in the benchmark> (defaults to 1)\n\n";
 
-    print "usage (all files):\n  ./parse.pl \n"
-    . "\t--best\n"
+    print "usage (directory):\n  ./parse.pl \n"
+    . "\t--parse <best|csv>\n"
     . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
     . "\t--iter <# of iterations>)\n"
     . "\t--packet-loss <allowed percentage of dropped packets> (optional)\n"
@@ -269,16 +330,18 @@ $iter    = $1 if (!$iter    and $path =~ m/.*_(\d+)iter.*/i);
 
 print_help() if $help or !$lib;
 print_help() if !$iter and !$parse;
-print_help() if (!$parse and (!$role or !$threads));
+print_help() if !$parse and (!$role or !$threads);
 
-my @libs = ("uvgrtp", "ffmpeg");
-
-die "not implemented\n" if !grep (/$lib/, @libs);
+die "not implemented\n" if !grep (/$lib/, ("uvgrtp", "ffmpeg"));
 
 if ($parse eq "best") {
-    parse_all($lib, $iter, $path, $pkt_loss, $frame_loss);
+    parse_best($lib, $iter, $path, $pkt_loss, $frame_loss);
+} elsif ($parse eq "csv") {
+    parse_csv($lib, $iter, $path);
 } elsif ($role eq "send") {
     print_send($lib, $iter, $threads, $path);
-} else {
+} elsif ($role eq "recv") {
     print_recv($lib, $iter, $threads, $path);
+} else {
+    die "unknown option!\n";
 }
