@@ -180,12 +180,12 @@ sub print_send {
 
 sub parse_csv {
     my ($lib, $iter, $path, $pkt_loss, $frame_loss) = @_;
-    my ($tgp, $tgp_k, $sgp, $sgp_k, $threads, $fps, %a) = (0) x 6;
+    my ($tgp, $tgp_k, $sgp, $sgp_k, $threads, $fps, $ofps, %a) = (0) x 7;
     opendir my $dir, realpath($path);
 
     foreach my $fh (grep /(recv|send)/, readdir $dir) {
-        ($threads, $fps) = ($fh =~ /(\d+)threads_(\d+)/g);
-        $fps = sprintf("%05d", $fps);
+        ($threads, $ofps) = ($fh =~ /(\d+)threads_(\d+)/g);
+        $fps = sprintf("%05d", $ofps);
         my @values;
 
         if (grep /recv/, $fh) {
@@ -201,16 +201,16 @@ sub parse_csv {
             @values = parse_send($lib, $iter, $threads, realpath($path) . "/" . $fh);
 
             if (not exists $a{"$threads $fps"}) {
-                $a{"$threads $fps"} = "$values[5] $values[6]";
+                $a{"$threads $fps"} = "$values[5] $values[6] $ofps";
             } else {
-                $a{"$threads $fps"} = $a{"$threads $fps"} . " $values[5] $values[6]";
+                $a{"$threads $fps"} = $a{"$threads $fps"} . " $values[5] $values[6] $ofps";
             }
         }
     }
 
     my $c_key = 0;
     open my $cfh, '>', "$lib.csv" or die "failed to open file: $lib.csv";
-    my (@y_val, @x1_val, @x2_val) = () x 2;
+    my (@y_val, @x1_val, @x2_val, @x3_val) = () x 4;
 
     foreach my $key (sort(keys %a)) {
         my $spz = (split " ", $key)[0];
@@ -218,19 +218,21 @@ sub parse_csv {
         if ($spz != $c_key){
             if ($spz ne 1) {
                 print $cfh "frames received;" . join(";", @y_val) . "\n";
+                print $cfh "frames per second;" . join(";", @x3_val) . "\n";
                 print $cfh "goodput single;" . join(";", @x1_val) . "\n";
                 print $cfh "goodput total;" . join(";", @x2_val) . "\n";
             }
 
             print $cfh "$spz threads;\n";
             $c_key = $spz;
-            (@x1_val, @x2_val, @y_val) = () x 2;
+            (@x1_val, @x2_val, @x3_val, @y_val) = () x 4;
         }
 
         my @comp = split " ", $a{$key};
         push @y_val, $comp[0];
         push @x1_val, $comp[1];
         push @x2_val, $comp[2];
+        push @x3_val, $comp[3];
     }
 
     print $cfh "frames received;" . join(";", @y_val) . "\n";
