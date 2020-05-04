@@ -241,8 +241,8 @@ sub parse_csv {
     close $cfh;
 }
 
-sub parse_best {
-    my ($lib, $iter, $path, $pkt_loss, $frame_loss) = @_;
+sub parse {
+    my ($lib, $iter, $path, $pkt_loss, $frame_loss, $type) = @_;
     my ($tgp, $tgp_k, $sgp, $sgp_k, $threads, $fps, $fiter, %a) = (0) x 7;
     opendir my $dir, realpath($path);
 
@@ -268,17 +268,24 @@ sub parse_best {
         my @values = parse_send($lib, $iter, $threads, realpath($path) . "/" . $fh);
 
         if (exists $a{"$threads $fps"}) {
-            if ($values[5] > $sgp) {
-                $sgp   = $values[5];
-                $sgp_k = $fh;
-            }
+            if ($type eq "best") {
+                if ($values[5] > $sgp) {
+                    $sgp   = $values[5];
+                    $sgp_k = $fh;
+                }
 
-            if ($values[6] > $tgp) {
-                $tgp = $values[6];
-                $tgp_k = $fh;
+                if ($values[6] > $tgp) {
+                    $tgp = $values[6];
+                    $tgp_k = $fh;
+                }
+            } else {
+                print "$fh: $values[5] $values[6]\n" if exists $a{"$threads $fps"};
             }
         }
     }
+
+    closedir $dir;
+    exit if $type eq "all";
 
     if ($sgp_k) {
         print "best goodput, single thread: $sgp_k\n";
@@ -295,8 +302,6 @@ sub parse_best {
     } else {
         print "nothing found for total best goodput\n";
     }
-
-    closedir $dir;
 }
 
 sub print_help {
@@ -308,7 +313,7 @@ sub print_help {
     . "\t--threads <# of threads used in the benchmark> (defaults to 1)\n\n";
 
     print "usage (directory):\n  ./parse.pl \n"
-    . "\t--parse <best|csv>\n"
+    . "\t--parse <best|all|csv>\n"
     . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
     . "\t--iter <# of iterations>)\n"
     . "\t--packet-loss <allowed percentage of dropped packets> (optional)\n"
@@ -339,8 +344,8 @@ print_help() if !$parse and (!$role or !$threads);
 
 die "not implemented\n" if !grep (/$lib/, ("uvgrtp", "ffmpeg"));
 
-if ($parse eq "best") {
-    parse_best($lib, $iter, $path, $pkt_loss, $frame_loss);
+if ($parse eq "best" or $parse eq "all") {
+    parse($lib, $iter, $path, $pkt_loss, $frame_loss, $parse);
 } elsif ($parse eq "csv") {
     parse_csv($lib, $iter, $path);
 } elsif ($role eq "send") {
