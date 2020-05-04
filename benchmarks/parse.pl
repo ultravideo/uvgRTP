@@ -201,16 +201,16 @@ sub parse_csv {
             @values = parse_send($lib, $iter, $threads, realpath($path) . "/" . $fh);
 
             if (not exists $a{"$threads $fps"}) {
-                $a{"$threads $fps"} = "$values[5]";
+                $a{"$threads $fps"} = "$values[5] $values[6]";
             } else {
-                $a{"$threads $fps"} = $a{"$threads $fps"} . " $values[5]";
+                $a{"$threads $fps"} = $a{"$threads $fps"} . " $values[5] $values[6]";
             }
         }
     }
 
     my $c_key = 0;
     open my $cfh, '>', "$lib.csv" or die "failed to open file: $lib.csv";
-    my (@y_val, @x_val) = () x 2;
+    my (@y_val, @x1_val, @x2_val) = () x 2;
 
     foreach my $key (sort(keys %a)) {
         my $spz = (split " ", $key)[0];
@@ -218,21 +218,24 @@ sub parse_csv {
         if ($spz != $c_key){
             if ($spz ne 1) {
                 print $cfh "frames received;" . join(";", @y_val) . "\n";
-                print $cfh "goodput;" . join(";", @x_val) . "\n";
+                print $cfh "goodput single;" . join(";", @x1_val) . "\n";
+                print $cfh "goodput total;" . join(";", @x2_val) . "\n";
             }
 
             print $cfh "$spz threads;\n";
             $c_key = $spz;
-            (@x_val, @y_val) = () x 2;
+            (@x1_val, @x2_val, @y_val) = () x 2;
         }
 
         my @comp = split " ", $a{$key};
         push @y_val, $comp[0];
-        push @x_val, $comp[1];
+        push @x1_val, $comp[1];
+        push @x2_val, $comp[2];
     }
 
     print $cfh "frames received;" . join(";", @y_val) . "\n";
-    print $cfh "goodput;" . join(";", @x_val) . "\n";
+    print $cfh "goodput single;" . join(";", @x1_val) . "\n";
+    print $cfh "goodput total;" . join(";", @x2_val) . "\n";
     close $cfh;
 }
 
