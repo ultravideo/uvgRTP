@@ -7,7 +7,7 @@ use Cwd qw(realpath);
 
 my $TOTAL_FRAMES_UVGRTP = 602;
 my $TOTAL_FRAMES_FFMPEG = 1196;
-my $TOTAL_BYTES         = 411410113;
+my $TOTAL_BYTES         = 411856496;
 
 # open the file, validate it and return file handle to caller
 sub open_file {
