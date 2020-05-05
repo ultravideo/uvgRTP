@@ -87,7 +87,8 @@ void thread_func(char *addr, int thread_num)
     AVPacket packet;
     av_init_packet(&packet);
 
-    auto start = std::chrono::high_resolution_clock::now();
+    std::chrono::high_resolution_clock::time_point start, last;
+    start = std::chrono::high_resolution_clock::now();
 
     /* start reading packets from stream */
     av_read_play(format_ctx);
@@ -105,19 +106,17 @@ void thread_func(char *addr, int thread_num)
 
         if (++pkts == 1196)
             break;
+        else
+            last = std::chrono::high_resolution_clock::now();
     }
 
     if (pkts == 1196) {
         fprintf(stderr, "%zu %zu %zu\n", size, pkts,
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::high_resolution_clock::now() - start
-            ).count()
+            std::chrono::duration_cast<std::chrono::milliseconds>(last - start).count()
         );
     } else {
         fprintf(stderr, "discard %zu %zu %zu\n", size, pkts,
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::high_resolution_clock::now() - start
-            ).count()
+            std::chrono::duration_cast<std::chrono::milliseconds>(last - start).count()
         );
     }
 
