@@ -180,11 +180,13 @@ sub print_send {
 
 sub parse_csv {
     my ($lib, $iter, $path, $pkt_loss, $frame_loss) = @_;
-    my ($tgp, $tgp_k, $sgp, $sgp_k, $threads, $fps, $ofps, %a) = (0) x 7;
+    my ($threads, $fps, $ofps, $fiter, %a) = (0) x 4;
     opendir my $dir, realpath($path);
 
     foreach my $fh (grep /(recv|send)/, readdir $dir) {
-        ($threads, $ofps) = ($fh =~ /(\d+)threads_(\d+)/g);
+        ($threads, $ofps, $fiter) = ($fh =~ /(\d+)threads_(\d+)fps_(\d+)iter/g);
+        $iter = $fiter if $fiter;
+        print "unable to determine iter, skipping file $fh\n" and next if !$iter;
         $fps = sprintf("%05d", $ofps);
         my @values;
 
