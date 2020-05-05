@@ -53,7 +53,7 @@ void thread_func(char *addr, int thread_num)
      *
      * A higher value will enable detecting more information in case it is dispersed into the stream,
      * but will increase latency. Must be an integer not lesser than 32. It is 5000000 by default. */
-    snprintf(buf, sizeof(buf), "%d", 256);
+    snprintf(buf, sizeof(buf), "%d", 32);
     av_dict_set(&d, "probesize", buf, 32);
 
     /*  Set number of frames used to probe fps. */
