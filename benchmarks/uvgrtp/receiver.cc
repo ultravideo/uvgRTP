@@ -50,7 +50,7 @@ void hook(void *arg, uvg_rtp::frame::rtp_frame *frame)
 
 void thread_func(char *addr, int thread_num)
 {
-    std::string addr_(addr);
+    std::string addr_("10.21.25.200");
     uvg_rtp::context rtp_ctx;
 
     auto sess = rtp_ctx.create_session(addr_);

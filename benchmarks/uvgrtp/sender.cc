@@ -16,7 +16,7 @@ void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps)
     uint64_t total_size = 0;
     uint64_t diff       = 0;
     rtp_error_t ret     = RTP_OK;
-    std::string addr_(addr);
+    std::string addr_("10.21.25.26");
 
     uvg_rtp::context rtp_ctx;
 
