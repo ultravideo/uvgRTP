@@ -74,8 +74,9 @@ void thread_func(void *mem, size_t len, char *addr_, int thread_num, double fps)
     uint64_t fpt_ms = 0;
     uint64_t fsize  = 0;
     uint32_t frames = 0;
+    uint64_t diff   = 0;
 
-    std::chrono::high_resolution_clock::time_point start, fpt_start, fpt_end, end;
+    std::chrono::high_resolution_clock::time_point start, end, fpts, fpte;
     start = std::chrono::high_resolution_clock::now();
 
     for (size_t rounds = 0; rounds < 1; ++rounds) {
@@ -85,27 +86,39 @@ void thread_func(void *mem, size_t len, char *addr_, int thread_num, double fps)
             i          += sizeof(uint64_t);
             total_size += chunk_size;
 
+            fpts = std::chrono::high_resolution_clock::now();
             av_init_packet(&pkt);
             pkt.data = (uint8_t *)mem + i;
             pkt.size = chunk_size;
 
             av_interleaved_write_frame(avfctx, &pkt);
             av_packet_unref(&pkt);
-            std::this_thread::sleep_for(std::chrono::microseconds((int)((1000 / fps) * 1000)));
+            fpte = std::chrono::high_resolution_clock::now();
+
+            uint64_t diff  = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(fpte - fpts).count();
+            uint64_t sleep = (uint64_t)((1000 / fps) * 1000);
+
+            if (diff > sleep) {
+                fprintf(stderr, "too slow (%lu vs %lu): aborting!\n", diff, sleep);
+                goto end;
+            } else {
+                std::this_thread::sleep_for(std::chrono::microseconds(sleep - diff));
+            }
 
             i += chunk_size;
             frames++;
             fsize += chunk_size;
         }
     }
-    end = std::chrono::high_resolution_clock::now();
-
-    uint64_t diff = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    end  = std::chrono::high_resolution_clock::now();
+    diff = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     fprintf(stderr, "%lu bytes, %lu kB, %lu MB took %lu ms %lu s\n",
         fsize, fsize / 1000, fsize / 1000 / 1000,
         diff, diff / 1000
     );
+
+end:
     nready++;
 
     avcodec_close(c);

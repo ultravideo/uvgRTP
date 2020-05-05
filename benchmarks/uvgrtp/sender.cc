@@ -1,8 +1,7 @@
 #include <uvgrtp/lib.hh>
 #include <uvgrtp/clock.hh>
 #include <cstring>
-#include<algorithm> 
-#include <easy/profiler.h>
+#include <algorithm> 
 
 #define MAX(a, b) (((int)(a) > (int)(b)) ? (int)(a) : (int)(b))
 
@@ -29,7 +28,7 @@ void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps)
         RCE_SYSTEM_CALL_DISPATCHER
     );
 
-    std::chrono::high_resolution_clock::time_point start, end;
+    std::chrono::high_resolution_clock::time_point start, end, fpts, fpte;
 
     start = std::chrono::high_resolution_clock::now();
 
@@ -40,12 +39,22 @@ void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps)
             offset     += sizeof(uint64_t);
             total_size += chunk_size;
 
+            fpts = std::chrono::high_resolution_clock::now();
             if ((ret = hevc->push_frame((uint8_t *)mem + offset, chunk_size, 0)) != RTP_OK) {
                 fprintf(stderr, "push_frame() failed!\n");
                 for (;;);
             }
+            fpte = std::chrono::high_resolution_clock::now();
 
-            std::this_thread::sleep_for(std::chrono::microseconds((int)((1000 / fps) * 1000)));
+            uint64_t diff  = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(fpte - fpts).count();
+            uint64_t sleep = (uint64_t)((1000 / fps) * 1000);
+
+            if (diff > sleep) {
+                fprintf(stderr, "too slow (%lu vs %lu): aborting!\n", diff, sleep);
+                goto end;
+            } else {
+                std::this_thread::sleep_for(std::chrono::microseconds(sleep - diff));
+            }
 
             offset     += chunk_size;
             bytes_sent += chunk_size;
@@ -61,6 +70,7 @@ void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps)
         diff, diff / 1000
     );
 
+end:
     nready++;
 }
 
