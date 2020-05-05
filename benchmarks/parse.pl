@@ -192,54 +192,81 @@ sub parse_csv {
 
         if (grep /recv/, $fh) {
             @values = parse_recv($lib, $iter, $threads, realpath($path) . "/" . $fh);
+            shift @values;
 
             if (not exists $a{"$threads $fps"}) {
-                $a{"$threads $fps"} = "$values[5]";
+                $a{"$threads $fps"} = join(" ", @values);
             } else {
-                $a{"$threads $fps"} = "$values[5] " . $a{"$threads $fps"};
+                $a{"$threads $fps"} = join(" ", @values) . " " . $a{"$threads $fps"};
             }
 
         } else {
             @values = parse_send($lib, $iter, $threads, realpath($path) . "/" . $fh);
+            shift @values;
 
             if (not exists $a{"$threads $fps"}) {
-                $a{"$threads $fps"} = "$values[5] $values[6] $ofps";
+                $a{"$threads $fps"} = join(" ", @values) . " $ofps";
             } else {
-                $a{"$threads $fps"} = $a{"$threads $fps"} . " $values[5] $values[6] $ofps";
+                $a{"$threads $fps"} = $a{"$threads $fps"} . " " . join(" ", @values) . " $ofps";
             }
         }
     }
 
     my $c_key = 0;
     open my $cfh, '>', "$lib.csv" or die "failed to open file: $lib.csv";
-    my (@y_val, @x1_val, @x2_val, @x3_val) = () x 4;
+    my (@r_u, @r_s, @r_c, @r_t, @r_f, @r_b, @r_m) = () x 7;
+    my (@s_u, @s_s, @s_c, @s_t, @s_sg, @s_tg, @s_f) = () x 7;
 
     foreach my $key (sort(keys %a)) {
         my $spz = (split " ", $key)[0];
 
         if ($spz != $c_key){
             if ($spz ne 1) {
-                print $cfh "frames received;" . join(";", @y_val) . "\n";
-                print $cfh "frames per second;" . join(";", @x3_val) . "\n";
-                print $cfh "goodput single;" . join(";", @x1_val) . "\n";
-                print $cfh "goodput total;" . join(";", @x2_val) . "\n";
+                print $cfh "recv usr;"       . join(";", @r_u)  . "\n";
+                print $cfh "recv sys;"       . join(";", @r_s)  . "\n";
+                print $cfh "recv cpu;"       . join(";", @r_c)  . "\n";
+                print $cfh "recv total;"     . join(";", @r_t)  . "\n";
+                print $cfh "frames received;". join(";", @r_f)  . "\n";
+                print $cfh "bytes received;" . join(";", @r_b)  . "\n";
+                print $cfh "time estimate;"  . join(";", @r_m)  . "\n";
+                print $cfh "send usr;"       . join(";", @s_u)  . "\n";
+                print $cfh "send sys;"       . join(";", @s_s)  . "\n";
+                print $cfh "send cpu;"       . join(";", @s_c)  . "\n";
+                print $cfh "send total;"     . join(";", @s_t)  . "\n";
+                print $cfh "single goodput;" . join(";", @s_sg) . "\n";
+                print $cfh "total goodput;"  . join(";", @s_tg) . "\n";
+                print $cfh "fps;"            . join(";", @s_f)  . "\n\n";
             }
 
             print $cfh "$spz threads;\n";
             $c_key = $spz;
-            (@x1_val, @x2_val, @x3_val, @y_val) = () x 4;
+            (@r_f, @r_b, @r_m, @r_c, @r_u, @r_s, @r_t) = () x 7;
+            (@s_c, @s_u, @s_s, @s_t, @s_sg, @s_tg, @s_f) = () x 7;
         }
 
         my @comp = split " ", $a{$key};
-        push @y_val, $comp[0];
-        push @x1_val, $comp[1];
-        push @x2_val, $comp[2];
-        push @x3_val, $comp[3];
+        push @r_u,  $comp[0];  push @r_s, $comp[1];  push @r_c,  $comp[2];
+        push @r_t,  $comp[3];  push @r_f, $comp[4];  push @r_b,  $comp[5];
+        push @r_m,  $comp[6];  push @s_u, $comp[7];  push @s_s,  $comp[8];
+        push @s_c,  $comp[9];  push @s_t, $comp[10]; push @s_sg, $comp[11];
+        push @s_tg, $comp[12]; push @s_f, $comp[13];
     }
 
-    print $cfh "frames received;" . join(";", @y_val) . "\n";
-    print $cfh "goodput single;" . join(";", @x1_val) . "\n";
-    print $cfh "goodput total;" . join(";", @x2_val) . "\n";
+    print $cfh "recv usr;"       . join(";", @r_u)  . "\n";
+    print $cfh "recv sys;"       . join(";", @r_s)  . "\n";
+    print $cfh "recv cpu;"       . join(";", @r_c)  . "\n";
+    print $cfh "recv total;"     . join(";", @r_t)  . "\n";
+    print $cfh "frames received;". join(";", @r_f)  . "\n";
+    print $cfh "bytes received;" . join(";", @r_b)  . "\n";
+    print $cfh "time estimate;"  . join(";", @r_m)  . "\n";
+    print $cfh "send usr;"       . join(";", @s_u)  . "\n";
+    print $cfh "send sys;"       . join(";", @s_s)  . "\n";
+    print $cfh "send cpu;"       . join(";", @s_c)  . "\n";
+    print $cfh "send total;"     . join(";", @s_t)  . "\n";
+    print $cfh "single goodput;" . join(";", @s_sg) . "\n";
+    print $cfh "total goodput;"  . join(";", @s_tg) . "\n";
+    print $cfh "fps;"            . join(";", @s_f)  . "\n";
+
     close $cfh;
 }
 
