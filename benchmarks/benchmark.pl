@@ -46,42 +46,48 @@ sub mk_rsock {
 }
 
 sub send_benchmark {
-    my ($lib, $addr, $port, $iter, $threads, $gen_recv, $mode, @fps_vals) = @_;
+    my ($lib, $addr, $port, $iter, $threads, $gen_recv, $mode, $e, @fps_vals) = @_;
     my ($socket, $remote, $data);
+    my @execs = split ",", $e;
 
     $socket = mk_ssock($addr, $port);
     $remote = $socket->accept();
 
-    while ($threads ne 0) {
-        foreach (@fps_vals) {
-            my $fps = $_;
-            my $logname = "send_results_$threads" . "threads_$fps". "fps_$iter" . "iter";
+    foreach (@execs) {
+        my $exec = $_;
+        foreach ((1 .. $threads)) {
+            my $thread = $_;
+            foreach (@fps_vals) {
+                my $fps = $_;
+                my $logname = "send_results_$thread" . "threads_$fps". "fps_$iter" . "iter_$exec";
 
-            for ((1 .. $iter)) {
-                $remote->recv($data, 16);
-                system ("time ./$lib/sender $addr $threads $fps $mode >> $lib/results/$logname 2>&1");
-                $remote->send("end") if $gen_recv;
+                for ((1 .. $iter)) {
+                    $remote->recv($data, 16);
+                    system ("time ./$lib/$exec $addr $thread $fps $mode >> $lib/results/$logname 2>&1");
+                    $remote->send("end") if $gen_recv;
+                }
             }
         }
-
-        $threads--;
     }
 }
 
 sub recv_benchmark {
-    my ($lib, $addr, $port, $iter, $threads, @fps_vals) = @_;
+    my ($lib, $addr, $port, $iter, $threads, $e, @fps_vals) = @_;
     my $socket = mk_rsock($addr, $port);
+    my @execs = split ",", $e;
 
-    while ($threads ne 0) {
-        foreach (@fps_vals) {
-            my $logname = "recv_results_$threads" . "threads_$_". "fps_$iter" . "iter";
-            for ((1 .. $iter)) {
-                $socket->send("start");
-                system ("time ./$lib/receiver $addr $threads >> $lib/results/$logname 2>&1");
+    foreach (@execs) {
+        my $exec = $_;
+        foreach ((1 .. $threads)) {
+            my $thread = $_;
+            foreach (@fps_vals) {
+                my $logname = "recv_results_$thread" . "threads_$_". "fps_$iter" . "iter_$exec";
+                for ((1 .. $iter)) {
+                    $socket->send("start");
+                    system ("time ./$lib/receiver $addr $thread >> $lib/results/$logname 2>&1");
+                }
             }
         }
-
-        $threads--;
     }
 }
 
@@ -175,6 +181,7 @@ GetOptions(
     "fps=s"       => \(my $fps = ""),
     "latency"     => \(my $lat = 0),
     "mode=s"      => \(my $mode = "best-effort"),
+    "exec=s"      => \(my $exec = "default"),
     "help"        => \(my $help = 0)
 ) or die "failed to parse command line!\n";
 
@@ -207,16 +214,22 @@ if ($role eq "send") {
         system "make $lib" . "_latency";
         lat_send($lib, $addr, $port, $role);
     } else {
-        system "make $lib" . "_sender";
-        send_benchmark($lib, $addr, $port, $iter, $threads, $nc, $mode, @fps_vals);
+        if ($exec eq "default") {
+            system "make $lib" . "_sender";
+            $exec = "sender";
+        }
+        send_benchmark($lib, $addr, $port, $iter, $threads, $nc, $mode, $exec, @fps_vals);
     }
 } elsif ($role eq "recv" ) {
     if ($lat) {
         system "make $lib" . "_latency";
         lat_recv($lib, $addr, $port, $role);
     } elsif (!$nc) {
-        system "make $lib" . "_receiver";
-        recv_benchmark($lib, $addr, $port, $iter, $threads, @fps_vals);
+        if ($exec eq "default") {
+            system "make $lib" . "_receiver";
+            $exec = "receiver";
+        }
+        recv_benchmark($lib, $addr, $port, $iter, $threads, $exec, @fps_vals);
     } else {
         recv_generic($lib, $addr, $port, $iter, $threads, @fps_vals);
     }
