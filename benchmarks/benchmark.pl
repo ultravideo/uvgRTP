@@ -8,6 +8,9 @@ use Getopt::Long;
 
 $| = 1; # autoflush
 
+my $DEFAULT_ADDR = "10.21.25.200";
+my $DEFAULT_PORT = 9999;
+
 sub clamp {
     my ($start, $end) = @_;
     my @clamped = (0, 0);
@@ -172,8 +175,10 @@ GetOptions(
     "help"        => \(my $help = 0)
 ) or die "failed to parse command line!\n";
 
-print_help() if $help;
-print_help() if !$lib or !$addr or !$port;
+$port = $DEFAULT_PORT if !$port;
+$addr = $DEFAULT_ADDR if !$addr;
+
+print_help() if $help or !$lib;
 print_help() if ((!$start or !$end) and !$fps) and !$lat;
 
 die "not implemented\n" if !grep (/$lib/, ("uvgrtp", "ffmpeg"));
