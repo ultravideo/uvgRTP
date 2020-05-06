@@ -46,7 +46,7 @@ sub mk_rsock {
 }
 
 sub send_benchmark {
-    my ($lib, $addr, $port, $iter, $threads, $gen_recv, @fps_vals) = @_;
+    my ($lib, $addr, $port, $iter, $threads, $gen_recv, $mode, @fps_vals) = @_;
     my ($socket, $remote, $data);
 
     $socket = mk_ssock($addr, $port);
@@ -59,7 +59,7 @@ sub send_benchmark {
 
             for ((1 .. $iter)) {
                 $remote->recv($data, 16);
-                system ("time ./$lib/sender $addr $threads $fps >> $lib/results/$logname 2>&1");
+                system ("time ./$lib/sender $addr $threads $fps $mode >> $lib/results/$logname 2>&1");
                 $remote->send("end") if $gen_recv;
             }
         }
@@ -141,6 +141,7 @@ sub lat_recv {
     system "$lib/latency $role >/dev/null 2>&1";
 }
 
+# TODO explain every parameter
 sub print_help {
     print "usage (benchmark):\n  ./benchmark.pl \n"
     . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
@@ -148,6 +149,7 @@ sub print_help {
     . "\t--addr <server address>\n"
     . "\t--port <server port>\n"
     . "\t--threads <# of threads>\n"
+    . "\t--mode <strict|best-effort>\n"
     . "\t--start <start fps>\n"
     . "\t--end <end fps>\n\n";
 
@@ -172,6 +174,7 @@ GetOptions(
     "use-nc"      => \(my $nc = 0),
     "fps=s"       => \(my $fps = ""),
     "latency"     => \(my $lat = 0),
+    "mode=s"      => \(my $mode = "best-effort"),
     "help"        => \(my $help = 0)
 ) or die "failed to parse command line!\n";
 
@@ -180,6 +183,7 @@ $addr = $DEFAULT_ADDR if !$addr;
 
 print_help() if $help or !$lib;
 print_help() if ((!$start or !$end) and !$fps) and !$lat;
+print_help() if not grep /$mode/, ("strict", "best-effort");
 
 die "not implemented\n" if !grep (/$lib/, ("uvgrtp", "ffmpeg"));
 my @fps_vals = ();
@@ -204,7 +208,7 @@ if ($role eq "send") {
         lat_send($lib, $addr, $port, $role);
     } else {
         system "make $lib" . "_sender";
-        send_benchmark($lib, $addr, $port, $iter, $threads, $nc, @fps_vals);
+        send_benchmark($lib, $addr, $port, $iter, $threads, $nc, $mode, @fps_vals);
     }
 } elsif ($role eq "recv" ) {
     if ($lat) {

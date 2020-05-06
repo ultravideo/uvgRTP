@@ -9,7 +9,7 @@ extern void *get_mem(int argc, char **argv, size_t& len);
 
 std::atomic<int> nready(0);
 
-void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps)
+void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps, bool strict)
 {
     size_t bytes_sent   = 0;
     uint64_t chunk_size = 0;
@@ -50,8 +50,10 @@ void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps)
             uint64_t sleep = (uint64_t)((1000 / fps) * 1000);
 
             if (diff > sleep) {
-                fprintf(stderr, "too slow (%lu vs %lu): aborting!\n", diff, sleep);
-                goto end;
+                if (strict) {
+                    fprintf(stderr, "too slow (%lu vs %lu): aborting!\n", diff, sleep);
+                    goto end;
+                }
             } else {
                 std::this_thread::sleep_for(std::chrono::microseconds(sleep - diff));
             }
@@ -76,18 +78,19 @@ end:
 
 int main(int argc, char **argv)
 {
-    if (argc != 4) {
-        fprintf(stderr, "usage: ./%s <remote address> <number of threads> <fps>\n", __FILE__);
+    if (argc != 5) {
+        fprintf(stderr, "usage: ./%s <remote address> <number of threads> <fps> <mode>\n", __FILE__);
         return -1;
     }
 
     size_t len   = 0;
     void *mem    = get_mem(0, NULL, len);
     int nthreads = atoi(argv[2]);
+    bool strict  = !strcmp(argv[4], "strict");
     std::thread **threads = (std::thread **)malloc(sizeof(std::thread *) * nthreads);
 
     for (int i = 0; i < nthreads; ++i)
-        threads[i] = new std::thread(thread_func, mem, len, argv[1], i * 2, atof(argv[3]));
+        threads[i] = new std::thread(thread_func, mem, len, argv[1], i * 2, atof(argv[3]), strict);
 
     while (nready.load() != nthreads)
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
