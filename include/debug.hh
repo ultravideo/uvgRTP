@@ -48,12 +48,12 @@ static inline void win_get_last_error(void)
 #endif
 #define LOG_LEVEL_DEBUG "DEBUG"
 
-#define debug(level, fmt, ...) \
+#define uvgrtp_debug(level, fmt, ...) \
 	fprintf(stderr, "[RTPLIB][%s][%s::%s] " fmt "\n", level, \
             "", __func__, ##__VA_ARGS__)
 
 #ifndef NDEBUG
-#define LOG_DEBUG(fmt,  ...) debug(LOG_LEVEL_DEBUG,  fmt, ##__VA_ARGS__)
+#define LOG_DEBUG(fmt,  ...) uvgrtp_debug(LOG_LEVEL_DEBUG,  fmt, ##__VA_ARGS__)
 #else
 #define LOG_DEBUG(fmt,  ...) ;
 #endif
@@ -65,7 +65,7 @@ static inline void win_get_last_error(void)
 #undef LOG_DEBUG
 #define LOG_DEBUG(fmt,  ...) ;
 #else
-#define LOG_ERROR(fmt,  ...) debug(LOG_LEVEL_ERROR, fmt, ##__VA_ARGS__)
-#define LOG_WARN(fmt,   ...) debug(LOG_LEVEL_WARN,  fmt, ##__VA_ARGS__)
-#define LOG_INFO(fmt,   ...) debug(LOG_LEVEL_INFO,  fmt, ##__VA_ARGS__)
+#define LOG_ERROR(fmt,  ...) uvgrtp_debug(LOG_LEVEL_ERROR, fmt, ##__VA_ARGS__)
+#define LOG_WARN(fmt,   ...) uvgrtp_debug(LOG_LEVEL_WARN,  fmt, ##__VA_ARGS__)
+#define LOG_INFO(fmt,   ...) uvgrtp_debug(LOG_LEVEL_INFO,  fmt, ##__VA_ARGS__)
 #endif
