@@ -7,7 +7,7 @@ use Cwd qw(realpath);
 
 my $TOTAL_FRAMES_UVGRTP = 602;
 my $TOTAL_FRAMES_FFMPEG = 1196;
-my $TOTAL_BYTES         = 411856496;
+my $TOTAL_BYTES         = 411410113;
 
 # open the file, validate it and return file handle to caller
 sub open_file {
@@ -23,6 +23,10 @@ sub open_file {
 
     seek $fh, 0, 0;
     return $fh;
+}
+
+sub goodput {
+    return ($_[0] / 1000 / 1000) / $_[1] * 1000;
 }
 
 sub parse_send {
@@ -63,8 +67,7 @@ sub parse_send {
         }
         $rt_avg /= $threads;
 
-        my $gp = ($TOTAL_BYTES / 1000 / 1000) / $rt_avg * 1000;
-
+        next START if grep /terminated|corrupt/, $line;
         my ($usr, $sys, $total, $cpu) = ($line =~ m/(\d+\.\d+)user\s(\d+\.\d+)system\s0:(\d+.\d+)elapsed\s(\d+)%CPU/);
 
         # discard line about inputs, outputs and pagefaults
@@ -75,7 +78,7 @@ sub parse_send {
         $t_sys   += $sys;
         $t_cpu   += $cpu;
         $t_total += $total;
-        $t_sgp   += $gp;
+        $t_sgp   += goodput($TOTAL_BYTES, $rt_avg);
     }
 
     $t_sgp = int($t_sgp / $iter);
@@ -139,14 +142,12 @@ sub parse_recv {
         $t_total += $total;
     }
 
+    my $bytes  = 100 * (($tb_avg  / $iter) / $TOTAL_BYTES);
+    my $frames = 100 * (($tf_avg  / $iter) / $tf);
+    my $gp     = goodput(($TOTAL_BYTES * ($bytes / 100), ($tt_avg  / $iter)));
+
     close $fh;
-    return (
-        $path,
-        $t_usr / $iter, $t_sys / $iter, $t_cpu / $iter, $t_total / $iter,
-        (100 * (($tf_avg  / $iter) / $tf)),
-        (100 * (($tb_avg  / $iter) / $TOTAL_BYTES)),
-        (100 * (($tt_avg  / $iter)))
-    );
+    return ($path, $t_usr / $iter, $t_sys / $iter, $t_cpu / $iter, $t_total / $iter, $frames, $bytes, $gp);
 }
 
 sub print_recv {
@@ -154,13 +155,13 @@ sub print_recv {
 
     if (defined $path) {
         print "$path: \n";
-        print "\tuser:       $usr  \n";
-        print "\tsystem:     $sys  \n";
-        print "\tcpu:        $cpu  \n";
-        print "\ttotal:      $total\n";
-        print "\tavg frames: $a_f\n";
-        print "\tavg bytes:  $a_b\n";
-        print "\tavg time    $a_t\n";
+        print "\tuser:         $usr  \n";
+        print "\tsystem:       $sys  \n";
+        print "\tcpu:          $cpu  \n";
+        print "\ttotal:        $total\n";
+        print "\tavg frames:   $a_f\n";
+        print "\tavg bytes:    $a_b\n";
+        print "\trecv goodput: $a_t\n";
     }
 }
 
@@ -258,7 +259,7 @@ sub parse_csv {
     print $cfh "recv total;"     . join(";", @r_t)  . "\n";
     print $cfh "frames received;". join(";", @r_f)  . "\n";
     print $cfh "bytes received;" . join(";", @r_b)  . "\n";
-    print $cfh "time estimate;"  . join(";", @r_m)  . "\n";
+    print $cfh "recv goodput;"   . join(";", @r_m)  . "\n";
     print $cfh "send usr;"       . join(";", @s_u)  . "\n";
     print $cfh "send sys;"       . join(";", @s_s)  . "\n";
     print $cfh "send cpu;"       . join(";", @s_c)  . "\n";
