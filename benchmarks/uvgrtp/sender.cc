@@ -15,6 +15,7 @@ void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps, 
     uint64_t chunk_size = 0;
     uint64_t total_size = 0;
     uint64_t diff       = 0;
+    uint64_t overtime   = 0;
     rtp_error_t ret     = RTP_OK;
     std::string addr_("10.21.25.26");
 
@@ -54,8 +55,34 @@ void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps, 
                     fprintf(stderr, "too slow (%lu vs %lu): aborting!\n", diff, sleep);
                     goto end;
                 }
+
+                /* We used "overtime" microseconds more than we should have,
+                 * the next frame must be sent faster so we don't fall behind
+                 *
+                 * Multiple frames might have been late so the "overtime" will hold
+                 * the amount of microseconds we have been late in total */
+                overtime += diff - sleep;
             } else {
-                std::this_thread::sleep_for(std::chrono::microseconds(sleep - diff));
+                /* last frame did not use our time budget so
+                 * just sleep the time denoted by fps and continue to next frame */
+                if (!overtime) {
+                    std::this_thread::sleep_for(std::chrono::microseconds(sleep - diff));
+                } else {
+                    /* the sending of previous frame(s) took more time than it should have,
+                     * and we're punished for it.
+                     *
+                     * If we send this frame fast enough and there have not been too many frames late,
+                     * we can just sleep for whatever is left after the "overtime" is subtracted from
+                     * our sleep time and continue sending.
+                     *
+                     * Otherwise, we can just update the overtime counter with our sleep time and continue */
+                    if (sleep - diff > overtime) {
+                        std::this_thread::sleep_for(std::chrono::microseconds(sleep - diff - overtime));
+                        overtime = 0;
+                    } else {
+                        overtime -= (sleep - diff);
+                    }
+                }
             }
 
             offset     += chunk_size;
