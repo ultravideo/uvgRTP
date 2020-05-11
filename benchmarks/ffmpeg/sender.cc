@@ -34,6 +34,8 @@ void thread_func(void *mem, size_t len, char *addr_, int thread_num, double fps,
     codec = avcodec_find_encoder(codec_id);
     c = avcodec_alloc_context3(codec);
 
+    av_log_set_level(AV_LOG_PANIC);
+
     c->width = HEIGHT;
     c->height = WIDTH;
     c->time_base.num = 1;
