@@ -223,6 +223,17 @@ uvg_rtp::frame::rtp_frame *uvg_rtp::media_stream::pull_frame()
     return receiver_->pull_frame();
 }
 
+uvg_rtp::frame::rtp_frame *uvg_rtp::media_stream::pull_frame(size_t timeout)
+{
+    if (!initialized_) {
+        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        rtp_errno = RTP_NOT_INITIALIZED;
+        return nullptr;
+    }
+
+    return receiver_->pull_frame(timeout);
+}
+
 rtp_error_t uvg_rtp::media_stream::install_receive_hook(void *arg, void (*hook)(void *, uvg_rtp::frame::rtp_frame *))
 {
     if (!initialized_) {

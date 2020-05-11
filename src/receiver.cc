@@ -84,6 +84,27 @@ uvg_rtp::frame::rtp_frame *uvg_rtp::receiver::pull_frame()
     return frame;
 }
 
+uvg_rtp::frame::rtp_frame *uvg_rtp::receiver::pull_frame(size_t timeout)
+{
+    while (frames_.empty() && this->active() && timeout) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        --timeout;
+    }
+
+    if (!this->active())
+        return nullptr;
+
+    if (frames_.empty())
+        return nullptr;
+
+    frames_mtx_.lock();
+    auto frame = frames_.front();
+    frames_.erase(frames_.begin());
+    frames_mtx_.unlock();
+
+    return frame;
+}
+
 uint8_t *uvg_rtp::receiver::get_recv_buffer() const
 {
     return recv_buf_;

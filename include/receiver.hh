@@ -28,6 +28,9 @@ namespace uvg_rtp {
             /* NOTE: this operation is blocking */
             uvg_rtp::frame::rtp_frame *pull_frame();
 
+            /* Block at most "timeout" milliseconds and return nullptr if nothing was received */
+            uvg_rtp::frame::rtp_frame *pull_frame(size_t timeout);
+
             /* Open socket, start frame receiver and RTCP
              *
              * Return RTP_OK on success

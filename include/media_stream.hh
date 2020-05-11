@@ -84,8 +84,13 @@ namespace uvg_rtp {
              * NOTE: pull_frame() is a blocking operation and a separate thread should be
              * spawned for it!
              *
+             * You can specify for how long should pull_frame() block by giving "timeout"
+             * parameter that denotes how long pull_frame() will wait for an incoming frame
+             * in milliseconds
+             *
              * Return pointer to RTP frame on success */
             uvg_rtp::frame::rtp_frame *pull_frame();
+            uvg_rtp::frame::rtp_frame *pull_frame(size_t timeout);
 
             /* Alternative to pull_frame(). The provided hook is called when a frame is received.
              *
