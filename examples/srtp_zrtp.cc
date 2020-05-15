@@ -16,6 +16,9 @@ void thread_func(void)
     for (;;) {
         auto frame = recv->pull_frame();
         fprintf(stderr, "Message: '%s'\n", frame->payload);
+
+        /* the frame must be destroyed manually */
+        (void)uvg_rtp::frame::dealloc_frame(frame);
     }
 }
 

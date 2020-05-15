@@ -61,8 +61,11 @@ int main(void)
 
         /* If the difference is more than 10 seconds, it's very likely that the frame was dropped
          * and this latency value is bogus and should be discarded */
-        if (diff <= 10 * 1000 * 1000)
+        if (diff >= 10 * 1000 * 1000)
+            frames--;
+        else
             total += diff;
+
         offset += csize;
     }
     rtp_ctx.destroy_session(sess);

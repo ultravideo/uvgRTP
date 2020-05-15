@@ -47,6 +47,9 @@ int main(void)
             fprintf(stderr, "frame was corrupted during transfer!\n");
     }
 
+    /* the frame must be destroyed manually */
+    (void)uvg_rtp::frame::dealloc_frame(frame);
+
     /* Session must be destroyed manually */
     ctx.destroy_session(sess);
 
