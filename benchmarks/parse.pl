@@ -177,7 +177,7 @@ sub print_send {
 }
 
 sub parse_csv {
-    my ($lib, $iter, $path, $pkt_loss, $frame_loss, $unit) = @_;
+    my ($lib, $iter, $path, $unit) = @_;
     my ($threads, $fps, $ofps, $fiter, %a) = (0) x 4;
     opendir my $dir, realpath($path);
 
