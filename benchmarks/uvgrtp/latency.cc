@@ -1,58 +1,73 @@
 #include <uvgrtp/lib.hh>
 #include <uvgrtp/clock.hh>
 #include <cstring>
-#include<algorithm> 
-#include <easy/profiler.h>
+#include <algorithm>
 
 extern void *get_mem(int argc, char **argv, size_t& len);
 
-std::chrono::high_resolution_clock::time_point latency_start, latency_end;
+std::chrono::high_resolution_clock::time_point fpts, fpte;
 
-void recv_hook(void *arg, uvg_rtp::frame::rtp_frame *frame)
+void hook(void *arg, uvg_rtp::frame::rtp_frame *frame)
 {
-    latency_end = std::chrono::high_resolution_clock::now();
-    uint64_t diff = std::chrono::duration_cast<std::chrono::microseconds>(latency_end - latency_start).count();
+    (void)arg, (void)frame;
 
-    fprintf(stderr, "%u + ", diff);
-    exit(EXIT_SUCCESS);
+    if (frame)
+        fpte = std::chrono::high_resolution_clock::now();
 }
 
-int main(int argc, char **argv)
+int main(void)
 {
-    size_t len = 0;
-    void *mem  = get_mem(argc, argv, len);
+    size_t len      = 0;
+    void *mem       = get_mem(0, NULL, len);
+    uint64_t csize  = 0;
+    uint64_t diff   = 0;
+    size_t frames   = 0;
+    size_t total    = 0;
+    rtp_error_t ret = RTP_OK;
 
     uvg_rtp::context rtp_ctx;
+    uvg_rtp::frame::rtp_frame *frame;
 
-#if 1
-    uvg_rtp::writer *writer1 = rtp_ctx.create_writer("127.0.0.1", 8888, RTP_FORMAT_HEVC);
-    uvg_rtp::reader *reader1 = rtp_ctx.create_reader("127.0.0.1", 8888, RTP_FORMAT_HEVC);
+    auto sess = rtp_ctx.create_session("127.0.0.1");
+    auto hevc = sess->create_stream(
+        8888,
+        8888,
+        RTP_FORMAT_HEVC,
+        RCE_SYSTEM_CALL_DISPATCHER
+    );
 
-#else
-    uvg_rtp::writer *writer1 = rtp_ctx.create_writer("10.21.25.2", 8888, RTP_FORMAT_HEVC);
-    uvg_rtp::reader *reader1 = rtp_ctx.create_reader("10.21.25.200", 8889, RTP_FORMAT_HEVC);
+    hevc->install_receive_hook(nullptr, hook);
 
-#endif
-    reader1->install_recv_hook(NULL, recv_hook);
+    for (size_t offset = 0; offset < len; ++frames) {
+        memcpy(&csize, (uint8_t *)mem + offset, sizeof(uint64_t));
 
-    (void)reader1->start();
-    (void)writer1->start();
+        offset += sizeof(uint64_t);
 
-    rtp_error_t ret;
-    uint64_t chunk_size = 1000, i = 0, sent = 0;
+        fpts = std::chrono::high_resolution_clock::now();
 
-    memcpy(&chunk_size, (uint8_t *)mem + i, sizeof(uint64_t));
-    i += sizeof(uint64_t) + chunk_size;
-    memcpy(&chunk_size, (uint8_t *)mem + i, sizeof(uint64_t));
-    i += sizeof(uint64_t);
+        if ((ret = hevc->push_frame((uint8_t *)mem + offset, csize, 0)) != RTP_OK) {
+            fprintf(stderr, "push_frame() failed!\n");
+            for (;;);
+        }
 
-    latency_start = std::chrono::high_resolution_clock::now();
-    if ((ret = writer1->push_frame((uint8_t *)mem + i, chunk_size, 0, sent)) != RTP_OK) {
-        fprintf(stderr, "push_frame failed!\n");
-        for (;;);
+        /* because the input frame might be split into multiple separate frames, we should
+         * calculate the latency using the timestamp before push and after the last received frame.
+         *
+         * Sleep for 5 seconds before calculating the latency to prevent us from reading the frame
+         * receive time too early (NOTE: this does not affect the latency calculations at all) */
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
+        diff = std::chrono::duration_cast<std::chrono::microseconds>(fpte - fpts).count();
+
+        /* If the difference is more than 10 seconds, it's very likely that the frame was dropped
+         * and this latency value is bogus and should be discarded */
+        if (diff <= 10 * 1000 * 1000)
+            total += diff;
+        offset += csize;
     }
+    rtp_ctx.destroy_session(sess);
 
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
-    }
+    fprintf(stderr, "avg latency: %lf\n", total / (float)frames);
+
+    return 0;
 }
