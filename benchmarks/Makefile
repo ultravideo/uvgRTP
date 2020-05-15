@@ -20,6 +20,10 @@ ffmpeg_receiver:
 	$(CXX) $(CXXFLAGS) -o ffmpeg/receiver ffmpeg/receiver.cc util/util.cc -lkvazaar `pkg-config --libs libavformat` \
 		-Wno-unused -Wno-deprecated-declarations -Wno-unused-result
 
+ffmpeg_latency:
+	$(CXX) $(CXXFLAGS) -o ffmpeg/latency ffmpeg/latency.cc util/util.cc -lkvazaar `pkg-config --libs libavformat` \
+		-Wno-unused -Wno-deprecated-declarations -Wno-unused-result
+
 clean:
 	rm -f uvgrtp/receiver uvgrtp/sender ffmpeg/sender ffmpeg/receiver
 

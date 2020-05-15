@@ -10,6 +10,7 @@ benchmarks/*/results
 benchmarks/*/*data
 benchmarks/*/receiver
 benchmarks/*/sender
+benchmarks/*/latency
 *.prof
 tags
 *a.out

@@ -13,6 +13,7 @@ extern "C" {
 
 #include <chrono>
 #include <thread>
+#include <atomic>
 
 extern void *get_mem(int argc, char **argv, size_t& len);
 
@@ -21,9 +22,8 @@ extern void *get_mem(int argc, char **argv, size_t& len);
 #define FPS     120
 #define SLEEP     8
 
-#define CNT_VAL 1
-
-std::chrono::high_resolution_clock::time_point latency_start, latency_end;
+std::chrono::high_resolution_clock::time_point fs, fe;
+std::atomic<bool> received(false);
 
 void receiver()
 {
@@ -55,7 +55,7 @@ void receiver()
      *
      * A higher value will enable detecting more information in case it is dispersed into the stream,
      * but will increase latency. Must be an integer not lesser than 32. It is 5000000 by default. */
-    snprintf(buf, sizeof(buf), "%d", 256);
+    snprintf(buf, sizeof(buf), "%d", 32);
     av_dict_set(&d, "probesize", buf, 32);
 
     /*  Set number of frames used to probe fps. */
@@ -85,13 +85,8 @@ void receiver()
     av_read_play(format_ctx);    //play RTSP
 
     while (av_read_frame(format_ctx, &packet) >= 0) {
-        if (++cnt == CNT_VAL) {
-            latency_end = std::chrono::high_resolution_clock::now();
-            uint64_t diff = std::chrono::duration_cast<std::chrono::microseconds>(latency_end - latency_start).count();
-
-            fprintf(stdout, "%u + ", diff);
-            exit(EXIT_SUCCESS);
-        }
+        fe = std::chrono::high_resolution_clock::now();
+        received = true;
     }
 }
 
@@ -187,31 +182,34 @@ int main() {
     (void)avformat_write_header(avfctx, &d);
 
     size_t len = 0;
-    void *mem  = get_mem(NULL, NULL, len);
+    void *mem  = get_mem(0, NULL, len);
 
-    uint64_t chunk_size = 0, diff = 0, counter = 0;
+    uint64_t chunk_size = 0;
+    uint64_t diff       = 0;
+    uint64_t counter    = 0;
+    uint64_t total      = 0;
 
     std::chrono::high_resolution_clock::time_point start, fpt_start, fpt_end, end;
     start = std::chrono::high_resolution_clock::now();
 
-    for (size_t rounds = 0; rounds < 1; ++rounds) {
-        for (size_t i = 0; i < len; ) {
-            memcpy(&chunk_size, (uint8_t *)mem + i, sizeof(uint64_t));
+    for (size_t i = 0; i < len; ) {
+        memcpy(&chunk_size, (uint8_t *)mem + i, sizeof(uint64_t));
+        i += sizeof(uint64_t);
 
-            i += sizeof(uint64_t);
+        fs = std::chrono::high_resolution_clock::now();
 
-            if (++counter == CNT_VAL) {
-                latency_start = std::chrono::high_resolution_clock::now();
-            }
+        av_init_packet(&pkt);
+        pkt.data = (uint8_t *)mem + i;
+        pkt.size = chunk_size;
 
-            av_init_packet(&pkt);
-            pkt.data = (uint8_t *)mem + i;
-            pkt.size = chunk_size;
+        av_write_frame(avfctx, &pkt);
 
-            av_write_frame(avfctx, &pkt);
+        while (!received.load())
+            ;
 
-            i += chunk_size;
-        }
+        received  = false;
+        total    += std::chrono::duration_cast<std::chrono::microseconds>(fe - fs).count();
+        i        += chunk_size;
     }
 
     while (true) {
