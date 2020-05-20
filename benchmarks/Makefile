@@ -1,4 +1,4 @@
-.PHONY: all clean uvgrtp ffmpeg
+.PHONY: all clean
 
 CXX = g++
 CXXFLAGS = -Wall -Wextra -O2 -std=c++11 -g
@@ -22,7 +22,16 @@ ffmpeg_receiver:
 
 ffmpeg_latency:
 	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/latency \
-		ffmpeg/latency.cc util/util.cc -lkvazaar `pkg-config --libs libavformat` \
+		ffmpeg/latency.cc util/util.cc -lkvazaar `pkg-config --libs libavformat`
+
+live555_sender:
+	$(CXX) $(CXXFLAGS) live555/sender.cc live555/framedsource.cc util/util.cc -o live555/sender \
+		-I /usr/local/include/liveMedia \
+		-I /usr/local/include/groupsock  \
+		-I /usr/local/include/BasicUsageEnvironment \
+		-I /usr/local/include/UsageEnvironment \
+		-lpthread -lliveMedia -lgroupsock -lBasicUsageEnvironment \
+		-lUsageEnvironment -lcrypto -lssl
 
 clean:
 	rm -f uvgrtp/receiver uvgrtp/sender ffmpeg/sender ffmpeg/receiver ffmpeg/latency
