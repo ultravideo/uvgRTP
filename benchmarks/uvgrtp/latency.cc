@@ -6,8 +6,9 @@
 extern void *get_mem(int argc, char **argv, size_t& len);
 
 std::chrono::high_resolution_clock::time_point fpts, fpte;
+size_t nframes = 0;
 
-void hook(void *arg, uvg_rtp::frame::rtp_frame *frame)
+void hook_sender(void *arg, uvg_rtp::frame::rtp_frame *frame)
 {
     (void)arg, (void)frame;
 
@@ -15,7 +16,35 @@ void hook(void *arg, uvg_rtp::frame::rtp_frame *frame)
         fpte = std::chrono::high_resolution_clock::now();
 }
 
-int main(void)
+void hook_receiver(void *arg, uvg_rtp::frame::rtp_frame *frame)
+{
+    auto hevc = (uvg_rtp::media_stream *)arg;
+    hevc->push_frame(frame->payload, frame->payload_len, 0);
+    nframes++;
+}
+
+int receiver(char *ip)
+{
+    uvg_rtp::context rtp_ctx;
+    std::string addr(ip);
+
+    auto sess = rtp_ctx.create_session(addr);
+    auto hevc = sess->create_stream(
+        8889,
+        8888,
+        RTP_FORMAT_HEVC,
+        RCE_SYSTEM_CALL_DISPATCHER
+    );
+
+    hevc->install_receive_hook(hevc, hook_receiver);
+
+    while (nframes != 602)
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+    return 0;
+}
+
+int sender(char *ip)
 {
     size_t len      = 0;
     void *mem       = get_mem(0, NULL, len);
@@ -24,19 +53,19 @@ int main(void)
     size_t frames   = 0;
     size_t total    = 0;
     rtp_error_t ret = RTP_OK;
+    std::string addr(ip);
 
     uvg_rtp::context rtp_ctx;
-    uvg_rtp::frame::rtp_frame *frame;
 
-    auto sess = rtp_ctx.create_session("127.0.0.1");
+    auto sess = rtp_ctx.create_session(addr);
     auto hevc = sess->create_stream(
         8888,
-        8888,
+        8889,
         RTP_FORMAT_HEVC,
         RCE_SYSTEM_CALL_DISPATCHER
     );
 
-    hevc->install_receive_hook(nullptr, hook);
+    hevc->install_receive_hook(nullptr, hook_sender);
 
     for (size_t offset = 0; offset < len; ++frames) {
         memcpy(&csize, (uint8_t *)mem + offset, sizeof(uint64_t));
@@ -55,7 +84,7 @@ int main(void)
          *
          * Sleep for 5 seconds before calculating the latency to prevent us from reading the frame
          * receive time too early (NOTE: this does not affect the latency calculations at all) */
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         diff = std::chrono::duration_cast<std::chrono::microseconds>(fpte - fpts).count();
 
@@ -73,4 +102,14 @@ int main(void)
     fprintf(stderr, "avg latency: %lf\n", total / (float)frames);
 
     return 0;
+}
+
+int main(int argc, char **argv)
+{
+    if (argc != 3) {
+        fprintf(stderr, "usage: ./%s <send|recv> <ip>\n", __FILE__);
+        exit(EXIT_FAILURE);
+    }
+
+    return !strcmp(argv[1], "sender") ? sender(argv[2]) : receiver(argv[2]);
 }
