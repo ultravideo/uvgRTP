@@ -25,84 +25,24 @@ extern void *get_mem(int argc, char **argv, size_t& len);
 std::chrono::high_resolution_clock::time_point fs, fe;
 std::atomic<bool> received(false);
 
-void receiver()
+struct ffmpeg_ctx {
+    AVFormatContext *sender;
+    AVFormatContext *receiver;
+};
+
+ffmpeg_ctx *init_ffmpeg(char *ip)
 {
-    AVFormatContext* format_ctx = avformat_alloc_context();
-    AVCodecContext* codec_ctx = NULL;
-    int video_stream_index;
-
-    AVDictionary *d = NULL;
-    av_dict_set(&d, "protocol_whitelist", "file,udp,rtp", 0);
-
-    char buf[256];
-
-    /* input buffer size */
-    snprintf(buf, sizeof(buf), "%d", 40 * 1024 * 1024);
-    av_dict_set(&d, "buffer_size", buf, 32);
-
-    /* avioflags flags (input/output)
-     *
-     * Possible values:
-     *   ‘direct’ 
-     *      Reduce buffering. */
-    snprintf(buf, sizeof(buf), "direct");
-    av_dict_set(&d, "avioflags", buf, 32);
-
-    /* Reduce the latency introduced by buffering during initial input streams analysis. */
-    av_dict_set(&d, "nobuffer", NULL, 32);
-
-    /* Set probing size in bytes, i.e. the size of the data to analyze to get stream information.
-     *
-     * A higher value will enable detecting more information in case it is dispersed into the stream,
-     * but will increase latency. Must be an integer not lesser than 32. It is 5000000 by default. */
-    snprintf(buf, sizeof(buf), "%d", 32);
-    av_dict_set(&d, "probesize", buf, 32);
-
-    /*  Set number of frames used to probe fps. */
-    snprintf(buf, sizeof(buf), "%d", 2);
-    av_dict_set(&d, "fpsprobesize", buf, 32);
-
-    if (avformat_open_input(&format_ctx, "../../examples/full/sdp/hevc.sdp", NULL, &d) != 0) {
-        return;
-    }
-
-    if (avformat_find_stream_info(format_ctx, NULL) < 0) {
-        return;
-    }
-
-    //search video stream
-    for (size_t i = 0; i < format_ctx->nb_streams; i++) {
-        if (format_ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-            video_stream_index = i;
-    }
-
-    size_t cnt = 0;
-    size_t size = 0;
-    AVPacket packet;
-    av_init_packet(&packet);
-
-    //start reading packets from stream and write them to file
-    av_read_play(format_ctx);    //play RTSP
-
-    while (av_read_frame(format_ctx, &packet) >= 0) {
-        fe = std::chrono::high_resolution_clock::now();
-        received = true;
-    }
-}
-
-int main() {
     avcodec_register_all();
     av_register_all();
     avformat_network_init();
 
+    ffmpeg_ctx *ctx = new ffmpeg_ctx;
     enum AVCodecID codec_id = AV_CODEC_ID_H265;
-    AVCodec *codec;
-    AVCodecContext *c = NULL;
     int i, ret, x, y, got_output;
+    AVCodecContext *c = NULL;
+    AVCodec *codec;
     AVFrame *frame;
     AVPacket pkt;
-
-    auto recv = new std::thread(receiver);
 
     codec = avcodec_find_encoder(codec_id);
     c = avcodec_alloc_context3(codec);
@@ -124,15 +64,14 @@ int main() {
     ret = av_image_alloc(frame->data, frame->linesize, c->width, c->height,
         c->pix_fmt, 32);
 
-    AVFormatContext* avfctx;
-    AVOutputFormat* fmt = av_guess_format("rtp", NULL, NULL);
+    AVOutputFormat *fmt = av_guess_format("rtp", NULL, NULL);
 
-    /* ret = avformat_alloc_output_context2(&avfctx, fmt, fmt->name, "rtp://10.21.25.2:8888"); */
-    ret = avformat_alloc_output_context2(&avfctx, fmt, fmt->name, "rtp://127.0.0.1:8888");
+    /* ret = avformat_alloc_output_context2(&ctx->sender, fmt, fmt->name, "rtp://10.21.25.2:8888"); */
+    ret = avformat_alloc_output_context2(&ctx->sender, fmt, fmt->name, "rtp://127.0.0.1:8888");
 
-    avio_open(&avfctx->pb, avfctx->filename, AVIO_FLAG_WRITE);
+    avio_open(&ctx->sender->pb, ctx->sender->filename, AVIO_FLAG_WRITE);
 
-    struct AVStream* stream = avformat_new_stream(avfctx, codec);
+    struct AVStream* stream = avformat_new_stream(ctx->sender, codec);
     stream->codecpar->width = WIDTH;
     stream->codecpar->height = HEIGHT;
     stream->codecpar->codec_id = AV_CODEC_ID_HEVC;
@@ -141,10 +80,11 @@ int main() {
     stream->time_base.den = FPS;
 
     char buf[256];
-    AVDictionary *d = NULL;
+    AVDictionary *d_s = NULL;
+    AVDictionary *d_r = NULL;
 
     snprintf(buf, sizeof(buf), "%d", 40 * 1024 * 1024);
-    av_dict_set(&d, "buffer_size", buf, 32);
+    av_dict_set(&d_s, "buffer_size", buf, 32);
 
     /* Flush the underlying I/O stream after each packet.
      *
@@ -152,7 +92,7 @@ int main() {
      * 1 enables it, and has the effect of reducing the latency,
      * 0 disables it and may increase IO throughput in some cases. */
     snprintf(buf, sizeof(buf), "%d", 1);
-    av_dict_set(&d, "flush_packets", NULL, 32);
+    av_dict_set(&d_s, "flush_packets", NULL, 32);
 
     /* Set maximum buffering duration for interleaving. The duration is expressed in microseconds,
      * and defaults to 10000000 (10 seconds).
@@ -169,26 +109,105 @@ int main() {
      * If set to 0, libavformat will continue buffering packets until it has a packet for each stream,
      * regardless of the maximum timestamp difference between the buffered packets. */
     snprintf(buf, sizeof(buf), "%d", 1000);
-    av_dict_set(&d, "max_interleave_delta", buf, 32);
+    av_dict_set(&d_s, "max_interleave_delta", buf, 32);
 
     /* avioflags flags (input/output)
      *
      * Possible values:
-     *   ‘direct’ 
+     *   ‘direct’
      *      Reduce buffering. */
     snprintf(buf, sizeof(buf), "direct");
-    av_dict_set(&d, "avioflags", buf, 32);
+    av_dict_set(&d_s, "avioflags", buf, 32);
 
-    (void)avformat_write_header(avfctx, &d);
+    (void)avformat_write_header(ctx->sender, &d_s);
 
-    size_t len = 0;
-    void *mem  = get_mem(0, NULL, len);
+    /* When sender has been initialized, initialize receiver */
+    ctx->receiver = avformat_alloc_context();
+    int video_stream_index;
+
+    av_dict_set(&d_r, "protocol_whitelist", "file,udp,rtp", 0);
+
+    /* input buffer size */
+    snprintf(buf, sizeof(buf), "%d", 40 * 1024 * 1024);
+    av_dict_set(&d_r, "buffer_size", buf, 32);
+
+    /* avioflags flags (input/output)
+     *
+     * Possible values:
+     *   ‘direct’
+     *      Reduce buffering. */
+    snprintf(buf, sizeof(buf), "direct");
+    av_dict_set(&d_r, "avioflags", buf, 32);
+
+    /* Reduce the latency introduced by buffering during initial input streams analysis. */
+    av_dict_set(&d_r, "nobuffer", NULL, 32);
+
+    /* Set probing size in bytes, i.e. the size of the data to analyze to get stream information.
+     *
+     * A higher value will enable detecting more information in case it is dispersed into the stream,
+     * but will increase latency. Must be an integer not lesser than 32. It is 5000000 by default. */
+    snprintf(buf, sizeof(buf), "%d", 32);
+    av_dict_set(&d_r, "probesize", buf, 32);
+
+    /*  Set number of frames used to probe fps. */
+    snprintf(buf, sizeof(buf), "%d", 2);
+    av_dict_set(&d_r, "fpsprobesize", buf, 32);
+
+    ctx->receiver->flags = AVFMT_FLAG_NONBLOCK;
+
+    if (!strcmp(ip, "127.0.0.1"))
+        snprintf(buf, sizeof(buf), "ffmpeg/sdp/localhost/hevc_0.sdp");
+    else
+        snprintf(buf, sizeof(buf), "ffmpeg/sdp/lan/hevc_0.sdp");
+
+    if (avformat_open_input(&ctx->receiver, buf, NULL, &d_r) != 0) {
+        fprintf(stderr, "nothing found!\n");
+        return NULL;
+    }
+
+    if (avformat_find_stream_info(ctx->receiver, NULL) < 0) {
+        fprintf(stderr, "stream info not found!\n");
+        return NULL;
+    }
+
+    /* search video stream */
+    for (size_t i = 0; i < ctx->receiver->nb_streams; i++) {
+        if (ctx->receiver->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+            video_stream_index = i;
+    }
+
+    return ctx;
+}
+
+int receiver(char *ip)
+{
+    AVPacket pkt;
+    ffmpeg_ctx *ctx = init_ffmpeg(ip);
+
+    if (!(ctx = init_ffmpeg(ip)))
+        return EXIT_FAILURE;
+
+    av_init_packet(&pkt);
+    av_read_play(ctx->receiver);
+
+    while (av_read_frame(ctx->receiver, &pkt) >= 0)
+        av_write_frame(ctx->sender, &pkt);
+
+    return EXIT_SUCCESS;
+}
+
+int sender(char *ip)
+{
+    size_t len      = 0;
+    void *mem       = get_mem(0, NULL, len);
+    ffmpeg_ctx *ctx = init_ffmpeg(ip);
 
     uint64_t chunk_size = 0;
     uint64_t diff       = 0;
     uint64_t counter    = 0;
     uint64_t total      = 0;
 
+    AVPacket pkt;
     std::chrono::high_resolution_clock::time_point start, fpt_start, fpt_end, end;
     start = std::chrono::high_resolution_clock::now();
 
@@ -202,17 +221,23 @@ int main() {
         pkt.data = (uint8_t *)mem + i;
         pkt.size = chunk_size;
 
-        av_write_frame(avfctx, &pkt);
-
-        while (!received.load())
-            ;
+        av_write_frame(ctx->sender, &pkt);
+        av_read_frame(ctx->receiver, &pkt);
 
         received  = false;
         total    += std::chrono::duration_cast<std::chrono::microseconds>(fe - fs).count();
         i        += chunk_size;
     }
 
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100000));
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    if (argc != 3) {
+        fprintf(stderr, "usage: ./%s <send|recv> <ip>\n", __FILE__);
+        exit(EXIT_FAILURE);
     }
+
+    return !strcmp(argv[1], "sender") ? sender(argv[2]) : receiver(argv[2]);
 }

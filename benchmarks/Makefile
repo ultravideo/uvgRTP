@@ -10,19 +10,19 @@ uvgrtp_sender:
 	$(CXX) $(CXXFLAGS) -o uvgrtp/sender uvgrtp/sender.cc util/util.cc -luvgrtp -lkvazaar -lpthread
 
 uvgrtp_latency:
-	$(CXX) $(CXXFLAGS) -o uvgrtp/latency uvgrtp/latency.cc util/util.cc -luvgrtp -lkvazaar -lpthread
+	$(CXX) $(CXXFLAGS) -o uvgrtp/latency uvgrtp/latency.cc util/util.cc -luvgrtp -lpthread
 
 ffmpeg_sender:
 	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/sender \
-		ffmpeg/sender.cc util/util.cc -lkvazaar `pkg-config --libs libavformat`
+		ffmpeg/sender.cc util/util.cc -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
 
 ffmpeg_receiver:
 	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/receiver \
-		ffmpeg/receiver.cc util/util.cc -lkvazaar `pkg-config --libs libavformat`
+		ffmpeg/receiver.cc util/util.cc -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
 
 ffmpeg_latency:
 	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/latency \
-		ffmpeg/latency.cc util/util.cc -lkvazaar `pkg-config --libs libavformat`
+		ffmpeg/latency.cc util/util.cc -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
 
 live555_sender:
 	$(CXX) $(CXXFLAGS) live555/sender.cc live555/framedsource.cc util/util.cc -o live555/sender \
