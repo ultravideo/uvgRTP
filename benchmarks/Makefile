@@ -33,5 +33,13 @@ live555_sender:
 		-lpthread -lliveMedia -lgroupsock -lBasicUsageEnvironment \
 		-lUsageEnvironment -lcrypto -lssl
 
+live555_receiver:
+	$(CXX) $(CXXFLAGS) live555/receiver.cc live555/sink.cc util/util.cc -o live555/receiver \
+		-I /usr/local/include/liveMedia \
+		-I /usr/local/include/groupsock  \
+		-I /usr/local/include/BasicUsageEnvironment \
+		-I /usr/local/include/UsageEnvironment \
+		-lpthread -lliveMedia -lgroupsock -lBasicUsageEnvironment \
+		-lUsageEnvironment -lcrypto -lssl
 clean:
 	rm -f uvgrtp/receiver uvgrtp/sender ffmpeg/sender ffmpeg/receiver ffmpeg/latency
