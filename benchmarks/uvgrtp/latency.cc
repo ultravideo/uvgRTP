@@ -30,8 +30,8 @@ int receiver(char *ip)
 
     auto sess = rtp_ctx.create_session(addr);
     auto hevc = sess->create_stream(
-        8889,
         8888,
+        8889,
         RTP_FORMAT_HEVC,
         RCE_SYSTEM_CALL_DISPATCHER
     );
@@ -111,5 +111,5 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    return !strcmp(argv[1], "sender") ? sender(argv[2]) : receiver(argv[2]);
+    return !strcmp(argv[1], "send") ? sender(argv[2]) : receiver(argv[2]);
 }
