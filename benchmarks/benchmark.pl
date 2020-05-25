@@ -150,7 +150,7 @@ sub lat_recv {
 # TODO explain every parameter
 sub print_help {
     print "usage (benchmark):\n  ./benchmark.pl \n"
-    . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
+    . "\t--lib <uvgrtp|ffmpeg|live555>\n"
     . "\t--role <send|recv>\n"
     . "\t--addr <server address>\n"
     . "\t--port <server port>\n"
@@ -164,7 +164,7 @@ sub print_help {
     . "\t--role <send|recv>\n"
     . "\t--addr <server address>\n"
     . "\t--port <server port>\n"
-    . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n\n" and exit;
+    . "\t--lib <uvgrtp|ffmpeg|live555>\n\n" and exit;
 }
 
 GetOptions(
@@ -192,7 +192,7 @@ print_help() if $help or !$lib;
 print_help() if ((!$start or !$end) and !$fps) and !$lat;
 print_help() if not grep /$mode/, ("strict", "best-effort");
 
-die "not implemented\n" if !grep (/$lib/, ("uvgrtp", "ffmpeg"));
+die "not implemented\n" if !grep (/$lib/, ("uvgrtp", "ffmpeg", "live555"));
 my @fps_vals = ();
 
 if (!$lat) {
