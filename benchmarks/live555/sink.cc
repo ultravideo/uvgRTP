@@ -1,7 +1,7 @@
 #include <RTPInterface.hh>
 #include "sink.hh"
 
-const uint32_t BUFFER_SIZE = 512 * 65536;
+const uint32_t BUFFER_SIZE = 1600000;
 
 RTPSink_::RTPSink_(UsageEnvironment& env):
   MediaSink(env),
