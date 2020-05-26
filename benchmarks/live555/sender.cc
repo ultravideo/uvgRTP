@@ -6,8 +6,8 @@
 
 int main(int argc, char **argv)
 {
-    if (argc != 2) {
-        fprintf(stderr, "usage: ./%s <fps>\n", __FILE__);
+    if (argc != 5) {
+        fprintf(stderr, "usage: ./%s <addr> <# of threads> <fps> <mode>\n", __FILE__);
         return -1;
     }
 
@@ -20,7 +20,7 @@ int main(int argc, char **argv)
     scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);
 
-    framedSource = H265FramedSource::createNew(*env, atoi(argv[1]));
+    framedSource = H265FramedSource::createNew(*env, atoi(argv[3]));
     framer = H265VideoStreamDiscreteFramer::createNew(*env, framedSource);
 
     Port rtpPort(8888);
