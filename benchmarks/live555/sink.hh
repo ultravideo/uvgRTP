@@ -2,30 +2,31 @@
 
 class RTPSink_ : public MediaSink
 {
-public:
-  RTPSink_(UsageEnvironment& env);
-  virtual ~RTPSink_();
+    public:
+        RTPSink_(UsageEnvironment& env);
+        virtual ~RTPSink_();
 
-  void uninit();
+        void uninit();
 
-  static void afterGettingFrame(void* clientData,
-                                unsigned frameSize,
-                                unsigned numTruncatedBytes,
-                                struct timeval presentationTime,
-                                unsigned durationInMicroseconds);
+        static void afterGettingFrame(
+            void *clientData,
+            unsigned frameSize,
+            unsigned numTruncatedBytes,
+            struct timeval presentationTime,
+            unsigned durationInMicroseconds
+        );
 
-  void afterGettingFrame(unsigned frameSize,
-                         unsigned numTruncatedBytes,
-                         struct timeval presentationTime,
-                         unsigned durationInMicroseconds);
-protected:
-  void process();
+        void afterGettingFrame(
+            unsigned frameSize,
+            unsigned numTruncatedBytes,
+            struct timeval presentationTime,
+            unsigned durationInMicroseconds
+        );
 
-  private:
+    protected:
+        void process();
 
-  virtual Boolean continuePlaying();
-
-  u_int8_t* fReceiveBuffer;
-
-  bool addStartCodes_;
+    private:
+        virtual Boolean continuePlaying();
+        uint8_t *fReceiveBuffer;
 };

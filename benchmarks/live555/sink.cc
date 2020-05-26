@@ -1,11 +1,40 @@
+#include <chrono>
+#include <climits>
+#include <thread>
 #include <RTPInterface.hh>
 #include "sink.hh"
 
-const uint32_t BUFFER_SIZE = 1600000;
+#define BUFFER_SIZE 1600000
+
+size_t frames = 0;
+size_t bytes  = 0;
+std::chrono::high_resolution_clock::time_point start;
+std::chrono::high_resolution_clock::time_point last;
+
+static void thread_func(void)
+{
+    unsigned prev_frames = UINT_MAX;
+
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
+        if (prev_frames == frames)
+            break;
+
+        prev_frames = frames;
+    }
+
+    fprintf(stderr, "%zu %zu %lu\n", bytes, frames,
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::high_resolution_clock::now() - start
+        ).count()
+    );
+
+    exit(EXIT_FAILURE);
+}
 
 RTPSink_::RTPSink_(UsageEnvironment& env):
-  MediaSink(env),
-  addStartCodes_(false)
+    MediaSink(env)
 {
     fReceiveBuffer = new uint8_t[BUFFER_SIZE];
 }
@@ -18,7 +47,6 @@ void RTPSink_::uninit()
 {
     stopPlaying();
     delete fReceiveBuffer;
-    fReceiveBuffer = nullptr;
 }
 
 void RTPSink_::afterGettingFrame(
@@ -44,12 +72,23 @@ void RTPSink_::afterGettingFrame(
     unsigned durationInMicroseconds
 )
 {
-    static int frame = 0;
-
     (void)frameSize,        (void)numTruncatedBytes;
     (void)presentationTime, (void)durationInMicroseconds;
 
-    fprintf(stderr, "frame %d received, size %u KB!\n", ++frame, frameSize / 1000);
+    /* start loop that monitors activity and if there has been
+     * no activity for 2s (same as uvgRTP) the receiver is stopped) */
+    if (!frames)
+        (void)new std::thread(thread_func);
+
+    if (++frames == 601) {
+        fprintf(stderr, "%zu %zu %lu\n", bytes, frames,
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::high_resolution_clock::now() - start
+            ).count()
+        );
+        exit(EXIT_SUCCESS);
+    }
+
     continuePlaying();
 }
 

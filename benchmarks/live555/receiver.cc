@@ -5,6 +5,8 @@
 
 int main(int argc, char **argv)
 {
+    (void)argc, (void)argv;
+
     TaskScheduler *scheduler = BasicTaskScheduler::createNew();
     UsageEnvironment *env    = BasicUsageEnvironment::createNew(*scheduler);
 
