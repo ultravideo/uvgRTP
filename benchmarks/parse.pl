@@ -5,9 +5,10 @@ use strict;
 use Getopt::Long;
 use Cwd qw(realpath);
 
-my $TOTAL_FRAMES_UVGRTP = 602;
-my $TOTAL_FRAMES_FFMPEG = 1196;
-my $TOTAL_BYTES         = 411410113;
+my $TOTAL_FRAMES_UVGRTP  = 602;
+my $TOTAL_FRAMES_LIVE555 = 601;
+my $TOTAL_FRAMES_FFMPEG  = 1196;
+my $TOTAL_BYTES          = 411410113;
 
 # open the file, validate it and return file handle to caller
 sub open_file {
@@ -93,7 +94,8 @@ sub parse_send {
 sub parse_recv {
     my ($lib, $iter, $threads, $path, $unit) = @_;
     my ($t_usr, $t_sys, $t_cpu, $t_total, $tb_avg, $tf_avg, $tt_avg, $fh);
-    my $tf = ($lib eq "uvgrtp") ? $TOTAL_FRAMES_UVGRTP : $TOTAL_FRAMES_FFMPEG;
+    my $tf = ($lib eq "uvgrtp") ? $TOTAL_FRAMES_UVGRTP :
+             ($lib eq "ffmpeg") ? $TOTAL_FRAMES_FFMPEG : $TOTAL_FRAMES_LIVE555;
 
     if ($lib eq "uvgrtp") {
         my $e  = ($iter * ($threads + 2));
@@ -333,7 +335,7 @@ sub parse {
 
 sub print_help {
     print "usage (one file):\n  ./parse.pl \n"
-    . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
+    . "\t--lib <uvgrtp|ffmpeg|live555>\n"
     . "\t--role <send|recv>\n"
     . "\t--unit <mb|mbit|gbit> (defaults to mb)\n"
     . "\t--path <path to log file>\n"
@@ -342,7 +344,7 @@ sub print_help {
 
     print "usage (directory):\n  ./parse.pl \n"
     . "\t--parse <best|all|csv>\n"
-    . "\t--lib <uvgrtp|ffmpeg|gstreamer>\n"
+    . "\t--lib <uvgrtp|ffmpeg|live555>\n"
     . "\t--iter <# of iterations>)\n"
     . "\t--unit <mb|mbit|gbit> (defaults to mb)\n"
     . "\t--packet-loss <allowed percentage of dropped packets> (optional)\n"
@@ -363,7 +365,7 @@ GetOptions(
     "help"            => \(my $help = 0)
 ) or die "failed to parse command line!\n";
 
-$lib     = $1 if (!$lib     and $path =~ m/.*(uvgrtp|ffmpeg|gstreamer).*/i);
+$lib     = $1 if (!$lib     and $path =~ m/.*(uvgrtp|ffmpeg|live555).*/i);
 $role    = $1 if (!$role    and $path =~ m/.*(recv|send).*/i);
 $threads = $1 if (!$threads and $path =~ m/.*_(\d+)threads.*/i);
 $iter    = $1 if (!$iter    and $path =~ m/.*_(\d+)iter.*/i);
@@ -373,7 +375,7 @@ print_help() if !$iter and !$parse;
 print_help() if !$parse and (!$role or !$threads);
 print_help() if !grep /$unit/, ("mb", "mbit", "gbit");
 
-die "not implemented\n" if !grep (/$lib/, ("uvgrtp", "ffmpeg"));
+die "not implemented\n" if !grep (/$lib/, ("uvgrtp", "ffmpeg", "live555"));
 
 if ($parse eq "best" or $parse eq "all") {
     parse($lib, $iter, $path, $pkt_loss, $frame_loss, $parse, $unit);
