@@ -14,15 +14,15 @@ uvgrtp_latency:
 
 ffmpeg_sender:
 	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/sender \
-		ffmpeg/sender.cc util/util.cc -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
+		ffmpeg/sender.cc util/util.cc -lkvazaar -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
 
 ffmpeg_receiver:
 	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/receiver \
-		ffmpeg/receiver.cc util/util.cc -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
+		ffmpeg/receiver.cc util/util.cc -lkvazaar -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
 
 ffmpeg_latency:
 	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/latency \
-		ffmpeg/latency.cc util/util.cc -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
+		ffmpeg/latency.cc util/util.cc -lkvazaar -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
 
 live555_sender:
 	$(CXX) $(CXXFLAGS) live555/sender.cc live555/framedsource.cc util/util.cc -o live555/sender \
@@ -30,7 +30,7 @@ live555_sender:
 		-I /usr/local/include/groupsock  \
 		-I /usr/local/include/BasicUsageEnvironment \
 		-I /usr/local/include/UsageEnvironment \
-		-lpthread -lliveMedia -lgroupsock -lBasicUsageEnvironment \
+		-lkvazaar -lpthread -lliveMedia -lgroupsock -lBasicUsageEnvironment \
 		-lUsageEnvironment -lcrypto -lssl
 
 live555_receiver:
@@ -39,7 +39,9 @@ live555_receiver:
 		-I /usr/local/include/groupsock  \
 		-I /usr/local/include/BasicUsageEnvironment \
 		-I /usr/local/include/UsageEnvironment \
-		-lpthread -lliveMedia -lgroupsock -lBasicUsageEnvironment \
+		-lkvazaar -lpthread -lliveMedia -lgroupsock -lBasicUsageEnvironment \
 		-lUsageEnvironment -lcrypto -lssl
 clean:
-	rm -f uvgrtp/receiver uvgrtp/sender ffmpeg/sender ffmpeg/receiver ffmpeg/latency
+	rm -f uvgrtp/receiver uvgrtp/sender uvgrtp/latency \
+		ffmpeg/sender ffmpeg/receiver ffmpeg/latency \
+		live555/sender live555/receiver
