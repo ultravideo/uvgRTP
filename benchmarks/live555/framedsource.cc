@@ -3,16 +3,19 @@
 #include "framedsource.hh"
 #include <chrono>
 #include <queue>
+#include <thread>
 
 EventTriggerId H265FramedSource::eventTriggerId = 0;
-unsigned H265FramedSource::referenceCount = 0;
+unsigned H265FramedSource::referenceCount       = 0;
 
 extern void *get_mem(int, char **, size_t&);
 extern int get_next_frame_start(uint8_t *, uint32_t, uint32_t, uint8_t&);
 
 uint8_t *buf;
-size_t offset = 0;
-size_t bytes = 0;
+size_t offset    = 0;
+size_t bytes     = 0;
+uint64_t current = 0;
+uint64_t period  = 0;
 bool initialized = false;
 
 std::queue<std::pair<size_t, uint8_t *>> nals;
@@ -54,6 +57,8 @@ H265FramedSource::H265FramedSource(UsageEnvironment& env, unsigned fps):
     FramedSource(env),
     fps_(fps)
 {
+    period = (uint64_t)((1000 / fps) * 1000);
+
     if (!eventTriggerId)
         eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
 }
@@ -70,10 +75,10 @@ void H265FramedSource::doGetNextFrame()
 {
     /* The benchmark has started, start the timer and split the input video into NAL units */
     if (!initialized) {
-        start = std::chrono::high_resolution_clock::now();
         splitIntoNals();
+        start = std::chrono::high_resolution_clock::now();
     }
-
+    
     if (nals.empty()) {
         end = std::chrono::high_resolution_clock::now();
         uint64_t diff = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -83,7 +88,15 @@ void H265FramedSource::doGetNextFrame()
         );
         exit(1);
     }
+    
+    uint64_t runtime = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::high_resolution_clock::now() - start
+    ).count();
 
+    if (runtime < current * period)
+        std::this_thread::sleep_for(std::chrono::microseconds(current * period - runtime));
+    
+    ++current;
     deliverFrame();
 }
 
@@ -105,7 +118,6 @@ void H265FramedSource::deliverFrame()
 
     bytes += newFrameSize;
 
-    // Deliver the data here:
     if (newFrameSize > fMaxSize) {
         fFrameSize = fMaxSize;
         fNumTruncatedBytes = newFrameSize - fMaxSize;
@@ -113,7 +125,7 @@ void H265FramedSource::deliverFrame()
         fFrameSize = newFrameSize;
     }
 
-    fDurationInMicroseconds = fps_ ? (1000 / fps_) * 1000 : 0;
+    fDurationInMicroseconds = 0;
     memmove(fTo, newFrameDataStart, fFrameSize);
     FramedSource::afterGetting(this);
 }

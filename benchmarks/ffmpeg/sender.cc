@@ -73,14 +73,14 @@ void thread_func(void *mem, size_t len, char *addr_, int thread_num, double fps,
     (void)avformat_write_header(avfctx, NULL);
 
     uint64_t chunk_size, total_size;
-    uint64_t fpt_ms   = 0;
-    uint64_t fsize    = 0;
-    uint32_t frames   = 0;
-    uint64_t diff     = 0;
-    uint64_t overtime = 0;
-
-    std::chrono::high_resolution_clock::time_point start, end, fpts, fpte;
-    start = std::chrono::high_resolution_clock::now();
+    uint64_t fpt_ms  = 0;
+    uint64_t fsize   = 0;
+    uint32_t frames  = 0;
+    uint64_t diff    = 0;
+	uint64_t current = 0;
+	uint64_t period  = (uint64_t)((1000 / fps) * 1000);
+	
+	std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
     for (size_t rounds = 0; rounds < 1; ++rounds) {
         for (size_t i = 0; i < len; ) {
@@ -89,60 +89,29 @@ void thread_func(void *mem, size_t len, char *addr_, int thread_num, double fps,
             i          += sizeof(uint64_t);
             total_size += chunk_size;
 
-            fpts = std::chrono::high_resolution_clock::now();
             av_init_packet(&pkt);
             pkt.data = (uint8_t *)mem + i;
             pkt.size = chunk_size;
 
             av_interleaved_write_frame(avfctx, &pkt);
             av_packet_unref(&pkt);
-            fpte = std::chrono::high_resolution_clock::now();
+			
+            auto runtime = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::high_resolution_clock::now() - start
+            ).count();
+			
+			if (runtime < current * period)
+				std::this_thread::sleep_for(std::chrono::microseconds(current * period - runtime));
 
-            uint64_t diff  = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(fpte - fpts).count();
-            uint64_t sleep = (uint64_t)((1000 / fps) * 1000);
-
-            if (diff > sleep) {
-                if (strict) {
-                    fprintf(stderr, "too slow (%lu vs %lu): aborting!\n", diff, sleep);
-                    goto end;
-                }
-
-                /* We used "overtime" microseconds more than we should have,
-                 * the next frame must be sent faster so we don't fall behind
-                 *
-                 * Multiple frames might have been late so the "overtime" will hold
-                 * the amount of microseconds we have been late in total */
-                overtime += diff - sleep;
-            } else {
-                /* last frame did not use our time budget so
-                 * just sleep the time denoted by fps and continue to next frame */
-                if (!overtime) {
-                    std::this_thread::sleep_for(std::chrono::microseconds(sleep - diff));
-                } else {
-                    /* the sending of previous frame(s) took more time than it should have,
-                     * and we're punished for it.
-                     *
-                     * If we send this frame fast enough and there have not been too many frames late,
-                     * we can just sleep for whatever is left after the "overtime" is subtracted from
-                     * our sleep time and continue sending.
-                     *
-                     * Otherwise, we can just update the overtime counter with our sleep time and continue */
-                    if (sleep - diff > overtime) {
-                        std::this_thread::sleep_for(std::chrono::microseconds(sleep - diff - overtime));
-                        overtime = 0;
-                    } else {
-                        overtime -= (sleep - diff);
-                    }
-                }
-            }
-
-            i += chunk_size;
             frames++;
+			current++;
+            i += chunk_size;
             fsize += chunk_size;
         }
     }
-    end  = std::chrono::high_resolution_clock::now();
-    diff = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    diff = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::high_resolution_clock::now() - start
+    ).count();
 
     fprintf(stderr, "%lu bytes, %lu kB, %lu MB took %lu ms %lu s\n",
         fsize, fsize / 1000, fsize / 1000 / 1000,
