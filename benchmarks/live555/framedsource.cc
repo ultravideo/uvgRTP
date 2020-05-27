@@ -18,6 +18,9 @@ bool initialized = false;
 std::queue<std::pair<size_t, uint8_t *>> nals;
 std::chrono::high_resolution_clock::time_point start, end;
 
+uint64_t currentFrame = 0;
+uint64_t framePeriod = 0;
+
 static void splitIntoNals(void)
 {
     size_t len   = 0;
@@ -54,6 +57,7 @@ H265FramedSource::H265FramedSource(UsageEnvironment& env, unsigned fps):
     FramedSource(env),
     fps_(fps)
 {
+	framePeriod = (uint64_t)((1000 / fps) * 1000);
     if (!eventTriggerId)
         eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
 }
@@ -73,7 +77,8 @@ void H265FramedSource::doGetNextFrame()
         start = std::chrono::high_resolution_clock::now();
         splitIntoNals();
     }
-
+	
+	// why is this before actual sending? This way we wait one extra frameperiod period before exiting
     if (nals.empty()) {
         end = std::chrono::high_resolution_clock::now();
         uint64_t diff = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -83,6 +88,20 @@ void H265FramedSource::doGetNextFrame()
         );
         exit(1);
     }
+	
+	// for live555 we wait before giving the frame to library so there is no possiblity of working on the file before time
+	
+	// how long the benchmark has been running
+	std::chrono::high_resolution_clock::time_point runTime = std::chrono::high_resolution_clock::now() - start;
+	
+	// sleep if we are ahead of schedule. This enforces the maximum fps set for sender
+	if (runTime < currentFrame*framePeriod)
+	{
+		// there is a very small lag with this implementation, but it is not cumulative so it doesn't matter
+		std::this_thread::sleep_for(std::chrono::microseconds(currentFrame*framePeriod - runTime));
+	}
+	
+	++currentFrame;
 
     deliverFrame();
 }

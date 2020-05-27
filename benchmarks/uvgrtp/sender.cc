@@ -15,7 +15,6 @@ void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps, 
     uint64_t chunk_size = 0;
     uint64_t total_size = 0;
     uint64_t diff       = 0;
-    uint64_t overtime   = 0;
     rtp_error_t ret     = RTP_OK;
     std::string addr_("10.21.25.26");
 
@@ -29,9 +28,10 @@ void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps, 
         RCE_SYSTEM_CALL_DISPATCHER
     );
 
-    std::chrono::high_resolution_clock::time_point start, end, fpts, fpte;
+    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
-    start = std::chrono::high_resolution_clock::now();
+	uint64_t currentFrame = 0;
+	uint64_t framePeriod = (uint64_t)((1000 / fps) * 1000);
 
     for (int rounds = 0; rounds < 1; ++rounds) {
         for (size_t offset = 0, k = 0; offset < len; ++k) {
@@ -40,58 +40,29 @@ void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps, 
             offset     += sizeof(uint64_t);
             total_size += chunk_size;
 
-            fpts = std::chrono::high_resolution_clock::now();
             if ((ret = hevc->push_frame((uint8_t *)mem + offset, chunk_size, 0)) != RTP_OK) {
                 fprintf(stderr, "push_frame() failed!\n");
                 for (;;);
             }
-            fpte = std::chrono::high_resolution_clock::now();
-
-            uint64_t diff  = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(fpte - fpts).count();
-            uint64_t sleep = (uint64_t)((1000 / fps) * 1000);
-
-            if (diff > sleep) {
-                if (strict) {
-                    fprintf(stderr, "too slow (%lu vs %lu): aborting!\n", diff, sleep);
-                    goto end;
-                }
-
-                /* We used "overtime" microseconds more than we should have,
-                 * the next frame must be sent faster so we don't fall behind
-                 *
-                 * Multiple frames might have been late so the "overtime" will hold
-                 * the amount of microseconds we have been late in total */
-                overtime += diff - sleep;
-            } else {
-                /* last frame did not use our time budget so
-                 * just sleep the time denoted by fps and continue to next frame */
-                if (!overtime) {
-                    std::this_thread::sleep_for(std::chrono::microseconds(sleep - diff));
-                } else {
-                    /* the sending of previous frame(s) took more time than it should have,
-                     * and we're punished for it.
-                     *
-                     * If we send this frame fast enough and there have not been too many frames late,
-                     * we can just sleep for whatever is left after the "overtime" is subtracted from
-                     * our sleep time and continue sending.
-                     *
-                     * Otherwise, we can just update the overtime counter with our sleep time and continue */
-                    if (sleep - diff > overtime) {
-                        std::this_thread::sleep_for(std::chrono::microseconds(sleep - diff - overtime));
-                        overtime = 0;
-                    } else {
-                        overtime -= (sleep - diff);
-                    }
-                }
-            }
-
+			
+			// how long the benchmark has been running
+            std::chrono::high_resolution_clock::time_point runTime = std::chrono::high_resolution_clock::now() - start;
+			
+			// sleep if we are ahead of schedule. This enforces the maximum fps set for sender
+			if (runTime < currentFrame*framePeriod)
+			{
+				// there is a very small lag with this implementation, but it is not cumulative so it doesn't matter
+				std::this_thread::sleep_for(std::chrono::microseconds(currentFrame*framePeriod - runTime));
+			}
+			
+			++currentFrame;
             offset     += chunk_size;
             bytes_sent += chunk_size;
         }
     }
     rtp_ctx.destroy_session(sess);
 
-    end  = std::chrono::high_resolution_clock::now();
+    std::chrono::high_resolution_clock::time_point end  = std::chrono::high_resolution_clock::now();
     diff = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     fprintf(stderr, "%lu bytes, %lu kB, %lu MB took %lu ms %lu s\n",
