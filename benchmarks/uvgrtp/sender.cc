@@ -15,6 +15,8 @@ void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps, 
     uint64_t chunk_size = 0;
     uint64_t total_size = 0;
     uint64_t diff       = 0;
+	uint64_t current    = 0;
+	uint64_t period     = (uint64_t)((1000 / fps) * 1000);
     rtp_error_t ret     = RTP_OK;
     std::string addr_("10.21.25.26");
 
@@ -30,9 +32,6 @@ void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps, 
 
     std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
-	uint64_t currentFrame = 0;
-	uint64_t framePeriod = (uint64_t)((1000 / fps) * 1000);
-
     for (int rounds = 0; rounds < 1; ++rounds) {
         for (size_t offset = 0, k = 0; offset < len; ++k) {
             memcpy(&chunk_size, (uint8_t *)mem + offset, sizeof(uint64_t));
@@ -45,25 +44,22 @@ void thread_func(void *mem, size_t len, char *addr, int thread_num, double fps, 
                 for (;;);
             }
 			
-			// how long the benchmark has been running
-            std::chrono::high_resolution_clock::time_point runTime = std::chrono::high_resolution_clock::now() - start;
+            auto runtime = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::high_resolution_clock::now() - start
+            ).count();
 			
-			// sleep if we are ahead of schedule. This enforces the maximum fps set for sender
-			if (runTime < currentFrame*framePeriod)
-			{
-				// there is a very small lag with this implementation, but it is not cumulative so it doesn't matter
-				std::this_thread::sleep_for(std::chrono::microseconds(currentFrame*framePeriod - runTime));
-			}
-			
-			++currentFrame;
+			if (runtime < current * period)
+				std::this_thread::sleep_for(std::chrono::microseconds(current * period - runtime));
+
+			current    += 1;
             offset     += chunk_size;
             bytes_sent += chunk_size;
         }
     }
     rtp_ctx.destroy_session(sess);
 
-    std::chrono::high_resolution_clock::time_point end  = std::chrono::high_resolution_clock::now();
-    diff = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    auto end = std::chrono::high_resolution_clock::now();
+    diff     = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     fprintf(stderr, "%lu bytes, %lu kB, %lu MB took %lu ms %lu s\n",
         bytes_sent, bytes_sent / 1000, bytes_sent / 1000 / 1000,
