@@ -71,6 +71,7 @@ sub parse_send {
         $rt_avg /= $threads;
 
         next START if grep /terminated|corrupt/, $line;
+        $line = <$fh> if grep /flush/, $line;
         my ($usr, $sys, $total, $cpu) = ($line =~ m/(\d+\.\d+)user\s(\d+\.\d+)system\s0:(\d+.\d+)elapsed\s(\d+)%CPU/);
 
         # discard line about inputs, outputs and pagefaults
