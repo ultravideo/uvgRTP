@@ -34,7 +34,7 @@ int main(void)
     while ((frame = hevc->pull_frame()) != nullptr) {
         /* When we receive a frame, the ownership of the frame belongs to us and
          * when we're done with it, we need to deallocate the frame */
-        uvg_rtp::frame::dealloc_frame(frame);
+        (void)uvg_rtp::frame::dealloc_frame(frame);
     }
 
     ctx.destroy_session(sess);

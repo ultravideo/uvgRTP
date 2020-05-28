@@ -1,20 +1,6 @@
 # uvgRTP example codes
 
-## Instructions for Windows
-
-1) Run prepare.bat in this directory to prepare testing environment for uvgRTP
-   * The script creates lib/ and include/ directories to project root directory
-2) Build uvgRTP using QtCreator
-3) When uvgRTP has been built, copy the libuvgrtp.a from the Qt build directory to lib/ created by the script
-4) Open the example.pro and build & run it
-   * Make sure the Qt build directory for example.pro is located in the same directory as lib/ and include/ (projects root directory) or tweak the include/lib paths accordingly
-
-## Instructions for Linux
-
-```
-sudo make --directory=.. all install
-g++ sending.cc -luvgrtp -lpthread && ./a.out
-```
+This directory contains a collection of simple examples that demonstrate how to use uvgRTP
 
 ## Available examples
 
@@ -37,6 +23,10 @@ NOTE: The hook should **not** be used for media processing. It should be rather 
 [How to create an RTCP instance (polling)](rtcp_poll.cc)
 
 [How to create an RTCP instance (hoooking)](rtcp_hook.cc)
+
+[How to use SRTP with ZRTP](srtp_zrtp.cc)
+
+[How to use SRTP with user-managed keys](srtp_user.cc)
 
 ### Memory ownership/deallocation
 

@@ -18,9 +18,8 @@ int main(void)
     while (true) {
         std::unique_ptr<uint8_t[]> buffer = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);
 
-        rtp_error_t ret = hevc->push_frame(std::move(buffer), PAYLOAD_MAXLEN, RTP_NO_FLAGS);
-        if (ret != RTP_OK)
-            fprintf(stderr, "failed to push hevc frame: %d\n", ret);
+        if (hevc->push_frame(std::move(buffer), PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK)
+            fprintf(stderr, "failed to push hevc frame\n");
 
         std::this_thread::sleep_for(std::chrono::milliseconds(800));
     }

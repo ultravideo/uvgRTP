@@ -34,9 +34,8 @@ int main(void)
         /* Sending data is as simple as calling push_frame().
          *
          * push_frame() will fragment the input buffer into payloads of 1500 bytes and send them to remote */
-        if (hevc->push_frame(buffer, PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK) {
+        if (hevc->push_frame(buffer, PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK)
             fprintf(stderr, "Failed to send RTP frame!");
-        }
     }
 
     /* Session must be destroyed manually */

@@ -23,9 +23,8 @@ int main(void)
          * We can no longer use buffer and must reallocate new memory chunk on the next iteration. 
          *
          * The memory is deallocated automatically when system call dispatcher has finished processing the transaction */
-        if (hevc->push_frame(std::move(buffer), PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK) {
+        if (hevc->push_frame(std::move(buffer), PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK)
             fprintf(stderr, "Failed to send RTP frame!");
-        }
     }
 
     /* Session must be destroyed manually */
