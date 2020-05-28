@@ -21,12 +21,13 @@ using namespace mingw;
 #include "socket.hh"
 #include "util.hh"
 
-uvg_rtp::socket::socket():
+uvg_rtp::socket::socket(int flags):
     recv_handler_(nullptr),
     sendto_handler_(nullptr),
     sendtov_handler_(nullptr),
     socket_(-1),
-    srtp_(nullptr)
+    srtp_(nullptr),
+    flags_(flags)
 {
 }
 
@@ -310,14 +311,16 @@ rtp_error_t uvg_rtp::socket::send_vecio(vecio_buf *buffers, size_t nbuffers, int
         return RTP_INVALID_VALUE;
 
 #ifdef __linux__
-    while (nbuffers > 1024) {
-        if (sendmmsg(socket_, buffers, 1024, flags) < 0) {
+    size_t npkts = (flags_ & RCE_NO_SYSTEM_CALL_CLUSTERING) ? 1 : 1024;
+
+    while (nbuffers > npkts) {
+        if (sendmmsg(socket_, buffers, npkts, flags) < 0) {
             LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
             return RTP_SEND_ERROR;
         }
 
-        nbuffers -= 1024;
-        buffers  += 1024;
+        nbuffers -= npkts;
+        buffers  += npkts;
     }
 
     if (sendmmsg(socket_, buffers, nbuffers, flags) < 0) {
@@ -339,10 +342,20 @@ rtp_error_t uvg_rtp::socket::recv_vecio(vecio_buf *buffers, size_t nbuffers, int
     ssize_t dgrams_read = 0;
 
 #ifdef __linux__
-    if ((dgrams_read = ::recvmmsg(socket_, buffers, nbuffers, flags, nullptr)) < 0) {
-        LOG_ERROR("recvmmsg(2) failed: %s", strerror(errno));
-        set_bytes(nread, -1);
-        return RTP_GENERIC_ERROR;
+    if (flags_ & RCE_NO_SYSTEM_CALL_CLUSTERING) {
+        for (size_t i = 0; i < nbuffers; ++i) {
+            if ((dgrams_read += ::recvmmsg(socket_, &buffers[i], 1, flags, nullptr)) < 0) {
+                LOG_ERROR("recvmmsg(2) failed: %s", strerror(errno));
+                set_bytes(nread, -1);
+                return RTP_GENERIC_ERROR;
+            }
+        }
+    } else {
+        if ((dgrams_read = ::recvmmsg(socket_, buffers, nbuffers, flags, nullptr)) < 0) {
+            LOG_ERROR("recvmmsg(2) failed: %s", strerror(errno));
+            set_bytes(nread, -1);
+            return RTP_GENERIC_ERROR;
+        }
     }
 
     set_bytes(nread, dgrams_read);

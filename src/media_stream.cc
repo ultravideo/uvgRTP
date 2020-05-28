@@ -7,7 +7,7 @@
 
 uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     srtp_(nullptr),
-    socket_(),
+    socket_(flags),
     sender_(nullptr),
     receiver_(nullptr),
     rtp_(nullptr),

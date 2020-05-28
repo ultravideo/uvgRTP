@@ -29,7 +29,7 @@ namespace uvg_rtp {
 
     class socket {
         public:
-            socket();
+            socket(int flags);
             ~socket();
 
             /* Create socket using "family", "type" and "protocol"
@@ -164,6 +164,7 @@ namespace uvg_rtp {
             socket_t socket_;
             sockaddr_in addr_;
             uvg_rtp::srtp *srtp_;
+            int flags_;
 
 #ifdef _WIN32
             WSABUF buffers_[MAX_BUFFER_COUNT];

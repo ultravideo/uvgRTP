@@ -55,7 +55,7 @@ rtp_error_t uvg_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, i
 
     zero_stats(&p->stats);
 
-    if ((p->socket = new uvg_rtp::socket()) == nullptr)
+    if ((p->socket = new uvg_rtp::socket(RTP_CTX_NO_FLAGS)) == nullptr)
         return RTP_MEMORY_ERROR;
 
     if ((ret = p->socket->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)

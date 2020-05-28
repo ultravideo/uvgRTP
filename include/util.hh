@@ -87,26 +87,26 @@ typedef enum RTP_FLAGS {
 
 /* These flags are given when uvgRTP context is created */
 enum RTP_CTX_ENABLE_FLAGS {
-    RTP_CTX_NO_FLAGS           = 0 << 0,
+    RTP_CTX_NO_FLAGS              = 0 << 0,
 
     /* Use optimistic receiver (HEVC only) */
-    RCE_OPTIMISTIC_RECEIVER    = 1 << 0,
+    RCE_OPTIMISTIC_RECEIVER       = 1 << 0,
 
     /* Enable system call dispatcher (HEVC only) */
-    RCE_SYSTEM_CALL_DISPATCHER = 1 << 2,
+    RCE_SYSTEM_CALL_DISPATCHER    = 1 << 2,
 
     /* Use SRTP for this connection */
-    RCE_SRTP                   = 1 << 3,
+    RCE_SRTP                      = 1 << 3,
 
     /* Use ZRTP for key management
      *
      * TODO selitä paremmin */
-    RCE_SRTP_KMNGMNT_ZRTP      = 1 << 4,
+    RCE_SRTP_KMNGMNT_ZRTP         = 1 << 4,
 
     /* Use user-defined way to manage keys
      *
      * TODO selitä paremmin */
-    RCE_SRTP_KMNGMNT_USER      = 1 << 5,
+    RCE_SRTP_KMNGMNT_USER         = 1 << 5,
 
     /* When uvgRTP is receiving HEVC stream, as an attempt to improve
      * QoS, it will set frame delay for intra frames to be the same
@@ -128,7 +128,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      * This behavior can be disabled with RCE_HEVC_NO_INTRA_DELAY
      * If this flag is given, uvgRTP treats all frame types
      * equally and drops all frames that are late */
-    RCE_HEVC_NO_INTRA_DELAY    = 1 << 5,
+    RCE_HEVC_NO_INTRA_DELAY       = 1 << 5,
 
     /* Fragment generic frames into RTP packets of 1500 bytes.
      *
@@ -142,7 +142,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      * RCE_FRAGMENT_GENERIC can be used, for example, when you're using uvgRTP for
      * both sender and receiver and the media stream you wish to stream is not supported
      * by uvgRTP but requires packetization because MEDIA_FRAME_SIZE > MTU */
-    RCE_FRAGMENT_GENERIC       = 1 << 6,
+    RCE_FRAGMENT_GENERIC          = 1 << 6,
 
     /* If SRTP is enabled and RCE_INPLACE_ENCRYPTION flag is *not* given,
      * uvgRTP will make a copy of the frame given to push_frame().
@@ -152,9 +152,12 @@ enum RTP_CTX_ENABLE_FLAGS {
      * unnecessary copy operations.
      *
      * If RCE_INPLACE_ENCRYPTION is given to push_frame(), the input pointer must be writable! */
-    RCE_INPLACE_ENCRYPTION     = 1 << 7,
+    RCE_INPLACE_ENCRYPTION        = 1 << 7,
 
-    RCE_LAST                   = 1 << 8,
+    /* Disable System Call Clustering (SCC), System Call Dispatching is still usable */
+    RCE_NO_SYSTEM_CALL_CLUSTERING = 1 << 8,
+
+    RCE_LAST                      = 1 << 9,
 };
 
 /* These options are given to configuration() */
