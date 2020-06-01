@@ -2,6 +2,7 @@
 #include <FramedSource.hh>
 #include "framedsource.hh"
 #include <chrono>
+#include <mutex>
 #include <queue>
 #include <thread>
 
@@ -18,6 +19,7 @@ uint64_t current = 0;
 uint64_t period  = 0;
 bool initialized = false;
 
+std::mutex delivery_mtx;
 std::queue<std::pair<size_t, uint8_t *>> nals;
 std::chrono::high_resolution_clock::time_point start, end;
 
@@ -88,15 +90,7 @@ void H265FramedSource::doGetNextFrame()
         );
         exit(1);
     }
-    
-    uint64_t runtime = std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::high_resolution_clock::now() - start
-    ).count();
 
-    if (runtime < current * period)
-        std::this_thread::sleep_for(std::chrono::microseconds(current * period - runtime));
-    
-    ++current;
     deliverFrame();
 }
 
@@ -109,6 +103,17 @@ void H265FramedSource::deliverFrame()
 {
     if (!isCurrentlyAwaitingData())
         return;
+
+    delivery_mtx.lock();
+
+    uint64_t runtime = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::high_resolution_clock::now() - start
+    ).count();
+
+    if (runtime < current * period)
+        std::this_thread::sleep_for(std::chrono::microseconds(current * period - runtime));
+
+    ++current;
 
     auto nal = nals.front();
     nals.pop();
@@ -127,5 +132,8 @@ void H265FramedSource::deliverFrame()
 
     fDurationInMicroseconds = 0;
     memmove(fTo, newFrameDataStart, fFrameSize);
+
+    delivery_mtx.unlock();
+
     FramedSource::afterGetting(this);
 }
