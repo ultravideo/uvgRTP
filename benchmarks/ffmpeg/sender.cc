@@ -56,7 +56,7 @@ void thread_func(void *mem, size_t len, char *addr_, int thread_num, double fps,
     AVFormatContext* avfctx;
     AVOutputFormat* fmt = av_guess_format("rtp", NULL, NULL);
 
-    snprintf(addr, 64, "rtp://10.21.25.26:%d", 8888 + thread_num);
+    snprintf(addr, 64, "rtp://10.21.25.2:%d", 8888 + thread_num);
     ret = avformat_alloc_output_context2(&avfctx, fmt, fmt->name, addr);
 
     avio_open(&avfctx->pb, avfctx->filename, AVIO_FLAG_WRITE);

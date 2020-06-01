@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 
     Port rtpPort(8888);
     struct in_addr dst_addr;
-    dst_addr.s_addr = our_inet_addr("127.0.0.1");
+    dst_addr.s_addr = our_inet_addr("10.21.25.2");
 
     Groupsock rtpGroupsock(*env, dst_addr, rtpPort, 255);
 
