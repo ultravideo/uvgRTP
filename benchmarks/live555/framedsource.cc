@@ -21,7 +21,7 @@ bool initialized = false;
 
 std::mutex delivery_mtx;
 std::queue<std::pair<size_t, uint8_t *>> nals;
-std::chrono::high_resolution_clock::time_point start, end;
+std::chrono::high_resolution_clock::time_point s_tmr, e_tmr;
 
 static const uint8_t *ff_avc_find_startcode_internal(const uint8_t *p, const uint8_t *end)
 {
@@ -67,27 +67,34 @@ const uint8_t *ff_avc_find_startcode(const uint8_t *p, const uint8_t *end)
     return out;
 }
 
-static void ff_avc_parse_nal_units(void)
+static std::pair<size_t, uint8_t *> find_next_nal(void)
 {
-    size_t len   = 0;
-    uint8_t *mem = (uint8_t *)get_mem(0, NULL, len);
+    static size_t len         = 0;
+    static uint8_t *p         = NULL;
+    static uint8_t *end       = NULL;
+    static uint8_t *nal_start = NULL;
+    static uint8_t *nal_end   = NULL;
 
-    const uint8_t *p = mem;
-    const uint8_t *end = p + len;
-    const uint8_t *nal_start, *nal_end;
+    if (!p) {
+        p   = (uint8_t *)get_mem(0, NULL, len);
+        end = p + len;
+        len = 0;
 
-    len = 0;
-    nal_start = ff_avc_find_startcode(p, end);
-    for (;;) {
-        while (nal_start < end && !*(nal_start++));
-        if (nal_start == end)
-            break;
-
-        nal_end = ff_avc_find_startcode(nal_start, end);
-        nals.push(std::make_pair((size_t)(nal_end - nal_start), (uint8_t *)nal_start));
-        len += 4 + nal_end - nal_start;
-        nal_start = nal_end;
+        nal_start = (uint8_t *)ff_avc_find_startcode(p, end);
     }
+
+    while (nal_start < end && !*(nal_start++))
+        ;
+
+    if (nal_start == end)
+        return std::make_pair(0, nullptr);
+
+    nal_end    = (uint8_t *)ff_avc_find_startcode(nal_start, end);
+    auto ret   = std::make_pair((size_t)(nal_end - nal_start), (uint8_t *)nal_start);
+    len       += 4 + nal_end - nal_start;
+    nal_start  = nal_end;
+
+    return ret;
 }
 
 H265FramedSource *H265FramedSource::createNew(UsageEnvironment& env, unsigned fps)
@@ -115,20 +122,9 @@ H265FramedSource::~H265FramedSource()
 
 void H265FramedSource::doGetNextFrame()
 {
-    /* The benchmark has started, start the timer and split the input video into NAL units */
     if (!initialized) {
-        start = std::chrono::high_resolution_clock::now();
-        ff_avc_parse_nal_units();
-    }
-    
-    if (nals.empty()) {
-        end = std::chrono::high_resolution_clock::now();
-        uint64_t diff = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-        fprintf(stderr, "%lu bytes, %lu kB, %lu MB took %lu ms %lu s\n",
-            bytes, bytes / 1000, bytes / 1000 / 1000,
-            diff, diff / 1000
-        );
-        exit(1);
+        s_tmr       = std::chrono::high_resolution_clock::now();
+        initialized = true;
     }
 
     deliverFrame();
@@ -146,17 +142,28 @@ void H265FramedSource::deliverFrame()
 
     delivery_mtx.lock();
 
+    auto nal = find_next_nal();
+
+    if (!nal.first || !nal.second) {
+        e_tmr = std::chrono::high_resolution_clock::now();
+        uint64_t diff = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(e_tmr - s_tmr).count();
+        fprintf(stderr, "%lu bytes, %lu kB, %lu MB took %lu ms %lu s\n",
+            bytes, bytes / 1000, bytes / 1000 / 1000,
+            diff, diff / 1000
+        );
+        exit(EXIT_SUCCESS);
+    }
+
     uint64_t runtime = std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::high_resolution_clock::now() - start
+        std::chrono::high_resolution_clock::now() - s_tmr
     ).count();
 
     if (runtime < current * period)
         std::this_thread::sleep_for(std::chrono::microseconds(current * period - runtime));
 
-    ++current;
-
-    auto nal = nals.front();
-    nals.pop();
+    /* try to hold fps for intra/inter frames only */
+    if (nal.first > 1500)
+        ++current;
 
     uint8_t *newFrameDataStart = nal.second;
     unsigned newFrameSize      = nal.first;
