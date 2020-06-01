@@ -70,13 +70,18 @@ namespace uvg_rtp {
              * push_frame(..., RTP_MORE | RTP_SLICE); // more data coming in, do not flush queue
              * push_frame(..., RTP_SLICE);            // no more data coming in, flush queue
              *
+             * If user wishes to manage RTP timestamps himself, he may pass "ts" to push_frame()
+             * which forces uvgRTP to use that timestamp for all RTP packets of "data".
+             *
              * Return RTP_OK success
              * Return RTP_INVALID_VALUE if one of the parameters are invalid
              * Return RTP_MEMORY_ERROR  if the data chunk is too large to be processed
              * Return RTP_SEND_ERROR    if uvgRTP failed to send the data to remote
              * Return RTP_GENERIC_ERROR for any other error condition */
             rtp_error_t push_frame(uint8_t *data, size_t data_len, int flags);
+            rtp_error_t push_frame(uint8_t *data, size_t data_len, uint32_t ts, int flags);
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags);
+            rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int flags);
 
             /* When a frame is received, it is put into the frame vector of the receiver
              * Calling application can poll frames by calling pull_frame().

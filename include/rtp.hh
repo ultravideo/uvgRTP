@@ -20,6 +20,7 @@ namespace uvg_rtp {
             void set_clock_rate(size_t rate);
             void set_payload(rtp_format_t fmt);
             void set_dynamic_payload(uint8_t payload);
+            void set_timestamp(uint64_t timestamp);
 
             void fill_header(uint8_t *buffer);
             void update_sequence(uint8_t *buffer);
@@ -36,6 +37,9 @@ namespace uvg_rtp {
             uvg_rtp::clock::hrc::hrc_t wc_start_2;
 
             size_t sent_pkts_;
+
+            /* Use custom timestamp for the outgoing RTP packets */
+            uint64_t timestamp_;
     };
 };
 

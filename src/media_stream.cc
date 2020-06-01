@@ -5,6 +5,8 @@
 #include "media_stream.hh"
 #include "random.hh"
 
+#define INVALID_TS UINT64_MAX
+
 uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     srtp_(nullptr),
     socket_(flags),
@@ -210,6 +212,38 @@ rtp_error_t uvg_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, s
     }
 
     return sender_->push_frame(std::move(data), data_len, flags);
+}
+
+rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, uint32_t ts, int flags)
+{
+    rtp_error_t ret = RTP_GENERIC_ERROR;
+
+    if (!initialized_) {
+        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        return RTP_NOT_INITIALIZED;
+    }
+
+    rtp_->set_timestamp(ts);
+    ret = sender_->push_frame(data, data_len, flags);
+    rtp_->set_timestamp(INVALID_TS);
+
+    return ret;
+}
+
+rtp_error_t uvg_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int flags)
+{
+    rtp_error_t ret = RTP_GENERIC_ERROR;
+
+    if (!initialized_) {
+        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        return RTP_NOT_INITIALIZED;
+    }
+
+    rtp_->set_timestamp(ts);
+    ret = sender_->push_frame(std::move(data), data_len, flags);
+    rtp_->set_timestamp(INVALID_TS);
+
+    return ret;
 }
 
 uvg_rtp::frame::rtp_frame *uvg_rtp::media_stream::pull_frame()

@@ -10,8 +10,12 @@
 #include "random.hh"
 #include "rtp.hh"
 
+#define INVALID_TS UINT64_MAX
+
 uvg_rtp::rtp::rtp(rtp_format_t fmt):
-    wc_start_(0), sent_pkts_(0)
+    wc_start_(0),
+    sent_pkts_(0),
+    timestamp_(INVALID_TS)
 {
     seq_  = uvg_rtp::random::generate_32() & 0xffff;
     ts_   = uvg_rtp::random::generate_32();
@@ -94,12 +98,21 @@ void uvg_rtp::rtp::fill_header(uint8_t *buffer)
     buffer[1] = (payload_ & 0x7f) | (0 << 7);
 
     *(uint16_t *)&buffer[2] = htons(seq_);
-    *(uint32_t *)&buffer[4] = htonl(
-        ts_
-        + uvg_rtp::clock::hrc::diff_now(wc_start_2)
-        * clock_rate_
-        / 1000
-    );
     *(uint32_t *)&buffer[8] = htonl(ssrc_);
+
+    if (timestamp_ == INVALID_TS) {
+        *(uint32_t *)&buffer[4] = htonl(
+            ts_
+            + uvg_rtp::clock::hrc::diff_now(wc_start_2)
+            * clock_rate_
+            / 1000
+        );
+    } else {
+        *(uint32_t *)&buffer[4] = htonl(timestamp_);
+    }
 }
 
+void uvg_rtp::rtp::set_timestamp(uint64_t timestamp)
+{
+    timestamp_= timestamp;
+}
