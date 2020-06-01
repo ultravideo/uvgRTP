@@ -67,10 +67,11 @@ rtp_error_t uvg_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, i
         return ret;
 
 #ifdef _WIN32
-#if 0
-    if (::ioctlsocket(p->get_raw_socket(), FIONREAD, nullptr) < 0)
+    /* Make the socket non-blocking */
+    int enabled = 1;
+
+    if (::ioctlsocket(p->socket->get_raw_socket(), FIONBIO, (u_long *)&enabled) < 0)
         LOG_ERROR("Failed to make the socket non-blocking!");
-#endif
 #endif
 
     /* Set read timeout (5s for now) 
