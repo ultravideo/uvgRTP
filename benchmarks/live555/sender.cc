@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 
     Groupsock rtpGroupsock(*env, dst_addr, rtpPort, 255);
 
-    OutPacketBuffer::maxSize = 1600000;
+    OutPacketBuffer::maxSize = 40 * 1000 * 1000;
     videoSink = H265VideoRTPSink::createNew(*env, &rtpGroupsock, 96);
 
     videoSink->startPlaying(*framer, NULL, videoSink);
