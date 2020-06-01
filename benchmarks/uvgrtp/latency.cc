@@ -7,13 +7,20 @@ extern void *get_mem(int argc, char **argv, size_t& len);
 
 std::chrono::high_resolution_clock::time_point fpts, fpte;
 size_t nframes = 0;
+bool intra     = false;
 
 void hook_sender(void *arg, uvg_rtp::frame::rtp_frame *frame)
 {
     (void)arg, (void)frame;
 
-    if (frame)
+    if (frame) {
+        switch (frame->payload[2] & 0x3f) {
+            case 19: intra = true;  break;
+            case 1:  intra = false; break;
+        }
+
         fpte = std::chrono::high_resolution_clock::now();
+    }
 }
 
 void hook_receiver(void *arg, uvg_rtp::frame::rtp_frame *frame)
@@ -51,9 +58,14 @@ int sender(char *ip)
     uint64_t csize  = 0;
     uint64_t diff   = 0;
     size_t frames   = 0;
-    size_t total    = 0;
+    size_t ninters  = 0;
+    size_t nintras  = 0;
     rtp_error_t ret = RTP_OK;
     std::string addr(ip);
+
+    size_t total       = 0;
+    size_t total_intra = 0;
+    size_t total_inter = 0;
 
     uvg_rtp::context rtp_ctx;
 
@@ -90,16 +102,25 @@ int sender(char *ip)
 
         /* If the difference is more than 10 seconds, it's very likely that the frame was dropped
          * and this latency value is bogus and should be discarded */
-        if (diff >= 10 * 1000 * 1000)
+        if (diff >= 10 * 1000 * 1000) {
             frames--;
-        else
+        } else {
             total += diff;
+            if (intra)
+                total_intra += diff, nintras++;
+            else
+                total_inter += diff, ninters++;
+        }
 
         offset += csize;
     }
     rtp_ctx.destroy_session(sess);
 
-    fprintf(stderr, "avg latency: %lf\n", total / (float)frames);
+    fprintf(stderr, "intra %lf, inter %lf, avg %lf\n",
+        total_intra / (float)nintras,
+        total_inter / (float)ninters,
+        total / (float)frames
+    );
 
     return 0;
 }
