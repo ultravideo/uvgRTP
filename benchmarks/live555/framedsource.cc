@@ -23,31 +23,71 @@ std::mutex delivery_mtx;
 std::queue<std::pair<size_t, uint8_t *>> nals;
 std::chrono::high_resolution_clock::time_point start, end;
 
-static void splitIntoNals(void)
+static const uint8_t *ff_avc_find_startcode_internal(const uint8_t *p, const uint8_t *end)
+{
+    const uint8_t *a = p + 4 - ((intptr_t)p & 3);
+
+    for (end -= 3; p < a && p < end; p++) {
+        if (p[0] == 0 && p[1] == 0 && p[2] == 1)
+            return p;
+    }
+
+    for (end -= 3; p < end; p += 4) {
+        uint32_t x = *(const uint32_t*)p;
+//      if ((x - 0x01000100) & (~x) & 0x80008000) // little endian
+//      if ((x - 0x00010001) & (~x) & 0x00800080) // big endian
+        if ((x - 0x01010101) & (~x) & 0x80808080) { // generic
+            if (p[1] == 0) {
+                if (p[0] == 0 && p[2] == 1)
+                    return p;
+                if (p[2] == 0 && p[3] == 1)
+                    return p+1;
+            }
+            if (p[3] == 0) {
+                if (p[2] == 0 && p[4] == 1)
+                    return p+2;
+                if (p[4] == 0 && p[5] == 1)
+                    return p+3;
+            }
+        }
+    }
+
+    for (end += 3; p < end; p++) {
+        if (p[0] == 0 && p[1] == 0 && p[2] == 1)
+            return p;
+    }
+
+    return end + 3;
+}
+
+const uint8_t *ff_avc_find_startcode(const uint8_t *p, const uint8_t *end)
+{
+    const uint8_t *out= ff_avc_find_startcode_internal(p, end);
+    if (p < out && out < end && !out[-1]) out--;
+    return out;
+}
+
+static void ff_avc_parse_nal_units(void)
 {
     size_t len   = 0;
     uint8_t *mem = (uint8_t *)get_mem(0, NULL, len);
 
-    uint8_t start_len;
-    int32_t prev_offset = 0;
-    int offset = get_next_frame_start((uint8_t *)mem, 0, len, start_len);
-    prev_offset = offset;
+    const uint8_t *p = mem;
+    const uint8_t *end = p + len;
+    const uint8_t *nal_start, *nal_end;
 
-    while (offset != -1) {
-        offset = get_next_frame_start((uint8_t *)mem, offset, len, start_len);
+    len = 0;
+    nal_start = ff_avc_find_startcode(p, end);
+    for (;;) {
+        while (nal_start < end && !*(nal_start++));
+        if (nal_start == end)
+            break;
 
-        if (offset > 4 && offset != -1) {
-            nals.push(std::make_pair(offset - prev_offset - start_len, &mem[prev_offset]));
-            prev_offset = offset;
-        }
+        nal_end = ff_avc_find_startcode(nal_start, end);
+        nals.push(std::make_pair((size_t)(nal_end - nal_start), (uint8_t *)nal_start));
+        len += 4 + nal_end - nal_start;
+        nal_start = nal_end;
     }
-
-    if (prev_offset == -1)
-        prev_offset = 0;
-
-    nals.push(std::make_pair(len - prev_offset, &mem[prev_offset]));
-
-    initialized = true;
 }
 
 H265FramedSource *H265FramedSource::createNew(UsageEnvironment& env, unsigned fps)
@@ -77,8 +117,8 @@ void H265FramedSource::doGetNextFrame()
 {
     /* The benchmark has started, start the timer and split the input video into NAL units */
     if (!initialized) {
-        splitIntoNals();
         start = std::chrono::high_resolution_clock::now();
+        ff_avc_parse_nal_units();
     }
     
     if (nals.empty()) {
