@@ -1,7 +1,7 @@
 #include <liveMedia/liveMedia.hh>
 #include <BasicUsageEnvironment.hh>
 #include <GroupsockHelper.hh>
-#include "framedsource.hh"
+#include "source.hh"
 #include "H265VideoStreamDiscreteFramer.hh"
 
 int main(int argc, char **argv)

@@ -25,7 +25,7 @@ ffmpeg_latency:
 		ffmpeg/latency.cc util/util.cc -lkvazaar -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
 
 live555_sender:
-	$(CXX) $(CXXFLAGS) live555/sender.cc live555/framedsource.cc util/util.cc -o live555/sender \
+	$(CXX) $(CXXFLAGS) live555/sender.cc live555/source.cc util/util.cc -o live555/sender \
 		-I /usr/local/include/liveMedia \
 		-I /usr/local/include/groupsock  \
 		-I /usr/local/include/BasicUsageEnvironment \
