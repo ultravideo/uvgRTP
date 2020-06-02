@@ -41,7 +41,18 @@ live555_receiver:
 		-I /usr/local/include/UsageEnvironment \
 		-lkvazaar -lpthread -lliveMedia -lgroupsock -lBasicUsageEnvironment \
 		-lUsageEnvironment -lcrypto -lssl
+
+live555_latency:
+	$(CXX) $(CXXFLAGS) live555/latency.cc live555/latsource.cc \
+		live555/latsink.cc util/util.cc -o live555/latency \
+		-I /usr/local/include/liveMedia \
+		-I /usr/local/include/groupsock  \
+		-I /usr/local/include/BasicUsageEnvironment \
+		-I /usr/local/include/UsageEnvironment \
+		-lkvazaar -lpthread -lliveMedia -lgroupsock -lBasicUsageEnvironment \
+		-lUsageEnvironment -lcrypto -lssl
+
 clean:
-	rm -f uvgrtp/receiver uvgrtp/sender uvgrtp/latency \
-		ffmpeg/sender ffmpeg/receiver ffmpeg/latency \
-		live555/sender live555/receiver
+	rm -f uvgrtp/receiver uvgrtp/sender  uvgrtp/latency \
+		ffmpeg/receiver ffmpeg/sender ffmpeg/latency \
+		live555/receiver live555/sender live555/latency
