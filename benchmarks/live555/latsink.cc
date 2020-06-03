@@ -80,6 +80,8 @@ void RTPLatencySink::afterGettingFrame(
     if (!frames)
         (void)new std::thread(thread_func);
 
+    fprintf(stderr, "got frame\n");
+
     if (++frames == 601) {
         fprintf(stderr, "%zu %zu %lu\n", bytes, frames,
             std::chrono::duration_cast<std::chrono::milliseconds>(

@@ -12,6 +12,7 @@ public:
   // Note that this is defined here to be a static class variable, because this code is intended to illustrate how to
   // encapsulate a *single* device - not a set of devices.
   // You can, however, redefine this to be a non-static member variable.
+  void deliver_frame();
 
 protected:
   H265FramedSource(UsageEnvironment& env, unsigned fps);

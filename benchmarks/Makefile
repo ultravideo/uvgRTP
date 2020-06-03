@@ -37,7 +37,7 @@ live555_sender:
 		-I /usr/local/include/groupsock  \
 		-I /usr/local/include/BasicUsageEnvironment \
 		-I /usr/local/include/UsageEnvironment \
-		-lkvazaar -lpthread -lliveMedia -lgroupsock -lBasicUsageEnvironment \
+		-lpthread -lliveMedia -lgroupsock -lBasicUsageEnvironment \
 		-lUsageEnvironment -lcrypto -lssl
 
 live555_receiver:
@@ -49,9 +49,17 @@ live555_receiver:
 		-lkvazaar -lpthread -lliveMedia -lgroupsock -lBasicUsageEnvironment \
 		-lUsageEnvironment -lcrypto -lssl
 
-live555_latency:
-	$(CXX) $(CXXFLAGS) live555/latency.cc live555/latsource.cc \
-		live555/latsink.cc util/util.cc -o live555/latency \
+live555_latency_sender:
+	$(CXX) $(CXXFLAGS) live555/latency_sender.cc util/util.cc -o live555/latency_sender \
+		-I /usr/local/include/liveMedia \
+		-I /usr/local/include/groupsock  \
+		-I /usr/local/include/BasicUsageEnvironment \
+		-I /usr/local/include/UsageEnvironment \
+		-lkvazaar -lpthread -lliveMedia -lgroupsock -lBasicUsageEnvironment \
+		-lUsageEnvironment -lcrypto -lssl
+
+live555_latency_receiver:
+	$(CXX) $(CXXFLAGS) live555/latency_receiver.cc -o live555/latency_receiver \
 		-I /usr/local/include/liveMedia \
 		-I /usr/local/include/groupsock  \
 		-I /usr/local/include/BasicUsageEnvironment \

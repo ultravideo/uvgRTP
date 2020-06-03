@@ -97,15 +97,16 @@ static std::pair<size_t, uint8_t *> find_next_nal(void)
     return ret;
 }
 
-H265LatencyFramedSource *H265LatencyFramedSource::createNew(UsageEnvironment& env)
+H265LatencyFramedSource *H265LatencyFramedSource::createNew(UsageEnvironment& env, std::mutex& lat_mtx)
 {
-    return new H265LatencyFramedSource(env);
+    return new H265LatencyFramedSource(env, lat_mtx);
 }
 
-H265LatencyFramedSource::H265LatencyFramedSource(UsageEnvironment& env):
-    FramedSource(env)
+H265LatencyFramedSource::H265LatencyFramedSource(UsageEnvironment& env, std::mutex& lat_mtx):
+    FramedSource(env),
+    mtx_(lat_mtx)
 {
-    period = (uint64_t)((1000 / 1) * 1000);
+    period = (uint64_t)((1000 / 15) * 1000);
 
     if (!eventTriggerId)
         eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
@@ -139,7 +140,8 @@ void H265LatencyFramedSource::deliverFrame()
     if (!isCurrentlyAwaitingData())
         return;
 
-    delivery_mtx.lock();
+    mtx_.lock();
+    fprintf(stderr, "send frame\n");
 
     auto nal = find_next_nal();
 
@@ -178,8 +180,6 @@ void H265LatencyFramedSource::deliverFrame()
 
     fDurationInMicroseconds = 0;
     memmove(fTo, newFrameDataStart, fFrameSize);
-
-    delivery_mtx.unlock();
 
     FramedSource::afterGetting(this);
 }
