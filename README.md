@@ -15,6 +15,17 @@ Supported specifications:
 
 Based on Marko Viitanen's [fRTPlib](https://github.com/fador/fRTPlib)
 
+## Notable features
+
+* Builtin support for:
+    * HEVC
+    * Opus
+    * SRTP/ZRTP
+* Generic interface for custom media types
+* UDP hole punching
+* Simple API
+* Permissive license
+
 ## Building and linking
 
 See [BUILDING.md](BUILDING.md) for instructions on how to build and use uvgRTP
