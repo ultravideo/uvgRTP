@@ -11,9 +11,10 @@ extern "C" {
 #include <stdbool.h>
 }
 
-#include <chrono>
-#include <thread>
 #include <atomic>
+#include <chrono>
+#include <string>
+#include <thread>
 
 extern void *get_mem(int argc, char **argv, size_t& len);
 
@@ -30,7 +31,7 @@ struct ffmpeg_ctx {
     AVFormatContext *receiver;
 };
 
-ffmpeg_ctx *init_ffmpeg(char *ip)
+static ffmpeg_ctx *init_ffmpeg(const char *ip)
 {
     avcodec_register_all();
     av_register_all();
@@ -179,28 +180,13 @@ ffmpeg_ctx *init_ffmpeg(char *ip)
     return ctx;
 }
 
-int receiver(char *ip)
+static int sender(void)
 {
-    AVPacket pkt;
-    ffmpeg_ctx *ctx = init_ffmpeg(ip);
+    size_t len = 0;
+    void *mem  = get_mem(0, NULL, len);
 
-    if (!(ctx = init_ffmpeg(ip)))
-        return EXIT_FAILURE;
-
-    av_init_packet(&pkt);
-    av_read_play(ctx->receiver);
-
-    while (av_read_frame(ctx->receiver, &pkt) >= 0)
-        av_write_frame(ctx->sender, &pkt);
-
-    return EXIT_SUCCESS;
-}
-
-int sender(char *ip)
-{
-    size_t len      = 0;
-    void *mem       = get_mem(0, NULL, len);
-    ffmpeg_ctx *ctx = init_ffmpeg(ip);
+    std::string addr("10.21.25.2");
+    ffmpeg_ctx *ctx = init_ffmpeg(addr.c_str());
 
     uint64_t chunk_size = 0;
     uint64_t diff       = 0;
@@ -234,10 +220,7 @@ int sender(char *ip)
 
 int main(int argc, char **argv)
 {
-    if (argc != 3) {
-        fprintf(stderr, "usage: ./%s <send|recv> <ip>\n", __FILE__);
-        exit(EXIT_FAILURE);
-    }
+    (void)argc, (void)argv;
 
-    return !strcmp(argv[1], "sender") ? sender(argv[2]) : receiver(argv[2]);
+    return sender();
 }

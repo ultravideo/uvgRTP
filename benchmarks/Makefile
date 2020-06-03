@@ -9,8 +9,11 @@ uvgrtp_receiver:
 uvgrtp_sender:
 	$(CXX) $(CXXFLAGS) -o uvgrtp/sender uvgrtp/sender.cc util/util.cc -luvgrtp -lkvazaar -lpthread
 
-uvgrtp_latency:
-	$(CXX) $(CXXFLAGS) -o uvgrtp/latency uvgrtp/latency.cc util/util.cc -luvgrtp -lkvazaar -lpthread
+uvgrtp_latency_sender:
+	$(CXX) $(CXXFLAGS) -o uvgrtp/latency_sender uvgrtp/latency_sender.cc util/util.cc -luvgrtp -lkvazaar -lpthread
+
+uvgrtp_latency_receiver:
+	$(CXX) $(CXXFLAGS) -o uvgrtp/latency_receiver uvgrtp/latency_receiver.cc util/util.cc -luvgrtp -lkvazaar -lpthread
 
 ffmpeg_sender:
 	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/sender \
@@ -20,9 +23,13 @@ ffmpeg_receiver:
 	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/receiver \
 		ffmpeg/receiver.cc util/util.cc -lkvazaar -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
 
-ffmpeg_latency:
-	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/latency \
-		ffmpeg/latency.cc util/util.cc -lkvazaar -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
+ffmpeg_latency_sender:
+	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/latency_sender \
+		ffmpeg/latency_sender.cc util/util.cc -lkvazaar -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
+
+ffmpeg_latency_receiver:
+	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/latency_receiver \
+		ffmpeg/latency_receiver.cc util/util.cc -lkvazaar -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
 
 live555_sender:
 	$(CXX) $(CXXFLAGS) live555/sender.cc live555/source.cc util/util.cc -o live555/sender \
@@ -53,6 +60,6 @@ live555_latency:
 		-lUsageEnvironment -lcrypto -lssl
 
 clean:
-	rm -f uvgrtp/receiver uvgrtp/sender  uvgrtp/latency \
-		ffmpeg/receiver ffmpeg/sender ffmpeg/latency \
+	rm -f uvgrtp/receiver uvgrtp/sender  uvgrtp/latency_sender uvgrtp/latency_receiver \
+		ffmpeg/receiver ffmpeg/sender ffmpeg/latency_sender ffmpeg/latency_receiver \
 		live555/receiver live555/sender live555/latency

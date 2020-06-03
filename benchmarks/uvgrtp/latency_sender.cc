@@ -6,10 +6,9 @@
 extern void *get_mem(int argc, char **argv, size_t& len);
 
 std::chrono::high_resolution_clock::time_point fpts, fpte;
-size_t nframes = 0;
-bool intra     = false;
+bool intra = false;
 
-void hook_sender(void *arg, uvg_rtp::frame::rtp_frame *frame)
+static void hook_sender(void *arg, uvg_rtp::frame::rtp_frame *frame)
 {
     (void)arg, (void)frame;
 
@@ -23,35 +22,7 @@ void hook_sender(void *arg, uvg_rtp::frame::rtp_frame *frame)
     }
 }
 
-void hook_receiver(void *arg, uvg_rtp::frame::rtp_frame *frame)
-{
-    auto hevc = (uvg_rtp::media_stream *)arg;
-    hevc->push_frame(frame->payload, frame->payload_len, 0);
-    nframes++;
-}
-
-int receiver(char *ip)
-{
-    uvg_rtp::context rtp_ctx;
-    std::string addr(ip);
-
-    auto sess = rtp_ctx.create_session(addr);
-    auto hevc = sess->create_stream(
-        8888,
-        8889,
-        RTP_FORMAT_HEVC,
-        RCE_SYSTEM_CALL_DISPATCHER
-    );
-
-    hevc->install_receive_hook(hevc, hook_receiver);
-
-    while (nframes != 602)
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-    return 0;
-}
-
-int sender(char *ip)
+static int sender(void)
 {
     size_t len      = 0;
     void *mem       = get_mem(0, NULL, len);
@@ -61,7 +32,7 @@ int sender(char *ip)
     size_t ninters  = 0;
     size_t nintras  = 0;
     rtp_error_t ret = RTP_OK;
-    std::string addr(ip);
+    std::string addr("10.21.25.2");
 
     size_t total       = 0;
     size_t total_intra = 0;
@@ -127,10 +98,7 @@ int sender(char *ip)
 
 int main(int argc, char **argv)
 {
-    if (argc != 3) {
-        fprintf(stderr, "usage: ./%s <send|recv> <ip>\n", __FILE__);
-        exit(EXIT_FAILURE);
-    }
+    (void)argc, (void)argv;
 
-    return !strcmp(argv[1], "send") ? sender(argv[2]) : receiver(argv[2]);
+    return sender();
 }
