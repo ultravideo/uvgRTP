@@ -9,11 +9,16 @@
 #include <mutex>
 #include <queue>
 #include <thread>
+#include <unordered_map>
 
 #include "latsource.hh"
 #include "sink.hh"
 
+using namespace std::chrono;
+
 #define BUFFER_SIZE 40 * 1000 * 1000
+
+#define KEY(frame, size) ((((frame) % 64) << 26) + (size))
 
 EventTriggerId H265LatencyFramedSource::eventTriggerId = 0;
 unsigned H265LatencyFramedSource::referenceCount       = 0;
@@ -21,28 +26,24 @@ unsigned H265LatencyFramedSource::referenceCount       = 0;
 extern void *get_mem(int, char **, size_t&);
 extern int get_next_frame_start(uint8_t *, uint32_t, uint32_t, uint8_t&);
 
-static uint8_t *buf;
-static size_t offset    = 0;
-static size_t bytes     = 0;
 static uint64_t current = 0;
 static uint64_t period  = 0;
 static bool initialized = false;
 
-std::mutex lat_mtx;
-std::queue<std::pair<size_t, uint8_t *>> nals;
-std::chrono::high_resolution_clock::time_point s_tmr, e_tmr;
+static size_t frames  = 0;
+static size_t nintras = 0;
+static size_t ninters = 0;
 
-/* size_t bytes  = 0; */
-std::chrono::high_resolution_clock::time_point start;
-std::chrono::high_resolution_clock::time_point last;
+static size_t intra_total = 0;
+static size_t inter_total = 0;
+static size_t frame_total = 0;
 
-size_t frames      = 0;
-size_t nintras     = 0;
-size_t ninters     = 0;
+static std::mutex lat_mtx;
+static std::queue<std::pair<size_t, uint8_t *>> nals;
+static high_resolution_clock::time_point s_tmr, start;
 
-size_t intra_total = 0;
-size_t inter_total = 0;
-size_t frame_total = 0;
+typedef std::pair<high_resolution_clock::time_point, size_t> finfo;
+static std::unordered_map<uint64_t, finfo> timestamps;
 
 static const uint8_t *ff_avc_find_startcode_internal(const uint8_t *p, const uint8_t *end)
 {
@@ -126,7 +127,7 @@ H265LatencyFramedSource *H265LatencyFramedSource::createNew(UsageEnvironment& en
 H265LatencyFramedSource::H265LatencyFramedSource(UsageEnvironment& env):
     FramedSource(env)
 {
-    period = (uint64_t)((1000 / 15) * 1000);
+    period = (uint64_t)((1000 / 100) * 1000);
 
     if (!eventTriggerId)
         eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
@@ -160,22 +161,10 @@ void H265LatencyFramedSource::deliverFrame()
     if (!isCurrentlyAwaitingData())
         return;
 
-    /* lat_mtx.lock(); */
-    /* fprintf(stderr, "send frame\n"); */
-
     auto nal = find_next_nal();
 
-    if (!nal.first || !nal.second) {
-        e_tmr = std::chrono::high_resolution_clock::now();
-        uint64_t diff = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(e_tmr - s_tmr).count();
-        fprintf(stderr, "%lu bytes, %lu kB, %lu MB took %lu ms %lu s\n",
-            bytes, bytes / 1000, bytes / 1000 / 1000,
-            diff, diff / 1000
-        );
-        fprintf(stderr, "wait until last frame is received\n");
-        for (;;);
-        exit(EXIT_SUCCESS);
-    }
+    if (!nal.first || !nal.second)
+        return;
 
     uint64_t runtime = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::high_resolution_clock::now() - s_tmr
@@ -190,12 +179,19 @@ void H265LatencyFramedSource::deliverFrame()
 
     /* Start timer for the frame
      * RTP sink will calculate the time difference once the frame is received */
-    start = std::chrono::high_resolution_clock::now();
+    /* printf("send frame %u, size %u\n", current, nal.first); */
+
+    uint64_t key = nal.first;
+
+    if (timestamps.find(key) != timestamps.end()) {
+        fprintf(stderr, "cannot use size as timestamp for this frame!\n");
+        exit(EXIT_FAILURE);
+    }
+    timestamps[key].first  = std::chrono::high_resolution_clock::now();
+    timestamps[key].second = nal.first;
 
     uint8_t *newFrameDataStart = nal.second;
     unsigned newFrameSize      = nal.first;
-
-    bytes += newFrameSize;
 
     if (newFrameSize > fMaxSize) {
         fFrameSize = fMaxSize;
@@ -218,17 +214,18 @@ static void thread_func(void)
         std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
         if (prev_frames == frames) {
-            fprintf(stderr, "frame lost\n");
+            /* fprintf(stderr, "frame lost\n"); */
             break;
         }
 
         prev_frames = frames;
     }
 
-    fprintf(stderr, "%zu %zu %lu\n", bytes, frames,
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now() - start
-        ).count()
+    fprintf(stderr, "%zu: intra %lf, inter %lf, avg %lf\n",
+        frames,
+        intra_total / (float)nintras,
+        inter_total / (float)ninters,
+        frame_total / (float)frames
     );
 
     exit(EXIT_FAILURE);
@@ -281,41 +278,43 @@ void RTPSink_::afterGettingFrame(
     if (!frames)
         (void)new std::thread(thread_func);
 
-    uint64_t diff = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::high_resolution_clock::now() - start
+    uint64_t diff;
+    uint8_t nal_type;
+
+    uint64_t key = frameSize;
+    /* printf("recv frame %zu, size %u\n", frames + 1, frameSize); */
+
+    if (timestamps.find(key) == timestamps.end()) {
+        printf("frame %zu,%zu not found from set!\n", frames + 1, key);
+        exit(EXIT_FAILURE);
+    }
+
+    if (timestamps[key].second != frameSize) {
+        printf("frame size mismatch (%zu vs %zu)\n", timestamps[key].second, frameSize);
+        exit(EXIT_FAILURE);
+    }
+
+    diff = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::high_resolution_clock::now() - timestamps[key].first
     ).count();
+    timestamps.erase(key);
 
-    /* switch (fReceiveBuffer[2] & 0x3f) { */
-    /*     case 19:  printf("received intra\n"); break; */
-    /*     case 1:   printf("received inter\n"); break; */
-    /* } */
-
-    uint8_t nal_type = fReceiveBuffer[0] & 0x3f;
+    nal_type = fReceiveBuffer[0] & 0x3f;
 
     if (nal_type == 38 || nal_type == 2) {
         if (nal_type == 38)
-            nintras++, intra_total += diff;
+            nintras++, intra_total += (diff / 1000);
         else
-            ninters++, inter_total += diff;
-        frame_total += diff;
+            ninters++, inter_total += (diff / 1000);
+        frame_total += (diff / 1000);
     }
 
-    /*         fReceiveBuffer[1] & 0x3f, */
-    /*         fReceiveBuffer[2] & 0x3f, */
-    /*         fReceiveBuffer[3] & 0x3f, */
-    /*         fReceiveBuffer[4] & 0x3f, */
-    /*         fReceiveBuffer[5] & 0x3f */
-    /* ); */
-
-    fprintf(stderr, "got frame %zu %lu\n", frames + 1, diff);
-    lat_mtx.unlock();
-
     if (++frames == 601) {
-        fprintf(stderr, "done\n");
-        fprintf(stderr, "%zu %zu %lu\n", bytes, frames,
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::high_resolution_clock::now() - start
-            ).count()
+        fprintf(stderr, "%zu: intra %lf, inter %lf, avg %lf\n",
+            frames,
+            intra_total / (float)nintras,
+            inter_total / (float)ninters,
+            frame_total / (float)frames
         );
         exit(EXIT_SUCCESS);
     }
@@ -359,7 +358,7 @@ static int sender(char *addr)
 
     Port send_port(8888);
     struct in_addr dst_addr;
-    dst_addr.s_addr = our_inet_addr("127.0.0.1");
+    dst_addr.s_addr = our_inet_addr("10.21.25.2");
 
     Port recv_port(8889);
     struct in_addr src_addr;

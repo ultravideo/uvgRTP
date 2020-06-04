@@ -3,7 +3,6 @@
 #include <GroupsockHelper.hh>
 #include <liveMedia/liveMedia.hh>
 #include <RTPInterface.hh>
-
 #include <chrono>
 #include <climits>
 #include <mutex>
@@ -33,7 +32,6 @@ static size_t offset    = 0;
 /* static size_t bytes     = 0; */
 static uint64_t current = 0;
 static uint64_t period  = 0;
-static bool initialized = false;
 
 std::chrono::high_resolution_clock::time_point s_tmr, e_tmr;
 
@@ -106,7 +104,7 @@ void RTPLatencySink::afterGettingFrame(
     if (!frames)
         (void)new std::thread(thread_func);
 
-    fprintf(stderr, "got frame %zu\n", frames + 1);
+    //fprintf(stderr, "got frame %zu %zu\n", frames + 1, frameSize);
 
     nal_ptr  = fReceiveBuffer;
     nal_size = frameSize;
@@ -114,7 +112,7 @@ void RTPLatencySink::afterGettingFrame(
     lat_mtx.unlock();
     framedSource->deliver_frame();
 
-    if (++frames == 601) {
+    if (++frames == 602) {
         fprintf(stderr, "%zu %zu %lu\n", bytes, frames,
             std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::high_resolution_clock::now() - start
@@ -177,11 +175,6 @@ H265FramedSource::~H265FramedSource()
 
 void H265FramedSource::doGetNextFrame()
 {
-    if (!initialized) {
-        s_tmr       = std::chrono::high_resolution_clock::now();
-        initialized = true;
-    }
-
     deliverFrame();
 }
 
@@ -230,7 +223,6 @@ static int receiver(void)
     env       = BasicUsageEnvironment::createNew(*scheduler);
 
     OutPacketBuffer::maxSize = 40 * 1000 * 1000;
-    fprintf(stderr, "main() lock mutex\n");
     lat_mtx.lock();
 
     /* receiver */
@@ -241,10 +233,10 @@ static int receiver(void)
     sink   = new RTPLatencySink(*env);
 
     /* sender */
-    addr.s_addr = our_inet_addr("127.0.0.1");
+    addr.s_addr = our_inet_addr("10.21.25.200");
     Groupsock send_socket(*env, addr, Port(8889), 255);
 
-    framedSource = H265FramedSource::createNew(*env, 10000);
+    framedSource = H265FramedSource::createNew(*env, 30);
     framer       = H265VideoStreamDiscreteFramer::createNew(*env, framedSource);
     videoSink    = H265VideoRTPSink::createNew(*env, &send_socket, 96);
 
