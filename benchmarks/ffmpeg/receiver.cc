@@ -35,8 +35,18 @@ void thread_func(char *addr, int thread_num)
     char buf[256];
 
     /* input buffer size */
-    snprintf(buf, sizeof(buf), "%d", 40 * 1024 * 1024);
+    snprintf(buf, sizeof(buf), "%d", 40 * 1000 * 1000);
     av_dict_set(&d, "buffer_size", buf, 32);
+
+#if 1
+    snprintf(buf, sizeof(buf), "%d", 10000000);
+    av_dict_set(&d, "max_delay", buf, 32);
+
+    snprintf(buf, sizeof(buf), "%d", 40 * 1000 * 1000);
+    av_dict_set(&d, "recv_buffer_size", buf, 32);
+
+    snprintf(buf, sizeof(buf), "%d", 40 * 1000 * 1000);
+    av_dict_set(&d, "rcvbuf", buf, 32);
 
     /* avioflags flags (input/output)
      *
@@ -59,6 +69,7 @@ void thread_func(char *addr, int thread_num)
     /*  Set number of frames used to probe fps. */
     snprintf(buf, sizeof(buf), "%d", 2);
     av_dict_set(&d, "fpsprobesize", buf, 32);
+#endif
 
     if (!strcmp(addr, "127.0.0.1"))
         snprintf(buf, sizeof(buf), "ffmpeg/sdp/localhost/hevc_%d.sdp", thread_num / 2);
@@ -94,23 +105,19 @@ void thread_func(char *addr, int thread_num)
     av_read_play(format_ctx);
 
     while (av_read_frame(format_ctx, &packet) >= 0) {
-        if (packet.stream_index == video_stream_index) {
+        if (packet.stream_index == video_stream_index)
             size += packet.size;
-        } else {
-            fprintf(stderr, "unknown format!\n");
-        }
-        pkts++;
 
         av_free_packet(&packet);
         av_init_packet(&packet);
 
-        if (++pkts == 1196)
+        if (++pkts == 598)
             break;
         else
             last = std::chrono::high_resolution_clock::now();
     }
 
-    if (pkts == 1196) {
+    if (pkts == 598) {
         fprintf(stderr, "%zu %zu %zu\n", size, pkts,
             std::chrono::duration_cast<std::chrono::milliseconds>(last - start).count()
         );
