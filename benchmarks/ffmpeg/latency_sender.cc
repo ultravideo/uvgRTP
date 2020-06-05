@@ -12,19 +12,29 @@ extern "C" {
 }
 
 #include <atomic>
+#include <deque>
 #include <chrono>
 #include <string>
 #include <thread>
+#include <unordered_map>
+
+using namespace std::chrono;
 
 extern void *get_mem(int argc, char **argv, size_t& len);
 
 #define WIDTH  3840
 #define HEIGHT 2160
-#define FPS     120
+#define FPS      30
 #define SLEEP     8
 
 std::chrono::high_resolution_clock::time_point fs, fe;
-std::atomic<bool> received(false);
+std::atomic<bool> ready(false);
+uint64_t ff_key = 0;
+
+static std::unordered_map<uint64_t, high_resolution_clock::time_point> timestamps;
+static std::deque<high_resolution_clock::time_point> timestamps2;
+
+high_resolution_clock::time_point start2;
 
 struct ffmpeg_ctx {
     AVFormatContext *sender;
@@ -36,6 +46,8 @@ static ffmpeg_ctx *init_ffmpeg(const char *ip)
     avcodec_register_all();
     av_register_all();
     avformat_network_init();
+
+    av_log_set_level(AV_LOG_PANIC);
 
     ffmpeg_ctx *ctx = new ffmpeg_ctx;
     enum AVCodecID codec_id = AV_CODEC_ID_H265;
@@ -67,8 +79,7 @@ static ffmpeg_ctx *init_ffmpeg(const char *ip)
 
     AVOutputFormat *fmt = av_guess_format("rtp", NULL, NULL);
 
-    /* ret = avformat_alloc_output_context2(&ctx->sender, fmt, fmt->name, "rtp://10.21.25.2:8888"); */
-    ret = avformat_alloc_output_context2(&ctx->sender, fmt, fmt->name, "rtp://127.0.0.1:8888");
+    ret = avformat_alloc_output_context2(&ctx->sender, fmt, fmt->name, "rtp://10.21.25.2:8888");
 
     avio_open(&ctx->sender->pb, ctx->sender->filename, AVIO_FLAG_WRITE);
 
@@ -84,9 +95,10 @@ static ffmpeg_ctx *init_ffmpeg(const char *ip)
     AVDictionary *d_s = NULL;
     AVDictionary *d_r = NULL;
 
-    snprintf(buf, sizeof(buf), "%d", 40 * 1024 * 1024);
+    snprintf(buf, sizeof(buf), "%d", 40 * 1000 * 1000);
     av_dict_set(&d_s, "buffer_size", buf, 32);
 
+#if 1
     /* Flush the underlying I/O stream after each packet.
      *
      * Default is -1 (auto), which means that the underlying protocol will decide,
@@ -119,6 +131,7 @@ static ffmpeg_ctx *init_ffmpeg(const char *ip)
      *      Reduce buffering. */
     snprintf(buf, sizeof(buf), "direct");
     av_dict_set(&d_s, "avioflags", buf, 32);
+#endif
 
     (void)avformat_write_header(ctx->sender, &d_s);
 
@@ -129,9 +142,10 @@ static ffmpeg_ctx *init_ffmpeg(const char *ip)
     av_dict_set(&d_r, "protocol_whitelist", "file,udp,rtp", 0);
 
     /* input buffer size */
-    snprintf(buf, sizeof(buf), "%d", 40 * 1024 * 1024);
+    snprintf(buf, sizeof(buf), "%d", 40 * 1000 * 1000);
     av_dict_set(&d_r, "buffer_size", buf, 32);
 
+#if 1
     /* avioflags flags (input/output)
      *
      * Possible values:
@@ -153,31 +167,88 @@ static ffmpeg_ctx *init_ffmpeg(const char *ip)
     /*  Set number of frames used to probe fps. */
     snprintf(buf, sizeof(buf), "%d", 2);
     av_dict_set(&d_r, "fpsprobesize", buf, 32);
+#endif
 
     ctx->receiver->flags = AVFMT_FLAG_NONBLOCK;
 
     if (!strcmp(ip, "127.0.0.1"))
-        snprintf(buf, sizeof(buf), "ffmpeg/sdp/localhost/hevc_0.sdp");
+        snprintf(buf, sizeof(buf), "ffmpeg/sdp/localhost/lat_hevc.sdp");
     else
-        snprintf(buf, sizeof(buf), "ffmpeg/sdp/lan/hevc_0.sdp");
+        snprintf(buf, sizeof(buf), "ffmpeg/sdp/lan/lat_hevc.sdp");
 
     if (avformat_open_input(&ctx->receiver, buf, NULL, &d_r) != 0) {
         fprintf(stderr, "nothing found!\n");
         return NULL;
     }
 
-    if (avformat_find_stream_info(ctx->receiver, NULL) < 0) {
-        fprintf(stderr, "stream info not found!\n");
-        return NULL;
-    }
-
-    /* search video stream */
     for (size_t i = 0; i < ctx->receiver->nb_streams; i++) {
         if (ctx->receiver->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
             video_stream_index = i;
     }
 
     return ctx;
+}
+
+static void receiver(ffmpeg_ctx *ctx)
+{
+    uint64_t key  = 0;
+    uint64_t diff = 0;
+
+    uint64_t frame_total = 0;
+    uint64_t intra_total = 0;
+    uint64_t inter_total = 0;
+
+    uint64_t frames = 0;
+    uint64_t intras = 0;
+    uint64_t inters = 0;
+
+    AVPacket packet;
+    av_init_packet(&packet);
+
+    std::chrono::high_resolution_clock::time_point start;
+    start = std::chrono::high_resolution_clock::now();
+
+    /* start reading packets from stream */
+    av_read_play(ctx->receiver);
+
+    while (av_read_frame(ctx->receiver, &packet) >= 0) {
+        key = packet.size - 1;
+
+        if (!frames)
+            key = ff_key;
+
+        auto diff = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::high_resolution_clock::now() - timestamps2.front()
+        ).count();
+        timestamps2.pop_front();
+
+        if (frames >= 580)
+            break;
+
+        if (!(frames % 64))
+            intra_total += (diff / 1000), intras++;
+        else
+            inter_total += (diff / 1000), inters++;
+
+        if (++frames < 596)
+            frame_total += (diff / 1000);
+        else
+            break;
+
+        timestamps.erase(key);
+
+        av_free_packet(&packet);
+        av_init_packet(&packet);
+    }
+
+    fprintf(stderr, "%zu: intra %lf, inter %lf, avg %lf\n",
+        frames,
+        intra_total / (float)intras,
+        inter_total / (float)inters,
+        frame_total / (float)frames
+    );
+
+    ready = true;
 }
 
 static int sender(void)
@@ -188,32 +259,57 @@ static int sender(void)
     std::string addr("10.21.25.2");
     ffmpeg_ctx *ctx = init_ffmpeg(addr.c_str());
 
+    (void)new std::thread(receiver, ctx);
+
     uint64_t chunk_size = 0;
     uint64_t diff       = 0;
     uint64_t counter    = 0;
     uint64_t total      = 0;
+    uint64_t current    = 0;
+    uint64_t key        = 0;
+    uint64_t period     = (uint64_t)((1000 / FPS) * 1000);
 
     AVPacket pkt;
-    std::chrono::high_resolution_clock::time_point start, fpt_start, fpt_end, end;
-    start = std::chrono::high_resolution_clock::now();
+	std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
     for (size_t i = 0; i < len; ) {
         memcpy(&chunk_size, (uint8_t *)mem + i, sizeof(uint64_t));
+
+        /* Start code lookup/merging of small packets causes the incoming frame size
+         * to differ quite significantly from "chunk_size" */
+        if (!i)
+            ff_key = chunk_size;
+
         i += sizeof(uint64_t);
 
-        fs = std::chrono::high_resolution_clock::now();
+        if (timestamps.find(chunk_size) != timestamps.end()) {
+            fprintf(stderr, "cannot use %zu for key!\n", chunk_size);
+            continue;
+        }
+
+        timestamps[chunk_size] = std::chrono::high_resolution_clock::now();
+        timestamps2.push_back(std::chrono::high_resolution_clock::now());
 
         av_init_packet(&pkt);
         pkt.data = (uint8_t *)mem + i;
         pkt.size = chunk_size;
 
-        av_write_frame(ctx->sender, &pkt);
-        av_read_frame(ctx->receiver, &pkt);
+        av_interleaved_write_frame(ctx->sender, &pkt);
+        av_packet_unref(&pkt);
 
-        received  = false;
-        total    += std::chrono::duration_cast<std::chrono::microseconds>(fe - fs).count();
-        i        += chunk_size;
+        auto runtime = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::high_resolution_clock::now() - start
+        ).count();
+
+        if (runtime < current * period)
+            std::this_thread::sleep_for(std::chrono::microseconds(current * period - runtime));
+
+        current++;
+        i += chunk_size;
     }
+
+    while (!ready.load())
+        ;
 
     return 0;
 }

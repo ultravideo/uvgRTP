@@ -20,7 +20,7 @@ extern void *get_mem(int argc, char **argv, size_t& len);
 
 #define WIDTH  3840
 #define HEIGHT 2160
-#define FPS     120
+#define FPS     200
 #define SLEEP     8
 
 std::chrono::high_resolution_clock::time_point fs, fe;
@@ -36,6 +36,8 @@ static ffmpeg_ctx *init_ffmpeg(const char *ip)
     avcodec_register_all();
     av_register_all();
     avformat_network_init();
+
+    av_log_set_level(AV_LOG_PANIC);
 
     ffmpeg_ctx *ctx = new ffmpeg_ctx;
     enum AVCodecID codec_id = AV_CODEC_ID_H265;
@@ -67,8 +69,7 @@ static ffmpeg_ctx *init_ffmpeg(const char *ip)
 
     AVOutputFormat *fmt = av_guess_format("rtp", NULL, NULL);
 
-    /* ret = avformat_alloc_output_context2(&ctx->sender, fmt, fmt->name, "rtp://10.21.25.2:8888"); */
-    ret = avformat_alloc_output_context2(&ctx->sender, fmt, fmt->name, "rtp://127.0.0.1:8888");
+    ret = avformat_alloc_output_context2(&ctx->sender, fmt, fmt->name, "rtp://10.21.25.200:8889");
 
     avio_open(&ctx->sender->pb, ctx->sender->filename, AVIO_FLAG_WRITE);
 
@@ -84,7 +85,7 @@ static ffmpeg_ctx *init_ffmpeg(const char *ip)
     AVDictionary *d_s = NULL;
     AVDictionary *d_r = NULL;
 
-    snprintf(buf, sizeof(buf), "%d", 40 * 1024 * 1024);
+    snprintf(buf, sizeof(buf), "%d", 40 * 1000 * 1000);
     av_dict_set(&d_s, "buffer_size", buf, 32);
 
     /* Flush the underlying I/O stream after each packet.
@@ -129,7 +130,7 @@ static ffmpeg_ctx *init_ffmpeg(const char *ip)
     av_dict_set(&d_r, "protocol_whitelist", "file,udp,rtp", 0);
 
     /* input buffer size */
-    snprintf(buf, sizeof(buf), "%d", 40 * 1024 * 1024);
+    snprintf(buf, sizeof(buf), "%d", 40 * 1000 * 1000);
     av_dict_set(&d_r, "buffer_size", buf, 32);
 
     /* avioflags flags (input/output)
@@ -192,8 +193,9 @@ static int receiver(void)
     av_init_packet(&pkt);
     av_read_play(ctx->receiver);
 
-    while (av_read_frame(ctx->receiver, &pkt) >= 0)
+    while (av_read_frame(ctx->receiver, &pkt) >= 0) {
         av_write_frame(ctx->sender, &pkt);
+    }
 
     return EXIT_SUCCESS;
 }
