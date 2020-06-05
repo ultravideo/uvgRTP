@@ -5,38 +5,53 @@
 
 extern void *get_mem(int argc, char **argv, size_t& len);
 
-std::chrono::high_resolution_clock::time_point fpts, fpte;
-bool intra = false;
+std::chrono::high_resolution_clock::time_point start2;
+
+size_t frames   = 0;
+size_t ninters  = 0;
+size_t nintras  = 0;
+
+size_t total       = 0;
+size_t total_intra = 0;
+size_t total_inter = 0;
 
 static void hook_sender(void *arg, uvg_rtp::frame::rtp_frame *frame)
 {
     (void)arg, (void)frame;
 
     if (frame) {
-        switch (frame->payload[2] & 0x3f) {
-            case 19: intra = true;  break;
-            case 1:  intra = false; break;
-        }
 
-        fpte = std::chrono::high_resolution_clock::now();
+        uint64_t diff = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::high_resolution_clock::now() - start2
+        ).count();
+
+        switch ((frame->payload[0] >> 1) & 0x3f) {
+            case 19:
+                total += (diff / 1000);
+                total_intra += (diff / 1000);
+                nintras++, frames++;
+                break;
+
+            case 1:
+                total += (diff / 1000);
+                total_inter += (diff / 1000);
+                ninters++, frames++;
+                break;
+        }
     }
 }
 
 static int sender(void)
 {
-    size_t len      = 0;
-    void *mem       = get_mem(0, NULL, len);
-    uint64_t csize  = 0;
-    uint64_t diff   = 0;
-    size_t frames   = 0;
-    size_t ninters  = 0;
-    size_t nintras  = 0;
-    rtp_error_t ret = RTP_OK;
+    size_t len          = 0;
+    void *mem           = get_mem(0, NULL, len);
+    uint64_t csize      = 0;
+    uint64_t diff       = 0;
+    uint64_t current    = 0;
+    uint64_t chunk_size = 0;
+    uint64_t period     = (uint64_t)((1000 / 30) * 1000);
+    rtp_error_t ret     = RTP_OK;
     std::string addr("10.21.25.2");
-
-    size_t total       = 0;
-    size_t total_intra = 0;
-    size_t total_inter = 0;
 
     uvg_rtp::context rtp_ctx;
 
@@ -50,40 +65,30 @@ static int sender(void)
 
     hevc->install_receive_hook(nullptr, hook_sender);
 
-    for (size_t offset = 0; offset < len; ++frames) {
-        memcpy(&csize, (uint8_t *)mem + offset, sizeof(uint64_t));
+    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
-        offset += sizeof(uint64_t);
+    for (int rounds = 0; rounds < 1; ++rounds) {
+        for (size_t offset = 0, k = 0; offset < len; ++k) {
+            memcpy(&chunk_size, (uint8_t *)mem + offset, sizeof(uint64_t));
 
-        fpts = std::chrono::high_resolution_clock::now();
+            offset += sizeof(uint64_t);
 
-        if ((ret = hevc->push_frame((uint8_t *)mem + offset, csize, 0)) != RTP_OK) {
-            fprintf(stderr, "push_frame() failed!\n");
-            for (;;);
+            start2 = std::chrono::high_resolution_clock::now();
+            if ((ret = hevc->push_frame((uint8_t *)mem + offset, chunk_size, 0)) != RTP_OK) {
+                fprintf(stderr, "push_frame() failed!\n");
+                for (;;);
+            }
+
+            auto runtime = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::high_resolution_clock::now() - start
+            ).count();
+
+            if (runtime < current * period)
+                std::this_thread::sleep_for(std::chrono::microseconds(current * period - runtime));
+
+            current += 1;
+            offset  += chunk_size;
         }
-
-        /* because the input frame might be split into multiple separate frames, we should
-         * calculate the latency using the timestamp before push and after the last received frame.
-         *
-         * Sleep for 5 seconds before calculating the latency to prevent us from reading the frame
-         * receive time too early (NOTE: this does not affect the latency calculations at all) */
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-        diff = std::chrono::duration_cast<std::chrono::microseconds>(fpte - fpts).count();
-
-        /* If the difference is more than 10 seconds, it's very likely that the frame was dropped
-         * and this latency value is bogus and should be discarded */
-        if (diff >= 10 * 1000 * 1000) {
-            frames--;
-        } else {
-            total += diff;
-            if (intra)
-                total_intra += diff, nintras++;
-            else
-                total_inter += diff, ninters++;
-        }
-
-        offset += csize;
     }
     rtp_ctx.destroy_session(sess);
 

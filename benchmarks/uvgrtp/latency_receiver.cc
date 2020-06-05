@@ -19,8 +19,8 @@ int receiver(void)
 
     auto sess = rtp_ctx.create_session(addr);
     auto hevc = sess->create_stream(
-        8888,
         8889,
+        8888,
         RTP_FORMAT_HEVC,
         RCE_SYSTEM_CALL_DISPATCHER
     );
