@@ -447,6 +447,9 @@ static rtp_error_t __push_hevc_frame(
         }
     }
 
+    if (prev_offset == -1)
+        prev_offset = 0;
+
     if ((ret = __push_hevc_nal(sender, fqueue, &data[prev_offset], data_len - prev_offset, false)) == RTP_OK)
         return RTP_OK;
 
