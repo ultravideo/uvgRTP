@@ -8,9 +8,8 @@ libkvzrtp.a
 benchmarks/*/main_*
 benchmarks/*/results
 benchmarks/*/*data
-benchmarks/*/receiver
-benchmarks/*/sender
-benchmarks/*/latency
+benchmarks/*/*receiver
+benchmarks/*/*sender
 *.prof
 tags
 *a.out
