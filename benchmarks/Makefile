@@ -17,7 +17,7 @@ uvgrtp_latency_receiver:
 
 ffmpeg_sender:
 	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/sender \
-		ffmpeg/sender.cc util/util.cc -lkvazaar -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
+		ffmpeg/sender.cc util/util.cc -lkvazaar `pkg-config --libs libavformat` -lpthread
 
 ffmpeg_receiver:
 	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/receiver \
@@ -25,7 +25,7 @@ ffmpeg_receiver:
 
 ffmpeg_latency_sender:
 	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/latency_sender \
-		ffmpeg/latency_sender.cc util/util.cc -lkvazaar -lavformat -lavcodec -lswscale -lz -lavutil -lpthread
+		ffmpeg/latency_sender.cc util/util.cc -lkvazaar  `pkg-config --libs libavformat` -lpthread
 
 ffmpeg_latency_receiver:
 	$(CXX) $(CXXFLAGS) -Wno-unused -Wno-deprecated-declarations -Wno-unused-result -o ffmpeg/latency_receiver \
