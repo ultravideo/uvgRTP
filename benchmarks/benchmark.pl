@@ -128,23 +128,27 @@ sub recv_generic {
 }
 
 sub lat_send {
-    my ($lib, $addr, $port, $role) = @_;
+    my ($lib, $addr, $port) = @_;
     my ($socket, $remote, $data);
 
     $socket = mk_ssock($addr, $port);
     $remote = $socket->accept();
 
-    $socket->recv($data, 16);
-    system "$lib/latency $role >> $lib/results/latency_results 2>&1";
+    for ((1 .. 100)) {
+        $remote->recv($data, 16);
+        system ("time ./$lib/latency_sender >> $lib/results/latencies 2>&1");
+    }
 }
 
 sub lat_recv {
-    my ($lib, $addr, $port, $role) = @_;
+    my ($lib, $addr, $port) = @_;
     my $socket = mk_rsock($addr, $port);
-    my $data;
 
-    $socket->send("start");
-    system "$lib/latency $role >/dev/null 2>&1";
+    for ((1 .. 100)) {
+        $socket->send("start");
+        system ("time ./$lib/latency_receiver 2>&1 >/dev/null");
+        sleep 2;
+    }
 }
 
 # TODO explain every parameter
@@ -211,8 +215,8 @@ if (!$lat) {
 
 if ($role eq "send") {
     if ($lat) {
-        system "make $lib" . "_latency";
-        lat_send($lib, $addr, $port, $role);
+        system "make $lib" . "_latency_sender";
+        lat_send($lib, $addr, $port);
     } else {
         if ($exec eq "default") {
             system "make $lib" . "_sender";
@@ -222,8 +226,8 @@ if ($role eq "send") {
     }
 } elsif ($role eq "recv" ) {
     if ($lat) {
-        system "make $lib" . "_latency";
-        lat_recv($lib, $addr, $port, $role);
+        system "make $lib" . "_latency_receiver";
+        lat_recv($lib, $addr, $port);
     } elsif (!$nc) {
         if ($exec eq "default") {
             system "make $lib" . "_receiver";
