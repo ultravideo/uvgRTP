@@ -334,14 +334,45 @@ sub parse {
     }
 }
 
+sub parse_latency {
+    my ($lib, $iter, $path, $unit) = @_;
+    my ($avg, $intra, $inter, $cnt) = (0) x 4;
+
+    open my $fh, '<', $path or die "failed to open file $path\n";
+
+    # each iteration parses one benchmark run
+    while (my $line = <$fh>) {
+        my @nums = ($line =~ m/.*intra\s(\d+\.\d+).*inter\s(\d+\.\d+).*avg\s(\d+\.\d+)/);
+
+        $intra += $nums[0];
+        $inter += $nums[1];
+        $avg   += $nums[2];
+        $cnt   += 1;
+
+        # ignore time(1) outputs
+        <$fh>; <$fh>;
+    }
+
+    $intra /= $cnt;
+    $inter /= $cnt;
+    $avg   /= $cnt;
+
+    printf "intra $intra, inter $inter, avg $avg\n";
+}
+
 sub print_help {
-    print "usage (one file):\n  ./parse.pl \n"
+    print "usage (one file, send/recv):\n  ./parse.pl \n"
     . "\t--lib <uvgrtp|ffmpeg|live555>\n"
     . "\t--role <send|recv>\n"
     . "\t--unit <mb|mbit|gbit> (defaults to mb)\n"
     . "\t--path <path to log file>\n"
     . "\t--iter <# of iterations>)\n"
     . "\t--threads <# of threads used in the benchmark> (defaults to 1)\n\n";
+
+    print "usage (latency):\n  ./parse.pl \n"
+    . "\t--unit <mb|mbit|gbit> (defaults to mb)\n"
+    . "\t--path <path to log file>\n"
+    . "\t--parse latency\n\n";
 
     print "usage (directory):\n  ./parse.pl \n"
     . "\t--parse <best|all|csv>\n"
@@ -371,7 +402,7 @@ $role    = $1 if (!$role    and $path =~ m/.*(recv|send).*/i);
 $threads = $1 if (!$threads and $path =~ m/.*_(\d+)threads.*/i);
 $iter    = $1 if (!$iter    and $path =~ m/.*_(\d+)iter.*/i);
 
-print_help() if $help or !$lib;
+print_help() if $help or (!$lib and $parse ne "latency");
 print_help() if !$iter and !$parse;
 print_help() if !$parse and (!$role or !$threads);
 print_help() if !grep /$unit/, ("mb", "mbit", "gbit");
@@ -382,6 +413,8 @@ if ($parse eq "best" or $parse eq "all") {
     parse($lib, $iter, $path, $pkt_loss, $frame_loss, $parse, $unit);
 } elsif ($parse eq "csv") {
     parse_csv($lib, $iter, $path, $unit);
+} elsif ($parse eq "latency") {
+    parse_latency($lib, $iter, $path, $unit);
 } elsif ($role eq "send") {
     print_send($lib, $iter, $threads, $path, $unit);
 } elsif ($role eq "recv") {
