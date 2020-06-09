@@ -92,7 +92,8 @@ static int sender(void)
     }
     rtp_ctx.destroy_session(sess);
 
-    fprintf(stderr, "intra %lf, inter %lf, avg %lf\n",
+    fprintf(stderr, "%zu: intra %lf, inter %lf, avg %lf\n",
+        frames,
         total_intra / (float)nintras,
         total_inter / (float)ninters,
         total / (float)frames
