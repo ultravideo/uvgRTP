@@ -222,12 +222,9 @@ static void receiver(ffmpeg_ctx *ctx)
         ).count();
         timestamps2.pop_front();
 
-        if (frames >= 580)
-            break;
-
-        if (!(frames % 64))
+        if (((packet.data[3] >> 1) & 0x3f) == 19)
             intra_total += (diff / 1000), intras++;
-        else
+        else if (((packet.data[3] >> 1) & 0x3f) == 1)
             inter_total += (diff / 1000), inters++;
 
         if (++frames < 596)

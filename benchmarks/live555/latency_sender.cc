@@ -299,10 +299,10 @@ void RTPSink_::afterGettingFrame(
     ).count();
     timestamps.erase(key);
 
-    nal_type = fReceiveBuffer[0] & 0x3f;
+    nal_type = (fReceiveBuffer[0] >> 1) & 0x3f;
 
-    if (nal_type == 38 || nal_type == 2) {
-        if (nal_type == 38)
+    if (nal_type == 19 || nal_type == 1) {
+        if (nal_type == 19)
             nintras++, intra_total += (diff / 1000);
         else
             ninters++, inter_total += (diff / 1000);
