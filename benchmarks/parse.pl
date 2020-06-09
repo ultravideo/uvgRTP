@@ -7,7 +7,7 @@ use Cwd qw(realpath);
 
 my $TOTAL_FRAMES_UVGRTP  = 602;
 my $TOTAL_FRAMES_LIVE555 = 601;
-my $TOTAL_FRAMES_FFMPEG  = 1196;
+my $TOTAL_FRAMES_FFMPEG  = 598;
 my $TOTAL_BYTES          = 411410113;
 
 # open the file, validate it and return file handle to caller
@@ -30,6 +30,11 @@ sub goodput {
     if    ($_[2] eq "mbit") { return ($_[0] / 1000 / 1000) / $_[1] * 8 * 1000; }
     elsif ($_[2] eq "mb")   { return ($_[0] / 1000 / 1000) / $_[1] * 1000;     }
     else                    { return ($_[0] / 1000 / 1000) / $_[1] * 8;        }
+}
+
+sub get_frame_count {
+    return ($_[0] eq "uvgrtp") ? $TOTAL_FRAMES_UVGRTP :
+           ($_[0] eq "ffmpeg") ? $TOTAL_FRAMES_FFMPEG : $TOTAL_FRAMES_LIVE555;
 }
 
 sub parse_send {
@@ -95,8 +100,7 @@ sub parse_send {
 sub parse_recv {
     my ($lib, $iter, $threads, $path, $unit) = @_;
     my ($t_usr, $t_sys, $t_cpu, $t_total, $tb_avg, $tf_avg, $tt_avg, $fh);
-    my $tf = ($lib eq "uvgrtp") ? $TOTAL_FRAMES_UVGRTP :
-             ($lib eq "ffmpeg") ? $TOTAL_FRAMES_FFMPEG : $TOTAL_FRAMES_LIVE555;
+    my $tf = get_frame_count($lib);
 
     if ($lib eq "uvgrtp") {
         my $e  = ($iter * ($threads + 2));
@@ -336,25 +340,27 @@ sub parse {
 
 sub parse_latency {
     my ($lib, $iter, $path, $unit) = @_;
-    my ($avg, $intra, $inter, $cnt) = (0) x 4;
+    my ($ts, $avg, $intra, $inter, $cnt) = (0) x 5;
 
     open my $fh, '<', $path or die "failed to open file $path\n";
 
     # each iteration parses one benchmark run
     while (my $line = <$fh>) {
-        my @nums = ($line =~ m/.*intra\s(\d+\.\d+).*inter\s(\d+\.\d+).*avg\s(\d+\.\d+)/);
+        my @nums = ($line =~ m/(\d+).*intra\s(\d+\.\d+).*inter\s(\d+\.\d+).*avg\s(\d+\.\d+)/);
 
-        $intra += $nums[0];
-        $inter += $nums[1];
-        $avg   += $nums[2];
-        $cnt   += 1;
+        $frames += $nums[0];
+        $intra  += $nums[1];
+        $inter  += $nums[2];
+        $avg    += $nums[3];
+        $cnt    += 1;
     }
 
-    $intra /= $cnt;
-    $inter /= $cnt;
-    $avg   /= $cnt;
+    $intra  /= $cnt;
+    $inter  /= $cnt;
+    $avg    /= $cnt;
+    $frames /= get_frame_count($lib);
 
-    printf "intra $intra, inter $inter, avg $avg\n";
+    print "$frames: intra $intra, inter $inter, avg $avg\n";
 }
 
 sub print_help {
