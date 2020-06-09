@@ -28,6 +28,8 @@ void thread_func(char *addr, int thread_num)
     av_register_all();
     avformat_network_init();
 
+    av_log_set_level(AV_LOG_PANIC);
+
     /* open rtsp */
     AVDictionary *d = NULL;
     av_dict_set(&d, "protocol_whitelist", "file,udp,rtp", 0);

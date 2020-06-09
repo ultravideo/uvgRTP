@@ -267,7 +267,7 @@ static int sender(void)
     uint64_t total      = 0;
     uint64_t current    = 0;
     uint64_t key        = 0;
-    uint64_t period     = (uint64_t)((1000 / FPS) * 1000);
+    uint64_t period     = (uint64_t)((1000 / (float)FPS) * 1000);
 
     AVPacket pkt;
 	std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();

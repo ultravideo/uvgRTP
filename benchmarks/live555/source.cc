@@ -106,7 +106,7 @@ H265FramedSource::H265FramedSource(UsageEnvironment& env, unsigned fps):
     FramedSource(env),
     fps_(fps)
 {
-    period = (uint64_t)((1000 / fps) * 1000);
+    period = (uint64_t)((1000 / (float)fps) * 1000);
 
     if (!eventTriggerId)
         eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);

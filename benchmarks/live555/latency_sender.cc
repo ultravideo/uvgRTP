@@ -127,7 +127,7 @@ H265LatencyFramedSource *H265LatencyFramedSource::createNew(UsageEnvironment& en
 H265LatencyFramedSource::H265LatencyFramedSource(UsageEnvironment& env):
     FramedSource(env)
 {
-    period = (uint64_t)((1000 / 30) * 1000);
+    period = (uint64_t)((1000 / (float)30) * 1000);
 
     if (!eventTriggerId)
         eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);

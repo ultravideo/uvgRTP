@@ -78,7 +78,7 @@ void thread_func(void *mem, size_t len, char *addr_, int thread_num, double fps,
     uint32_t frames  = 0;
     uint64_t diff    = 0;
 	uint64_t current = 0;
-	uint64_t period  = (uint64_t)((1000 / fps) * 1000);
+	uint64_t period  = (uint64_t)((1000 / (float)fps) * 1000);
 	
 	std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 

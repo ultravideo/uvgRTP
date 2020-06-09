@@ -49,7 +49,7 @@ static int sender(void)
     uint64_t diff       = 0;
     uint64_t current    = 0;
     uint64_t chunk_size = 0;
-    uint64_t period     = (uint64_t)((1000 / 30) * 1000);
+    uint64_t period     = (uint64_t)((1000 / (float)30) * 1000);
     rtp_error_t ret     = RTP_OK;
     std::string addr("10.21.25.2");
 
