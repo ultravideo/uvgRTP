@@ -136,7 +136,7 @@ sub lat_send {
 
     for ((1 .. 100)) {
         $remote->recv($data, 16);
-        system ("time ./$lib/latency_sender >> $lib/results/latencies 2>&1");
+        system ("./$lib/latency_sender >> $lib/results/latencies 2>&1");
     }
 }
 
@@ -146,7 +146,7 @@ sub lat_recv {
 
     for ((1 .. 100)) {
         $socket->send("start");
-        system ("time ./$lib/latency_receiver 2>&1 >/dev/null");
+        system ("./$lib/latency_receiver 2>&1 >/dev/null");
         sleep 2;
     }
 }

@@ -348,9 +348,6 @@ sub parse_latency {
         $inter += $nums[1];
         $avg   += $nums[2];
         $cnt   += 1;
-
-        # ignore time(1) outputs
-        <$fh>; <$fh>;
     }
 
     $intra /= $cnt;
