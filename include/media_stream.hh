@@ -161,17 +161,6 @@ namespace uvg_rtp {
              * Return RTP_INITIALIZED if RTCP has already been initialized */
             rtp_error_t create_rtcp(uint16_t src_port, uint16_t dst_port);
 
-            /* Install various RTCP-related hooks, one for each report type
-             * These are optional and one can always poll the RTCP objects for new frames
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "hook" is nullptr
-             * Return RTP_NOT_INITIALIZED if RTCP has not been initialized */
-            rtp_error_t install_rtcp_sender_hook(void (*hook)(uvg_rtp::frame::rtcp_sender_frame *));
-            rtp_error_t install_rtcp_receiver_hook(void (*hook)(uvg_rtp::frame::rtcp_receiver_frame *));
-            rtp_error_t install_rtcp_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_frame *));
-            rtp_error_t install_rtcp_app_hook(void (*hook)(uvg_rtp::frame::rtcp_app_frame *));
-
         private:
             /* Initialize the connection by initializing the socket
              * and binding ourselves to specified interface and creating

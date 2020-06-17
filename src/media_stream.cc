@@ -381,36 +381,16 @@ rtp_error_t uvg_rtp::media_stream::set_dynamic_payload(uint8_t payload)
 
 rtp_error_t uvg_rtp::media_stream::create_rtcp(uint16_t src_port, uint16_t dst_port)
 {
-    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_->get_ssrc(), false)))
+    rtp_error_t ret;
+
+    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_->get_ssrc(), true)))
         return RTP_MEMORY_ERROR;
 
-    return rtcp_->add_participant(addr_, dst_port, src_port, rtp_->get_clock_rate());
-}
+    if ((ret = rtcp_->add_participant(addr_, dst_port, src_port, rtp_->get_clock_rate())) != RTP_OK) {
+        delete rtcp_;
+        rtcp_ = nullptr;
+        return ret;
+    }
 
-rtp_error_t uvg_rtp::media_stream::install_rtcp_sender_hook(void (*hook)(uvg_rtp::frame::rtcp_sender_frame *))
-{
-    if (!rtcp_)
-        return RTP_NOT_INITIALIZED;
-    return rtcp_->install_sender_hook(hook);
-}
-
-rtp_error_t uvg_rtp::media_stream::install_rtcp_receiver_hook(void (*hook)(uvg_rtp::frame::rtcp_receiver_frame *))
-{
-    if (!rtcp_)
-        return RTP_NOT_INITIALIZED;
-    return rtcp_->install_receiver_hook(hook);
-}
-
-rtp_error_t uvg_rtp::media_stream::install_rtcp_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_frame *))
-{
-    if (!rtcp_)
-        return RTP_NOT_INITIALIZED;
-    return rtcp_->install_sdes_hook(hook);
-}
-
-rtp_error_t uvg_rtp::media_stream::install_rtcp_app_hook(void (*hook)(uvg_rtp::frame::rtcp_app_frame *))
-{
-    if (!rtcp_)
-        return RTP_NOT_INITIALIZED;
-    return rtcp_->install_app_hook(hook);
+    return rtcp_->start();
 }
