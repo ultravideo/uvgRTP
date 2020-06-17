@@ -379,6 +379,11 @@ rtp_error_t uvg_rtp::media_stream::set_dynamic_payload(uint8_t payload)
     return RTP_OK;
 }
 
+uvg_rtp::rtcp *uvg_rtp::media_stream::get_rtcp()
+{
+    return rtcp_;
+}
+
 rtp_error_t uvg_rtp::media_stream::create_rtcp(uint16_t src_port, uint16_t dst_port)
 {
     rtp_error_t ret;

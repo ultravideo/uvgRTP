@@ -161,6 +161,15 @@ namespace uvg_rtp {
              * Return RTP_INITIALIZED if RTCP has already been initialized */
             rtp_error_t create_rtcp(uint16_t src_port, uint16_t dst_port);
 
+            /* Get pointer to the RTCP object of the media stream
+             *
+             * This object is used to control all RTCP-related functionality
+             * and RTCP documentation can be found from include/rtcp.hh
+             *
+             * Return pointer to RTCP object on success
+             * Return nullptr if RTCP has been created */
+            uvg_rtp::rtcp *get_rtcp();
+
         private:
             /* Initialize the connection by initializing the socket
              * and binding ourselves to specified interface and creating
