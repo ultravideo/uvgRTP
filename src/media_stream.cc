@@ -94,21 +94,44 @@ rtp_error_t uvg_rtp::media_stream::init_connection()
 
 rtp_error_t uvg_rtp::media_stream::init()
 {
+    rtp_error_t ret;
+
     if (init_connection() != RTP_OK) {
         LOG_ERROR("Failed to initialize the underlying socket: %s!", strerror(errno));
         return RTP_GENERIC_ERROR;
     }
 
-    rtp_      = new uvg_rtp::rtp(fmt_);
-    sender_   = new uvg_rtp::sender(socket_, ctx_config_, fmt_, rtp_);
-    receiver_ = new uvg_rtp::receiver(socket_, ctx_config_, fmt_, rtp_);
+    if (!(rtp_ = new uvg_rtp::rtp(fmt_)))
+        return RTP_MEMORY_ERROR;
 
-    sender_->init();
-    receiver_->start();
+    if (!(sender_ = new uvg_rtp::sender(socket_, ctx_config_, fmt_, rtp_))) {
+        delete rtp_;
+        return RTP_MEMORY_ERROR;
+    }
 
+    if (!(receiver_ = new uvg_rtp::receiver(socket_, ctx_config_, fmt_, rtp_))) {
+        delete rtp_;
+        delete sender_;
+        return RTP_MEMORY_ERROR;
+    }
+
+    if ((ret = sender_->init()) != RTP_OK) {
+        delete rtp_;
+        delete sender_;
+        delete receiver_;
+        return RTP_MEMORY_ERROR;
+    }
+
+    if ((ret = receiver_->start()) != RTP_OK) {
+        sender_->destroy();
+        delete rtp_;
+        delete sender_;
+        delete receiver_;
+        return RTP_MEMORY_ERROR;
+    }
     initialized_ = true;
 
-    return RTP_OK;
+    return ret;
 }
 
 #ifdef __RTP_CRYPTO__
