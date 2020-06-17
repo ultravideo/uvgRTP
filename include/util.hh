@@ -157,7 +157,18 @@ enum RTP_CTX_ENABLE_FLAGS {
     /* Disable System Call Clustering (SCC), System Call Dispatching is still usable */
     RCE_NO_SYSTEM_CALL_CLUSTERING = 1 << 8,
 
-    RCE_LAST                      = 1 << 9,
+    /* Make the media stream unidirectional, i.e. sender/receiver only */
+    RCE_UNIDIRECTIONAL            = 1 << 9,
+
+    /* Media stream is only used for sending
+     * Mutually exclusive with RCE_UNIDIR_RECEIVER */
+    RCE_UNIDIR_SENDER             = 1 << 10,
+
+    /* Media stream is only used for receiving
+     * Mutually exclusive with RCE_UNIDIR_SENDER */
+    RCE_UNIDIR_RECEIVER           = 1 << 11,
+
+    RCE_LAST                      = 1 << 12,
 };
 
 /* These options are given to configuration() */

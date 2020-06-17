@@ -12,6 +12,12 @@
 
 namespace uvg_rtp {
 
+    enum mstream_type {
+        BIDIRECTIONAL,
+        UNIDIRECTIONAL_SENDER,
+        UNIDIRECTIONAL_RECEIVER
+    };
+
     class media_stream {
         public:
             media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags);
@@ -201,5 +207,8 @@ namespace uvg_rtp {
 
             /* Has the media stream been initialized */
             bool initialized_;
+
+            /* media stream type */
+            enum mstream_type type_;
     };
 };
