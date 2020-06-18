@@ -116,3 +116,8 @@ void uvg_rtp::rtp::set_timestamp(uint64_t timestamp)
 {
     timestamp_= timestamp;
 }
+
+uint32_t uvg_rtp::rtp::get_clock_rate(void)
+{
+    return clock_rate_;
+}

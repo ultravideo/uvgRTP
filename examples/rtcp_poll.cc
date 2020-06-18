@@ -5,15 +5,9 @@
  * Polling is not the advised way of handling RTCP packet retrival
  *
  * See rtcp/rtcp_hook.cc */
-void rtcp_thread(uvg_rtp::writer *writer)
+void rtcp_thread(uvg_rtp::rtcp *rtcp)
 {
-    fprintf(stderr, "Staring RTCP Receiver Report poller...\n");
-
-    uvg_rtp::rtcp *rtcp = writer->get_rtcp();
-
-    while (true) {
-        /* Participants must be polled on
-         * every iterations as people may join/leave at any point */
+    for (;;) {
         auto ssrcs = rtcp->get_participants();
 
         for (auto& i : ssrcs) {
@@ -27,39 +21,35 @@ void rtcp_thread(uvg_rtp::writer *writer)
             }
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 }
 
 int main(void)
 {
     /* See rtp/sending.cc for information about session initialization */
-    uvg_rtp::context rtp_ctx;
+    uvg_rtp::context ctx;
 
-    uvg_rtp::writer *writer = rtp_ctx.create_writer("127.0.0.1", 8888, RTP_FORMAT_GENERIC);
-    uvg_rtp::reader *reader = rtp_ctx.create_reader("127.0.0.1", 8888, RTP_FORMAT_GENERIC);
+    uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
 
-    /* Send Sender Reports 127.0.0.1:8889 and receive RTCP Reports to 5566 */
-    (void)writer->create_rtcp("127.0.0.1", 8889, 5566);
+    uvg_rtp::media_stream *s1 = sess->create_stream(7777, 8888, RTP_FORMAT_GENERIC, RTP_NO_FLAGS);
+    uvg_rtp::media_stream *s2 = sess->create_stream(8888, 7777, RTP_FORMAT_GENERIC, RTP_NO_FLAGS);
 
-    /* Send Receiver Reports 127.0.0.1:5566 and receive RTCP Reports to 8889 */
-    (void)reader->create_rtcp("127.0.0.1", 5566, 8889);
+    s1->create_rtcp(7778, 8889);
+    s2->create_rtcp(8889, 7778);
 
     /* Create separate thread for polling the RTCP packets. In this example,
      * we only create thread for RTCP Receiver Reports (so for RTP Sender).
      *
      * Polling must be obviously done in a separate thread because it's a blocking operation */
-    std::thread *t1 = new std::thread(rtcp_thread, writer);
-
-    (void)writer->start();
-    (void)reader->start();
+    std::thread *t1 = new std::thread(rtcp_thread, s1->get_rtcp());
 
     /* Send dummy data so there's some RTCP data to send */
     uint8_t buffer[50] = { 0 };
     memset(buffer, 'a', 50);
 
     while (true) {
-        writer->push_frame((uint8_t *)buffer, 50, RTP_NO_FLAGS);
+        s1->push_frame((uint8_t *)buffer, 50, RTP_NO_FLAGS);
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     }
 }

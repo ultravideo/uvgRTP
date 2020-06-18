@@ -13,6 +13,7 @@ namespace uvg_rtp {
 
             uint32_t get_ssrc();
             uint16_t get_sequence();
+            uint32_t get_clock_rate();
 
             void inc_sent_pkts();
             void inc_sequence();

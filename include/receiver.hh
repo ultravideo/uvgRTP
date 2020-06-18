@@ -9,6 +9,8 @@
 
 namespace uvg_rtp {
 
+    class rtcp;
+
     class receiver : public runner {
         public:
             receiver(uvg_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt, uvg_rtp::rtp *rtp);
@@ -65,6 +67,9 @@ namespace uvg_rtp {
             void return_frame(uvg_rtp::frame::rtp_frame *frame);
 
             /* TODO:  */
+            rtp_error_t update_receiver_stats(uvg_rtp::frame::rtp_frame *frame);
+
+            /* TODO:  */
             uvg_rtp::socket& get_socket();
 
             /* TODO:  */
@@ -76,8 +81,12 @@ namespace uvg_rtp {
             /* Get reference to the media stream's config structure */
             rtp_ctx_conf& get_conf();
 
+            /* TODO:  */
+            void set_rtcp(uvg_rtp::rtcp *rtcp);
+
         private:
             uvg_rtp::socket socket_;
+            uvg_rtp::rtcp *rtcp_;
             uvg_rtp::rtp *rtp_;
             rtp_ctx_conf conf_;
             rtp_format_t fmt_;

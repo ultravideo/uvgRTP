@@ -185,8 +185,8 @@ rtp_error_t __hevc_receiver(uvg_rtp::receiver *receiver)
              *
              * Skip processing the packet if it was invalid. This is mostly likely caused
              * by an SSRC collision */
-            /* if (receiver->update_receiver_stats(frame) != RTP_OK) */
-            /*     continue; */
+            if (receiver->update_receiver_stats(frame) != RTP_OK)
+                continue;
 
             /* How to the frame is handled is based what its type is. Generic and Opus frames
              * don't require any extra processing so they can be returned to the user as soon as

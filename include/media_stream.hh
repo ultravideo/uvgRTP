@@ -12,6 +12,12 @@
 
 namespace uvg_rtp {
 
+    enum mstream_type {
+        BIDIRECTIONAL,
+        UNIDIRECTIONAL_SENDER,
+        UNIDIRECTIONAL_RECEIVER
+    };
+
     class media_stream {
         public:
             media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags);
@@ -150,6 +156,26 @@ namespace uvg_rtp {
              * Used by session to index media streams */
             uint32_t get_key();
 
+            /* Create RTCP object for this media stream
+             *
+             * "src_port" is the port where we receive RTCP reports and
+             * "dst_port" is the port where we send RTCP reports
+             *
+             * RTCP is destroyed automatically when the media stream is destroyed
+             *
+             * Return RTP_OK on success
+             * Return RTP_INITIALIZED if RTCP has already been initialized */
+            rtp_error_t create_rtcp(uint16_t src_port, uint16_t dst_port);
+
+            /* Get pointer to the RTCP object of the media stream
+             *
+             * This object is used to control all RTCP-related functionality
+             * and RTCP documentation can be found from include/rtcp.hh
+             *
+             * Return pointer to RTCP object on success
+             * Return nullptr if RTCP has been created */
+            uvg_rtp::rtcp *get_rtcp();
+
         private:
             /* Initialize the connection by initializing the socket
              * and binding ourselves to specified interface and creating
@@ -163,6 +189,7 @@ namespace uvg_rtp {
             uvg_rtp::sender     *sender_;
             uvg_rtp::receiver   *receiver_;
             uvg_rtp::rtp        *rtp_;
+            uvg_rtp::rtcp       *rtcp_;
 
             sockaddr_in addr_out_;
             std::string addr_;
@@ -180,5 +207,8 @@ namespace uvg_rtp {
 
             /* Has the media stream been initialized */
             bool initialized_;
+
+            /* media stream type */
+            enum mstream_type type_;
     };
 };

@@ -7,12 +7,19 @@
 
 #define INVALID_TS UINT64_MAX
 
+#define RECV_ONLY_FLAGS (RCE_UNIDIRECTIONAL | RCE_UNIDIR_RECEIVER)
+#define SEND_ONLY_FLAGS (RCE_UNIDIRECTIONAL | RCE_UNIDIR_SENDER)
+
+#define RECV_ONLY(flags) ((flags & RECV_ONLY_FLAGS) == RECV_ONLY_FLAGS)
+#define SEND_ONLY(flags) ((flags & SEND_ONLY_FLAGS) == SEND_ONLY_FLAGS)
+
 uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     srtp_(nullptr),
     socket_(flags),
     sender_(nullptr),
     receiver_(nullptr),
     rtp_(nullptr),
+    rtcp_(nullptr),
     ctx_config_(),
     media_config_(nullptr),
     initialized_(false)
@@ -41,12 +48,15 @@ uvg_rtp::media_stream::media_stream(
 uvg_rtp::media_stream::~media_stream()
 {
     if (initialized_) {
-        sender_->destroy();
-        receiver_->stop();
+        if (sender_)
+            sender_->destroy();
+        if (receiver_)
+            receiver_->stop();
     }
 
     delete sender_;
     delete receiver_;
+    delete rtcp_;
     delete rtp_;
     delete srtp_;
 }
@@ -92,21 +102,49 @@ rtp_error_t uvg_rtp::media_stream::init_connection()
 
 rtp_error_t uvg_rtp::media_stream::init()
 {
+    rtp_error_t ret;
+
     if (init_connection() != RTP_OK) {
         LOG_ERROR("Failed to initialize the underlying socket: %s!", strerror(errno));
         return RTP_GENERIC_ERROR;
     }
 
-    rtp_      = new uvg_rtp::rtp(fmt_);
-    sender_   = new uvg_rtp::sender(socket_, ctx_config_, fmt_, rtp_);
-    receiver_ = new uvg_rtp::receiver(socket_, ctx_config_, fmt_, rtp_);
+    if (!(rtp_ = new uvg_rtp::rtp(fmt_)))
+        return RTP_MEMORY_ERROR;
 
-    sender_->init();
-    receiver_->start();
+    if (!RECV_ONLY(ctx_config_.flags)) {
+        if (!(sender_ = new uvg_rtp::sender(socket_, ctx_config_, fmt_, rtp_))) {
+            delete rtp_;
+            return RTP_MEMORY_ERROR;
+        }
 
+        if ((ret = sender_->init()) != RTP_OK) {
+            delete rtp_;
+            delete sender_;
+            return RTP_MEMORY_ERROR;
+        }
+    }
+
+    if (!SEND_ONLY(ctx_config_.flags)) {
+        if (!(receiver_ = new uvg_rtp::receiver(socket_, ctx_config_, fmt_, rtp_))) {
+            delete rtp_;
+            delete sender_;
+            return RTP_MEMORY_ERROR;
+        }
+
+        if ((ret = receiver_->start()) != RTP_OK) {
+            if (sender_) {
+                sender_->destroy();
+                delete sender_;
+            }
+            delete rtp_;
+            delete receiver_;
+            return RTP_MEMORY_ERROR;
+        }
+    }
     initialized_ = true;
 
-    return RTP_OK;
+    return ret;
 }
 
 #ifdef __RTP_CRYPTO__
@@ -201,6 +239,9 @@ rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, in
         return RTP_NOT_INITIALIZED;
     }
 
+    if (!sender_)
+        return RTP_NOT_SUPPORTED;
+
     return sender_->push_frame(data, data_len, flags);
 }
 
@@ -210,6 +251,9 @@ rtp_error_t uvg_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, s
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
+
+    if (!sender_)
+        return RTP_NOT_SUPPORTED;
 
     return sender_->push_frame(std::move(data), data_len, flags);
 }
@@ -222,6 +266,9 @@ rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, ui
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
+
+    if (!sender_)
+        return RTP_NOT_SUPPORTED;
 
     rtp_->set_timestamp(ts);
     ret = sender_->push_frame(data, data_len, flags);
@@ -239,6 +286,9 @@ rtp_error_t uvg_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, s
         return RTP_NOT_INITIALIZED;
     }
 
+    if (!sender_)
+        return RTP_NOT_SUPPORTED;
+
     rtp_->set_timestamp(ts);
     ret = sender_->push_frame(std::move(data), data_len, flags);
     rtp_->set_timestamp(INVALID_TS);
@@ -254,6 +304,11 @@ uvg_rtp::frame::rtp_frame *uvg_rtp::media_stream::pull_frame()
         return nullptr;
     }
 
+    if (!receiver_) {
+        rtp_errno = RTP_NOT_SUPPORTED;
+        return nullptr;
+    }
+
     return receiver_->pull_frame();
 }
 
@@ -262,6 +317,11 @@ uvg_rtp::frame::rtp_frame *uvg_rtp::media_stream::pull_frame(size_t timeout)
     if (!initialized_) {
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         rtp_errno = RTP_NOT_INITIALIZED;
+        return nullptr;
+    }
+
+    if (!receiver_) {
+        rtp_errno = RTP_NOT_SUPPORTED;
         return nullptr;
     }
 
@@ -274,6 +334,9 @@ rtp_error_t uvg_rtp::media_stream::install_receive_hook(void *arg, void (*hook)(
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
+
+    if (!receiver_)
+        return RTP_NOT_SUPPORTED;
 
     if (!hook)
         return RTP_INVALID_VALUE;
@@ -290,6 +353,9 @@ rtp_error_t uvg_rtp::media_stream::install_deallocation_hook(void (*hook)(void *
         return RTP_NOT_INITIALIZED;
     }
 
+    if (!receiver_)
+        return RTP_NOT_SUPPORTED;
+
     if (!hook)
         return RTP_INVALID_VALUE;
 
@@ -304,6 +370,9 @@ rtp_error_t uvg_rtp::media_stream::install_notify_hook(void *arg, void (*hook)(v
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
+
+    if (!receiver_)
+        return RTP_NOT_SUPPORTED;
 
     if (!hook)
         return RTP_INVALID_VALUE;
@@ -375,4 +444,28 @@ rtp_error_t uvg_rtp::media_stream::set_dynamic_payload(uint8_t payload)
     rtp_->set_dynamic_payload(payload);
 
     return RTP_OK;
+}
+
+uvg_rtp::rtcp *uvg_rtp::media_stream::get_rtcp()
+{
+    return rtcp_;
+}
+
+rtp_error_t uvg_rtp::media_stream::create_rtcp(uint16_t src_port, uint16_t dst_port)
+{
+    rtp_error_t ret;
+
+    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_->get_ssrc(), true)))
+        return RTP_MEMORY_ERROR;
+
+    if ((ret = rtcp_->add_participant(addr_, dst_port, src_port, rtp_->get_clock_rate())) != RTP_OK) {
+        delete rtcp_;
+        rtcp_ = nullptr;
+        return ret;
+    }
+
+    if (receiver_)
+        receiver_->set_rtcp(rtcp_);
+
+    return rtcp_->start();
 }
