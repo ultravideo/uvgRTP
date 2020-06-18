@@ -176,7 +176,8 @@ static rtp_error_t __fragment_receiver(uvg_rtp::receiver *receiver)
                         }
 
                         frames.erase(ts);
-                        receiver->return_frame(retframe);
+                        if (receiver->update_receiver_stats(frame) == RTP_OK)
+                            receiver->return_frame(frame);
                     }
                 }
             } else {
@@ -186,7 +187,8 @@ static rtp_error_t __fragment_receiver(uvg_rtp::receiver *receiver)
                     frames[ts].e_seq          = INVALID_SEQ;
                     frames[ts].fragments[seq] = frame;
                 } else {
-                    receiver->return_frame(frame);
+                    if (receiver->update_receiver_stats(frame) == RTP_OK)
+                        receiver->return_frame(frame);
                 }
             }
         } while (ret == RTP_OK);
@@ -255,16 +257,15 @@ rtp_error_t uvg_rtp::generic::frame_receiver(uvg_rtp::receiver *receiver)
             }
 #endif
 
-
             if ((frame = receiver->validate_rtp_frame(receiver->get_recv_buffer(), nread)) == nullptr) {
-                LOG_DEBUG("received an invalid frame, discarding");
+                LOG_ERROR("received an invalid frame, discarding");
                 continue;
             }
             memcpy(&frame->src_addr, &sender_addr, sizeof(sockaddr_in));
 
             /* Update session related statistics
              * If this is a new peer, RTCP will take care of initializing necessary stuff */
-            /* if (receiver->update_receiver_stats(frame) == RTP_OK) */
+            if (receiver->update_receiver_stats(frame) == RTP_OK)
                 receiver->return_frame(frame);
         } while (ret == RTP_OK);
     }
