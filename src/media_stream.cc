@@ -464,5 +464,8 @@ rtp_error_t uvg_rtp::media_stream::create_rtcp(uint16_t src_port, uint16_t dst_p
         return ret;
     }
 
+    if (receiver_)
+        receiver_->set_rtcp(rtcp_);
+
     return rtcp_->start();
 }

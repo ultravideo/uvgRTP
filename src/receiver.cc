@@ -5,6 +5,7 @@
 #include "debug.hh"
 #include "frame.hh"
 #include "receiver.hh"
+#include "rtcp.hh"
 
 #include "formats/hevc.hh"
 #include "formats/opus.hh"
@@ -13,6 +14,7 @@
 
 uvg_rtp::receiver::receiver(uvg_rtp::socket& socket, rtp_ctx_conf& conf, rtp_format_t fmt, uvg_rtp::rtp *rtp):
     socket_(socket),
+    rtcp_(nullptr),
     rtp_(rtp),
     conf_(conf),
     fmt_(fmt),
@@ -278,6 +280,28 @@ uvg_rtp::frame::rtp_frame *uvg_rtp::receiver::validate_rtp_frame(uint8_t *buffer
     return frame;
 }
 
+rtp_error_t uvg_rtp::receiver::update_receiver_stats(uvg_rtp::frame::rtp_frame *frame)
+{
+    rtp_error_t ret;
+
+    if (rtcp_) {
+        if ((ret = rtcp_->receiver_update_stats(frame)) != RTP_SSRC_COLLISION)
+            return ret;
+
+        /* TODO: fix ssrc collisions */
+        /* do { */
+            /* rtp_ssrc_ = kvz_rtp::random::generate_32(); */
+        /* } while ((rtcp_->reset_rtcp_state(rtp_ssrc_)) != RTP_OK); */
+
+        /* even though we've resolved the SSRC conflict, we still need to return an error
+         * code because the original packet that caused the conflict is considered "invalid" */
+        return RTP_INVALID_VALUE;
+    }
+
+    return RTP_OK;
+
+}
+
 uvg_rtp::socket& uvg_rtp::receiver::get_socket()
 {
     return socket_;
@@ -296,4 +320,9 @@ std::mutex& uvg_rtp::receiver::get_mutex()
 rtp_ctx_conf& uvg_rtp::receiver::get_conf()
 {
     return conf_;
+}
+
+void uvg_rtp::receiver::set_rtcp(uvg_rtp::rtcp *rtcp)
+{
+    rtcp_ = rtcp;
 }
