@@ -62,11 +62,15 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
     rlen_     = 0;
 
     if ((nread = ::recv(socket, mem_, len_, flags)) < 0) {
-        if (errno == EAGAIN)
-            return -EAGAIN;
+#ifdef __linux__
+        if (errno == EAGAIN || errno == EINTR)
+            return -RTP_INTERRUPTED;
 
         LOG_ERROR("Failed to receive ZRTP Hello message: %d %s!", errno, strerror(errno));
-        return -errno;
+        return -RTP_RECV_ERROR;
+#else
+#error "platform not supported"
+#endif
     }
 
     /* TODO: validate header */
@@ -75,12 +79,12 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
 
     if (msg->header.version != 0 || msg->header.magic != ZRTP_HEADER_MAGIC) {
         LOG_DEBUG("Invalid header version or magic");
-        return -EINVAL;
+        return -RTP_INVALID_VALUE;
     }
 
     if (msg->magic != ZRTP_MSG_MAGIC) {
         LOG_DEBUG("invalid ZRTP magic");
-        return -EINVAL;
+        return -RTP_INVALID_VALUE;
     }
 
     switch (msg->msgblock) {
@@ -91,7 +95,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
             zrtp_hello *hello = (zrtp_hello *)msg;
 
             if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, hello->crc))
-                return -EOPNOTSUPP;
+                return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_HELLO;
 
@@ -102,7 +106,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
             zrtp_hello_ack *ha_msg = (zrtp_hello_ack *)msg;
 
             if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, ha_msg->crc))
-                return -EOPNOTSUPP;
+                return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_HELLO_ACK;
 
@@ -113,7 +117,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
             zrtp_commit *commit = (zrtp_commit *)msg;
 
             if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, commit->crc))
-                return -EOPNOTSUPP;
+                return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_COMMIT;
 
@@ -124,7 +128,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
             zrtp_dh *dh = (zrtp_dh *)msg;
 
             if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
-                return -EOPNOTSUPP;
+                return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_DH_PART1;
 
@@ -135,7 +139,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
             zrtp_dh *dh = (zrtp_dh *)msg;
 
             if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
-                return -EOPNOTSUPP;
+                return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_DH_PART2;
 
@@ -146,7 +150,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
             zrtp_confirm *dh = (zrtp_confirm *)msg;
 
             if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
-                return -EOPNOTSUPP;
+                return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_CONFIRM1;
 
@@ -157,7 +161,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
             zrtp_confirm *dh = (zrtp_confirm *)msg;
 
             if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
-                return -EOPNOTSUPP;
+                return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_CONFIRM2;
 
@@ -168,7 +172,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
             zrtp_confack *ca = (zrtp_confack *)msg;
 
             if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, ca->crc))
-                return -EOPNOTSUPP;
+                return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_CONF2_ACK;
 
@@ -194,14 +198,13 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
     }
 
     LOG_WARN("Unknown message type received: 0x%lx", msg->msgblock);
-    return -EOPNOTSUPP;
+    return -RTP_NOT_SUPPORTED;
 }
 
 ssize_t uvg_rtp::zrtp_msg::receiver::get_msg(void *ptr, size_t len)
 {
-    if (!ptr || len == 0) {
-        return -EINVAL;
-    }
+    if (!ptr || !len)
+        return -RTP_INVALID_VALUE;
 
     size_t cpy_len = rlen_;
 
