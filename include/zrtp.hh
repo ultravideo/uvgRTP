@@ -236,7 +236,7 @@ namespace uvg_rtp {
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if no message is received from remote before T2 expires */
-            rtp_error_t init_session();
+            rtp_error_t init_session(int key_agreement);
 
             /* Calculate HMAC-SHA256 using "key" for "buf" of "len" bytes
              * and compare the truncated, 64-bit hash digest against "mac".
