@@ -77,8 +77,8 @@ namespace uvg_rtp {
             EC25 = 0x35324345,
             EC38 = 0x38334345,
             EC52 = 0x32354345,
-            Prsh = 0x68737250,
-            Mult = 0x746c754d
+            PRSH = 0x68737250,
+            MULT = 0x746c754d
         };
 
         enum SAS_TYPES {
