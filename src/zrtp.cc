@@ -372,13 +372,13 @@ rtp_error_t uvg_rtp::zrtp::begin_session()
     return RTP_TIMEOUT;
 }
 
-rtp_error_t uvg_rtp::zrtp::init_session()
+rtp_error_t uvg_rtp::zrtp::init_session(int key_agreement)
 {
     /* Create ZRTP session from capabilities struct we've constructed */
     session_.hash_algo          = S256;
     session_.cipher_algo        = AES1;
     session_.auth_tag_type      = HS32;
-    session_.key_agreement_type = DH3k;
+    session_.key_agreement_type = key_agreement;
     session_.sas_type           = B32;
 
     int type        = 0;
@@ -651,7 +651,7 @@ rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in
      *
      * init_session() will exchange the Commit messages and select roles for the
      * participants (initiator/responder) based on rules determined in RFC 6189 */
-    if ((ret = init_session()) != RTP_OK) {
+    if ((ret = init_session(DH3k)) != RTP_OK) {
         LOG_ERROR("Could not agree on ZRTP session parameters or roles of participants!");
         return ret;
     }
