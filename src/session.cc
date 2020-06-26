@@ -47,9 +47,12 @@ uvg_rtp::media_stream *uvg_rtp::session::create_stream(int r_port, int s_port, r
 #ifdef __RTP_CRYPTO__
     if (flags & RCE_SRTP) {
         if (flags & RCE_SRTP_KMNGMNT_ZRTP) {
-            if ((zrtp_ = new uvg_rtp::zrtp()) == nullptr) {
-                rtp_errno = RTP_MEMORY_ERROR;
-                return nullptr;
+
+            if (!zrtp_) {
+                if (!(zrtp_ = new uvg_rtp::zrtp())) {
+                    rtp_errno = RTP_MEMORY_ERROR;
+                    return nullptr;
+                }
             }
 
             if (stream->init(zrtp_) != RTP_OK) {
