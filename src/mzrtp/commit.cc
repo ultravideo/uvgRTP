@@ -37,7 +37,12 @@ uvg_rtp::zrtp_msg::commit::commit(zrtp_session_t& session)
     memcpy(&msg->msg_start.msgblock, ZRTP_COMMIT,                 8);
     memcpy(msg->zid,                 session.o_zid,              12); /* 96 bits */
     memcpy(msg->hash,                session.hash_ctx.o_hash[2], 32); /* 256 bits */
-    memcpy(msg->hvi,                 session.hash_ctx.o_hvi,     32); /* 256 bits */
+
+    /* Multistream mode must use unique random nonce */
+    if (session.key_agreement_type == MULT)
+        uvg_rtp::crypto::random::generate_random((uint8_t *)msg->hvi, 16);
+    else
+        memcpy(msg->hvi, session.hash_ctx.o_hvi, 32); /* 256 bits */
 
     msg->sas_type           = session.sas_type;
     msg->hash_algo          = session.hash_algo;
