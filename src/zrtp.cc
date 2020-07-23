@@ -126,7 +126,7 @@ void uvg_rtp::zrtp::generate_secrets()
     uvg_rtp::crypto::random::generate_random(session_.secrets.rpbx, 32);
 }
 
-void uvg_rtp::zrtp::generate_shared_secrets()
+void uvg_rtp::zrtp::generate_shared_secrets_dh()
 {
     cctx_.dh->set_remote_pk(session_.dh_ctx.remote_public, 384);
     cctx_.dh->get_shared_secret(session_.dh_ctx.dh_result, 384);
@@ -202,6 +202,48 @@ void uvg_rtp::zrtp::generate_shared_secrets()
     derive_key("Responder ZRTP key", 128, session_.key_ctx.zrtp_keyr);
     derive_key("Initiator HMAC key", 256, session_.key_ctx.hmac_keyi);
     derive_key("Responder HMAC key", 256, session_.key_ctx.hmac_keyr);
+}
+
+void uvg_rtp::zrtp::generate_shared_secrets_msm()
+{
+    if (session_.role == INITIATOR) {
+        cctx_.sha256->update((uint8_t *)session_.r_msg.hello.second,  session_.r_msg.hello.first);
+        cctx_.sha256->update((uint8_t *)session_.l_msg.commit.second, session_.l_msg.commit.first);
+    } else {
+        cctx_.sha256->update((uint8_t *)session_.l_msg.hello.second,  session_.l_msg.hello.first);
+        cctx_.sha256->update((uint8_t *)session_.r_msg.commit.second, session_.r_msg.commit.first);
+    }
+    cctx_.sha256->final((uint8_t *)session_.hash_ctx.total_hash);
+
+    /* Finally calculate s0 which is considered to be the final keying material (Section 4.4.3.2)
+     *
+     * It consist of the following information:
+     *    - "ZRTP MSK"
+     *    - ZID of initiator
+     *    - ZID of responder
+     *    - total hash (calculated above)
+     *    - negotiated hash length (256)
+     */
+    uint32_t length = htonl(256);
+    const char *kdf = "ZRTP MSK";
+
+    cctx_.sha256->update((uint8_t *)kdf, strlen(kdf));
+
+    if (session_.role == INITIATOR) {
+        cctx_.sha256->update((uint8_t *)session_.o_zid, 12);
+        cctx_.sha256->update((uint8_t *)session_.r_zid, 12);
+    } else {
+        cctx_.sha256->update((uint8_t *)session_.r_zid, 12);
+        cctx_.sha256->update((uint8_t *)session_.o_zid, 12);
+    }
+
+    cctx_.sha256->update((uint8_t *)session_.hash_ctx.total_hash, sizeof(session_.hash_ctx.total_hash));
+    cctx_.sha256->update((uint8_t *)&length, sizeof(length));
+
+    /* Calculate digest for s0
+     *
+     * Caller can now generate SRTP session keys for the media stream */
+    cctx_.sha256->final((uint8_t *)session_.secrets.s0);
 }
 
 rtp_error_t uvg_rtp::zrtp::verify_hash(uint8_t *key, uint8_t *buf, size_t len, uint64_t mac)
@@ -462,7 +504,7 @@ rtp_error_t uvg_rtp::zrtp::dh_part1()
 
                 /* parse_msg() above extracted the public key of remote and saved it to session_.
                  * Now we must generate shared secrets (DHResult, total_hash, and s0) */
-                generate_shared_secrets();
+                generate_shared_secrets_dh();
 
                 return RTP_OK;
             }
@@ -489,7 +531,7 @@ rtp_error_t uvg_rtp::zrtp::dh_part2()
 
     /* parse_msg() above extracted the public key of remote and saved it to session_.
      * Now we must generate shared secrets (DHResult, total_hash, and s0) */
-    generate_shared_secrets();
+    generate_shared_secrets_dh();
 
     for (int i = 0; i < 10; ++i) {
         set_timeout(rto);
@@ -718,11 +760,15 @@ rtp_error_t uvg_rtp::zrtp::init_msm(uint32_t ssrc, socket_t& socket, sockaddr_in
     }
 
     if (session_.role == INITIATOR) {
+        generate_shared_secrets_msm();
+
         if ((ret = initiator_finalize_session()) != RTP_OK) {
             LOG_ERROR("Failed to finalize session using Confirm2");
             return ret;
         }
     } else {
+        generate_shared_secrets_msm();
+
         if ((ret = responder_finalize_session()) != RTP_OK) {
             LOG_ERROR("Failed to finalize session using Confirm1/Conf2ACK");
             return ret;
