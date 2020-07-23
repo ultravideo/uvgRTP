@@ -71,7 +71,7 @@ void uvg_rtp::zrtp::generate_zid()
  *
  * Where:
  *    - KI      = s0
- *    - Label   = What is the key used
+ *    - Label   = What is the key used for
  *    - Context = ZIDi || ZIDr || total_hash
  *    - L       = 256
  */
@@ -695,11 +695,38 @@ rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in
 
 rtp_error_t uvg_rtp::zrtp::init_msm(uint32_t ssrc, socket_t& socket, sockaddr_in& addr)
 {
-    (void)ssrc, (void)socket, (void)addr;
+    rtp_error_t ret;
 
-    LOG_WARN("not implemented!");
+    socket_ = socket;
+    addr_   = addr;
 
-    return RTP_TIMEOUT;
+    session_.ssrc = ssrc;
+    session_.seq  = 0;
+
+    if ((ret = begin_session()) != RTP_OK) {
+        LOG_ERROR("Session initialization failed, ZRTP cannot be used!");
+        return ret;
+    }
+
+    if ((ret = init_session(MULT)) != RTP_OK) {
+        LOG_ERROR("Could not agree on ZRTP session parameters or roles of participants!");
+        return ret;
+    }
+
+    if (session_.role == INITIATOR) {
+        if ((ret = initiator_finalize_session()) != RTP_OK) {
+            LOG_ERROR("Failed to finalize session using Confirm2");
+            return ret;
+        }
+    } else {
+        if ((ret = responder_finalize_session()) != RTP_OK) {
+            LOG_ERROR("Failed to finalize session using Confirm1/Conf2ACK");
+            return ret;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+
+    return RTP_OK;
 }
 
 rtp_error_t uvg_rtp::zrtp::get_srtp_keys(
