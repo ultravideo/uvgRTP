@@ -599,6 +599,8 @@ rtp_error_t uvg_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
 
 rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in& addr)
 {
+    std::lock_guard<std::mutex> lock(zrtp_mtx_);
+
     rtp_error_t ret = RTP_OK;
 
     /* TODO: set all fields initially to zero */
@@ -695,6 +697,8 @@ rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in
 
 rtp_error_t uvg_rtp::zrtp::init_msm(uint32_t ssrc, socket_t& socket, sockaddr_in& addr)
 {
+    std::lock_guard<std::mutex> lock(zrtp_mtx_);
+
     rtp_error_t ret;
 
     socket_ = socket;

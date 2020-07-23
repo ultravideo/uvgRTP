@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #endif
 
+#include <mutex>
 #include <vector>
 
 #include "crypto.hh"
@@ -287,6 +288,8 @@ namespace uvg_rtp {
 
             zrtp_crypto_ctx_t cctx_;
             zrtp_session_t session_;
+
+            std::mutex zrtp_mtx_;
     };
 };
 #endif
