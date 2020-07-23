@@ -210,8 +210,12 @@ namespace uvg_rtp {
             /* Create private/public key pair and generate random values for retained secrets */
             void generate_secrets();
 
-            /* Calculate DHResult, total_hash, and s0 according to rules defined in RFC 6189 */
-            void generate_shared_secrets();
+            /* Calculate DHResult, total_hash, and s0
+             * according to rules defined in RFC 6189 for Diffie-Hellman mode*/
+            void generate_shared_secrets_dh();
+
+            /* Calculate shared secrets for Multistream Mode */
+            void generate_shared_secrets_msm();
 
             /* Compare our and remote's hvi values to determine who is the initiator */
             bool are_we_initiator(uint8_t *our_hvi, uint8_t *their_hvi);
