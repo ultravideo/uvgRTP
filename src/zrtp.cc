@@ -727,8 +727,6 @@ rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in
             LOG_ERROR("Failed to finalize session using Confirm1/Conf2ACK");
             return ret;
         }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
     /* ZRTP has been initialized using DHMode */
@@ -777,7 +775,6 @@ rtp_error_t uvg_rtp::zrtp::init_msm(uint32_t ssrc, socket_t& socket, sockaddr_in
             LOG_ERROR("Failed to finalize session using Confirm1/Conf2ACK");
             return ret;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
     return RTP_OK;
