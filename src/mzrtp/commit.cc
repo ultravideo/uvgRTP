@@ -119,7 +119,11 @@ rtp_error_t uvg_rtp::zrtp_msg::commit::parse_msg(uvg_rtp::zrtp_msg::receiver& re
     session.auth_tag_type      = msg->auth_tag_type;
     session.key_agreement_type = msg->key_agreement_type;
 
-    memcpy(session.hash_ctx.r_hvi,     msg->hvi,  32);
+    if (session.key_agreement_type == MULT)
+        memcpy(session.hash_ctx.r_hvi, msg->hvi, 16);
+    else
+        memcpy(session.hash_ctx.r_hvi, msg->hvi, 32);
+
     memcpy(&session.hash_ctx.r_mac[2], &msg->mac,  8);
     memcpy(session.hash_ctx.r_hash[2], msg->hash, 32);
 
