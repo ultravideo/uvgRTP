@@ -332,7 +332,9 @@ void uvg_rtp::zrtp::init_session_hashes()
 
 bool uvg_rtp::zrtp::are_we_initiator(uint8_t *our_hvi, uint8_t *their_hvi)
 {
-    for (int i = 31; i >= 0; --i) {
+    const int bits = (session_.key_agreement_type == MULT) ? 15 : 31;
+
+    for (int i = bits; i >= 0; --i) {
 
         if (our_hvi[i] > their_hvi[i])
             return true;
