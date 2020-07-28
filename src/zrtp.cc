@@ -47,11 +47,15 @@ uvg_rtp::zrtp::~zrtp()
         delete[] session_.l_msg.dh.second;
 }
 
+/* "timeout" must be in milliseconds */
 rtp_error_t uvg_rtp::zrtp::set_timeout(size_t timeout)
 {
+    size_t msec = timeout % 1000;
+    size_t sec  = timeout - msec;
+
     struct timeval tv = {
-        .tv_sec  = 0,
-        .tv_usec = (int)timeout * 1000,
+        .tv_sec  = (int)sec  / 1000,
+        .tv_usec = (int)msec * 1000,
     };
 
     if (setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
