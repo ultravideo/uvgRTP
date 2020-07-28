@@ -202,6 +202,8 @@ typedef struct rtp_ctx_conf {
 
 extern thread_local rtp_error_t rtp_errno;
 
+#define TIME_DIFF(s, e, u) ((ssize_t)std::chrono::duration_cast<std::chrono::u>(e - s).count())
+
 static inline void hex_dump(uint8_t *buf, size_t len)
 {
     if (!buf)
