@@ -26,10 +26,11 @@ rtp_error_t uvg_rtp::generic::push_frame(uvg_rtp::sender *sender, uint8_t *data,
 {
     (void)flags;
 
+    size_t payload_size = sender->get_rtp_ctx()->get_payload_size();
     uint8_t header[uvg_rtp::frame::HEADER_SIZE_RTP];
     sender->get_rtp_ctx()->fill_header(header);
 
-    if (data_len > MAX_PAYLOAD) {
+    if (data_len > payload_size) {
         if (sender->get_conf().flags & RCE_FRAGMENT_GENERIC) {
 
             rtp_error_t ret   = RTP_OK;
@@ -39,16 +40,16 @@ rtp_error_t uvg_rtp::generic::push_frame(uvg_rtp::sender *sender, uint8_t *data,
             /* set marker bit for the first fragment */
             header[1] |= (1 << 7);
 
-            while (data_left > MAX_PAYLOAD) {
-                ret = uvg_rtp::send::send_frame(sender, header, sizeof(header), data + data_pos, MAX_PAYLOAD);
+            while (data_left > (ssize_t)payload_size) {
+                ret = uvg_rtp::send::send_frame(sender, header, sizeof(header), data + data_pos, payload_size);
 
                 if (ret != RTP_OK)
                     return ret;
 
                 sender->get_rtp_ctx()->update_sequence(header);
 
-                data_pos  += MAX_PAYLOAD;
-                data_left -= MAX_PAYLOAD;
+                data_pos  += payload_size;
+                data_left -= payload_size;
 
                 /* clear marker bit for middle fragments */
                 header[1] &= 0x7f;
@@ -59,7 +60,7 @@ rtp_error_t uvg_rtp::generic::push_frame(uvg_rtp::sender *sender, uint8_t *data,
             return uvg_rtp::send::send_frame(sender, header, sizeof(header), data + data_pos, data_left);
 
         } else {
-            LOG_WARN("packet is larger (%zu bytes) than MAX_PAYLOAD (%u bytes)", data_len, MAX_PAYLOAD);
+            LOG_WARN("packet is larger (%zu bytes) than payload_size (%zu bytes)", data_len, payload_size);
         }
     }
 
@@ -79,6 +80,7 @@ static rtp_error_t __fragment_receiver(uvg_rtp::receiver *receiver)
     sockaddr_in sender_addr;
     rtp_error_t ret = RTP_OK;
     uvg_rtp::socket socket = receiver->get_socket();
+    size_t payload_size = receiver->get_rtp_ctx()->get_payload_size();
     uvg_rtp::frame::rtp_frame *frame;
 
     struct frame_info {
@@ -162,7 +164,7 @@ static rtp_error_t __fragment_receiver(uvg_rtp::receiver *receiver)
                         recv = frames[ts].e_seq - frames[ts].s_seq + 1;
 
                     if (recv == frames[ts].npkts) {
-                        auto retframe = uvg_rtp::frame::alloc_rtp_frame(recv * MAX_PAYLOAD);
+                        auto retframe = uvg_rtp::frame::alloc_rtp_frame(recv * payload_size);
                         size_t ptr    = 0;
 
                         std::memcpy(&retframe->header, &frame->header, sizeof(frame->header));

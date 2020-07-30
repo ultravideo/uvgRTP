@@ -15,7 +15,8 @@
 uvg_rtp::rtp::rtp(rtp_format_t fmt):
     wc_start_(0),
     sent_pkts_(0),
-    timestamp_(INVALID_TS)
+    timestamp_(INVALID_TS),
+    payload_size_(MAX_PAYLOAD)
 {
     seq_  = uvg_rtp::random::generate_32() & 0xffff;
     ts_   = uvg_rtp::random::generate_32();
@@ -120,4 +121,14 @@ void uvg_rtp::rtp::set_timestamp(uint64_t timestamp)
 uint32_t uvg_rtp::rtp::get_clock_rate(void)
 {
     return clock_rate_;
+}
+
+void uvg_rtp::rtp::set_payload_size(size_t payload_size)
+{
+    payload_size_ = payload_size;
+}
+
+size_t uvg_rtp::rtp::get_payload_size()
+{
+    return payload_size_;
 }
