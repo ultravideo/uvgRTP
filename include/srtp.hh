@@ -112,7 +112,7 @@ namespace uvg_rtp {
              * Return RTP_OK if SRTP setup was successful
              * Return RTP_INVALID_VALUE if "zrtp" is nullptr
              * Return RTP_MEMORY allocation failed */
-            rtp_error_t init_zrtp(int type, bool use_null_cipher, uvg_rtp::rtp *rtp, uvg_rtp::zrtp *zrtp);
+            rtp_error_t init_zrtp(int type, int flags, uvg_rtp::rtp *rtp, uvg_rtp::zrtp *zrtp);
 
             /* Setup Secure RTP/RTCP connection using user-managed keys
              *
@@ -122,7 +122,7 @@ namespace uvg_rtp {
              * Return RTP_OK if SRTP setup was successful
              * Return RTP_INVALID_VALUE if "key" or "salt" is nullptr
              * Return RTP_MEMORY allocation failed */
-            rtp_error_t init_user(int type, bool use_null_cipher, uint8_t *key, uint8_t *salt);
+            rtp_error_t init_user(int type, int flags, uint8_t *key, uint8_t *salt);
 
             /* Encrypt the payload of "frame" using the private session key
              *
@@ -168,7 +168,7 @@ namespace uvg_rtp {
             rtp_error_t __encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len);
 
             /* Internal init method that initialize the SRTP context using values in key_ctx_.master */
-            rtp_error_t __init(int type, bool use_null_cipher);
+            rtp_error_t __init(int type, int flags);
 #endif
 
             srtp_key_ctx_t key_ctx_;

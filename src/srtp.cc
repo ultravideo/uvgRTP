@@ -54,7 +54,7 @@ rtp_error_t uvg_rtp::srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t index
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::srtp::__init(int type, bool use_null_cipher)
+rtp_error_t uvg_rtp::srtp::__init(int type, int flags)
 {
     srtp_ctx_.roc  = 0;
     srtp_ctx_.type = type;
@@ -75,7 +75,7 @@ rtp_error_t uvg_rtp::srtp::__init(int type, bool use_null_cipher)
     srtp_ctx_.s_l    = 0;
     srtp_ctx_.replay = nullptr;
 
-    use_null_cipher_ = use_null_cipher;
+    use_null_cipher_  = !!(flags & RCE_SRTP_NULL_CIPHER);
 
     /* Local aka encryption keys */
     (void)derive_key(
@@ -126,7 +126,7 @@ rtp_error_t uvg_rtp::srtp::__init(int type, bool use_null_cipher)
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::srtp::init_zrtp(int type, bool use_null_cipher, uvg_rtp::rtp *rtp, uvg_rtp::zrtp *zrtp)
+rtp_error_t uvg_rtp::srtp::init_zrtp(int type, int flags, uvg_rtp::rtp *rtp, uvg_rtp::zrtp *zrtp)
 {
     (void)rtp;
 
@@ -151,10 +151,10 @@ rtp_error_t uvg_rtp::srtp::init_zrtp(int type, bool use_null_cipher, uvg_rtp::rt
         return ret;
     }
 
-    return __init(type, use_null_cipher);
+    return __init(type, flags);
 }
 
-rtp_error_t uvg_rtp::srtp::init_user(int type, bool use_null_cipher, uint8_t *key, uint8_t *salt)
+rtp_error_t uvg_rtp::srtp::init_user(int type, int flags, uint8_t *key, uint8_t *salt)
 {
     if (!key || !salt)
         return RTP_INVALID_VALUE;
@@ -164,7 +164,7 @@ rtp_error_t uvg_rtp::srtp::init_user(int type, bool use_null_cipher, uint8_t *ke
     memcpy(key_ctx_.master.local_salt,  salt, SALT_LENGTH);
     memcpy(key_ctx_.master.remote_salt, salt, SALT_LENGTH);
 
-    return __init(type, use_null_cipher);
+    return __init(type, flags);
 }
 
 rtp_error_t uvg_rtp::srtp::__encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len)
