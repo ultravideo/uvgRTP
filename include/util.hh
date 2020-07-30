@@ -100,12 +100,22 @@ enum RTP_CTX_ENABLE_FLAGS {
 
     /* Use ZRTP for key management
      *
-     * TODO selitä paremmin */
+     * If this flag is provided, before the session starts,
+     * ZRTP will negotiate keys with the remote participants
+     * and these keys are used as salting/keying material for the session.
+     *
+     * This flag must be coupled with RCE_SRTP and is mutually exclusive
+     * with RCE_SRTP_KMNGMNT_USER. */
     RCE_SRTP_KMNGMNT_ZRTP         = 1 << 4,
 
     /* Use user-defined way to manage keys
      *
-     * TODO selitä paremmin */
+     * If this flag is provided, before the media transportation starts,
+     * user must provide a master key and salt form which SRTP session
+     * keys are derived
+     *
+     * This flag must be coupled with RCE_SRTP and is mutually exclusive
+     * with RCE_SRTP_KMNGMNT_ZRTP */
     RCE_SRTP_KMNGMNT_USER         = 1 << 5,
 
     /* When uvgRTP is receiving HEVC stream, as an attempt to improve
