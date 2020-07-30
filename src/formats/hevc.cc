@@ -241,13 +241,14 @@ static rtp_error_t __push_hevc_nal(
     if (data_len <= 3)
         return RTP_INVALID_VALUE;
 
-    uint8_t nalType  = (data[0] >> 1) & 0x3F;
-    rtp_error_t ret  = RTP_OK;
-    size_t data_left = data_len;
-    size_t data_pos  = 0;
+    uint8_t nalType     = (data[0] >> 1) & 0x3F;
+    rtp_error_t ret     = RTP_OK;
+    size_t data_left    = data_len;
+    size_t data_pos     = 0;
+    size_t payload_size = sender->get_rtp_ctx()->get_payload_size();
 
 #ifdef __linux__
-    if (data_len - 3 <= MAX_PAYLOAD) {
+    if (data_len - 3 <= payload_size) {
         if ((ret = fqueue->enqueue_message(sender, data, data_len)) != RTP_OK) {
             LOG_ERROR("enqeueu failed for small packet");
             return ret;
@@ -278,13 +279,13 @@ static rtp_error_t __push_hevc_nal(
 
     buffers.push_back(std::make_pair(sizeof(headers->nal_header), headers->nal_header));
     buffers.push_back(std::make_pair(sizeof(uint8_t),             &headers->fu_headers[0]));
-    buffers.push_back(std::make_pair(MAX_PAYLOAD,                 nullptr));
+    buffers.push_back(std::make_pair(payload_size,                nullptr));
 
     data_pos   = uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
     data_left -= uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
 
-    while (data_left > MAX_PAYLOAD) {
-        buffers.at(2).first  = MAX_PAYLOAD;
+    while (data_left > payload_size) {
+        buffers.at(2).first  = payload_size;
         buffers.at(2).second = &data[data_pos];
 
         if ((ret = fqueue->enqueue_message(sender, buffers)) != RTP_OK) {
@@ -293,8 +294,8 @@ static rtp_error_t __push_hevc_nal(
             return ret;
         }
 
-        data_pos  += MAX_PAYLOAD;
-        data_left -= MAX_PAYLOAD;
+        data_pos  += payload_size;
+        data_left -= payload_size;
 
         /* from now on, use the FU header meant for middle fragments */
         buffers.at(1).second = &headers->fu_headers[1];
@@ -316,7 +317,7 @@ static rtp_error_t __push_hevc_nal(
         return RTP_NOT_READY;
     return fqueue->flush_queue(sender);
 #else
-    if (data_len - 3 <= MAX_PAYLOAD) {
+    if (data_len - 3 <= payload_size) {
         LOG_DEBUG("send unfrag size %zu, type %u", data_len, nalType);
 
         if ((ret = uvg_rtp::generic::push_frame(sender, data, data_len, 0)) != RTP_OK) {
@@ -334,7 +335,7 @@ static rtp_error_t __push_hevc_nal(
         uvg_rtp::frame::HEADER_SIZE_HEVC_NAL +
         uvg_rtp::frame::HEADER_SIZE_HEVC_FU;
 
-    uint8_t buffer[HEADER_SIZE + MAX_PAYLOAD] = { 0 };
+    uint8_t buffer[HEADER_SIZE + payload_size] = { 0 };
 
     sender->get_rtp_ctx()->fill_header(buffer);
 
@@ -346,16 +347,16 @@ static rtp_error_t __push_hevc_nal(
     data_pos   = uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
     data_left -= uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
 
-    while (data_left > MAX_PAYLOAD) {
-        memcpy(&buffer[HEADER_SIZE], &data[data_pos], MAX_PAYLOAD);
+    while (data_left > payload_size) {
+        memcpy(&buffer[HEADER_SIZE], &data[data_pos], payload_size);
 
         if ((ret = uvg_rtp::send::send_frame(sender, buffer, sizeof(buffer))) != RTP_OK)
             return RTP_GENERIC_ERROR;
 
         sender->get_rtp_ctx()->update_sequence(buffer);
 
-        data_pos  += MAX_PAYLOAD;
-        data_left -= MAX_PAYLOAD;
+        data_pos  += payload_size;
+        data_left -= payload_size;
 
         /* Clear extra bits */
         buffer[uvg_rtp::frame::HEADER_SIZE_RTP +
@@ -392,7 +393,7 @@ static rtp_error_t __push_hevc_slice(
         return RTP_INVALID_VALUE;
     }
 
-    if (data_len >= MAX_PAYLOAD) {
+    if (data_len >= sender->get_rtp_ctx()->get_payload_size()) {
         LOG_ERROR("slice is too big!");
         (void)fqueue->deinit_transaction();
         return RTP_INVALID_VALUE;
@@ -422,13 +423,14 @@ static rtp_error_t __push_hevc_frame(
 
 #ifdef __linux__
     /* find first start code */
-    uint8_t start_len = 0;
-    int offset        = __get_hevc_start(data, data_len, 0, start_len);
-    int prev_offset   = offset;
-    size_t r_off      = 0;
-    rtp_error_t ret   = RTP_GENERIC_ERROR;
+    uint8_t start_len   = 0;
+    int offset          = __get_hevc_start(data, data_len, 0, start_len);
+    int prev_offset     = offset;
+    size_t r_off        = 0;
+    rtp_error_t ret     = RTP_GENERIC_ERROR;
+    size_t payload_size = sender->get_rtp_ctx()->get_payload_size();
 
-    if (data_len < MAX_PAYLOAD) {
+    if (data_len < payload_size) {
         r_off = (offset < 0) ? 0 : offset; /* TODO: this looks ugly */
         fqueue->deinit_transaction();
         return uvg_rtp::generic::push_frame(sender, data + r_off, data_len - r_off, flags);
