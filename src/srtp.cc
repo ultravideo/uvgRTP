@@ -18,18 +18,15 @@ uvg_rtp::srtp::~srtp()
 }
 
 #ifdef __RTP_CRYPTO__
-/* TODO: explain this code and refactor it! */
 rtp_error_t uvg_rtp::srtp::derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t out_len)
 {
     uint8_t input[AES_KEY_LENGTH] = { 0 };
     memcpy(input, salt, SALT_LENGTH);
 
     input[7] ^= label;
-
     memset(out, 0, out_len);
 
     uvg_rtp::crypto::aes::ecb ecb(key, AES_KEY_LENGTH);
-
     ecb.encrypt(out, input, AES_KEY_LENGTH);
 
     return RTP_OK;
@@ -40,18 +37,15 @@ rtp_error_t uvg_rtp::srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t index
     if (!out || !salt)
         return RTP_INVALID_VALUE;
 
-    uint8_t indexbuf[8];
+    uint8_t buf[8];
     int i;
 
-    memset(out, 0, 16);
-
-    memcpy(&out[4],  &ssrc,  sizeof(uint32_t));
-    memcpy(indexbuf, &index, sizeof(uint64_t));
-
-    /* TODO: rewrite this */
+    memset(out,         0,  AES_KEY_LENGTH);
+    memcpy(&out[4], &ssrc,  sizeof(uint32_t));
+    memcpy(buf,     &index, sizeof(uint64_t));
 
     for (i = 0; i < 8; i++)
-        out[6 + i] ^= indexbuf[i];
+        out[6 + i] ^= buf[i];
 
     for (i = 0; i < 14; i++)
         out[i] ^= salt[i];
@@ -137,7 +131,7 @@ rtp_error_t uvg_rtp::srtp::init_zrtp(int type, uvg_rtp::rtp *rtp, uvg_rtp::zrtp 
         return RTP_INVALID_VALUE;
 
     if (type != SRTP) {
-        LOG_ERROR("SRTCP NOT SUPPORTED!");
+        LOG_ERROR("SRTCP not supported!");
         return RTP_INVALID_VALUE;
     }
 
@@ -221,9 +215,7 @@ rtp_error_t uvg_rtp::srtp::decrypt(uint8_t *buffer, size_t len)
     }
 
     uint8_t *payload = buffer + sizeof(uvg_rtp::frame::rtp_header);
-
     uvg_rtp::crypto::aes::ctr ctr(key_ctx_.remote.enc_key, sizeof(key_ctx_.remote.enc_key), iv);
-
     ctr.decrypt(payload, payload, len - sizeof(uvg_rtp::frame::rtp_header));
 
     return RTP_OK;
