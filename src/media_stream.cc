@@ -12,7 +12,6 @@
 
 #define RECV_ONLY(flags)   ((flags & RECV_ONLY_FLAGS) == RECV_ONLY_FLAGS)
 #define SEND_ONLY(flags)   ((flags & SEND_ONLY_FLAGS) == SEND_ONLY_FLAGS)
-#define NULL_CHIPER(flags) ((flags & RCE_SRTP_USE_NULL_CIPHER) == RCE_SRTP_USE_NULL_CIPHER)
 
 uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     srtp_(nullptr),
@@ -174,7 +173,7 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
     if ((srtp_ = new uvg_rtp::srtp()) == nullptr)
         return RTP_MEMORY_ERROR;
 
-    if ((ret = srtp_->init_zrtp(SRTP, NULL_CHIPER(ctx_config_.flags), rtp_, zrtp)) != RTP_OK) {
+    if ((ret = srtp_->init_zrtp(SRTP, ctx_config_.flags, rtp_, zrtp)) != RTP_OK) {
         LOG_WARN("Failed to initialize SRTP for media stream!");
         return ret;
     }
@@ -214,7 +213,7 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     if ((srtp_ = new uvg_rtp::srtp()) == nullptr)
         return RTP_MEMORY_ERROR;
 
-    if ((ret = srtp_->init_user(SRTP, NULL_CHIPER(ctx_config_.flags), key, salt)) != RTP_OK) {
+    if ((ret = srtp_->init_user(SRTP, ctx_config_.flags, key, salt)) != RTP_OK) {
         LOG_WARN("Failed to initialize SRTP for media stream!");
         return ret;
     }
