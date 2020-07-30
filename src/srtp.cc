@@ -9,7 +9,8 @@
 #endif
 
 uvg_rtp::srtp::srtp():
-    srtp_ctx_()
+    srtp_ctx_(),
+    use_null_cipher_(false)
 {
 }
 
@@ -53,7 +54,7 @@ rtp_error_t uvg_rtp::srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t index
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::srtp::__init(int type)
+rtp_error_t uvg_rtp::srtp::__init(int type, bool use_null_cipher)
 {
     srtp_ctx_.roc  = 0;
     srtp_ctx_.type = type;
@@ -73,6 +74,8 @@ rtp_error_t uvg_rtp::srtp::__init(int type)
 
     srtp_ctx_.s_l    = 0;
     srtp_ctx_.replay = nullptr;
+
+    use_null_cipher_ = use_null_cipher;
 
     /* Local aka encryption keys */
     (void)derive_key(
@@ -123,7 +126,7 @@ rtp_error_t uvg_rtp::srtp::__init(int type)
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::srtp::init_zrtp(int type, uvg_rtp::rtp *rtp, uvg_rtp::zrtp *zrtp)
+rtp_error_t uvg_rtp::srtp::init_zrtp(int type, bool use_null_cipher, uvg_rtp::rtp *rtp, uvg_rtp::zrtp *zrtp)
 {
     (void)rtp;
 
@@ -148,10 +151,10 @@ rtp_error_t uvg_rtp::srtp::init_zrtp(int type, uvg_rtp::rtp *rtp, uvg_rtp::zrtp 
         return ret;
     }
 
-    return __init(type);
+    return __init(type, use_null_cipher);
 }
 
-rtp_error_t uvg_rtp::srtp::init_user(int type, uint8_t *key, uint8_t *salt)
+rtp_error_t uvg_rtp::srtp::init_user(int type, bool use_null_cipher, uint8_t *key, uint8_t *salt)
 {
     if (!key || !salt)
         return RTP_INVALID_VALUE;
@@ -161,11 +164,14 @@ rtp_error_t uvg_rtp::srtp::init_user(int type, uint8_t *key, uint8_t *salt)
     memcpy(key_ctx_.master.local_salt,  salt, SALT_LENGTH);
     memcpy(key_ctx_.master.remote_salt, salt, SALT_LENGTH);
 
-    return __init(type);
+    return __init(type, use_null_cipher);
 }
 
 rtp_error_t uvg_rtp::srtp::__encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len)
 {
+    if (use_null_cipher_)
+        return RTP_OK;
+
     uint8_t iv[16] = { 0 };
     uint64_t index = (((uint64_t)srtp_ctx_.roc) << 16) + seq;
 
@@ -199,6 +205,9 @@ rtp_error_t uvg_rtp::srtp::encrypt(std::vector<std::pair<size_t, uint8_t *>>& bu
 
 rtp_error_t uvg_rtp::srtp::decrypt(uint8_t *buffer, size_t len)
 {
+    if (use_null_cipher_)
+        return RTP_OK;
+
     uint8_t iv[16] = { 0 };
     auto hdr       = (uvg_rtp::frame::rtp_header *)buffer;
     uint16_t seq   = ntohs(hdr->seq);

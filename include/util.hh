@@ -178,7 +178,10 @@ enum RTP_CTX_ENABLE_FLAGS {
      * Mutually exclusive with RCE_UNIDIR_SENDER */
     RCE_UNIDIR_RECEIVER           = 1 << 11,
 
-    RCE_LAST                      = 1 << 12,
+    /* Disable RTP payload encryption */
+    RCE_SRTP_NULL_CIPHER          = 1 << 12,
+
+    RCE_LAST                      = 1 << 13,
 };
 
 /* These options are given to configuration() */
