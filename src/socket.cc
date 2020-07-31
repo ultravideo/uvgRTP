@@ -435,7 +435,7 @@ rtp_error_t uvg_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags,
     int32_t ret = ::recvfrom(socket_, buf, buf_len, flags, (struct sockaddr *)sender, len_ptr);
 
     if (ret == -1) {
-        if (errno == EAGAIN) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
             set_bytes(bytes_read, 0);
             return RTP_INTERRUPTED;
         }
@@ -466,6 +466,9 @@ rtp_error_t uvg_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags,
     DWORD bytes_received, flags_ = 0;
 
     rc = ::WSARecvFrom(socket_, &DataBuf, 1, &bytes_received, &flags_, (SOCKADDR *)sender, (int *)len_ptr, NULL, NULL);
+
+    if (WSAGetLastError() == WSAEWOULDBLOCK)
+        return RTP_INTERRUPTED;
 
     if ((rc == SOCKET_ERROR) && (WSA_IO_PENDING != (err = WSAGetLastError()))) {
         /* win_get_last_error(); */
