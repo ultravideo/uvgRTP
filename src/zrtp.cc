@@ -47,11 +47,15 @@ uvg_rtp::zrtp::~zrtp()
         delete[] session_.l_msg.dh.second;
 }
 
+/* "timeout" must be in milliseconds */
 rtp_error_t uvg_rtp::zrtp::set_timeout(size_t timeout)
 {
+    size_t msec = timeout % 1000;
+    size_t sec  = timeout - msec;
+
     struct timeval tv = {
-        .tv_sec  = 0,
-        .tv_usec = (int)timeout * 1000,
+        .tv_sec  = (int)sec  / 1000,
+        .tv_usec = (int)msec * 1000,
     };
 
     if (setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
@@ -71,7 +75,7 @@ void uvg_rtp::zrtp::generate_zid()
  *
  * Where:
  *    - KI      = s0
- *    - Label   = What is the key used
+ *    - Label   = What is the key used for
  *    - Context = ZIDi || ZIDr || total_hash
  *    - L       = 256
  */
@@ -126,7 +130,7 @@ void uvg_rtp::zrtp::generate_secrets()
     uvg_rtp::crypto::random::generate_random(session_.secrets.rpbx, 32);
 }
 
-void uvg_rtp::zrtp::generate_shared_secrets()
+void uvg_rtp::zrtp::generate_shared_secrets_dh()
 {
     cctx_.dh->set_remote_pk(session_.dh_ctx.remote_public, 384);
     cctx_.dh->get_shared_secret(session_.dh_ctx.dh_result, 384);
@@ -202,6 +206,48 @@ void uvg_rtp::zrtp::generate_shared_secrets()
     derive_key("Responder ZRTP key", 128, session_.key_ctx.zrtp_keyr);
     derive_key("Initiator HMAC key", 256, session_.key_ctx.hmac_keyi);
     derive_key("Responder HMAC key", 256, session_.key_ctx.hmac_keyr);
+}
+
+void uvg_rtp::zrtp::generate_shared_secrets_msm()
+{
+    if (session_.role == INITIATOR) {
+        cctx_.sha256->update((uint8_t *)session_.r_msg.hello.second,  session_.r_msg.hello.first);
+        cctx_.sha256->update((uint8_t *)session_.l_msg.commit.second, session_.l_msg.commit.first);
+    } else {
+        cctx_.sha256->update((uint8_t *)session_.l_msg.hello.second,  session_.l_msg.hello.first);
+        cctx_.sha256->update((uint8_t *)session_.r_msg.commit.second, session_.r_msg.commit.first);
+    }
+    cctx_.sha256->final((uint8_t *)session_.hash_ctx.total_hash);
+
+    /* Finally calculate s0 which is considered to be the final keying material (Section 4.4.3.2)
+     *
+     * It consist of the following information:
+     *    - "ZRTP MSK"
+     *    - ZID of initiator
+     *    - ZID of responder
+     *    - total hash (calculated above)
+     *    - negotiated hash length (256)
+     */
+    uint32_t length = htonl(256);
+    const char *kdf = "ZRTP MSK";
+
+    cctx_.sha256->update((uint8_t *)kdf, strlen(kdf));
+
+    if (session_.role == INITIATOR) {
+        cctx_.sha256->update((uint8_t *)session_.o_zid, 12);
+        cctx_.sha256->update((uint8_t *)session_.r_zid, 12);
+    } else {
+        cctx_.sha256->update((uint8_t *)session_.r_zid, 12);
+        cctx_.sha256->update((uint8_t *)session_.o_zid, 12);
+    }
+
+    cctx_.sha256->update((uint8_t *)session_.hash_ctx.total_hash, sizeof(session_.hash_ctx.total_hash));
+    cctx_.sha256->update((uint8_t *)&length, sizeof(length));
+
+    /* Calculate digest for s0
+     *
+     * Caller can now generate SRTP session keys for the media stream */
+    cctx_.sha256->final((uint8_t *)session_.secrets.s0);
 }
 
 rtp_error_t uvg_rtp::zrtp::verify_hash(uint8_t *key, uint8_t *buf, size_t len, uint64_t mac)
@@ -286,7 +332,9 @@ void uvg_rtp::zrtp::init_session_hashes()
 
 bool uvg_rtp::zrtp::are_we_initiator(uint8_t *our_hvi, uint8_t *their_hvi)
 {
-    for (int i = 31; i >= 0; --i) {
+    const int bits = (session_.key_agreement_type == MULT) ? 15 : 31;
+
+    for (int i = bits; i >= 0; --i) {
 
         if (our_hvi[i] > their_hvi[i])
             return true;
@@ -372,13 +420,13 @@ rtp_error_t uvg_rtp::zrtp::begin_session()
     return RTP_TIMEOUT;
 }
 
-rtp_error_t uvg_rtp::zrtp::init_session()
+rtp_error_t uvg_rtp::zrtp::init_session(int key_agreement)
 {
     /* Create ZRTP session from capabilities struct we've constructed */
     session_.hash_algo          = S256;
     session_.cipher_algo        = AES1;
     session_.auth_tag_type      = HS32;
-    session_.key_agreement_type = DH3k;
+    session_.key_agreement_type = key_agreement;
     session_.sas_type           = B32;
 
     int type        = 0;
@@ -388,7 +436,7 @@ rtp_error_t uvg_rtp::zrtp::init_session()
 
     /* First check if remote has already sent the message.
      * If so, they are the initiator and we're the responder */
-    while ((type = receiver_.recv_msg(socket_, MSG_DONTWAIT)) != -EAGAIN) {
+    while ((type = receiver_.recv_msg(socket_, MSG_DONTWAIT)) != -RTP_INTERRUPTED) {
         if (type == ZRTP_FT_COMMIT) {
             commit.parse_msg(receiver_, session_);
             session_.role = RESPONDER;
@@ -462,7 +510,7 @@ rtp_error_t uvg_rtp::zrtp::dh_part1()
 
                 /* parse_msg() above extracted the public key of remote and saved it to session_.
                  * Now we must generate shared secrets (DHResult, total_hash, and s0) */
-                generate_shared_secrets();
+                generate_shared_secrets_dh();
 
                 return RTP_OK;
             }
@@ -489,7 +537,7 @@ rtp_error_t uvg_rtp::zrtp::dh_part2()
 
     /* parse_msg() above extracted the public key of remote and saved it to session_.
      * Now we must generate shared secrets (DHResult, total_hash, and s0) */
-    generate_shared_secrets();
+    generate_shared_secrets_dh();
 
     for (int i = 0; i < 10; ++i) {
         set_timeout(rto);
@@ -599,6 +647,8 @@ rtp_error_t uvg_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& ad
 
 rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in& addr)
 {
+    std::lock_guard<std::mutex> lock(zrtp_mtx_);
+
     rtp_error_t ret = RTP_OK;
 
     /* TODO: set all fields initially to zero */
@@ -651,7 +701,7 @@ rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in
      *
      * init_session() will exchange the Commit messages and select roles for the
      * participants (initiator/responder) based on rules determined in RFC 6189 */
-    if ((ret = init_session()) != RTP_OK) {
+    if ((ret = init_session(DH3k)) != RTP_OK) {
         LOG_ERROR("Could not agree on ZRTP session parameters or roles of participants!");
         return ret;
     }
@@ -679,8 +729,6 @@ rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in
             LOG_ERROR("Failed to finalize session using Confirm1/Conf2ACK");
             return ret;
         }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
     /* ZRTP has been initialized using DHMode */
@@ -695,11 +743,43 @@ rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in
 
 rtp_error_t uvg_rtp::zrtp::init_msm(uint32_t ssrc, socket_t& socket, sockaddr_in& addr)
 {
-    (void)ssrc, (void)socket, (void)addr;
+    std::lock_guard<std::mutex> lock(zrtp_mtx_);
 
-    LOG_WARN("not implemented!");
+    rtp_error_t ret;
 
-    return RTP_TIMEOUT;
+    socket_ = socket;
+    addr_   = addr;
+
+    session_.ssrc = ssrc;
+    session_.seq  = 0;
+
+    if ((ret = begin_session()) != RTP_OK) {
+        LOG_ERROR("Session initialization failed, ZRTP cannot be used!");
+        return ret;
+    }
+
+    if ((ret = init_session(MULT)) != RTP_OK) {
+        LOG_ERROR("Could not agree on ZRTP session parameters or roles of participants!");
+        return ret;
+    }
+
+    if (session_.role == INITIATOR) {
+        generate_shared_secrets_msm();
+
+        if ((ret = initiator_finalize_session()) != RTP_OK) {
+            LOG_ERROR("Failed to finalize session using Confirm2");
+            return ret;
+        }
+    } else {
+        generate_shared_secrets_msm();
+
+        if ((ret = responder_finalize_session()) != RTP_OK) {
+            LOG_ERROR("Failed to finalize session using Confirm1/Conf2ACK");
+            return ret;
+        }
+    }
+
+    return RTP_OK;
 }
 
 rtp_error_t uvg_rtp::zrtp::get_srtp_keys(

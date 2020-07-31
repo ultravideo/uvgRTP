@@ -136,8 +136,10 @@ static rtp_error_t __fragment_receiver(uvg_rtp::receiver *receiver)
             }
 #endif
 
-            if ((frame = receiver->validate_rtp_frame(receiver->get_recv_buffer(), nread)) == nullptr) {
-                LOG_DEBUG("received an invalid frame, discarding");
+            if (!(frame = receiver->validate_rtp_frame(receiver->get_recv_buffer(), nread))) {
+                if (rtp_errno != RTP_OK) {
+                    LOG_DEBUG("received an invalid frame, discarding");
+                }
                 continue;
             }
             memcpy(&frame->src_addr, &sender_addr, sizeof(sockaddr_in));
@@ -257,8 +259,10 @@ rtp_error_t uvg_rtp::generic::frame_receiver(uvg_rtp::receiver *receiver)
             }
 #endif
 
-            if ((frame = receiver->validate_rtp_frame(receiver->get_recv_buffer(), nread)) == nullptr) {
-                LOG_ERROR("received an invalid frame, discarding");
+            if (!(frame = receiver->validate_rtp_frame(receiver->get_recv_buffer(), nread))) {
+                if (rtp_errno != RTP_OK) {
+                    LOG_ERROR("received an invalid frame, discarding");
+                }
                 continue;
             }
             memcpy(&frame->src_addr, &sender_addr, sizeof(sockaddr_in));

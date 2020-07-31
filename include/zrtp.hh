@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #endif
 
+#include <mutex>
 #include <vector>
 
 #include "crypto.hh"
@@ -209,8 +210,12 @@ namespace uvg_rtp {
             /* Create private/public key pair and generate random values for retained secrets */
             void generate_secrets();
 
-            /* Calculate DHResult, total_hash, and s0 according to rules defined in RFC 6189 */
-            void generate_shared_secrets();
+            /* Calculate DHResult, total_hash, and s0
+             * according to rules defined in RFC 6189 for Diffie-Hellman mode*/
+            void generate_shared_secrets_dh();
+
+            /* Calculate shared secrets for Multistream Mode */
+            void generate_shared_secrets_msm();
 
             /* Compare our and remote's hvi values to determine who is the initiator */
             bool are_we_initiator(uint8_t *our_hvi, uint8_t *their_hvi);
@@ -236,7 +241,7 @@ namespace uvg_rtp {
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if no message is received from remote before T2 expires */
-            rtp_error_t init_session();
+            rtp_error_t init_session(int key_agreement);
 
             /* Calculate HMAC-SHA256 using "key" for "buf" of "len" bytes
              * and compare the truncated, 64-bit hash digest against "mac".
@@ -287,6 +292,8 @@ namespace uvg_rtp {
 
             zrtp_crypto_ctx_t cctx_;
             zrtp_session_t session_;
+
+            std::mutex zrtp_mtx_;
     };
 };
 #endif
