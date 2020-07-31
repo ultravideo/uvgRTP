@@ -32,6 +32,12 @@ uvg_rtp::media_stream *uvg_rtp::session::create_stream(int r_port, int s_port, r
 {
     uvg_rtp::media_stream *stream = nullptr;
 
+    if (flags & RCE_SYSTEM_CALL_DISPATCHER) {
+        LOG_ERROR("SCD is not supported!");
+        rtp_errno = RTP_NOT_SUPPORTED;
+        return nullptr;
+    }
+
     if (laddr_ == "")
         stream = new uvg_rtp::media_stream(addr_, r_port, s_port, fmt, flags);
     else

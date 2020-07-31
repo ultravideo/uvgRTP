@@ -36,22 +36,23 @@ const int MAX_PACKET      = 65536;
 const int MAX_PAYLOAD     = 1443;
 
 typedef enum RTP_ERROR {
-    RTP_INTERRUPTED     =  2,
-    RTP_NOT_READY       =  1,
-    RTP_OK              =  0,
-    RTP_GENERIC_ERROR   = -1,
-    RTP_SOCKET_ERROR    = -2,
-    RTP_BIND_ERROR      = -3,
-    RTP_INVALID_VALUE   = -4,
-    RTP_SEND_ERROR      = -5,
-    RTP_MEMORY_ERROR    = -6,
-    RTP_SSRC_COLLISION  = -7,
-    RTP_INITIALIZED     = -8,   /* object already initialized */
-    RTP_NOT_INITIALIZED = -9,   /* object has not been initialized */
-    RTP_NOT_SUPPORTED   = -10,  /* method/version/extension not supported */
-    RTP_RECV_ERROR      = -11,  /* recv(2) or one of its derivatives failed */
-    RTP_TIMEOUT         = -12,  /* operation timed out */
-    RTP_NOT_FOUND       = -13,  /* object not found */
+    RTP_INTERRUPTED       = 2,
+    RTP_NOT_READY         = 1,
+    RTP_OK                = 0,
+    RTP_GENERIC_ERROR     = -1,
+    RTP_SOCKET_ERROR      = -2,
+    RTP_BIND_ERROR        = -3,
+    RTP_INVALID_VALUE     = -4,
+    RTP_SEND_ERROR        = -5,
+    RTP_MEMORY_ERROR      = -6,
+    RTP_SSRC_COLLISION    = -7,
+    RTP_INITIALIZED       = -8,   /* object already initialized */
+    RTP_NOT_INITIALIZED   = -9,   /* object has not been initialized */
+    RTP_NOT_SUPPORTED     = -10,  /* method/version/extension not supported */
+    RTP_RECV_ERROR        = -11,  /* recv(2) or one of its derivatives failed */
+    RTP_TIMEOUT           = -12,  /* operation timed out */
+    RTP_NOT_FOUND         = -13,  /* object not found */
+    RTP_AUTH_TAG_MISMATCH = -14,  /* authentication tag does not match the RTP packet contents */
 } rtp_error_t;
 
 typedef enum RTP_FORMAT {
@@ -100,12 +101,22 @@ enum RTP_CTX_ENABLE_FLAGS {
 
     /* Use ZRTP for key management
      *
-     * TODO selitä paremmin */
+     * If this flag is provided, before the session starts,
+     * ZRTP will negotiate keys with the remote participants
+     * and these keys are used as salting/keying material for the session.
+     *
+     * This flag must be coupled with RCE_SRTP and is mutually exclusive
+     * with RCE_SRTP_KMNGMNT_USER. */
     RCE_SRTP_KMNGMNT_ZRTP         = 1 << 4,
 
     /* Use user-defined way to manage keys
      *
-     * TODO selitä paremmin */
+     * If this flag is provided, before the media transportation starts,
+     * user must provide a master key and salt form which SRTP session
+     * keys are derived
+     *
+     * This flag must be coupled with RCE_SRTP and is mutually exclusive
+     * with RCE_SRTP_KMNGMNT_ZRTP */
     RCE_SRTP_KMNGMNT_USER         = 1 << 5,
 
     /* When uvgRTP is receiving HEVC stream, as an attempt to improve
@@ -168,7 +179,18 @@ enum RTP_CTX_ENABLE_FLAGS {
      * Mutually exclusive with RCE_UNIDIR_SENDER */
     RCE_UNIDIR_RECEIVER           = 1 << 11,
 
-    RCE_LAST                      = 1 << 12,
+    /* Disable RTP payload encryption */
+    RCE_SRTP_NULL_CIPHER          = 1 << 12,
+
+    /* Enable RTP packet authentication
+     *
+     * This flag forces the security layer to add authentication tag
+     * to each outgoing RTP packet for all streams that have SRTP enabled.
+     *
+     * NOTE: this flag must be coupled with at least RCE_SRTP */
+    RCE_SRTP_AUTHENTICATE_RTP     = 1 << 13,
+
+    RCE_LAST                      = 1 << 14,
 };
 
 /* These options are given to configuration() */

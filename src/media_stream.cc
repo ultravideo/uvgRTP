@@ -10,8 +10,8 @@
 #define RECV_ONLY_FLAGS (RCE_UNIDIRECTIONAL | RCE_UNIDIR_RECEIVER)
 #define SEND_ONLY_FLAGS (RCE_UNIDIRECTIONAL | RCE_UNIDIR_SENDER)
 
-#define RECV_ONLY(flags) ((flags & RECV_ONLY_FLAGS) == RECV_ONLY_FLAGS)
-#define SEND_ONLY(flags) ((flags & SEND_ONLY_FLAGS) == SEND_ONLY_FLAGS)
+#define RECV_ONLY(flags)   ((flags & RECV_ONLY_FLAGS) == RECV_ONLY_FLAGS)
+#define SEND_ONLY(flags)   ((flags & SEND_ONLY_FLAGS) == SEND_ONLY_FLAGS)
 
 uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     srtp_(nullptr),
@@ -173,10 +173,13 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
     if ((srtp_ = new uvg_rtp::srtp()) == nullptr)
         return RTP_MEMORY_ERROR;
 
-    if ((ret = srtp_->init_zrtp(SRTP, rtp_, zrtp)) != RTP_OK) {
+    if ((ret = srtp_->init_zrtp(SRTP, ctx_config_.flags, rtp_, zrtp)) != RTP_OK) {
         LOG_WARN("Failed to initialize SRTP for media stream!");
         return ret;
     }
+
+    if (ctx_config_.flags & RCE_SRTP_AUTHENTICATE_RTP)
+        rtp_->set_payload_size(MAX_PAYLOAD - AUTH_TAG_LENGTH);
 
     socket_.set_srtp(srtp_);
 
@@ -213,10 +216,13 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     if ((srtp_ = new uvg_rtp::srtp()) == nullptr)
         return RTP_MEMORY_ERROR;
 
-    if ((ret = srtp_->init_user(SRTP, key, salt)) != RTP_OK) {
+    if ((ret = srtp_->init_user(SRTP, ctx_config_.flags, key, salt)) != RTP_OK) {
         LOG_WARN("Failed to initialize SRTP for media stream!");
         return ret;
     }
+
+    if (ctx_config_.flags & RCE_SRTP_AUTHENTICATE_RTP)
+        rtp_->set_payload_size(MAX_PAYLOAD - AUTH_TAG_LENGTH);
 
     socket_.set_srtp(srtp_);
 

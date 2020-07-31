@@ -23,6 +23,7 @@
 #define AES_KEY_LENGTH   16 /* 128 bits */
 #define HMAC_KEY_LENGTH  32 /* 256 bits */
 #define SALT_LENGTH      14 /* 112 bits */
+#define AUTH_TAG_LENGTH   8
 
 namespace uvg_rtp {
 
@@ -112,7 +113,7 @@ namespace uvg_rtp {
              * Return RTP_OK if SRTP setup was successful
              * Return RTP_INVALID_VALUE if "zrtp" is nullptr
              * Return RTP_MEMORY allocation failed */
-            rtp_error_t init_zrtp(int type, uvg_rtp::rtp *rtp, uvg_rtp::zrtp *zrtp);
+            rtp_error_t init_zrtp(int type, int flags, uvg_rtp::rtp *rtp, uvg_rtp::zrtp *zrtp);
 
             /* Setup Secure RTP/RTCP connection using user-managed keys
              *
@@ -122,7 +123,7 @@ namespace uvg_rtp {
              * Return RTP_OK if SRTP setup was successful
              * Return RTP_INVALID_VALUE if "key" or "salt" is nullptr
              * Return RTP_MEMORY allocation failed */
-            rtp_error_t init_user(int type, uint8_t *key, uint8_t *salt);
+            rtp_error_t init_user(int type, int flags, uint8_t *key, uint8_t *salt);
 
             /* Encrypt the payload of "frame" using the private session key
              *
@@ -142,9 +143,13 @@ namespace uvg_rtp {
 
             /* Decrypt the payload payload of "frame" using the private session key
              *
+             * If RTP packet authentication has been enabled during stream creation,
+             * decrypt() authenticates the received packet.
+             *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "frame" is nullptr
-             * Return RTP_NOT_INITIALIZED if SRTP has not been initialized */
+             * Return RTP_NOT_INITIALIZED if SRTP has not been initialized
+             * Return RTP_AUTH_TAG_MISMATCH if authentication tags do not match */
             rtp_error_t decrypt(uint8_t *buffer, size_t len);
 
             /* Authenticate "frame" using the private session key
@@ -168,10 +173,20 @@ namespace uvg_rtp {
             rtp_error_t __encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len);
 
             /* Internal init method that initialize the SRTP context using values in key_ctx_.master */
-            rtp_error_t __init(int type);
+            rtp_error_t __init(int type, int flags);
 #endif
 
             srtp_key_ctx_t key_ctx_;
             srtp_ctx_t srtp_ctx_;
+
+            /* If NULL cipher is enabled, it means that RTP packets are not
+             * encrypted but other security mechanisms described in RFC 3711 may be used */
+            bool use_null_cipher_;
+
+            /* By default RTP packet authentication is disabled but by
+             * giving RCE_SRTP_AUTHENTICATE_RTP to create_stream() user can enable it.
+             *
+             * The authentication tag will occupy the last 8 bytes of the RTP packet */
+            bool authenticate_rtp_;
     };
 };
