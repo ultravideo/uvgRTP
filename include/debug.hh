@@ -8,6 +8,7 @@
 
 #include <cstdio>
 #include <cstdarg>
+#include <cstring>
 #include <string>
 
 // TODO constexpr??
@@ -69,3 +70,29 @@ static inline void win_get_last_error(void)
 #define LOG_WARN(fmt,   ...) uvgrtp_debug(LOG_LEVEL_WARN,  fmt, ##__VA_ARGS__)
 #define LOG_INFO(fmt,   ...) uvgrtp_debug(LOG_LEVEL_INFO,  fmt, ##__VA_ARGS__)
 #endif
+
+static inline void log_platform_error(const char *aux)
+{
+#ifdef __linux__
+        if (aux) {
+            LOG_ERROR("%s: %s %d\n", aux, strerror(errno), errno);
+        } else {
+            LOG_ERROR("%s %d\n", strerror(errno), errno);
+        }
+#else
+    wchar_t *s = NULL;
+    FormatMessageW(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL, WSAGetLastError(),
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPWSTR)&s, 0, NULL
+    );
+
+    if (aux) {
+        LOG_ERROR("%s: %s %d\n", aux, s, WSAGetLastError());
+    } else {
+        LOG_ERROR("%s %d\n", s, WSAGetLastError());
+    }
+    LocalFree(s);
+#endif
+}

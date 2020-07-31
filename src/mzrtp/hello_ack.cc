@@ -49,8 +49,7 @@ rtp_error_t uvg_rtp::zrtp_msg::hello_ack::send_msg(socket_t& socket, sockaddr_in
     data_buf.len = len_;
 
     if (WSASendTo(socket, &data_buf, 1, NULL, 0, (const struct sockaddr *)&addr, sizeof(addr), nullptr, nullptr) == -1) {
-        win_get_last_error();
-
+        log_platform_error("WSASendTo() failed");
         return RTP_SEND_ERROR;
     }
 #endif

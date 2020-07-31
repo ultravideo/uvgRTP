@@ -19,9 +19,8 @@ std::string uvg_rtp::hostname::get_hostname()
     char buffer[NAME_MAXLEN];
     DWORD bufCharCount = NAME_MAXLEN;
 
-    if (!GetComputerName((TCHAR *)buffer, &bufCharCount)) {
-        win_get_last_error();
-    }
+    if (!GetComputerName((TCHAR *)buffer, &bufCharCount))
+        log_platform_error("GetComputerName() failed");
 
     return std::string(buffer);
 #else
@@ -43,7 +42,7 @@ std::string uvg_rtp::hostname::get_username()
     DWORD bufCharCount = NAME_MAXLEN;
 
     if (!GetUserName((TCHAR *)buffer, &bufCharCount)) {
-        win_get_last_error();
+        log_platform_error("GetUserName() failed");
         return "";
     }
 
