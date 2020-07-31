@@ -23,6 +23,7 @@
 #define AES_KEY_LENGTH   16 /* 128 bits */
 #define HMAC_KEY_LENGTH  32 /* 256 bits */
 #define SALT_LENGTH      14 /* 112 bits */
+#define AUTH_TAG_LENGTH   8
 
 namespace uvg_rtp {
 
@@ -142,9 +143,13 @@ namespace uvg_rtp {
 
             /* Decrypt the payload payload of "frame" using the private session key
              *
+             * If RTP packet authentication has been enabled during stream creation,
+             * decrypt() authenticates the received packet.
+             *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "frame" is nullptr
-             * Return RTP_NOT_INITIALIZED if SRTP has not been initialized */
+             * Return RTP_NOT_INITIALIZED if SRTP has not been initialized
+             * Return RTP_AUTH_TAG_MISMATCH if authentication tags do not match */
             rtp_error_t decrypt(uint8_t *buffer, size_t len);
 
             /* Authenticate "frame" using the private session key
@@ -177,5 +182,11 @@ namespace uvg_rtp {
             /* If NULL cipher is enabled, it means that RTP packets are not
              * encrypted but other security mechanisms described in RFC 3711 may be used */
             bool use_null_cipher_;
+
+            /* By default RTP packet authentication is disabled but by
+             * giving RCE_SRTP_AUTHENTICATE_RTP to create_stream() user can enable it.
+             *
+             * The authentication tag will occupy the last 8 bytes of the RTP packet */
+            bool authenticate_rtp_;
     };
 };
