@@ -245,6 +245,11 @@ rtp_error_t uvg_rtp::socket::__sendtov(
         return RTP_SEND_ERROR;
     }
 
+#ifdef __RTP_CRYPTO__
+    if (srtp_ && flags_ & RCE_SRTP_AUTHENTICATE_RTP)
+        delete buffers.at(buffers.size() - 1).second;
+#endif
+
     set_bytes(bytes_sent, sent_bytes);
     return RTP_OK;
 

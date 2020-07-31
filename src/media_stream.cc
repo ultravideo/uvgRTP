@@ -178,6 +178,9 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
         return ret;
     }
 
+    if (ctx_config_.flags & RCE_SRTP_AUTHENTICATE_RTP)
+        rtp_->set_payload_size(MAX_PAYLOAD - AUTH_TAG_LENGTH);
+
     socket_.set_srtp(srtp_);
 
     sender_   = new uvg_rtp::sender(socket_, ctx_config_, fmt_, rtp_);
@@ -217,6 +220,9 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         LOG_WARN("Failed to initialize SRTP for media stream!");
         return ret;
     }
+
+    if (ctx_config_.flags & RCE_SRTP_AUTHENTICATE_RTP)
+        rtp_->set_payload_size(MAX_PAYLOAD - AUTH_TAG_LENGTH);
 
     socket_.set_srtp(srtp_);
 
