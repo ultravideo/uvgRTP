@@ -81,12 +81,7 @@ rtp_error_t uvg_rtp::media_stream::init_connection()
         socket_t socket       = socket_.get_raw_socket();
 
         if (bind(socket, (struct sockaddr *)&bind_addr, sizeof(bind_addr)) == -1) {
-#ifdef __linux__
-            LOG_ERROR("Bind failed: %s!", strerror(errno));
-#else
-            LOG_ERROR("Bind failed!");
-            win_get_last_error();
-#endif
+            log_platform_error("bind(2) failed");
             return RTP_BIND_ERROR;
         }
     } else {

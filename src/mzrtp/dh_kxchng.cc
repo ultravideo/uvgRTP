@@ -126,8 +126,7 @@ rtp_error_t uvg_rtp::zrtp_msg::dh_key_exchange::send_msg(socket_t& socket, socka
     data_buf.len = len_;
 
     if (WSASendTo(socket, &data_buf, 1, nullptr, 0, (const struct sockaddr *)&addr, sizeof(addr), nullptr, nullptr) == -1) {
-        win_get_last_error();
-
+        log_platform_error("WSASendTo() failed");
         return RTP_SEND_ERROR;
     }
 #endif

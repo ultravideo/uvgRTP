@@ -107,11 +107,7 @@ static rtp_error_t __fragment_receiver(uvg_rtp::receiver *receiver)
         int sret = ::select(socket.get_raw_socket() + 1, &read_fds, nullptr, nullptr, &t_val);
 
         if (sret < 0) {
-#ifdef __linux__
-            LOG_ERROR("select failed: %s!", strerror(errno));
-#else
-            win_get_last_error();
-#endif
+            log_platform_error("select(2) failed");
             return RTP_GENERIC_ERROR;
         }
 
@@ -230,11 +226,7 @@ rtp_error_t uvg_rtp::generic::frame_receiver(uvg_rtp::receiver *receiver)
         int sret = ::select(socket.get_raw_socket() + 1, &read_fds, nullptr, nullptr, &t_val);
 
         if (sret < 0) {
-#ifdef __linux__
-            LOG_ERROR("select failed: %s!", strerror(errno));
-#else
-            win_get_last_error();
-#endif
+            log_platform_error("select(2) failed");
             return RTP_GENERIC_ERROR;
         }
 

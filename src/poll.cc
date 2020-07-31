@@ -76,7 +76,7 @@ rtp_error_t uvg_rtp::poll::poll(std::vector<uvg_rtp::socket>& sockets, uint8_t *
     int ret = ::select((int)sockets.size(), &read_fds, nullptr, nullptr, &t_val);
 
     if (ret < 0) {
-        win_get_last_error();
+        log_platform_error("select(2) failed");
         return RTP_GENERIC_ERROR;
     } else if (ret == 0) {
         set_bytes(bytes_read, 0);
