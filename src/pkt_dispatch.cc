@@ -52,7 +52,14 @@ std::vector<uvg_rtp::packet_handler>& uvg_rtp::pkt_dispatcher::get_handlers()
  * For example, if runner detects an incoming ZRTP packet, that packet is immediately dispatched to the
  * installed ZRTP handler if ZRTP has been enabled.
  * Likewise, if RTP packet authentication has been enabled, runner validates the packet before passing
- * it onto any other layer so all future work on the packet is not done in vain due to invalid data */
+ * it onto any other layer so all future work on the packet is not done in vain due to invalid data
+ *
+ * One piece of design choice that complicates the design of packet dispatcher a little is that the order
+ * of handlers is important. First handler must be ZRTP and then follows SRTP, RTP and finally media handlers.
+ * This requirement gives packet handler a clean and generic interface while giving a possibility to modify
+ * the packet in each of the called handlers if needed. For example SRTP handler verifies RTP authentication
+ * tag and decrypts the packet and RTP handler verifies the fields of the RTP packet and processes it into
+ * a more easily modifiable format for the media handler. */
 static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket& socket)
 {
     int nread;
@@ -90,12 +97,17 @@ static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket& socket)
                 switch ((ret = (*handler)(nread, recv_buffer))) {
                     /* packet was handled successfully or the packet was in some way corrupted */
                     case RTP_OK:
-                    case RTP_GENERIC_ERROR:
                         break;
 
-                    /* the received packet is not handled by the called handler */
+                    /* the received packet is not handled at all or only partially by the called handler
+                     * proceed to the next handler */
                     case RTP_PKT_NOT_HANDLED:
+                    case RTP_PKT_MODIFIED:
                         continue;
+
+                    case RTP_GENERIC_ERROR:
+                        LOG_DEBUG("Received a corrputed packet!");
+                        break;
 
                     default:
                         LOG_ERROR("Unknown error code from packet handler: %d", ret);

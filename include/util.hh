@@ -36,6 +36,8 @@ const int MAX_PACKET      = 65536;
 const int MAX_PAYLOAD     = 1443;
 
 typedef enum RTP_ERROR {
+    RTP_PKT_MODIFIED      = 4,   /* packet was modified by the layer (see src/pkt_dispatch.cc) */
+    RTP_PKT_NOT_HANDLED   = 3,   /* packet does not belong to this layer */
     RTP_INTERRUPTED       = 2,
     RTP_NOT_READY         = 1,
     RTP_OK                = 0,
