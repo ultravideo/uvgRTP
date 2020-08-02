@@ -132,3 +132,8 @@ size_t uvg_rtp::rtp::get_payload_size()
 {
     return payload_size_;
 }
+
+rtp_format_t uvg_rtp::rtp::get_payload()
+{
+    return (rtp_format_t)fmt_;
+}
