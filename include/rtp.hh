@@ -11,10 +11,11 @@ namespace uvg_rtp {
             rtp(rtp_format_t fmt);
             ~rtp();
 
-            uint32_t get_ssrc();
-            uint16_t get_sequence();
-            uint32_t get_clock_rate();
-            size_t   get_payload_size();
+            uint32_t     get_ssrc();
+            uint16_t     get_sequence();
+            uint32_t     get_clock_rate();
+            size_t       get_payload_size();
+            rtp_format_t get_payload();
 
             void inc_sent_pkts();
             void inc_sequence();
