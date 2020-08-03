@@ -12,13 +12,14 @@
 #include "debug.hh"
 #include "receiver.hh"
 #include "send.hh"
-#include "sender.hh"
+/* #include "sender.hh" */
 #include "util.hh"
 
 #include "formats/generic.hh"
 
 #define INVALID_SEQ 0xffffffff
 
+#if 0
 /* The generic frames are fragmented using the marker bit of the RTP header.
  * First and last fragment of a larger frame have marker bits set and middle fragments don't.
  * All fragments have the same timestamp so the receiver knows which fragments are part of a larger frame. */
@@ -271,3 +272,4 @@ rtp_error_t uvg_rtp::generic::frame_receiver(uvg_rtp::receiver *receiver)
     receiver->get_mutex().unlock();
     return ret;
 }
+#endif

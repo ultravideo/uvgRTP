@@ -13,10 +13,11 @@
 /* #include "debug.hh" */
 /* #include "formats/generic.hh" */
 #include "send.hh"
-#include "sender.hh"
+/* #include "sender.hh" */
 /* #include "util.hh" */
 /* #include "sender.hh" */
 
+#if 0
 rtp_error_t uvg_rtp::send::send_frame(
     uvg_rtp::sender *sender,
     uint8_t *frame, size_t frame_len
@@ -71,3 +72,4 @@ rtp_error_t uvg_rtp::send::send_frame(
 
     return sender->get_socket().sendto(buffers, 0);
 }
+#endif
