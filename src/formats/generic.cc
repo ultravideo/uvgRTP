@@ -1,3 +1,4 @@
+#if 0
 #ifdef _WIN32
 // TODO
 #else
@@ -272,4 +273,5 @@ rtp_error_t uvg_rtp::generic::frame_receiver(uvg_rtp::receiver *receiver)
     receiver->get_mutex().unlock();
     return ret;
 }
+#endif
 #endif
