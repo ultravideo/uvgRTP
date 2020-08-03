@@ -20,6 +20,18 @@ uvg_rtp::pkt_dispatcher::~pkt_dispatcher()
 {
 }
 
+rtp_error_t uvg_rtp::pkt_dispatcher::install_receive_hook(
+    void *arg,
+    void (*hook)(void *, uvg_rtp::frame::rtp_frame *)
+)
+{
+    if (!hook)
+        return RTP_INVALID_VALUE;
+
+    recv_hook_     = hook;
+    recv_hook_arg_ = arg;
+}
+
 rtp_error_t uvg_rtp::pkt_dispatcher::install_handler(uvg_rtp::packet_handler handler)
 {
     if (!handler)
