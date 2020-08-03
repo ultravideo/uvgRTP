@@ -11,7 +11,6 @@
 #include "debug.hh"
 #include "queue.hh"
 #include "random.hh"
-#include "sender.hh"
 
 #include "formats/hevc.hh"
 
