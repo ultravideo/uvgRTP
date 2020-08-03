@@ -1,3 +1,4 @@
+#if 0
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -901,3 +902,4 @@ rtp_error_t __hevc_receiver_optimistic(uvg_rtp::receiver *receiver)
 
     return RTP_OK;
 }
+#endif
