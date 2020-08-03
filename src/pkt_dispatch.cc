@@ -32,6 +32,40 @@ rtp_error_t uvg_rtp::pkt_dispatcher::install_receive_hook(
     recv_hook_arg_ = arg;
 }
 
+uvg_rtp::frame::rtp_frame *uvg_rtp::pkt_dispatcher::pull_frame()
+{
+    while (frames_.empty() && this->active())
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+    if (!this->active())
+        return nullptr;
+
+    frames_mtx_.lock();
+    auto frame = frames_.front();
+    frames_.erase(frames_.begin());
+    frames_mtx_.unlock();
+
+    return frame;
+}
+
+uvg_rtp::frame::rtp_frame *uvg_rtp::pkt_dispatcher::pull_frame(size_t timeout)
+{
+    while (frames_.empty() && this->active() && timeout) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        --timeout;
+    }
+
+    if (!this->active() && frames_.empty())
+        return nullptr;
+
+    frames_mtx_.lock();
+    auto frame = frames_.front();
+    frames_.erase(frames_.begin());
+    frames_mtx_.unlock();
+
+    return frame;
+}
+
 rtp_error_t uvg_rtp::pkt_dispatcher::install_handler(uvg_rtp::packet_handler handler)
 {
     if (!handler)
