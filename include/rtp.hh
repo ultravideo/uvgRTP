@@ -2,6 +2,7 @@
 #define __RTP_HH_
 
 #include "clock.hh"
+#include "frame.hh"
 #include "util.hh"
 
 namespace uvg_rtp {
@@ -29,7 +30,11 @@ namespace uvg_rtp {
             void fill_header(uint8_t *buffer);
             void update_sequence(uint8_t *buffer);
 
+            /* Validates the RTP header pointed to by "packet" */
+            static rtp_error_t packet_handler(ssize_t size, void *packet, uvg_rtp::frame::rtp_frame **out);
+
         private:
+
             uint32_t ssrc_;
             uint32_t ts_;
             uint16_t seq_;
