@@ -105,13 +105,21 @@ std::vector<uvg_rtp::packet_handler>& uvg_rtp::pkt_dispatcher::get_handlers()
  * This requirement gives packet handler a clean and generic interface while giving a possibility to modify
  * the packet in each of the called handlers if needed. For example SRTP handler verifies RTP authentication
  * tag and decrypts the packet and RTP handler verifies the fields of the RTP packet and processes it into
- * a more easily modifiable format for the media handler. */
+ * a more easily modifiable format for the media handler.
+ *
+ * If packet is modified by the handler but the frame is not ready to be returned to user,
+ * handler returns RTP_PKT_MODIFIED to indicate that it has modified the input buffer and that
+ * the packet should be passed onto other handlers.
+ *
+ * When packet is ready to be returned to user, "out" parameter of packet handler is set to point to
+ * the allocated frame that can be returned and return value of the packet handler is RTP_PKT_READY. */
 static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket& socket)
 {
     int nread;
     fd_set read_fds;
     rtp_error_t ret;
     struct timeval t_val;
+    uvg_rtp::frame::rtp_frame *frame;
 
     FD_ZERO(&read_fds);
 
@@ -140,9 +148,13 @@ static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket& socket)
             }
 
             for (auto& handler : dispatcher->get_handlers()) {
-                switch ((ret = (*handler)(nread, recv_buffer))) {
-                    /* packet was handled successfully or the packet was in some way corrupted */
+                switch ((ret = (*handler)(nread, recv_buffer, &frame))) {
+                    /* packet was handled successfully */
                     case RTP_OK:
+                        break;
+
+                    /* "out" contains an RTP packet that can be returned to the user */
+                    case RTP_PKT_READY:
                         break;
 
                     /* the received packet is not handled at all or only partially by the called handler
@@ -152,7 +164,7 @@ static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket& socket)
                         continue;
 
                     case RTP_GENERIC_ERROR:
-                        LOG_DEBUG("Received a corrputed packet!");
+                        LOG_DEBUG("Received a corrupted packet!");
                         break;
 
                     default:

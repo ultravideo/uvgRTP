@@ -10,7 +10,7 @@
 
 namespace uvg_rtp {
 
-    typedef rtp_error_t (*packet_handler)(ssize_t, void *);
+    typedef rtp_error_t (*packet_handler)(ssize_t, void *, uvg_rtp::frame::rtp_frame **);
 
     class pkt_dispatcher : public runner {
         public:
