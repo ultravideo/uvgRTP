@@ -2,7 +2,7 @@
 #else
 #endif
 
-#include "media.hh"
+#include "formats/media.hh"
 
 uvg_rtp::formats::media::media(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp_ctx, int flags):
     socket_(socket), rtp_ctx_(rtp_ctx), flags_(flags)

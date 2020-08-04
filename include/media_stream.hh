@@ -3,12 +3,13 @@
 #include <unordered_map>
 #include <memory>
 
-#include "media.hh"
 #include "pkt_dispatch.hh"
 #include "rtcp.hh"
 #include "socket.hh"
 #include "srtp.hh"
 #include "util.hh"
+
+#include "formats/media.hh"
 
 namespace uvg_rtp {
 
