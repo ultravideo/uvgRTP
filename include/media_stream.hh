@@ -3,7 +3,6 @@
 #include <unordered_map>
 #include <memory>
 
-#include "receiver.hh"
 #include "rtcp.hh"
 #include "socket.hh"
 #include "srtp.hh"
@@ -185,7 +184,6 @@ namespace uvg_rtp {
 
             uvg_rtp::srtp       *srtp_;
             uvg_rtp::socket     socket_;
-            uvg_rtp::receiver   *receiver_;
             uvg_rtp::rtp        *rtp_;
             uvg_rtp::rtcp       *rtcp_;
 

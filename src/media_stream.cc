@@ -16,7 +16,6 @@
 uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     srtp_(nullptr),
     socket_(flags),
-    receiver_(nullptr),
     rtp_(nullptr),
     rtcp_(nullptr),
     ctx_config_(),
@@ -47,11 +46,8 @@ uvg_rtp::media_stream::media_stream(
 uvg_rtp::media_stream::~media_stream()
 {
     if (initialized_) {
-        if (receiver_)
-            receiver_->stop();
     }
 
-    delete receiver_;
     delete rtcp_;
     delete rtp_;
     delete srtp_;
@@ -336,11 +332,10 @@ rtp_error_t uvg_rtp::media_stream::install_deallocation_hook(void (*hook)(void *
         return RTP_NOT_INITIALIZED;
     }
 
-    if (!receiver_)
-        return RTP_NOT_SUPPORTED;
-
     if (!hook)
         return RTP_INVALID_VALUE;
+
+    /* TODO:  */
 
     return RTP_OK;
 }
@@ -352,13 +347,10 @@ rtp_error_t uvg_rtp::media_stream::install_notify_hook(void *arg, void (*hook)(v
         return RTP_NOT_INITIALIZED;
     }
 
-    if (!receiver_)
-        return RTP_NOT_SUPPORTED;
-
     if (!hook)
         return RTP_INVALID_VALUE;
 
-    receiver_->install_notify_hook(arg, hook);
+    /* TODO:  */
 
     return RTP_OK;
 }
@@ -444,9 +436,6 @@ rtp_error_t uvg_rtp::media_stream::create_rtcp(uint16_t src_port, uint16_t dst_p
         rtcp_ = nullptr;
         return ret;
     }
-
-    if (receiver_)
-        receiver_->set_rtcp(rtcp_);
 
     return rtcp_->start();
 }
