@@ -3,6 +3,8 @@
 #include <unordered_map>
 #include <memory>
 
+#include "media.hh"
+#include "pkt_dispatch.hh"
 #include "rtcp.hh"
 #include "socket.hh"
 #include "srtp.hh"
@@ -206,5 +208,11 @@ namespace uvg_rtp {
 
             /* media stream type */
             enum mstream_type type_;
+
+            /* RTP packet dispatcher for the receiver */
+            uvg_rtp::pkt_dispatcher *pkt_dispatcher_;
+
+            /* Media object associated with this media stream. */
+            uvg_rtp::formats::media *media_;
     };
 };
