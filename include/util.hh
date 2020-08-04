@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <cstdio>
+#include <cstring>
 #include <string>
 
 #if defined(_MSC_VER)
@@ -247,6 +248,14 @@ static inline void set_bytes(int *ptr, int nbytes)
 {
     if (ptr)
         *ptr = nbytes;
+}
+
+static inline void *memdup(const void *src, size_t len)
+{
+    uint8_t *dst = new uint8_t[len];
+    std::memcpy(dst, src, len);
+
+    return dst;
 }
 
 static inline std::string generate_string(size_t length)
