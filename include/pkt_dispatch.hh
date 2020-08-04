@@ -10,7 +10,7 @@
 
 namespace uvg_rtp {
 
-    typedef rtp_error_t (*packet_handler)(ssize_t, void *, uvg_rtp::frame::rtp_frame **);
+    typedef rtp_error_t (*packet_handler)(ssize_t, void *, int, uvg_rtp::frame::rtp_frame **);
 
     class pkt_dispatcher : public runner {
         public:
@@ -44,7 +44,7 @@ namespace uvg_rtp {
             std::vector<uvg_rtp::packet_handler>& get_handlers();
 
         private:
-            static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket& socket);
+            static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket& socket, int flags);
 
             uvg_rtp::socket socket_;
             std::vector<packet_handler> packet_handlers_;

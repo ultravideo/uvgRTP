@@ -83,7 +83,7 @@ rtp_error_t uvg_rtp::formats::media::__push_frame(uint8_t *data, size_t data_len
     return socket_->sendto(buffers, 0);
 }
 
-static rtp_error_t packet_handler(ssize_t size, void *packet, uvg_rtp::frame::rtp_frame **out)
+static rtp_error_t packet_handler(ssize_t size, void *packet, int flags, uvg_rtp::frame::rtp_frame **out)
 {
     (void)size, (void)packet;
     return RTP_OK;

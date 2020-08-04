@@ -100,13 +100,13 @@ static void __drop_frame(frame_info_t& finfo, uint32_t ts)
     finfo.erase(ts);
 }
 
-rtp_error_t hevc_packet_handler(ssize_t size, void *packet, uvg_rtp::frame::rtp_frame **out)
+rtp_error_t hevc_packet_handler(ssize_t size, void *packet, int flags, uvg_rtp::frame::rtp_frame **out)
 {
     static frame_info_t finfo;
     static std::unordered_set<uint32_t> dropped;
 
     uvg_rtp::frame::rtp_frame *frame;
-    bool enable_idelay = false;//!(receiver->get_conf().flags & RCE_HEVC_NO_INTRA_DELAY);
+    bool enable_idelay = !(flags & RCE_HEVC_NO_INTRA_DELAY);
 
     /* Use "intra" to keep track of intra frames
      *
