@@ -86,13 +86,13 @@ std::vector<uvg_rtp::packet_handler>& uvg_rtp::pkt_dispatcher::get_handlers()
  *
  * Neither should Opus handler take SRTP-provided authentication tag into account when it is
  * performing operations on the packet.
- * And ZRTP packetshould not be relayed from media handler to ZRTP handler et cetera.
+ * And ZRTP packets should not be relayed from media handler to ZRTP handler et cetera.
  *
  * This can be achieved by having a global UDP packet handler for any packet type that validates
  * all common stuff it can and then dispatches the validated packet to the correct layer using
  * one of the installed handlers.
  *
- * If it's unclear as to which handler should be called, the packet is dispatcher to all relevant
+ * If it's unclear as to which handler should be called, the packet is dispatched to all relevant
  * handlers and a handler then returns RTP_OK/RTP_PKT_NOT_HANDLED based on whether the packet was handled.
  *
  * For example, if runner detects an incoming ZRTP packet, that packet is immediately dispatched to the
@@ -112,7 +112,10 @@ std::vector<uvg_rtp::packet_handler>& uvg_rtp::pkt_dispatcher::get_handlers()
  * the packet should be passed onto other handlers.
  *
  * When packet is ready to be returned to user, "out" parameter of packet handler is set to point to
- * the allocated frame that can be returned and return value of the packet handler is RTP_PKT_READY. */
+ * the allocated frame that can be returned and return value of the packet handler is RTP_PKT_READY.
+ *
+ * If a handler receives a non-null "out", it can safely ignore "packet" and operate just on
+ * the "out" parameter because at that point it already contains all needed information. */
 static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket& socket)
 {
     int nread;
