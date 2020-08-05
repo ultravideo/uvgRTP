@@ -36,6 +36,8 @@ rtp_error_t uvg_rtp::formats::media::push_frame(std::unique_ptr<uint8_t[]> data,
 
 rtp_error_t uvg_rtp::formats::media::__push_frame(uint8_t *data, size_t data_len, int flags)
 {
+    (void)flags;
+
     std::vector<std::pair<size_t, uint8_t *>> buffers;
     size_t payload_size = rtp_ctx_->get_payload_size();
     uint8_t header[uvg_rtp::frame::HEADER_SIZE_RTP];
@@ -90,6 +92,7 @@ rtp_error_t uvg_rtp::formats::media::__push_frame(uint8_t *data, size_t data_len
 
 static rtp_error_t packet_handler(ssize_t size, void *packet, int flags, uvg_rtp::frame::rtp_frame **out)
 {
+    (void)size, (void)packet;
 
     struct frame_info {
         uint32_t s_seq;
@@ -100,7 +103,6 @@ static rtp_error_t packet_handler(ssize_t size, void *packet, int flags, uvg_rtp
     };
     static std::unordered_map<uint32_t, frame_info> frames;
 
-    rtp_error_t ret = RTP_OK;
     auto frame      = *out;
     uint32_t ts     = frame->header.timestamp;
     uint32_t seq    = frame->header.seq;
