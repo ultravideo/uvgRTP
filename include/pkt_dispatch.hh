@@ -35,7 +35,13 @@ namespace uvg_rtp {
              * Return RTP_MEMORY_ERROR if allocation of a thread object fails */
             rtp_error_t start(uvg_rtp::socket *socket, int flags);
 
-            /* Fetchj frame from the frame queue that contains all received frame.
+            /* Stop the RTP packet dispatcher and wait until the receive loop is exited
+             * to make sure that destroying the object in media_stream.cc is safe
+             *
+             * Return RTP_OK on success */
+            rtp_error_t stop();
+
+            /* Fetch frame from the frame queue that contains all received frame.
              * pull_frame() will block until there is a frame that can be returned.
              * If "timeout" is given, pull_frame() will block only for however long
              * that value tells it to.
@@ -53,7 +59,12 @@ namespace uvg_rtp {
             void return_frame(uvg_rtp::frame::rtp_frame *frame);
 
             /* RTP packet dispatcher thread */
-            static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket *socket, int flags);
+            static void runner(
+                uvg_rtp::pkt_dispatcher *dispatcher,
+                uvg_rtp::socket *socket,
+                int flags,
+                std::mutex *exit_mtx
+            );
 
         private:
             std::vector<packet_handler> packet_handlers_;
@@ -62,6 +73,7 @@ namespace uvg_rtp {
              * and they can be retrieved using pull_frame() */
             std::vector<uvg_rtp::frame::rtp_frame *> frames_;
             std::mutex frames_mtx_;
+            std::mutex exit_mtx_;
 
             void *recv_hook_arg_;
             void (*recv_hook_)(void *arg, uvg_rtp::frame::rtp_frame *frame);
