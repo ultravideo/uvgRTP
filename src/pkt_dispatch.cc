@@ -11,7 +11,9 @@
 #include "pkt_dispatch.hh"
 #include "util.hh"
 
-uvg_rtp::pkt_dispatcher::pkt_dispatcher()
+uvg_rtp::pkt_dispatcher::pkt_dispatcher():
+    recv_hook_arg_(nullptr),
+    recv_hook_(nullptr)
 {
 }
 
@@ -88,6 +90,17 @@ rtp_error_t uvg_rtp::pkt_dispatcher::install_handler(uvg_rtp::packet_handler han
 std::vector<uvg_rtp::packet_handler>& uvg_rtp::pkt_dispatcher::get_handlers()
 {
     return packet_handlers_;
+}
+
+void uvg_rtp::pkt_dispatcher::return_frame(uvg_rtp::frame::rtp_frame *frame)
+{
+    if (recv_hook_) {
+        recv_hook_(recv_hook_arg_, frame);
+    } else {
+        frames_mtx_.lock();
+        frames_.push_back(frame);
+        frames_mtx_.unlock();
+    }
 }
 
 /* The point of packet dispatcher is to provide much-needed isolation between different layers
@@ -171,6 +184,7 @@ void uvg_rtp::pkt_dispatcher::runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rt
 
                     /* "out" contains an RTP packet that can be returned to the user */
                     case RTP_PKT_READY:
+                        dispatcher->return_frame(frame);
                         break;
 
                     /* the received packet is not handled at all or only partially by the called handler

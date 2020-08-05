@@ -49,6 +49,9 @@ namespace uvg_rtp {
             /* Return reference to the vector that holds all installed handlers */
             std::vector<uvg_rtp::packet_handler>& get_handlers();
 
+            /* Return a processed RTP frame to user either through frame queue or receive hook */
+            void return_frame(uvg_rtp::frame::rtp_frame *frame);
+
             /* RTP packet dispatcher thread */
             static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket *socket, int flags);
 
