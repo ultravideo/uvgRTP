@@ -30,8 +30,6 @@
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
-extern rtp_error_t hevc_packet_handler(ssize_t size, void *packet);
-
 static inline unsigned __find_hevc_start(uint32_t value)
 {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -460,9 +458,4 @@ rtp_error_t uvg_rtp::formats::hevc::__push_frame(uint8_t *data, size_t data_len,
     }
 
     return push_hevc_frame(data, data_len);
-}
-
-static rtp_error_t packet_handler(ssize_t size, void *packet)
-{
-    return hevc_packet_handler(size, packet);
 }

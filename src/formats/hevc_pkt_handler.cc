@@ -7,6 +7,8 @@
 #include "debug.hh"
 #include "queue.hh"
 
+#include "formats/hevc.hh"
+
 #define RTP_FRAME_MAX_DELAY          100
 #define INVALID_SEQ           0x13371338
 #define INVALID_TS            0xffffffff
@@ -100,7 +102,7 @@ static void __drop_frame(frame_info_t& finfo, uint32_t ts)
     finfo.erase(ts);
 }
 
-rtp_error_t hevc_packet_handler(ssize_t size, void *packet, int flags, uvg_rtp::frame::rtp_frame **out)
+rtp_error_t uvg_rtp::formats::hevc::packet_handler(ssize_t size, void *packet, int flags, uvg_rtp::frame::rtp_frame **out)
 {
     (void)size, (void)packet;
 
