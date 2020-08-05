@@ -50,8 +50,7 @@ uvg_rtp::media_stream::media_stream(
 
 uvg_rtp::media_stream::~media_stream()
 {
-    if (initialized_) {
-    }
+    pkt_dispatcher_->stop();
 
     delete rtcp_;
     delete rtp_;

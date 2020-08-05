@@ -23,11 +23,21 @@ uvg_rtp::pkt_dispatcher::~pkt_dispatcher()
 
 rtp_error_t uvg_rtp::pkt_dispatcher::start(uvg_rtp::socket *socket, int flags)
 {
-    if (!(runner_ = new std::thread(runner, this, socket, flags)))
+    if (!(runner_ = new std::thread(runner, this, socket, flags, &exit_mtx_)))
         return RTP_MEMORY_ERROR;
 
     runner_->detach();
     return uvg_rtp::runner::start();
+}
+
+rtp_error_t uvg_rtp::pkt_dispatcher::stop()
+{
+    active_ = false;
+
+    while (!exit_mtx_.try_lock())
+        ;
+
+    return RTP_OK;
 }
 
 rtp_error_t uvg_rtp::pkt_dispatcher::install_receive_hook(
@@ -139,7 +149,12 @@ void uvg_rtp::pkt_dispatcher::return_frame(uvg_rtp::frame::rtp_frame *frame)
  *
  * If a handler receives a non-null "out", it can safely ignore "packet" and operate just on
  * the "out" parameter because at that point it already contains all needed information. */
-void uvg_rtp::pkt_dispatcher::runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket *socket, int flags)
+void uvg_rtp::pkt_dispatcher::runner(
+    uvg_rtp::pkt_dispatcher *dispatcher,
+    uvg_rtp::socket *socket,
+    int flags,
+    std::mutex *exit_mtx
+)
 {
     int nread;
     fd_set read_fds;
@@ -157,6 +172,8 @@ void uvg_rtp::pkt_dispatcher::runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rt
 
     while (!dispatcher->active())
         ;
+
+    exit_mtx->lock();
 
     while (dispatcher->active()) {
         FD_SET(socket->get_raw_socket(), &read_fds);
@@ -205,4 +222,6 @@ void uvg_rtp::pkt_dispatcher::runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rt
             }
         } while (ret == RTP_OK);
     }
+
+    exit_mtx->unlock();
 }
