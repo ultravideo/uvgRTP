@@ -124,6 +124,7 @@ rtp_error_t uvg_rtp::formats::media::packet_handler(
         frames[ts].npkts++;
         frames[ts].fragments[seq] = frame;
         frames[ts].size += frame->payload_len;
+        *out = nullptr;
 
         if (frame->header.marker)
             frames[ts].e_seq = seq;
@@ -163,6 +164,7 @@ rtp_error_t uvg_rtp::formats::media::packet_handler(
             frames[ts].e_seq          = INVALID_SEQ;
             frames[ts].fragments[seq] = frame;
             frames[ts].size           = frame->payload_len;
+            *out                      = nullptr;
         } else {
             return RTP_PKT_READY;
         }
