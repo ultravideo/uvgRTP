@@ -138,7 +138,7 @@ rtp_format_t uvg_rtp::rtp::get_payload()
     return (rtp_format_t)fmt_;
 }
 
-static rtp_error_t packet_handler(ssize_t size, void *packet, int flags, uvg_rtp::frame::rtp_frame **out)
+rtp_error_t uvg_rtp::rtp::packet_handler(ssize_t size, void *packet, int flags, uvg_rtp::frame::rtp_frame **out)
 {
     (void)flags;
 
