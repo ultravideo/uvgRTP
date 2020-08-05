@@ -218,7 +218,7 @@ rtp_error_t uvg_rtp::formats::hevc::packet_handler(ssize_t size, void *packet, i
             uvg_rtp::frame::rtp_frame *complete = uvg_rtp::frame::alloc_rtp_frame();
 
             complete->payload_len = finfo[c_ts].total_size + uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
-            complete->payload     = new uint8_t[(*out)->payload_len];
+            complete->payload     = new uint8_t[complete->payload_len];
 
             std::memcpy(&complete->header,  &(*out)->header, RTP_HDR_SIZE);
             std::memcpy(complete->payload,  nal_header,      NAL_HDR_SIZE);
