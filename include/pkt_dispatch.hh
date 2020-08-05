@@ -43,8 +43,10 @@ namespace uvg_rtp {
             /* Return reference to the vector that holds all installed handlers */
             std::vector<uvg_rtp::packet_handler>& get_handlers();
 
+            /* RTP packet dispatcher thread */
+            static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket *socket, int flags);
+
         private:
-            static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket& socket, int flags);
 
             uvg_rtp::socket socket_;
             std::vector<packet_handler> packet_handlers_;

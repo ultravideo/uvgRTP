@@ -116,7 +116,7 @@ std::vector<uvg_rtp::packet_handler>& uvg_rtp::pkt_dispatcher::get_handlers()
  *
  * If a handler receives a non-null "out", it can safely ignore "packet" and operate just on
  * the "out" parameter because at that point it already contains all needed information. */
-static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket& socket, int flags)
+static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket *socket, int flags)
 {
     int nread;
     fd_set read_fds;
@@ -132,9 +132,12 @@ static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket& socket,
     const size_t recv_buffer_len = 8192;
     uint8_t recv_buffer[recv_buffer_len] = { 0 };
 
+    while (!dispatcher->active())
+        ;
+
     while (dispatcher->active()) {
-        FD_SET(socket.get_raw_socket(), &read_fds);
-        int sret = ::select(socket.get_raw_socket() + 1, &read_fds, nullptr, nullptr, &t_val);
+        FD_SET(socket->get_raw_socket(), &read_fds);
+        int sret = ::select(socket->get_raw_socket() + 1, &read_fds, nullptr, nullptr, &t_val);
 
         if (sret < 0) {
             log_platform_error("select(2) failed");
@@ -142,7 +145,7 @@ static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket& socket,
         }
 
         do {
-            if ((ret = socket.recvfrom(recv_buffer, recv_buffer_len, MSG_DONTWAIT, &nread)) == RTP_INTERRUPTED)
+            if ((ret = socket->recvfrom(recv_buffer, recv_buffer_len, MSG_DONTWAIT, &nread)) == RTP_INTERRUPTED)
                 break;
 
             if (ret != RTP_OK) {
