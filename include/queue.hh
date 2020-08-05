@@ -197,10 +197,6 @@ namespace uvg_rtp {
 
             transaction_t *active_;
 
-            /* What is the media format used to send data using this frame queue
-             * This is used when allocating new transactions */
-            rtp_format_t fmt_;
-
             /* Set to nullptr if this frame queue doesn't use dispatcher */
             uvg_rtp::dispatcher *dispatcher_;
 
