@@ -14,7 +14,7 @@ namespace uvg_rtp {
 
     class pkt_dispatcher : public runner {
         public:
-            pkt_dispatcher(uvg_rtp::socket socket);
+            pkt_dispatcher();
             ~pkt_dispatcher();
 
             /* Install a generic handler for an incoming packet
@@ -53,8 +53,6 @@ namespace uvg_rtp {
             static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket *socket, int flags);
 
         private:
-
-            uvg_rtp::socket socket_;
             std::vector<packet_handler> packet_handlers_;
 
             /* If receive hook has not been installed, frames are pushed to "frames_"
