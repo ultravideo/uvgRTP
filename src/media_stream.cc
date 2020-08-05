@@ -97,8 +97,6 @@ rtp_error_t uvg_rtp::media_stream::init_connection()
 
 rtp_error_t uvg_rtp::media_stream::init()
 {
-    rtp_error_t ret;
-
     if (init_connection() != RTP_OK) {
         LOG_ERROR("Failed to initialize the underlying socket: %s!", strerror(errno));
         return RTP_GENERIC_ERROR;
@@ -343,6 +341,8 @@ rtp_error_t uvg_rtp::media_stream::install_deallocation_hook(void (*hook)(void *
 
 rtp_error_t uvg_rtp::media_stream::install_notify_hook(void *arg, void (*hook)(void *, int))
 {
+    (void)arg, (void)hook;
+
     if (!initialized_) {
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;

@@ -447,6 +447,8 @@ uvg_rtp::formats::hevc::~hevc()
 
 rtp_error_t uvg_rtp::formats::hevc::__push_frame(uint8_t *data, size_t data_len, int flags)
 {
+    (void)flags;
+
     rtp_error_t ret;
 
     if (!data || !data_len)

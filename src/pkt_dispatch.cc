@@ -30,6 +30,8 @@ rtp_error_t uvg_rtp::pkt_dispatcher::install_receive_hook(
 
     recv_hook_     = hook;
     recv_hook_arg_ = arg;
+
+    return RTP_OK;
 }
 
 uvg_rtp::frame::rtp_frame *uvg_rtp::pkt_dispatcher::pull_frame()
