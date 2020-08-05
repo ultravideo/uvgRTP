@@ -102,7 +102,7 @@ rtp_error_t uvg_rtp::media_stream::init()
         return RTP_GENERIC_ERROR;
     }
 
-    if (!(pkt_dispatcher_ = new uvg_rtp::pkt_dispatcher(socket_)))
+    if (!(pkt_dispatcher_ = new uvg_rtp::pkt_dispatcher()))
         return RTP_MEMORY_ERROR;
 
     if (!(rtp_ = new uvg_rtp::rtp(fmt_))) {

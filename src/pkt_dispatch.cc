@@ -11,8 +11,7 @@
 #include "pkt_dispatch.hh"
 #include "util.hh"
 
-uvg_rtp::pkt_dispatcher::pkt_dispatcher(uvg_rtp::socket socket):
-    socket_(socket)
+uvg_rtp::pkt_dispatcher::pkt_dispatcher()
 {
 }
 
