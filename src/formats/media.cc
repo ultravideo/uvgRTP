@@ -65,6 +65,7 @@ rtp_error_t uvg_rtp::formats::media::__push_frame(uint8_t *data, size_t data_len
                 if ((ret = socket_->sendto(buffers, 0)) != RTP_OK)
                     return ret;
 
+                rtp_ctx_->inc_sequence();
                 rtp_ctx_->update_sequence(header);
 
                 data_pos  += payload_size;
@@ -87,6 +88,7 @@ rtp_error_t uvg_rtp::formats::media::__push_frame(uint8_t *data, size_t data_len
         }
     }
 
+    rtp_ctx_->inc_sequence();
     return socket_->sendto(buffers, 0);
 }
 
