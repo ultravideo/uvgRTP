@@ -2,9 +2,9 @@
 
 #include <memory>
 
-#include "rtp.hh"
-#include "socket.hh"
-#include "util.hh"
+#include "../rtp.hh"
+#include "../socket.hh"
+#include "../util.hh"
 
 namespace uvg_rtp {
 
