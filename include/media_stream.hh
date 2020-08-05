@@ -212,6 +212,7 @@ namespace uvg_rtp {
 
             /* RTP packet dispatcher for the receiver */
             uvg_rtp::pkt_dispatcher *pkt_dispatcher_;
+            std::thread *dispatcher_thread_;
 
             /* Media object associated with this media stream. */
             uvg_rtp::formats::media *media_;

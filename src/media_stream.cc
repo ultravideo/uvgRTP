@@ -24,6 +24,7 @@ uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port
     media_config_(nullptr),
     initialized_(false),
     pkt_dispatcher_(nullptr),
+    dispatcher_thread_(nullptr),
     media_(nullptr)
 {
     fmt_      = fmt;
@@ -56,6 +57,7 @@ uvg_rtp::media_stream::~media_stream()
     delete rtp_;
     delete srtp_;
     delete pkt_dispatcher_;
+    delete dispatcher_thread_;
     delete media_;
 }
 
@@ -131,10 +133,16 @@ rtp_error_t uvg_rtp::media_stream::init()
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
     }
-
     pkt_dispatcher_->install_handler(media_->packet_handler);
 
-    initialized_ = true;
+    initialized_ = !!(dispatcher_thread_ = new std::thread(
+            pkt_dispatcher_->runner,
+            pkt_dispatcher_,
+            &socket_,
+            ctx_config_.flags
+        )
+    );
+
     return pkt_dispatcher_->start();
 }
 
