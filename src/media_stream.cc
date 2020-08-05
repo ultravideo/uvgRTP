@@ -110,7 +110,7 @@ rtp_error_t uvg_rtp::media_stream::init()
         return RTP_MEMORY_ERROR;
     }
 
-    pkt_dispatcher_->install_handler(rtp_->packet_handler);
+    /* pkt_dispatcher_->install_handler(rtp_->packet_handler); */
 
     switch (fmt_) {
         case RTP_FORMAT_HEVC:
@@ -131,17 +131,10 @@ rtp_error_t uvg_rtp::media_stream::init()
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
     }
-    pkt_dispatcher_->install_handler(media_->packet_handler);
+    /* pkt_dispatcher_->install_handler(media_->packet_handler); */
 
-    initialized_ = !!(dispatcher_thread_ = new std::thread(
-            pkt_dispatcher_->runner,
-            pkt_dispatcher_,
-            &socket_,
-            ctx_config_.flags
-        )
-    );
-
-    return pkt_dispatcher_->start();
+    initialized_ = true;
+    return pkt_dispatcher_->start(&socket_, ctx_config_.flags);
 }
 
 #ifdef __RTP_CRYPTO__

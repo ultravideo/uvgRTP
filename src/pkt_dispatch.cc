@@ -20,6 +20,15 @@ uvg_rtp::pkt_dispatcher::~pkt_dispatcher()
 {
 }
 
+rtp_error_t uvg_rtp::pkt_dispatcher::start(uvg_rtp::socket *socket, int flags)
+{
+    if (!(runner_ = new std::thread(runner, this, socket, flags)))
+        return RTP_MEMORY_ERROR;
+
+    runner_->detach();
+    return uvg_rtp::runner::start();
+}
+
 rtp_error_t uvg_rtp::pkt_dispatcher::install_receive_hook(
     void *arg,
     void (*hook)(void *, uvg_rtp::frame::rtp_frame *)
@@ -118,7 +127,7 @@ std::vector<uvg_rtp::packet_handler>& uvg_rtp::pkt_dispatcher::get_handlers()
  *
  * If a handler receives a non-null "out", it can safely ignore "packet" and operate just on
  * the "out" parameter because at that point it already contains all needed information. */
-static void runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket *socket, int flags)
+void uvg_rtp::pkt_dispatcher::runner(uvg_rtp::pkt_dispatcher *dispatcher, uvg_rtp::socket *socket, int flags)
 {
     int nread;
     fd_set read_fds;
