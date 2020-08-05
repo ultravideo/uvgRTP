@@ -238,11 +238,7 @@ rtp_error_t uvg_rtp::formats::hevc::packet_handler(ssize_t size, void *packet, i
             if (nal_type == NT_INTRA)
                 intra = INVALID_TS;
 
-            /* deallocate the old frame allocated by RTP packet handler 
-             * and set "out" point to the new complete frame*/
-            (void)uvg_rtp::frame::dealloc_frame(*out);
             *out = complete;
-
             finfo.erase(c_ts);
             return RTP_PKT_READY;
         }
