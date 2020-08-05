@@ -73,7 +73,7 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction()
 #endif
         active_->rtp_headers = new uvg_rtp::frame::rtp_header[max_mcount_];
 
-        switch (fmt_) {
+        switch (rtp_->get_payload()) {
             case RTP_FORMAT_HEVC:
                 active_->media_headers = new uvg_rtp::formats::hevc_headers;
                 break;
@@ -147,7 +147,7 @@ rtp_error_t uvg_rtp::frame_queue::destroy_transaction(uvg_rtp::transaction_t *t)
     t->chunks      = nullptr;
     t->rtp_headers = nullptr;
 
-    switch (fmt_) {
+    switch (rtp_->get_payload()) {
         case RTP_FORMAT_HEVC:
             delete (uvg_rtp::formats::hevc_headers *)t->media_headers;
             t->media_headers = nullptr;
@@ -193,7 +193,7 @@ rtp_error_t uvg_rtp::frame_queue::deinit_transaction(uint32_t key)
     }
 
     if (free_.size() >= (size_t)max_queued_) {
-        switch (fmt_) {
+        switch (rtp_->get_payload()) {
             case RTP_FORMAT_HEVC:
                 delete (uvg_rtp::formats::hevc_headers *)transaction_it->second->media_headers;
                 break;
