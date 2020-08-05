@@ -29,6 +29,12 @@ namespace uvg_rtp {
              * Return RTP_INVALID_VALUE if "hook" is nullptr */
             rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvg_rtp::frame::rtp_frame *));
 
+            /* Start the RTP packet dispatcher
+             *
+             * Return RTP_OK on success
+             * Return RTP_MEMORY_ERROR if allocation of a thread object fails */
+            rtp_error_t start(uvg_rtp::socket *socket, int flags);
+
             /* Fetchj frame from the frame queue that contains all received frame.
              * pull_frame() will block until there is a frame that can be returned.
              * If "timeout" is given, pull_frame() will block only for however long
