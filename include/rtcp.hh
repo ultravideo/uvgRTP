@@ -38,15 +38,15 @@ namespace uvg_rtp {
              * return RTP_OK on success */
             rtp_error_t stop();
 
-            /* return true if this RTCP instance belongs to an RTP receiver 
+            /* return true if this RTCP instance belongs to an RTP receiver
              * and a receiver report should be generated, otherwise sender report is generated */
             bool receiver() const;
 
-            /* Generate either RTCP Sender or Receiver report and sent it to all participants 
+            /* Generate either RTCP Sender or Receiver report and sent it to all participants
              * Return RTP_OK on success and RTP_ERROR on error */
             rtp_error_t generate_report();
 
-            /* Handle different kinds of incoming packets 
+            /* Handle different kinds of incoming packets
              *
              * These routines will convert the fields of "frame" from network to host byte order
              *
@@ -95,7 +95,7 @@ namespace uvg_rtp {
             std::vector<uvg_rtp::socket>& get_sockets();
 
             /* Somebody joined the multicast group the owner of this RTCP instance is part of
-             * Add it to RTCP participant list so we can start listening for reports 
+             * Add it to RTCP participant list so we can start listening for reports
              *
              * "clock_rate" tells how much the RTP timestamp advances, this information is needed
              * to calculate the interarrival jitter correctly. It has nothing do with our clock rate,
@@ -151,7 +151,7 @@ namespace uvg_rtp {
             static void rtcp_runner(rtcp *rtcp);
 
             /* when we start the RTCP instance, we don't know what the SSRC of the remote is
-             * when an RTP packet is received, we must check if we've already received a packet 
+             * when an RTP packet is received, we must check if we've already received a packet
              * from this sender and if not, create new entry to receiver_stats_ map */
             bool is_participant(uint32_t ssrc);
 
@@ -181,14 +181,14 @@ namespace uvg_rtp {
              * packet-related statistics should not be updated */
             rtp_error_t update_participant_seq(uint32_t ssrc, uint16_t seq);
 
-            /* Update the RTCP bandwidth variables 
+            /* Update the RTCP bandwidth variables
              *
-             * "pkt_size" tells how much rtcp_byte_count_ 
+             * "pkt_size" tells how much rtcp_byte_count_
              * should be increased before calculating the new average */
             void update_rtcp_bandwidth(size_t pkt_size);
 
-            /* Functions for generating different kinds of reports. 
-             * These functions will both generate the report and send it 
+            /* Functions for generating different kinds of reports.
+             * These functions will both generate the report and send it
              *
              * Return RTP_OK on success and RTP_ERROR on error */
             rtp_error_t generate_sender_report();

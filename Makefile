@@ -3,7 +3,7 @@
 CXX = g++
 CXXFLAGS = -g -Wno-unused-function -Wall -Wextra -Wuninitialized -O2 -std=c++11 -Iinclude -fPIC -DNDEBUG
 SOURCES = $(wildcard src/*.cc)
-MODULES := src/formats src/mzrtp
+MODULES := src/formats src/mzrtp src/rtcp
 -include $(patsubst %, %/module.mk, $(MODULES))
 OBJECTS := $(patsubst %.cc, %.o, $(filter %.cc, $(SOURCES)))
 
