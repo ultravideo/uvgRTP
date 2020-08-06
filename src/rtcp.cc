@@ -35,6 +35,10 @@ uvg_rtp::rtcp::rtcp(uint32_t ssrc, bool receiver):
     zero_stats(&sender_stats);
 }
 
+uvg_rtp::rtcp::rtcp(uvg_rtp::rtp *rtp)
+{
+}
+
 uvg_rtp::rtcp::~rtcp()
 {
 }
@@ -1103,4 +1107,9 @@ void uvg_rtp::rtcp::rtcp_runner(uvg_rtp::rtcp *rtcp)
             timeout = MIN_TIMEOUT;
         }
     }
+}
+
+rtp_error_t uvg_rtp::rtcp::packet_handler(ssize_t size, void *packet, int flags, frame::rtp_frame **out)
+{
+    return RTP_PKT_NOT_HANDLED;
 }

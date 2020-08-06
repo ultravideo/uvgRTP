@@ -25,6 +25,7 @@ namespace uvg_rtp {
     class rtcp : public runner {
         public:
             rtcp(uint32_t ssrc, bool receiver);
+            rtcp(uvg_rtp::rtp *rtp);
             ~rtcp();
 
             /* start the RTCP runner thread
@@ -142,6 +143,9 @@ namespace uvg_rtp {
             rtp_error_t install_receiver_hook(void (*hook)(uvg_rtp::frame::rtcp_receiver_frame *));
             rtp_error_t install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_frame *));
             rtp_error_t install_app_hook(void (*hook)(uvg_rtp::frame::rtcp_app_frame *));
+
+            /* Update RTCP-related session statistics */
+            static rtp_error_t packet_handler(ssize_t size, void *packet, int flags, frame::rtp_frame **out);
 
         private:
             static void rtcp_runner(rtcp *rtcp);
