@@ -43,9 +43,9 @@ uvg_rtp::rtcp::~rtcp()
 {
 }
 
-rtp_error_t uvg_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, int src_port, uint32_t clock_rate)
+rtp_error_t uvg_rtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_port, uint16_t src_port, uint32_t clock_rate)
 {
-    if (dst_addr == "" || dst_port == 0 || src_port == 0) {
+    if (dst_addr == "" || !dst_port || !src_port) {
         LOG_ERROR("Invalid values given (%s, %d, %d), cannot create RTCP instance",
                 dst_addr.c_str(), dst_port, src_port);
         return RTP_INVALID_VALUE;
@@ -54,12 +54,12 @@ rtp_error_t uvg_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, i
     rtp_error_t ret;
     struct participant *p;
 
-    if ((p = new struct participant) == nullptr)
+    if (!(p = new struct participant))
         return RTP_MEMORY_ERROR;
 
     zero_stats(&p->stats);
 
-    if ((p->socket = new uvg_rtp::socket(RTP_CTX_NO_FLAGS)) == nullptr)
+    if (!(p->socket = new uvg_rtp::socket(RTP_CTX_NO_FLAGS)))
         return RTP_MEMORY_ERROR;
 
     if ((ret = p->socket->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
@@ -94,8 +94,8 @@ rtp_error_t uvg_rtp::rtcp::add_participant(std::string dst_addr, int dst_port, i
     if ((ret = p->socket->bind(AF_INET, INADDR_ANY, src_port)) != RTP_OK)
         return ret;
 
-    p->address = p->socket->create_sockaddr(AF_INET, dst_addr, dst_port);
-    p->sender  = false;
+    p->sender           = false;
+    p->address          = p->socket->create_sockaddr(AF_INET, dst_addr, dst_port);
     p->stats.clock_rate = clock_rate;
 
     initial_participants_.push_back(p);
@@ -156,7 +156,7 @@ rtp_error_t uvg_rtp::rtcp::start()
 
     active_ = true;
 
-    if ((runner_ = new std::thread(rtcp_runner, this)) == nullptr) {
+    if (!(runner_ = new std::thread(rtcp_runner, this))) {
         active_ = false;
         LOG_ERROR("Failed to create RTCP thread!");
         return RTP_MEMORY_ERROR;
@@ -168,7 +168,7 @@ rtp_error_t uvg_rtp::rtcp::start()
 
 rtp_error_t uvg_rtp::rtcp::stop()
 {
-    if (runner_ == nullptr)
+    if (!runner_)
         goto free_mem;
 
     /* when the member count is less than 50,
@@ -198,11 +198,6 @@ free_mem:
     }
 
     return RTP_OK;
-}
-
-bool uvg_rtp::rtcp::receiver() const
-{
-    return receiver_;
 }
 
 std::vector<uvg_rtp::socket>& uvg_rtp::rtcp::get_sockets()
@@ -280,7 +275,7 @@ void uvg_rtp::rtcp::receiver_inc_sent_pkts(uint32_t sender_ssrc, size_t n)
 
 void uvg_rtp::rtcp::init_new_participant(uvg_rtp::frame::rtp_frame *frame)
 {
-    assert(frame != nullptr);
+    assert(frame);
 
     uvg_rtp::rtcp::add_participant(frame->header.ssrc);
     uvg_rtp::rtcp::init_participant_seq(frame->header.ssrc, frame->header.seq);
@@ -324,7 +319,7 @@ rtp_error_t uvg_rtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
        if (seq == p->stats.max_seq + 1) {
            p->probation--;
            p->stats.max_seq = seq;
-           if (p->probation == 0) {
+           if (!p->probation) {
                uvg_rtp::rtcp::init_participant_seq(ssrc, seq);
                return RTP_OK;
             }
@@ -430,11 +425,12 @@ rtp_error_t uvg_rtp::rtcp::receiver_update_stats(uvg_rtp::frame::rtp_frame *fram
 
     /* RTCP runner is not running so we don't need to do any other checks,
      * just create new participant so we can check for SSRC collisions */
-    if (runner_ == nullptr) {
+    if (!runner_) {
         if (participants_.find(frame->header.ssrc) == participants_.end()) {
             auto participant = new struct participant;
-            participant->address = frame->src_addr;
-            participant->socket  = nullptr;
+
+            participant->address              = frame->src_addr;
+            participant->socket               = nullptr;
             participants_[frame->header.ssrc] = participant;
         }
 
@@ -532,7 +528,7 @@ rtp_error_t uvg_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
         return RTP_INVALID_VALUE;
     }
 
-    if (header->padding != 0) {
+    if (header->padding) {
         LOG_ERROR("Cannot handle padded packets!");
         return RTP_INVALID_VALUE;
     }
@@ -566,6 +562,10 @@ rtp_error_t uvg_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
 
         case uvg_rtp::frame::RTCP_FT_APP:
             ret = handle_app_packet((uvg_rtp::frame::rtcp_app_frame *)buffer, size);
+            break;
+
+        default:
+            LOG_WARN("Unknown packet received, type %d", header->pkt_type);
             break;
     }
 
