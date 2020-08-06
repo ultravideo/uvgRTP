@@ -9,6 +9,7 @@
 
 #include "debug.hh"
 #include "pkt_dispatch.hh"
+#include "random.hh"
 #include "util.hh"
 
 uvg_rtp::pkt_dispatcher::pkt_dispatcher():
@@ -88,16 +89,34 @@ uvg_rtp::frame::rtp_frame *uvg_rtp::pkt_dispatcher::pull_frame(size_t timeout)
     return frame;
 }
 
-rtp_error_t uvg_rtp::pkt_dispatcher::install_handler(uvg_rtp::packet_handler handler)
+uint32_t uvg_rtp::pkt_dispatcher::install_handler(uvg_rtp::packet_handler handler)
+{
+    uint32_t key;
+
+    if (!handler)
+        return 0;
+
+    do {
+        key = uvg_rtp::random::generate_32();
+    } while (!key || (packet_handlers_.find(key) != packet_handlers_.end()));
+
+    packet_handlers_[key].primary = handler;
+    return key;
+}
+
+rtp_error_t uvg_rtp::pkt_dispatcher::install_aux_handler(uint32_t key, uvg_rtp::packet_handler_aux handler)
 {
     if (!handler)
         return RTP_INVALID_VALUE;
 
-    packet_handlers_.push_back(handler);
+    if (packet_handlers_.find(key) == packet_handlers_.end())
+        return RTP_INVALID_VALUE;
+
+    packet_handlers_[key].auxiliary.push_back(handler);
     return RTP_OK;
 }
 
-std::vector<uvg_rtp::packet_handler>& uvg_rtp::pkt_dispatcher::get_handlers()
+std::unordered_map<uint32_t, uvg_rtp::packet_handlers>& uvg_rtp::pkt_dispatcher::get_handlers()
 {
     return packet_handlers_;
 }
@@ -110,6 +129,37 @@ void uvg_rtp::pkt_dispatcher::return_frame(uvg_rtp::frame::rtp_frame *frame)
         frames_mtx_.lock();
         frames_.push_back(frame);
         frames_mtx_.unlock();
+    }
+}
+
+void uvg_rtp::pkt_dispatcher::call_aux_handlers(uint32_t key, int flags, uvg_rtp::frame::rtp_frame **frame)
+{
+    rtp_error_t ret;
+
+    for (auto& handler : packet_handlers_[key].auxiliary) {
+        switch ((ret = (*handler)(flags, frame))) {
+            /* packet was handled successfully */
+            case RTP_OK:
+                break;
+
+            case RTP_PKT_READY:
+                this->return_frame(*frame);
+                break;
+
+            /* packet was not handled or only partially handled by the handler
+             * proceed to the next handler */
+            case RTP_PKT_NOT_HANDLED:
+            case RTP_PKT_MODIFIED:
+                continue;
+
+            case RTP_GENERIC_ERROR:
+                LOG_DEBUG("Received a corrupted packet!");
+                break;
+
+            default:
+                LOG_ERROR("Unknown error code from packet handler: %d", ret);
+                break;
+        }
     }
 }
 
@@ -169,6 +219,7 @@ void uvg_rtp::pkt_dispatcher::runner(
 
     const size_t recv_buffer_len = 8192;
     uint8_t recv_buffer[recv_buffer_len] = { 0 };
+    auto handlers = dispatcher->get_handlers();
 
     while (!dispatcher->active())
         ;
@@ -193,22 +244,21 @@ void uvg_rtp::pkt_dispatcher::runner(
                 break;
             }
 
-            for (auto& handler : dispatcher->get_handlers()) {
-                switch ((ret = (*handler)(nread, recv_buffer, flags, &frame))) {
+            for (auto& handler : handlers) {
+                switch ((ret = (*handler.second.primary)(nread, recv_buffer, flags, &frame))) {
                     /* packet was handled successfully */
                     case RTP_OK:
                         break;
 
-                    /* "out" contains an RTP packet that can be returned to the user */
-                    case RTP_PKT_READY:
-                        dispatcher->return_frame(frame);
-                        break;
-
-                    /* the received packet is not handled at all or only partially by the called handler
-                     * proceed to the next handler */
+                    /* packet was not handled by this primary handlers, proceed to the next one */
                     case RTP_PKT_NOT_HANDLED:
-                    case RTP_PKT_MODIFIED:
                         continue;
+
+                    /* packet was handled by the primary handler
+                     * and should be dispatched to the auxiliary handler(s) */
+                    case RTP_PKT_MODIFIED:
+                        dispatcher->call_aux_handlers(handler.first, flags, &frame);
+                        break;
 
                     case RTP_GENERIC_ERROR:
                         LOG_DEBUG("Received a corrupted packet!");
@@ -218,7 +268,6 @@ void uvg_rtp::pkt_dispatcher::runner(
                         LOG_ERROR("Unknown error code from packet handler: %d", ret);
                         break;
                 }
-
             }
         } while (ret == RTP_OK);
     }

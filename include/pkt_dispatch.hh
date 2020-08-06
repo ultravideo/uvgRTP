@@ -11,17 +11,42 @@
 namespace uvg_rtp {
 
     typedef rtp_error_t (*packet_handler)(ssize_t, void *, int, uvg_rtp::frame::rtp_frame **);
+    typedef rtp_error_t (*packet_handler_aux)(int, uvg_rtp::frame::rtp_frame **);
+
+    struct packet_handlers {
+        packet_handler primary;
+        std::vector<packet_handler_aux> auxiliary;
+    };
 
     class pkt_dispatcher : public runner {
         public:
             pkt_dispatcher();
             ~pkt_dispatcher();
 
-            /* Install a generic handler for an incoming packet
+            /* Install a primary handler for an incoming UDP datagram
              *
-             * Return RTP_OK on successfully
-             * Return RTP_INVALID_VALUE if "handler" is nullptr */
-            rtp_error_t install_handler(packet_handler handler);
+             * This handler is responsible for creating an operable RTP packet
+             * that auxiliary handlers can work with.
+             *
+             * It is also responsible for validating the packet on a high level
+             * (ZRTP checksum/RTP version etc) before passing it onto other handlers.
+             *
+             * Return a key on success that differentiates primary packet handlers
+             * Return 0 "handler" is nullptr */
+            uint32_t install_handler(packet_handler handler);
+
+            /* Install auxiliary handler for the packet
+             *
+             * This handler is responsible for doing auxiliary operations on the packet
+             * such as gathering sessions statistics data or decrypting the packet
+             * It is called only after the primary handler of the auxiliary handler is called
+             *
+             * "key" is used to specify for which primary handlers for "handler"
+             * An auxiliary handler can be installed to multiple primary handlers
+             *
+             * Return RTP_OK on success
+             * Return RTP_INVALID_VALUE if "handler" is nullptr or if "key" is not valid */
+            rtp_error_t install_aux_handler(uint32_t key, packet_handler_aux handler);
 
             /* Install receive hook for the RTP packet dispatcher
              *
@@ -52,11 +77,14 @@ namespace uvg_rtp {
             uvg_rtp::frame::rtp_frame *pull_frame();
             uvg_rtp::frame::rtp_frame *pull_frame(size_t ms);
 
-            /* Return reference to the vector that holds all installed handlers */
-            std::vector<uvg_rtp::packet_handler>& get_handlers();
+            /* Return reference to the map that holds all installed handlers */
+            std::unordered_map<uint32_t, uvg_rtp::packet_handlers>& get_handlers();
 
             /* Return a processed RTP frame to user either through frame queue or receive hook */
             void return_frame(uvg_rtp::frame::rtp_frame *frame);
+
+            /* Call auxiliary handlers of a primary handler */
+            void call_aux_handlers(uint32_t key, int flags, uvg_rtp::frame::rtp_frame **frame);
 
             /* RTP packet dispatcher thread */
             static void runner(
@@ -67,7 +95,7 @@ namespace uvg_rtp {
             );
 
         private:
-            std::vector<packet_handler> packet_handlers_;
+            std::unordered_map<uint32_t, packet_handlers> packet_handlers_;
 
             /* If receive hook has not been installed, frames are pushed to "frames_"
              * and they can be retrieved using pull_frame() */
