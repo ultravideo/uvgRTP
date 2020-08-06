@@ -38,10 +38,6 @@ namespace uvg_rtp {
              * return RTP_OK on success */
             rtp_error_t stop();
 
-            /* return true if this RTCP instance belongs to an RTP receiver
-             * and a receiver report should be generated, otherwise sender report is generated */
-            bool receiver() const;
-
             /* Generate either RTCP Sender or Receiver report and sent it to all participants
              * Return RTP_OK on success and RTP_ERROR on error */
             rtp_error_t generate_report();
@@ -102,7 +98,7 @@ namespace uvg_rtp {
              * (or whether we're even sending anything)
              *
              * Return RTP_OK on success and RTP_ERROR on error */
-            rtp_error_t add_participant(std::string dst_addr, int dst_port, int src_port, uint32_t clock_rate);
+            rtp_error_t add_participant(std::string dst_addr, uint16_t dst_port, uint16_t src_port, uint32_t clock_rate);
 
             /* Functions for updating various RTP sender statistics */
             void sender_inc_seq_cycle_count();
