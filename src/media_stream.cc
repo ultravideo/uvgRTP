@@ -109,7 +109,14 @@ rtp_error_t uvg_rtp::media_stream::init()
         return RTP_MEMORY_ERROR;
     }
 
+    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_))) {
+        delete rtp_;
+        delete pkt_dispatcher_;
+        return RTP_MEMORY_ERROR;
+    }
+
     pkt_dispatcher_->install_handler(rtp_->packet_handler);
+    pkt_dispatcher_->install_handler(rtcp_->packet_handler);
 
     switch (fmt_) {
         case RTP_FORMAT_HEVC:
@@ -132,6 +139,9 @@ rtp_error_t uvg_rtp::media_stream::init()
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
     }
+
+    if (ctx_config_.flags & RCE_RTCP)
+        rtcp_->start();
 
     initialized_ = true;
     return pkt_dispatcher_->start(&socket_, ctx_config_.flags);
@@ -416,20 +426,4 @@ rtp_error_t uvg_rtp::media_stream::set_dynamic_payload(uint8_t payload)
 uvg_rtp::rtcp *uvg_rtp::media_stream::get_rtcp()
 {
     return rtcp_;
-}
-
-rtp_error_t uvg_rtp::media_stream::create_rtcp(uint16_t src_port, uint16_t dst_port)
-{
-    rtp_error_t ret;
-
-    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_->get_ssrc(), true)))
-        return RTP_MEMORY_ERROR;
-
-    if ((ret = rtcp_->add_participant(addr_, dst_port, src_port, rtp_->get_clock_rate())) != RTP_OK) {
-        delete rtcp_;
-        rtcp_ = nullptr;
-        return ret;
-    }
-
-    return rtcp_->start();
 }
