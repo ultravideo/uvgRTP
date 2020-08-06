@@ -92,15 +92,8 @@ rtp_error_t uvg_rtp::formats::media::__push_frame(uint8_t *data, size_t data_len
     return socket_->sendto(buffers, 0);
 }
 
-rtp_error_t uvg_rtp::formats::media::packet_handler(
-    ssize_t size,
-    void *packet,
-    int flags,
-    uvg_rtp::frame::rtp_frame **out
-)
+rtp_error_t uvg_rtp::formats::media::packet_handler(int flags, uvg_rtp::frame::rtp_frame **out)
 {
-    (void)size, (void)packet;
-
     struct frame_info {
         uint32_t s_seq;
         uint32_t e_seq;

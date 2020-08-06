@@ -23,6 +23,7 @@ uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port
     ctx_config_(),
     media_config_(nullptr),
     initialized_(false),
+    rtp_handler_key_(0),
     pkt_dispatcher_(nullptr),
     dispatcher_thread_(nullptr),
     media_(nullptr)
@@ -115,19 +116,22 @@ rtp_error_t uvg_rtp::media_stream::init()
         return RTP_MEMORY_ERROR;
     }
 
-    pkt_dispatcher_->install_handler(rtp_->packet_handler);
-    pkt_dispatcher_->install_handler(rtcp_->packet_handler);
+    rtp_handler_key_ = pkt_dispatcher_->install_handler(rtp_->packet_handler);
+    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_->packet_handler);
 
     switch (fmt_) {
         case RTP_FORMAT_HEVC:
             media_ = new uvg_rtp::formats::hevc(&socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_handler(dynamic_cast<uvg_rtp::formats::hevc *>(media_)->packet_handler);
+            pkt_dispatcher_->install_aux_handler(
+                rtp_handler_key_,
+                dynamic_cast<uvg_rtp::formats::hevc *>(media_)->packet_handler
+            );
             break;
 
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
             media_ = new uvg_rtp::formats::media(&socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_handler(media_->packet_handler);
+            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, media_->packet_handler);
             break;
 
         default:

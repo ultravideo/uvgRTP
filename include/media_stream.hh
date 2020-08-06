@@ -199,6 +199,9 @@ namespace uvg_rtp {
             /* media stream type */
             enum mstream_type type_;
 
+            /* Primary handler's key for the RTP packet dispatcher */
+            uint32_t rtp_handler_key_;
+
             /* RTP packet dispatcher for the receiver */
             uvg_rtp::pkt_dispatcher *pkt_dispatcher_;
             std::thread *dispatcher_thread_;
