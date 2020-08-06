@@ -5,6 +5,8 @@
 #include "media_stream.hh"
 #include "random.hh"
 
+#include "formats/hevc.hh"
+
 #define INVALID_TS UINT64_MAX
 
 #define RECV_ONLY_FLAGS (RCE_UNIDIRECTIONAL | RCE_UNIDIR_RECEIVER)
@@ -16,13 +18,15 @@
 uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     srtp_(nullptr),
     socket_(flags),
-    sender_(nullptr),
-    receiver_(nullptr),
     rtp_(nullptr),
     rtcp_(nullptr),
     ctx_config_(),
     media_config_(nullptr),
-    initialized_(false)
+    initialized_(false),
+    rtp_handler_key_(0),
+    pkt_dispatcher_(nullptr),
+    dispatcher_thread_(nullptr),
+    media_(nullptr)
 {
     fmt_      = fmt;
     addr_     = addr;
@@ -47,18 +51,14 @@ uvg_rtp::media_stream::media_stream(
 
 uvg_rtp::media_stream::~media_stream()
 {
-    if (initialized_) {
-        if (sender_)
-            sender_->destroy();
-        if (receiver_)
-            receiver_->stop();
-    }
+    pkt_dispatcher_->stop();
 
-    delete sender_;
-    delete receiver_;
     delete rtcp_;
     delete rtp_;
     delete srtp_;
+    delete pkt_dispatcher_;
+    delete dispatcher_thread_;
+    delete media_;
 }
 
 rtp_error_t uvg_rtp::media_stream::init_connection()
@@ -81,12 +81,7 @@ rtp_error_t uvg_rtp::media_stream::init_connection()
         socket_t socket       = socket_.get_raw_socket();
 
         if (bind(socket, (struct sockaddr *)&bind_addr, sizeof(bind_addr)) == -1) {
-#ifdef __linux__
-            LOG_ERROR("Bind failed: %s!", strerror(errno));
-#else
-            LOG_ERROR("Bind failed!");
-            win_get_last_error();
-#endif
+            log_platform_error("bind(2) failed");
             return RTP_BIND_ERROR;
         }
     } else {
@@ -102,49 +97,58 @@ rtp_error_t uvg_rtp::media_stream::init_connection()
 
 rtp_error_t uvg_rtp::media_stream::init()
 {
-    rtp_error_t ret;
-
     if (init_connection() != RTP_OK) {
         LOG_ERROR("Failed to initialize the underlying socket: %s!", strerror(errno));
         return RTP_GENERIC_ERROR;
     }
 
-    if (!(rtp_ = new uvg_rtp::rtp(fmt_)))
+    if (!(pkt_dispatcher_ = new uvg_rtp::pkt_dispatcher()))
         return RTP_MEMORY_ERROR;
 
-    if (!RECV_ONLY(ctx_config_.flags)) {
-        if (!(sender_ = new uvg_rtp::sender(socket_, ctx_config_, fmt_, rtp_))) {
-            delete rtp_;
-            return RTP_MEMORY_ERROR;
-        }
-
-        if ((ret = sender_->init()) != RTP_OK) {
-            delete rtp_;
-            delete sender_;
-            return RTP_MEMORY_ERROR;
-        }
+    if (!(rtp_ = new uvg_rtp::rtp(fmt_))) {
+        delete pkt_dispatcher_;
+        return RTP_MEMORY_ERROR;
     }
 
-    if (!SEND_ONLY(ctx_config_.flags)) {
-        if (!(receiver_ = new uvg_rtp::receiver(socket_, ctx_config_, fmt_, rtp_))) {
-            delete rtp_;
-            delete sender_;
-            return RTP_MEMORY_ERROR;
-        }
-
-        if ((ret = receiver_->start()) != RTP_OK) {
-            if (sender_) {
-                sender_->destroy();
-                delete sender_;
-            }
-            delete rtp_;
-            delete receiver_;
-            return RTP_MEMORY_ERROR;
-        }
+    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_))) {
+        delete rtp_;
+        delete pkt_dispatcher_;
+        return RTP_MEMORY_ERROR;
     }
+
+    rtp_handler_key_ = pkt_dispatcher_->install_handler(rtp_->packet_handler);
+    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_->packet_handler);
+
+    switch (fmt_) {
+        case RTP_FORMAT_HEVC:
+            media_ = new uvg_rtp::formats::hevc(&socket_, rtp_, ctx_config_.flags);
+            pkt_dispatcher_->install_aux_handler(
+                rtp_handler_key_,
+                dynamic_cast<uvg_rtp::formats::hevc *>(media_)->packet_handler
+            );
+            break;
+
+        case RTP_FORMAT_OPUS:
+        case RTP_FORMAT_GENERIC:
+            media_ = new uvg_rtp::formats::media(&socket_, rtp_, ctx_config_.flags);
+            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, media_->packet_handler);
+            break;
+
+        default:
+            LOG_ERROR("Unknown payload format %u\n", fmt_);
+    }
+
+    if (!media_) {
+        delete rtp_;
+        delete pkt_dispatcher_;
+        return RTP_MEMORY_ERROR;
+    }
+
+    if (ctx_config_.flags & RCE_RTCP)
+        rtcp_->start();
+
     initialized_ = true;
-
-    return ret;
+    return pkt_dispatcher_->start(&socket_, ctx_config_.flags);
 }
 
 #ifdef __RTP_CRYPTO__
@@ -170,6 +174,8 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
         return ret;
     }
 
+    /* TODO: install zrtp packet handler */
+
     if ((srtp_ = new uvg_rtp::srtp()) == nullptr)
         return RTP_MEMORY_ERROR;
 
@@ -183,10 +189,10 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
 
     socket_.set_srtp(srtp_);
 
-    sender_   = new uvg_rtp::sender(socket_, ctx_config_, fmt_, rtp_);
+    /* TODO: install srtp packet handler */
+
     receiver_ = new uvg_rtp::receiver(socket_, ctx_config_, fmt_, rtp_);
 
-    sender_->init();
     receiver_->start();
 
     initialized_ = true;
@@ -226,10 +232,8 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     socket_.set_srtp(srtp_);
 
-    sender_   = new uvg_rtp::sender(socket_, ctx_config_, fmt_, rtp_);
     receiver_ = new uvg_rtp::receiver(socket_, ctx_config_, fmt_, rtp_);
 
-    sender_->init();
     receiver_->start();
 
     initialized_ = true;
@@ -245,10 +249,7 @@ rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, in
         return RTP_NOT_INITIALIZED;
     }
 
-    if (!sender_)
-        return RTP_NOT_SUPPORTED;
-
-    return sender_->push_frame(data, data_len, flags);
+    return media_->push_frame(data, data_len, flags);
 }
 
 rtp_error_t uvg_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
@@ -258,10 +259,7 @@ rtp_error_t uvg_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, s
         return RTP_NOT_INITIALIZED;
     }
 
-    if (!sender_)
-        return RTP_NOT_SUPPORTED;
-
-    return sender_->push_frame(std::move(data), data_len, flags);
+    return media_->push_frame(std::move(data), data_len, flags);
 }
 
 rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, uint32_t ts, int flags)
@@ -273,11 +271,8 @@ rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, ui
         return RTP_NOT_INITIALIZED;
     }
 
-    if (!sender_)
-        return RTP_NOT_SUPPORTED;
-
     rtp_->set_timestamp(ts);
-    ret = sender_->push_frame(data, data_len, flags);
+    ret = media_->push_frame(data, data_len, flags);
     rtp_->set_timestamp(INVALID_TS);
 
     return ret;
@@ -292,11 +287,8 @@ rtp_error_t uvg_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, s
         return RTP_NOT_INITIALIZED;
     }
 
-    if (!sender_)
-        return RTP_NOT_SUPPORTED;
-
     rtp_->set_timestamp(ts);
-    ret = sender_->push_frame(std::move(data), data_len, flags);
+    ret = media_->push_frame(std::move(data), data_len, flags);
     rtp_->set_timestamp(INVALID_TS);
 
     return ret;
@@ -310,12 +302,7 @@ uvg_rtp::frame::rtp_frame *uvg_rtp::media_stream::pull_frame()
         return nullptr;
     }
 
-    if (!receiver_) {
-        rtp_errno = RTP_NOT_SUPPORTED;
-        return nullptr;
-    }
-
-    return receiver_->pull_frame();
+    return pkt_dispatcher_->pull_frame();
 }
 
 uvg_rtp::frame::rtp_frame *uvg_rtp::media_stream::pull_frame(size_t timeout)
@@ -326,12 +313,7 @@ uvg_rtp::frame::rtp_frame *uvg_rtp::media_stream::pull_frame(size_t timeout)
         return nullptr;
     }
 
-    if (!receiver_) {
-        rtp_errno = RTP_NOT_SUPPORTED;
-        return nullptr;
-    }
-
-    return receiver_->pull_frame(timeout);
+    return pkt_dispatcher_->pull_frame(timeout);
 }
 
 rtp_error_t uvg_rtp::media_stream::install_receive_hook(void *arg, void (*hook)(void *, uvg_rtp::frame::rtp_frame *))
@@ -341,13 +323,10 @@ rtp_error_t uvg_rtp::media_stream::install_receive_hook(void *arg, void (*hook)(
         return RTP_NOT_INITIALIZED;
     }
 
-    if (!receiver_)
-        return RTP_NOT_SUPPORTED;
-
     if (!hook)
         return RTP_INVALID_VALUE;
 
-    receiver_->install_recv_hook(arg, hook);
+    pkt_dispatcher_->install_receive_hook(arg, hook);
 
     return RTP_OK;
 }
@@ -359,31 +338,27 @@ rtp_error_t uvg_rtp::media_stream::install_deallocation_hook(void (*hook)(void *
         return RTP_NOT_INITIALIZED;
     }
 
-    if (!receiver_)
-        return RTP_NOT_SUPPORTED;
-
     if (!hook)
         return RTP_INVALID_VALUE;
 
-    sender_->install_dealloc_hook(hook);
+    /* TODO:  */
 
     return RTP_OK;
 }
 
 rtp_error_t uvg_rtp::media_stream::install_notify_hook(void *arg, void (*hook)(void *, int))
 {
+    (void)arg, (void)hook;
+
     if (!initialized_) {
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
 
-    if (!receiver_)
-        return RTP_NOT_SUPPORTED;
-
     if (!hook)
         return RTP_INVALID_VALUE;
 
-    receiver_->install_notify_hook(arg, hook);
+    /* TODO:  */
 
     return RTP_OK;
 }
@@ -455,23 +430,4 @@ rtp_error_t uvg_rtp::media_stream::set_dynamic_payload(uint8_t payload)
 uvg_rtp::rtcp *uvg_rtp::media_stream::get_rtcp()
 {
     return rtcp_;
-}
-
-rtp_error_t uvg_rtp::media_stream::create_rtcp(uint16_t src_port, uint16_t dst_port)
-{
-    rtp_error_t ret;
-
-    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_->get_ssrc(), true)))
-        return RTP_MEMORY_ERROR;
-
-    if ((ret = rtcp_->add_participant(addr_, dst_port, src_port, rtp_->get_clock_rate())) != RTP_OK) {
-        delete rtcp_;
-        rtcp_ = nullptr;
-        return ret;
-    }
-
-    if (receiver_)
-        receiver_->set_rtcp(rtcp_);
-
-    return rtcp_->start();
 }

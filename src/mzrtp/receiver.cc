@@ -216,4 +216,47 @@ ssize_t uvg_rtp::zrtp_msg::receiver::get_msg(void *ptr, size_t len)
     memcpy(ptr, mem_, cpy_len);
     return rlen_;
 }
+
+rtp_error_t uvg_rtp::zrtp_msg::receiver::zrtp_handler(ssize_t size, void *buffer)
+{
+    zrtp_msg *msg = (zrtp_msg *)buffer;
+
+    /* not a ZRTP packet */
+    if (msg->header.version || msg->header.magic != ZRTP_HEADER_MAGIC || msg->magic != ZRTP_MSG_MAGIC)
+        return RTP_PKT_NOT_HANDLED;
+
+    switch (msg->msgblock) {
+        /* None of these messages should be received by this stream
+         * during this stage so return RTP_GENERIC_ERROR to indicate that the packet
+         * is invalid and that it should not be dispatched to other packet handlers */
+        case ZRTP_MSG_HELLO:
+        case ZRTP_MSG_HELLO_ACK:
+        case ZRTP_MSG_COMMIT:
+        case ZRTP_MSG_DH_PART1:
+        case ZRTP_MSG_DH_PART2:
+        case ZRTP_MSG_CONFIRM1:
+        case ZRTP_MSG_CONFIRM2:
+        case ZRTP_MSG_CONF2_ACK:
+            return RTP_GENERIC_ERROR;
+
+        case ZRTP_MSG_ERROR:
+            /* TODO:  */
+            return RTP_OK;
+
+        case ZRTP_MSG_ERROR_ACK:
+            /* TODO:  */
+            return RTP_OK;
+
+        case ZRTP_MSG_SAS_RELAY:
+            return RTP_OK;
+
+        case ZRTP_MSG_RELAY_ACK:
+            return RTP_OK;
+
+        case ZRTP_MSG_PING_ACK:
+            return RTP_OK;
+
+            /* TODO: goclear & co-opeartion with srtp */
+    }
+}
 #endif

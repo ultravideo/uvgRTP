@@ -17,9 +17,8 @@ uvg_rtp::context::context()
     WSADATA wsd;
     int rc;
 
-    if ((rc = WSAStartup(MAKEWORD(2, 2), &wsd)) != 0) {
-        win_get_last_error();
-    }
+    if ((rc = WSAStartup(MAKEWORD(2, 2), &wsd)) != 0)
+        log_platform_error("WSAStartup() failed");
 #endif
 
     uvg_rtp::random::init();

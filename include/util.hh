@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <cstdio>
+#include <cstring>
 #include <string>
 
 #if defined(_MSC_VER)
@@ -36,6 +37,9 @@ const int MAX_PACKET      = 65536;
 const int MAX_PAYLOAD     = 1443;
 
 typedef enum RTP_ERROR {
+    RTP_PKT_READY         = 5,   /* packet can be returned to user */
+    RTP_PKT_MODIFIED      = 4,   /* packet was modified by the layer (see src/pkt_dispatch.cc) */
+    RTP_PKT_NOT_HANDLED   = 3,   /* packet does not belong to this layer */
     RTP_INTERRUPTED       = 2,
     RTP_NOT_READY         = 1,
     RTP_OK                = 0,
@@ -190,7 +194,11 @@ enum RTP_CTX_ENABLE_FLAGS {
      * NOTE: this flag must be coupled with at least RCE_SRTP */
     RCE_SRTP_AUTHENTICATE_RTP     = 1 << 13,
 
-    RCE_LAST                      = 1 << 14,
+    /* Enable RTCP for the media stream.
+     * If SRTP is enabled, SRTCP is used instead */
+    RCE_RTCP                      = 1 << 14,
+
+    RCE_LAST                      = 1 << 15,
 };
 
 /* These options are given to configuration() */
@@ -244,6 +252,14 @@ static inline void set_bytes(int *ptr, int nbytes)
 {
     if (ptr)
         *ptr = nbytes;
+}
+
+static inline void *memdup(const void *src, size_t len)
+{
+    uint8_t *dst = new uint8_t[len];
+    std::memcpy(dst, src, len);
+
+    return dst;
 }
 
 static inline std::string generate_string(size_t length)
