@@ -131,6 +131,9 @@ namespace uvg_rtp {
              * + clock rate for calculating the correct increment */
             void set_sender_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start);
 
+            /* Update various session statistics */
+            void update_session_statistics(uvg_rtp::frame::rtp_frame *frame);
+
             /* Return SSRCs of all participants */
             std::vector<uint32_t> get_participants();
 
@@ -160,15 +163,15 @@ namespace uvg_rtp {
             bool collision_detected(uint32_t ssrc, sockaddr_in& src_addr);
 
             /* Move participant from initial_peers_ to participants_ */
-            void add_participant(uint32_t ssrc);
+            rtp_error_t add_participant(uint32_t ssrc);
 
             /* We've got a message from new source (the SSRC of the frame is not known to us)
              * Initialize statistics for the peer and move it to participants_ */
-            void init_new_participant(uvg_rtp::frame::rtp_frame *frame);
+            rtp_error_t init_new_participant(uvg_rtp::frame::rtp_frame *frame);
 
             /* Initialize the RTP Sequence related stuff of peer
              * This function assumes that the peer already exists in the participants_ map */
-            void init_participant_seq(uint32_t ssrc, uint16_t base_seq);
+            rtp_error_t init_participant_seq(uint32_t ssrc, uint16_t base_seq);
 
             /* Update the SSRC's sequence related data in participants_ map
              *
