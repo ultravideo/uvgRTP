@@ -141,7 +141,7 @@ namespace uvg_rtp {
             rtp_error_t install_app_hook(void (*hook)(uvg_rtp::frame::rtcp_app_frame *));
 
             /* Update RTCP-related session statistics */
-            static rtp_error_t packet_handler(int flags, frame::rtp_frame **out);
+            static rtp_error_t packet_handler(void *arg, int flags, frame::rtp_frame **out);
 
         private:
             static void rtcp_runner(rtcp *rtcp);
