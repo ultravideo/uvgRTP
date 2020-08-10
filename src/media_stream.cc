@@ -144,8 +144,10 @@ rtp_error_t uvg_rtp::media_stream::init()
         return RTP_MEMORY_ERROR;
     }
 
-    if (ctx_config_.flags & RCE_RTCP)
+    if (ctx_config_.flags & RCE_RTCP) {
+        rtcp_->add_participant(addr_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
         rtcp_->start();
+    }
 
     initialized_ = true;
     return pkt_dispatcher_->start(&socket_, ctx_config_.flags);
