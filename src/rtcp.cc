@@ -605,7 +605,17 @@ void uvg_rtp::rtcp::rtcp_runner(uvg_rtp::rtcp *rtcp)
     }
 }
 
-rtp_error_t uvg_rtp::rtcp::packet_handler(int flags, frame::rtp_frame **out)
+/* RTCP packet handler is responsible for doing two things:
+ *
+ * - it checks whether the packet is coming from an existing user and if so,
+ *   updates that user's session statistics. If the packet is coming from a user,
+ *   the user is put on probation where they will stay until enough valid packets
+ *   have been received.
+ * - it keeps track of participants' SSRCs and if a collision
+ *   is detected, the RTP context is updated */
+rtp_error_t uvg_rtp::rtcp::packet_handler(void *arg, int flags, frame::rtp_frame **out)
 {
+    (void)arg, (void)flags, (void)out;
+
     return RTP_PKT_NOT_HANDLED;
 }
