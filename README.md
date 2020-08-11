@@ -33,3 +33,11 @@ See [BUILDING.md](BUILDING.md) for instructions on how to build and use uvgRTP
 ## Examples
 
 See [examples](examples/) directory for different uvgRTP examples
+
+## Paper
+
+Please cite the following paper for uvgRTP:
+
+```
+A. Altonen, J. Räsänen, J. Laitinen, M. Viitanen, and J. Vanne, “Open-source RTP library for high-speed 4K HEVC video streaming,” Accepted to IEEE Int. Workshop on Multimedia Signal Processing, Tampere, Finland, Sept. 2020.
+```
