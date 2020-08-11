@@ -15,6 +15,15 @@ uvg_rtp::frame::rtcp_sdes_frame *uvg_rtp::rtcp::get_sdes_packet(uint32_t ssrc)
     return frame;
 }
 
+rtp_error_t uvg_rtp::rtcp::install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_frame *))
+{
+    if (!hook)
+        return RTP_INVALID_VALUE;
+
+    sdes_hook_ = hook;
+    return RTP_OK;
+}
+
 rtp_error_t uvg_rtp::rtcp::handle_sdes_packet(uvg_rtp::frame::rtcp_sdes_frame *frame, size_t size)
 {
     if (!frame)

@@ -15,6 +15,15 @@ uvg_rtp::frame::rtcp_sender_frame *uvg_rtp::rtcp::get_sender_packet(uint32_t ssr
     return frame;
 }
 
+rtp_error_t uvg_rtp::rtcp::install_sender_hook(void (*hook)(uvg_rtp::frame::rtcp_sender_frame *))
+{
+    if (!hook)
+        return RTP_INVALID_VALUE;
+
+    sender_hook_ = hook;
+    return RTP_OK;
+}
+
 rtp_error_t uvg_rtp::rtcp::handle_sender_report_packet(uvg_rtp::frame::rtcp_sender_frame *frame, size_t size)
 {
     (void)size;
@@ -132,13 +141,13 @@ rtp_error_t uvg_rtp::rtcp::generate_sender_report()
     frame->s_info.ntp_msw  = timestamp >> 32;
     frame->s_info.ntp_lsw  = timestamp & 0xffffffff;
     frame->s_info.rtp_ts   = rtp_ts_start_ + (uvg_rtp::clock::ntp::diff(timestamp, clock_start_)) * clock_rate_ / 1000;
-    frame->s_info.pkt_cnt  = sender_stats.sent_pkts;
-    frame->s_info.byte_cnt = sender_stats.sent_bytes;
+    frame->s_info.pkt_cnt  = our_stats.sent_pkts;
+    frame->s_info.byte_cnt = our_stats.sent_bytes;
 
     LOG_DEBUG("Sender Report from 0x%x has %zu blocks", ssrc_, senders_);
 
     for (auto& participant : participants_) {
-        if (!participant.second->sender)
+        if (participant.second->role == RECEIVER)
             continue;
 
         frame->blocks[ptr].ssrc = participant.first;

@@ -15,12 +15,60 @@ namespace uvg_rtp {
 
     class connection;
 
+    enum ROLE {
+        RECEIVER,
+        SENDER
+    };
+
     /* TODO: explain these constants */
     const int RTP_SEQ_MOD    = 1 << 16;
     const int MIN_SEQUENTIAL = 2;
     const int MAX_DROPOUT    = 3000;
     const int MAX_MISORDER   = 100;
     const int MIN_TIMEOUT    = 5000;
+
+    struct rtcp_statistics {
+        /* receiver stats */
+        uint32_t received_pkts;  /* Number of packets received */
+        uint32_t dropped_pkts;   /* Number of dropped RTP packets */
+        uint32_t received_bytes; /* Number of bytes received excluding RTP Header */
+
+        /* sender stats */
+        uint32_t sent_pkts;   /* Number of sent RTP packets */
+        uint32_t sent_bytes;  /* Number of sent bytes excluding RTP Header */
+
+        uint32_t jitter;      /* TODO: */
+        uint32_t transit;     /* TODO: */
+
+        /* Receiver clock related stuff */
+        uint64_t initial_ntp; /* Wallclock reading when the first RTP packet was received */
+        uint32_t initial_rtp; /* RTP timestamp of the first RTP packet received */
+        uint32_t clock_rate;  /* Rate of the clock (used for jitter calculations) */
+
+        uint32_t lsr;                     /* Middle 32 bits of the 64-bit NTP timestamp of previous SR */
+        uvg_rtp::clock::hrc::hrc_t sr_ts; /* When the last SR was received (used to calculate delay) */
+
+        uint16_t max_seq;  /* Highest sequence number received */
+        uint16_t base_seq; /* First sequence number received */
+        uint16_t bad_seq;  /* TODO:  */
+        uint16_t cycles;   /* Number of sequence cycles */
+    };
+
+    struct rtcp_participant {
+        uvg_rtp::socket *socket; /* socket associated with this participant */
+        sockaddr_in address;     /* address of the participant */
+        struct rtcp_statistics stats; /* RTCP session statistics of the participant */
+
+        int probation;           /* has the participant been fully accepted to the session */
+        int role;                /* is the participant a sender or a receiver */
+
+        /* Save the latest RTCP packets received from this participant
+         * Users can query these packets using the SSRC of participant */
+        uvg_rtp::frame::rtcp_sender_frame   *s_frame;
+        uvg_rtp::frame::rtcp_receiver_frame *r_frame;
+        uvg_rtp::frame::rtcp_sdes_frame     *sdes_frame;
+        uvg_rtp::frame::rtcp_app_frame      *app_frame;
+    };
 
     class rtcp : public runner {
         public:
@@ -87,7 +135,7 @@ namespace uvg_rtp {
             /* create RTCP BYE packet using our own SSRC and send it to all participants */
             rtp_error_t terminate_self();
 
-            /* TODO:  */
+            /* Return a reference to vector that contains the sockets of all participants */
             std::vector<uvg_rtp::socket>& get_sockets();
 
             /* Somebody joined the multicast group the owner of this RTCP instance is part of
@@ -137,7 +185,9 @@ namespace uvg_rtp {
             /* Return SSRCs of all participants */
             std::vector<uint32_t> get_participants();
 
-            /* TODO:  */
+            /* Alternate way to get RTCP packets is to install a hook for them. So instead of
+             * polling an RTCP packet, user can install a function that is called when
+             * a specific RTCP packet is received. */
             rtp_error_t install_sender_hook(void (*hook)(uvg_rtp::frame::rtcp_sender_frame *));
             rtp_error_t install_receiver_hook(void (*hook)(uvg_rtp::frame::rtcp_receiver_frame *));
             rtp_error_t install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_frame *));
@@ -193,7 +243,17 @@ namespace uvg_rtp {
             rtp_error_t generate_sender_report();
             rtp_error_t generate_receiver_report();
 
-            bool receiver_;
+            /* Because struct statistics contains uvgRTP clock object we cannot
+             * zero it out without compiler complaining about it so all the fields
+             * must be set to zero manually */
+            void zero_stats(uvg_rtp::rtcp_statistics *stats);
+
+            /* Pointer to RTP context from which clock rate etc. info is collected and which is
+             * used to change SSRC if a collision is detected */
+            uvg_rtp::rtp *rtp_;
+
+            /* are we a sender or a receiver */
+            int our_role_;
 
             /* TODO: time_t?? */
             size_t tp_;       /* the last time an RTCP packet was transmitted */
@@ -238,57 +298,15 @@ namespace uvg_rtp {
             /* The first value of RTP timestamp (aka t = 0) */
             uint32_t rtp_ts_start_;
 
-            struct statistics {
-                /* receiver stats */
-                uint32_t received_pkts;  /* Number of packets received */
-                uint32_t dropped_pkts;   /* Number of dropped RTP packets */
-                uint32_t received_bytes; /* Number of bytes received excluding RTP Header */
-
-                /* sender stats */
-                uint32_t sent_pkts;   /* Number of sent RTP packets */
-                uint32_t sent_bytes;  /* Number of sent bytes excluding RTP Header */
-
-                uint32_t jitter;      /* TODO: */
-                uint32_t transit;     /* TODO: */
-
-                /* Receiver clock related stuff */
-                uint64_t initial_ntp; /* Wallclock reading when the first RTP packet was received */
-                uint32_t initial_rtp; /* RTP timestamp of the first RTP packet received */
-                uint32_t clock_rate;  /* Rate of the clock (used for jitter calculations) */
-
-                uint32_t lsr;                     /* Middle 32 bits of the 64-bit NTP timestamp of previous SR */
-                uvg_rtp::clock::hrc::hrc_t sr_ts; /* When the last SR was received (used to calculate delay) */
-
-                uint16_t max_seq;  /* Highest sequence number received */
-                uint16_t base_seq; /* First sequence number received */
-                uint16_t bad_seq;  /* TODO:  */
-                uint16_t cycles;   /* Number of sequence cycles */
-            };
-
-            struct participant {
-                uvg_rtp::socket *socket; /* socket associated with this participant */
-                sockaddr_in address;     /* address of the participant */
-                struct statistics stats; /* RTCP session statistics of the participant */
-
-                int probation;           /* TODO: */
-                bool sender;             /* Sender will create report block for other sender only */
-
-                /* Save the latest RTCP packets received from this participant
-                 * Users can query these packets using the SSRC of participant */
-                uvg_rtp::frame::rtcp_sender_frame   *s_frame;
-                uvg_rtp::frame::rtcp_receiver_frame *r_frame;
-                uvg_rtp::frame::rtcp_sdes_frame     *sdes_frame;
-                uvg_rtp::frame::rtcp_app_frame      *app_frame;
-            };
-
-            std::map<uint32_t, struct participant *> participants_;
+            std::map<uint32_t, rtcp_participant *> participants_;
             size_t num_receivers_;
 
             /* statistics for RTCP Sender and Receiver Reports */
-            struct statistics sender_stats;
+            struct rtcp_statistics our_stats;
 
-            /* TODO: */
-            std::vector<struct participant *> initial_participants_;
+            /* If we expect frames from remote but haven't received anything from remote yet,
+             * the participant resides in this vector until he's moved to participants_ */
+            std::vector<rtcp_participant *> initial_participants_;
 
             /* Vector of sockets the RTCP runner is listening to
              *
@@ -300,10 +318,5 @@ namespace uvg_rtp {
             void (*receiver_hook_)(uvg_rtp::frame::rtcp_receiver_frame *);
             void (*sdes_hook_)(uvg_rtp::frame::rtcp_sdes_frame *);
             void (*app_hook_)(uvg_rtp::frame::rtcp_app_frame *);
-
-            /* Because struct statistics contains uvgRTP clock object we cannot
-             * zero it out without compiler complaining about it so all the fields
-             * must be set to zero manually */
-            void zero_stats(uvg_rtp::rtcp::statistics *stats);
     };
 };
