@@ -15,6 +15,15 @@ uvg_rtp::frame::rtcp_app_frame *uvg_rtp::rtcp::get_app_packet(uint32_t ssrc)
     return frame;
 }
 
+rtp_error_t uvg_rtp::rtcp::install_app_hook(void (*hook)(uvg_rtp::frame::rtcp_app_frame *))
+{
+    if (!hook)
+        return RTP_INVALID_VALUE;
+
+    app_hook_ = hook;
+    return RTP_OK;
+}
+
 rtp_error_t uvg_rtp::rtcp::handle_app_packet(uvg_rtp::frame::rtcp_app_frame *frame, size_t size)
 {
     if (!frame)

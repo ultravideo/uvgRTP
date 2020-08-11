@@ -14,146 +14,28 @@
 #include "rtcp.hh"
 #include "util.hh"
 
-/* TODO: Find the actual used sizes somehow? */
 #define UDP_HEADER_SIZE  8
 #define IP_HEADER_SIZE  20
 
-uvg_rtp::rtcp::rtcp(uint32_t ssrc, bool receiver):
-    receiver_(receiver),
+uvg_rtp::rtcp::rtcp(uvg_rtp::rtp *rtp):
+    rtp_(rtp), our_role_(RECEIVER),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
     we_sent_(0), avg_rtcp_pkt_pize_(0), rtcp_pkt_count_(0),
     initial_(true), num_receivers_(0)
 {
-    ssrc_  = ssrc;
+    ssrc_         = rtp->get_ssrc();
+    clock_rate_   = rtp->get_clock_rate();
 
     clock_start_  = 0;
-    clock_rate_   = 0;
     rtp_ts_start_ = 0;
     runner_       = nullptr;
 
-    zero_stats(&sender_stats);
-}
-
-uvg_rtp::rtcp::rtcp(uvg_rtp::rtp *rtp)
-{
+    zero_stats(&our_stats);
 }
 
 uvg_rtp::rtcp::~rtcp()
 {
-}
-
-rtp_error_t uvg_rtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_port, uint16_t src_port, uint32_t clock_rate)
-{
-    if (dst_addr == "" || !dst_port || !src_port) {
-        LOG_ERROR("Invalid values given (%s, %d, %d), cannot create RTCP instance",
-                dst_addr.c_str(), dst_port, src_port);
-        return RTP_INVALID_VALUE;
-    }
-
-    rtp_error_t ret;
-    struct participant *p;
-
-    if (!(p = new struct participant))
-        return RTP_MEMORY_ERROR;
-
-    zero_stats(&p->stats);
-
-    if (!(p->socket = new uvg_rtp::socket(RTP_CTX_NO_FLAGS)))
-        return RTP_MEMORY_ERROR;
-
-    if ((ret = p->socket->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
-        return ret;
-
-    int enable = 1;
-
-    if ((ret = p->socket->setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int))) != RTP_OK)
-        return ret;
-
-#ifdef _WIN32
-    /* Make the socket non-blocking */
-    int enabled = 1;
-
-    if (::ioctlsocket(p->socket->get_raw_socket(), FIONBIO, (u_long *)&enabled) < 0)
-        LOG_ERROR("Failed to make the socket non-blocking!");
-#endif
-
-    /* Set read timeout (5s for now)
-     *
-     * This means that the socket is listened for 5s at a time and after the timeout,
-     * Send Report is sent to all participants */
-    struct timeval tv;
-    tv.tv_sec = 3;
-    tv.tv_usec = 0;
-
-    if ((ret = p->socket->setsockopt(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))) != RTP_OK)
-        return ret;
-
-    LOG_WARN("Binding to port %d (source port)", src_port);
-
-    if ((ret = p->socket->bind(AF_INET, INADDR_ANY, src_port)) != RTP_OK)
-        return ret;
-
-    p->sender           = false;
-    p->address          = p->socket->create_sockaddr(AF_INET, dst_addr, dst_port);
-    p->stats.clock_rate = clock_rate;
-
-    initial_participants_.push_back(p);
-    sockets_.push_back(*p->socket);
-
-    return RTP_OK;
-}
-
-rtp_error_t uvg_rtp::rtcp::add_participant(uint32_t ssrc)
-{
-    /* RTCP is not in use for this media stream,
-     * create a "fake" participant that is only used for storing statistics information */
-    if (initial_participants_.empty()) {
-        if (!(participants_[ssrc] = new struct participant))
-            return RTP_MEMORY_ERROR;
-        zero_stats(&participants_[ssrc]->stats);
-    } else {
-        participants_[ssrc] = initial_participants_.back();
-        initial_participants_.pop_back();
-    }
-    num_receivers_++;
-
-    participants_[ssrc]->r_frame    = nullptr;
-    participants_[ssrc]->s_frame    = nullptr;
-    participants_[ssrc]->sdes_frame = nullptr;
-    participants_[ssrc]->app_frame  = nullptr;
-
-    return RTP_OK;
-}
-
-void uvg_rtp::rtcp::update_rtcp_bandwidth(size_t pkt_size)
-{
-    rtcp_pkt_count_++;
-    rtcp_byte_count_  += pkt_size + UDP_HEADER_SIZE + IP_HEADER_SIZE;
-    avg_rtcp_pkt_pize_ = rtcp_byte_count_ / rtcp_pkt_count_;
-}
-
-void uvg_rtp::rtcp::zero_stats(uvg_rtp::rtcp::statistics *stats)
-{
-    stats->received_pkts  = 0;
-    stats->dropped_pkts   = 0;
-    stats->received_bytes = 0;
-
-    stats->sent_pkts  = 0;
-    stats->sent_bytes = 0;
-
-    stats->jitter  = 0;
-    stats->transit = 0;
-
-    stats->initial_ntp = 0;
-    stats->initial_rtp = 0;
-    stats->clock_rate  = 0;
-    stats->lsr         = 0;
-
-    stats->max_seq  = 0;
-    stats->base_seq = 0;
-    stats->bad_seq  = 0;
-    stats->cycles   = 0;
 }
 
 rtp_error_t uvg_rtp::rtcp::start()
@@ -162,7 +44,6 @@ rtp_error_t uvg_rtp::rtcp::start()
         LOG_ERROR("Cannot start RTCP Runner because no connections have been initialized");
         return RTP_INVALID_VALUE;
     }
-
     active_ = true;
 
     if (!(runner_ = new std::thread(rtcp_runner, this))) {
@@ -209,40 +90,122 @@ free_mem:
     return RTP_OK;
 }
 
-std::vector<uvg_rtp::socket>& uvg_rtp::rtcp::get_sockets()
+rtp_error_t uvg_rtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_port, uint16_t src_port, uint32_t clock_rate)
 {
-    return sockets_;
-}
-
-std::vector<uint32_t> uvg_rtp::rtcp::get_participants()
-{
-    std::vector<uint32_t> ssrcs;
-
-    for (auto& i : participants_) {
-        ssrcs.push_back(i.first);
+    if (dst_addr == "" || !dst_port || !src_port) {
+        LOG_ERROR("Invalid values given (%s, %d, %d), cannot create RTCP instance",
+                dst_addr.c_str(), dst_port, src_port);
+        return RTP_INVALID_VALUE;
     }
 
-    return ssrcs;
+    rtp_error_t ret;
+    rtcp_participant *p;
+
+    if (!(p = new rtcp_participant))
+        return RTP_MEMORY_ERROR;
+
+    zero_stats(&p->stats);
+
+    if (!(p->socket = new uvg_rtp::socket(RTP_CTX_NO_FLAGS)))
+        return RTP_MEMORY_ERROR;
+
+    if ((ret = p->socket->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
+        return ret;
+
+    int enable = 1;
+
+    if ((ret = p->socket->setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int))) != RTP_OK)
+        return ret;
+
+#ifdef _WIN32
+    /* Make the socket non-blocking */
+    int enabled = 1;
+
+    if (::ioctlsocket(p->socket->get_raw_socket(), FIONBIO, (u_long *)&enabled) < 0)
+        LOG_ERROR("Failed to make the socket non-blocking!");
+#endif
+
+    /* Set read timeout (5s for now)
+     *
+     * This means that the socket is listened for 5s at a time and after the timeout,
+     * Send Report is sent to all participants */
+    struct timeval tv;
+    tv.tv_sec = 3;
+    tv.tv_usec = 0;
+
+    if ((ret = p->socket->setsockopt(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))) != RTP_OK)
+        return ret;
+
+    LOG_WARN("Binding to port %d (source port)", src_port);
+
+    if ((ret = p->socket->bind(AF_INET, INADDR_ANY, src_port)) != RTP_OK)
+        return ret;
+
+    p->role             = RECEIVER;
+    p->address          = p->socket->create_sockaddr(AF_INET, dst_addr, dst_port);
+    p->stats.clock_rate = clock_rate;
+
+    initial_participants_.push_back(p);
+    sockets_.push_back(*p->socket);
+
+    return RTP_OK;
+}
+
+rtp_error_t uvg_rtp::rtcp::add_participant(uint32_t ssrc)
+{
+    /* RTCP is not in use for this media stream,
+     * create a "fake" participant that is only used for storing statistics information */
+    if (initial_participants_.empty()) {
+        if (!(participants_[ssrc] = new rtcp_participant))
+            return RTP_MEMORY_ERROR;
+        zero_stats(&participants_[ssrc]->stats);
+    } else {
+        participants_[ssrc] = initial_participants_.back();
+        initial_participants_.pop_back();
+    }
+    num_receivers_++;
+
+    participants_[ssrc]->r_frame    = nullptr;
+    participants_[ssrc]->s_frame    = nullptr;
+    participants_[ssrc]->sdes_frame = nullptr;
+    participants_[ssrc]->app_frame  = nullptr;
+
+    return RTP_OK;
+}
+
+void uvg_rtp::rtcp::update_rtcp_bandwidth(size_t pkt_size)
+{
+    rtcp_pkt_count_    += 1;
+    rtcp_byte_count_   += pkt_size + UDP_HEADER_SIZE + IP_HEADER_SIZE;
+    avg_rtcp_pkt_pize_  = rtcp_byte_count_ / rtcp_pkt_count_;
+}
+
+void uvg_rtp::rtcp::zero_stats(uvg_rtp::rtcp_statistics *stats)
+{
+    stats->received_pkts  = 0;
+    stats->dropped_pkts   = 0;
+    stats->received_bytes = 0;
+
+    stats->sent_pkts  = 0;
+    stats->sent_bytes = 0;
+
+    stats->jitter  = 0;
+    stats->transit = 0;
+
+    stats->initial_ntp = 0;
+    stats->initial_rtp = 0;
+    stats->clock_rate  = 0;
+    stats->lsr         = 0;
+
+    stats->max_seq  = 0;
+    stats->base_seq = 0;
+    stats->bad_seq  = 0;
+    stats->cycles   = 0;
 }
 
 bool uvg_rtp::rtcp::is_participant(uint32_t ssrc)
 {
     return participants_.find(ssrc) != participants_.end();
-}
-
-void uvg_rtp::rtcp::sender_inc_sent_bytes(size_t n)
-{
-    sender_stats.sent_bytes += n;
-}
-
-void uvg_rtp::rtcp::sender_inc_sent_pkts(size_t n)
-{
-    sender_stats.sent_pkts += n;
-}
-
-void uvg_rtp::rtcp::sender_inc_seq_cycle_count()
-{
-    sender_stats.cycles++;
 }
 
 void uvg_rtp::rtcp::set_sender_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start)
@@ -257,29 +220,9 @@ void uvg_rtp::rtcp::sender_update_stats(uvg_rtp::frame::rtp_frame *frame)
     if (!frame)
         return;
 
-    sender_stats.sent_pkts  += 1;
-    sender_stats.sent_bytes += frame->payload_len;
-    sender_stats.max_seq     = frame->header.seq;
-}
-
-void uvg_rtp::rtcp::receiver_inc_sent_bytes(uint32_t sender_ssrc, size_t n)
-{
-    if (is_participant(sender_ssrc)) {
-        participants_[sender_ssrc]->stats.sent_bytes += n;
-        return;
-    }
-
-    LOG_WARN("Got RTP packet from unknown source: 0x%x", sender_ssrc);
-}
-
-void uvg_rtp::rtcp::receiver_inc_sent_pkts(uint32_t sender_ssrc, size_t n)
-{
-    if (is_participant(sender_ssrc)) {
-        participants_[sender_ssrc]->stats.sent_pkts += n;
-        return;
-    }
-
-    LOG_WARN("Got RTP packet from unknown source: 0x%x", sender_ssrc);
+    our_stats.sent_pkts  += 1;
+    our_stats.sent_bytes += frame->payload_len;
+    our_stats.max_seq     = frame->header.seq;
 }
 
 rtp_error_t uvg_rtp::rtcp::init_new_participant(uvg_rtp::frame::rtp_frame *frame)
@@ -391,17 +334,17 @@ rtp_error_t uvg_rtp::rtcp::reset_rtcp_state(uint32_t ssrc)
     if (participants_.find(ssrc) != participants_.end())
         return RTP_SSRC_COLLISION;
 
-    sender_stats.received_pkts  = 0;
-    sender_stats.dropped_pkts   = 0;
-    sender_stats.received_bytes = 0;
-    sender_stats.sent_pkts      = 0;
-    sender_stats.sent_bytes     = 0;
-    sender_stats.jitter         = 0;
-    sender_stats.transit        = 0;
-    sender_stats.max_seq        = 0;
-    sender_stats.base_seq       = 0;
-    sender_stats.bad_seq        = 0;
-    sender_stats.cycles         = 0;
+    our_stats.received_pkts  = 0;
+    our_stats.dropped_pkts   = 0;
+    our_stats.received_bytes = 0;
+    our_stats.sent_pkts      = 0;
+    our_stats.sent_bytes     = 0;
+    our_stats.jitter         = 0;
+    our_stats.transit        = 0;
+    our_stats.max_seq        = 0;
+    our_stats.base_seq       = 0;
+    our_stats.bad_seq        = 0;
+    our_stats.cycles         = 0;
 
     return RTP_OK;
 }
@@ -447,47 +390,41 @@ void uvg_rtp::rtcp::update_session_statistics(uvg_rtp::frame::rtp_frame *frame)
     p->stats.jitter += (1.f / 16.f) * ((double)d - p->stats.jitter);
 }
 
-rtp_error_t uvg_rtp::rtcp::generate_report()
+/* RTCP packet handler is responsible for doing two things:
+ *
+ * - it checks whether the packet is coming from an existing user and if so,
+ *   updates that user's session statistics. If the packet is coming from a user,
+ *   the user is put on probation where they will stay until enough valid packets
+ *   have been received.
+ * - it keeps track of participants' SSRCs and if a collision
+ *   is detected, the RTP context is updated */
+rtp_error_t uvg_rtp::rtcp::packet_handler(void *arg, int flags, frame::rtp_frame **out)
 {
-    if (receiver_)
-        return generate_receiver_report();
-    return generate_sender_report();
-}
+    (void)flags;
 
-rtp_error_t uvg_rtp::rtcp::install_sender_hook(void (*hook)(uvg_rtp::frame::rtcp_sender_frame *))
-{
-    if (!hook)
-        return RTP_INVALID_VALUE;
+    rtp_error_t ret;
+    uvg_rtp::frame::rtp_frame *frame = *out;
+    uvg_rtp::rtcp *rtcp              = (uvg_rtp::rtcp *)arg;
 
-    sender_hook_ = hook;
-    return RTP_OK;
-}
+    /* If this is the first packet from remote, move the participant from initial_participants_
+     * to participants_, initialize its state and put it on probation until enough valid
+     * packets from them have been received
+     *
+     * Otherwise update and monitor the received sequence numbers to determine whether something
+     * has gone awry with the sender's sequence number calculations/delivery of packets */
+    if (!rtcp->is_participant(frame->header.ssrc)) {
+        if ((ret = rtcp->init_new_participant(frame)) != RTP_OK)
+            return RTP_GENERIC_ERROR;
+    } else if (rtcp->update_participant_seq(frame->header.ssrc, frame->header.seq) != RTP_OK) {
+        return RTP_GENERIC_ERROR;
+    }
 
-rtp_error_t uvg_rtp::rtcp::install_receiver_hook(void (*hook)(uvg_rtp::frame::rtcp_receiver_frame *))
-{
-    if (!hook)
-        return RTP_INVALID_VALUE;
+    /* Finally update the jitter/transit/received/dropped bytes/pkts statistics */
+    rtcp->update_session_statistics(frame);
 
-    receiver_hook_ = hook;
-    return RTP_OK;
-}
-
-rtp_error_t uvg_rtp::rtcp::install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_frame *))
-{
-    if (!hook)
-        return RTP_INVALID_VALUE;
-
-    sdes_hook_ = hook;
-    return RTP_OK;
-}
-
-rtp_error_t uvg_rtp::rtcp::install_app_hook(void (*hook)(uvg_rtp::frame::rtcp_app_frame *))
-{
-    if (!hook)
-        return RTP_INVALID_VALUE;
-
-    app_hook_ = hook;
-    return RTP_OK;
+    /* Even though RTCP collects information from the packet, this is not the packet's final destination.
+     * Thus return RTP_PKT_NOT_HANDLED to indicate that the packet should be passed on to other handlers */
+    return RTP_PKT_NOT_HANDLED;
 }
 
 rtp_error_t uvg_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
@@ -543,72 +480,4 @@ rtp_error_t uvg_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
     }
 
     return ret;
-}
-
-void uvg_rtp::rtcp::rtcp_runner(uvg_rtp::rtcp *rtcp)
-{
-    LOG_INFO("RTCP instance created!");
-
-    uvg_rtp::clock::hrc::hrc_t start, end;
-    int nread, diff, timeout = MIN_TIMEOUT;
-    uint8_t buffer[MAX_PACKET];
-    rtp_error_t ret;
-
-    while (rtcp->active()) {
-        start = uvg_rtp::clock::hrc::now();
-        ret   = uvg_rtp::poll::poll(rtcp->get_sockets(), buffer, MAX_PACKET, timeout, &nread);
-
-        if (ret == RTP_OK && nread > 0) {
-            (void)rtcp->handle_incoming_packet(buffer, (size_t)nread);
-        } else if (ret == RTP_INTERRUPTED) {
-            /* do nothing */
-        } else {
-            LOG_ERROR("recvfrom failed, %d", ret);
-        }
-
-        diff = uvg_rtp::clock::hrc::diff_now(start);
-
-        if (diff >= MIN_TIMEOUT) {
-            if ((ret = rtcp->generate_report()) != RTP_OK && ret != RTP_NOT_READY) {
-                LOG_ERROR("Failed to send RTCP status report!");
-            }
-
-            timeout = MIN_TIMEOUT;
-        }
-    }
-}
-
-/* RTCP packet handler is responsible for doing two things:
- *
- * - it checks whether the packet is coming from an existing user and if so,
- *   updates that user's session statistics. If the packet is coming from a user,
- *   the user is put on probation where they will stay until enough valid packets
- *   have been received.
- * - it keeps track of participants' SSRCs and if a collision
- *   is detected, the RTP context is updated */
-rtp_error_t uvg_rtp::rtcp::packet_handler(void *arg, int flags, frame::rtp_frame **out)
-{
-    rtp_error_t ret;
-    uvg_rtp::frame::rtp_frame *frame = *out;
-    uvg_rtp::rtcp *rtcp              = (uvg_rtp::rtcp *)arg;
-
-    /* If this is the first packet from remote, move the participant from initial_participants_
-     * to participants_, initialize its state and put it on probation until enough valid
-     * packets from them have been received
-     *
-     * Otherwise update and monitor the received sequence numbers to determine whether something
-     * has gone awry with the sender's sequence number calculations/delivery of packets */
-    if (!rtcp->is_participant(frame->header.ssrc)) {
-        if ((ret = rtcp->init_new_participant(frame)) != RTP_OK)
-            return RTP_GENERIC_ERROR;
-    } else if (rtcp->update_participant_seq(frame->header.ssrc, frame->header.seq) != RTP_OK) {
-        return RTP_GENERIC_ERROR;
-    }
-
-    /* Finally update the jitter/transit/received/dropped bytes/pkts statistics */
-    rtcp->update_session_statistics(frame);
-
-    /* Even though RTCP collects information from the packet, this is not the packet's final destination.
-     * Thus return RTP_PKT_NOT_HANDLED to indicate that the packet should be passed on to other handlers */
-    return RTP_PKT_NOT_HANDLED;
 }

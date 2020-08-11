@@ -15,6 +15,15 @@ uvg_rtp::frame::rtcp_receiver_frame *uvg_rtp::rtcp::get_receiver_packet(uint32_t
     return frame;
 }
 
+rtp_error_t uvg_rtp::rtcp::install_receiver_hook(void (*hook)(uvg_rtp::frame::rtcp_receiver_frame *))
+{
+    if (!hook)
+        return RTP_INVALID_VALUE;
+
+    receiver_hook_ = hook;
+    return RTP_OK;
+}
+
 rtp_error_t uvg_rtp::rtcp::handle_receiver_report_packet(uvg_rtp::frame::rtcp_receiver_frame *frame, size_t size)
 {
     (void)size;
