@@ -100,6 +100,8 @@ namespace uvg_rtp {
         /* following fields are receiver-only */
         uint16_t s_l;    /* highest received sequence number */
         uint8_t *replay; /* list of recently received and authenticated SRTP packets */
+
+        srtp_key_ctx_t key_ctx;
     } srtp_ctx_t;
 
     class srtp {
@@ -176,7 +178,6 @@ namespace uvg_rtp {
             rtp_error_t __init(int type, int flags);
 #endif
 
-            srtp_key_ctx_t key_ctx_;
             srtp_ctx_t srtp_ctx_;
 
             /* If NULL cipher is enabled, it means that RTP packets are not
