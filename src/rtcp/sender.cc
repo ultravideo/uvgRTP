@@ -53,10 +53,10 @@ rtp_error_t uvg_rtp::rtcp::handle_sender_report_packet(uvg_rtp::frame::rtcp_send
 
     fprintf(stderr, "Sender report:\n");
     for (int i = 0; i < frame->header.count; ++i) {
-        cpy_frame->blocks[i].lost     = ntohl(cpy_frame->blocks[i].lost);
-        cpy_frame->blocks[i].last_seq = ntohl(cpy_frame->blocks[i].last_seq);
-        cpy_frame->blocks[i].lsr      = ntohl(cpy_frame->blocks[i].lsr);
-        cpy_frame->blocks[i].dlsr     = ntohl(cpy_frame->blocks[i].dlsr);
+        cpy_frame->blocks[i].lost     = ntohl(frame->blocks[i].lost);
+        cpy_frame->blocks[i].last_seq = ntohl(frame->blocks[i].last_seq);
+        cpy_frame->blocks[i].lsr      = ntohl(frame->blocks[i].lsr);
+        cpy_frame->blocks[i].dlsr     = ntohl(frame->blocks[i].dlsr);
 
         fprintf(stderr, "-------\n");
         fprintf(stderr, "lost:     %d\n", cpy_frame->blocks[i].lost);

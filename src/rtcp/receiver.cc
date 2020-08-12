@@ -59,11 +59,11 @@ rtp_error_t uvg_rtp::rtcp::handle_receiver_report_packet(uvg_rtp::frame::rtcp_re
 
     fprintf(stderr, "Receiver report:\n");
     for (int i = 0; i < frame->header.count; ++i) {
-        cpy_frame->blocks[i].lost     = ntohl(cpy_frame->blocks[i].lost);
-        cpy_frame->blocks[i].last_seq = ntohl(cpy_frame->blocks[i].last_seq);
-        cpy_frame->blocks[i].jitter   = ntohl(cpy_frame->blocks[i].jitter);
-        cpy_frame->blocks[i].lsr      = ntohl(cpy_frame->blocks[i].lsr);
-        cpy_frame->blocks[i].dlsr     = ntohl(cpy_frame->blocks[i].dlsr);
+        cpy_frame->blocks[i].lost     = ntohl(frame->blocks[i].lost);
+        cpy_frame->blocks[i].last_seq = ntohl(frame->blocks[i].last_seq);
+        cpy_frame->blocks[i].jitter   = ntohl(frame->blocks[i].jitter);
+        cpy_frame->blocks[i].lsr      = ntohl(frame->blocks[i].lsr);
+        cpy_frame->blocks[i].dlsr     = ntohl(frame->blocks[i].dlsr);
 
         fprintf(stderr, "-------\n");
         fprintf(stderr, "lost:     %d\n", cpy_frame->blocks[i].lost);
@@ -107,6 +107,7 @@ rtp_error_t uvg_rtp::rtcp::send_receiver_report_packet(uvg_rtp::frame::rtcp_rece
     for (auto& participant : participants_) {
         auto p = participant.second;
 
+        /* TODO: bypass socket object */
         if ((ret = p->socket->sendto(p->address, (uint8_t *)frame, len, 0)) != RTP_OK) {
             LOG_ERROR("sendto() failed!");
             return ret;
