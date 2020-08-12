@@ -135,6 +135,36 @@ socket_t& uvg_rtp::socket::get_raw_socket()
     return socket_;
 }
 
+
+rtp_error_t uvg_rtp::socket::install_handler(void *arg, packet_handler_buf handler)
+{
+    if (!handler)
+        return RTP_INVALID_VALUE;
+
+    socket_packet_handler hndlr;
+
+    hndlr.arg = arg;
+    hndlr.handlers.buf = handler;
+    buf_handlers_.push_back(hndlr);
+
+    return RTP_OK;
+}
+
+rtp_error_t uvg_rtp::socket::install_handler(void *arg, packet_handler_vec handler)
+{
+    if (!handler)
+        return RTP_INVALID_VALUE;
+
+
+    socket_packet_handler hndlr;
+
+    hndlr.arg = arg;
+    hndlr.handlers.vec = handler;
+    vec_handlers_.push_back(hndlr);
+
+    return RTP_OK;
+}
+
 rtp_error_t uvg_rtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
 {
     int nsend = 0;
@@ -172,21 +202,57 @@ rtp_error_t uvg_rtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t bu
 
 rtp_error_t uvg_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags)
 {
+    rtp_error_t ret;
+
+    for (auto& handler : buf_handlers_) {
+        if ((ret = (*handler.handlers.buf)(handler.arg, buf_len, buf)) != RTP_OK) {
+            LOG_ERROR("Malfored packet %p %zu %d", buf, buf_len, flags);
+            return ret;
+        }
+    }
+
     return __sendto(addr_, buf, buf_len, flags, nullptr);
 }
 
 rtp_error_t uvg_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
 {
+    rtp_error_t ret;
+
+    for (auto& handler : buf_handlers_) {
+        if ((ret = (*handler.handlers.buf)(handler.arg, buf_len, buf)) != RTP_OK) {
+            LOG_ERROR("Malfored packet %p %zu %d", buf, buf_len, flags);
+            return ret;
+        }
+    }
+
     return __sendto(addr_, buf, buf_len, flags, bytes_sent);
 }
 
 rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
 {
+    rtp_error_t ret;
+
+    for (auto& handler : buf_handlers_) {
+        if ((ret = (*handler.handlers.buf)(handler.arg, buf_len, buf)) != RTP_OK) {
+            LOG_ERROR("Malfored packet %p %zu %d", buf, buf_len, flags);
+            return ret;
+        }
+    }
+
     return __sendto(addr, buf, buf_len, flags, bytes_sent);
 }
 
 rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags)
 {
+    rtp_error_t ret;
+
+    for (auto& handler : buf_handlers_) {
+        if ((ret = (*handler.handlers.buf)(handler.arg, buf_len, buf)) != RTP_OK) {
+            LOG_ERROR("Malfored packet %p %zu %d", buf, buf_len, flags);
+            return ret;
+        }
+    }
+
     return __sendto(addr, buf, buf_len, flags, nullptr);
 }
 
@@ -261,16 +327,43 @@ rtp_error_t uvg_rtp::socket::__sendtov(
 
 rtp_error_t uvg_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags)
 {
+    rtp_error_t ret;
+
+    for (auto& handler : buf_handlers_) {
+        if ((ret = (*handler.handlers.vec)(handler.arg, buffers)) != RTP_OK) {
+            LOG_ERROR("Malfored packet");
+            return ret;
+        }
+    }
+
     return __sendtov(addr_, buffers, flags, nullptr);
 }
 
 rtp_error_t uvg_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent)
 {
+    rtp_error_t ret;
+
+    for (auto& handler : buf_handlers_) {
+        if ((ret = (*handler.handlers.vec)(handler.arg, buffers)) != RTP_OK) {
+            LOG_ERROR("Malfored packet");
+            return ret;
+        }
+    }
+
     return __sendtov(addr_, buffers, flags, bytes_sent);
 }
 
 rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags)
 {
+    rtp_error_t ret;
+
+    for (auto& handler : buf_handlers_) {
+        if ((ret = (*handler.handlers.vec)(handler.arg, buffers)) != RTP_OK) {
+            LOG_ERROR("Malfored packet");
+            return ret;
+        }
+    }
+
     return __sendtov(addr, buffers, flags, nullptr);
 }
 
@@ -280,6 +373,15 @@ rtp_error_t uvg_rtp::socket::sendto(
     int flags, int *bytes_sent
 )
 {
+    rtp_error_t ret;
+
+    for (auto& handler : buf_handlers_) {
+        if ((ret = (*handler.handlers.vec)(handler.arg, buffers)) != RTP_OK) {
+            LOG_ERROR("Malfored packet");
+            return ret;
+        }
+    }
+
     return __sendtov(addr, buffers, flags, bytes_sent);
 }
 

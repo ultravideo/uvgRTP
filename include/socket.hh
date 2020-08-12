@@ -27,6 +27,18 @@ namespace uvg_rtp {
 
     const int MAX_BUFFER_COUNT = 256;
 
+    typedef rtp_error_t (*packet_handler_buf)(void *, ssize_t, void *);
+    typedef rtp_error_t (*packet_handler_vec)(void *, std::vector<std::pair<size_t, uint8_t *>>&);
+
+    struct socket_packet_handler {
+        void *arg;
+
+        union {
+            packet_handler_buf buf;
+            packet_handler_vec vec;
+        } handlers;
+    };
+
     class socket {
         public:
             socket(int flags);
@@ -138,6 +150,16 @@ namespace uvg_rtp {
             /* Get the out address for the socket if it exists */
             sockaddr_in& get_out_address();
 
+            /* Install a packet handler for buffer- or vector-based send operations.
+             *
+             * These handlers allow the caller to inject extra functionality to the send operation
+             * without polluting src/socket.cc with unrelated code
+             * (such as collecting RTCP session statistics info or encrypting a packet)
+             *
+             * "arg" is an optional parameter that can be passed to the handler when it's called */
+            rtp_error_t install_handler(void *arg, packet_handler_buf handler);
+            rtp_error_t install_handler(void *arg, packet_handler_vec handler);
+
         private:
             /* helper function for sending UPD packets, see documentation for sendto() above */
             rtp_error_t __sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
@@ -151,6 +173,12 @@ namespace uvg_rtp {
             sockaddr_in addr_;
             uvg_rtp::srtp *srtp_;
             int flags_;
+
+            /* __sendto() calls these handlers in order before sending the packet*/
+            std::vector<socket_packet_handler> buf_handlers_;
+
+            /* __sendtov() calls these handlers in order before sending the packet */
+            std::vector<socket_packet_handler> vec_handlers_;
 
 #ifdef _WIN32
             WSABUF buffers_[MAX_BUFFER_COUNT];
