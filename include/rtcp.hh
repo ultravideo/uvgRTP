@@ -193,8 +193,15 @@ namespace uvg_rtp {
             rtp_error_t install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_frame *));
             rtp_error_t install_app_hook(void (*hook)(uvg_rtp::frame::rtcp_app_frame *));
 
-            /* Update RTCP-related session statistics */
-            static rtp_error_t packet_handler(void *arg, int flags, frame::rtp_frame **out);
+            /* Update RTCP-related sender statistics */
+            rtp_error_t update_sender_stats(size_t pkt_size);
+
+            /* Update RTCP-related receiver statistics */
+            static rtp_error_t recv_packet_handler(void *arg, int flags, frame::rtp_frame **out);
+
+            /* Update RTCP-related sender statistics */
+            static rtp_error_t send_packet_handler_buf(void *arg, ssize_t len, void *buf);
+            static rtp_error_t send_packet_handler_vec(void *arg, std::vector<std::pair<size_t, uint8_t *>>& buffers);
 
         private:
             static void rtcp_runner(rtcp *rtcp);
