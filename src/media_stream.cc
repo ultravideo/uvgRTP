@@ -243,7 +243,6 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
 
 rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 {
-#if 0
     if (!key || !salt)
         return RTP_INVALID_VALUE;
 
@@ -253,13 +252,13 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     if ((flags_ & srtp_flags) != srtp_flags)
         return RTP_NOT_SUPPORTED;
 
-    if (init_connection() != RTP_OK) {
-        LOG_ERROR("Failed to initialize the underlying socket: %s!", strerror(errno));
-        return RTP_GENERIC_ERROR;
-    }
-
-    if ((rtp_ = new uvg_rtp::rtp(fmt_)) == nullptr)
+    if (!(pkt_dispatcher_ = new uvg_rtp::pkt_dispatcher()))
         return RTP_MEMORY_ERROR;
+
+    if (!(rtp_ = new uvg_rtp::rtp(fmt_))) {
+        delete pkt_dispatcher_;
+        return RTP_MEMORY_ERROR;
+    }
 
     if ((srtp_ = new uvg_rtp::srtp()) == nullptr)
         return RTP_MEMORY_ERROR;
@@ -269,19 +268,57 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         return ret;
     }
 
+    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_))) {
+        delete rtp_;
+        delete pkt_dispatcher_;
+        return RTP_MEMORY_ERROR;
+    }
+
+    socket_.install_handler(rtcp_, rtcp_->send_packet_handler_buf);
+    socket_.install_handler(rtcp_, rtcp_->send_packet_handler_vec);
+
+    rtp_handler_key_ = pkt_dispatcher_->install_handler(rtp_->packet_handler);
+
+    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler);
+    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler);
+
+    switch (fmt_) {
+        case RTP_FORMAT_HEVC:
+            media_ = new uvg_rtp::formats::hevc(&socket_, rtp_, ctx_config_.flags);
+            pkt_dispatcher_->install_aux_handler(
+                rtp_handler_key_,
+                nullptr,
+                dynamic_cast<uvg_rtp::formats::hevc *>(media_)->packet_handler
+            );
+            break;
+
+        case RTP_FORMAT_OPUS:
+        case RTP_FORMAT_GENERIC:
+            media_ = new uvg_rtp::formats::media(&socket_, rtp_, ctx_config_.flags);
+            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, nullptr, media_->packet_handler);
+            break;
+
+        default:
+            LOG_ERROR("Unknown payload format %u\n", fmt_);
+    }
+
+    if (!media_) {
+        delete rtp_;
+        delete pkt_dispatcher_;
+        return RTP_MEMORY_ERROR;
+    }
+
+    if (ctx_config_.flags & RCE_RTCP) {
+        rtcp_->add_participant(addr_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
+        rtcp_->start();
+    }
+
     if (ctx_config_.flags & RCE_SRTP_AUTHENTICATE_RTP)
         rtp_->set_payload_size(MAX_PAYLOAD - AUTH_TAG_LENGTH);
 
-    socket_.set_srtp(srtp_);
-
-    receiver_ = new uvg_rtp::receiver(socket_, ctx_config_, fmt_, rtp_);
-
-    receiver_->start();
-
     initialized_ = true;
+    return pkt_dispatcher_->start(&socket_, ctx_config_.flags);
 
-    return ret;
-#endif
 }
 #endif
 
