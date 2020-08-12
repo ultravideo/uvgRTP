@@ -207,6 +207,64 @@ rtp_error_t uvg_rtp::srtp::init_user(int type, int flags, uint8_t *key, uint8_t 
     return __init(type, flags);
 }
 
+rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_frame **out)
+{
+    uvg_rtp::srtp *srtp              = (uvg_rtp::srtp *)arg;
+    uvg_rtp::srtp_ctx_t ctx          = srtp->get_ctx();
+    uvg_rtp::frame::rtp_frame *frame = *out;
+
+    if (srtp->use_null_cipher())
+        return RTP_PKT_NOT_HANDLED;
+
+    uint8_t iv[16]  = { 0 };
+    uint16_t seq    = frame->header.seq;
+    uint32_t ssrc   = frame->header.ssrc;
+    uint64_t index  = (((uint64_t)ctx.roc) << 16) + seq;
+    uint64_t digest = 0;
+
+    /* Sequence number has wrapped around, update Roll-over Counter */
+    if (seq == 0xffff)
+        ctx.roc++;
+
+    if (srtp->create_iv(iv, frame->header.ssrc, index, ctx.key_ctx.remote.salt_key) != RTP_OK) {
+        LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
+        return RTP_INVALID_VALUE;
+    }
+
+    uvg_rtp::crypto::aes::ctr ctr(ctx.key_ctx.remote.enc_key, sizeof(ctx.key_ctx.remote.enc_key), iv);
+
+    /* exit early if RTP packet authentication is disabled... */
+    if (!srtp->authenticate_rtp()) {
+        ctr.decrypt(frame->payload, frame->payload, frame->payload_len);
+        return RTP_OK;
+    }
+
+    /* ... otherwise calculate authentication tag for the packet
+     * and compare it against the one we received */
+    auto hmac_sha1 = uvg_rtp::crypto::hmac::sha1(ctx.key_ctx.remote.auth_key, AES_KEY_LENGTH);
+
+    hmac_sha1.update((uint8_t *)frame, frame->payload_len - AUTH_TAG_LENGTH);
+    hmac_sha1.update((uint8_t *)&ctx.roc, sizeof(ctx.roc));
+    hmac_sha1.final((uint8_t *)&digest);
+
+    uint8_t *tmp_buffer = (uint8_t *)frame;
+
+    if (memcmp(&digest, &frame[frame->payload_len - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH)) {
+        LOG_ERROR("Authentication tag mismatch!");
+        return RTP_AUTH_TAG_MISMATCH;
+    }
+
+    size_t size_ = frame->payload_len - sizeof(uvg_rtp::frame::rtp_header) - 8;
+    uint8_t *new_buffer = new uint8_t[size_];
+
+    ctr.decrypt(new_buffer, frame->payload, size_);
+    memset(frame->payload, 0, frame->payload_len);
+    memcpy(frame->payload, new_buffer, size_);
+    delete[] new_buffer;
+
+    return RTP_OK;
+}
+
 rtp_error_t uvg_rtp::srtp::send_packet_handler_buf(void *arg, ssize_t len, void *buf)
 {
     auto srtp = (uvg_rtp::srtp *)arg;

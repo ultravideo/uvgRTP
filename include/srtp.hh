@@ -156,6 +156,9 @@ namespace uvg_rtp {
             /* Get reference to the SRTP context (including session keys) */
             srtp_ctx_t& get_ctx();
 
+            /* Decrypt the payload and verify authentication tag (if enabled) */
+            static rtp_error_t recv_packet_handler(void *arg, int flags, frame::rtp_frame **out);
+
             /* Encrypt the payload and add authentication tag (if enabled) */
             static rtp_error_t send_packet_handler_buf(void *arg, ssize_t len, void *buf);
             static rtp_error_t send_packet_handler_vec(void *arg, std::vector<std::pair<size_t, uint8_t *>>& buffers);
