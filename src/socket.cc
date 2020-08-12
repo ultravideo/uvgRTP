@@ -22,9 +22,6 @@ using namespace mingw;
 #include "util.hh"
 
 uvg_rtp::socket::socket(int flags):
-    recv_handler_(nullptr),
-    sendto_handler_(nullptr),
-    sendtov_handler_(nullptr),
     socket_(-1),
     srtp_(nullptr),
     flags_(flags)
@@ -175,33 +172,21 @@ rtp_error_t uvg_rtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t bu
 
 rtp_error_t uvg_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags)
 {
-    if (sendto_handler_)
-        return sendto_handler_(socket_, addr_, buf, buf_len, flags, nullptr);
-
     return __sendto(addr_, buf, buf_len, flags, nullptr);
 }
 
 rtp_error_t uvg_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
 {
-    if (sendto_handler_)
-        return sendto_handler_(socket_, addr_, buf, buf_len, flags, bytes_sent);
-
     return __sendto(addr_, buf, buf_len, flags, bytes_sent);
 }
 
 rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
 {
-    if (sendto_handler_)
-        return sendto_handler_(socket_, addr, buf, buf_len, flags, bytes_sent);
-
     return __sendto(addr, buf, buf_len, flags, bytes_sent);
 }
 
 rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags)
 {
-    if (sendto_handler_)
-        return sendto_handler_(socket_, addr, buf, buf_len, flags, nullptr);
-
     return __sendto(addr, buf, buf_len, flags, nullptr);
 }
 
@@ -276,25 +261,16 @@ rtp_error_t uvg_rtp::socket::__sendtov(
 
 rtp_error_t uvg_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags)
 {
-    if (sendtov_handler_)
-        return sendtov_handler_(socket_, addr_, buffers, flags, nullptr);
-
     return __sendtov(addr_, buffers, flags, nullptr);
 }
 
 rtp_error_t uvg_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent)
 {
-    if (sendtov_handler_)
-        return sendtov_handler_(socket_, addr_, buffers, flags, bytes_sent);
-
     return __sendtov(addr_, buffers, flags, bytes_sent);
 }
 
 rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags)
 {
-    if (sendtov_handler_)
-        return sendtov_handler_(socket_, addr, buffers, flags, nullptr);
-
     return __sendtov(addr, buffers, flags, nullptr);
 }
 
@@ -304,9 +280,6 @@ rtp_error_t uvg_rtp::socket::sendto(
     int flags, int *bytes_sent
 )
 {
-    if (sendtov_handler_)
-        return sendtov_handler_(socket_, addr, buffers, flags, bytes_sent);
-
     return __sendtov(addr, buffers, flags, bytes_sent);
 }
 
@@ -483,58 +456,22 @@ rtp_error_t uvg_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags,
 
 rtp_error_t uvg_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read)
 {
-    if (recv_handler_)
-        return recv_handler_(socket_, buf, buf_len, flags, sender, bytes_read);
-
     return __recvfrom(buf, buf_len, flags, sender, bytes_read);
 }
 
 rtp_error_t uvg_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
 {
-    if (recv_handler_)
-        return recv_handler_(socket_, buf, buf_len, flags, nullptr, bytes_read);
-
     return __recvfrom(buf, buf_len, flags, nullptr, bytes_read);
 }
 
 rtp_error_t uvg_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender)
 {
-    if (recv_handler_)
-        return recv_handler_(socket_, buf, buf_len, flags, sender, nullptr);
-
     return __recvfrom(buf, buf_len, flags, sender, nullptr);
 }
 
 rtp_error_t uvg_rtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags)
 {
-    if (recv_handler_)
-        return recv_handler_(socket_, buf, buf_len, flags, nullptr, nullptr);
-
     return __recvfrom(buf, buf_len, flags, nullptr, nullptr);
-}
-
-void uvg_rtp::socket::install_ll_recv(
-    rtp_error_t (*recv)(socket_t, uint8_t *, size_t , int , sockaddr_in *, int *)
-)
-{
-    assert(recv != nullptr);
-    recv_handler_ = recv;
-}
-
-void uvg_rtp::socket::install_ll_sendto(
-    rtp_error_t (*sendto)(socket_t, sockaddr_in&, uint8_t *, size_t, int, int *)
-)
-{
-    assert(sendto != nullptr);
-    sendto_handler_ = sendto;
-}
-
-void uvg_rtp::socket::install_ll_sendtov(
-    rtp_error_t (*sendtov)(socket_t, sockaddr_in&, std::vector<std::pair<size_t, uint8_t *>>, int, int *)
-)
-{
-    assert(sendtov != nullptr);
-    sendtov_handler_ = sendtov;
 }
 
 sockaddr_in& uvg_rtp::socket::get_out_address()
