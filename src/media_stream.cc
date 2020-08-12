@@ -116,14 +116,18 @@ rtp_error_t uvg_rtp::media_stream::init()
         return RTP_MEMORY_ERROR;
     }
 
+    socket_.install_handler(rtcp_, rtcp_->send_packet_handler_buf);
+    socket_.install_handler(rtcp_, rtcp_->send_packet_handler_vec);
+
     rtp_handler_key_ = pkt_dispatcher_->install_handler(rtp_->packet_handler);
-    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_->packet_handler);
+    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler);
 
     switch (fmt_) {
         case RTP_FORMAT_HEVC:
             media_ = new uvg_rtp::formats::hevc(&socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
+                nullptr,
                 dynamic_cast<uvg_rtp::formats::hevc *>(media_)->packet_handler
             );
             break;
@@ -131,7 +135,7 @@ rtp_error_t uvg_rtp::media_stream::init()
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
             media_ = new uvg_rtp::formats::media(&socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, media_->packet_handler);
+            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, nullptr, media_->packet_handler);
             break;
 
         default:
@@ -144,8 +148,10 @@ rtp_error_t uvg_rtp::media_stream::init()
         return RTP_MEMORY_ERROR;
     }
 
-    if (ctx_config_.flags & RCE_RTCP)
+    if (ctx_config_.flags & RCE_RTCP) {
+        rtcp_->add_participant(addr_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
         rtcp_->start();
+    }
 
     initialized_ = true;
     return pkt_dispatcher_->start(&socket_, ctx_config_.flags);

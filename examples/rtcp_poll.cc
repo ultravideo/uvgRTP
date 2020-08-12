@@ -35,9 +35,6 @@ int main(void)
     uvg_rtp::media_stream *s1 = sess->create_stream(7777, 8888, RTP_FORMAT_GENERIC, RTP_NO_FLAGS);
     uvg_rtp::media_stream *s2 = sess->create_stream(8888, 7777, RTP_FORMAT_GENERIC, RTP_NO_FLAGS);
 
-    s1->create_rtcp(7778, 8889);
-    s2->create_rtcp(8889, 7778);
-
     /* Create separate thread for polling the RTCP packets. In this example,
      * we only create thread for RTCP Receiver Reports (so for RTP Sender).
      *
