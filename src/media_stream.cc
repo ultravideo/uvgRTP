@@ -116,8 +116,11 @@ rtp_error_t uvg_rtp::media_stream::init()
         return RTP_MEMORY_ERROR;
     }
 
+    socket_.install_handler(rtcp_, rtcp_->send_packet_handler_buf);
+    socket_.install_handler(rtcp_, rtcp_->send_packet_handler_vec);
+
     rtp_handler_key_ = pkt_dispatcher_->install_handler(rtp_->packet_handler);
-    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->packet_handler);
+    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler);
 
     switch (fmt_) {
         case RTP_FORMAT_HEVC:

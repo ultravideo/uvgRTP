@@ -251,6 +251,17 @@ rtp_error_t uvg_rtp::rtcp::init_new_participant(uvg_rtp::frame::rtp_frame *frame
     return ret;
 }
 
+rtp_error_t uvg_rtp::rtcp::update_sender_stats(size_t pkt_size)
+{
+    if (our_role_ == RECEIVER)
+        our_role_ = SENDER;
+
+    our_stats.sent_pkts  += 1;
+    our_stats.sent_bytes += pkt_size;
+
+    return RTP_OK;
+}
+
 rtp_error_t uvg_rtp::rtcp::init_participant_seq(uint32_t ssrc, uint16_t base_seq)
 {
     if (participants_.find(ssrc) == participants_.end())
@@ -398,7 +409,7 @@ void uvg_rtp::rtcp::update_session_statistics(uvg_rtp::frame::rtp_frame *frame)
  *   have been received.
  * - it keeps track of participants' SSRCs and if a collision
  *   is detected, the RTP context is updated */
-rtp_error_t uvg_rtp::rtcp::packet_handler(void *arg, int flags, frame::rtp_frame **out)
+rtp_error_t uvg_rtp::rtcp::recv_packet_handler(void *arg, int flags, frame::rtp_frame **out)
 {
     (void)flags;
 
@@ -425,6 +436,24 @@ rtp_error_t uvg_rtp::rtcp::packet_handler(void *arg, int flags, frame::rtp_frame
     /* Even though RTCP collects information from the packet, this is not the packet's final destination.
      * Thus return RTP_PKT_NOT_HANDLED to indicate that the packet should be passed on to other handlers */
     return RTP_PKT_NOT_HANDLED;
+}
+
+rtp_error_t uvg_rtp::rtcp::send_packet_handler_buf(void *arg, ssize_t len, void *buf)
+{
+    return ((uvg_rtp::rtcp *)arg)->update_sender_stats(len - uvg_rtp::frame::HEADER_SIZE_RTP);
+}
+
+rtp_error_t uvg_rtp::rtcp::send_packet_handler_vec(void *arg, std::vector<std::pair<size_t, uint8_t *>>& buffers)
+{
+    ssize_t pkt_size = -uvg_rtp::frame::HEADER_SIZE_RTP;
+
+    for (auto& buffer : buffers)
+        pkt_size += buffer.first;
+
+    if (pkt_size < 0)
+        return RTP_INVALID_VALUE;
+
+    return ((uvg_rtp::rtcp *)arg)->update_sender_stats(pkt_size);
 }
 
 rtp_error_t uvg_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
