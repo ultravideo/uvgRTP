@@ -15,7 +15,7 @@ namespace uvg_rtp {
 
     class connection;
 
-    enum ROLE {
+    enum RTCP_ROLE {
         RECEIVER,
         SENDER
     };

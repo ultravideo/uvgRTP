@@ -19,7 +19,7 @@
 
 namespace uvg_rtp {
 
-    enum ROLE {
+    enum ZRTP_ROLE {
         INITIATOR,
         RESPONDER
     };
