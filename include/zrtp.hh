@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "crypto.hh"
+#include "frame.hh"
 #include "mzrtp/defines.hh"
 #include "mzrtp/receiver.hh"
 
@@ -182,6 +183,16 @@ namespace uvg_rtp {
                 uint8_t *our_msalt,   size_t osalt_len,
                 uint8_t *their_msalt, size_t tsalt_len
             );
+
+            /* ZRTP packet handler is used after ZRTP state initialization has finished
+             * and media exchange has started. RTP packet dispatcher gives the packet
+             * to "zrtp_handler" which then checks whether the packet is a ZRTP packet
+             * or not and processes it accordingly.
+             *
+             * Return RTP_OK on success
+             * Return RTP_PKT_NOT_HANDLED if "buffer" does not contain a ZRTP message
+             * Return RTP_GENERIC_ERROR if "buffer" contains an invalid ZRTP message */
+            static rtp_error_t packet_handler(ssize_t size, void *packet, int flags, frame::rtp_frame **out);
 
         private:
             /* Initialize ZRTP session between us and remote using Diffie-Hellman Mode

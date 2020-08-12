@@ -43,6 +43,25 @@ namespace uvg_rtp {
             ZRTP_FT_PING_ACK  = 13
         };
 
+        enum ZRTP_MSG_TYPE {
+            ZRTP_MSG_HELLO     = 0x2020206f6c6c6548,
+            ZRTP_MSG_HELLO_ACK = 0x4b43416f6c6c6548,
+            ZRTP_MSG_COMMIT    = 0x202074696d6d6f43,
+            ZRTP_MSG_DH_PART1  = 0x2031747261504844,
+            ZRTP_MSG_DH_PART2  = 0x2032747261504844,
+            ZRTP_MSG_CONFIRM1  = 0x316d7269666e6f43,
+            ZRTP_MSG_CONFIRM2  = 0x326d7269666e6f43,
+            ZRTP_MSG_CONF2_ACK = 0x4b434132666e6f43,
+            ZRTP_MSG_ERROR     = 0x202020726f727245,
+            ZRTP_MSG_ERROR_ACK = 0x4b4341726f727245,
+            ZRTP_MSG_GO_CLEAR  = 0x207261656c436f47,
+            ZRTP_MSG_CLEAR_ACK = 0x4b43417261656c43,
+            ZRTP_MSG_SAS_RELAY = 0x79616c6572534153,
+            ZRTP_MSG_RELAY_ACK = 0x4b434179616c6552,
+            ZRTP_MSG_PING      = 0x20202020676e6950,
+            ZRTP_MSG_PING_ACK  = 0x204b4341676e6950,
+        };
+
         enum MAGIC {
             ZRTP_HEADER_MAGIC = 0x5a525450,
             ZRTP_MSG_MAGIC    = 0x0000505a,

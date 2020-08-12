@@ -25,25 +25,6 @@
 
 using namespace uvg_rtp::zrtp_msg;
 
-enum MSG_TYPES {
-    ZRTP_MSG_HELLO     = 0x2020206f6c6c6548,
-    ZRTP_MSG_HELLO_ACK = 0x4b43416f6c6c6548,
-    ZRTP_MSG_COMMIT    = 0x202074696d6d6f43,
-    ZRTP_MSG_DH_PART1  = 0x2031747261504844,
-    ZRTP_MSG_DH_PART2  = 0x2032747261504844,
-    ZRTP_MSG_CONFIRM1  = 0x316d7269666e6f43,
-    ZRTP_MSG_CONFIRM2  = 0x326d7269666e6f43,
-    ZRTP_MSG_CONF2_ACK = 0x4b434132666e6f43,
-    ZRTP_MSG_ERROR     = 0x202020726f727245,
-    ZRTP_MSG_ERROR_ACK = 0x4b4341726f727245,
-    ZRTP_MSG_GO_CLEAR  = 0x207261656c436f47,
-    ZRTP_MSG_CLEAR_ACK = 0x4b43417261656c43,
-    ZRTP_MSG_SAS_RELAY = 0x79616c6572534153,
-    ZRTP_MSG_RELAY_ACK = 0x4b434179616c6552,
-    ZRTP_MSG_PING      = 0x20202020676e6950,
-    ZRTP_MSG_PING_ACK  = 0x204b4341676e6950,
-};
-
 uvg_rtp::zrtp_msg::receiver::receiver()
 {
     mem_ = new uint8_t[1024];
@@ -217,46 +198,4 @@ ssize_t uvg_rtp::zrtp_msg::receiver::get_msg(void *ptr, size_t len)
     return rlen_;
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::receiver::zrtp_handler(ssize_t size, void *buffer)
-{
-    zrtp_msg *msg = (zrtp_msg *)buffer;
-
-    /* not a ZRTP packet */
-    if (msg->header.version || msg->header.magic != ZRTP_HEADER_MAGIC || msg->magic != ZRTP_MSG_MAGIC)
-        return RTP_PKT_NOT_HANDLED;
-
-    switch (msg->msgblock) {
-        /* None of these messages should be received by this stream
-         * during this stage so return RTP_GENERIC_ERROR to indicate that the packet
-         * is invalid and that it should not be dispatched to other packet handlers */
-        case ZRTP_MSG_HELLO:
-        case ZRTP_MSG_HELLO_ACK:
-        case ZRTP_MSG_COMMIT:
-        case ZRTP_MSG_DH_PART1:
-        case ZRTP_MSG_DH_PART2:
-        case ZRTP_MSG_CONFIRM1:
-        case ZRTP_MSG_CONFIRM2:
-        case ZRTP_MSG_CONF2_ACK:
-            return RTP_GENERIC_ERROR;
-
-        case ZRTP_MSG_ERROR:
-            /* TODO:  */
-            return RTP_OK;
-
-        case ZRTP_MSG_ERROR_ACK:
-            /* TODO:  */
-            return RTP_OK;
-
-        case ZRTP_MSG_SAS_RELAY:
-            return RTP_OK;
-
-        case ZRTP_MSG_RELAY_ACK:
-            return RTP_OK;
-
-        case ZRTP_MSG_PING_ACK:
-            return RTP_OK;
-
-            /* TODO: goclear & co-opeartion with srtp */
-    }
-}
 #endif
