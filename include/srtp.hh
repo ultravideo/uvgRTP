@@ -127,21 +127,8 @@ namespace uvg_rtp {
              * Return RTP_MEMORY allocation failed */
             rtp_error_t init_user(int type, int flags, uint8_t *key, uint8_t *salt);
 
-            /* Encrypt the payload of "frame" using the private session key
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "frame" is nullptr
-             * Return RTP_NOT_INITIALIZED if SRTP has not been initialized */
-            rtp_error_t encrypt(uvg_rtp::frame::rtp_frame *frame);
-
-            /* Encrypt the payload of "buffers" vector using the private session key
-             * The payload that is encrypted is the last buffer of "buffers" and the
-             * RTP header is the first" buffer of "buffers"
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "frame" is nullptr
-             * Return RTP_NOT_INITIALIZED if SRTP has not been initialized */
-            rtp_error_t encrypt(std::vector<std::pair<size_t, uint8_t *>>& buffers);
+            /* TODO:  */
+            rtp_error_t encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len);
 
             /* Decrypt the payload payload of "frame" using the private session key
              *
@@ -159,6 +146,19 @@ namespace uvg_rtp {
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "frame" is nullptr or if authentication failed */
             rtp_error_t authenticate(uvg_rtp::frame::rtp_frame *frame);
+
+            /* Has RTP packet encryption been disabled? */
+            bool use_null_cipher();
+
+            /* Has RTP packet authentication been enabled? */
+            bool authenticate_rtp();
+
+            /* Get reference to the SRTP context (including session keys) */
+            srtp_ctx_t& get_ctx();
+
+            /* Encrypt the payload and add authentication tag (if enabled) */
+            static rtp_error_t send_packet_handler_buf(void *arg, ssize_t len, void *buf);
+            static rtp_error_t send_packet_handler_vec(void *arg, std::vector<std::pair<size_t, uint8_t *>>& buffers);
 #endif
 
         private:
@@ -172,7 +172,7 @@ namespace uvg_rtp {
             rtp_error_t create_iv(uint8_t *out, uint32_t ssrc, uint64_t index, uint8_t *salt);
 
             /* Internal encrypt method that takes only the necessary variables and encrypts "buffer" */
-            rtp_error_t __encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len);
+            /* rtp_error_t __encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len); */
 
             /* Internal init method that initialize the SRTP context using values in key_ctx_.master */
             rtp_error_t __init(int type, int flags);

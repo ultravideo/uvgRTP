@@ -265,17 +265,6 @@ rtp_error_t uvg_rtp::socket::__sendtov(
 #ifdef __linux__
     int sent_bytes = 0;
 
-#ifdef __RTP_CRYPTO__
-    if (srtp_) {
-        auto ret = srtp_->encrypt(buffers);
-
-        if (ret != RTP_OK) {
-            LOG_ERROR("Failed to encrypt RTP packet!");
-            return ret;
-        }
-    }
-#endif
-
     for (size_t i = 0; i < buffers.size(); ++i) {
         chunks_[i].iov_len  = buffers.at(i).first;
         chunks_[i].iov_base = buffers.at(i).second;
