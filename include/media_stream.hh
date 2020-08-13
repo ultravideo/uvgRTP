@@ -174,10 +174,10 @@ namespace uvg_rtp {
 
             uint32_t key_;
 
-            uvg_rtp::srtp       *srtp_;
-            uvg_rtp::socket     socket_;
-            uvg_rtp::rtp        *rtp_;
-            uvg_rtp::rtcp       *rtcp_;
+            uvg_rtp::srtp   *srtp_;
+            uvg_rtp::socket *socket_;
+            uvg_rtp::rtp    *rtp_;
+            uvg_rtp::rtcp   *rtcp_;
 
             sockaddr_in addr_out_;
             std::string addr_;
