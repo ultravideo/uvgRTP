@@ -53,6 +53,9 @@ uvg_rtp::media_stream::~media_stream()
 {
     pkt_dispatcher_->stop();
 
+    if (ctx_config_.flags & RCE_RTCP)
+        rtcp_->stop();
+
     delete socket_;
     delete rtcp_;
     delete rtp_;
