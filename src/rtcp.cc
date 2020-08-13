@@ -440,6 +440,8 @@ rtp_error_t uvg_rtp::rtcp::recv_packet_handler(void *arg, int flags, frame::rtp_
 
 rtp_error_t uvg_rtp::rtcp::send_packet_handler_buf(void *arg, ssize_t len, void *buf)
 {
+    (void)buf;
+
     return ((uvg_rtp::rtcp *)arg)->update_sender_stats(len - uvg_rtp::frame::HEADER_SIZE_RTP);
 }
 

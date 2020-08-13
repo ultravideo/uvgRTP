@@ -13,7 +13,7 @@ namespace uvg_rtp {
 
     namespace zrtp_msg {
 
-        struct zrtp_dh {
+        PACKED_STRUCT(zrtp_dh) {
             zrtp_msg msg_start;
             uint32_t hash[8];
             uint8_t rs1_id[8];

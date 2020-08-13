@@ -817,6 +817,8 @@ rtp_error_t uvg_rtp::zrtp::get_srtp_keys(
 
 rtp_error_t uvg_rtp::zrtp::packet_handler(ssize_t size, void *packet, int flags, frame::rtp_frame **out)
 {
+    (void)size, (void)flags, (void)out;
+
     auto msg = (uvg_rtp::zrtp_msg::zrtp_msg *)packet;
 
     /* not a ZRTP packet */
@@ -856,5 +858,7 @@ rtp_error_t uvg_rtp::zrtp::packet_handler(ssize_t size, void *packet, int flags,
 
             /* TODO: goclear & co-opeartion with srtp */
     }
+
+    return RTP_OK;
 }
 #endif

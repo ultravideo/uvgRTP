@@ -209,6 +209,8 @@ rtp_error_t uvg_rtp::srtp::init_user(int type, int flags, uint8_t *key, uint8_t 
 
 rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_frame **out)
 {
+    (void)flags;
+
     uvg_rtp::srtp *srtp              = (uvg_rtp::srtp *)arg;
     uvg_rtp::srtp_ctx_t ctx          = srtp->get_ctx();
     uvg_rtp::frame::rtp_frame *frame = *out;
@@ -226,7 +228,7 @@ rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_
     if (seq == 0xffff)
         ctx.roc++;
 
-    if (srtp->create_iv(iv, frame->header.ssrc, index, ctx.key_ctx.remote.salt_key) != RTP_OK) {
+    if (srtp->create_iv(iv, ssrc, index, ctx.key_ctx.remote.salt_key) != RTP_OK) {
         LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
         return RTP_INVALID_VALUE;
     }
@@ -246,8 +248,6 @@ rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_
     hmac_sha1.update((uint8_t *)frame, frame->payload_len - AUTH_TAG_LENGTH);
     hmac_sha1.update((uint8_t *)&ctx.roc, sizeof(ctx.roc));
     hmac_sha1.final((uint8_t *)&digest);
-
-    uint8_t *tmp_buffer = (uint8_t *)frame;
 
     if (memcmp(&digest, &frame[frame->payload_len - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH)) {
         LOG_ERROR("Authentication tag mismatch!");
