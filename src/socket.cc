@@ -23,7 +23,6 @@ using namespace mingw;
 
 uvg_rtp::socket::socket(int flags):
     socket_(-1),
-    srtp_(nullptr),
     flags_(flags)
 {
 }
@@ -123,11 +122,6 @@ sockaddr_in uvg_rtp::socket::create_sockaddr(short family, std::string host, sho
 void uvg_rtp::socket::set_sockaddr(sockaddr_in addr)
 {
     addr_ = addr;
-}
-
-void uvg_rtp::socket::set_srtp(uvg_rtp::srtp *srtp)
-{
-    srtp_ = srtp;
 }
 
 socket_t& uvg_rtp::socket::get_raw_socket()
@@ -284,11 +278,6 @@ rtp_error_t uvg_rtp::socket::__sendtov(
         set_bytes(bytes_sent, -1);
         return RTP_SEND_ERROR;
     }
-
-#ifdef __RTP_CRYPTO__
-    if (srtp_ && flags_ & RCE_SRTP_AUTHENTICATE_RTP)
-        delete buffers.at(buffers.size() - 1).second;
-#endif
 
     set_bytes(bytes_sent, sent_bytes);
     return RTP_OK;
@@ -508,17 +497,6 @@ rtp_error_t uvg_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags,
         set_bytes(bytes_read, -1);
         return RTP_GENERIC_ERROR;
     }
-
-#ifdef __RTP_CRYPTO__
-    if (srtp_) {
-        auto status = srtp_->decrypt(buf, (size_t)ret);
-
-        if (status != RTP_OK) {
-            LOG_ERROR("Failed to encrypt RTP packet!");
-            return status;
-        }
-    }
-#endif
 
     set_bytes(bytes_read, ret);
     return RTP_OK;

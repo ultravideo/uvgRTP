@@ -144,9 +144,6 @@ namespace uvg_rtp {
              * This is used when calling send() */
             void set_sockaddr(sockaddr_in addr);
 
-            /* TODO:  */
-            void set_srtp(uvg_rtp::srtp *srtp);
-
             /* Get the out address for the socket if it exists */
             sockaddr_in& get_out_address();
 
@@ -171,7 +168,6 @@ namespace uvg_rtp {
 
             socket_t socket_;
             sockaddr_in addr_;
-            uvg_rtp::srtp *srtp_;
             int flags_;
 
             /* __sendto() calls these handlers in order before sending the packet*/
