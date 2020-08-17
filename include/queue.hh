@@ -96,9 +96,7 @@ namespace uvg_rtp {
 
     class frame_queue {
         public:
-            /* frame_queue(rtp_format_t fmt); */
-            /* frame_queue(rtp_format_t fmt, uvg_rtp::dispatcher *dispatcher); */
-            frame_queue(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp);
+            frame_queue(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags);
             ~frame_queue();
 
             rtp_error_t init_transaction();

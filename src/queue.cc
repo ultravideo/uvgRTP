@@ -14,25 +14,8 @@
 
 #include "formats/hevc.hh"
 
-/* uvg_rtp::frame_queue::frame_queue(rtp_format_t fmt): */
-/*     active_(nullptr), fmt_(fmt), dealloc_hook_(nullptr) */
-/* { */
-/*     active_     = nullptr; */
-/*     dispatcher_ = nullptr; */
-
-/*     max_queued_ = MAX_QUEUED_MSGS; */
-/*     max_mcount_ = MAX_MSG_COUNT; */
-/*     max_ccount_ = MAX_CHUNK_COUNT * max_mcount_; */
-/* } */
-
-/* uvg_rtp::frame_queue::frame_queue(rtp_format_t fmt, uvg_rtp::dispatcher *dispatcher): */
-/*     frame_queue(fmt) */
-/* { */
-/*     dispatcher_ = dispatcher; */
-/* } */
-
-uvg_rtp::frame_queue::frame_queue(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp):
-    rtp_(rtp), socket_(socket)
+uvg_rtp::frame_queue::frame_queue(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):
+    rtp_(rtp), socket_(socket), flags_(flags)
 {
     active_     = nullptr;
     dispatcher_ = nullptr;
