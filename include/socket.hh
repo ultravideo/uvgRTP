@@ -18,12 +18,11 @@
 
 namespace uvg_rtp {
 
-#ifdef _WIN32
-    typedef unsigned socklen_t;
-    typedef TRANSMIT_PACKETS_ELEMENT vecio_buf;
-#else
-    typedef mmsghdr vecio_buf;
-#endif
+    /* Vector of buffers that contain a full RTP frame */
+    typedef std::vector<std::pair<size_t, uint8_t *>> buf_vec;
+
+    /* Vector of RTP frames constructed from buf_vec entries */
+    typedef std::vector<std::vector<std::pair<size_t, uint8_t *>>> pkt_vec;
 
     const int MAX_BUFFER_COUNT = 256;
 
@@ -76,35 +75,18 @@ namespace uvg_rtp {
              * Return RTP_SEND_ERROR on error and set "bytes_sent" to -1 */
             rtp_error_t sendto(uint8_t *buf, size_t buf_len, int flags);
             rtp_error_t sendto(uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
-            rtp_error_t sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags);
-            rtp_error_t sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent);
+            rtp_error_t sendto(buf_vec& buffers, int flags);
+            rtp_error_t sendto(buf_vec& buffers, int flags, int *bytes_sent);
+            rtp_error_t sendto(pkt_vec& buffers, int flags);
+            rtp_error_t sendto(pkt_vec& buffers, int flags, int *bytes_sent);
 
             /* Same as sendto() but the remote address given as parameter */
             rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags);
             rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
-            rtp_error_t sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags);
-            rtp_error_t sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent);
-
-            /* Special sendto() function, used to send multiple UDP packets with one system call
-             * Internally it uses sendmmsg(2) (Linux) or TransmitPackets (Windows)
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if one of the parameters is invalid
-             * Return RTP_SEND_ERROR if sendmmsg/TransmitPackets failed */
-            rtp_error_t send_vecio(vecio_buf *buffers, size_t nbuffers, int flags);
-
-            /* Special recv() function, used to receive multiple UDP packets with one system call
-             * Internally it uses recvmmsg(2) (Linux).
-             *
-             * TODO what about windows?
-             *
-             * Parameter "nread" is used to indicate how many packet were read from the OS.
-             * It may differ from "nbuffers"
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if one of the parameters is invalid
-             * Return RTP_SEND_ERROR if sendmmsg/TransmitPackets failed */
-            rtp_error_t recv_vecio(vecio_buf *buffers, size_t nbuffers, int flags, int *nread);
+            rtp_error_t sendto(sockaddr_in& addr, buf_vec& buffers, int flags);
+            rtp_error_t sendto(sockaddr_in& addr, buf_vec& buffers, int flags, int *bytes_sent);
+            rtp_error_t sendto(sockaddr_in& addr, pkt_vec& buffers, int flags);
+            rtp_error_t sendto(sockaddr_in& addr, pkt_vec& buffers, int flags, int *bytes_sent);
 
             /* Same as recv(2), receives a message from socket (remote address not known)
              *
@@ -164,7 +146,8 @@ namespace uvg_rtp {
             rtp_error_t __recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read);
 
             /* __sendtov() does the same as __sendto but it combines multiple buffers into one frame and sends them */
-            rtp_error_t __sendtov(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent);
+            rtp_error_t __sendtov(sockaddr_in& addr, buf_vec& buffers, int flags, int *bytes_sent);
+            rtp_error_t __sendtov(sockaddr_in& addr, uvg_rtp::pkt_vec& buffers, int flags, int *bytes_sent);
 
             socket_t socket_;
             sockaddr_in addr_;

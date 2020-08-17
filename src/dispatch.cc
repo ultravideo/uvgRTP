@@ -98,7 +98,7 @@ void uvg_rtp::dispatcher::dispatch_runner(uvg_rtp::dispatcher *dispatcher, uvg_r
         }
 
         do {
-            socket->send_vecio(t->headers, t->hdr_ptr, 0);
+            /* socket->send_vecio(t->headers, t->hdr_ptr, 0); */
 
             if (t->fqueue)
                 t->fqueue->deinit_transaction(t->key);
