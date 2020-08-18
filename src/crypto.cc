@@ -249,6 +249,17 @@ void uvg_rtp::crypto::crc32::get_crc32(uint8_t *input, size_t len, uint32_t *out
     crc32.TruncatedFinal((uint8_t *)output, sizeof(uint32_t));
 }
 
+uint32_t uvg_rtp::crypto::crc32::calculate_crc32(uint8_t *input, size_t len)
+{
+    CryptoPP::CRC32 crc32;
+    uint32_t out;
+
+    crc32.Update(input, len);
+    crc32.TruncatedFinal((uint8_t *)&out, sizeof(uint32_t));
+
+    return out;
+}
+
 bool uvg_rtp::crypto::crc32::verify_crc32(uint8_t *input, size_t len, uint32_t old_crc)
 {
     CryptoPP::CRC32 crc32;

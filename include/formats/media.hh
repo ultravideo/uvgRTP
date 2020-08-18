@@ -4,6 +4,7 @@
 
 #include "../rtp.hh"
 #include "../socket.hh"
+#include "../queue.hh"
 #include "../util.hh"
 
 namespace uvg_rtp {
@@ -41,6 +42,7 @@ namespace uvg_rtp {
                 uvg_rtp::socket *socket_;
                 uvg_rtp::rtp *rtp_ctx_;
                 int flags_;
+                uvg_rtp::frame_queue *fqueue_;
         };
     };
 };

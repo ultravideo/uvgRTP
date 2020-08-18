@@ -14,25 +14,8 @@
 
 #include "formats/hevc.hh"
 
-/* uvg_rtp::frame_queue::frame_queue(rtp_format_t fmt): */
-/*     active_(nullptr), fmt_(fmt), dealloc_hook_(nullptr) */
-/* { */
-/*     active_     = nullptr; */
-/*     dispatcher_ = nullptr; */
-
-/*     max_queued_ = MAX_QUEUED_MSGS; */
-/*     max_mcount_ = MAX_MSG_COUNT; */
-/*     max_ccount_ = MAX_CHUNK_COUNT * max_mcount_; */
-/* } */
-
-/* uvg_rtp::frame_queue::frame_queue(rtp_format_t fmt, uvg_rtp::dispatcher *dispatcher): */
-/*     frame_queue(fmt) */
-/* { */
-/*     dispatcher_ = dispatcher; */
-/* } */
-
-uvg_rtp::frame_queue::frame_queue(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp):
-    rtp_(rtp), socket_(socket)
+uvg_rtp::frame_queue::frame_queue(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):
+    rtp_(rtp), socket_(socket), flags_(flags)
 {
     active_     = nullptr;
     dispatcher_ = nullptr;
@@ -86,14 +69,20 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction()
         free_.pop_back();
     }
 
-    active_->chunk_ptr  = 0;
-    active_->hdr_ptr    = 0;
-    active_->rtphdr_ptr = 0;
-    active_->fqueue     = this;
+    active_->chunk_ptr   = 0;
+    active_->hdr_ptr     = 0;
+    active_->rtphdr_ptr  = 0;
+    active_->rtpauth_ptr = 0;
+    active_->fqueue      = this;
 
     active_->data_raw     = nullptr;
     active_->data_smart   = nullptr;
     active_->dealloc_hook = dealloc_hook_;
+
+    if (flags_ & RCE_SRTP_AUTHENTICATE_RTP)
+        active_->rtp_auth_tags = new uint64_t[max_mcount_];
+    else
+        active_->rtp_auth_tags = nullptr;
 
     active_->out_addr = socket_->get_out_address();
     rtp_->fill_header((uint8_t *)&active_->rtp_common);
@@ -142,6 +131,7 @@ rtp_error_t uvg_rtp::frame_queue::destroy_transaction(uvg_rtp::transaction_t *t)
     delete[] t->headers;
     delete[] t->chunks;
     delete[] t->rtp_headers;
+    delete[] t->rtp_auth_tags;
 
     t->headers     = nullptr;
     t->chunks      = nullptr;
@@ -202,6 +192,7 @@ rtp_error_t uvg_rtp::frame_queue::deinit_transaction(uint32_t key)
                 break;
         }
 
+        delete[] transaction_it->second->rtp_auth_tags;
         delete[] transaction_it->second->headers;
         delete[] transaction_it->second->chunks;
         delete[] transaction_it->second->rtp_headers;
@@ -229,35 +220,28 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(uint8_t *message, size_t messa
     if (!message || !message_len)
         return RTP_INVALID_VALUE;
 
-#ifdef __linux__
-    if (active_->chunk_ptr + 2 >= (size_t)max_ccount_ || active_->hdr_ptr + 1 >= (size_t)max_mcount_) {
-        LOG_ERROR("maximum amount of chunks (%zu) or messages (%zu) exceeded!", active_->chunk_ptr, active_->hdr_ptr);
-        return RTP_MEMORY_ERROR;
-    }
+    /* Create buffer vector where the full packet is constructed
+     * and which is then pushed to "active_"'s pkt_vec structure */
+    uvg_rtp::buf_vec tmp;
 
     /* update the RTP header at "rtpheaders_ptr_" */
     uvg_rtp::frame_queue::update_rtp_header();
 
-    active_->chunks[active_->chunk_ptr + 0].iov_base = &active_->rtp_headers[active_->rtphdr_ptr];
-    active_->chunks[active_->chunk_ptr + 0].iov_len  = sizeof(active_->rtp_headers[active_->rtphdr_ptr]);
+    /* Push RTP header first and then push all payload buffers */
+    tmp.push_back({
+        sizeof(active_->rtp_headers[active_->rtphdr_ptr]),
+        (uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr++]
+    });
 
-    active_->chunks[active_->chunk_ptr + 1].iov_base = message;
-    active_->chunks[active_->chunk_ptr + 1].iov_len  = message_len;
+    if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
+        tmp.push_back({
+            sizeof(uint64_t),
+            (uint8_t *)&active_->rtp_auth_tags[active_->rtpauth_ptr++]
+        });
+    }
 
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_name       = (void *)&active_->out_addr;
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_namelen    = sizeof(active_->out_addr);
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_iov        = &active_->chunks[active_->chunk_ptr];
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_iovlen     = 2;
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_control    = 0;
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_controllen = 0;
-
-    active_->rtphdr_ptr += 1;
-    active_->chunk_ptr  += 2;
-    active_->hdr_ptr    += 1;
-#else
-    /* TODO: winsock stuff */
-#endif
-
+    tmp.push_back({ message_len, message });
+    active_->packets.push_back(tmp);
     rtp_->inc_sequence();
     rtp_->inc_sent_pkts();
 
@@ -269,37 +253,30 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, 
     if (!buffers.size())
         return RTP_INVALID_VALUE;
 
-#ifdef __linux__
-    if (active_->chunk_ptr + buffers.size() + 1 >= (size_t)max_ccount_ || active_->hdr_ptr + 1 >= (size_t)max_mcount_) {
-        LOG_ERROR("maximum amount of chunks (%zu) or messages (%zu) exceeded!", active_->chunk_ptr, active_->hdr_ptr);
-        return RTP_MEMORY_ERROR;
-    }
+    /* Create buffer vector where the full packet is constructed
+     * and which is then pushed to "active_"'s pkt_vec structure */
+    uvg_rtp::buf_vec tmp;
 
     /* update the RTP header at "rtpheaders_ptr_" */
     uvg_rtp::frame_queue::update_rtp_header();
 
-    active_->chunks[active_->chunk_ptr].iov_len  = sizeof(active_->rtp_headers[active_->rtphdr_ptr]);
-    active_->chunks[active_->chunk_ptr].iov_base = &active_->rtp_headers[active_->rtphdr_ptr];
+    /* Push RTP header first and then push all payload buffers */
+    tmp.push_back({
+        sizeof(active_->rtp_headers[active_->rtphdr_ptr]),
+        (uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr++]
+    });
 
-    for (size_t i = 0; i < buffers.size(); ++i) {
-        active_->chunks[active_->chunk_ptr + i + 1].iov_len  = buffers.at(i).first;
-        active_->chunks[active_->chunk_ptr + i + 1].iov_base = buffers.at(i).second;
+    for (size_t i = 0; i < buffers.size(); ++i)
+        tmp.push_back({ buffers.at(i).first, buffers.at(i).second });
+
+    if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
+        tmp.push_back({
+            sizeof(uint64_t),
+            (uint8_t *)&active_->rtp_auth_tags[active_->rtpauth_ptr++]
+        });
     }
 
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_name       = (void *)&active_->out_addr;
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_namelen    = sizeof(active_->out_addr);
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_iov        = &active_->chunks[active_->chunk_ptr];
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_iovlen     = buffers.size() + 1;
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_control    = 0;
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_controllen = 0;
-
-    active_->chunk_ptr  += buffers.size() + 1;
-    active_->hdr_ptr    += 1;
-    active_->rtphdr_ptr += 1;
-#else
-    /* TODO: winsock stuff */
-#endif
-
+    active_->packets.push_back(tmp);
     rtp_->inc_sequence();
     rtp_->inc_sent_pkts();
 
@@ -317,27 +294,18 @@ rtp_error_t uvg_rtp::frame_queue::flush_queue()
     /* set the marker bit of the last packet to 1 */
     ((uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr - 1])[1] |= (1 << 7);
 
-#ifdef __linux__
     transaction_mtx_.lock();
     queued_.insert(std::make_pair(active_->key, active_));
     transaction_mtx_.unlock();
 
-    if (dispatcher_) {
-        dispatcher_->trigger_send(active_);
-        active_ = nullptr;
-        return RTP_OK;
-    }
-
-    if (socket_->send_vecio(active_->headers, active_->hdr_ptr, 0) != RTP_OK) {
+    if (socket_->sendto(active_->packets, 0) != RTP_OK) {
         LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
         (void)deinit_transaction();
         return RTP_SEND_ERROR;
     }
 
     LOG_DEBUG("full message took %zu chunks and %zu messages", active_->chunk_ptr, active_->hdr_ptr);
-
     return deinit_transaction();
-#endif
 }
 
 void uvg_rtp::frame_queue::update_rtp_header()
@@ -346,7 +314,7 @@ void uvg_rtp::frame_queue::update_rtp_header()
     rtp_->update_sequence((uint8_t *)(&active_->rtp_headers[active_->rtphdr_ptr]));
 }
 
-uvg_rtp::buff_vec& uvg_rtp::frame_queue::get_buffer_vector()
+uvg_rtp::buf_vec& uvg_rtp::frame_queue::get_buffer_vector()
 {
     return active_->buffers;
 }

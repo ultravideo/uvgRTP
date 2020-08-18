@@ -17,7 +17,7 @@
 
 uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     srtp_(nullptr),
-    socket_(flags),
+    socket_(nullptr),
     rtp_(nullptr),
     rtcp_(nullptr),
     ctx_config_(),
@@ -53,6 +53,10 @@ uvg_rtp::media_stream::~media_stream()
 {
     pkt_dispatcher_->stop();
 
+    if (ctx_config_.flags & RCE_RTCP)
+        rtcp_->stop();
+
+    delete socket_;
     delete rtcp_;
     delete rtp_;
     delete srtp_;
@@ -65,32 +69,35 @@ rtp_error_t uvg_rtp::media_stream::init_connection()
 {
     rtp_error_t ret = RTP_OK;
 
-    if ((ret = socket_.init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
+    if (!(socket_ = new uvg_rtp::socket(ctx_config_.flags)))
+        return ret;
+
+    if ((ret = socket_->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
         return ret;
 
 #ifdef _WIN32
     /* Make the socket non-blocking */
     int enabled = 1;
 
-    if (::ioctlsocket(socket_.get_raw_socket(), FIONBIO, (u_long *)&enabled) < 0)
+    if (::ioctlsocket(socket_->get_raw_socket(), FIONBIO, (u_long *)&enabled) < 0)
         LOG_ERROR("Failed to make the socket non-blocking!");
 #endif
 
     if (laddr_ != "") {
-        sockaddr_in bind_addr = socket_.create_sockaddr(AF_INET, laddr_, src_port_);
-        socket_t socket       = socket_.get_raw_socket();
+        sockaddr_in bind_addr = socket_->create_sockaddr(AF_INET, laddr_, src_port_);
+        socket_t socket       = socket_->get_raw_socket();
 
         if (bind(socket, (struct sockaddr *)&bind_addr, sizeof(bind_addr)) == -1) {
             log_platform_error("bind(2) failed");
             return RTP_BIND_ERROR;
         }
     } else {
-        if ((ret = socket_.bind(AF_INET, INADDR_ANY, src_port_)) != RTP_OK)
+        if ((ret = socket_->bind(AF_INET, INADDR_ANY, src_port_)) != RTP_OK)
             return ret;
     }
 
-    addr_out_ = socket_.create_sockaddr(AF_INET, addr_, dst_port_);
-    socket_.set_sockaddr(addr_out_);
+    addr_out_ = socket_->create_sockaddr(AF_INET, addr_, dst_port_);
+    socket_->set_sockaddr(addr_out_);
 
     return ret;
 }
@@ -116,15 +123,14 @@ rtp_error_t uvg_rtp::media_stream::init()
         return RTP_MEMORY_ERROR;
     }
 
-    socket_.install_handler(rtcp_, rtcp_->send_packet_handler_buf);
-    socket_.install_handler(rtcp_, rtcp_->send_packet_handler_vec);
+    socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
 
     rtp_handler_key_ = pkt_dispatcher_->install_handler(rtp_->packet_handler);
     pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler);
 
     switch (fmt_) {
         case RTP_FORMAT_HEVC:
-            media_ = new uvg_rtp::formats::hevc(&socket_, rtp_, ctx_config_.flags);
+            media_ = new uvg_rtp::formats::hevc(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 nullptr,
@@ -134,7 +140,7 @@ rtp_error_t uvg_rtp::media_stream::init()
 
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
-            media_ = new uvg_rtp::formats::media(&socket_, rtp_, ctx_config_.flags);
+            media_ = new uvg_rtp::formats::media(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(rtp_handler_key_, nullptr, media_->packet_handler);
             break;
 
@@ -154,28 +160,28 @@ rtp_error_t uvg_rtp::media_stream::init()
     }
 
     initialized_ = true;
-    return pkt_dispatcher_->start(&socket_, ctx_config_.flags);
+    return pkt_dispatcher_->start(socket_, ctx_config_.flags);
 }
 
 #ifdef __RTP_CRYPTO__
 rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
 {
+    rtp_error_t ret;
+
     if (init_connection() != RTP_OK) {
         LOG_ERROR("Failed to initialize the underlying socket: %s!", strerror(errno));
         return RTP_GENERIC_ERROR;
     }
 
-    /* First initialize the RTP context for this media stream (SSRC, sequence number, etc.)
-     * Then initialize ZRTP and using ZRTP, initialize SRTP.
-     *
-     * When ZRTP and SRTP have been initialized, create sender and receiver for the media type
-     * before returning the media stream for user */
-    rtp_error_t ret = RTP_OK;
-
-    if ((rtp_ = new uvg_rtp::rtp(fmt_)) == nullptr)
+    if (!(pkt_dispatcher_ = new uvg_rtp::pkt_dispatcher()))
         return RTP_MEMORY_ERROR;
 
-    if ((ret = zrtp->init(rtp_->get_ssrc(), socket_.get_raw_socket(), addr_out_)) != RTP_OK) {
+    if (!(rtp_ = new uvg_rtp::rtp(fmt_))) {
+        delete pkt_dispatcher_;
+        return RTP_MEMORY_ERROR;
+    }
+
+    if ((ret = zrtp->init(rtp_->get_ssrc(), socket_->get_raw_socket(), addr_out_)) != RTP_OK) {
         LOG_WARN("Failed to initialize ZRTP for media stream!");
         return ret;
     }
@@ -190,20 +196,56 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
         return ret;
     }
 
+    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_))) {
+        delete rtp_;
+        delete pkt_dispatcher_;
+        return RTP_MEMORY_ERROR;
+    }
+
+    socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
+
+    rtp_handler_key_  = pkt_dispatcher_->install_handler(rtp_->packet_handler);
+    zrtp_handler_key_ = pkt_dispatcher_->install_handler(zrtp->packet_handler);
+
+    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler);
+    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler);
+
+    switch (fmt_) {
+        case RTP_FORMAT_HEVC:
+            media_ = new uvg_rtp::formats::hevc(socket_, rtp_, ctx_config_.flags);
+            pkt_dispatcher_->install_aux_handler(
+                rtp_handler_key_,
+                nullptr,
+                dynamic_cast<uvg_rtp::formats::hevc *>(media_)->packet_handler
+            );
+            break;
+
+        case RTP_FORMAT_OPUS:
+        case RTP_FORMAT_GENERIC:
+            media_ = new uvg_rtp::formats::media(socket_, rtp_, ctx_config_.flags);
+            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, nullptr, media_->packet_handler);
+            break;
+
+        default:
+            LOG_ERROR("Unknown payload format %u\n", fmt_);
+    }
+
+    if (!media_) {
+        delete rtp_;
+        delete pkt_dispatcher_;
+        return RTP_MEMORY_ERROR;
+    }
+
+    if (ctx_config_.flags & RCE_RTCP) {
+        rtcp_->add_participant(addr_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
+        rtcp_->start();
+    }
+
     if (ctx_config_.flags & RCE_SRTP_AUTHENTICATE_RTP)
         rtp_->set_payload_size(MAX_PAYLOAD - AUTH_TAG_LENGTH);
 
-    socket_.set_srtp(srtp_);
-
-    /* TODO: install srtp packet handler */
-
-    receiver_ = new uvg_rtp::receiver(socket_, ctx_config_, fmt_, rtp_);
-
-    receiver_->start();
-
     initialized_ = true;
-
-    return ret;
+    return pkt_dispatcher_->start(socket_, ctx_config_.flags);
 }
 
 rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
@@ -217,13 +259,13 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     if ((flags_ & srtp_flags) != srtp_flags)
         return RTP_NOT_SUPPORTED;
 
-    if (init_connection() != RTP_OK) {
-        LOG_ERROR("Failed to initialize the underlying socket: %s!", strerror(errno));
-        return RTP_GENERIC_ERROR;
-    }
-
-    if ((rtp_ = new uvg_rtp::rtp(fmt_)) == nullptr)
+    if (!(pkt_dispatcher_ = new uvg_rtp::pkt_dispatcher()))
         return RTP_MEMORY_ERROR;
+
+    if (!(rtp_ = new uvg_rtp::rtp(fmt_))) {
+        delete pkt_dispatcher_;
+        return RTP_MEMORY_ERROR;
+    }
 
     if ((srtp_ = new uvg_rtp::srtp()) == nullptr)
         return RTP_MEMORY_ERROR;
@@ -233,18 +275,56 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         return ret;
     }
 
+    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_))) {
+        delete rtp_;
+        delete pkt_dispatcher_;
+        return RTP_MEMORY_ERROR;
+    }
+
+    socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
+
+    rtp_handler_key_ = pkt_dispatcher_->install_handler(rtp_->packet_handler);
+
+    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler);
+    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler);
+
+    switch (fmt_) {
+        case RTP_FORMAT_HEVC:
+            media_ = new uvg_rtp::formats::hevc(socket_, rtp_, ctx_config_.flags);
+            pkt_dispatcher_->install_aux_handler(
+                rtp_handler_key_,
+                nullptr,
+                dynamic_cast<uvg_rtp::formats::hevc *>(media_)->packet_handler
+            );
+            break;
+
+        case RTP_FORMAT_OPUS:
+        case RTP_FORMAT_GENERIC:
+            media_ = new uvg_rtp::formats::media(socket_, rtp_, ctx_config_.flags);
+            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, nullptr, media_->packet_handler);
+            break;
+
+        default:
+            LOG_ERROR("Unknown payload format %u\n", fmt_);
+    }
+
+    if (!media_) {
+        delete rtp_;
+        delete pkt_dispatcher_;
+        return RTP_MEMORY_ERROR;
+    }
+
+    if (ctx_config_.flags & RCE_RTCP) {
+        rtcp_->add_participant(addr_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
+        rtcp_->start();
+    }
+
     if (ctx_config_.flags & RCE_SRTP_AUTHENTICATE_RTP)
         rtp_->set_payload_size(MAX_PAYLOAD - AUTH_TAG_LENGTH);
 
-    socket_.set_srtp(srtp_);
-
-    receiver_ = new uvg_rtp::receiver(socket_, ctx_config_, fmt_, rtp_);
-
-    receiver_->start();
-
     initialized_ = true;
+    return pkt_dispatcher_->start(socket_, ctx_config_.flags);
 
-    return ret;
 }
 #endif
 
@@ -394,7 +474,7 @@ rtp_error_t uvg_rtp::media_stream::configure_ctx(int flag, ssize_t value)
                 return RTP_INVALID_VALUE;
 
             int buf_size = value;
-            if ((ret = socket_.setsockopt(SOL_SOCKET, SO_SNDBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
+            if ((ret = socket_->setsockopt(SOL_SOCKET, SO_SNDBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
                 return ret;
         }
         break;
@@ -404,7 +484,7 @@ rtp_error_t uvg_rtp::media_stream::configure_ctx(int flag, ssize_t value)
                 return RTP_INVALID_VALUE;
 
             int buf_size = value;
-            if ((ret = socket_.setsockopt(SOL_SOCKET, SO_RCVBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
+            if ((ret = socket_->setsockopt(SOL_SOCKET, SO_RCVBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
                 return ret;
         }
         break;

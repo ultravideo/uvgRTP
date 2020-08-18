@@ -11,7 +11,7 @@ namespace uvg_rtp {
 
     namespace zrtp_msg {
 
-        struct zrtp_confack {
+        PACKED_STRUCT(zrtp_confack) {
             zrtp_msg msg_start;
             uint32_t crc;
         };

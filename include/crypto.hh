@@ -139,6 +139,7 @@ namespace uvg_rtp {
         namespace crc32 {
             void get_crc32(uint8_t *input, size_t len, uint32_t *output);
             bool verify_crc32(uint8_t *input, size_t len, uint32_t old_crc);
+            uint32_t calculate_crc32(uint8_t *input, size_t len);
         };
     };
 };

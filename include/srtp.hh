@@ -10,6 +10,7 @@
 #endif
 
 #include <cstdint>
+#include <vector>
 
 #include "debug.hh"
 #include "frame.hh"
@@ -26,6 +27,9 @@
 #define AUTH_TAG_LENGTH   8
 
 namespace uvg_rtp {
+
+    /* Vector of buffers that contain a full RTP frame */
+    typedef std::vector<std::pair<size_t, uint8_t *>> buf_vec;
 
     enum STYPE {
         SRTP  = 0,
@@ -100,6 +104,8 @@ namespace uvg_rtp {
         /* following fields are receiver-only */
         uint16_t s_l;    /* highest received sequence number */
         uint8_t *replay; /* list of recently received and authenticated SRTP packets */
+
+        srtp_key_ctx_t key_ctx;
     } srtp_ctx_t;
 
     class srtp {
@@ -125,21 +131,8 @@ namespace uvg_rtp {
              * Return RTP_MEMORY allocation failed */
             rtp_error_t init_user(int type, int flags, uint8_t *key, uint8_t *salt);
 
-            /* Encrypt the payload of "frame" using the private session key
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "frame" is nullptr
-             * Return RTP_NOT_INITIALIZED if SRTP has not been initialized */
-            rtp_error_t encrypt(uvg_rtp::frame::rtp_frame *frame);
-
-            /* Encrypt the payload of "buffers" vector using the private session key
-             * The payload that is encrypted is the last buffer of "buffers" and the
-             * RTP header is the first" buffer of "buffers"
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "frame" is nullptr
-             * Return RTP_NOT_INITIALIZED if SRTP has not been initialized */
-            rtp_error_t encrypt(std::vector<std::pair<size_t, uint8_t *>>& buffers);
+            /* TODO:  */
+            rtp_error_t encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len);
 
             /* Decrypt the payload payload of "frame" using the private session key
              *
@@ -157,6 +150,21 @@ namespace uvg_rtp {
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "frame" is nullptr or if authentication failed */
             rtp_error_t authenticate(uvg_rtp::frame::rtp_frame *frame);
+
+            /* Has RTP packet encryption been disabled? */
+            bool use_null_cipher();
+
+            /* Has RTP packet authentication been enabled? */
+            bool authenticate_rtp();
+
+            /* Get reference to the SRTP context (including session keys) */
+            srtp_ctx_t& get_ctx();
+
+            /* Decrypt the payload and verify authentication tag (if enabled) */
+            static rtp_error_t recv_packet_handler(void *arg, int flags, frame::rtp_frame **out);
+
+            /* Encrypt the payload and add authentication tag (if enabled) */
+            static rtp_error_t send_packet_handler(void *arg, buf_vec& buffers);
 #endif
 
         private:
@@ -170,13 +178,12 @@ namespace uvg_rtp {
             rtp_error_t create_iv(uint8_t *out, uint32_t ssrc, uint64_t index, uint8_t *salt);
 
             /* Internal encrypt method that takes only the necessary variables and encrypts "buffer" */
-            rtp_error_t __encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len);
+            /* rtp_error_t __encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len); */
 
             /* Internal init method that initialize the SRTP context using values in key_ctx_.master */
             rtp_error_t __init(int type, int flags);
 #endif
 
-            srtp_key_ctx_t key_ctx_;
             srtp_ctx_t srtp_ctx_;
 
             /* If NULL cipher is enabled, it means that RTP packets are not

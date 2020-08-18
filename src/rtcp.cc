@@ -438,12 +438,7 @@ rtp_error_t uvg_rtp::rtcp::recv_packet_handler(void *arg, int flags, frame::rtp_
     return RTP_PKT_NOT_HANDLED;
 }
 
-rtp_error_t uvg_rtp::rtcp::send_packet_handler_buf(void *arg, ssize_t len, void *buf)
-{
-    return ((uvg_rtp::rtcp *)arg)->update_sender_stats(len - uvg_rtp::frame::HEADER_SIZE_RTP);
-}
-
-rtp_error_t uvg_rtp::rtcp::send_packet_handler_vec(void *arg, std::vector<std::pair<size_t, uint8_t *>>& buffers)
+rtp_error_t uvg_rtp::rtcp::send_packet_handler_vec(void *arg, uvg_rtp::buf_vec& buffers)
 {
     ssize_t pkt_size = -uvg_rtp::frame::HEADER_SIZE_RTP;
 

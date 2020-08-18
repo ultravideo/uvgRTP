@@ -29,19 +29,21 @@ namespace uvg_rtp {
         size_t c_start; size_t c_end;
     } active_t;
 
-    typedef std::vector<std::pair<size_t, uint8_t *>> buff_vec;
-
     typedef struct transaction {
         /* Each transaction has a unique key which is used by the SCD (if enabled)
          * when moving the transactions betwen "queued_" and "free_" */
         uint32_t key;
 
-        /* To provide true scatter/gather I/O, each transaction has a buff_vec
+        /* To provide true scatter/gather I/O, each transaction has a buf_vec
          * structure which may contain differents buffers and their sizes.
          *
          * This can be used, for example, for storing media-specific headers
          * which are then passed (along with the actual media) to enqueue_message() */
-        uvg_rtp::buff_vec buffers;
+        uvg_rtp::buf_vec buffers;
+
+        /* Each RTP frame of a transaction is constructed using buf_vec structure and
+         * each buf_vec structure is pushed to pkt_vec */
+        uvg_rtp::pkt_vec packets;
 
         /* All packets of a transaction share the common RTP header only differing in sequence number.
          * Keeping a separate common RTP header and then just copying this is cleaner than initializing
@@ -64,9 +66,13 @@ namespace uvg_rtp {
          * See src/formats/hevc.hh for example */
         void *media_headers;
 
+        /* Pointer to RTP authentication (if enabled) */
+        uint64_t *rtp_auth_tags;
+
         size_t chunk_ptr;
         size_t hdr_ptr;
         size_t rtphdr_ptr;
+        size_t rtpauth_ptr;
 
         /* Address of receiver, used by sendmmsg(2) */
         sockaddr_in out_addr;
@@ -96,9 +102,7 @@ namespace uvg_rtp {
 
     class frame_queue {
         public:
-            /* frame_queue(rtp_format_t fmt); */
-            /* frame_queue(rtp_format_t fmt, uvg_rtp::dispatcher *dispatcher); */
-            frame_queue(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp);
+            frame_queue(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags);
             ~frame_queue();
 
             rtp_error_t init_transaction();
@@ -134,7 +138,7 @@ namespace uvg_rtp {
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if one of the parameters is invalid
              * Return RTP_MEMORY_ERROR if the maximum amount of chunks/messages is exceeded */
-            rtp_error_t enqueue_message(buff_vec& buffers);
+            rtp_error_t enqueue_message(buf_vec& buffers);
 
             /* Flush the message queue
              *
@@ -147,8 +151,8 @@ namespace uvg_rtp {
              * These headers must be valid until the message is sent (ie. they cannot be saved to
              * caller's stack).
              *
-             * Buff_vec is the place to store these extra headers (see src/formats/hevc.cc) */
-            uvg_rtp::buff_vec& get_buffer_vector();
+             * buf_vec is the place to store these extra headers (see src/formats/hevc.cc) */
+            uvg_rtp::buf_vec& get_buffer_vector();
 
             /* Each media may allocate extra buffers for the transaction struct if need be
              *
@@ -209,5 +213,8 @@ namespace uvg_rtp {
 
             uvg_rtp::rtp *rtp_;
             uvg_rtp::socket *socket_;
+
+            /* RTP context flags */
+            int flags_;
     };
 };

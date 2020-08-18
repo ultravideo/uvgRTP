@@ -10,7 +10,7 @@
 #define INVALID_SEQ 0xffffffff
 
 uvg_rtp::formats::media::media(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp_ctx, int flags):
-    socket_(socket), rtp_ctx_(rtp_ctx), flags_(flags)
+    socket_(socket), rtp_ctx_(rtp_ctx), flags_(flags), fqueue_(new uvg_rtp::frame_queue(socket, rtp_ctx, flags))
 {
 }
 
@@ -38,6 +38,42 @@ rtp_error_t uvg_rtp::formats::media::__push_frame(uint8_t *data, size_t data_len
 {
     (void)flags;
 
+    rtp_error_t ret;
+
+    if ((ret = fqueue_->init_transaction(data)) != RTP_OK) {
+        LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
+        return ret;
+    }
+
+    /* TODO: Bring back the support for RCE_FRAGMENT_GENERIC
+     *       It requires support for modifying the active packet's RTP header,
+     *       functionality currently not provided by the frame queue */
+    if (data_len > rtp_ctx_->get_payload_size()) {
+        if (flags_ & RCE_FRAGMENT_GENERIC) {
+            LOG_ERROR("Generic frame fragmentation currently not supported!");
+            return RTP_NOT_SUPPORTED;
+        }
+
+        LOG_WARN("Payload is too large and will be truncated (%zu vs %zu)",
+            data_len, rtp_ctx_->get_payload_size()
+        );
+    }
+
+    if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
+        LOG_ERROR("Failed to enqueue message: %d", ret);
+        (void)fqueue_->deinit_transaction();
+        return ret;
+    }
+
+    if ((ret = fqueue_->flush_queue()) != RTP_OK) {
+        LOG_ERROR("Failed to flush frame queue: %d", ret);
+        (void)fqueue_->deinit_transaction();
+        return ret;
+    }
+
+    return fqueue_->deinit_transaction();
+
+#if 0
     std::vector<std::pair<size_t, uint8_t *>> buffers;
     size_t payload_size = rtp_ctx_->get_payload_size();
     uint8_t header[uvg_rtp::frame::HEADER_SIZE_RTP];
@@ -87,9 +123,7 @@ rtp_error_t uvg_rtp::formats::media::__push_frame(uint8_t *data, size_t data_len
             LOG_WARN("Packet is larger (%zu bytes) than payload_size (%zu bytes)", data_len, payload_size);
         }
     }
-
-    rtp_ctx_->inc_sequence();
-    return socket_->sendto(buffers, 0);
+#endif
 }
 
 rtp_error_t uvg_rtp::formats::media::packet_handler(void *arg, int flags, uvg_rtp::frame::rtp_frame **out)

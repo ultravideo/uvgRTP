@@ -25,7 +25,7 @@ uvg_rtp::zrtp_msg::hello_ack::hello_ack()
 
     memcpy(&msg->msg_start.msgblock, ZRTP_HELLO_ACK, 8);
 
-    uvg_rtp::crypto::crc32::get_crc32((uint8_t *)frame_, len_ - 4, &msg->crc);
+    msg->crc = uvg_rtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
 }
 
 uvg_rtp::zrtp_msg::hello_ack::~hello_ack()

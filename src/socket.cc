@@ -23,7 +23,6 @@ using namespace mingw;
 
 uvg_rtp::socket::socket(int flags):
     socket_(-1),
-    srtp_(nullptr),
     flags_(flags)
 {
 }
@@ -125,30 +124,11 @@ void uvg_rtp::socket::set_sockaddr(sockaddr_in addr)
     addr_ = addr;
 }
 
-void uvg_rtp::socket::set_srtp(uvg_rtp::srtp *srtp)
-{
-    srtp_ = srtp;
-}
-
 socket_t& uvg_rtp::socket::get_raw_socket()
 {
     return socket_;
 }
 
-
-rtp_error_t uvg_rtp::socket::install_handler(void *arg, packet_handler_buf handler)
-{
-    if (!handler)
-        return RTP_INVALID_VALUE;
-
-    socket_packet_handler hndlr;
-
-    hndlr.arg = arg;
-    hndlr.handlers.buf = handler;
-    buf_handlers_.push_back(hndlr);
-
-    return RTP_OK;
-}
 
 rtp_error_t uvg_rtp::socket::install_handler(void *arg, packet_handler_vec handler)
 {
@@ -159,7 +139,7 @@ rtp_error_t uvg_rtp::socket::install_handler(void *arg, packet_handler_vec handl
     socket_packet_handler hndlr;
 
     hndlr.arg = arg;
-    hndlr.handlers.vec = handler;
+    hndlr.handler = handler;
     vec_handlers_.push_back(hndlr);
 
     return RTP_OK;
@@ -202,79 +182,32 @@ rtp_error_t uvg_rtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t bu
 
 rtp_error_t uvg_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags)
 {
-    rtp_error_t ret;
-
-    for (auto& handler : buf_handlers_) {
-        if ((ret = (*handler.handlers.buf)(handler.arg, buf_len, buf)) != RTP_OK) {
-            LOG_ERROR("Malfored packet %p %zu %d", buf, buf_len, flags);
-            return ret;
-        }
-    }
-
     return __sendto(addr_, buf, buf_len, flags, nullptr);
 }
 
 rtp_error_t uvg_rtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
 {
-    rtp_error_t ret;
-
-    for (auto& handler : buf_handlers_) {
-        if ((ret = (*handler.handlers.buf)(handler.arg, buf_len, buf)) != RTP_OK) {
-            LOG_ERROR("Malfored packet %p %zu %d", buf, buf_len, flags);
-            return ret;
-        }
-    }
-
     return __sendto(addr_, buf, buf_len, flags, bytes_sent);
 }
 
 rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
 {
-    rtp_error_t ret;
-
-    for (auto& handler : buf_handlers_) {
-        if ((ret = (*handler.handlers.buf)(handler.arg, buf_len, buf)) != RTP_OK) {
-            LOG_ERROR("Malfored packet %p %zu %d", buf, buf_len, flags);
-            return ret;
-        }
-    }
-
     return __sendto(addr, buf, buf_len, flags, bytes_sent);
 }
 
 rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags)
 {
-    rtp_error_t ret;
-
-    for (auto& handler : buf_handlers_) {
-        if ((ret = (*handler.handlers.buf)(handler.arg, buf_len, buf)) != RTP_OK) {
-            LOG_ERROR("Malfored packet %p %zu %d", buf, buf_len, flags);
-            return ret;
-        }
-    }
-
     return __sendto(addr, buf, buf_len, flags, nullptr);
 }
 
 rtp_error_t uvg_rtp::socket::__sendtov(
     sockaddr_in& addr,
-    std::vector<std::pair<size_t, uint8_t *>> buffers,
+    uvg_rtp::buf_vec& buffers,
     int flags, int *bytes_sent
 )
 {
 #ifdef __linux__
     int sent_bytes = 0;
-
-#ifdef __RTP_CRYPTO__
-    if (srtp_) {
-        auto ret = srtp_->encrypt(buffers);
-
-        if (ret != RTP_OK) {
-            LOG_ERROR("Failed to encrypt RTP packet!");
-            return ret;
-        }
-    }
-#endif
 
     for (size_t i = 0; i < buffers.size(); ++i) {
         chunks_[i].iov_len  = buffers.at(i).first;
@@ -325,12 +258,12 @@ rtp_error_t uvg_rtp::socket::__sendtov(
 #endif
 }
 
-rtp_error_t uvg_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags)
+rtp_error_t uvg_rtp::socket::sendto(buf_vec& buffers, int flags)
 {
     rtp_error_t ret;
 
     for (auto& handler : buf_handlers_) {
-        if ((ret = (*handler.handlers.vec)(handler.arg, buffers)) != RTP_OK) {
+        if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
             LOG_ERROR("Malfored packet");
             return ret;
         }
@@ -339,12 +272,12 @@ rtp_error_t uvg_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> bu
     return __sendtov(addr_, buffers, flags, nullptr);
 }
 
-rtp_error_t uvg_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent)
+rtp_error_t uvg_rtp::socket::sendto(buf_vec& buffers, int flags, int *bytes_sent)
 {
     rtp_error_t ret;
 
     for (auto& handler : buf_handlers_) {
-        if ((ret = (*handler.handlers.vec)(handler.arg, buffers)) != RTP_OK) {
+        if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
             LOG_ERROR("Malfored packet");
             return ret;
         }
@@ -353,12 +286,12 @@ rtp_error_t uvg_rtp::socket::sendto(std::vector<std::pair<size_t, uint8_t *>> bu
     return __sendtov(addr_, buffers, flags, bytes_sent);
 }
 
-rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags)
+rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, buf_vec& buffers, int flags)
 {
     rtp_error_t ret;
 
     for (auto& handler : buf_handlers_) {
-        if ((ret = (*handler.handlers.vec)(handler.arg, buffers)) != RTP_OK) {
+        if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
             LOG_ERROR("Malfored packet");
             return ret;
         }
@@ -369,80 +302,164 @@ rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, std::vector<std::pair<siz
 
 rtp_error_t uvg_rtp::socket::sendto(
     sockaddr_in& addr,
-    std::vector<std::pair<size_t, uint8_t *>> buffers,
+    buf_vec& buffers,
     int flags, int *bytes_sent
 )
 {
     rtp_error_t ret;
 
     for (auto& handler : buf_handlers_) {
-        if ((ret = (*handler.handlers.vec)(handler.arg, buffers)) != RTP_OK) {
+        if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
             LOG_ERROR("Malfored packet");
             return ret;
         }
     }
 
+    auto buf = { buffers };
     return __sendtov(addr, buffers, flags, bytes_sent);
 }
 
-rtp_error_t uvg_rtp::socket::send_vecio(vecio_buf *buffers, size_t nbuffers, int flags)
+rtp_error_t uvg_rtp::socket::__sendtov(
+    sockaddr_in& addr,
+    uvg_rtp::pkt_vec& buffers,
+    int flags, int *bytes_sent
+)
 {
-    if (buffers == nullptr || nbuffers == 0)
-        return RTP_INVALID_VALUE;
-
 #ifdef __linux__
-    size_t npkts = (flags_ & RCE_NO_SYSTEM_CALL_CLUSTERING) ? 1 : 1024;
+    int sent_bytes = 0;
 
-    while (nbuffers > npkts) {
-        if (sendmmsg(socket_, buffers, npkts, flags) < 0) {
-            LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
-            return RTP_SEND_ERROR;
+    struct mmsghdr *headers = new struct mmsghdr[buffers.size()];
+
+    for (size_t i = 0; i < buffers.size(); ++i) {
+        headers[i].msg_hdr.msg_iov        = new struct iovec[buffers[i].size()];
+        headers[i].msg_hdr.msg_iovlen     = buffers[i].size();
+        headers[i].msg_hdr.msg_name       = (void *)&addr;
+        headers[i].msg_hdr.msg_namelen    = sizeof(addr);
+        headers[i].msg_hdr.msg_control    = 0;
+        headers[i].msg_hdr.msg_controllen = 0;
+
+        for (size_t k = 0; k < buffers[i].size(); ++k) {
+            for (auto& buf : buffers[i]) {
+                headers[i].msg_hdr.msg_iov[k].iov_len  = buf.first;
+                headers[i].msg_hdr.msg_iov[k].iov_base = buf.second;
+
+                sent_bytes += buf.first;
+            }
         }
-
-        nbuffers -= npkts;
-        buffers  += npkts;
     }
 
-    if (sendmmsg(socket_, buffers, nbuffers, flags) < 0) {
-        LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
+    /* TODO: RCE_NO_SYSTEM_CALL_CLUSTERING */
+
+    if (sendmmsg(socket_, headers, buffers.size(), flags) < 0) {
+        LOG_ERROR("Failed to send RTP frame: %s!", strerror(errno));
+        set_bytes(bytes_sent, -1);
         return RTP_SEND_ERROR;
     }
 
+    for (size_t i = 0; i < buffers.size(); ++i)
+        delete[] headers[i].msg_hdr.msg_iov;
+    delete[] headers;
+
+    set_bytes(bytes_sent, sent_bytes);
     return RTP_OK;
+
 #else
-    /* TODO:  */
+    INT sent_bytes, ret;
+    WSABUF wsa_bufs[16];
+
+    for (auto& buffer : buffers) {
+        /* create WSABUFs from input buffer and send them at once */
+        for (size_t i = 0; i < buffer.size(); ++i) {
+            wsa_bufs[i].len = buffer.at(i).first;
+            wsa_bufs[i].buf = buffer.at(i).second;
+        }
+
+        ret = WSASendTo(
+            socket_,
+            wsa_bufs,
+            buffers.size(),
+            &sent_bytes,
+            flags,
+            (SOCKADDR *)&addr,
+            sizeof(addr_),
+            nullptr,
+            nullptr
+        );
+
+        if (ret == -1) {
+            log_platform_error("WSASendTo() failed");
+            set_bytes(bytes_sent, -1);
+            return RTP_SEND_ERROR;
+        }
+
+    }
+    set_bytes(bytes_sent, sent_bytes);
+    return RTP_OK;
 #endif
 }
 
-rtp_error_t uvg_rtp::socket::recv_vecio(vecio_buf *buffers, size_t nbuffers, int flags, int *nread)
+rtp_error_t uvg_rtp::socket::sendto(pkt_vec& buffers, int flags)
 {
-    if (buffers == nullptr || nbuffers == 0)
-        return RTP_INVALID_VALUE;
+    rtp_error_t ret;
 
-    ssize_t dgrams_read = 0;
-
-#ifdef __linux__
-    if (flags_ & RCE_NO_SYSTEM_CALL_CLUSTERING) {
-        for (size_t i = 0; i < nbuffers; ++i) {
-            if ((dgrams_read += ::recvmmsg(socket_, &buffers[i], 1, flags, nullptr)) < 0) {
-                LOG_ERROR("recvmmsg(2) failed: %s", strerror(errno));
-                set_bytes(nread, -1);
-                return RTP_GENERIC_ERROR;
+    for (auto& buffer : buffers) {
+        for (auto& handler : buf_handlers_) {
+            if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
+                LOG_ERROR("Malfored packet");
+                return ret;
             }
-        }
-    } else {
-        if ((dgrams_read = ::recvmmsg(socket_, buffers, nbuffers, flags, nullptr)) < 0) {
-            LOG_ERROR("recvmmsg(2) failed: %s", strerror(errno));
-            set_bytes(nread, -1);
-            return RTP_GENERIC_ERROR;
         }
     }
 
-    set_bytes(nread, dgrams_read);
-    return RTP_OK;
-#else
-    /* TODO:  */
-#endif
+    return __sendtov(addr_, buffers, flags, nullptr);
+}
+
+rtp_error_t uvg_rtp::socket::sendto(pkt_vec& buffers, int flags, int *bytes_sent)
+{
+    rtp_error_t ret;
+
+    for (auto& buffer : buffers) {
+        for (auto& handler : buf_handlers_) {
+            if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
+                LOG_ERROR("Malfored packet");
+                return ret;
+            }
+        }
+    }
+
+    return __sendtov(addr_, buffers, flags, bytes_sent);
+}
+
+rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int flags)
+{
+    rtp_error_t ret;
+
+    for (auto& buffer : buffers) {
+        for (auto& handler : buf_handlers_) {
+            if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
+                LOG_ERROR("Malfored packet");
+                return ret;
+            }
+        }
+    }
+
+    return __sendtov(addr, buffers, flags, nullptr);
+}
+
+rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int flags, int *bytes_sent)
+{
+    rtp_error_t ret;
+
+    for (auto& buffer : buffers) {
+        for (auto& handler : buf_handlers_) {
+            if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
+                LOG_ERROR("Malfored packet");
+                return ret;
+            }
+        }
+    }
+
+    return __sendtov(addr, buffers, flags, bytes_sent);
 }
 
 rtp_error_t uvg_rtp::socket::__recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
@@ -519,17 +536,6 @@ rtp_error_t uvg_rtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags,
         set_bytes(bytes_read, -1);
         return RTP_GENERIC_ERROR;
     }
-
-#ifdef __RTP_CRYPTO__
-    if (srtp_) {
-        auto status = srtp_->decrypt(buf, (size_t)ret);
-
-        if (status != RTP_OK) {
-            LOG_ERROR("Failed to encrypt RTP packet!");
-            return status;
-        }
-    }
-#endif
 
     set_bytes(bytes_read, ret);
     return RTP_OK;

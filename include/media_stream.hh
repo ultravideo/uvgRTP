@@ -174,10 +174,10 @@ namespace uvg_rtp {
 
             uint32_t key_;
 
-            uvg_rtp::srtp       *srtp_;
-            uvg_rtp::socket     socket_;
-            uvg_rtp::rtp        *rtp_;
-            uvg_rtp::rtcp       *rtcp_;
+            uvg_rtp::srtp   *srtp_;
+            uvg_rtp::socket *socket_;
+            uvg_rtp::rtp    *rtp_;
+            uvg_rtp::rtcp   *rtcp_;
 
             sockaddr_in addr_out_;
             std::string addr_;
@@ -199,8 +199,9 @@ namespace uvg_rtp {
             /* media stream type */
             enum mstream_type type_;
 
-            /* Primary handler's key for the RTP packet dispatcher */
+            /* Primary handler keys for the RTP packet dispatcher */
             uint32_t rtp_handler_key_;
+            uint32_t zrtp_handler_key_;
 
             /* RTP packet dispatcher for the receiver */
             uvg_rtp::pkt_dispatcher *pkt_dispatcher_;

@@ -55,6 +55,45 @@ rtp_error_t uvg_rtp::srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t index
     return RTP_OK;
 }
 
+rtp_error_t uvg_rtp::srtp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len)
+{
+    if (use_null_cipher_)
+        return RTP_OK;
+
+    uint8_t iv[16] = { 0 };
+    uint64_t index = (((uint64_t)srtp_ctx_.roc) << 16) + seq;
+
+    /* Sequence number has wrapped around, update Roll-over Counter */
+    if (seq == 0xffff)
+        srtp_ctx_.roc++;
+
+    if (create_iv(iv, ssrc, index, srtp_ctx_.key_ctx.local.salt_key) != RTP_OK) {
+        LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
+        return RTP_INVALID_VALUE;
+    }
+
+    uvg_rtp::crypto::aes::ctr ctr(srtp_ctx_.key_ctx.local.enc_key, sizeof(srtp_ctx_.key_ctx.local.enc_key), iv);
+    ctr.encrypt(buffer, buffer, len);
+
+    return RTP_OK;
+}
+
+bool uvg_rtp::srtp::use_null_cipher()
+{
+    return use_null_cipher_;
+}
+
+bool uvg_rtp::srtp::authenticate_rtp()
+{
+    return authenticate_rtp_;
+}
+
+uvg_rtp::srtp_ctx_t& uvg_rtp::srtp::get_ctx()
+{
+    return srtp_ctx_;
+}
+
+>>>>>>> security-fixes
 rtp_error_t uvg_rtp::srtp::__init(int type, int flags)
 {
     srtp_ctx_.roc  = 0;
@@ -66,8 +105,8 @@ rtp_error_t uvg_rtp::srtp::__init(int type, int flags)
     srtp_ctx_.mki_present = false;
     srtp_ctx_.mki         = nullptr;
 
-    srtp_ctx_.master_key  = key_ctx_.master.local_key;
-    srtp_ctx_.master_salt = key_ctx_.master.local_salt;
+    srtp_ctx_.master_key  = srtp_ctx_.key_ctx.master.local_key;
+    srtp_ctx_.master_salt = srtp_ctx_.key_ctx.master.local_salt;
     srtp_ctx_.mk_cnt      = 0;
 
     srtp_ctx_.n_e = AES_KEY_LENGTH;
@@ -82,46 +121,46 @@ rtp_error_t uvg_rtp::srtp::__init(int type, int flags)
     /* Local aka encryption keys */
     (void)derive_key(
         SRTP_ENCRYPTION,
-        key_ctx_.master.local_key,
-        key_ctx_.master.local_salt,
-        key_ctx_.local.enc_key,
+        srtp_ctx_.key_ctx.master.local_key,
+        srtp_ctx_.key_ctx.master.local_salt,
+        srtp_ctx_.key_ctx.local.enc_key,
         AES_KEY_LENGTH
     );
     (void)derive_key(
         SRTP_AUTHENTICATION,
-        key_ctx_.master.local_key,
-        key_ctx_.master.local_salt,
-        key_ctx_.local.auth_key,
+        srtp_ctx_.key_ctx.master.local_key,
+        srtp_ctx_.key_ctx.master.local_salt,
+        srtp_ctx_.key_ctx.local.auth_key,
         AES_KEY_LENGTH
     );
     (void)derive_key(
         SRTP_SALTING,
-        key_ctx_.master.local_key,
-        key_ctx_.master.local_salt,
-        key_ctx_.local.salt_key,
+        srtp_ctx_.key_ctx.master.local_key,
+        srtp_ctx_.key_ctx.master.local_salt,
+        srtp_ctx_.key_ctx.local.salt_key,
         SALT_LENGTH
     );
 
     /* Remote aka decryption keys */
     (void)derive_key(
         SRTP_ENCRYPTION,
-        key_ctx_.master.remote_key,
-        key_ctx_.master.remote_salt,
-        key_ctx_.remote.enc_key,
+        srtp_ctx_.key_ctx.master.remote_key,
+        srtp_ctx_.key_ctx.master.remote_salt,
+        srtp_ctx_.key_ctx.remote.enc_key,
         AES_KEY_LENGTH
     );
     (void)derive_key(
         SRTP_AUTHENTICATION,
-        key_ctx_.master.remote_key,
-        key_ctx_.master.remote_salt,
-        key_ctx_.remote.auth_key,
+        srtp_ctx_.key_ctx.master.remote_key,
+        srtp_ctx_.key_ctx.master.remote_salt,
+        srtp_ctx_.key_ctx.remote.auth_key,
         AES_KEY_LENGTH
     );
     (void)derive_key(
         SRTP_SALTING,
-        key_ctx_.master.remote_key,
-        key_ctx_.master.remote_salt,
-        key_ctx_.remote.salt_key,
+        srtp_ctx_.key_ctx.master.remote_key,
+        srtp_ctx_.key_ctx.master.remote_salt,
+        srtp_ctx_.key_ctx.remote.salt_key,
         SALT_LENGTH
     );
 
@@ -142,10 +181,10 @@ rtp_error_t uvg_rtp::srtp::init_zrtp(int type, int flags, uvg_rtp::rtp *rtp, uvg
 
     /* ZRTP key derivation function expects the keys lengths to be given in bits */
     rtp_error_t ret = zrtp->get_srtp_keys(
-        key_ctx_.master.local_key,   AES_KEY_LENGTH * 8,
-        key_ctx_.master.remote_key,  AES_KEY_LENGTH * 8,
-        key_ctx_.master.local_salt,  SALT_LENGTH    * 8,
-        key_ctx_.master.remote_salt, SALT_LENGTH    * 8
+        srtp_ctx_.key_ctx.master.local_key,   AES_KEY_LENGTH * 8,
+        srtp_ctx_.key_ctx.master.remote_key,  AES_KEY_LENGTH * 8,
+        srtp_ctx_.key_ctx.master.local_salt,  SALT_LENGTH    * 8,
+        srtp_ctx_.key_ctx.master.remote_salt, SALT_LENGTH    * 8
     );
 
     if (ret != RTP_OK) {
@@ -161,128 +200,102 @@ rtp_error_t uvg_rtp::srtp::init_user(int type, int flags, uint8_t *key, uint8_t 
     if (!key || !salt)
         return RTP_INVALID_VALUE;
 
-    memcpy(key_ctx_.master.local_key,    key, AES_KEY_LENGTH);
-    memcpy(key_ctx_.master.remote_key,   key, AES_KEY_LENGTH);
-    memcpy(key_ctx_.master.local_salt,  salt, SALT_LENGTH);
-    memcpy(key_ctx_.master.remote_salt, salt, SALT_LENGTH);
+    memcpy(srtp_ctx_.key_ctx.master.local_key,    key, AES_KEY_LENGTH);
+    memcpy(srtp_ctx_.key_ctx.master.remote_key,   key, AES_KEY_LENGTH);
+    memcpy(srtp_ctx_.key_ctx.master.local_salt,  salt, SALT_LENGTH);
+    memcpy(srtp_ctx_.key_ctx.master.remote_salt, salt, SALT_LENGTH);
 
     return __init(type, flags);
 }
 
-rtp_error_t uvg_rtp::srtp::__encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len)
+rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_frame **out)
 {
-    if (use_null_cipher_)
-        return RTP_OK;
+    (void)flags;
 
-    uint8_t iv[16] = { 0 };
-    uint64_t index = (((uint64_t)srtp_ctx_.roc) << 16) + seq;
+    uvg_rtp::srtp *srtp              = (uvg_rtp::srtp *)arg;
+    uvg_rtp::srtp_ctx_t ctx          = srtp->get_ctx();
+    uvg_rtp::frame::rtp_frame *frame = *out;
+
+    if (srtp->use_null_cipher())
+        return RTP_PKT_NOT_HANDLED;
+
+    uint8_t iv[16]  = { 0 };
+    uint16_t seq    = frame->header.seq;
+    uint32_t ssrc   = frame->header.ssrc;
+    uint64_t index  = (((uint64_t)ctx.roc) << 16) + seq;
+    uint64_t digest = 0;
 
     /* Sequence number has wrapped around, update Roll-over Counter */
     if (seq == 0xffff)
-        srtp_ctx_.roc++;
+        ctx.roc++;
 
-    if (create_iv(iv, ssrc, index, key_ctx_.local.salt_key) != RTP_OK) {
+    if (srtp->create_iv(iv, ssrc, index, ctx.key_ctx.remote.salt_key) != RTP_OK) {
         LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
         return RTP_INVALID_VALUE;
     }
 
-    uvg_rtp::crypto::aes::ctr ctr(key_ctx_.local.enc_key, sizeof(key_ctx_.local.enc_key), iv);
-    ctr.encrypt(buffer, buffer, len);
+    uvg_rtp::crypto::aes::ctr ctr(ctx.key_ctx.remote.enc_key, sizeof(ctx.key_ctx.remote.enc_key), iv);
+
+    /* exit early if RTP packet authentication is disabled... */
+    if (!srtp->authenticate_rtp()) {
+        ctr.decrypt(frame->payload, frame->payload, frame->payload_len);
+        return RTP_OK;
+    }
+
+    /* ... otherwise calculate authentication tag for the packet
+     * and compare it against the one we received */
+    auto hmac_sha1 = uvg_rtp::crypto::hmac::sha1(ctx.key_ctx.remote.auth_key, AES_KEY_LENGTH);
+
+    hmac_sha1.update((uint8_t *)frame, frame->payload_len - AUTH_TAG_LENGTH);
+    hmac_sha1.update((uint8_t *)&ctx.roc, sizeof(ctx.roc));
+    hmac_sha1.final((uint8_t *)&digest);
+
+    if (memcmp(&digest, &frame[frame->payload_len - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH)) {
+        LOG_ERROR("Authentication tag mismatch!");
+        return RTP_AUTH_TAG_MISMATCH;
+    }
+
+    size_t size_ = frame->payload_len - sizeof(uvg_rtp::frame::rtp_header) - 8;
+    uint8_t *new_buffer = new uint8_t[size_];
+
+    ctr.decrypt(new_buffer, frame->payload, size_);
+    memset(frame->payload, 0, frame->payload_len);
+    memcpy(frame->payload, new_buffer, size_);
+    delete[] new_buffer;
 
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::srtp::encrypt(uvg_rtp::frame::rtp_frame *frame)
+rtp_error_t uvg_rtp::srtp::send_packet_handler(void *arg, uvg_rtp::buf_vec& buffers)
 {
-    /* TODO: authentication for complete RTP frame requires co-operation
-     * with the allocator of that frame -> no good solution for that right now */
+    auto srtp = (uvg_rtp::srtp *)arg;
 
-    return __encrypt(
-        ntohl(frame->header.ssrc),
-        ntohs(frame->header.seq),
-        frame->payload,
-        frame->payload_len
-    );
-}
+    if (srtp->use_null_cipher())
+        return RTP_OK;
 
-rtp_error_t uvg_rtp::srtp::encrypt(std::vector<std::pair<size_t, uint8_t *>>& buffers)
-{
-    auto frame       = (uvg_rtp::frame::rtp_frame *)buffers.at(0).second;
-    auto rtp         = buffers.at(buffers.size() - 1);
-    uint64_t *digest = new uint64_t;
+    auto frame  = (uvg_rtp::frame::rtp_frame *)buffers.at(0).second;
+    auto rtp    = buffers.at(buffers.size() - 1);
+    auto ctx    = srtp->get_ctx();
 
-    rtp_error_t ret = __encrypt(
+    rtp_error_t ret = srtp->encrypt(
         ntohl(frame->header.ssrc),
         ntohs(frame->header.seq),
         rtp.second,
         rtp.first
     );
 
-    if (!authenticate_rtp_)
-        return ret;
+    if (!srtp->authenticate_rtp())
+        return RTP_OK;
 
     /* create authentication tag for the packet and push it to the vector buffer */
-    auto hmac_sha1 = uvg_rtp::crypto::hmac::sha1(key_ctx_.local.auth_key, AES_KEY_LENGTH);
+    auto hmac_sha1 = uvg_rtp::crypto::hmac::sha1(ctx.key_ctx.local.auth_key, AES_KEY_LENGTH);
 
-    for (auto& buffer : buffers)
-        hmac_sha1.update((uint8_t *)buffer.second, buffer.first);
+    for (size_t i = 0; i < buffers.size() - 1; ++i)
+        hmac_sha1.update((uint8_t *)buffers[i].second, buffers[i].first);
 
-    hmac_sha1.update((uint8_t *)&srtp_ctx_.roc, sizeof(srtp_ctx_.roc));
-    hmac_sha1.final((uint8_t *)digest);
+    hmac_sha1.update((uint8_t *)&ctx.roc, sizeof(ctx.roc));
+    hmac_sha1.final((uint8_t *)buffers[buffers.size() - 1].second);
 
-    buffers.push_back(std::make_pair(sizeof(uint64_t), (uint8_t *)digest));
     return ret;
-}
-
-rtp_error_t uvg_rtp::srtp::decrypt(uint8_t *buffer, size_t len)
-{
-    if (use_null_cipher_)
-        return RTP_OK;
-
-    uint8_t iv[16]  = { 0 };
-    auto hdr        = (uvg_rtp::frame::rtp_header *)buffer;
-    uint16_t seq    = ntohs(hdr->seq);
-    uint32_t ssrc   = ntohl(hdr->ssrc);
-    uint64_t index  = (((uint64_t)srtp_ctx_.roc) << 16) + seq;
-    uint64_t digest = 0;
-
-    /* Sequence number has wrapped around, update Roll-over Counter */
-    if (seq == 0xffff)
-        srtp_ctx_.roc++;
-
-    if (create_iv(iv, ssrc, index, key_ctx_.remote.salt_key) != RTP_OK) {
-        LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
-        return RTP_INVALID_VALUE;
-    }
-
-    uint8_t *payload = buffer + sizeof(uvg_rtp::frame::rtp_header);
-    uvg_rtp::crypto::aes::ctr ctr(key_ctx_.remote.enc_key, sizeof(key_ctx_.remote.enc_key), iv);
-
-    /* exit early if RTP packet authentication is disabled... */
-    if (!authenticate_rtp_) {
-        ctr.decrypt(payload, payload, len - sizeof(uvg_rtp::frame::rtp_header));
-        return RTP_OK;
-    }
-
-    /* ... otherwise calculate authentication tag for the packet
-     * and compare it against the one we received */
-    auto hmac_sha1 = uvg_rtp::crypto::hmac::sha1(key_ctx_.remote.auth_key, AES_KEY_LENGTH);
-
-    hmac_sha1.update((uint8_t *)buffer, len - AUTH_TAG_LENGTH);
-    hmac_sha1.update((uint8_t *)&srtp_ctx_.roc, sizeof(srtp_ctx_.roc));
-    hmac_sha1.final((uint8_t *)&digest);
-
-    if (memcmp(&digest, &buffer[len - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH)) {
-        LOG_ERROR("Authentication tag mismatch!");
-        return RTP_AUTH_TAG_MISMATCH;
-    }
-
-    size_t size_ = len - sizeof(uvg_rtp::frame::rtp_header) - 8;
-    uint8_t *new_buffer = new uint8_t[size_];
-
-    ctr.decrypt(new_buffer, payload, size_);
-    memset(payload, 0, len);
-    memcpy(payload, new_buffer, size_);
-    return RTP_OK;
 }
 #endif
