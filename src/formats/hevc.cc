@@ -434,7 +434,7 @@ end:
 }
 
 uvg_rtp::formats::hevc::hevc(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):
-    media(socket, rtp, flags), fqueue_(new uvg_rtp::frame_queue(socket, rtp, flags))
+    media(socket, rtp, flags)
 {
 }
 
