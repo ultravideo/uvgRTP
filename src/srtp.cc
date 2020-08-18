@@ -275,7 +275,6 @@ rtp_error_t uvg_rtp::srtp::send_packet_handler(void *arg, uvg_rtp::buf_vec& buff
     auto frame  = (uvg_rtp::frame::rtp_frame *)buffers.at(0).second;
     auto rtp    = buffers.at(buffers.size() - 1);
     auto ctx    = srtp->get_ctx();
-    auto digest = new uint64_t;
 
     rtp_error_t ret = srtp->encrypt(
         ntohl(frame->header.ssrc),
@@ -290,13 +289,12 @@ rtp_error_t uvg_rtp::srtp::send_packet_handler(void *arg, uvg_rtp::buf_vec& buff
     /* create authentication tag for the packet and push it to the vector buffer */
     auto hmac_sha1 = uvg_rtp::crypto::hmac::sha1(ctx.key_ctx.local.auth_key, AES_KEY_LENGTH);
 
-    for (auto& buffer : buffers)
-        hmac_sha1.update((uint8_t *)buffer.second, buffer.first);
+    for (size_t i = 0; i < buffers.size() - 1; ++i)
+        hmac_sha1.update((uint8_t *)buffers[i].second, buffers[i].first);
 
     hmac_sha1.update((uint8_t *)&ctx.roc, sizeof(ctx.roc));
-    hmac_sha1.final((uint8_t *)digest);
+    hmac_sha1.final((uint8_t *)buffers[buffers.size() - 1].second);
 
-    buffers.push_back(std::make_pair(sizeof(uint64_t), (uint8_t *)digest));
     return ret;
 }
 #endif

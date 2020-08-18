@@ -69,14 +69,20 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction()
         free_.pop_back();
     }
 
-    active_->chunk_ptr  = 0;
-    active_->hdr_ptr    = 0;
-    active_->rtphdr_ptr = 0;
-    active_->fqueue     = this;
+    active_->chunk_ptr   = 0;
+    active_->hdr_ptr     = 0;
+    active_->rtphdr_ptr  = 0;
+    active_->rtpauth_ptr = 0;
+    active_->fqueue      = this;
 
     active_->data_raw     = nullptr;
     active_->data_smart   = nullptr;
     active_->dealloc_hook = dealloc_hook_;
+
+    if (flags_ & RCE_SRTP_AUTHENTICATE_RTP)
+        active_->rtp_auth_tags = new uint64_t[max_mcount_];
+    else
+        active_->rtp_auth_tags = nullptr;
 
     active_->out_addr = socket_->get_out_address();
     rtp_->fill_header((uint8_t *)&active_->rtp_common);
@@ -125,6 +131,7 @@ rtp_error_t uvg_rtp::frame_queue::destroy_transaction(uvg_rtp::transaction_t *t)
     delete[] t->headers;
     delete[] t->chunks;
     delete[] t->rtp_headers;
+    delete[] t->rtp_auth_tags;
 
     t->headers     = nullptr;
     t->chunks      = nullptr;
@@ -185,6 +192,7 @@ rtp_error_t uvg_rtp::frame_queue::deinit_transaction(uint32_t key)
                 break;
         }
 
+        delete[] transaction_it->second->rtp_auth_tags;
         delete[] transaction_it->second->headers;
         delete[] transaction_it->second->chunks;
         delete[] transaction_it->second->rtp_headers;
@@ -225,6 +233,13 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(uint8_t *message, size_t messa
         (uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr++]
     });
 
+    if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
+        tmp.push_back({
+            sizeof(uint64_t),
+            (uint8_t *)&active_->rtp_auth_tags[active_->rtpauth_ptr++]
+        });
+    }
+
     tmp.push_back({ message_len, message });
     active_->packets.push_back(tmp);
     rtp_->inc_sequence();
@@ -253,6 +268,13 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, 
 
     for (size_t i = 0; i < buffers.size(); ++i)
         tmp.push_back({ buffers.at(i).first, buffers.at(i).second });
+
+    if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
+        tmp.push_back({
+            sizeof(uint64_t),
+            (uint8_t *)&active_->rtp_auth_tags[active_->rtpauth_ptr++]
+        });
+    }
 
     active_->packets.push_back(tmp);
     rtp_->inc_sequence();

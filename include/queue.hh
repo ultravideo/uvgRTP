@@ -66,9 +66,13 @@ namespace uvg_rtp {
          * See src/formats/hevc.hh for example */
         void *media_headers;
 
+        /* Pointer to RTP authentication (if enabled) */
+        uint64_t *rtp_auth_tags;
+
         size_t chunk_ptr;
         size_t hdr_ptr;
         size_t rtphdr_ptr;
+        size_t rtpauth_ptr;
 
         /* Address of receiver, used by sendmmsg(2) */
         sockaddr_in out_addr;
