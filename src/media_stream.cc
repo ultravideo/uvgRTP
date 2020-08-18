@@ -123,7 +123,6 @@ rtp_error_t uvg_rtp::media_stream::init()
         return RTP_MEMORY_ERROR;
     }
 
-    socket_->install_handler(rtcp_, rtcp_->send_packet_handler_buf);
     socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
 
     rtp_handler_key_ = pkt_dispatcher_->install_handler(rtp_->packet_handler);
@@ -201,7 +200,6 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
         return RTP_MEMORY_ERROR;
     }
 
-    socket_->install_handler(rtcp_, rtcp_->send_packet_handler_buf);
     socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
 
     rtp_handler_key_  = pkt_dispatcher_->install_handler(rtp_->packet_handler);
@@ -281,7 +279,6 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         return RTP_MEMORY_ERROR;
     }
 
-    socket_->install_handler(rtcp_, rtcp_->send_packet_handler_buf);
     socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
 
     rtp_handler_key_ = pkt_dispatcher_->install_handler(rtp_->packet_handler);

@@ -265,34 +265,7 @@ rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::srtp::send_packet_handler_buf(void *arg, ssize_t len, void *buf)
-{
-    auto srtp = (uvg_rtp::srtp *)arg;
-
-    if (srtp->use_null_cipher())
-        return RTP_OK;
-
-    uint8_t iv[16] = { 0 };
-    auto ctx       = srtp->get_ctx();
-    auto frame     = (uvg_rtp::frame::rtp_frame *)buf;
-    auto index     = (((uint64_t)ctx.roc) << 16) + ntohs(frame->header.seq);
-
-    /* Sequence number has wrapped around, update Roll-over Counter */
-    if (ntohs(frame->header.seq) == 0xffff)
-        ctx.roc++;
-
-    if (srtp->create_iv(iv, ntohl(frame->header.ssrc), index, ctx.key_ctx.local.salt_key) != RTP_OK) {
-        LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
-        return RTP_INVALID_VALUE;
-    }
-
-    uvg_rtp::crypto::aes::ctr ctr(ctx.key_ctx.local.enc_key, sizeof(ctx.key_ctx.local.enc_key), iv);
-    ctr.encrypt((uint8_t *)buf, (uint8_t *)buf, len);
-
-    return RTP_OK;
-}
-
-rtp_error_t uvg_rtp::srtp::send_packet_handler_vec(void *arg, std::vector<std::pair<size_t, uint8_t *>>& buffers)
+rtp_error_t uvg_rtp::srtp::send_packet_handler(void *arg, uvg_rtp::buf_vec& buffers)
 {
     auto srtp = (uvg_rtp::srtp *)arg;
 

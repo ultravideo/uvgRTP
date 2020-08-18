@@ -18,24 +18,19 @@
 
 namespace uvg_rtp {
 
+    const int MAX_BUFFER_COUNT = 256;
+
     /* Vector of buffers that contain a full RTP frame */
     typedef std::vector<std::pair<size_t, uint8_t *>> buf_vec;
 
     /* Vector of RTP frames constructed from buf_vec entries */
     typedef std::vector<std::vector<std::pair<size_t, uint8_t *>>> pkt_vec;
 
-    const int MAX_BUFFER_COUNT = 256;
-
-    typedef rtp_error_t (*packet_handler_buf)(void *, ssize_t, void *);
-    typedef rtp_error_t (*packet_handler_vec)(void *, std::vector<std::pair<size_t, uint8_t *>>&);
+    typedef rtp_error_t (*packet_handler_vec)(void *, buf_vec&);
 
     struct socket_packet_handler {
         void *arg;
-
-        union {
-            packet_handler_buf buf;
-            packet_handler_vec vec;
-        } handlers;
+        packet_handler_vec handler;
     };
 
     class socket {
@@ -129,14 +124,13 @@ namespace uvg_rtp {
             /* Get the out address for the socket if it exists */
             sockaddr_in& get_out_address();
 
-            /* Install a packet handler for buffer- or vector-based send operations.
+            /* Install a packet handler for vector-based send operations.
              *
-             * These handlers allow the caller to inject extra functionality to the send operation
+             * This handler allows the caller to inject extra functionality to the send operation
              * without polluting src/socket.cc with unrelated code
              * (such as collecting RTCP session statistics info or encrypting a packet)
              *
              * "arg" is an optional parameter that can be passed to the handler when it's called */
-            rtp_error_t install_handler(void *arg, packet_handler_buf handler);
             rtp_error_t install_handler(void *arg, packet_handler_vec handler);
 
         private:

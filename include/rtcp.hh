@@ -200,8 +200,7 @@ namespace uvg_rtp {
             static rtp_error_t recv_packet_handler(void *arg, int flags, frame::rtp_frame **out);
 
             /* Update RTCP-related sender statistics */
-            static rtp_error_t send_packet_handler_buf(void *arg, ssize_t len, void *buf);
-            static rtp_error_t send_packet_handler_vec(void *arg, std::vector<std::pair<size_t, uint8_t *>>& buffers);
+            static rtp_error_t send_packet_handler_vec(void *arg, uvg_rtp::buf_vec& buffers);
 
         private:
             static void rtcp_runner(rtcp *rtcp);

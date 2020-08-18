@@ -10,6 +10,7 @@
 #endif
 
 #include <cstdint>
+#include <vector>
 
 #include "debug.hh"
 #include "frame.hh"
@@ -26,6 +27,9 @@
 #define AUTH_TAG_LENGTH   8
 
 namespace uvg_rtp {
+
+    /* Vector of buffers that contain a full RTP frame */
+    typedef std::vector<std::pair<size_t, uint8_t *>> buf_vec;
 
     enum STYPE {
         SRTP  = 0,
@@ -160,8 +164,7 @@ namespace uvg_rtp {
             static rtp_error_t recv_packet_handler(void *arg, int flags, frame::rtp_frame **out);
 
             /* Encrypt the payload and add authentication tag (if enabled) */
-            static rtp_error_t send_packet_handler_buf(void *arg, ssize_t len, void *buf);
-            static rtp_error_t send_packet_handler_vec(void *arg, std::vector<std::pair<size_t, uint8_t *>>& buffers);
+            static rtp_error_t send_packet_handler(void *arg, buf_vec& buffers);
 #endif
 
         private:
