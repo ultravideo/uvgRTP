@@ -177,7 +177,7 @@ namespace uvg_rtp {
 
             /* Set wallclock reading for t = 0 and random RTP timestamp from where the counting is started
              * + clock rate for calculating the correct increment */
-            void set_sender_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start);
+            void set_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start);
 
             /* Update various session statistics */
             void update_session_statistics(uvg_rtp::frame::rtp_frame *frame);

@@ -208,7 +208,7 @@ bool uvg_rtp::rtcp::is_participant(uint32_t ssrc)
     return participants_.find(ssrc) != participants_.end();
 }
 
-void uvg_rtp::rtcp::set_sender_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start)
+void uvg_rtp::rtcp::set_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start)
 {
     clock_start_  = clock_start;
     clock_rate_   = clock_rate;

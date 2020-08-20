@@ -93,7 +93,6 @@ uvg_rtp::srtp_ctx_t& uvg_rtp::srtp::get_ctx()
     return srtp_ctx_;
 }
 
->>>>>>> security-fixes
 rtp_error_t uvg_rtp::srtp::__init(int type, int flags)
 {
     srtp_ctx_.roc  = 0;
