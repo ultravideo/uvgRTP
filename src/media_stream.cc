@@ -117,7 +117,7 @@ rtp_error_t uvg_rtp::media_stream::init()
         return RTP_MEMORY_ERROR;
     }
 
-    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_))) {
+    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_, ctx_config_.flags))) {
         delete rtp_;
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;

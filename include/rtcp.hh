@@ -73,7 +73,7 @@ namespace uvg_rtp {
     class rtcp : public runner {
         public:
             rtcp(uint32_t ssrc, bool receiver);
-            rtcp(uvg_rtp::rtp *rtp);
+            rtcp(uvg_rtp::rtp *rtp, int flags);
             ~rtcp();
 
             /* start the RTCP runner thread
@@ -257,6 +257,9 @@ namespace uvg_rtp {
             /* Pointer to RTP context from which clock rate etc. info is collected and which is
              * used to change SSRC if a collision is detected */
             uvg_rtp::rtp *rtp_;
+
+            /* RTP context flags */
+            int flags_;
 
             /* are we a sender or a receiver */
             int our_role_;
