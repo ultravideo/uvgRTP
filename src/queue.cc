@@ -285,8 +285,8 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, 
 
 rtp_error_t uvg_rtp::frame_queue::flush_queue()
 {
-    if (!active_->hdr_ptr || !active_->chunk_ptr) {
-        LOG_ERROR("Cannot send 0 messages or messages containing 0 chunks!");
+    if (active_->packets.empty()) {
+        LOG_ERROR("Cannot send an empty packet!");
         (void)deinit_transaction();
         return RTP_INVALID_VALUE;
     }
