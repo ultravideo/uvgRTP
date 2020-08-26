@@ -65,13 +65,7 @@ rtp_error_t uvg_rtp::formats::media::__push_frame(uint8_t *data, size_t data_len
         return ret;
     }
 
-    if ((ret = fqueue_->flush_queue()) != RTP_OK) {
-        LOG_ERROR("Failed to flush frame queue: %d", ret);
-        (void)fqueue_->deinit_transaction();
-        return ret;
-    }
-
-    return fqueue_->deinit_transaction();
+    return fqueue_->flush_queue();
 
 #if 0
     std::vector<std::pair<size_t, uint8_t *>> buffers;
