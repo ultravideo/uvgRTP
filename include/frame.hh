@@ -138,13 +138,13 @@ namespace uvg_rtp {
         PACKED_STRUCT(rtcp_sdes_item) {
             uint8_t type;
             uint8_t length;
-            uint8_t data[1];
+            void *data;
         };
 
-        PACKED_STRUCT(rtcp_sdes_frame) {
+        struct rtcp_sdes_packet {
             struct rtcp_header header;
-            uint32_t sender_ssrc;
-            struct rtcp_sdes_item items[1];
+            uint32_t ssrc;
+            std::vector<rtcp_sdes_item> items;
         };
 
         PACKED_STRUCT(rtcp_bye_frame) {

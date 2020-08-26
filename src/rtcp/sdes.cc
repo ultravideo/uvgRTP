@@ -4,7 +4,7 @@
 
 #include "rtcp.hh"
 
-uvg_rtp::frame::rtcp_sdes_frame *uvg_rtp::rtcp::get_sdes_packet(uint32_t ssrc)
+uvg_rtp::frame::rtcp_sdes_packet *uvg_rtp::rtcp::get_sdes_packet(uint32_t ssrc)
 {
     if (participants_.find(ssrc) == participants_.end())
         return nullptr;
@@ -15,7 +15,7 @@ uvg_rtp::frame::rtcp_sdes_frame *uvg_rtp::rtcp::get_sdes_packet(uint32_t ssrc)
     return frame;
 }
 
-rtp_error_t uvg_rtp::rtcp::install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_frame *))
+rtp_error_t uvg_rtp::rtcp::install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_packet *))
 {
     if (!hook)
         return RTP_INVALID_VALUE;
@@ -24,67 +24,91 @@ rtp_error_t uvg_rtp::rtcp::install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_s
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::handle_sdes_packet(uint8_t *frame, size_t size)
+rtp_error_t uvg_rtp::rtcp::handle_sdes_packet(uint8_t *packet, size_t size)
 {
-#if 0
-    if (!frame)
+    if (!packet || !size)
         return RTP_INVALID_VALUE;
 
-    if (frame->header.count == 0) {
-        LOG_ERROR("SDES packet cannot contain 0 fields!");
-        return RTP_INVALID_VALUE;
+    auto frame = new uvg_rtp::frame::rtcp_sdes_packet;
+
+    frame->header.version = (packet[0] >> 6) & 0x3;
+    frame->header.padding = (packet[0] >> 5) & 0x1;
+    frame->header.count   = packet[0] & 0x1f;
+    frame->header.length  = ntohs(*(uint16_t *)&packet[2]);
+    frame->ssrc           = ntohl(*(uint32_t *)&packet[4]);
+
+    /* Deallocate previous frame from the buffer if it exists, it's going to get overwritten */
+    if (participants_[frame->ssrc]->sdes_frame) {
+        for (auto& item : participants_[frame->ssrc]->sdes_frame->items)
+            delete[] (uint8_t *)item.data;
+        delete participants_[frame->ssrc]->sdes_frame;
     }
 
-    frame->sender_ssrc = ntohl(frame->sender_ssrc);
+    for (int ptr = 8; ptr < frame->header.length; ) {
+        uvg_rtp::frame::rtcp_sdes_item item;
 
-    /* We need to make a copy of the frame because right now frame points to RTCP recv buffer
-     * Deallocate previous frame if it exists */
-    if (participants_[frame->sender_ssrc]->sdes_frame != nullptr)
-        (void)uvg_rtp::frame::dealloc_frame(participants_[frame->sender_ssrc]->sdes_frame);
+        item.type   = packet[ptr++];
+        item.length = packet[ptr++];
+        item.data   = (void *)new uint8_t[item.length];
 
-    uint8_t *cpy_frame = new uint8_t[size];
-    memcpy(cpy_frame, frame, size);
+        memcpy(item.data, &packet[ptr], item.length);
+        ptr += item.length;
+    }
 
     if (sdes_hook_)
-        sdes_hook_((uvg_rtp::frame::rtcp_sdes_frame *)cpy_frame);
+        sdes_hook_(frame);
     else
-        participants_[frame->sender_ssrc]->sdes_frame = (uvg_rtp::frame::rtcp_sdes_frame *)cpy_frame;
-#endif
+        participants_[frame->ssrc]->sdes_frame = frame;
 
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::send_sdes_packet(uvg_rtp::frame::rtcp_sdes_frame *frame)
+rtp_error_t uvg_rtp::rtcp::send_sdes_packet(std::vector<uvg_rtp::frame::rtcp_sdes_item>& items)
 {
-    if (!frame)
+    if (items.empty()) {
+        LOG_ERROR("Cannot send an empty SDES packet!");
         return RTP_INVALID_VALUE;
-
-    if (frame->header.count == 0) {
-        LOG_WARN("");
     }
 
-    uint16_t len = frame->header.length;
-
-    /* rtcp header + ssrc */
-    frame->header.length = htons(frame->header.length);
-    frame->sender_ssrc = htonl(frame->sender_ssrc);
-
-    for (size_t i = 0; i < frame->header.count; ++i) {
-        frame->items[i].length = htons(frame->items[i].length);
-    }
-
+    int ptr = 8;
+    uint8_t *frame;
     rtp_error_t ret;
+    size_t frame_size;
 
-    for (auto& participant : participants_) {
-        auto p = participant.second;
+    frame_size  = 4 + 4;            /* rtcp header + ssrc */
+    frame_size += items.size() * 2; /* sdes item type + length */
 
-        if ((ret = p->socket->sendto(p->address, (uint8_t *)frame, len, 0)) != RTP_OK) {
-            LOG_ERROR("sendto() failed!");
-            return ret;
-        }
+    for (auto& item : items)
+        frame_size += item.length;
 
-        update_rtcp_bandwidth(len);
+    if (!(frame = new uint8_t[frame_size])) {
+        LOG_ERROR("Failed to allocate space for RTCP Receiver Report");
+        return RTP_MEMORY_ERROR;
+    }
+    memset(frame, 0, frame_size);
+
+    frame[0] = (2 << 6) | (0 << 5) | num_receivers_;
+    frame[1] = uvg_rtp::frame::RTCP_FT_SDES;
+
+    *(uint16_t *)&frame[2] = htons(frame_size);
+    *(uint32_t *)&frame[4] = htonl(ssrc_);
+
+    for (auto& item : items) {
+        frame[ptr++] = item.type;
+        frame[ptr++] = item.length;
+        memcpy(frame + ptr, item.data, item.length);
+        ptr += item.length;
     }
 
+    for (auto& p : participants_) {
+        if ((ret = p.second->socket->sendto(p.second->address, frame, frame_size, 0)) != RTP_OK) {
+            LOG_ERROR("sendto() failed!");
+            goto end;
+        }
+        update_rtcp_bandwidth(frame_size);
+    }
+
+end:
+    delete[] frame;
     return ret;
 }
