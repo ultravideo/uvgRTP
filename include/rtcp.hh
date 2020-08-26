@@ -119,7 +119,7 @@ namespace uvg_rtp {
              * Return RTP_SEND_ERROR if sending "frame" did not succeed (see socket.hh for details) */
             rtp_error_t send_sdes_packet(std::vector<uvg_rtp::frame::rtcp_sdes_item>& items);
             rtp_error_t send_app_packet(char *name, uint8_t subtype, size_t payload_len, uint8_t *payload);
-            rtp_error_t send_bye_packet(uvg_rtp::frame::rtcp_bye_frame *frame);
+            rtp_error_t send_bye_packet(std::vector<uint32_t> ssrcs);
 
             /* Return the latest RTCP packet received from participant of "ssrc"
              * Return nullptr if we haven't received this kind of packet or if "ssrc" doesn't exist
