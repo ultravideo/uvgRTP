@@ -9,6 +9,7 @@
 #endif
 
 #include <string>
+#include <vector>
 
 #include "util.hh"
 
@@ -113,6 +114,12 @@ namespace uvg_rtp {
             uint32_t sender_ssrc;
             struct rtcp_sender_info s_info;
             struct rtcp_report_block blocks[1];
+        };
+
+        struct rtcp_receiver_report {
+            struct rtcp_header header;
+            uint32_t ssrc;
+            std::vector<rtcp_report_block> report_blocks;
         };
 
         PACKED_STRUCT(rtcp_receiver_frame) {

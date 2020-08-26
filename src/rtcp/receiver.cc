@@ -6,7 +6,7 @@
 
 #define SET_NEXT_FIELD_32(a, p, v) do { *(uint32_t *)&(a)[p] = (v); ptr += 4; } while (0)
 
-uvg_rtp::frame::rtcp_receiver_frame *uvg_rtp::rtcp::get_receiver_packet(uint32_t ssrc)
+uvg_rtp::frame::rtcp_receiver_report *uvg_rtp::rtcp::get_receiver_packet(uint32_t ssrc)
 {
     if (participants_.find(ssrc) == participants_.end())
         return nullptr;
@@ -17,7 +17,7 @@ uvg_rtp::frame::rtcp_receiver_frame *uvg_rtp::rtcp::get_receiver_packet(uint32_t
     return frame;
 }
 
-rtp_error_t uvg_rtp::rtcp::install_receiver_hook(void (*hook)(uvg_rtp::frame::rtcp_receiver_frame *))
+rtp_error_t uvg_rtp::rtcp::install_receiver_hook(void (*hook)(uvg_rtp::frame::rtcp_receiver_report *))
 {
     if (!hook)
         return RTP_INVALID_VALUE;
@@ -31,53 +31,50 @@ rtp_error_t uvg_rtp::rtcp::handle_receiver_report_packet(uint8_t *packet, size_t
     if (!packet || !size)
         return RTP_INVALID_VALUE;
 
-    frame->header.length = ntohs(frame->header.length);
-    frame->sender_ssrc   = ntohl(frame->sender_ssrc);
+    auto frame = new uvg_rtp::frame::rtcp_receiver_report;
+
+    frame->header.version = (packet[0] >> 6) & 0x3f;
+    frame->header.padding = (packet[0] >> 5) & 0x1;
+    frame->header.count   = packet[0] & 0x1f;
+    frame->header.length  = ntohs(*(uint16_t *)&packet[2]);
+    frame->ssrc           = ntohl(*(uint32_t *)&packet[4]);
 
     /* Receiver Reports are sent from participant that don't send RTP packets
      * This means that the sender of this report is not in the participants_ map
      * but rather in the initial_participants_ vector
      *
      * Check if that's the case and if so, move the entry from initial_participants_ to participants_ */
-    if (!is_participant(frame->sender_ssrc)) {
-        /* TODO: this is not correct way to do it! fix before multicast */
-        add_participant(frame->sender_ssrc);
+    if (!is_participant(frame->ssrc)) {
+        LOG_WARN("Got a Receiver Report from an unknown participant");
+        add_participant(frame->ssrc);
     }
 
-    if (frame->header.count == 0) {
+    if (!frame->header.count) {
         LOG_ERROR("Receiver Report cannot have 0 report blocks!");
         return RTP_INVALID_VALUE;
     }
 
-    /* We need to make a copy of the frame because right now frame points to RTCP recv buffer
-     * Deallocate previous frame if it exists */
-    if (participants_[frame->sender_ssrc]->r_frame != nullptr)
-        (void)uvg_rtp::frame::dealloc_frame(participants_[frame->sender_ssrc]->r_frame);
+    /* Deallocate previous frame from the buffer if it exists, it's going to get overwritten */
+    if (participants_[frame->ssrc]->r_frame)
+        delete participants_[frame->ssrc]->r_frame;
 
-    auto cpy_frame = uvg_rtp::frame::alloc_rtcp_receiver_frame(frame->header.count);
-    memcpy(cpy_frame, frame, size);
-
-    fprintf(stderr, "Receiver report:\n");
     for (int i = 0; i < frame->header.count; ++i) {
-        cpy_frame->blocks[i].lost     = ntohl(frame->blocks[i].lost);
-        cpy_frame->blocks[i].last_seq = ntohl(frame->blocks[i].last_seq);
-        cpy_frame->blocks[i].jitter   = ntohl(frame->blocks[i].jitter);
-        cpy_frame->blocks[i].lsr      = ntohl(frame->blocks[i].lsr);
-        cpy_frame->blocks[i].dlsr     = ntohl(frame->blocks[i].dlsr);
+        uvg_rtp::frame::rtcp_report_block report;
 
-        fprintf(stderr, "-------\n");
-        fprintf(stderr, "lost:     %d\n", cpy_frame->blocks[i].lost);
-        fprintf(stderr, "last_seq: %u\n", cpy_frame->blocks[i].last_seq);
-        fprintf(stderr, "jitter:   %u\n", cpy_frame->blocks[i].jitter);
-        fprintf(stderr, "last sr:  %u\n", cpy_frame->blocks[i].lsr);
-        fprintf(stderr, "dlsr:     %u\n", cpy_frame->blocks[i].dlsr);
-        fprintf(stderr, "-------\n");
+        report.ssrc     = ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 0]);
+        report.lost     = ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 4]);
+        report.last_seq = ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 8]);
+        report.jitter   = ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 12]);
+        report.lsr      = ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 16]);
+        report.dlsr     = ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 20]);
+
+        frame->report_blocks.push_back(report);
     }
 
     if (receiver_hook_)
-        receiver_hook_(cpy_frame);
+        receiver_hook_(frame);
     else
-        participants_[frame->sender_ssrc]->r_frame = cpy_frame;
+        participants_[frame->ssrc]->r_frame = frame;
 
     return RTP_OK;
 }
