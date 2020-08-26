@@ -83,7 +83,7 @@ namespace uvg_rtp {
             sockaddr_in src_addr;
         };
 
-        PACKED_STRUCT(rtcp_header) {
+        struct rtcp_header {
             uint8_t version;
             uint8_t padding;
             union {
@@ -94,7 +94,7 @@ namespace uvg_rtp {
             uint16_t length;
         };
 
-        PACKED_STRUCT(rtcp_sender_info) {
+        struct rtcp_sender_info {
             uint32_t ntp_msw; /* NTP timestamp, most significant word */
             uint32_t ntp_lsw; /* NTP timestamp, least significant word */
             uint32_t rtp_ts;  /* RTP timestamp corresponding to same time as NTP */
@@ -102,21 +102,14 @@ namespace uvg_rtp {
             uint32_t byte_cnt;
         };
 
-        PACKED_STRUCT(rtcp_report_block) {
+        struct rtcp_report_block {
             uint32_t ssrc;
             uint8_t  fraction;
-            int32_t  lost:24;
+            int32_t  lost;
             uint32_t last_seq;
             uint32_t jitter;
             uint32_t lsr;  /* last Sender Report */
             uint32_t dlsr; /* delay since last Sender Report */
-        };
-
-        PACKED_STRUCT(rtcp_sender_frame) {
-            struct rtcp_header header;
-            uint32_t sender_ssrc;
-            struct rtcp_sender_info s_info;
-            struct rtcp_report_block blocks[1];
         };
 
         struct rtcp_receiver_report {
@@ -132,13 +125,7 @@ namespace uvg_rtp {
             std::vector<rtcp_report_block> report_blocks;
         };
 
-        PACKED_STRUCT(rtcp_receiver_frame) {
-            struct rtcp_header header;
-            uint32_t sender_ssrc;
-            struct rtcp_report_block blocks[1];
-        };
-
-        PACKED_STRUCT(rtcp_sdes_item) {
+        struct rtcp_sdes_item {
             uint8_t type;
             uint8_t length;
             void *data;
@@ -155,11 +142,6 @@ namespace uvg_rtp {
             uint32_t ssrc;
             uint8_t name[4];
             uint8_t *payload;
-        };
-
-        PACKED_STRUCT(rtcp_bye_frame) {
-            struct rtcp_header header;
-            uint32_t ssrc[1];
         };
 
         PACKED_STRUCT(zrtp_frame) {
@@ -196,16 +178,6 @@ namespace uvg_rtp {
          *    RTP_INVALID_VALUE if "payload_size" is 0 */
         zrtp_frame *alloc_zrtp_frame(size_t payload_size);
 
-        /* Allocate various types of RTCP frames, see src/rtcp.cc for more details
-         *
-         * Return pointer to frame on success
-         * Return nullptr on error and set rtp_errno to:
-         *    RTP_MEMORY_ERROR if allocation of memory failed
-         *    RTP_INVALID_VALUE if one of the parameters was invalid */
-        rtcp_receiver_frame *alloc_rtcp_receiver_frame(size_t nblocks);
-        rtcp_sender_frame   *alloc_rtcp_sender_frame(size_t nblocks);
-        rtcp_bye_frame      *alloc_rtcp_bye_frame(size_t ssrc_count);
-
         /* Deallocate RTP frame
          *
          * Return RTP_OK on successs
@@ -217,13 +189,5 @@ namespace uvg_rtp {
          * Return RTP_OK on successs
          * Return RTP_INVALID_VALUE if "frame" is nullptr */
         rtp_error_t dealloc_frame(uvg_rtp::frame::zrtp_frame *frame);
-
-        /* Deallocate various types of RTCP frames
-         *
-         * Return RTP_OK on successs
-         * Return RTP_INVALID_VALUE if "frame" is nullptr */
-        rtp_error_t dealloc_frame(rtcp_sender_frame *frame);
-        rtp_error_t dealloc_frame(rtcp_receiver_frame *frame);
-        rtp_error_t dealloc_frame(rtcp_bye_frame *frame);
     };
 };
