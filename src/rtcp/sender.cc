@@ -83,7 +83,7 @@ rtp_error_t uvg_rtp::rtcp::generate_sender_report()
     LOG_DEBUG("Generating RTCP Sender Report");
 
     if (!senders_) {
-        LOG_WARN("Session does not have any RTP senders!");
+        LOG_DEBUG("Session does not have any RTP senders!");
         return RTP_NOT_READY;
     }
 
