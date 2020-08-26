@@ -385,7 +385,8 @@ void uvg_rtp::rtcp::update_session_statistics(uvg_rtp::frame::rtp_frame *frame)
     int extended_max = p->stats.cycles + p->stats.max_seq;
     int expected     = extended_max - p->stats.base_seq + 1;
 
-    p->stats.dropped_pkts = expected - p->stats.received_pkts;
+    int dropped = expected - p->stats.received_pkts;
+    p->stats.dropped_pkts = dropped >= 0 ? dropped : 0;
 
     int arrival =
         p->stats.initial_rtp +
