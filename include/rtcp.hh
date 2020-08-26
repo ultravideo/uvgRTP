@@ -130,9 +130,6 @@ namespace uvg_rtp {
             uvg_rtp::frame::rtcp_sdes_packet     *get_sdes_packet(uint32_t ssrc);
             uvg_rtp::frame::rtcp_app_packet      *get_app_packet(uint32_t ssrc);
 
-            /* create RTCP BYE packet using our own SSRC and send it to all participants */
-            rtp_error_t terminate_self();
-
             /* Return a reference to vector that contains the sockets of all participants */
             std::vector<uvg_rtp::socket>& get_sockets();
 

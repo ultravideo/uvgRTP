@@ -78,7 +78,7 @@ rtp_error_t uvg_rtp::rtcp::stop()
 
 end:
     /* Send BYE packet with our SSRC to all participants */
-    uvg_rtp::rtcp::terminate_self();
+    return uvg_rtp::rtcp::send_bye_packet({ ssrc_ });
 
 free_mem:
     /* free all receiver statistic structs */
@@ -322,22 +322,6 @@ rtp_error_t uvg_rtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
     }
 
     return RTP_OK;
-}
-
-rtp_error_t uvg_rtp::rtcp::terminate_self()
-{
-    rtp_error_t ret;
-    auto bye_frame = uvg_rtp::frame::alloc_rtcp_bye_frame(1);
-
-    bye_frame->ssrc[0] = ssrc_;
-
-    if ((ret = send_bye_packet(bye_frame)) != RTP_OK) {
-        LOG_ERROR("Failed to send BYE");
-    }
-
-    (void)uvg_rtp::frame::dealloc_frame(bye_frame);
-
-    return ret;
 }
 
 rtp_error_t uvg_rtp::rtcp::reset_rtcp_state(uint32_t ssrc)
