@@ -234,6 +234,8 @@ extern thread_local rtp_error_t rtp_errno;
 
 #define TIME_DIFF(s, e, u) ((ssize_t)std::chrono::duration_cast<std::chrono::u>(e - s).count())
 
+#define SET_NEXT_FIELD_32(a, p, v) do { *(uint32_t *)&(a)[p] = (v); p += 4; } while (0)
+
 static inline void hex_dump(uint8_t *buf, size_t len)
 {
     if (!buf)

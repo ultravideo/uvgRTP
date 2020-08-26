@@ -4,8 +4,6 @@
 
 #include "rtcp.hh"
 
-#define SET_NEXT_FIELD_32(a, p, v) do { *(uint32_t *)&(a)[p] = (v); ptr += 4; } while (0)
-
 uvg_rtp::frame::rtcp_receiver_report *uvg_rtp::rtcp::get_receiver_packet(uint32_t ssrc)
 {
     if (participants_.find(ssrc) == participants_.end())
