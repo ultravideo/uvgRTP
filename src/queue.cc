@@ -171,6 +171,7 @@ rtp_error_t uvg_rtp::frame_queue::deinit_transaction(uint32_t key)
     }
 
     if (active_ && active_->key == key) {
+        active_->packets.clear();
         free_.push_back(active_);
         active_ = nullptr;
         return RTP_OK;
