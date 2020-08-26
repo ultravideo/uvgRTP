@@ -24,8 +24,9 @@ rtp_error_t uvg_rtp::rtcp::install_sender_hook(void (*hook)(uvg_rtp::frame::rtcp
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::handle_sender_report_packet(uvg_rtp::frame::rtcp_sender_frame *frame, size_t size)
+rtp_error_t uvg_rtp::rtcp::handle_sender_report_packet(uint8_t *frame, size_t size)
 {
+#if 0
     (void)size;
 
     if (!frame)
@@ -71,6 +72,7 @@ rtp_error_t uvg_rtp::rtcp::handle_sender_report_packet(uvg_rtp::frame::rtcp_send
     else
         participants_[frame->sender_ssrc]->s_frame = cpy_frame;
 
+#endif
     return RTP_OK;
 }
 

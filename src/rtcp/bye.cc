@@ -4,8 +4,9 @@
 
 #include "rtcp.hh"
 
-rtp_error_t uvg_rtp::rtcp::handle_bye_packet(uvg_rtp::frame::rtcp_bye_frame *frame, size_t size)
+rtp_error_t uvg_rtp::rtcp::handle_bye_packet(uint8_t *frame, size_t size)
 {
+#if 0
     (void)size;
 
     if (!frame)
@@ -23,6 +24,7 @@ rtp_error_t uvg_rtp::rtcp::handle_bye_packet(uvg_rtp::frame::rtcp_bye_frame *fra
         delete participants_[ssrc];
         participants_.erase(ssrc);
     }
+#endif
 
     return RTP_OK;
 }

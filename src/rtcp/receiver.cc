@@ -24,11 +24,9 @@ rtp_error_t uvg_rtp::rtcp::install_receiver_hook(void (*hook)(uvg_rtp::frame::rt
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::handle_receiver_report_packet(uvg_rtp::frame::rtcp_receiver_frame *frame, size_t size)
+rtp_error_t uvg_rtp::rtcp::handle_receiver_report_packet(uint8_t *packet, size_t size)
 {
-    (void)size;
-
-    if (!frame)
+    if (!packet || !size)
         return RTP_INVALID_VALUE;
 
     frame->header.length = ntohs(frame->header.length);

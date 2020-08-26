@@ -24,8 +24,9 @@ rtp_error_t uvg_rtp::rtcp::install_app_hook(void (*hook)(uvg_rtp::frame::rtcp_ap
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::handle_app_packet(uvg_rtp::frame::rtcp_app_frame *frame, size_t size)
+rtp_error_t uvg_rtp::rtcp::handle_app_packet(uint8_t *frame, size_t size)
 {
+#if 0
     if (!frame)
         return RTP_INVALID_VALUE;
 
@@ -45,6 +46,7 @@ rtp_error_t uvg_rtp::rtcp::handle_app_packet(uvg_rtp::frame::rtcp_app_frame *fra
     else
         participants_[frame->ssrc]->app_frame = (uvg_rtp::frame::rtcp_app_frame *)cpy_frame;
 
+#endif
     return RTP_OK;
 }
 

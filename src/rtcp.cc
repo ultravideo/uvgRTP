@@ -479,23 +479,23 @@ rtp_error_t uvg_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
 
     switch (header->pkt_type) {
         case uvg_rtp::frame::RTCP_FT_SR:
-            ret = handle_sender_report_packet((uvg_rtp::frame::rtcp_sender_frame *)buffer, size);
+            ret = handle_sender_report_packet(buffer, size);
             break;
 
         case uvg_rtp::frame::RTCP_FT_RR:
-            ret = handle_receiver_report_packet((uvg_rtp::frame::rtcp_receiver_frame *)buffer, size);
+            ret = handle_receiver_report_packet(buffer, size);
             break;
 
         case uvg_rtp::frame::RTCP_FT_SDES:
-            ret = handle_sdes_packet((uvg_rtp::frame::rtcp_sdes_frame *)buffer, size);
+            ret = handle_sdes_packet(buffer, size);
             break;
 
         case uvg_rtp::frame::RTCP_FT_BYE:
-            ret = handle_bye_packet((uvg_rtp::frame::rtcp_bye_frame *)buffer, size);
+            ret = handle_bye_packet(buffer, size);
             break;
 
         case uvg_rtp::frame::RTCP_FT_APP:
-            ret = handle_app_packet((uvg_rtp::frame::rtcp_app_frame *)buffer, size);
+            ret = handle_app_packet(buffer, size);
             break;
 
         default:

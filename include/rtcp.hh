@@ -98,11 +98,11 @@ namespace uvg_rtp {
              * querying these reports is implemented
              *
              * Return RTP_OK on success and RTP_ERROR on error */
-            rtp_error_t handle_sender_report_packet(uvg_rtp::frame::rtcp_sender_frame *frame, size_t size);
-            rtp_error_t handle_receiver_report_packet(uvg_rtp::frame::rtcp_receiver_frame *frame, size_t size);
-            rtp_error_t handle_sdes_packet(uvg_rtp::frame::rtcp_sdes_frame *frame, size_t size);
-            rtp_error_t handle_bye_packet(uvg_rtp::frame::rtcp_bye_frame *frame, size_t size);
-            rtp_error_t handle_app_packet(uvg_rtp::frame::rtcp_app_frame *frame, size_t size);
+            rtp_error_t handle_sender_report_packet(uint8_t *frame, size_t size);
+            rtp_error_t handle_receiver_report_packet(uint8_t *frame, size_t size);
+            rtp_error_t handle_sdes_packet(uint8_t *frame, size_t size);
+            rtp_error_t handle_bye_packet(uint8_t *frame, size_t size);
+            rtp_error_t handle_app_packet(uint8_t *frame, size_t size);
 
             /* Handle incoming RTCP packet (first make sure it's a valid RTCP packet)
              * This function will call one of the above functions internally
