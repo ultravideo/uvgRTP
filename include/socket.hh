@@ -147,7 +147,7 @@ namespace uvg_rtp {
             sockaddr_in addr_;
             int flags_;
 
-            /* __sendto() calls these handlers in order before sending the packet*/
+            /* __sendto() calls these handlers in order before sending the packet */
             std::vector<socket_packet_handler> buf_handlers_;
 
             /* __sendtov() calls these handlers in order before sending the packet */
