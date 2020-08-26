@@ -4,7 +4,7 @@
 
 #include "rtcp.hh"
 
-uvg_rtp::frame::rtcp_sender_frame *uvg_rtp::rtcp::get_sender_packet(uint32_t ssrc)
+uvg_rtp::frame::rtcp_sender_report *uvg_rtp::rtcp::get_sender_packet(uint32_t ssrc)
 {
     if (participants_.find(ssrc) == participants_.end())
         return nullptr;
@@ -15,7 +15,7 @@ uvg_rtp::frame::rtcp_sender_frame *uvg_rtp::rtcp::get_sender_packet(uint32_t ssr
     return frame;
 }
 
-rtp_error_t uvg_rtp::rtcp::install_sender_hook(void (*hook)(uvg_rtp::frame::rtcp_sender_frame *))
+rtp_error_t uvg_rtp::rtcp::install_sender_hook(void (*hook)(uvg_rtp::frame::rtcp_sender_report *))
 {
     if (!hook)
         return RTP_INVALID_VALUE;
@@ -24,154 +24,132 @@ rtp_error_t uvg_rtp::rtcp::install_sender_hook(void (*hook)(uvg_rtp::frame::rtcp
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::handle_sender_report_packet(uint8_t *frame, size_t size)
+rtp_error_t uvg_rtp::rtcp::handle_sender_report_packet(uint8_t *packet, size_t size)
 {
-#if 0
-    (void)size;
-
-    if (!frame)
+    if (!packet || !size)
         return RTP_INVALID_VALUE;
 
-    frame->sender_ssrc = ntohl(frame->sender_ssrc);
+    auto frame = new uvg_rtp::frame::rtcp_sender_report;
 
-    if (!is_participant(frame->sender_ssrc))
-        add_participant(frame->sender_ssrc);
+    frame->header.version = (packet[0] >> 6) & 0x3f;
+    frame->header.padding = (packet[0] >> 5) & 0x01;
+    frame->header.count   = packet[0] & 0x1f;
+    frame->header.length  = ntohs(*(uint16_t *)&packet[2]);
+    frame->ssrc           = ntohl(*(uint32_t *)&packet[4]);
 
-    uint32_t ntp_msw = ntohl(frame->s_info.ntp_msw);
-    uint32_t ntp_lsw = ntohl(frame->s_info.ntp_lsw);
-    uint32_t lsr     = ((ntp_msw >> 16) & 0xffff) | ((ntp_lsw & 0xffff0000) >> 16);
+    if (!is_participant(frame->ssrc)) {
+        LOG_WARN("Sender Report received from an unknown participant");
+        add_participant(frame->ssrc);
+    }
 
-    participants_[frame->sender_ssrc]->stats.lsr   = lsr;
-    participants_[frame->sender_ssrc]->stats.sr_ts = uvg_rtp::clock::hrc::now();
+    /* Deallocate previous frame from the buffer if it exists, it's going to get overwritten */
+    if (participants_[frame->ssrc]->s_frame)
+        delete participants_[frame->ssrc]->s_frame;
 
-    /* We need to make a copy of the frame because right now frame points to RTCP recv buffer
-     * Deallocate previous frame if it exists */
-    if (participants_[frame->sender_ssrc]->s_frame != nullptr)
-        (void)uvg_rtp::frame::dealloc_frame(participants_[frame->sender_ssrc]->s_frame);
+    frame->sender_info.ntp_msw  = ntohl(*(uint32_t *)&packet[ 8]);
+    frame->sender_info.ntp_lsw  = ntohl(*(uint32_t *)&packet[12]);
+    frame->sender_info.rtp_ts   = ntohl(*(uint32_t *)&packet[16]);
+    frame->sender_info.pkt_cnt  = ntohl(*(uint32_t *)&packet[20]);
+    frame->sender_info.byte_cnt = ntohl(*(uint32_t *)&packet[24]);
 
-    auto cpy_frame = uvg_rtp::frame::alloc_rtcp_sender_frame(frame->header.count);
-    memcpy(cpy_frame, frame, size);
+    participants_[frame->ssrc]->stats.sr_ts = uvg_rtp::clock::hrc::now();
+    participants_[frame->ssrc]->stats.lsr   =
+        ((frame->sender_info.ntp_msw >> 16) & 0xffff) |
+        ((frame->sender_info.ntp_lsw & 0xffff0000) >> 16);
 
-    fprintf(stderr, "Sender report:\n");
     for (int i = 0; i < frame->header.count; ++i) {
-        cpy_frame->blocks[i].lost     = ntohl(frame->blocks[i].lost);
-        cpy_frame->blocks[i].last_seq = ntohl(frame->blocks[i].last_seq);
-        cpy_frame->blocks[i].lsr      = ntohl(frame->blocks[i].lsr);
-        cpy_frame->blocks[i].dlsr     = ntohl(frame->blocks[i].dlsr);
+        uvg_rtp::frame::rtcp_report_block report;
 
-        fprintf(stderr, "-------\n");
-        fprintf(stderr, "lost:     %d\n", cpy_frame->blocks[i].lost);
-        fprintf(stderr, "last_seq: %u\n", cpy_frame->blocks[i].last_seq);
-        fprintf(stderr, "last sr:  %u\n", cpy_frame->blocks[i].lsr);
-        fprintf(stderr, "dlsr:     %u\n", cpy_frame->blocks[i].dlsr);
-        fprintf(stderr, "-------\n");
+        report.ssrc     = ntohl(*(uint32_t *)&packet[(i * 24) + 28 +  0]);
+        report.lost     = ntohl(*(uint32_t *)&packet[(i * 24) + 28 +  4]);
+        report.last_seq = ntohl(*(uint32_t *)&packet[(i * 24) + 28 +  8]);
+        report.jitter   = ntohl(*(uint32_t *)&packet[(i * 24) + 28 + 12]);
+        report.lsr      = ntohl(*(uint32_t *)&packet[(i * 24) + 28 + 16]);
+        report.dlsr     = ntohl(*(uint32_t *)&packet[(i * 24) + 28 + 20]);
+
+        frame->report_blocks.push_back(report);
     }
 
     if (sender_hook_)
-        sender_hook_(cpy_frame);
+        sender_hook_(frame);
     else
-        participants_[frame->sender_ssrc]->s_frame = cpy_frame;
+        participants_[frame->ssrc]->s_frame = frame;
 
-#endif
     return RTP_OK;
-}
-
-rtp_error_t uvg_rtp::rtcp::send_sender_report_packet(uvg_rtp::frame::rtcp_sender_frame *frame)
-{
-    LOG_INFO("Generating sender report...");
-
-    if (!frame)
-        return RTP_INVALID_VALUE;
-
-    rtp_error_t ret = RTP_OK;
-    std::vector<uint32_t> ssrcs;
-    uint16_t len = frame->header.length;
-
-    /* RTCP header + SSRC */
-    frame->header.length = htons(frame->header.length);
-    frame->sender_ssrc   = htonl(frame->sender_ssrc);
-
-    /* RTCP Sender Info */
-    frame->s_info.ntp_msw  = htonl(frame->s_info.ntp_msw);
-    frame->s_info.ntp_lsw  = htonl(frame->s_info.ntp_lsw);
-    frame->s_info.rtp_ts   = htonl(frame->s_info.rtp_ts);
-    frame->s_info.pkt_cnt  = htonl(frame->s_info.pkt_cnt);
-    frame->s_info.byte_cnt = htonl(frame->s_info.byte_cnt);
-
-    /* report block(s) */
-    for (size_t i = 0; i < frame->header.count; ++i) {
-        ssrcs.push_back(frame->blocks[i].ssrc);
-
-        frame->blocks[i].last_seq = htonl(frame->blocks[i].last_seq);
-        frame->blocks[i].jitter   = htonl(frame->blocks[i].jitter);
-        frame->blocks[i].ssrc     = htonl(frame->blocks[i].ssrc);
-        frame->blocks[i].lost     = htonl(frame->blocks[i].lost);
-        frame->blocks[i].dlsr     = htonl(frame->blocks[i].dlsr);
-        frame->blocks[i].lsr      = htonl(frame->blocks[i].lsr);
-    }
-
-    for (auto& p : participants_) {
-        if ((ret = p.second->socket->sendto(p.second->address, (uint8_t *)frame, len, 0)) != RTP_OK) {
-            LOG_ERROR("sendto() failed!");
-        }
-
-        update_rtcp_bandwidth(len);
-    }
-
-    return ret;
 }
 
 rtp_error_t uvg_rtp::rtcp::generate_sender_report()
 {
-    /* No one to generate report for */
-    if (num_receivers_ == 0)
+    LOG_DEBUG("Generating RTCP Sender Report");
+
+    if (!senders_) {
+        LOG_WARN("Session does not have any RTP senders!");
         return RTP_NOT_READY;
-
-    uvg_rtp::frame::rtcp_sender_frame *frame;
-
-    if ((frame = uvg_rtp::frame::alloc_rtcp_sender_frame(senders_)) == nullptr) {
-        LOG_ERROR("Failed to allocate RTCP Receiver Report frame!");
-        return rtp_errno;
     }
 
-    size_t ptr         = 0;
-    uint64_t timestamp = uvg_rtp::clock::ntp::now();
-    rtp_error_t ret    = RTP_OK;
+    uint64_t ntp_ts, rtp_ts;
+    size_t frame_size;
+    rtp_error_t ret;
+    uint8_t *frame;
+    int ptr = 8;
 
-    frame->header.count    = senders_;
-    frame->sender_ssrc     = ssrc_;
-    frame->s_info.ntp_msw  = timestamp >> 32;
-    frame->s_info.ntp_lsw  = timestamp & 0xffffffff;
-    frame->s_info.rtp_ts   = rtp_ts_start_ + (uvg_rtp::clock::ntp::diff(timestamp, clock_start_)) * clock_rate_ / 1000;
-    frame->s_info.pkt_cnt  = our_stats.sent_pkts;
-    frame->s_info.byte_cnt = our_stats.sent_bytes;
+    frame_size  = 4;                   /* rtcp header */
+    frame_size += 4;                   /* our ssrc */
+    frame_size += 20;                  /* sender info */
+    frame_size += num_receivers_ * 24; /* report blocks */
 
-    LOG_DEBUG("Sender Report from 0x%x has %zu blocks", ssrc_, senders_);
+    if (!(frame = new uint8_t[frame_size])) {
+        LOG_ERROR("Failed to allocate space for RTCP Receiver Report");
+        return RTP_MEMORY_ERROR;
+    }
+    memset(frame, 0, frame_size);
 
-    for (auto& participant : participants_) {
-        if (participant.second->role == RECEIVER)
-            continue;
+    frame[0] = (2 << 6) | (0 << 5) | num_receivers_;
+    frame[1] = uvg_rtp::frame::RTCP_FT_SR;
 
-        frame->blocks[ptr].ssrc = participant.first;
+    *(uint16_t *)&frame[2] = htons(frame_size);
+    *(uint32_t *)&frame[4] = htonl(ssrc_);
 
-        if (participant.second->stats.dropped_pkts != 0) {
-            frame->blocks[ptr].fraction =
-                participant.second->stats.received_pkts / participant.second->stats.dropped_pkts;
+    /* Sender information */
+    ntp_ts = uvg_rtp::clock::ntp::now();
+    rtp_ts = rtp_ts_start_ + (uvg_rtp::clock::ntp::diff(ntp_ts, clock_start_)) * clock_rate_ / 1000;
+
+    SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts >> 32));
+    SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts & 0xffffffff));
+    SET_NEXT_FIELD_32(frame, ptr, htonl(rtp_ts));
+    SET_NEXT_FIELD_32(frame, ptr, htonl(our_stats.sent_pkts));
+    SET_NEXT_FIELD_32(frame, ptr, htonl(our_stats.sent_bytes));
+
+    LOG_DEBUG("Sender Report from 0x%x has %zu blocks", ssrc_, num_receivers_);
+
+    for (auto& p : participants_) {
+        int dropped  = p.second->stats.dropped_pkts;
+        uint8_t frac = dropped ? p.second->stats.received_bytes / dropped : 0;
+
+        SET_NEXT_FIELD_32(frame, ptr, htonl(p.first)); /* ssrc */
+        SET_NEXT_FIELD_32(frame, ptr, htonl((frac << 24) | p.second->stats.dropped_pkts));
+        SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.max_seq));
+        SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.jitter));
+        SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.lsr));
+
+        /* calculate delay of last SR only if SR has been received at least once */
+        if (p.second->stats.lsr) {
+            uint64_t diff = uvg_rtp::clock::hrc::diff_now(p.second->stats.sr_ts);
+            SET_NEXT_FIELD_32(frame, ptr, htonl(uvg_rtp::clock::ms_to_jiffies(diff)));
+        }
+        ptr += p.second->stats.lsr ? 0 : 4;
+    }
+
+    for (auto& p : participants_) {
+        if ((ret = p.second->socket->sendto(p.second->address, frame, frame_size, 0)) != RTP_OK) {
+            LOG_ERROR("sendto() failed!");
+            goto end;
         }
 
-        frame->blocks[ptr].lost     = participant.second->stats.dropped_pkts;
-        frame->blocks[ptr].last_seq = participant.second->stats.max_seq;
-        frame->blocks[ptr].jitter   = participant.second->stats.jitter;
-        frame->blocks[ptr].lsr      = participant.second->stats.lsr;
-
-        ptr++;
+        update_rtcp_bandwidth(frame_size);
     }
 
-    /* Send sender report only if the session contains other senders */
-    if (ptr != 0)
-        ret = uvg_rtp::rtcp::send_sender_report_packet(frame);
-
-    (void)uvg_rtp::frame::dealloc_frame(frame);
-
+end:
+    delete[] frame;
     return ret;
 }

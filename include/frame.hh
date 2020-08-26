@@ -122,6 +122,13 @@ namespace uvg_rtp {
             std::vector<rtcp_report_block> report_blocks;
         };
 
+        struct rtcp_sender_report {
+            struct rtcp_header header;
+            uint32_t ssrc;
+            struct rtcp_sender_info sender_info;
+            std::vector<rtcp_report_block> report_blocks;
+        };
+
         PACKED_STRUCT(rtcp_receiver_frame) {
             struct rtcp_header header;
             uint32_t sender_ssrc;

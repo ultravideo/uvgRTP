@@ -64,7 +64,7 @@ namespace uvg_rtp {
 
         /* Save the latest RTCP packets received from this participant
          * Users can query these packets using the SSRC of participant */
-        uvg_rtp::frame::rtcp_sender_frame    *s_frame;
+        uvg_rtp::frame::rtcp_sender_report   *s_frame;
         uvg_rtp::frame::rtcp_receiver_report *r_frame;
         uvg_rtp::frame::rtcp_sdes_frame      *sdes_frame;
         uvg_rtp::frame::rtcp_app_frame       *app_frame;
@@ -127,7 +127,7 @@ namespace uvg_rtp {
              * Return nullptr if we haven't received this kind of packet or if "ssrc" doesn't exist
              *
              * NOTE: Caller is responsible for deallocating the memory */
-            uvg_rtp::frame::rtcp_sender_frame    *get_sender_packet(uint32_t ssrc);
+            uvg_rtp::frame::rtcp_sender_report   *get_sender_packet(uint32_t ssrc);
             uvg_rtp::frame::rtcp_receiver_report *get_receiver_packet(uint32_t ssrc);
             uvg_rtp::frame::rtcp_sdes_frame      *get_sdes_packet(uint32_t ssrc);
             uvg_rtp::frame::rtcp_app_frame       *get_app_packet(uint32_t ssrc);
@@ -188,7 +188,7 @@ namespace uvg_rtp {
             /* Alternate way to get RTCP packets is to install a hook for them. So instead of
              * polling an RTCP packet, user can install a function that is called when
              * a specific RTCP packet is received. */
-            rtp_error_t install_sender_hook(void (*hook)(uvg_rtp::frame::rtcp_sender_frame *));
+            rtp_error_t install_sender_hook(void (*hook)(uvg_rtp::frame::rtcp_sender_report *));
             rtp_error_t install_receiver_hook(void (*hook)(uvg_rtp::frame::rtcp_receiver_report *));
             rtp_error_t install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_frame *));
             rtp_error_t install_app_hook(void (*hook)(uvg_rtp::frame::rtcp_app_frame *));
@@ -323,7 +323,7 @@ namespace uvg_rtp {
              * to pass to poll when RTCP runner is listening to incoming packets */
             std::vector<uvg_rtp::socket> sockets_;
 
-            void (*sender_hook_)(uvg_rtp::frame::rtcp_sender_frame *);
+            void (*sender_hook_)(uvg_rtp::frame::rtcp_sender_report *);
             void (*receiver_hook_)(uvg_rtp::frame::rtcp_receiver_report *);
             void (*sdes_hook_)(uvg_rtp::frame::rtcp_sdes_frame *);
             void (*app_hook_)(uvg_rtp::frame::rtcp_app_frame *);
