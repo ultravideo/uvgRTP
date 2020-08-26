@@ -79,7 +79,7 @@ rtp_error_t uvg_rtp::rtcp::handle_receiver_report_packet(uint8_t *packet, size_t
 
 rtp_error_t uvg_rtp::rtcp::generate_receiver_report()
 {
-    if (!num_receivers_ && !senders_) {
+    if (!senders_) {
         LOG_WARN("Session doesn't have any participants!");
         return RTP_NOT_READY;
     }
