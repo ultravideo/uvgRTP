@@ -455,21 +455,23 @@ rtp_error_t uvg_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
 {
     (void)size;
 
-    uvg_rtp::frame::rtcp_header *header = (uvg_rtp::frame::rtcp_header *)buffer;
+    int version  = (buffer[0] >> 6) & 0x3;
+    int padding  = (buffer[0] >> 5) & 0x1;
+    int pkt_type = buffer[1] & 0xff;
 
-    if (header->version != 2) {
-        LOG_ERROR("Invalid header version (%u)", header->version);
+    if (version != 0x2) {
+        LOG_ERROR("Invalid header version (%u)", version);
         return RTP_INVALID_VALUE;
     }
 
-    if (header->padding) {
+    if (padding) {
         LOG_ERROR("Cannot handle padded packets!");
         return RTP_INVALID_VALUE;
     }
 
-    if (header->pkt_type > uvg_rtp::frame::RTCP_FT_BYE ||
-        header->pkt_type < uvg_rtp::frame::RTCP_FT_SR) {
-        LOG_ERROR("Invalid packet type (%u)!", header->pkt_type);
+    if (pkt_type > uvg_rtp::frame::RTCP_FT_BYE ||
+        pkt_type < uvg_rtp::frame::RTCP_FT_SR) {
+        LOG_ERROR("Invalid packet type (%u)!", pkt_type);
         return RTP_INVALID_VALUE;
     }
 
@@ -477,7 +479,7 @@ rtp_error_t uvg_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
 
     rtp_error_t ret = RTP_INVALID_VALUE;
 
-    switch (header->pkt_type) {
+    switch (pkt_type) {
         case uvg_rtp::frame::RTCP_FT_SR:
             ret = handle_sender_report_packet(buffer, size);
             break;
@@ -499,7 +501,7 @@ rtp_error_t uvg_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
             break;
 
         default:
-            LOG_WARN("Unknown packet received, type %d", header->pkt_type);
+            LOG_WARN("Unknown packet received, type %d", pkt_type);
             break;
     }
 

@@ -4,6 +4,8 @@
 
 #include "rtcp.hh"
 
+#define SET_NEXT_FIELD_32(a, p, v) do { *(uint32_t *)&(a)[p] = (v); ptr += 4; } while (0)
+
 uvg_rtp::frame::rtcp_receiver_frame *uvg_rtp::rtcp::get_receiver_packet(uint32_t ssrc)
 {
     if (participants_.find(ssrc) == participants_.end())
@@ -82,7 +84,7 @@ rtp_error_t uvg_rtp::rtcp::handle_receiver_report_packet(uint8_t *packet, size_t
 
 rtp_error_t uvg_rtp::rtcp::generate_receiver_report()
 {
-    if (!num_receivers_) {
+    if (!num_receivers_ && !senders_) {
         LOG_WARN("Session doesn't have any participants!");
         return RTP_NOT_READY;
     }
@@ -90,7 +92,7 @@ rtp_error_t uvg_rtp::rtcp::generate_receiver_report()
     size_t frame_size;
     rtp_error_t ret;
     uint8_t *frame;
-    int ptr = 2;
+    int ptr = 8;
 
     frame_size  = 4;                   /* rtcp header */
     frame_size += 4;                   /* our ssrc */
@@ -102,10 +104,11 @@ rtp_error_t uvg_rtp::rtcp::generate_receiver_report()
     }
     memset(frame, 0, frame_size);
 
-    *(uint32_t *)&frame[0]  = (2 << 30) | (0 << 29) | (num_receivers_ << 24);
-    *(uint32_t *)&frame[0] |= (uvg_rtp::frame::RTCP_FT_RR << 15);
-    *(uint32_t *)&frame[0] |= htons(frame_size);
-    *(uint32_t *)&frame[1]  = htonl(ssrc_);
+    frame[0] = (2 << 6) | (0 << 5) | num_receivers_;
+    frame[1] = uvg_rtp::frame::RTCP_FT_RR;
+
+    *(uint16_t *)&frame[2] = htons(frame_size);
+    *(uint32_t *)&frame[4] = htonl(ssrc_);
 
     LOG_DEBUG("Receiver Report from 0x%x has %zu blocks", ssrc_, num_receivers_);
 
@@ -113,17 +116,18 @@ rtp_error_t uvg_rtp::rtcp::generate_receiver_report()
         int dropped  = p.second->stats.dropped_pkts;
         uint8_t frac = dropped ? p.second->stats.received_bytes / dropped : 0;
 
-        *(uint32_t *)&frame[ptr++] = htonl(p.first);
-        *(uint32_t *)&frame[ptr++] = htonl((frac << 24) | p.second->stats.dropped_pkts);
-        *(uint32_t *)&frame[ptr++] = htonl(p.second->stats.max_seq);
-        *(uint32_t *)&frame[ptr++] = htonl(p.second->stats.jitter);
-        *(uint32_t *)&frame[ptr++] = htonl(p.second->stats.lsr);
+        SET_NEXT_FIELD_32(frame, ptr, htonl(p.first)); /* ssrc */
+        SET_NEXT_FIELD_32(frame, ptr, htonl((frac << 24) | p.second->stats.dropped_pkts));
+        SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.max_seq));
+        SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.jitter));
+        SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.lsr));
 
         /* calculate delay of last SR only if SR has been received at least once */
         if (p.second->stats.lsr) {
             uint64_t diff = uvg_rtp::clock::hrc::diff_now(p.second->stats.sr_ts);
-            *(uint32_t *)&frame[ptr++] = uvg_rtp::clock::ms_to_jiffies(diff);
+            SET_NEXT_FIELD_32(frame, ptr, htonl(uvg_rtp::clock::ms_to_jiffies(diff)));
         }
+        ptr += p.second->stats.lsr ? 0 : 4;
     }
 
     for (auto& p : participants_) {
