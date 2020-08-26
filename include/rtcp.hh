@@ -67,7 +67,7 @@ namespace uvg_rtp {
         uvg_rtp::frame::rtcp_sender_report   *s_frame;
         uvg_rtp::frame::rtcp_receiver_report *r_frame;
         uvg_rtp::frame::rtcp_sdes_packet     *sdes_frame;
-        uvg_rtp::frame::rtcp_app_frame       *app_frame;
+        uvg_rtp::frame::rtcp_app_packet      *app_frame;
     };
 
     class rtcp : public runner {
@@ -118,8 +118,8 @@ namespace uvg_rtp {
              * Return RTP_INVALID_VALUE if "frame" is in some way invalid
              * Return RTP_SEND_ERROR if sending "frame" did not succeed (see socket.hh for details) */
             rtp_error_t send_sdes_packet(std::vector<uvg_rtp::frame::rtcp_sdes_item>& items);
+            rtp_error_t send_app_packet(char *name, uint8_t subtype, size_t payload_len, uint8_t *payload);
             rtp_error_t send_bye_packet(uvg_rtp::frame::rtcp_bye_frame *frame);
-            rtp_error_t send_app_packet(uvg_rtp::frame::rtcp_app_frame *frame);
 
             /* Return the latest RTCP packet received from participant of "ssrc"
              * Return nullptr if we haven't received this kind of packet or if "ssrc" doesn't exist
@@ -128,7 +128,7 @@ namespace uvg_rtp {
             uvg_rtp::frame::rtcp_sender_report   *get_sender_packet(uint32_t ssrc);
             uvg_rtp::frame::rtcp_receiver_report *get_receiver_packet(uint32_t ssrc);
             uvg_rtp::frame::rtcp_sdes_packet     *get_sdes_packet(uint32_t ssrc);
-            uvg_rtp::frame::rtcp_app_frame       *get_app_packet(uint32_t ssrc);
+            uvg_rtp::frame::rtcp_app_packet      *get_app_packet(uint32_t ssrc);
 
             /* create RTCP BYE packet using our own SSRC and send it to all participants */
             rtp_error_t terminate_self();
@@ -189,7 +189,7 @@ namespace uvg_rtp {
             rtp_error_t install_sender_hook(void (*hook)(uvg_rtp::frame::rtcp_sender_report *));
             rtp_error_t install_receiver_hook(void (*hook)(uvg_rtp::frame::rtcp_receiver_report *));
             rtp_error_t install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_packet *));
-            rtp_error_t install_app_hook(void (*hook)(uvg_rtp::frame::rtcp_app_frame *));
+            rtp_error_t install_app_hook(void (*hook)(uvg_rtp::frame::rtcp_app_packet *));
 
             /* Update RTCP-related sender statistics */
             rtp_error_t update_sender_stats(size_t pkt_size);
@@ -324,6 +324,6 @@ namespace uvg_rtp {
             void (*sender_hook_)(uvg_rtp::frame::rtcp_sender_report *);
             void (*receiver_hook_)(uvg_rtp::frame::rtcp_receiver_report *);
             void (*sdes_hook_)(uvg_rtp::frame::rtcp_sdes_packet *);
-            void (*app_hook_)(uvg_rtp::frame::rtcp_app_frame *);
+            void (*app_hook_)(uvg_rtp::frame::rtcp_app_packet *);
     };
 };

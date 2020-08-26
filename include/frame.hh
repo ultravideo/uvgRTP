@@ -84,9 +84,12 @@ namespace uvg_rtp {
         };
 
         PACKED_STRUCT(rtcp_header) {
-            uint8_t version:2;
-            uint8_t padding:1;
-            uint8_t count:5;
+            uint8_t version;
+            uint8_t padding;
+            union {
+                uint8_t count;
+                uint8_t pkt_subtype; /* for app packets */
+            };
             uint8_t pkt_type;
             uint16_t length;
         };
@@ -147,21 +150,16 @@ namespace uvg_rtp {
             std::vector<rtcp_sdes_item> items;
         };
 
+        struct rtcp_app_packet {
+            struct rtcp_header header;
+            uint32_t ssrc;
+            uint8_t name[4];
+            uint8_t *payload;
+        };
+
         PACKED_STRUCT(rtcp_bye_frame) {
             struct rtcp_header header;
             uint32_t ssrc[1];
-        };
-
-        PACKED_STRUCT(rtcp_app_frame) {
-            uint8_t version:2;
-            uint8_t padding:1;
-            uint8_t pkt_subtype:5;
-            uint8_t pkt_type;
-            uint16_t length;
-
-            uint32_t ssrc;
-            uint8_t name[4];
-            uint8_t payload[1];
         };
 
         PACKED_STRUCT(zrtp_frame) {
@@ -204,8 +202,6 @@ namespace uvg_rtp {
          * Return nullptr on error and set rtp_errno to:
          *    RTP_MEMORY_ERROR if allocation of memory failed
          *    RTP_INVALID_VALUE if one of the parameters was invalid */
-        rtcp_app_frame      *alloc_rtcp_app_frame(std::string name, uint8_t subtype, size_t payload_len);
-        rtcp_sdes_frame     *alloc_rtcp_sdes_frame(size_t ssrc_count, size_t total_len);
         rtcp_receiver_frame *alloc_rtcp_receiver_frame(size_t nblocks);
         rtcp_sender_frame   *alloc_rtcp_sender_frame(size_t nblocks);
         rtcp_bye_frame      *alloc_rtcp_bye_frame(size_t ssrc_count);
@@ -228,8 +224,6 @@ namespace uvg_rtp {
          * Return RTP_INVALID_VALUE if "frame" is nullptr */
         rtp_error_t dealloc_frame(rtcp_sender_frame *frame);
         rtp_error_t dealloc_frame(rtcp_receiver_frame *frame);
-        rtp_error_t dealloc_frame(rtcp_sdes_frame *frame);
         rtp_error_t dealloc_frame(rtcp_bye_frame *frame);
-        rtp_error_t dealloc_frame(rtcp_app_frame *frame);
     };
 };
