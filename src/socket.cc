@@ -339,12 +339,9 @@ rtp_error_t uvg_rtp::socket::__sendtov(
         headers[i].msg_hdr.msg_controllen = 0;
 
         for (size_t k = 0; k < buffers[i].size(); ++k) {
-            for (auto& buf : buffers[i]) {
-                headers[i].msg_hdr.msg_iov[k].iov_len  = buf.first;
-                headers[i].msg_hdr.msg_iov[k].iov_base = buf.second;
-
-                sent_bytes += buf.first;
-            }
+            headers[i].msg_hdr.msg_iov[k].iov_len   = buffers[i][k].first;
+            headers[i].msg_hdr.msg_iov[k].iov_base  = buffers[i][k].second;
+            sent_bytes                             += buffers[i][k].first;
         }
     }
 
