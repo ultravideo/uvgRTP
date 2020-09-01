@@ -31,8 +31,8 @@ rtp_error_t uvg_rtp::rtcp::handle_sender_report_packet(uint8_t *packet, size_t s
 
     auto frame = new uvg_rtp::frame::rtcp_sender_report;
 
-    frame->header.version = (packet[0] >> 6) & 0x3f;
-    frame->header.padding = (packet[0] >> 5) & 0x01;
+    frame->header.version = (packet[0] >> 6) & 0x3;
+    frame->header.padding = (packet[0] >> 5) & 0x1;
     frame->header.count   = packet[0] & 0x1f;
     frame->header.length  = ntohs(*(uint16_t *)&packet[2]);
     frame->ssrc           = ntohl(*(uint32_t *)&packet[4]);
