@@ -242,6 +242,13 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(uint8_t *message, size_t messa
         (uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr++]
     });
 
+    /* If SRTP with proper encryption has been enabled but
+     * RCE_SRTP_INPLACE_ENCRYPTION has **not** been enabled, make a copy of the memory block*/
+    if ((flags_ & (RCE_SRTP | RCE_SRTP_INPLACE_ENCRYPTION | RCE_SRTP_NULL_CIPHER)) == RCE_SRTP)
+        message = (uint8_t *)memdup(message, message_len);
+
+    tmp.push_back({ message_len, message });
+
     if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
         tmp.push_back({
             sizeof(uint64_t),
@@ -249,12 +256,6 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(uint8_t *message, size_t messa
         });
     }
 
-    /* If SRTP with proper encryption has been enabled but
-     * RCE_SRTP_INPLACE_ENCRYPTION has **not** been enabled, make a copy of the memory block*/
-    if ((flags_ & (RCE_SRTP | RCE_SRTP_INPLACE_ENCRYPTION | RCE_SRTP_NULL_CIPHER)) == RCE_SRTP)
-        message = (uint8_t *)memdup(message, message_len);
-
-    tmp.push_back({ message_len, message });
     active_->packets.push_back(tmp);
     rtp_->inc_sequence();
     rtp_->inc_sent_pkts();
