@@ -148,10 +148,12 @@ rtp_error_t uvg_rtp::media_stream::init()
 
         default:
             LOG_ERROR("Unknown payload format %u\n", fmt_);
+            media_ = nullptr;
     }
 
     if (!media_) {
         delete rtp_;
+        delete rtcp_;
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
     }
@@ -185,27 +187,45 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
 
     if ((ret = zrtp->init(rtp_->get_ssrc(), socket_->get_raw_socket(), addr_out_)) != RTP_OK) {
         LOG_WARN("Failed to initialize ZRTP for media stream!");
+        delete rtp_;
+        delete pkt_dispatcher_;
         return ret;
     }
 
-    if (!(srtp_ = new uvg_rtp::srtp()))
+    if (!(srtp_ = new uvg_rtp::srtp())) {
+        delete rtp_;
+        delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
+    }
 
     if ((ret = srtp_->init_zrtp(SRTP, ctx_config_.flags, rtp_, zrtp)) != RTP_OK) {
         LOG_WARN("Failed to initialize SRTP for media stream!");
+        delete rtp_;
+        delete srtp_;
+        delete pkt_dispatcher_;
         return ret;
     }
 
-    if (!(srtcp_ = new uvg_rtp::srtcp()))
+    if (!(srtcp_ = new uvg_rtp::srtcp())) {
+        delete rtp_;
+        delete srtp_;
+        delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
+    }
 
     if ((ret = srtcp_->init_zrtp(SRTCP, ctx_config_.flags, rtp_, zrtp)) != RTP_OK) {
         LOG_ERROR("Failed to initialize SRTCP for media stream!");
+        delete rtp_;
+        delete srtp_;
+        delete srtcp_;
+        delete pkt_dispatcher_;
         return ret;
     }
 
     if (!(rtcp_ = new uvg_rtp::rtcp(rtp_, srtcp_, ctx_config_.flags))) {
         delete rtp_;
+        delete srtp_;
+        delete srtcp_;
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
     }
@@ -240,6 +260,9 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
 
     if (!media_) {
         delete rtp_;
+        delete srtp_;
+        delete srtcp_;
+        delete rtcp_;
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
     }
@@ -275,16 +298,23 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         return RTP_MEMORY_ERROR;
     }
 
-    if (!(srtp_ = new uvg_rtp::srtp()))
+    if (!(srtp_ = new uvg_rtp::srtp())) {
+        delete rtp_;
+        delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
+    }
 
     if ((ret = srtp_->init_user(SRTP, ctx_config_.flags, key, salt)) != RTP_OK) {
         LOG_WARN("Failed to initialize SRTP for media stream!");
         return ret;
     }
 
-    if (!(srtcp_ = new uvg_rtp::srtcp()))
+    if (!(srtcp_ = new uvg_rtp::srtcp())) {
+        delete rtp_;
+        delete srtp_;
+        delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
+    }
 
     if ((ret = srtcp_->init_user(SRTCP, ctx_config_.flags, key, salt)) != RTP_OK) {
         LOG_WARN("Failed to initialize SRTCP for media stream!");
@@ -293,6 +323,8 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     if (!(rtcp_ = new uvg_rtp::rtcp(rtp_, srtcp_, ctx_config_.flags))) {
         delete rtp_;
+        delete srtp_;
+        delete srtcp_;
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
     }
@@ -326,6 +358,9 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     if (!media_) {
         delete rtp_;
+        delete srtp_;
+        delete srtcp_;
+        delete rtcp_;
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
     }
