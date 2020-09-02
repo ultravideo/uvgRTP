@@ -167,7 +167,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      * unnecessary copy operations.
      *
      * If RCE_INPLACE_ENCRYPTION is given to push_frame(), the input pointer must be writable! */
-    RCE_INPLACE_ENCRYPTION        = 1 << 7,
+    RCE_SRTP_INPLACE_ENCRYPTION   = 1 << 7,
 
     /* Disable System Call Clustering (SCC), System Call Dispatching is still usable */
     RCE_NO_SYSTEM_CALL_CLUSTERING = 1 << 8,

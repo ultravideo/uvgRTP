@@ -171,6 +171,14 @@ rtp_error_t uvg_rtp::frame_queue::deinit_transaction(uint32_t key)
     }
 
     if (active_ && active_->key == key) {
+        /* free all temporary buffers */
+        if ((flags_ & (RCE_SRTP | RCE_SRTP_INPLACE_ENCRYPTION | RCE_SRTP_NULL_CIPHER)) == RCE_SRTP) {
+            for (auto& packet : active_->packets) {
+                for (size_t i = 1; i < packet.size(); ++i) {
+                    delete[] packet[i].second;
+                }
+            }
+        }
         active_->packets.clear();
         free_.push_back(active_);
         active_ = nullptr;
@@ -241,6 +249,11 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(uint8_t *message, size_t messa
         });
     }
 
+    /* If SRTP with proper encryption has been enabled but
+     * RCE_SRTP_INPLACE_ENCRYPTION has **not** been enabled, make a copy of the memory block*/
+    if ((flags_ & (RCE_SRTP | RCE_SRTP_INPLACE_ENCRYPTION | RCE_SRTP_NULL_CIPHER)) == RCE_SRTP)
+        message = (uint8_t *)memdup(message, message_len);
+
     tmp.push_back({ message_len, message });
     active_->packets.push_back(tmp);
     rtp_->inc_sequence();
@@ -267,8 +280,14 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, 
         (uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr++]
     });
 
-    for (size_t i = 0; i < buffers.size(); ++i)
+    for (size_t i = 0; i < buffers.size(); ++i) {
+        /* If SRTP with proper encryption has been enabled but
+         * RCE_SRTP_INPLACE_ENCRYPTION has **not** been enabled, make a copy of the memory block*/
+        if ((flags_ & (RCE_SRTP | RCE_SRTP_INPLACE_ENCRYPTION | RCE_SRTP_NULL_CIPHER)) == RCE_SRTP)
+            buffers.at(i).second = (uint8_t *)memdup(buffers.at(i).second, buffers.at(i).first);
+
         tmp.push_back({ buffers.at(i).first, buffers.at(i).second });
+    }
 
     if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
         tmp.push_back({
