@@ -74,6 +74,12 @@ uvg_rtp::media_stream *uvg_rtp::session::create_stream(int r_port, int s_port, r
         }
     } else {
 #endif
+        if (flags & RCE_SRTP) {
+            LOG_ERROR("One or more security flags provided but uvgRTP has not been compiled with SRTP support!");
+            rtp_errno = RTP_INVALID_VALUE;
+            return nullptr;
+        }
+
         if (stream->init() != RTP_OK) {
             LOG_ERROR("Failed to initialize media stream %s:%d/%d", addr_.c_str(), r_port, s_port);
             return nullptr;
