@@ -17,6 +17,7 @@
 
 uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     srtp_(nullptr),
+    srtcp_(nullptr),
     socket_(nullptr),
     rtp_(nullptr),
     rtcp_(nullptr),
@@ -60,6 +61,7 @@ uvg_rtp::media_stream::~media_stream()
     delete rtcp_;
     delete rtp_;
     delete srtp_;
+    delete srtcp_;
     delete pkt_dispatcher_;
     delete dispatcher_thread_;
     delete media_;
@@ -186,8 +188,6 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
         return ret;
     }
 
-    /* TODO: install zrtp packet handler */
-
     if ((srtp_ = new uvg_rtp::srtp()) == nullptr)
         return RTP_MEMORY_ERROR;
 
@@ -196,7 +196,12 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
         return ret;
     }
 
-    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_))) {
+    if ((ret = srtcp_->init_zrtp(SRTCP, ctx_config_.flags, rtp_, zrtp)) != RTP_OK) {
+        LOG_ERROR("Failed to initialize SRTP for media stream!");
+        return ret;
+    }
+
+    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_, srtcp_, ctx_config_.flags))) {
         delete rtp_;
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
@@ -275,7 +280,7 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         return ret;
     }
 
-    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_))) {
+    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_, srtcp_, ctx_config_.flags))) {
         delete rtp_;
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;

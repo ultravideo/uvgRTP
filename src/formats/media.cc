@@ -5,6 +5,7 @@
 #include <map>
 #include <unordered_map>
 
+#include "debug.hh"
 #include "formats/media.hh"
 
 #define INVALID_SEQ 0xffffffff

@@ -15,6 +15,9 @@
 
 #define INVALID_FRAME_TYPE(ft) (ft < RTP_FT_GENERIC|| ft > RTP_FT_HEVC_FU)
 
+#define RTP_HEADER_LENGTH   12
+#define RTCP_HEADER_LENGTH  12
+
 namespace uvg_rtp {
     namespace frame {
         enum HEADER_SIZES {

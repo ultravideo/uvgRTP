@@ -6,7 +6,8 @@
 #include "pkt_dispatch.hh"
 #include "rtcp.hh"
 #include "socket.hh"
-#include "srtp.hh"
+#include "srtp/srtcp.hh"
+#include "srtp/srtp.hh"
 #include "util.hh"
 
 #include "formats/media.hh"
@@ -175,6 +176,7 @@ namespace uvg_rtp {
             uint32_t key_;
 
             uvg_rtp::srtp   *srtp_;
+            uvg_rtp::srtcp  *srtcp_;
             uvg_rtp::socket *socket_;
             uvg_rtp::rtp    *rtp_;
             uvg_rtp::rtcp   *rtcp_;

@@ -12,19 +12,20 @@
 #include <cstdint>
 #include <vector>
 
-#include "debug.hh"
-#include "frame.hh"
-#include "rtp.hh"
-#include "util.hh"
+#include "../debug.hh"
+#include "../frame.hh"
+#include "../rtp.hh"
+#include "../util.hh"
 
 #ifdef __RTP_CRYPTO__
-#include "zrtp.hh"
+#include "../zrtp.hh"
 #endif
 
-#define AES_KEY_LENGTH   16 /* 128 bits */
-#define HMAC_KEY_LENGTH  32 /* 256 bits */
-#define SALT_LENGTH      14 /* 112 bits */
-#define AUTH_TAG_LENGTH   8
+#define AES_KEY_LENGTH     16 /* 128 bits */
+#define HMAC_KEY_LENGTH    32 /* 256 bits */
+#define SALT_LENGTH        14 /* 112 bits */
+#define AUTH_TAG_LENGTH     8
+#define SRTCP_INDEX_LENGTH  8
 
 namespace uvg_rtp {
 
@@ -45,9 +46,12 @@ namespace uvg_rtp {
     };
 
     enum LABELS {
-        SRTP_ENCRYPTION     = 0x0,
-        SRTP_AUTHENTICATION = 0x1,
-        SRTP_SALTING        = 0x2
+        SRTP_ENCRYPTION      = 0x0,
+        SRTP_AUTHENTICATION  = 0x1,
+        SRTP_SALTING         = 0x2,
+        SRTCP_ENCRYPTION     = 0x3,
+        SRTCP_AUTHENTICATION = 0x4,
+        SRTCP_SALTING        = 0x5
     };
 
     /* Key context for SRTP keys,
@@ -108,10 +112,10 @@ namespace uvg_rtp {
         srtp_key_ctx_t key_ctx;
     } srtp_ctx_t;
 
-    class srtp {
+    class base_srtp {
         public:
-            srtp();
-            ~srtp();
+            base_srtp();
+            virtual ~base_srtp();
 
 #ifdef __RTP_CRYPTO__
             /* Setup Secure RTP/RTCP connection using ZRTP
@@ -131,26 +135,6 @@ namespace uvg_rtp {
              * Return RTP_MEMORY allocation failed */
             rtp_error_t init_user(int type, int flags, uint8_t *key, uint8_t *salt);
 
-            /* TODO:  */
-            rtp_error_t encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len);
-
-            /* Decrypt the payload payload of "frame" using the private session key
-             *
-             * If RTP packet authentication has been enabled during stream creation,
-             * decrypt() authenticates the received packet.
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "frame" is nullptr
-             * Return RTP_NOT_INITIALIZED if SRTP has not been initialized
-             * Return RTP_AUTH_TAG_MISMATCH if authentication tags do not match */
-            rtp_error_t decrypt(uint8_t *buffer, size_t len);
-
-            /* Authenticate "frame" using the private session key
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "frame" is nullptr or if authentication failed */
-            rtp_error_t authenticate(uvg_rtp::frame::rtp_frame *frame);
-
             /* Has RTP packet encryption been disabled? */
             bool use_null_cipher();
 
@@ -167,7 +151,7 @@ namespace uvg_rtp {
             static rtp_error_t send_packet_handler(void *arg, buf_vec& buffers);
 #endif
 
-        private:
+        protected:
 #ifdef __RTP_CRYPTO__
             rtp_error_t derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t len);
 
@@ -177,11 +161,8 @@ namespace uvg_rtp {
              * Return RTP_INVALID_VALUE if one of the parameters is invalid */
             rtp_error_t create_iv(uint8_t *out, uint32_t ssrc, uint64_t index, uint8_t *salt);
 
-            /* Internal encrypt method that takes only the necessary variables and encrypts "buffer" */
-            /* rtp_error_t __encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len); */
-
             /* Internal init method that initialize the SRTP context using values in key_ctx_.master */
-            rtp_error_t __init(int type, int flags);
+            rtp_error_t init(int type, int flags);
 #endif
 
             srtp_ctx_t srtp_ctx_;

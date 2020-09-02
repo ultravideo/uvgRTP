@@ -3,7 +3,7 @@
 CXX = g++
 CXXFLAGS = -g -Wno-unused-function -Wall -Wextra -Wuninitialized -O2 -std=c++11 -Iinclude -fPIC -DNDEBUG
 SOURCES = $(wildcard src/*.cc)
-MODULES := src/formats src/mzrtp src/rtcp
+MODULES := src/formats src/mzrtp src/rtcp src/srtp 
 -include $(patsubst %, %/module.mk, $(MODULES))
 OBJECTS := $(patsubst %.cc, %.o, $(filter %.cc, $(SOURCES)))
 
@@ -22,4 +22,4 @@ $(TARGET): $(OBJECTS)
 	$(AR) rcs $@ $(OBJECTS)
 
 clean:
-	rm -f src/*.o src/formats/*.o src/mzrtp/*.o $(TARGET)
+	rm -f src/*.o src/formats/*.o src/mzrtp/*.o src/srtp/*.o $(TARGET)

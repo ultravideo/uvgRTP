@@ -13,7 +13,6 @@
 #include <vector>
 #include <string>
 
-#include "srtp.hh"
 #include "util.hh"
 
 namespace uvg_rtp {
