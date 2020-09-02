@@ -24,12 +24,12 @@ rtp_error_t uvg_rtp::srtcp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer
 
     uint8_t iv[16] = { 0 };
 
-    if (create_iv(iv, ssrc, seq, srtp_ctx_.key_ctx.local.salt_key) != RTP_OK) {
+    if (create_iv(iv, ssrc, seq, srtp_ctx_->key_ctx.local.salt_key) != RTP_OK) {
         LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
         return RTP_INVALID_VALUE;
     }
 
-    uvg_rtp::crypto::aes::ctr ctr(srtp_ctx_.key_ctx.local.enc_key, sizeof(srtp_ctx_.key_ctx.local.enc_key), iv);
+    uvg_rtp::crypto::aes::ctr ctr(srtp_ctx_->key_ctx.local.enc_key, sizeof(srtp_ctx_->key_ctx.local.enc_key), iv);
     ctr.encrypt(buffer, buffer, len);
 
     return RTP_OK;
@@ -40,16 +40,16 @@ rtp_error_t uvg_rtp::srtcp::decrypt(uint32_t ssrc, uint32_t seq, uint8_t *buffer
     uint8_t iv[16]  = { 0 };
     uint64_t digest = 0;
 
-    if (create_iv(iv, ssrc, seq, srtp_ctx_.key_ctx.remote.salt_key) != RTP_OK) {
+    if (create_iv(iv, ssrc, seq, srtp_ctx_->key_ctx.remote.salt_key) != RTP_OK) {
         LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
         return RTP_INVALID_VALUE;
     }
 
-    uvg_rtp::crypto::aes::ctr ctr(srtp_ctx_.key_ctx.remote.enc_key, sizeof(srtp_ctx_.key_ctx.remote.enc_key), iv);
+    uvg_rtp::crypto::aes::ctr ctr(srtp_ctx_->key_ctx.remote.enc_key, sizeof(srtp_ctx_->key_ctx.remote.enc_key), iv);
 
     /* ... otherwise calculate authentication tag for the packet
      * and compare it against the one we received */
-    auto hmac_sha1 = uvg_rtp::crypto::hmac::sha1(srtp_ctx_.key_ctx.remote.auth_key, AES_KEY_LENGTH);
+    auto hmac_sha1 = uvg_rtp::crypto::hmac::sha1(srtp_ctx_->key_ctx.remote.auth_key, AES_KEY_LENGTH);
 
     hmac_sha1.update(buffer, size - AUTH_TAG_LENGTH - SRTCP_INDEX_LENGTH);
     hmac_sha1.final((uint8_t *)&digest);

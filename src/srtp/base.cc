@@ -9,7 +9,7 @@
 #endif
 
 uvg_rtp::base_srtp::base_srtp():
-    srtp_ctx_(),
+    srtp_ctx_(new uvg_rtp::srtp_ctx_t),
     use_null_cipher_(false),
     authenticate_rtp_(false)
 {
@@ -30,7 +30,7 @@ bool uvg_rtp::base_srtp::authenticate_rtp()
     return authenticate_rtp_;
 }
 
-uvg_rtp::srtp_ctx_t& uvg_rtp::base_srtp::get_ctx()
+uvg_rtp::srtp_ctx_t *uvg_rtp::base_srtp::get_ctx()
 {
     return srtp_ctx_;
 }
@@ -72,24 +72,24 @@ rtp_error_t uvg_rtp::base_srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t 
 
 rtp_error_t uvg_rtp::base_srtp::init(int type, int flags)
 {
-    srtp_ctx_.roc  = 0;
-    srtp_ctx_.type = type;
-    srtp_ctx_.enc  = AES_128;
-    srtp_ctx_.hmac = HMAC_SHA1;
+    srtp_ctx_->roc  = 0;
+    srtp_ctx_->type = type;
+    srtp_ctx_->enc  = AES_128;
+    srtp_ctx_->hmac = HMAC_SHA1;
 
-    srtp_ctx_.mki_size    = 0;
-    srtp_ctx_.mki_present = false;
-    srtp_ctx_.mki         = nullptr;
+    srtp_ctx_->mki_size    = 0;
+    srtp_ctx_->mki_present = false;
+    srtp_ctx_->mki         = nullptr;
 
-    srtp_ctx_.master_key  = srtp_ctx_.key_ctx.master.local_key;
-    srtp_ctx_.master_salt = srtp_ctx_.key_ctx.master.local_salt;
-    srtp_ctx_.mk_cnt      = 0;
+    srtp_ctx_->master_key  = srtp_ctx_->key_ctx.master.local_key;
+    srtp_ctx_->master_salt = srtp_ctx_->key_ctx.master.local_salt;
+    srtp_ctx_->mk_cnt      = 0;
 
-    srtp_ctx_.n_e = AES_KEY_LENGTH;
-    srtp_ctx_.n_a = HMAC_KEY_LENGTH;
+    srtp_ctx_->n_e = AES_KEY_LENGTH;
+    srtp_ctx_->n_a = HMAC_KEY_LENGTH;
 
-    srtp_ctx_.s_l    = 0;
-    srtp_ctx_.replay = nullptr;
+    srtp_ctx_->s_l    = 0;
+    srtp_ctx_->replay = nullptr;
 
     use_null_cipher_  = !!(flags & RCE_SRTP_NULL_CIPHER);
     authenticate_rtp_ = !!(flags & RCE_SRTP_AUTHENTICATE_RTP);
@@ -111,46 +111,46 @@ rtp_error_t uvg_rtp::base_srtp::init(int type, int flags)
     /* Local aka encryption keys */
     (void)derive_key(
         label_enc,
-        srtp_ctx_.key_ctx.master.local_key,
-        srtp_ctx_.key_ctx.master.local_salt,
-        srtp_ctx_.key_ctx.local.enc_key,
+        srtp_ctx_->key_ctx.master.local_key,
+        srtp_ctx_->key_ctx.master.local_salt,
+        srtp_ctx_->key_ctx.local.enc_key,
         AES_KEY_LENGTH
     );
     (void)derive_key(
         label_auth,
-        srtp_ctx_.key_ctx.master.local_key,
-        srtp_ctx_.key_ctx.master.local_salt,
-        srtp_ctx_.key_ctx.local.auth_key,
+        srtp_ctx_->key_ctx.master.local_key,
+        srtp_ctx_->key_ctx.master.local_salt,
+        srtp_ctx_->key_ctx.local.auth_key,
         AES_KEY_LENGTH
     );
     (void)derive_key(
         label_salt,
-        srtp_ctx_.key_ctx.master.local_key,
-        srtp_ctx_.key_ctx.master.local_salt,
-        srtp_ctx_.key_ctx.local.salt_key,
+        srtp_ctx_->key_ctx.master.local_key,
+        srtp_ctx_->key_ctx.master.local_salt,
+        srtp_ctx_->key_ctx.local.salt_key,
         SALT_LENGTH
     );
 
     /* Remote aka decryption keys */
     (void)derive_key(
         label_enc,
-        srtp_ctx_.key_ctx.master.remote_key,
-        srtp_ctx_.key_ctx.master.remote_salt,
-        srtp_ctx_.key_ctx.remote.enc_key,
+        srtp_ctx_->key_ctx.master.remote_key,
+        srtp_ctx_->key_ctx.master.remote_salt,
+        srtp_ctx_->key_ctx.remote.enc_key,
         AES_KEY_LENGTH
     );
     (void)derive_key(
         label_auth,
-        srtp_ctx_.key_ctx.master.remote_key,
-        srtp_ctx_.key_ctx.master.remote_salt,
-        srtp_ctx_.key_ctx.remote.auth_key,
+        srtp_ctx_->key_ctx.master.remote_key,
+        srtp_ctx_->key_ctx.master.remote_salt,
+        srtp_ctx_->key_ctx.remote.auth_key,
         AES_KEY_LENGTH
     );
     (void)derive_key(
         label_salt,
-        srtp_ctx_.key_ctx.master.remote_key,
-        srtp_ctx_.key_ctx.master.remote_salt,
-        srtp_ctx_.key_ctx.remote.salt_key,
+        srtp_ctx_->key_ctx.master.remote_key,
+        srtp_ctx_->key_ctx.master.remote_salt,
+        srtp_ctx_->key_ctx.remote.salt_key,
         SALT_LENGTH
     );
 
@@ -166,10 +166,10 @@ rtp_error_t uvg_rtp::base_srtp::init_zrtp(int type, int flags, uvg_rtp::rtp *rtp
 
     /* ZRTP key derivation function expects the keys lengths to be given in bits */
     rtp_error_t ret = zrtp->get_srtp_keys(
-        srtp_ctx_.key_ctx.master.local_key,   AES_KEY_LENGTH * 8,
-        srtp_ctx_.key_ctx.master.remote_key,  AES_KEY_LENGTH * 8,
-        srtp_ctx_.key_ctx.master.local_salt,  SALT_LENGTH    * 8,
-        srtp_ctx_.key_ctx.master.remote_salt, SALT_LENGTH    * 8
+        srtp_ctx_->key_ctx.master.local_key,   AES_KEY_LENGTH * 8,
+        srtp_ctx_->key_ctx.master.remote_key,  AES_KEY_LENGTH * 8,
+        srtp_ctx_->key_ctx.master.local_salt,  SALT_LENGTH    * 8,
+        srtp_ctx_->key_ctx.master.remote_salt, SALT_LENGTH    * 8
     );
 
     if (ret != RTP_OK) {
@@ -185,12 +185,11 @@ rtp_error_t uvg_rtp::base_srtp::init_user(int type, int flags, uint8_t *key, uin
     if (!key || !salt)
         return RTP_INVALID_VALUE;
 
-    memcpy(srtp_ctx_.key_ctx.master.local_key,    key, AES_KEY_LENGTH);
-    memcpy(srtp_ctx_.key_ctx.master.remote_key,   key, AES_KEY_LENGTH);
-    memcpy(srtp_ctx_.key_ctx.master.local_salt,  salt, SALT_LENGTH);
-    memcpy(srtp_ctx_.key_ctx.master.remote_salt, salt, SALT_LENGTH);
+    memcpy(srtp_ctx_->key_ctx.master.local_key,    key, AES_KEY_LENGTH);
+    memcpy(srtp_ctx_->key_ctx.master.remote_key,   key, AES_KEY_LENGTH);
+    memcpy(srtp_ctx_->key_ctx.master.local_salt,  salt, SALT_LENGTH);
+    memcpy(srtp_ctx_->key_ctx.master.remote_salt, salt, SALT_LENGTH);
 
-    /* TODO: why srtp keys are derived using zrtp kdf? */
     return init(type, flags);
 }
 #endif

@@ -30,8 +30,15 @@ uvg_rtp::rtcp::rtcp(uvg_rtp::rtp *rtp, int flags):
     clock_start_  = 0;
     rtp_ts_start_ = 0;
     runner_       = nullptr;
+    srtcp_        = nullptr;
 
     zero_stats(&our_stats);
+}
+
+uvg_rtp::rtcp::rtcp(uvg_rtp::rtp *rtp, uvg_rtp::srtcp *srtcp, int flags):
+    rtcp(rtp, flags)
+{
+    srtcp_ = srtcp;
 }
 
 uvg_rtp::rtcp::~rtcp()

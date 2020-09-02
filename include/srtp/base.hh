@@ -75,14 +75,14 @@ namespace uvg_rtp {
         struct {
             uint8_t enc_key[AES_KEY_LENGTH];
             uint8_t auth_key[AES_KEY_LENGTH];
-            uint8_t salt_key[SALT_LENGTH];
+            uint8_t salt_key[AES_KEY_LENGTH]; /* TODO: make sure this is correct */
         } local;
 
         /* Used to decrypt/Authenticate packets sent by remote */
         struct {
             uint8_t enc_key[AES_KEY_LENGTH];
             uint8_t auth_key[AES_KEY_LENGTH];
-            uint8_t salt_key[SALT_LENGTH];
+            uint8_t salt_key[AES_KEY_LENGTH];
         } remote;
 
     } srtp_key_ctx_t;
@@ -142,13 +142,7 @@ namespace uvg_rtp {
             bool authenticate_rtp();
 
             /* Get reference to the SRTP context (including session keys) */
-            srtp_ctx_t& get_ctx();
-
-            /* Decrypt the payload and verify authentication tag (if enabled) */
-            static rtp_error_t recv_packet_handler(void *arg, int flags, frame::rtp_frame **out);
-
-            /* Encrypt the payload and add authentication tag (if enabled) */
-            static rtp_error_t send_packet_handler(void *arg, buf_vec& buffers);
+            srtp_ctx_t *get_ctx();
 #endif
 
         protected:
@@ -164,8 +158,8 @@ namespace uvg_rtp {
             /* Internal init method that initialize the SRTP context using values in key_ctx_.master */
             rtp_error_t init(int type, int flags);
 #endif
-
-            srtp_ctx_t srtp_ctx_;
+            /* SRTP context containing all session information and keys */
+            srtp_ctx_t *srtp_ctx_;
 
             /* If NULL cipher is enabled, it means that RTP packets are not
              * encrypted but other security mechanisms described in RFC 3711 may be used */
