@@ -231,6 +231,7 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
     }
 
     socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
+    socket_->install_handler(srtp_, srtp_->send_packet_handler);
 
     rtp_handler_key_  = pkt_dispatcher_->install_handler(rtp_->packet_handler);
     zrtp_handler_key_ = pkt_dispatcher_->install_handler(zrtp->packet_handler);
@@ -330,6 +331,7 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     }
 
     socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
+    socket_->install_handler(srtp_, srtp_->send_packet_handler);
 
     rtp_handler_key_ = pkt_dispatcher_->install_handler(rtp_->packet_handler);
 
