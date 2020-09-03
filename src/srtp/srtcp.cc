@@ -35,6 +35,31 @@ rtp_error_t uvg_rtp::srtcp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer
     return RTP_OK;
 }
 
+rtp_error_t uvg_rtp::srtcp::add_auth_tag(uint8_t *buffer, size_t len)
+{
+    auto hmac_sha1 = uvg_rtp::crypto::hmac::sha1(srtp_ctx_->key_ctx.local.auth_key, AES_KEY_LENGTH);
+
+    hmac_sha1.update(buffer, len - AUTH_TAG_LENGTH);
+    hmac_sha1.update((uint8_t *)&srtp_ctx_->roc, sizeof(srtp_ctx_->roc));
+    hmac_sha1.final((uint8_t *)&buffer[len - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH);
+
+    return RTP_OK;
+}
+
+rtp_error_t uvg_rtp::srtcp::verify_auth_tag(uint8_t *buffer, size_t len)
+{
+    auto hmac_sha1  = uvg_rtp::crypto::hmac::sha1(srtp_ctx_->key_ctx.remote.auth_key, AES_KEY_LENGTH);
+    uint32_t digest = 0;
+
+    hmac_sha1.update(buffer, len - AUTH_TAG_LENGTH);
+    hmac_sha1.update((uint8_t *)&srtp_ctx_->roc, sizeof(srtp_ctx_->roc));
+    hmac_sha1.final((uint8_t *)&digest, AUTH_TAG_LENGTH);
+
+    if (memcmp(&digest, &buffer[len - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH))
+        return RTP_AUTH_TAG_MISMATCH;
+    return RTP_OK;
+}
+
 rtp_error_t uvg_rtp::srtcp::decrypt(uint32_t ssrc, uint32_t seq, uint8_t *buffer, size_t size)
 {
     uint8_t iv[16]  = { 0 };
