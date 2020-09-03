@@ -80,7 +80,7 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction()
     active_->dealloc_hook = dealloc_hook_;
 
     if (flags_ & RCE_SRTP_AUTHENTICATE_RTP)
-        active_->rtp_auth_tags = new uint64_t[max_mcount_];
+        active_->rtp_auth_tags = new uint32_t[max_mcount_];
     else
         active_->rtp_auth_tags = nullptr;
 
@@ -251,7 +251,7 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(uint8_t *message, size_t messa
 
     if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
         tmp.push_back({
-            sizeof(uint64_t),
+            sizeof(uint32_t),
             (uint8_t *)&active_->rtp_auth_tags[active_->rtpauth_ptr++]
         });
     }
@@ -292,7 +292,7 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, 
 
     if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
         tmp.push_back({
-            sizeof(uint64_t),
+            sizeof(uint32_t),
             (uint8_t *)&active_->rtp_auth_tags[active_->rtpauth_ptr++]
         });
     }

@@ -51,12 +51,12 @@ rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_
 
     /* Calculate authentication tag for the packet and compare it against the one we received */
     if (srtp->authenticate_rtp()) {
-        uint64_t digest = 0;
+        uint32_t digest = 0;
         auto hmac_sha1  = uvg_rtp::crypto::hmac::sha1(ctx->key_ctx.remote.auth_key, AES_KEY_LENGTH);
 
         hmac_sha1.update(frame->dgram, frame->dgram_size - AUTH_TAG_LENGTH);
         hmac_sha1.update((uint8_t *)&ctx->roc, sizeof(ctx->roc));
-        hmac_sha1.final((uint8_t *)&digest);
+        hmac_sha1.final((uint8_t *)&digest, sizeof(uint32_t));
 
         if (memcmp(&digest, &frame->dgram[frame->dgram_size - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH)) {
             LOG_ERROR("Authentication tag mismatch!");
@@ -122,7 +122,7 @@ authenticate:
         hmac_sha1.update((uint8_t *)buffers[i].second, buffers[i].first);
 
     hmac_sha1.update((uint8_t *)&ctx->roc, sizeof(ctx->roc));
-    hmac_sha1.final((uint8_t *)buffers[buffers.size() - 1].second);
+    hmac_sha1.final((uint8_t *)buffers[buffers.size() - 1].second, sizeof(uint32_t));
 
     return ret;
 }

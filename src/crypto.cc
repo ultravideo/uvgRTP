@@ -24,6 +24,14 @@ void uvg_rtp::crypto::hmac::sha1::final(uint8_t *digest)
     hmac_.Final(digest);
 }
 
+void uvg_rtp::crypto::hmac::sha1::final(uint8_t *digest, size_t size)
+{
+    uint8_t d[20] = { 0 };
+
+    hmac_.Final(d);
+    memcpy(digest, d, size);
+}
+
 /* ***************** hmac-sha256 ***************** */
 
 uvg_rtp::crypto::hmac::sha256::sha256(uint8_t *key, size_t key_size):

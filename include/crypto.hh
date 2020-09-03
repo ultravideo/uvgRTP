@@ -25,6 +25,9 @@ namespace uvg_rtp {
                     void update(uint8_t *data, size_t len);
                     void final(uint8_t *digest);
 
+                    /* truncate digest to "size" bytes */
+                    void final(uint8_t *digest, size_t size);
+
                 private:
                     CryptoPP::HMAC<CryptoPP::SHA1> hmac_;
             };

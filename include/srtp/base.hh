@@ -24,8 +24,8 @@
 #define AES_KEY_LENGTH     16 /* 128 bits */
 #define HMAC_KEY_LENGTH    32 /* 256 bits */
 #define SALT_LENGTH        14 /* 112 bits */
-#define AUTH_TAG_LENGTH     8
-#define SRTCP_INDEX_LENGTH  8
+#define AUTH_TAG_LENGTH     4
+#define SRTCP_INDEX_LENGTH  4
 
 namespace uvg_rtp {
 

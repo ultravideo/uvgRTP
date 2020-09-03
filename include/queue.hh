@@ -67,7 +67,7 @@ namespace uvg_rtp {
         void *media_headers;
 
         /* Pointer to RTP authentication (if enabled) */
-        uint64_t *rtp_auth_tags;
+        uint32_t *rtp_auth_tags;
 
         size_t chunk_ptr;
         size_t hdr_ptr;
