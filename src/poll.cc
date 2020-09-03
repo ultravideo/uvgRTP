@@ -45,14 +45,13 @@ rtp_error_t uvg_rtp::poll::poll(std::vector<uvg_rtp::socket>& sockets, uint8_t *
 
     for (size_t i = 0; i < sockets.size(); ++i) {
         if (fds[i].revents & POLLIN) {
-            auto rtp_ret = sockets.at(i).recv(buf, buf_len, 0);
+            auto rtp_ret = sockets.at(i).recv(buf, buf_len, 0, bytes_read);
 
             if (rtp_ret != RTP_OK) {
                 LOG_ERROR("recv() for socket %d failed: %s", fds[i].fd, strerror(errno));
+                set_bytes(bytes_read, -1);
                 return RTP_GENERIC_ERROR;
             }
-
-            set_bytes(bytes_read, ret);
             return RTP_OK;
         }
     }
