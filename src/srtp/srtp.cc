@@ -80,13 +80,13 @@ rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_
 
     if (srtp->create_iv(iv, ssrc, index, ctx->key_ctx.remote.salt_key) != RTP_OK) {
         LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
-        return RTP_INVALID_VALUE;
+        return RTP_GENERIC_ERROR;
     }
 
     uvg_rtp::crypto::aes::ctr ctr(ctx->key_ctx.remote.enc_key, sizeof(ctx->key_ctx.remote.enc_key), iv);
     ctr.decrypt(frame->payload, frame->payload, frame->payload_len);
 
-    return RTP_OK;
+    return RTP_PKT_MODIFIED;
 }
 
 rtp_error_t uvg_rtp::srtp::send_packet_handler(void *arg, uvg_rtp::buf_vec& buffers)
@@ -123,8 +123,6 @@ authenticate:
 
     hmac_sha1.update((uint8_t *)&ctx->roc, sizeof(ctx->roc));
     hmac_sha1.final((uint8_t *)buffers[buffers.size() - 1].second);
-
-    fprintf(stderr, "auth tag calculated\n");
 
     return ret;
 }
