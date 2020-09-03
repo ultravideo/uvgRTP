@@ -63,7 +63,6 @@ rtp_error_t uvg_rtp::srtcp::verify_auth_tag(uint8_t *buffer, size_t len)
 rtp_error_t uvg_rtp::srtcp::decrypt(uint32_t ssrc, uint32_t seq, uint8_t *buffer, size_t size)
 {
     uint8_t iv[16]  = { 0 };
-    uint64_t digest = 0;
 
     if (create_iv(iv, ssrc, seq, srtp_ctx_->key_ctx.remote.salt_key) != RTP_OK) {
         LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
