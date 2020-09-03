@@ -81,6 +81,9 @@ namespace uvg_rtp {
             uint8_t *probation;
             uint8_t *payload;
 
+            uint8_t *dgram;      /* pointer to the UDP datagram (for internal use only) */
+            size_t   dgram_size; /* size of the UDP datagram */
+
             rtp_format_t format;
             int  type;
             sockaddr_in src_addr;

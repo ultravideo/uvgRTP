@@ -216,6 +216,9 @@ rtp_error_t uvg_rtp::rtp::packet_handler(ssize_t size, void *packet, int flags, 
         (*out)->padding_len  = padding_len;
     }
 
-    (*out)->payload = (uint8_t *)memdup(ptr, (*out)->payload_len);
+    (*out)->payload    = (uint8_t *)memdup(ptr, (*out)->payload_len);
+    (*out)->dgram      = (uint8_t *)packet;
+    (*out)->dgram_size = size;
+
     return RTP_PKT_MODIFIED;
 }
