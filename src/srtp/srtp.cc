@@ -79,22 +79,17 @@ rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_
      * and compare it against the one we received */
     auto hmac_sha1 = uvg_rtp::crypto::hmac::sha1(ctx->key_ctx.remote.auth_key, AES_KEY_LENGTH);
 
-    hmac_sha1.update((uint8_t *)frame, frame->payload_len - AUTH_TAG_LENGTH);
+    hmac_sha1.update(frame->dgram, frame->dgram_size - AUTH_TAG_LENGTH);
     hmac_sha1.update((uint8_t *)&ctx->roc, sizeof(ctx->roc));
     hmac_sha1.final((uint8_t *)&digest);
 
-    if (memcmp(&digest, &frame[frame->payload_len - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH)) {
+    if (memcmp(&digest, &frame->dgram[frame->dgram_size - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH)) {
         LOG_ERROR("Authentication tag mismatch!");
-        return RTP_AUTH_TAG_MISMATCH;
+        return RTP_GENERIC_ERROR;
     }
 
-    size_t size_ = frame->payload_len - sizeof(uvg_rtp::frame::rtp_header) - 8;
-    uint8_t *new_buffer = new uint8_t[size_];
-
-    ctr.decrypt(new_buffer, frame->payload, size_);
-    memset(frame->payload, 0, frame->payload_len);
-    memcpy(frame->payload, new_buffer, size_);
-    delete[] new_buffer;
+    frame->payload_len -= AUTH_TAG_LENGTH;
+    ctr.decrypt(frame->payload, frame->payload, frame->payload_len);
 
     return RTP_OK;
 }
@@ -107,14 +102,15 @@ rtp_error_t uvg_rtp::srtp::send_packet_handler(void *arg, uvg_rtp::buf_vec& buff
         return RTP_OK;
 
     auto frame  = (uvg_rtp::frame::rtp_frame *)buffers.at(0).second;
-    auto rtp    = buffers.at(buffers.size() - 1);
     auto ctx    = srtp->get_ctx();
+    auto off    = srtp->authenticate_rtp() ? 2 : 1;
+    auto data   = buffers.at(buffers.size() - off);
 
     rtp_error_t ret = srtp->encrypt(
         ntohl(frame->header.ssrc),
         ntohs(frame->header.seq),
-        rtp.second,
-        rtp.first
+        data.second,
+        data.first
     );
 
     if (!srtp->authenticate_rtp())
