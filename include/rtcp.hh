@@ -291,6 +291,9 @@ namespace uvg_rtp {
             size_t rtcp_pkt_count_;
             size_t rtcp_byte_count_;
 
+            /* Number of RTCP packets sent */
+            size_t rtcp_pkt_sent_count_;
+
             /* Flag that is true if the application has not yet sent an RTCP packet. */
             bool initial_;
 

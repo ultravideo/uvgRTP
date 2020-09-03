@@ -23,6 +23,8 @@ std::vector<uint32_t> uvg_rtp::rtcp::get_participants()
 
 rtp_error_t uvg_rtp::rtcp::generate_report()
 {
+    rtcp_pkt_sent_count_++;
+
     if (our_role_ == RECEIVER)
         return generate_receiver_report();
     return generate_sender_report();
