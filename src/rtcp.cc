@@ -22,7 +22,11 @@ uvg_rtp::rtcp::rtcp(uvg_rtp::rtp *rtp, int flags):
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
     we_sent_(0), avg_rtcp_pkt_pize_(0), rtcp_pkt_count_(0),
-    initial_(true), num_receivers_(0)
+    initial_(true), num_receivers_(0),
+    sender_hook_(nullptr),
+    receiver_hook_(nullptr),
+    sdes_hook_(nullptr),
+    app_hook_(nullptr)
 {
     ssrc_         = rtp->get_ssrc();
     clock_rate_   = rtp->get_clock_rate();
