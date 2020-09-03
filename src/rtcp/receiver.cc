@@ -29,13 +29,29 @@ rtp_error_t uvg_rtp::rtcp::handle_receiver_report_packet(uint8_t *packet, size_t
     if (!packet || !size)
         return RTP_INVALID_VALUE;
 
+    auto srtpi = (*(uint32_t *)&packet[size - SRTCP_INDEX_LENGTH - AUTH_TAG_LENGTH]);
     auto frame = new uvg_rtp::frame::rtcp_receiver_report;
+    auto ret   = RTP_OK;
 
     frame->header.version = (packet[0] >> 6) & 0x3;
     frame->header.padding = (packet[0] >> 5) & 0x1;
     frame->header.count   = packet[0] & 0x1f;
     frame->header.length  = ntohs(*(uint16_t *)&packet[2]);
     frame->ssrc           = ntohl(*(uint32_t *)&packet[4]);
+
+    if (flags_ & RCE_SRTP) {
+        if ((ret = srtcp_->verify_auth_tag(packet, size)) != RTP_OK) {
+            LOG_ERROR("Failed to verify RTCP authentication tag!");
+            return RTP_AUTH_TAG_MISMATCH;
+        }
+
+        if (((srtpi >> 31) & 0x1) && !(flags_ & RCE_SRTP_NULL_CIPHER)) {
+            if (srtcp_->decrypt(frame->ssrc, srtpi & 0x7fffffff, packet, size) != RTP_OK) {
+                LOG_ERROR("Failed to decrypt RTCP Sender Report");
+                return ret;
+            }
+        }
+    }
 
     /* Receiver Reports are sent from participant that don't send RTP packets
      * This means that the sender of this report is not in the participants_ map
@@ -93,6 +109,9 @@ rtp_error_t uvg_rtp::rtcp::generate_receiver_report()
     frame_size += 4;                   /* our ssrc */
     frame_size += num_receivers_ * 24; /* report blocks */
 
+    if (flags_ & RCE_SRTP)
+        frame_size += SRTCP_INDEX_LENGTH + AUTH_TAG_LENGTH;
+
     if (!(frame = new uint8_t[frame_size])) {
         LOG_ERROR("Failed to allocate space for RTCP Receiver Report");
         return RTP_MEMORY_ERROR;
@@ -123,6 +142,18 @@ rtp_error_t uvg_rtp::rtcp::generate_receiver_report()
             SET_NEXT_FIELD_32(frame, ptr, htonl(uvg_rtp::clock::ms_to_jiffies(diff)));
         }
         ptr += p.second->stats.lsr ? 0 : 4;
+    }
+
+    /* Encrypt the packet if NULL cipher has not been enabled,
+     * calculate authentication tag for the packet and add SRTCP index at the end */
+    if (flags_ & RCE_SRTP) {
+        if (!(RCE_SRTP & RCE_SRTP_NULL_CIPHER)) {
+            srtcp_->encrypt(ssrc_, rtcp_pkt_sent_count_, &frame[8], frame_size - 8 - SRTCP_INDEX_LENGTH - AUTH_TAG_LENGTH);
+            SET_FIELD_32(frame, frame_size - SRTCP_INDEX_LENGTH - AUTH_TAG_LENGTH, (1 << 31) | rtcp_pkt_sent_count_);
+        } else  {
+            SET_FIELD_32(frame, frame_size - SRTCP_INDEX_LENGTH - AUTH_TAG_LENGTH, (0 << 31) | rtcp_pkt_sent_count_);
+        }
+        srtcp_->add_auth_tag(frame, frame_size);
     }
 
     for (auto& p : participants_) {
