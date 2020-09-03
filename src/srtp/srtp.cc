@@ -45,9 +45,26 @@ rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_
 {
     (void)flags;
 
-    uvg_rtp::srtp *srtp              = (uvg_rtp::srtp *)arg;
-    uvg_rtp::srtp_ctx_t *ctx         = srtp->get_ctx();
-    uvg_rtp::frame::rtp_frame *frame = *out;
+    auto srtp  = (uvg_rtp::srtp *)arg;
+    auto ctx   = srtp->get_ctx();
+    auto frame = *out;
+
+    /* Calculate authentication tag for the packet and compare it against the one we received */
+    if (srtp->authenticate_rtp()) {
+        uint64_t digest = 0;
+        auto hmac_sha1  = uvg_rtp::crypto::hmac::sha1(ctx->key_ctx.remote.auth_key, AES_KEY_LENGTH);
+
+        hmac_sha1.update(frame->dgram, frame->dgram_size - AUTH_TAG_LENGTH);
+        hmac_sha1.update((uint8_t *)&ctx->roc, sizeof(ctx->roc));
+        hmac_sha1.final((uint8_t *)&digest);
+
+        if (memcmp(&digest, &frame->dgram[frame->dgram_size - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH)) {
+            LOG_ERROR("Authentication tag mismatch!");
+            return RTP_GENERIC_ERROR;
+        }
+
+        frame->payload_len -= AUTH_TAG_LENGTH;
+    }
 
     if (srtp->use_null_cipher())
         return RTP_PKT_NOT_HANDLED;
@@ -56,7 +73,6 @@ rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_
     uint16_t seq    = frame->header.seq;
     uint32_t ssrc   = frame->header.ssrc;
     uint64_t index  = (((uint64_t)ctx->roc) << 16) + seq;
-    uint64_t digest = 0;
 
     /* Sequence number has wrapped around, update Roll-over Counter */
     if (seq == 0xffff)
@@ -68,27 +84,6 @@ rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_
     }
 
     uvg_rtp::crypto::aes::ctr ctr(ctx->key_ctx.remote.enc_key, sizeof(ctx->key_ctx.remote.enc_key), iv);
-
-    /* exit early if RTP packet authentication is disabled... */
-    if (!srtp->authenticate_rtp()) {
-        ctr.decrypt(frame->payload, frame->payload, frame->payload_len);
-        return RTP_OK;
-    }
-
-    /* ... otherwise calculate authentication tag for the packet
-     * and compare it against the one we received */
-    auto hmac_sha1 = uvg_rtp::crypto::hmac::sha1(ctx->key_ctx.remote.auth_key, AES_KEY_LENGTH);
-
-    hmac_sha1.update(frame->dgram, frame->dgram_size - AUTH_TAG_LENGTH);
-    hmac_sha1.update((uint8_t *)&ctx->roc, sizeof(ctx->roc));
-    hmac_sha1.final((uint8_t *)&digest);
-
-    if (memcmp(&digest, &frame->dgram[frame->dgram_size - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH)) {
-        LOG_ERROR("Authentication tag mismatch!");
-        return RTP_GENERIC_ERROR;
-    }
-
-    frame->payload_len -= AUTH_TAG_LENGTH;
     ctr.decrypt(frame->payload, frame->payload, frame->payload_len);
 
     return RTP_OK;
@@ -96,34 +91,40 @@ rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_
 
 rtp_error_t uvg_rtp::srtp::send_packet_handler(void *arg, uvg_rtp::buf_vec& buffers)
 {
-    auto srtp = (uvg_rtp::srtp *)arg;
+    auto srtp       = (uvg_rtp::srtp *)arg;
+    auto frame      = (uvg_rtp::frame::rtp_frame *)buffers.at(0).second;
+    auto ctx        = srtp->get_ctx();
+    auto off        = srtp->authenticate_rtp() ? 2 : 1;
+    auto data       = buffers.at(buffers.size() - off);
+    auto hmac_sha1  = uvg_rtp::crypto::hmac::sha1(ctx->key_ctx.local.auth_key, AES_KEY_LENGTH);
+    rtp_error_t ret = RTP_OK;
 
     if (srtp->use_null_cipher())
-        return RTP_OK;
+        goto authenticate;
 
-    auto frame  = (uvg_rtp::frame::rtp_frame *)buffers.at(0).second;
-    auto ctx    = srtp->get_ctx();
-    auto off    = srtp->authenticate_rtp() ? 2 : 1;
-    auto data   = buffers.at(buffers.size() - off);
-
-    rtp_error_t ret = srtp->encrypt(
+    ret = srtp->encrypt(
         ntohl(frame->header.ssrc),
         ntohs(frame->header.seq),
         data.second,
         data.first
     );
 
+    if (ret != RTP_OK) {
+        LOG_ERROR("Failed to encrypt RTP packet!");
+        return ret;
+    }
+
+authenticate:
     if (!srtp->authenticate_rtp())
         return RTP_OK;
-
-    /* create authentication tag for the packet and push it to the vector buffer */
-    auto hmac_sha1 = uvg_rtp::crypto::hmac::sha1(ctx->key_ctx.local.auth_key, AES_KEY_LENGTH);
 
     for (size_t i = 0; i < buffers.size() - 1; ++i)
         hmac_sha1.update((uint8_t *)buffers[i].second, buffers[i].first);
 
     hmac_sha1.update((uint8_t *)&ctx->roc, sizeof(ctx->roc));
     hmac_sha1.final((uint8_t *)buffers[buffers.size() - 1].second);
+
+    fprintf(stderr, "auth tag calculated\n");
 
     return ret;
 }
