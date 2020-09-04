@@ -16,9 +16,6 @@ namespace uvg_rtp {
             /* TODO:  */
             rtp_error_t decrypt(uint8_t *buffer, size_t len);
 
-            /* TODO:  */
-            bool is_replayed_packet(uint32_t digest);
-
             /* Decrypt the payload of an RTP packet and verify authentication tag (if enabled) */
             static rtp_error_t recv_packet_handler(void *arg, int flags, frame::rtp_frame **out);
 

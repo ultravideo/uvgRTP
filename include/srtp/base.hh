@@ -22,11 +22,11 @@
 #include "../zrtp.hh"
 #endif
 
-#define AES_KEY_LENGTH     16 /* 128 bits */
-#define HMAC_KEY_LENGTH    32 /* 256 bits */
-#define SALT_LENGTH        14 /* 112 bits */
-#define AUTH_TAG_LENGTH     4
-#define SRTCP_INDEX_LENGTH  4
+#define AES_KEY_LENGTH      16 /* 128 bits */
+#define HMAC_KEY_LENGTH     32 /* 256 bits */
+#define SALT_LENGTH         14 /* 112 bits */
+#define AUTH_TAG_LENGTH     10
+#define SRTCP_INDEX_LENGTH   4
 
 namespace uvg_rtp {
 
@@ -146,6 +146,10 @@ namespace uvg_rtp {
 
             /* Get reference to the SRTP context (including session keys) */
             srtp_ctx_t *get_ctx();
+
+            /* Returns true if the packet having this HMAC digest is replayed
+             * Returns false if replay protection has not been enabled */
+            bool is_replayed_packet(uint8_t *digest);
 #endif
 
         protected:

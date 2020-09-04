@@ -9,6 +9,7 @@
 #include "frame.hh"
 #include "rtp.hh"
 #include "socket.hh"
+#include "srtp/base.hh"
 #include "util.hh"
 
 #if defined(_MSC_VER)
@@ -67,7 +68,7 @@ namespace uvg_rtp {
         void *media_headers;
 
         /* Pointer to RTP authentication (if enabled) */
-        uint32_t *rtp_auth_tags;
+        uint8_t *rtp_auth_tags;
 
         size_t chunk_ptr;
         size_t hdr_ptr;

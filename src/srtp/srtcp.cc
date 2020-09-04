@@ -48,24 +48,21 @@ rtp_error_t uvg_rtp::srtcp::add_auth_tag(uint8_t *buffer, size_t len)
 
 rtp_error_t uvg_rtp::srtcp::verify_auth_tag(uint8_t *buffer, size_t len)
 {
-    auto hmac_sha1  = uvg_rtp::crypto::hmac::sha1(srtp_ctx_->key_ctx.remote.auth_key, AES_KEY_LENGTH);
-    uint32_t digest = 0;
+    uint8_t digest[10] = { 0 };
+    auto hmac_sha1     = uvg_rtp::crypto::hmac::sha1(srtp_ctx_->key_ctx.remote.auth_key, AES_KEY_LENGTH);
 
     hmac_sha1.update(buffer, len - AUTH_TAG_LENGTH);
     hmac_sha1.update((uint8_t *)&srtp_ctx_->roc, sizeof(srtp_ctx_->roc));
-    hmac_sha1.final((uint8_t *)&digest, AUTH_TAG_LENGTH);
+    hmac_sha1.final(digest, AUTH_TAG_LENGTH);
 
-    if (memcmp(&digest, &buffer[len - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH)) {
+    if (memcmp(digest, &buffer[len - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH)) {
         LOG_ERROR("STCP authentication tag mismatch!");
         return RTP_AUTH_TAG_MISMATCH;
     }
 
-    if (srtp_ctx_->flags & RCE_SRTP_REPLAY_PROTECTION) {
-        if (replay_list_.find(digest) != replay_list_.end()) {
-            LOG_ERROR("Replayed packet received, discarding!");
-            return RTP_INVALID_VALUE;
-        }
-        replay_list_.insert(digest);
+    if (is_replayed_packet(digest)) {
+        LOG_ERROR("Replayed packet received, discarding!");
+        return RTP_INVALID_VALUE;
     }
 
     return RTP_OK;

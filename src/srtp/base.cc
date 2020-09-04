@@ -70,6 +70,23 @@ rtp_error_t uvg_rtp::base_srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t 
     return RTP_OK;
 }
 
+bool uvg_rtp::base_srtp::is_replayed_packet(uint8_t *digest)
+{
+    if (!(srtp_ctx_->flags & RCE_SRTP_REPLAY_PROTECTION))
+        return false;
+
+    uint64_t truncated;
+    memcpy(&truncated, digest, sizeof(uint64_t));
+
+    if (replay_list_.find(truncated) != replay_list_.end()) {
+        LOG_ERROR("Replayed packet received, discarding!");
+        return true;
+    }
+
+    replay_list_.insert(truncated);
+    return false;
+}
+
 rtp_error_t uvg_rtp::base_srtp::init(int type, int flags)
 {
     srtp_ctx_->roc  = 0;

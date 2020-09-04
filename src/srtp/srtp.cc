@@ -41,20 +41,6 @@ rtp_error_t uvg_rtp::srtp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer,
     return RTP_OK;
 }
 
-bool uvg_rtp::srtp::is_replayed_packet(uint32_t digest)
-{
-    if (!(srtp_ctx_->flags & RCE_SRTP_REPLAY_PROTECTION))
-        return false;
-
-    if (replay_list_.find(digest) != replay_list_.end()) {
-        LOG_ERROR("Replayed packet received, discarding!");
-        return true;
-    }
-
-    replay_list_.insert(digest);
-    return false;
-}
-
 rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_frame **out)
 {
     (void)flags;
@@ -65,21 +51,21 @@ rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_
 
     /* Calculate authentication tag for the packet and compare it against the one we received */
     if (srtp->authenticate_rtp()) {
-        uint32_t digest = 0;
-        auto hmac_sha1  = uvg_rtp::crypto::hmac::sha1(ctx->key_ctx.remote.auth_key, AES_KEY_LENGTH);
+        uint8_t digest[10] = { 0 };
+        auto hmac_sha1     = uvg_rtp::crypto::hmac::sha1(ctx->key_ctx.remote.auth_key, AES_KEY_LENGTH);
 
         hmac_sha1.update(frame->dgram, frame->dgram_size - AUTH_TAG_LENGTH);
         hmac_sha1.update((uint8_t *)&ctx->roc, sizeof(ctx->roc));
-        hmac_sha1.final((uint8_t *)&digest, sizeof(uint32_t));
+        hmac_sha1.final((uint8_t *)digest, AUTH_TAG_LENGTH);
 
-        if (memcmp(&digest, &frame->dgram[frame->dgram_size - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH)) {
+        if (memcmp(digest, &frame->dgram[frame->dgram_size - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH)) {
             LOG_ERROR("Authentication tag mismatch!");
             return RTP_GENERIC_ERROR;
         }
 
         if (srtp->is_replayed_packet(digest)) {
             LOG_ERROR("Replayed packet received, discarding!");
-            return RTP_INVALID_VALUE;
+            return RTP_GENERIC_ERROR;
         }
         frame->payload_len -= AUTH_TAG_LENGTH;
     }
@@ -140,7 +126,7 @@ authenticate:
         hmac_sha1.update((uint8_t *)buffers[i].second, buffers[i].first);
 
     hmac_sha1.update((uint8_t *)&ctx->roc, sizeof(ctx->roc));
-    hmac_sha1.final((uint8_t *)buffers[buffers.size() - 1].second, sizeof(uint32_t));
+    hmac_sha1.final((uint8_t *)buffers[buffers.size() - 1].second, AUTH_TAG_LENGTH);
 
     return ret;
 }
