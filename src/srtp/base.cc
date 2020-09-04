@@ -94,6 +94,8 @@ rtp_error_t uvg_rtp::base_srtp::init(int type, int flags)
     use_null_cipher_  = !!(flags & RCE_SRTP_NULL_CIPHER);
     authenticate_rtp_ = !!(flags & RCE_SRTP_AUTHENTICATE_RTP);
 
+    srtp_ctx_->flags  = flags;
+
     int label_enc  = 0;
     int label_auth = 0;
     int label_salt = 0;

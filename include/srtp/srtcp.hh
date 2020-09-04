@@ -24,7 +24,9 @@ namespace uvg_rtp {
             /* Verify the authentication tag present in "buffer"
              *
              * Return RTP_OK on success
-             * Return RTP_AUTH_TAG_MISMATCH if authentication tags don't match */
+             * Return RTP_AUTH_TAG_MISMATCH if authentication tags don't match
+             * Return RTP_INVALID_VALUE if received packet has already been received
+             *        and replay protection has been enabled */
             rtp_error_t verify_auth_tag(uint8_t *buffer, size_t len);
 
             /* Decrypt and verify the authenticity of the RTCP packet

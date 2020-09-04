@@ -41,6 +41,20 @@ rtp_error_t uvg_rtp::srtp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer,
     return RTP_OK;
 }
 
+bool uvg_rtp::srtp::is_replayed_packet(uint32_t digest)
+{
+    if (!(srtp_ctx_->flags & RCE_SRTP_REPLAY_PROTECTION))
+        return false;
+
+    if (replay_list_.find(digest) != replay_list_.end()) {
+        LOG_ERROR("Replayed packet received, discarding!");
+        return true;
+    }
+
+    replay_list_.insert(digest);
+    return false;
+}
+
 rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_frame **out)
 {
     (void)flags;
@@ -63,6 +77,10 @@ rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_
             return RTP_GENERIC_ERROR;
         }
 
+        if (srtp->is_replayed_packet(digest)) {
+            LOG_ERROR("Replayed packet received, discarding!");
+            return RTP_INVALID_VALUE;
+        }
         frame->payload_len -= AUTH_TAG_LENGTH;
     }
 

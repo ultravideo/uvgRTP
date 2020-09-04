@@ -52,6 +52,9 @@ uvg_rtp::media_stream *uvg_rtp::session::create_stream(int r_port, int s_port, r
 
 #ifdef __RTP_CRYPTO__
     if (flags & RCE_SRTP) {
+        if (flags & RCE_SRTP_REPLAY_PROTECTION)
+            flags |= RCE_SRTP_AUTHENTICATE_RTP;
+
         if (flags & RCE_SRTP_KMNGMNT_ZRTP) {
 
             if (!zrtp_) {

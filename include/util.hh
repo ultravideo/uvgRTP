@@ -194,9 +194,12 @@ enum RTP_CTX_ENABLE_FLAGS {
      * NOTE: this flag must be coupled with at least RCE_SRTP */
     RCE_SRTP_AUTHENTICATE_RTP     = 1 << 13,
 
+    /* Enable packet replay protection */
+    RCE_SRTP_REPLAY_PROTECTION    = 1 << 14,
+
     /* Enable RTCP for the media stream.
      * If SRTP is enabled, SRTCP is used instead */
-    RCE_RTCP                      = 1 << 14,
+    RCE_RTCP                      = 1 << 15,
 
     RCE_LAST                      = 1 << 15,
 };

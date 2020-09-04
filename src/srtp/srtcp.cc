@@ -55,8 +55,19 @@ rtp_error_t uvg_rtp::srtcp::verify_auth_tag(uint8_t *buffer, size_t len)
     hmac_sha1.update((uint8_t *)&srtp_ctx_->roc, sizeof(srtp_ctx_->roc));
     hmac_sha1.final((uint8_t *)&digest, AUTH_TAG_LENGTH);
 
-    if (memcmp(&digest, &buffer[len - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH))
+    if (memcmp(&digest, &buffer[len - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH)) {
+        LOG_ERROR("STCP authentication tag mismatch!");
         return RTP_AUTH_TAG_MISMATCH;
+    }
+
+    if (srtp_ctx_->flags & RCE_SRTP_REPLAY_PROTECTION) {
+        if (replay_list_.find(digest) != replay_list_.end()) {
+            LOG_ERROR("Replayed packet received, discarding!");
+            return RTP_INVALID_VALUE;
+        }
+        replay_list_.insert(digest);
+    }
+
     return RTP_OK;
 }
 

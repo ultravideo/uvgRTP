@@ -10,6 +10,7 @@
 #endif
 
 #include <cstdint>
+#include <unordered_set>
 #include <vector>
 
 #include "../debug.hh"
@@ -109,6 +110,8 @@ namespace uvg_rtp {
         uint16_t s_l;    /* highest received sequence number */
         uint8_t *replay; /* list of recently received and authenticated SRTP packets */
 
+        int flags; /* context configuration flags */
+
         srtp_key_ctx_t key_ctx;
     } srtp_ctx_t;
 
@@ -160,6 +163,10 @@ namespace uvg_rtp {
 #endif
             /* SRTP context containing all session information and keys */
             srtp_ctx_t *srtp_ctx_;
+
+            /* Map containing all authentication tags of received packets (separate for SRTP and SRTCP)
+             * Used to implement replay protection */
+            std::unordered_set<uint32_t> replay_list_;
 
             /* If NULL cipher is enabled, it means that RTP packets are not
              * encrypted but other security mechanisms described in RFC 3711 may be used */
