@@ -1,4 +1,3 @@
-#ifdef __RTP_CRYPTO__
 #pragma once
 
 #ifdef _WIN32
@@ -15,8 +14,8 @@
 
 #include "crypto.hh"
 #include "frame.hh"
-#include "mzrtp/defines.hh"
-#include "mzrtp/receiver.hh"
+#include "zrtp/defines.hh"
+#include "zrtp/receiver.hh"
 
 namespace uvg_rtp {
 
@@ -307,4 +306,3 @@ namespace uvg_rtp {
             std::mutex zrtp_mtx_;
     };
 };
-#endif

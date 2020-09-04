@@ -1,12 +1,8 @@
 #include <cstring>
 #include <iostream>
 
-#include "srtp/base.hh"
-
-#ifdef __RTP_CRYPTO__
 #include "crypto.hh"
-#include <cryptopp/hex.h>
-#endif
+#include "srtp/base.hh"
 
 uvg_rtp::base_srtp::base_srtp():
     srtp_ctx_(new uvg_rtp::srtp_ctx_t),
@@ -19,7 +15,6 @@ uvg_rtp::base_srtp::~base_srtp()
 {
 }
 
-#ifdef __RTP_CRYPTO__
 bool uvg_rtp::base_srtp::use_null_cipher()
 {
     return use_null_cipher_;
@@ -211,4 +206,3 @@ rtp_error_t uvg_rtp::base_srtp::init_user(int type, int flags, uint8_t *key, uin
 
     return init(type, flags);
 }
-#endif

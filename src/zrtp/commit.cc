@@ -1,11 +1,10 @@
-#ifdef __RTP_CRYPTO__
 #include <cassert>
 #include <cstring>
 
 #include "debug.hh"
 #include "zrtp.hh"
 
-#include "mzrtp/commit.hh"
+#include "zrtp/commit.hh"
 
 #define ZRTP_COMMIT "Commit  "
 
@@ -133,4 +132,3 @@ rtp_error_t uvg_rtp::zrtp_msg::commit::parse_msg(uvg_rtp::zrtp_msg::receiver& re
 
     return RTP_OK;
 }
-#endif

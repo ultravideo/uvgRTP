@@ -1,10 +1,9 @@
-#ifdef __RTP_CRYPTO__
 #include <cstring>
 
 #include "debug.hh"
 #include "zrtp.hh"
-#include "mzrtp/defines.hh"
-#include "mzrtp/hello_ack.hh"
+#include "zrtp/defines.hh"
+#include "zrtp/hello_ack.hh"
 
 #define ZRTP_HELLO_ACK "HelloACK"
 
@@ -63,4 +62,3 @@ rtp_error_t uvg_rtp::zrtp_msg::hello_ack::parse_msg(uvg_rtp::zrtp_msg::receiver&
 
     return RTP_OK;
 }
-#endif

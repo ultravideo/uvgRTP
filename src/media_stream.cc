@@ -167,7 +167,6 @@ rtp_error_t uvg_rtp::media_stream::init()
     return pkt_dispatcher_->start(socket_, ctx_config_.flags);
 }
 
-#ifdef __RTP_CRYPTO__
 rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
 {
     rtp_error_t ret;
@@ -379,7 +378,6 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     return pkt_dispatcher_->start(socket_, ctx_config_.flags);
 
 }
-#endif
 
 rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, int flags)
 {

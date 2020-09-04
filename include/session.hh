@@ -37,9 +37,7 @@ namespace uvg_rtp {
 
         private:
             /* Each RTP multimedia session shall have one ZRTP session from which all session are derived */
-#ifdef __RTP_CRYPTO__
             uvg_rtp::zrtp *zrtp_;
-#endif
 
             /* Each RTP multimedia session is always IP-specific */
             std::string addr_;

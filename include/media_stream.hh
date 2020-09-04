@@ -44,7 +44,6 @@ namespace uvg_rtp {
              * TODO document all error codes!
              *
              * Other error return codes are defined in {conn,writer,reader,srtp}.hh */
-#ifdef __RTP_CRYPTO__
             rtp_error_t init(uvg_rtp::zrtp *zrtp);
 
             /* Add key for user-managed SRTP session
@@ -61,7 +60,6 @@ namespace uvg_rtp {
              * Return RTP_INVALID_VALUE if "key" or "salt" is invalid
              * Return RTP_NOT_SUPPORTED if user-managed SRTP was not specified in create_stream() */
             rtp_error_t add_srtp_ctx(uint8_t *key, uint8_t *salt);
-#endif
 
             /* Split "data" into 1500 byte chunks and send them to remote
              *

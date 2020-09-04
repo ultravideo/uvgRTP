@@ -1,10 +1,9 @@
-#ifdef __RTP_CRYPTO__
 #include <cstring>
 
 #include "debug.hh"
 #include "zrtp.hh"
 
-#include "mzrtp/confack.hh"
+#include "zrtp/confack.hh"
 
 #define ZRTP_CONFACK "Conf2ACK"
 
@@ -74,4 +73,3 @@ rtp_error_t uvg_rtp::zrtp_msg::confack::parse_msg(uvg_rtp::zrtp_msg::receiver& r
 
     return RTP_OK;
 }
-#endif

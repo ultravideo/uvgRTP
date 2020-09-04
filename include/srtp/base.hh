@@ -17,10 +17,7 @@
 #include "../frame.hh"
 #include "../rtp.hh"
 #include "../util.hh"
-
-#ifdef __RTP_CRYPTO__
 #include "../zrtp.hh"
-#endif
 
 #define AES_KEY_LENGTH      16 /* 128 bits */
 #define HMAC_KEY_LENGTH     32 /* 256 bits */
@@ -120,7 +117,6 @@ namespace uvg_rtp {
             base_srtp();
             virtual ~base_srtp();
 
-#ifdef __RTP_CRYPTO__
             /* Setup Secure RTP/RTCP connection using ZRTP
              *
              * Return RTP_OK if SRTP setup was successful
@@ -150,10 +146,8 @@ namespace uvg_rtp {
             /* Returns true if the packet having this HMAC digest is replayed
              * Returns false if replay protection has not been enabled */
             bool is_replayed_packet(uint8_t *digest);
-#endif
 
         protected:
-#ifdef __RTP_CRYPTO__
             rtp_error_t derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t len);
 
             /* Create IV for the packet that is about to be encrypted
@@ -164,7 +158,6 @@ namespace uvg_rtp {
 
             /* Internal init method that initialize the SRTP context using values in key_ctx_.master */
             rtp_error_t init(int type, int flags);
-#endif
             /* SRTP context containing all session information and keys */
             srtp_ctx_t *srtp_ctx_;
 

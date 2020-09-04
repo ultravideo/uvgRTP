@@ -1,10 +1,9 @@
-#ifdef __RTP_CRYPTO__
 #include <cstring>
 
 #include "debug.hh"
 #include "zrtp.hh"
-#include "mzrtp/dh_kxchng.hh"
-#include "mzrtp/defines.hh"
+#include "zrtp/dh_kxchng.hh"
+#include "zrtp/defines.hh"
 
 #define ZRTP_DH_PART1       "DHPart1 "
 #define ZRTP_DH_PART2       "DHPart2 "
@@ -168,4 +167,3 @@ rtp_error_t uvg_rtp::zrtp_msg::dh_key_exchange::parse_msg(uvg_rtp::zrtp_msg::rec
 
     return RTP_OK;
 }
-#endif

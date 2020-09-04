@@ -1,25 +1,23 @@
-#ifdef __RTP_CRYPTO__
 #pragma once
 
 #include "util.hh"
 #include "frame.hh"
-#include "mzrtp/defines.hh"
-#include "mzrtp/receiver.hh"
+#include "zrtp/defines.hh"
+#include "zrtp/receiver.hh"
 
 namespace uvg_rtp {
 
     namespace zrtp_msg {
 
-        PACKED_STRUCT(zrtp_error) {
+        PACKED_STRUCT(zrtp_hello_ack) {
             zrtp_msg msg_start;
-            uint32_t error;
             uint32_t crc;
         };
 
-        class error {
+        class hello_ack {
             public:
-                error(int error_code);
-                ~error();
+                hello_ack();
+                ~hello_ack();
 
                 rtp_error_t send_msg(socket_t& socket, sockaddr_in& addr);
 
@@ -32,4 +30,3 @@ namespace uvg_rtp {
 
     };
 };
-#endif

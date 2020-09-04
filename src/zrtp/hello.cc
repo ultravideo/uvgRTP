@@ -1,10 +1,9 @@
-#ifdef __RTP_CRYPTO__
 #include <cstring>
 
 #include "debug.hh"
 #include "zrtp.hh"
-#include "mzrtp/hello.hh"
-#include "mzrtp/defines.hh"
+#include "zrtp/hello.hh"
+#include "zrtp/defines.hh"
 
 #define ZRTP_VERSION     "1.10"
 #define ZRTP_HELLO       "Hello   "
@@ -141,4 +140,3 @@ rtp_error_t uvg_rtp::zrtp_msg::hello::parse_msg(uvg_rtp::zrtp_msg::receiver& rec
 
     return RTP_OK;
 }
-#endif

@@ -1,11 +1,10 @@
-#ifdef __RTP_CRYPTO__
 #pragma once
 
 #include "frame.hh"
 #include "util.hh"
 
-#include "mzrtp/defines.hh"
-#include "mzrtp/receiver.hh"
+#include "zrtp/defines.hh"
+#include "zrtp/receiver.hh"
 
 namespace uvg_rtp {
 
@@ -55,4 +54,3 @@ namespace uvg_rtp {
         };
     };
 };
-#endif

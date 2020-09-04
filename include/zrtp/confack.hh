@@ -1,34 +1,35 @@
-#ifdef __RTP_CRYPTO__
 #pragma once
 
-#include "util.hh"
 #include "frame.hh"
-#include "mzrtp/defines.hh"
-#include "mzrtp/receiver.hh"
+#include "util.hh"
+
+#include "zrtp/defines.hh"
+#include "zrtp/receiver.hh"
 
 namespace uvg_rtp {
 
     namespace zrtp_msg {
 
-        PACKED_STRUCT(zrtp_hello_ack) {
+        PACKED_STRUCT(zrtp_confack) {
             zrtp_msg msg_start;
             uint32_t crc;
         };
 
-        class hello_ack {
+        class confack {
             public:
-                hello_ack();
-                ~hello_ack();
+                confack(zrtp_session_t& session);
+                ~confack();
 
+                /* TODO:  */
                 rtp_error_t send_msg(socket_t& socket, sockaddr_in& addr);
 
+                /* TODO:  */
                 rtp_error_t parse_msg(uvg_rtp::zrtp_msg::receiver& receiver);
 
             private:
                 uvg_rtp::frame::zrtp_frame *frame_;
-                size_t len_;
+                uvg_rtp::frame::zrtp_frame *rframe_;
+                size_t len_, rlen_;
         };
-
     };
 };
-#endif

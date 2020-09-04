@@ -9,7 +9,6 @@ namespace uvg_rtp {
             srtp();
             ~srtp();
 
-#ifdef __RTP_CRYPTO__
             /* TODO:  */
             rtp_error_t encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len);
 
@@ -21,6 +20,5 @@ namespace uvg_rtp {
 
             /* Encrypt the payload of an RTP packet and add authentication tag (if enabled) */
             static rtp_error_t send_packet_handler(void *arg, buf_vec& buffers);
-#endif
     };
 };

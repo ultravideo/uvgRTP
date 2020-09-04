@@ -1,10 +1,9 @@
-#ifdef __RTP_CRYPTO__
 #include <cstring>
 
 #include "debug.hh"
 #include "zrtp.hh"
 
-#include "mzrtp/confirm.hh"
+#include "zrtp/confirm.hh"
 
 #define ZRTP_CONFRIM1 "Confirm1"
 #define ZRTP_CONFRIM2 "Confirm2"
@@ -156,4 +155,3 @@ rtp_error_t uvg_rtp::zrtp_msg::confirm::parse_msg(uvg_rtp::zrtp_msg::receiver& r
 
     return RTP_OK;
 }
-#endif

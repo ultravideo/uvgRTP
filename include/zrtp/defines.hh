@@ -1,4 +1,3 @@
-#ifdef __RTP_CRYPTO__
 #pragma once
 
 #include "../util.hh"
@@ -129,4 +128,3 @@ namespace uvg_rtp {
         };
     };
 };
-#endif

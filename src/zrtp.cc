@@ -1,4 +1,3 @@
-#ifdef __RTP_CRYPTO__
 #include <cstring>
 #include <thread>
 
@@ -7,13 +6,13 @@
 #include "random.hh"
 #include "zrtp.hh"
 
-#include "mzrtp/commit.hh"
-#include "mzrtp/confack.hh"
-#include "mzrtp/confirm.hh"
-#include "mzrtp/dh_kxchng.hh"
-#include "mzrtp/hello.hh"
-#include "mzrtp/hello_ack.hh"
-#include "mzrtp/receiver.hh"
+#include "zrtp/commit.hh"
+#include "zrtp/confack.hh"
+#include "zrtp/confirm.hh"
+#include "zrtp/dh_kxchng.hh"
+#include "zrtp/hello.hh"
+#include "zrtp/hello_ack.hh"
+#include "zrtp/receiver.hh"
 
 using namespace uvg_rtp::zrtp_msg;
 
@@ -861,4 +860,3 @@ rtp_error_t uvg_rtp::zrtp::packet_handler(ssize_t size, void *packet, int flags,
 
     return RTP_OK;
 }
-#endif

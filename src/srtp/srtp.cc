@@ -1,13 +1,9 @@
 #include <cstring>
 #include <iostream>
 
+#include "crypto.hh"
 #include "srtp/base.hh"
 #include "srtp/srtp.hh"
-
-#ifdef __RTP_CRYPTO__
-#include "crypto.hh"
-#include <cryptopp/hex.h>
-#endif
 
 uvg_rtp::srtp::srtp()
 {
@@ -17,7 +13,6 @@ uvg_rtp::srtp::~srtp()
 {
 }
 
-#ifdef __RTP_CRYPTO__
 rtp_error_t uvg_rtp::srtp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len)
 {
     if (use_null_cipher_)
@@ -130,4 +125,3 @@ authenticate:
 
     return ret;
 }
-#endif

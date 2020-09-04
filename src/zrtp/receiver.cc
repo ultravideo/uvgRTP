@@ -1,4 +1,3 @@
-#ifdef __RTP_CRYPTO__
 #ifdef _WIN32
 #include <winsock2.h>
 #include <mswsock.h>
@@ -14,14 +13,14 @@
 #include "debug.hh"
 #include "util.hh"
 #include "crypto.hh"
-#include "mzrtp/defines.hh"
-#include "mzrtp/dh_kxchng.hh"
-#include "mzrtp/commit.hh"
-#include "mzrtp/confack.hh"
-#include "mzrtp/confirm.hh"
-#include "mzrtp/hello.hh"
-#include "mzrtp/hello_ack.hh"
-#include "mzrtp/receiver.hh"
+#include "zrtp/defines.hh"
+#include "zrtp/dh_kxchng.hh"
+#include "zrtp/commit.hh"
+#include "zrtp/confack.hh"
+#include "zrtp/confirm.hh"
+#include "zrtp/hello.hh"
+#include "zrtp/hello_ack.hh"
+#include "zrtp/receiver.hh"
 
 using namespace uvg_rtp::zrtp_msg;
 
@@ -198,4 +197,3 @@ ssize_t uvg_rtp::zrtp_msg::receiver::get_msg(void *ptr, size_t len)
     return rlen_;
 }
 
-#endif
