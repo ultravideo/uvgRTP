@@ -176,6 +176,7 @@ rtp_error_t uvg_rtp::frame_queue::deinit_transaction(uint32_t key)
                     delete[] packet[i].second;
                 }
             }
+            /* TODO: fix memory leak from combined buffer */
         }
         active_->packets.clear();
         free_.push_back(active_);
@@ -279,13 +280,27 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, 
         (uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr++]
     });
 
-    for (size_t i = 0; i < buffers.size(); ++i) {
-        /* If SRTP with proper encryption has been enabled but
-         * RCE_SRTP_INPLACE_ENCRYPTION has **not** been enabled, make a copy of the memory block*/
-        if ((flags_ & (RCE_SRTP | RCE_SRTP_INPLACE_ENCRYPTION | RCE_SRTP_NULL_CIPHER)) == RCE_SRTP)
-            buffers.at(i).second = (uint8_t *)memdup(buffers.at(i).second, buffers.at(i).first);
+    /* If SRTP with proper encryption is used and there are more than one buffer,
+     * frame queue must be a copy of the input and  */
+    if ((flags_ & RCE_SRTP) && !(flags_ & RCE_SRTP_NULL_CIPHER) && buffers.size() > 1) {
+        size_t total = 0;
+        uint8_t *mem = nullptr;
 
-        tmp.push_back({ buffers.at(i).first, buffers.at(i).second });
+        for (auto& buffer : buffers)
+            total += buffer.first;
+
+        if (!(mem = new uint8_t[total])) {
+            LOG_ERROR("Failed to allocate memory for copy block!");
+            return RTP_MEMORY_ERROR;
+        }
+
+        for (auto& buffer : buffers) {
+            memcpy(mem, buffer.second, buffer.first);
+            mem += buffer.first;
+        }
+    } else {
+        for (auto& buffer : buffers)
+            tmp.push_back({ buffer.first, buffer.second });
     }
 
     if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
