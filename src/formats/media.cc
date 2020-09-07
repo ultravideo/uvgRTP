@@ -11,8 +11,9 @@
 #define INVALID_SEQ 0xffffffff
 
 uvg_rtp::formats::media::media(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp_ctx, int flags):
-    socket_(socket), rtp_ctx_(rtp_ctx), flags_(flags), fqueue_(new uvg_rtp::frame_queue(socket, rtp_ctx, flags))
+    socket_(socket), rtp_ctx_(rtp_ctx), flags_(flags)
 {
+    fqueue_ = new uvg_rtp::frame_queue(socket, rtp_ctx, flags);
 }
 
 uvg_rtp::formats::media::~media()

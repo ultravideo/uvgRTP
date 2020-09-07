@@ -41,8 +41,6 @@ namespace uvg_rtp {
             private:
                 rtp_error_t push_hevc_frame(uint8_t *data, size_t data_len);
                 rtp_error_t push_hevc_nal(uint8_t *data, size_t data_len, bool more);
-
-                uvg_rtp::frame_queue *fqueue_;
         };
     };
 };
