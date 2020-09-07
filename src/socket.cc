@@ -322,8 +322,12 @@ rtp_error_t uvg_rtp::socket::__sendtov(
 {
 #ifdef __linux__
     int sent_bytes = 0;
+    struct mmsghdr *hptr, *headers;
 
-    struct mmsghdr *headers = new struct mmsghdr[buffers.size()];
+    if (!(hptr = headers = new struct mmsghdr[buffers.size()])) {
+        LOG_ERROR("Failed to allocate space for struct mmsghdr!");
+        return RTP_MEMORY_ERROR;
+    }
 
     for (size_t i = 0; i < buffers.size(); ++i) {
         headers[i].msg_hdr.msg_iov        = new struct iovec[buffers[i].size()];
@@ -340,11 +344,21 @@ rtp_error_t uvg_rtp::socket::__sendtov(
         }
     }
 
-    /* TODO: RCE_NO_SYSTEM_CALL_CLUSTERING */
+    ssize_t npkts = (flags_ & RCE_NO_SYSTEM_CALL_CLUSTERING) ? 1 : 1024;
+    ssize_t bptr  = buffers.size();
 
-    if (sendmmsg(socket_, headers, buffers.size(), flags) < 0) {
-        LOG_ERROR("Failed to send RTP frame: %s!", strerror(errno));
-        set_bytes(bytes_sent, -1);
+    while (bptr > npkts) {
+        if (sendmmsg(socket_, hptr, npkts, flags) < 0) {
+            log_platform_error("sendmmsg(2) failed");
+            return RTP_SEND_ERROR;
+        }
+
+        bptr -= npkts;
+        hptr += npkts;
+    }
+
+    if (sendmmsg(socket_, hptr, bptr, flags) < 0) {
+        log_platform_error("sendmmsg(2) failed");
         return RTP_SEND_ERROR;
     }
 
