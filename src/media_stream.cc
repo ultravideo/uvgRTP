@@ -5,7 +5,7 @@
 #include "media_stream.hh"
 #include "random.hh"
 
-#include "formats/hevc.hh"
+#include "formats/h265.hh"
 
 #define INVALID_TS UINT64_MAX
 
@@ -131,12 +131,12 @@ rtp_error_t uvg_rtp::media_stream::init()
     pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler);
 
     switch (fmt_) {
-        case RTP_FORMAT_HEVC:
-            media_ = new uvg_rtp::formats::hevc(socket_, rtp_, ctx_config_.flags);
+        case RTP_FORMAT_H265:
+            media_ = new uvg_rtp::formats::h265(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 nullptr,
-                dynamic_cast<uvg_rtp::formats::hevc *>(media_)->packet_handler
+                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->packet_handler
             );
             break;
 
@@ -239,12 +239,12 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
     pkt_dispatcher_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler);
 
     switch (fmt_) {
-        case RTP_FORMAT_HEVC:
-            media_ = new uvg_rtp::formats::hevc(socket_, rtp_, ctx_config_.flags);
+        case RTP_FORMAT_H265:
+            media_ = new uvg_rtp::formats::h265(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 nullptr,
-                dynamic_cast<uvg_rtp::formats::hevc *>(media_)->packet_handler
+                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->packet_handler
             );
             break;
 
@@ -338,12 +338,12 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     pkt_dispatcher_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler);
 
     switch (fmt_) {
-        case RTP_FORMAT_HEVC:
-            media_ = new uvg_rtp::formats::hevc(socket_, rtp_, ctx_config_.flags);
+        case RTP_FORMAT_H265:
+            media_ = new uvg_rtp::formats::h265(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 nullptr,
-                dynamic_cast<uvg_rtp::formats::hevc *>(media_)->packet_handler
+                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->packet_handler
             );
             break;
 

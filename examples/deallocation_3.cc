@@ -16,7 +16,7 @@ int main(void)
      * This example is about the deallocation hook approach
      *
      * See sending.cc for more details about media stream initialization */
-    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_HEVC, RCE_SYSTEM_CALL_DISPATCHER);
+    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, RCE_SYSTEM_CALL_DISPATCHER);
 
     /* When SCD has processed this memory chunk, it will call dealloc_hook()
      * which will do all the necessary deallocation steps required by the application 

@@ -13,8 +13,6 @@
 
 #include "util.hh"
 
-#define INVALID_FRAME_TYPE(ft) (ft < RTP_FT_GENERIC|| ft > RTP_FT_HEVC_FU)
-
 #define RTP_HEADER_LENGTH   12
 #define RTCP_HEADER_LENGTH  12
 
@@ -23,14 +21,14 @@ namespace uvg_rtp {
         enum HEADER_SIZES {
             HEADER_SIZE_RTP      = 12,
             HEADER_SIZE_OPUS     =  1,
-            HEADER_SIZE_HEVC_NAL =  2,
-            HEADER_SIZE_HEVC_FU  =  1,
+            HEADER_SIZE_H265_NAL =  2,
+            HEADER_SIZE_H265_FU  =  1,
         };
 
         enum RTP_FRAME_TYPE {
             RTP_FT_GENERIC = 0, /* payload length + RTP Header size (N + 12) */
             RTP_FT_OPUS    = 1, /* payload length + RTP Header size + Opus header (N + 12 + 0 [for now]) */
-            RTP_FT_HEVC_FU = 2, /* payload length + RTP Header size + HEVC NAL Header + FU Header (N + 12 + 2 + 1) */
+            RTP_FT_H265_FU = 2, /* payload length + RTP Header size + HEVC NAL Header + FU Header (N + 12 + 2 + 1) */
         };
 
         enum RTCP_FRAME_TYPE {

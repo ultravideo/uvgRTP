@@ -7,7 +7,7 @@
 #include "debug.hh"
 #include "queue.hh"
 
-#include "formats/hevc.hh"
+#include "formats/h265.hh"
 
 #define RTP_FRAME_MAX_DELAY          100
 #define INVALID_SEQ           0x13371338
@@ -102,7 +102,7 @@ static void __drop_frame(frame_info_t& finfo, uint32_t ts)
     finfo.erase(ts);
 }
 
-rtp_error_t uvg_rtp::formats::hevc::packet_handler(void *arg, int flags, uvg_rtp::frame::rtp_frame **out)
+rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp::frame::rtp_frame **out)
 {
     (void)arg;
 
@@ -110,7 +110,7 @@ rtp_error_t uvg_rtp::formats::hevc::packet_handler(void *arg, int flags, uvg_rtp
     static std::unordered_set<uint32_t> dropped;
 
     uvg_rtp::frame::rtp_frame *frame;
-    bool enable_idelay = !(flags & RCE_HEVC_NO_INTRA_DELAY);
+    bool enable_idelay = !(flags & RCE_H265_NO_INTRA_DELAY);
 
     /* Use "intra" to keep track of intra frames
      *
@@ -127,8 +127,8 @@ rtp_error_t uvg_rtp::formats::hevc::packet_handler(void *arg, int flags, uvg_rtp
     uint32_t intra = INVALID_TS;
 
     const size_t HEVC_HDR_SIZE =
-        uvg_rtp::frame::HEADER_SIZE_HEVC_NAL +
-        uvg_rtp::frame::HEADER_SIZE_HEVC_FU;
+        uvg_rtp::frame::HEADER_SIZE_H265_NAL +
+        uvg_rtp::frame::HEADER_SIZE_H265_FU;
 
     frame = *out;
 
@@ -217,13 +217,13 @@ rtp_error_t uvg_rtp::formats::hevc::packet_handler(void *arg, int flags, uvg_rtp
             /* uvg_rtp::frame::rtp_frame *out = uvg_rtp::frame::alloc_rtp_frame(); */
             uvg_rtp::frame::rtp_frame *complete = uvg_rtp::frame::alloc_rtp_frame();
 
-            complete->payload_len = finfo[c_ts].total_size + uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
+            complete->payload_len = finfo[c_ts].total_size + uvg_rtp::frame::HEADER_SIZE_H265_NAL;
             complete->payload     = new uint8_t[complete->payload_len];
 
             std::memcpy(&complete->header,  &(*out)->header, RTP_HDR_SIZE);
             std::memcpy(complete->payload,  nal_header,      NAL_HDR_SIZE);
 
-            fptr += uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
+            fptr += uvg_rtp::frame::HEADER_SIZE_H265_NAL;
 
             for (auto& fragment : finfo.at(c_ts).fragments) {
                 std::memcpy(

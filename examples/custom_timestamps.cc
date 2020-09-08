@@ -12,7 +12,7 @@ int main(void)
     uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
 
     /* Create MediaStream and RTCP for the session */
-    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_HEVC, RCE_RTCP);
+    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, RCE_RTCP);
 
     uint8_t *buffer     = new uint8_t[PAYLOAD_MAXLEN];
     uint32_t clock_rate = 90000 / 30;

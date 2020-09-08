@@ -44,7 +44,7 @@ void uvg_rtp::rtp::set_payload(rtp_format_t fmt)
     payload_ = fmt_ = fmt;
 
     switch (fmt_) {
-        case RTP_FORMAT_HEVC:
+        case RTP_FORMAT_H265:
             clock_rate_ = 90000;
             break;
 
