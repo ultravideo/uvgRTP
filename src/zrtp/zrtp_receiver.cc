@@ -20,7 +20,7 @@
 #include "zrtp/confirm.hh"
 #include "zrtp/hello.hh"
 #include "zrtp/hello_ack.hh"
-#include "zrtp/receiver.hh"
+#include "zrtp/zrtp_receiver.hh"
 
 using namespace uvg_rtp::zrtp_msg;
 
