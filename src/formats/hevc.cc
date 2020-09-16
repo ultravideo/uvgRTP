@@ -434,7 +434,7 @@ end:
 }
 
 uvg_rtp::formats::hevc::hevc(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):
-    media(socket, rtp, flags)
+    media(socket, rtp, flags), finfo_{}
 {
 }
 
@@ -458,4 +458,9 @@ rtp_error_t uvg_rtp::formats::hevc::__push_frame(uint8_t *data, size_t data_len,
     }
 
     return push_hevc_frame(data, data_len);
+}
+
+uvg_rtp::formats::hevc_frame_info_t *uvg_rtp::formats::hevc::get_hevc_frame_info()
+{
+    return &finfo_;
 }

@@ -135,7 +135,7 @@ rtp_error_t uvg_rtp::media_stream::init()
             media_ = new uvg_rtp::formats::hevc(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
-                nullptr,
+                dynamic_cast<uvg_rtp::formats::hevc *>(media_)->get_hevc_frame_info(),
                 dynamic_cast<uvg_rtp::formats::hevc *>(media_)->packet_handler
             );
             break;
