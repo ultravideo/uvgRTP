@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "../rtp.hh"
 #include "../socket.hh"
@@ -10,6 +12,19 @@
 namespace uvg_rtp {
 
     namespace formats {
+
+        typedef struct media_info {
+            uint32_t s_seq;
+            uint32_t e_seq;
+            size_t npkts;
+            size_t size;
+            std::map<uint16_t, uvg_rtp::frame::rtp_frame *> fragments;
+        } media_info_t;
+
+        typedef struct media_frame_info {
+            std::unordered_map<uint32_t, media_info> frames;
+            std::unordered_set<uint32_t> dropped;
+        } media_frame_info_t;
 
         class media {
             public:
@@ -36,6 +51,9 @@ namespace uvg_rtp {
                  * Return RTP_GENERIC_ERROR if the packet was corrupted in some way */
                 static rtp_error_t packet_handler(void *arg, int flags, frame::rtp_frame **frame);
 
+                /* Return pointer to the internal frame info structure which is relayed to packet handler */
+                media_frame_info_t *get_hevc_frame_info();
+
             protected:
                 virtual rtp_error_t __push_frame(uint8_t *data, size_t data_len, int flags);
 
@@ -43,6 +61,9 @@ namespace uvg_rtp {
                 uvg_rtp::rtp *rtp_ctx_;
                 int flags_;
                 uvg_rtp::frame_queue *fqueue_;
+
+            private:
+                media_frame_info_t minfo_;
         };
     };
 };
