@@ -236,7 +236,7 @@ rtp_error_t uvg_rtp::formats::hevc::push_hevc_nal(uint8_t *data, size_t data_len
     size_t data_pos     = 0;
     size_t payload_size = rtp_ctx_->get_payload_size();
 
-#ifdef __linux__
+
     if (data_len - 3 <= payload_size) {
         if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
             LOG_ERROR("enqeueu failed for small packet");
@@ -305,70 +305,10 @@ rtp_error_t uvg_rtp::formats::hevc::push_hevc_nal(uint8_t *data, size_t data_len
     if (more)
         return RTP_NOT_READY;
     return fqueue_->flush_queue();
-#else
-    if (data_len - 3 <= payload_size) {
-        LOG_DEBUG("send unfrag size %zu, type %u", data_len, nal_type);
-
-        if ((ret = uvg_rtp::generic::push_frame(sender, data, data_len, 0)) != RTP_OK) {
-            LOG_ERROR("Failed to send small packet! %s", strerror(errno));
-            return ret;
-        }
-
-        if (more)
-            return RTP_NOT_READY;
-        return RTP_OK;
-    }
-
-    const size_t HEADER_SIZE =
-        uvg_rtp::frame::HEADER_SIZE_RTP +
-        uvg_rtp::frame::HEADER_SIZE_HEVC_NAL +
-        uvg_rtp::frame::HEADER_SIZE_HEVC_FU;
-
-    uint8_t buffer[HEADER_SIZE + payload_size] = { 0 };
-
-    rtp_ctx_->fill_header(buffer);
-
-    buffer[uvg_rtp::frame::HEADER_SIZE_RTP + 0]  = 49 << 1;            /* fragmentation unit */
-    buffer[uvg_rtp::frame::HEADER_SIZE_RTP + 1]  = 1;                  /* TID */
-    buffer[uvg_rtp::frame::HEADER_SIZE_RTP +
-           uvg_rtp::frame::HEADER_SIZE_HEVC_NAL] = (1 << 7) | nal_type; /* Start bit + NAL type */
-
-    data_pos   = uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
-    data_left -= uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
-
-    while (data_left > payload_size) {
-        memcpy(&buffer[HEADER_SIZE], &data[data_pos], payload_size);
-
-        if ((ret = socket_->send(buffer, sizeof(buffer), 0)) != RTP_OK)
-            return ret;
-
-        rtp_ctx_->update_sequence(buffer);
-
-        data_pos  += payload_size;
-        data_left -= payload_size;
-
-        /* Clear extra bits */
-        buffer[uvg_rtp::frame::HEADER_SIZE_RTP +
-               uvg_rtp::frame::HEADER_SIZE_HEVC_NAL] = nal_type;
-    }
-
-    buffer[uvg_rtp::frame::HEADER_SIZE_RTP +
-           uvg_rtp::frame::HEADER_SIZE_HEVC_NAL] = nal_type | (1 << 6); /* set E bit to signal end of data */
-
-    memcpy(&buffer[HEADER_SIZE], &data[data_pos], data_left);
-
-    if ((ret = socket_->sendto(buffer, HEADER_SIZE + data_left, 0)) != RTP_OK)
-        return ret;
-
-    if (more)
-        return RTP_NOT_READY;
-    return RTP_OK;
-#endif
 }
 
 rtp_error_t uvg_rtp::formats::hevc::push_hevc_frame(uint8_t *data, size_t data_len)
 {
-#ifdef __linux__
     /* find first start code */
     uint8_t start_len   = 0;
     int offset          = __get_hevc_start(data, data_len, 0, start_len);
@@ -405,32 +345,6 @@ rtp_error_t uvg_rtp::formats::hevc::push_hevc_frame(uint8_t *data, size_t data_l
 error:
     fqueue_->deinit_transaction();
     return ret;
-#else
-    rtp_error_t ret = RTP_OK;
-    uint8_t start_len;
-    int32_t prev_offset = 0;
-    int offset = __get_hevc_start(data, data_len, 0, start_len);
-    prev_offset = offset;
-
-    while (offset != -1) {
-        offset = __get_hevc_start(data, data_len, offset, start_len);
-
-        if (offset > 4 && offset != -1) {
-            if ((ret = __push_hevc_nal(&data[prev_offset], offset - prev_offset - start_len, false)) == -1)
-                goto end;
-
-            prev_offset = offset;
-        }
-    }
-
-    if (prev_offset == -1)
-        prev_offset = 0;
-
-    ret = __push_hevc_nal(&data[prev_offset], data_len - prev_offset, false);
-end:
-    fqueue_->deinit_transaction();
-    return ret;
-#endif
 }
 
 uvg_rtp::formats::hevc::hevc(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):

@@ -41,7 +41,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
     int nread = 0;
     rlen_     = 0;
 
-    if ((nread = ::recv(socket, mem_, len_, flags)) < 0) {
+    if ((nread = ::recv(socket, (char *)mem_, len_, flags)) < 0) {
 #ifdef __linux__
         if (errno == EAGAIN || errno == EINTR)
             return -RTP_INTERRUPTED;
@@ -49,7 +49,11 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
         LOG_ERROR("Failed to receive ZRTP Hello message: %d %s!", errno, strerror(errno));
         return -RTP_RECV_ERROR;
 #else
-#error "platform not supported"
+        if (WSAGetLastError() == WSAEWOULDBLOCK)
+            return -RTP_INTERRUPTED;
+
+        log_platform_error("recv(2) failed");
+        return -RTP_RECV_ERROR;
 #endif
     }
 

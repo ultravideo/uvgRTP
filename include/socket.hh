@@ -17,6 +17,10 @@
 
 namespace uvg_rtp {
 
+#ifdef _WIN32
+    typedef unsigned int socklen_t;
+#endif
+
     const int MAX_BUFFER_COUNT = 256;
 
     /* Vector of buffers that contain a full RTP frame */

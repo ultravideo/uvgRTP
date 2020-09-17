@@ -8,7 +8,7 @@ QT -= core gui
 
 TARGET   = uvgrtp
 TEMPLATE = lib
-CONFIG  += staticlib
+CONFIG  += staticlib c++11
 
 DEFINES += UVGRTP_LIBRARY
 
@@ -45,7 +45,7 @@ SOURCES += \
 	src/runner.cc \
 	src/session.cc \
 	src/socket.cc \
-	src/zrtp.c \
+	src/zrtp.cc \
 	src/formats/media.cc \
 	src/formats/hevc.cc \
 	src/formats/hevc_pkt_handler.cc \

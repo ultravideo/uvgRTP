@@ -1,3 +1,8 @@
+#ifdef _WIN32
+#define MSG_DONTWAIT 0
+#else
+#endif
+
 #include <cstring>
 #include <thread>
 
@@ -53,11 +58,11 @@ rtp_error_t uvg_rtp::zrtp::set_timeout(size_t timeout)
     size_t sec  = timeout - msec;
 
     struct timeval tv = {
-        .tv_sec  = (int)sec  / 1000,
-        .tv_usec = (int)msec * 1000,
+        (int)sec  / 1000,
+        (int)msec * 1000,
     };
 
-    if (setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
+    if (setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) < 0)
         return RTP_GENERIC_ERROR;
 
     return RTP_OK;
