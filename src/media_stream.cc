@@ -98,6 +98,16 @@ rtp_error_t uvg_rtp::media_stream::init_connection()
             return ret;
     }
 
+    /* Set the default UDP send/recv buffer sizes to 4MB as on Windows
+     * the default size is way too small for a larger video conference */
+    int buf_size = 4 * 1024 * 1024;
+
+    if ((ret = socket_->setsockopt(SOL_SOCKET, SO_SNDBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
+        return ret;
+
+    if ((ret = socket_->setsockopt(SOL_SOCKET, SO_RCVBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
+        return ret;
+
     addr_out_ = socket_->create_sockaddr(AF_INET, addr_, dst_port_);
     socket_->set_sockaddr(addr_out_);
 
