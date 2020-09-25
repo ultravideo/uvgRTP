@@ -21,6 +21,8 @@ namespace uvg_rtp {
         enum HEADER_SIZES {
             HEADER_SIZE_RTP      = 12,
             HEADER_SIZE_OPUS     =  1,
+            HEADER_SIZE_H264_NAL =  1,
+            HEADER_SIZE_H264_FU  =  1,
             HEADER_SIZE_H265_NAL =  2,
             HEADER_SIZE_H265_FU  =  1,
         };

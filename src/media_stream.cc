@@ -5,6 +5,7 @@
 #include "media_stream.hh"
 #include "random.hh"
 
+#include "formats/h264.hh"
 #include "formats/h265.hh"
 
 #define INVALID_TS UINT64_MAX
@@ -137,6 +138,15 @@ rtp_error_t uvg_rtp::media_stream::init()
                 rtp_handler_key_,
                 nullptr,
                 dynamic_cast<uvg_rtp::formats::h265 *>(media_)->packet_handler
+            );
+            break;
+
+        case RTP_FORMAT_H264:
+            media_ = new uvg_rtp::formats::h264(socket_, rtp_, ctx_config_.flags);
+            pkt_dispatcher_->install_aux_handler(
+                rtp_handler_key_,
+                nullptr,
+                dynamic_cast<uvg_rtp::formats::h264 *>(media_)->packet_handler
             );
             break;
 
