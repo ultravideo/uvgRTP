@@ -14,7 +14,7 @@ int main(void)
     /* Enable system call dispatcher for the sender to minimize delay experienced by the application
      *
      * See sending.cc for more details about media stream initialization */
-    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_HEVC, RCE_SYSTEM_CALL_DISPATCHER);
+    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, RCE_SYSTEM_CALL_DISPATCHER);
 
     /* Increase UDP send/recv buffers to 40 MB */
     hevc->configure_ctx(RCC_UDP_RCV_BUF_SIZE, 40 * 1000 * 1000);

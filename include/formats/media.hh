@@ -17,7 +17,7 @@ namespace uvg_rtp {
                 virtual ~media();
 
                 /* These two functions are called by media_stream which is self is called by the application.
-                 * They act as thunks and forward the call to __push_frame() which every media should
+                 * They act as thunks and forward the call to push_media_frame() which every media should
                  * implement if they require more processing than what the default implementation offers
                  *
                  * Return RTP_OK on success */
@@ -37,7 +37,7 @@ namespace uvg_rtp {
                 static rtp_error_t packet_handler(void *arg, int flags, frame::rtp_frame **frame);
 
             protected:
-                virtual rtp_error_t __push_frame(uint8_t *data, size_t data_len, int flags);
+                virtual rtp_error_t push_media_frame(uint8_t *data, size_t data_len, int flags);
 
                 uvg_rtp::socket *socket_;
                 uvg_rtp::rtp *rtp_ctx_;

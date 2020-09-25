@@ -25,7 +25,7 @@ rtp_error_t uvg_rtp::formats::media::push_frame(uint8_t *data, size_t data_len, 
     if (!data || !data_len)
         return RTP_INVALID_VALUE;
 
-    return __push_frame(data, data_len, flags);
+    return push_media_frame(data, data_len, flags);
 }
 
 rtp_error_t uvg_rtp::formats::media::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
@@ -33,10 +33,10 @@ rtp_error_t uvg_rtp::formats::media::push_frame(std::unique_ptr<uint8_t[]> data,
     if (!data || !data_len)
         return RTP_INVALID_VALUE;
 
-    return __push_frame(data.get(), data_len, flags);
+    return push_media_frame(data.get(), data_len, flags);
 }
 
-rtp_error_t uvg_rtp::formats::media::__push_frame(uint8_t *data, size_t data_len, int flags)
+rtp_error_t uvg_rtp::formats::media::push_media_frame(uint8_t *data, size_t data_len, int flags)
 {
     (void)flags;
 

@@ -7,14 +7,14 @@
 #include "debug.hh"
 #include "queue.hh"
 
-#include "formats/hevc.hh"
+#include "formats/h265.hh"
 
 #define RTP_FRAME_MAX_DELAY          100
 #define INVALID_SEQ           0x13371338
 #define INVALID_TS            0xffffffff
 
 #define RTP_HDR_SIZE  12
-#define NAL_HDR_SIZE   2
+#define NAL_HDR_SIZE   1
 
 enum FRAG_TYPES {
     FT_INVALID   = -2, /* invalid combination of S and E bits */
@@ -22,6 +22,7 @@ enum FRAG_TYPES {
     FT_START     =  1, /* frame contains a fragment with S bit set */
     FT_MIDDLE    =  2, /* frame is fragment but not S or E fragment */
     FT_END       =  3, /* frame contains a fragment with E bit set */
+    FT_STAP_A    =  4  /* Single-Time Aggregation Packet, Type A */
 };
 
 enum NAL_TYPES {
@@ -58,7 +59,10 @@ static int __get_frag(uvg_rtp::frame::rtp_frame *frame)
     bool first_frag = frame->payload[2] & 0x80;
     bool last_frag  = frame->payload[2] & 0x40;
 
-    if ((frame->payload[0] >> 1) != 49)
+    if ((frame->payload[0] & 0x1f) == 24)
+        return FT_STAP_A;
+
+    if ((frame->payload[0] & 0x1f) != 49)
         return FT_NOT_FRAG;
 
     if (first_frag && last_frag)
@@ -71,6 +75,15 @@ static int __get_frag(uvg_rtp::frame::rtp_frame *frame)
         return FT_END;
 
     return FT_MIDDLE;
+}
+
+/* TODO: This requires additional support from packet dispatcher.
+ * Auxiliary handlers must be able to return more than one packet
+ * or auxiliary handlers must provide additional hooking function
+ * for the pkt dispatcher so it can query all received packets */
+static rtp_error_t __handle_stap_a(uvg_rtp::frame::rtp_frame **frame)
+{
+    return RTP_PKT_READY;
 }
 
 static inline uint8_t __get_nal(uvg_rtp::frame::rtp_frame *frame)
@@ -102,7 +115,7 @@ static void __drop_frame(frame_info_t& finfo, uint32_t ts)
     finfo.erase(ts);
 }
 
-rtp_error_t uvg_rtp::formats::hevc::packet_handler(void *arg, int flags, uvg_rtp::frame::rtp_frame **out)
+rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp::frame::rtp_frame **out)
 {
     (void)arg;
 
@@ -110,7 +123,7 @@ rtp_error_t uvg_rtp::formats::hevc::packet_handler(void *arg, int flags, uvg_rtp
     static std::unordered_set<uint32_t> dropped;
 
     uvg_rtp::frame::rtp_frame *frame;
-    bool enable_idelay = !(flags & RCE_HEVC_NO_INTRA_DELAY);
+    bool enable_idelay = false;
 
     /* Use "intra" to keep track of intra frames
      *
@@ -126,9 +139,7 @@ rtp_error_t uvg_rtp::formats::hevc::packet_handler(void *arg, int flags, uvg_rtp
      * pointed to by "intra" and new intra frame shall take the place of active intra frame */
     uint32_t intra = INVALID_TS;
 
-    const size_t HEVC_HDR_SIZE =
-        uvg_rtp::frame::HEADER_SIZE_HEVC_NAL +
-        uvg_rtp::frame::HEADER_SIZE_HEVC_FU;
+    const size_t H264_HEADER_SIZE = 2 * uvg_rtp::frame::HEADER_SIZE_H264_FU;
 
     frame = *out;
 
@@ -136,6 +147,9 @@ rtp_error_t uvg_rtp::formats::hevc::packet_handler(void *arg, int flags, uvg_rtp
     uint32_t c_seq   = frame->header.seq;
     int frag_type    = __get_frag(frame);
     uint8_t nal_type = __get_nal(frame);
+
+    if (frag_type == FT_STAP_A)
+        return __handle_stap_a(out);
 
     if (frag_type == FT_NOT_FRAG)
         return RTP_PKT_READY;
@@ -172,7 +186,7 @@ rtp_error_t uvg_rtp::formats::hevc::packet_handler(void *arg, int flags, uvg_rtp
         if (frag_type == FT_END)   finfo[c_ts].e_seq = c_seq;
 
         finfo[c_ts].sframe_time   = uvg_rtp::clock::hrc::now();
-        finfo[c_ts].total_size    = frame->payload_len - HEVC_HDR_SIZE;
+        finfo[c_ts].total_size    = frame->payload_len - H264_HEADER_SIZE;
         finfo[c_ts].pkts_received = 1;
 
         finfo[c_ts].fragments[c_seq] = frame;
@@ -181,7 +195,7 @@ rtp_error_t uvg_rtp::formats::hevc::packet_handler(void *arg, int flags, uvg_rtp
     finfo[c_ts].fragments[c_seq] = frame;
 
     finfo[c_ts].pkts_received += 1;
-    finfo[c_ts].total_size    += (frame->payload_len - HEVC_HDR_SIZE);
+    finfo[c_ts].total_size    += (frame->payload_len - H264_HEADER_SIZE);
 
     if (frag_type == FT_START)
         finfo[c_ts].s_seq = c_seq;
@@ -191,7 +205,7 @@ rtp_error_t uvg_rtp::formats::hevc::packet_handler(void *arg, int flags, uvg_rtp
 
     if (finfo[c_ts].s_seq != INVALID_SEQ && finfo[c_ts].e_seq != INVALID_SEQ) {
         size_t received = 0;
-        size_t fptr     = 0;
+        size_t fptr     = NAL_HDR_SIZE;
         size_t s_seq    = finfo[c_ts].s_seq;
         size_t e_seq    = finfo[c_ts].e_seq;
 
@@ -210,28 +224,21 @@ rtp_error_t uvg_rtp::formats::hevc::packet_handler(void *arg, int flags, uvg_rtp
                 return RTP_OK;
             }
 
-            uint8_t nal_header[2] = {
-                (uint8_t)((frame->payload[0] & 0x81) | ((frame->payload[2] & 0x3f) << 1)),
-                (uint8_t)frame->payload[1]
-            };
-            /* uvg_rtp::frame::rtp_frame *out = uvg_rtp::frame::alloc_rtp_frame(); */
             uvg_rtp::frame::rtp_frame *complete = uvg_rtp::frame::alloc_rtp_frame();
 
-            complete->payload_len = finfo[c_ts].total_size + uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
+            complete->payload_len = finfo[c_ts].total_size + NAL_HDR_SIZE;
             complete->payload     = new uint8_t[complete->payload_len];
 
             std::memcpy(&complete->header,  &(*out)->header, RTP_HDR_SIZE);
-            std::memcpy(complete->payload,  nal_header,      NAL_HDR_SIZE);
-
-            fptr += uvg_rtp::frame::HEADER_SIZE_HEVC_NAL;
+            complete->payload[0] = (*out)->payload[0];
 
             for (auto& fragment : finfo.at(c_ts).fragments) {
                 std::memcpy(
                     &complete->payload[fptr],
-                    &fragment.second->payload[HEVC_HDR_SIZE],
-                    fragment.second->payload_len - HEVC_HDR_SIZE
+                    &fragment.second->payload[H264_HEADER_SIZE],
+                    fragment.second->payload_len - H264_HEADER_SIZE
                 );
-                fptr += fragment.second->payload_len - HEVC_HDR_SIZE;
+                fptr += fragment.second->payload_len - H264_HEADER_SIZE;
                 (void)uvg_rtp::frame::dealloc_frame(fragment.second);
             }
 

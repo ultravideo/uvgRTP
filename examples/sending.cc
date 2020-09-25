@@ -25,7 +25,7 @@ int main(void)
      * This same object is used for both sending and receiving media
      *
      * In this example, we have one media streams with remote participant: hevc */
-    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_HEVC, 0);
+    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, 0);
 
     uint8_t *buffer    = new uint8_t[PAYLOAD_MAXLEN];
     uint32_t timestamp = 0;

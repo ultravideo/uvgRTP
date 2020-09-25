@@ -12,7 +12,8 @@
 #include "queue.hh"
 #include "random.hh"
 
-#include "formats/hevc.hh"
+#include "formats/h264.hh"
+#include "formats/h265.hh"
 
 uvg_rtp::frame_queue::frame_queue(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):
     rtp_(rtp), socket_(socket), flags_(flags)
@@ -57,8 +58,12 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction()
         active_->rtp_headers = new uvg_rtp::frame::rtp_header[max_mcount_];
 
         switch (rtp_->get_payload()) {
-            case RTP_FORMAT_HEVC:
-                active_->media_headers = new uvg_rtp::formats::hevc_headers;
+            case RTP_FORMAT_H264:
+                active_->media_headers = new uvg_rtp::formats::h264_headers;
+                break;
+
+            case RTP_FORMAT_H265:
+                active_->media_headers = new uvg_rtp::formats::h265_headers;
                 break;
 
             default:
@@ -136,8 +141,13 @@ rtp_error_t uvg_rtp::frame_queue::destroy_transaction(uvg_rtp::transaction_t *t)
     t->rtp_headers = nullptr;
 
     switch (rtp_->get_payload()) {
-        case RTP_FORMAT_HEVC:
-            delete (uvg_rtp::formats::hevc_headers *)t->media_headers;
+        case RTP_FORMAT_H264:
+            delete (uvg_rtp::formats::h264_headers *)t->media_headers;
+            t->media_headers = nullptr;
+            break;
+
+        case RTP_FORMAT_H265:
+            delete (uvg_rtp::formats::h265_headers *)t->media_headers;
             t->media_headers = nullptr;
             break;
 
@@ -192,8 +202,12 @@ rtp_error_t uvg_rtp::frame_queue::deinit_transaction(uint32_t key)
 
     if (free_.size() >= (size_t)max_queued_) {
         switch (rtp_->get_payload()) {
-            case RTP_FORMAT_HEVC:
-                delete (uvg_rtp::formats::hevc_headers *)transaction_it->second->media_headers;
+            case RTP_FORMAT_H264:
+                delete (uvg_rtp::formats::h264_headers *)transaction_it->second->media_headers;
+                break;
+
+            case RTP_FORMAT_H265:
+                delete (uvg_rtp::formats::h265_headers *)transaction_it->second->media_headers;
                 break;
 
             default:

@@ -61,7 +61,8 @@ typedef enum RTP_ERROR {
 
 typedef enum RTP_FORMAT {
     RTP_FORMAT_GENERIC = 0,
-    RTP_FORMAT_HEVC    = 96,
+    RTP_FORMAT_H264    = 95,
+    RTP_FORMAT_H265    = 96,
     RTP_FORMAT_OPUS    = 97,
 } rtp_format_t;
 
@@ -143,7 +144,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      * This behavior can be disabled with RCE_HEVC_NO_INTRA_DELAY
      * If this flag is given, uvgRTP treats all frame types
      * equally and drops all frames that are late */
-    RCE_HEVC_NO_INTRA_DELAY       = 1 << 5,
+    RCE_H265_NO_INTRA_DELAY       = 1 << 5,
 
     /* Fragment generic frames into RTP packets of 1500 bytes.
      *

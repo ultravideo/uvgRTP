@@ -14,7 +14,7 @@ int main(void)
      * SCD requires that we provide some deallocation mechanism, this example is about the smart pointer approach 
      *
      * See sending.cc for more details about media stream initialization */
-    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_HEVC, RCE_SYSTEM_CALL_DISPATCHER);
+    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, RCE_SYSTEM_CALL_DISPATCHER);
 
     for (int i = 0; i < 10; ++i) {
         std::unique_ptr<uint8_t[]> buffer = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);

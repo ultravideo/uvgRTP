@@ -13,7 +13,7 @@ int main(void)
 
     /* 8888 is source port or the port for the interface where data is received (ie. 10.21.25.200:8888)
      * 8889 is remote port or the port for the interface where the data is sent (ie. 10.21.25.2:8889) */
-    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_HEVC, 0);
+    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, 0);
 
     while (true) {
         std::unique_ptr<uint8_t[]> buffer = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);
