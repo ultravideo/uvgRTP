@@ -151,16 +151,48 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
         finfo->frames[c_ts].fragments[c_seq] = frame;
         return RTP_OK;
     }
-    finfo->frames[c_ts].fragments[c_seq] = frame;
 
     finfo->frames[c_ts].pkts_received += 1;
     finfo->frames[c_ts].total_size    += (frame->payload_len - H265_HDR_SIZE);
 
-    if (frag_type == FT_START)
+    if (frag_type == FT_START) {
         finfo->frames[c_ts].s_seq = c_seq;
+        finfo->frames[c_ts].fragments[c_seq] = frame;
+
+        for (auto& fragment : finfo->frames[c_ts].temporary) {
+            uint16_t fseq = fragment->header.seq;
+            uint32_t seq  = (c_seq > fseq) ? 0x10000 + fseq : fseq;
+
+            finfo->frames[c_ts].fragments[seq] = fragment;
+        }
+        finfo->frames[c_ts].temporary.clear();
+    }
 
     if (frag_type == FT_END)
         finfo->frames[c_ts].e_seq = c_seq;
+
+    /* Out-of-order nature poses an interesting problem when reconstructing the frame:
+     * how to store the fragments such that we mustn't shuffle them around when frame reconstruction takes place?
+     *
+     * std::map is an option but the overflow of 16-bit sequence number counter makes that a little harder because
+     * if the first few fragments of a frame are near 65535, the rest of the fragments are going to have sequence
+     * numbers less than that and thus our frame reconstruction breaks.
+     *
+     * This can be solved by checking if current fragment's sequence is less than start fragment's sequence number
+     * (overflow has occurred) and correcting the current sequence by adding 0x10000 to its value so it appears
+     * in order with other fragments */
+    if (frag_type != FT_START) {
+        if (finfo->frames[c_ts].s_seq != INVALID_SEQ) {
+            /* overflow has occurred, adjust the sequence number of current
+             * fragment so it appears in order with other fragments of the frame
+             *
+             * Note: if the frame is huge (~94 MB), this will not work but it's not a realistic scenario */
+            finfo->frames[c_ts].fragments[((finfo->frames[c_ts].s_seq > c_seq) ? 0x10000 + c_seq : c_seq)] = frame;
+        } else {
+            /* position for the fragment cannot be calculated so move the fragment to a temporary storage */
+            finfo->frames[c_ts].temporary.push_back(frame);
+        }
+    }
 
     if (finfo->frames[c_ts].s_seq != INVALID_SEQ && finfo->frames[c_ts].e_seq != INVALID_SEQ) {
         size_t received = 0;

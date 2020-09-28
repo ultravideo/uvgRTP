@@ -2,6 +2,7 @@
 
 #include <map>
 #include <unordered_set>
+#include <vector>
 
 #include "frame.hh"
 #include "queue.hh"
@@ -40,6 +41,9 @@ namespace uvg_rtp {
             /* map of frame's fragments,
              * allows out-of-order insertion and loop-through in order */
             std::map<uint16_t, uvg_rtp::frame::rtp_frame *> fragments;
+
+            /* storage for fragments that require relocation */
+            std::vector<uvg_rtp::frame::rtp_frame *> temporary;
         } h265_info_t;
 
         typedef struct {
