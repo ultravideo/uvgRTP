@@ -7,7 +7,7 @@
 #include "debug.hh"
 #include "queue.hh"
 
-#include "formats/h265.hh"
+#include "formats/h264.hh"
 
 #define RTP_FRAME_MAX_DELAY          100
 #define INVALID_SEQ           0x13371338
@@ -31,38 +31,15 @@ enum NAL_TYPES {
     NT_OTHER = 0xff
 };
 
-typedef std::unordered_map<uint32_t, struct hevc_info> frame_info_t;
-
-struct hevc_info {
-    /* clock reading when the first fragment is received */
-    uvg_rtp::clock::hrc::hrc_t sframe_time;
-
-    /* sequence number of the frame with s-bit */
-    uint32_t s_seq;
-
-    /* sequence number of the frame with e-bit */
-    uint32_t e_seq;
-
-    /* how many fragments have been received */
-    size_t pkts_received;
-
-    /* total size of all fragments */
-    size_t total_size;
-
-    /* map of frame's fragments,
-     * allows out-of-order insertion and loop-through in order */
-    std::map<uint16_t, uvg_rtp::frame::rtp_frame *> fragments;
-};
-
 static int __get_frag(uvg_rtp::frame::rtp_frame *frame)
 {
-    bool first_frag = frame->payload[2] & 0x80;
-    bool last_frag  = frame->payload[2] & 0x40;
+    bool first_frag = frame->payload[1] & 0x80;
+    bool last_frag  = frame->payload[1] & 0x40;
 
     if ((frame->payload[0] & 0x1f) == 24)
         return FT_STAP_A;
 
-    if ((frame->payload[0] & 0x1f) != 49)
+    if ((frame->payload[0] & 0x1f) != 28)
         return FT_NOT_FRAG;
 
     if (first_frag && last_frag)
@@ -88,7 +65,7 @@ static rtp_error_t __handle_stap_a(uvg_rtp::frame::rtp_frame **frame)
 
 static inline uint8_t __get_nal(uvg_rtp::frame::rtp_frame *frame)
 {
-    switch (frame->payload[2] & 0x3f) {
+    switch (frame->payload[1] & 0x1f) {
         case 19: return NT_INTRA;
         case 1:  return NT_INTER;
         default: break;
@@ -97,33 +74,29 @@ static inline uint8_t __get_nal(uvg_rtp::frame::rtp_frame *frame)
     return NT_OTHER;
 }
 
-static inline bool __frame_late(hevc_info& hinfo)
+static inline bool __frame_late(uvg_rtp::formats::h264_info_t& hinfo)
 {
     return (uvg_rtp::clock::hrc::diff_now(hinfo.sframe_time) >= RTP_FRAME_MAX_DELAY);
 }
 
-static void __drop_frame(frame_info_t& finfo, uint32_t ts)
+static void __drop_frame(uvg_rtp::formats::h264_frame_info_t *finfo, uint32_t ts)
 {
-    uint16_t s_seq = finfo.at(ts).s_seq;
-    uint16_t e_seq = finfo.at(ts).e_seq;
+    uint16_t s_seq = finfo->frames.at(ts).s_seq;
+    uint16_t e_seq = finfo->frames.at(ts).e_seq;
 
     LOG_INFO("Dropping frame %u, %u - %u", ts, s_seq, e_seq);
 
-    for (auto& fragment : finfo.at(ts).fragments)
+    for (auto& fragment : finfo->frames.at(ts).fragments)
         (void)uvg_rtp::frame::dealloc_frame(fragment.second);
 
-    finfo.erase(ts);
+    finfo->frames.erase(ts);
 }
 
-rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp::frame::rtp_frame **out)
+rtp_error_t uvg_rtp::formats::h264::packet_handler(void *arg, int flags, uvg_rtp::frame::rtp_frame **out)
 {
-    (void)arg;
-
-    static frame_info_t finfo;
-    static std::unordered_set<uint32_t> dropped;
-
     uvg_rtp::frame::rtp_frame *frame;
     bool enable_idelay = false;
+    auto finfo = (uvg_rtp::formats::h264_frame_info_t *)arg;
 
     /* Use "intra" to keep track of intra frames
      *
@@ -139,7 +112,9 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
      * pointed to by "intra" and new intra frame shall take the place of active intra frame */
     uint32_t intra = INVALID_TS;
 
-    const size_t H264_HEADER_SIZE = 2 * uvg_rtp::frame::HEADER_SIZE_H264_FU;
+    const size_t AVC_HDR_SIZE =
+        uvg_rtp::frame::HEADER_SIZE_H264_NAL +
+        uvg_rtp::frame::HEADER_SIZE_H264_FU;
 
     frame = *out;
 
@@ -162,10 +137,10 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
     }
 
     /* initialize new frame */
-    if (finfo.find(c_ts) == finfo.end()) {
+    if (finfo->frames.find(c_ts) == finfo->frames.end()) {
 
         /* make sure we haven't discarded the frame "c_ts" before */
-        if (dropped.find(c_ts) != dropped.end()) {
+        if (finfo->dropped.find(c_ts) != finfo->dropped.end()) {
             LOG_WARN("packet belonging to a dropped frame was received!");
             return RTP_GENERIC_ERROR;
         }
@@ -174,40 +149,72 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
         if (nal_type == NT_INTRA) {
             if (intra != INVALID_TS && enable_idelay) {
                 __drop_frame(finfo, intra);
-                dropped.insert(intra);
+                finfo->dropped.insert(intra);
             }
             intra = c_ts;
         }
 
-        finfo[c_ts].s_seq = INVALID_SEQ;
-        finfo[c_ts].e_seq = INVALID_SEQ;
+        finfo->frames[c_ts].s_seq = INVALID_SEQ;
+        finfo->frames[c_ts].e_seq = INVALID_SEQ;
 
-        if (frag_type == FT_START) finfo[c_ts].s_seq = c_seq;
-        if (frag_type == FT_END)   finfo[c_ts].e_seq = c_seq;
+        if (frag_type == FT_START) finfo->frames[c_ts].s_seq = c_seq;
+        if (frag_type == FT_END)   finfo->frames[c_ts].e_seq = c_seq;
 
-        finfo[c_ts].sframe_time   = uvg_rtp::clock::hrc::now();
-        finfo[c_ts].total_size    = frame->payload_len - H264_HEADER_SIZE;
-        finfo[c_ts].pkts_received = 1;
+        finfo->frames[c_ts].sframe_time   = uvg_rtp::clock::hrc::now();
+        finfo->frames[c_ts].total_size    = frame->payload_len - AVC_HDR_SIZE;
+        finfo->frames[c_ts].pkts_received = 1;
 
-        finfo[c_ts].fragments[c_seq] = frame;
+        finfo->frames[c_ts].fragments[c_seq] = frame;
         return RTP_OK;
     }
-    finfo[c_ts].fragments[c_seq] = frame;
 
-    finfo[c_ts].pkts_received += 1;
-    finfo[c_ts].total_size    += (frame->payload_len - H264_HEADER_SIZE);
+    finfo->frames[c_ts].pkts_received += 1;
+    finfo->frames[c_ts].total_size    += (frame->payload_len - AVC_HDR_SIZE);
 
-    if (frag_type == FT_START)
-        finfo[c_ts].s_seq = c_seq;
+    if (frag_type == FT_START) {
+        finfo->frames[c_ts].s_seq = c_seq;
+        finfo->frames[c_ts].fragments[c_seq] = frame;
+
+        for (auto& fragment : finfo->frames[c_ts].temporary) {
+            uint16_t fseq = fragment->header.seq;
+            uint32_t seq  = (c_seq > fseq) ? 0x10000 + fseq : fseq;
+
+            finfo->frames[c_ts].fragments[seq] = fragment;
+        }
+        finfo->frames[c_ts].temporary.clear();
+    }
 
     if (frag_type == FT_END)
-        finfo[c_ts].e_seq = c_seq;
+        finfo->frames[c_ts].e_seq = c_seq;
 
-    if (finfo[c_ts].s_seq != INVALID_SEQ && finfo[c_ts].e_seq != INVALID_SEQ) {
+    /* Out-of-order nature poses an interesting problem when reconstructing the frame:
+     * how to store the fragments such that we mustn't shuffle them around when frame reconstruction takes place?
+     *
+     * std::map is an option but the overflow of 16-bit sequence number counter makes that a little harder because
+     * if the first few fragments of a frame are near 65535, the rest of the fragments are going to have sequence
+     * numbers less than that and thus our frame reconstruction breaks.
+     *
+     * This can be solved by checking if current fragment's sequence is less than start fragment's sequence number
+     * (overflow has occurred) and correcting the current sequence by adding 0x10000 to its value so it appears
+     * in order with other fragments */
+    if (frag_type != FT_START) {
+        if (finfo->frames[c_ts].s_seq != INVALID_SEQ) {
+            /* overflow has occurred, adjust the sequence number of current
+             * fragment so it appears in order with other fragments of the frame
+             *
+             * Note: if the frame is huge (~94 MB), this will not work but it's not a realistic scenario */
+            finfo->frames[c_ts].fragments[((finfo->frames[c_ts].s_seq > c_seq) ? 0x10000 + c_seq : c_seq)] = frame;
+        } else {
+            /* position for the fragment cannot be calculated so move the fragment to a temporary storage */
+            finfo->frames[c_ts].temporary.push_back(frame);
+        }
+    }
+
+    if (finfo->frames[c_ts].s_seq != INVALID_SEQ && finfo->frames[c_ts].e_seq != INVALID_SEQ) {
         size_t received = 0;
-        size_t fptr     = NAL_HDR_SIZE;
-        size_t s_seq    = finfo[c_ts].s_seq;
-        size_t e_seq    = finfo[c_ts].e_seq;
+        size_t fptr     = 0;
+        size_t s_seq    = finfo->frames[c_ts].s_seq;
+        size_t e_seq    = finfo->frames[c_ts].e_seq;
 
         if (s_seq > e_seq)
             received = 0xffff - s_seq + e_seq + 2;
@@ -215,30 +222,32 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
             received = e_seq - s_seq + 1;
 
         /* we've received every fragment and the frame can be reconstructed */
-        if (received == finfo[c_ts].pkts_received) {
+        if (received == finfo->frames[c_ts].pkts_received) {
 
             /* intra is still in progress, do not return the inter */
             if (nal_type == NT_INTER && intra != INVALID_TS && enable_idelay) {
                 __drop_frame(finfo, c_ts);
-                dropped.insert(c_ts);
+                finfo->dropped.insert(c_ts);
                 return RTP_OK;
             }
 
             uvg_rtp::frame::rtp_frame *complete = uvg_rtp::frame::alloc_rtp_frame();
 
-            complete->payload_len = finfo[c_ts].total_size + NAL_HDR_SIZE;
+            complete->payload_len = finfo->frames[c_ts].total_size + uvg_rtp::frame::HEADER_SIZE_H264_NAL;
             complete->payload     = new uint8_t[complete->payload_len];
 
             std::memcpy(&complete->header,  &(*out)->header, RTP_HDR_SIZE);
-            complete->payload[0] = (*out)->payload[0];
+            complete->payload[0] = (frame->payload[0] & 0xe0) | (frame->payload[1] & 0x1f);
 
-            for (auto& fragment : finfo.at(c_ts).fragments) {
+            fptr += uvg_rtp::frame::HEADER_SIZE_H264_NAL;
+
+            for (auto& fragment : finfo->frames.at(c_ts).fragments) {
                 std::memcpy(
                     &complete->payload[fptr],
-                    &fragment.second->payload[H264_HEADER_SIZE],
-                    fragment.second->payload_len - H264_HEADER_SIZE
+                    &fragment.second->payload[AVC_HDR_SIZE],
+                    fragment.second->payload_len - AVC_HDR_SIZE
                 );
-                fptr += fragment.second->payload_len - H264_HEADER_SIZE;
+                fptr += fragment.second->payload_len - AVC_HDR_SIZE;
                 (void)uvg_rtp::frame::dealloc_frame(fragment.second);
             }
 
@@ -246,15 +255,15 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
                 intra = INVALID_TS;
 
             *out = complete;
-            finfo.erase(c_ts);
+            finfo->frames.erase(c_ts);
             return RTP_PKT_READY;
         }
     }
 
-    if (__frame_late(finfo.at(c_ts))) {
+    if (__frame_late(finfo->frames.at(c_ts))) {
         if (nal_type != NT_INTRA || (nal_type == NT_INTRA && !enable_idelay)) {
             __drop_frame(finfo, c_ts);
-            dropped.insert(c_ts);
+            finfo->dropped.insert(c_ts);
         }
     }
 

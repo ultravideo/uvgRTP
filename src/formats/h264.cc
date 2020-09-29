@@ -19,7 +19,7 @@ rtp_error_t uvg_rtp::formats::h264::push_nal_unit(uint8_t *data, size_t data_len
     if (data_len <= 3)
         return RTP_INVALID_VALUE;
 
-    uint8_t nal_type    = (data[0] >> 1) & 0x3F;
+    uint8_t nal_type    = data[0] & 0x1f;
     rtp_error_t ret     = RTP_OK;
     size_t data_left    = data_len;
     size_t data_pos     = 0;
@@ -47,7 +47,7 @@ rtp_error_t uvg_rtp::formats::h264::push_nal_unit(uint8_t *data, size_t data_len
     auto buffers = fqueue_->get_buffer_vector();
     auto headers = (uvg_rtp::formats::h264_headers *)fqueue_->get_media_headers();
 
-    headers->fu_indicator[0] = data[0]; /* use NAL header of input frame */
+    headers->fu_indicator[0] = (data[0] & 0xe0) | 28;
 
     headers->fu_headers[0] = (uint8_t)((1 << 7) | nal_type);
     headers->fu_headers[1] = nal_type;
@@ -101,4 +101,9 @@ uvg_rtp::formats::h264::h264(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int fla
 
 uvg_rtp::formats::h264::~h264()
 {
+}
+
+uvg_rtp::formats::h264_frame_info_t *uvg_rtp::formats::h264::get_h264_frame_info()
+{
+    return &finfo_;
 }
