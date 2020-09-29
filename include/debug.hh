@@ -89,9 +89,9 @@ static inline void log_platform_error(const char *aux)
     );
 
     if (aux) {
-        LOG_ERROR("%s: %s %d\n", aux, s, WSAGetLastError());
+        LOG_ERROR("%s: %ls %d\n", aux, s, WSAGetLastError());
     } else {
-        LOG_ERROR("%s %d\n", s, WSAGetLastError());
+        LOG_ERROR("%ls %d\n", s, WSAGetLastError());
     }
     LocalFree(s);
 #endif

@@ -118,7 +118,7 @@ rtp_error_t uvg_rtp::media_stream::init_connection()
 rtp_error_t uvg_rtp::media_stream::init()
 {
     if (init_connection() != RTP_OK) {
-        LOG_ERROR("Failed to initialize the underlying socket: %s!", strerror(errno));
+        log_platform_error("Failed to initialize the underlying socket");
         return RTP_GENERIC_ERROR;
     }
 
@@ -192,7 +192,7 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
     rtp_error_t ret;
 
     if (init_connection() != RTP_OK) {
-        LOG_ERROR("Failed to initialize the underlying socket: %s!", strerror(errno));
+        log_platform_error("Failed to initialize the underlying socket");
         return RTP_GENERIC_ERROR;
     }
 
@@ -544,7 +544,7 @@ rtp_error_t uvg_rtp::media_stream::configure_ctx(int flag, ssize_t value)
             if (value <= 0)
                 return RTP_INVALID_VALUE;
 
-            int buf_size = value;
+            int buf_size = (int)value;
             if ((ret = socket_->setsockopt(SOL_SOCKET, SO_SNDBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
                 return ret;
         }
@@ -554,7 +554,7 @@ rtp_error_t uvg_rtp::media_stream::configure_ctx(int flag, ssize_t value)
             if (value <= 0)
                 return RTP_INVALID_VALUE;
 
-            int buf_size = value;
+            int buf_size = (int)value;
             if ((ret = socket_->setsockopt(SOL_SOCKET, SO_RCVBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
                 return ret;
         }

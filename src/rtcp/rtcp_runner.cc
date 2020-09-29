@@ -51,7 +51,7 @@ void uvg_rtp::rtcp::rtcp_runner(uvg_rtp::rtcp *rtcp)
             LOG_ERROR("recvfrom failed, %d", ret);
         }
 
-        diff = uvg_rtp::clock::hrc::diff_now(start);
+        diff = (int)uvg_rtp::clock::hrc::diff_now(start);
 
         if (diff >= MIN_TIMEOUT) {
             if ((ret = rtcp->generate_report()) != RTP_OK && ret != RTP_NOT_READY) {
