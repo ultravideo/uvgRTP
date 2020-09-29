@@ -307,6 +307,11 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     unsigned srtp_flags = RCE_SRTP | RCE_SRTP_KMNGMNT_USER;
     rtp_error_t ret     = RTP_OK;
 
+    if (init_connection() != RTP_OK) {
+        log_platform_error("Failed to initialize the underlying socket");
+        return RTP_GENERIC_ERROR;
+    }
+
     if ((flags_ & srtp_flags) != srtp_flags)
         return RTP_NOT_SUPPORTED;
 
