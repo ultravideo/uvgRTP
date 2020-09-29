@@ -25,7 +25,6 @@ rtp_error_t uvg_rtp::formats::h265::push_nal_unit(uint8_t *data, size_t data_len
     size_t data_pos     = 0;
     size_t payload_size = rtp_ctx_->get_payload_size();
 
-#ifdef __linux__
     if (data_len - 3 <= payload_size) {
         if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
             LOG_ERROR("enqeueu failed for small packet");
@@ -94,65 +93,6 @@ rtp_error_t uvg_rtp::formats::h265::push_nal_unit(uint8_t *data, size_t data_len
     if (more)
         return RTP_NOT_READY;
     return fqueue_->flush_queue();
-#else
-    if (data_len - 3 <= payload_size) {
-        LOG_DEBUG("send unfrag size %zu, type %u", data_len, nal_type);
-
-        if ((ret = uvg_rtp::generic::push_frame(sender, data, data_len, 0)) != RTP_OK) {
-            LOG_ERROR("Failed to send small packet! %s", strerror(errno));
-            return ret;
-        }
-
-        if (more)
-            return RTP_NOT_READY;
-        return RTP_OK;
-    }
-
-    const size_t HEADER_SIZE =
-        uvg_rtp::frame::HEADER_SIZE_RTP +
-        uvg_rtp::frame::HEADER_SIZE_H265_NAL +
-        uvg_rtp::frame::HEADER_SIZE_H265_FU;
-
-    uint8_t buffer[HEADER_SIZE + payload_size] = { 0 };
-
-    rtp_ctx_->fill_header(buffer);
-
-    buffer[uvg_rtp::frame::HEADER_SIZE_RTP + 0]  = 49 << 1;            /* fragmentation unit */
-    buffer[uvg_rtp::frame::HEADER_SIZE_RTP + 1]  = 1;                  /* TID */
-    buffer[uvg_rtp::frame::HEADER_SIZE_RTP +
-           uvg_rtp::frame::HEADER_SIZE_H265_NAL] = (1 << 7) | nal_type; /* Start bit + NAL type */
-
-    data_pos   = uvg_rtp::frame::HEADER_SIZE_H265_NAL;
-    data_left -= uvg_rtp::frame::HEADER_SIZE_H265_NAL;
-
-    while (data_left > payload_size) {
-        memcpy(&buffer[HEADER_SIZE], &data[data_pos], payload_size);
-
-        if ((ret = socket_->send(buffer, sizeof(buffer), 0)) != RTP_OK)
-            return ret;
-
-        rtp_ctx_->update_sequence(buffer);
-
-        data_pos  += payload_size;
-        data_left -= payload_size;
-
-        /* Clear extra bits */
-        buffer[uvg_rtp::frame::HEADER_SIZE_RTP +
-               uvg_rtp::frame::HEADER_SIZE_H265_NAL] = nal_type;
-    }
-
-    buffer[uvg_rtp::frame::HEADER_SIZE_RTP +
-           uvg_rtp::frame::HEADER_SIZE_H265_NAL] = nal_type | (1 << 6); /* set E bit to signal end of data */
-
-    memcpy(&buffer[HEADER_SIZE], &data[data_pos], data_left);
-
-    if ((ret = socket_->sendto(buffer, HEADER_SIZE + data_left, 0)) != RTP_OK)
-        return ret;
-
-    if (more)
-        return RTP_NOT_READY;
-    return RTP_OK;
-#endif
 }
 
 uvg_rtp::formats::h265::h265(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):
