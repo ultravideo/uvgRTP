@@ -163,7 +163,7 @@ namespace uvg_rtp {
 
             /* Map containing all authentication tags of received packets (separate for SRTP and SRTCP)
              * Used to implement replay protection */
-            std::unordered_set<uint32_t> replay_list_;
+            std::unordered_set<uint64_t> replay_list_;
 
             /* If NULL cipher is enabled, it means that RTP packets are not
              * encrypted but other security mechanisms described in RFC 3711 may be used */
