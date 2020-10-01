@@ -483,7 +483,7 @@ rtp_error_t uvg_rtp::socket::__recv(uint8_t *buf, size_t buf_len, int flags, int
     int32_t ret = ::recv(socket_, buf, buf_len, flags);
 
     if (ret == -1) {
-        if (errno == EAGAIN) {
+        if (errno == EAGAIN || errno == EINTR) {
             set_bytes(bytes_read, 0);
             return RTP_INTERRUPTED;
         }
@@ -504,8 +504,14 @@ rtp_error_t uvg_rtp::socket::__recv(uint8_t *buf, size_t buf_len, int flags, int
 
     rc = ::WSARecv(socket_, &DataBuf, 1, &bytes_received, &flags_, NULL, NULL);
 
-    if ((rc == SOCKET_ERROR) && (WSA_IO_PENDING != (err = WSAGetLastError()))) {
-        win_get_last_error();
+    if (rc == SOCKET_ERROR) {
+        err = WSAGetLastError();
+        if (err == WSA_IO_PENDING || err == WSAEWOULDBLOCK) {
+            set_bytes(bytes_read, 0);
+            return RTP_INTERRUPTED;
+        }
+
+        log_platform_error("WSARecv() failed");
         set_bytes(bytes_read, -1);
         return RTP_GENERIC_ERROR;
     }
