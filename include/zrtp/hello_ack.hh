@@ -10,10 +10,10 @@ namespace uvg_rtp {
 
     namespace zrtp_msg {
 
-        PACKED_STRUCT(zrtp_hello_ack) {
+        PACK(struct zrtp_hello_ack {
             zrtp_msg msg_start;
             uint32_t crc;
-        };
+        });
 
         class hello_ack {
             public:

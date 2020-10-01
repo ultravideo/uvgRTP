@@ -11,10 +11,10 @@ namespace uvg_rtp {
 
     namespace zrtp_msg {
 
-        PACKED_STRUCT(zrtp_confack) {
+        PACK(struct zrtp_confack {
             zrtp_msg msg_start;
             uint32_t crc;
-        };
+        });
 
         class confack {
             public:

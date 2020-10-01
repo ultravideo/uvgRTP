@@ -11,20 +11,20 @@ namespace uvg_rtp {
         struct zrtp_hello;
         struct zrtp_dh;
 
-        PACKED_STRUCT(zrtp_header) {
+        PACK(struct zrtp_header {
             uint8_t version:4;
             uint16_t unused:12;
             uint16_t seq;
             uint32_t magic;
             uint32_t ssrc;
-        };
+        });
 
-        PACKED_STRUCT(zrtp_msg) {
+        PACK(struct zrtp_msg {
             struct zrtp_header header;
             uint16_t magic;
             uint16_t length;
             uint64_t msgblock;
-        };
+        });
 
         enum ZRTP_FRAME_TYPE {
             ZRTP_FT_HELLO     =  1,

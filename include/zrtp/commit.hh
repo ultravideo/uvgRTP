@@ -14,7 +14,7 @@ namespace uvg_rtp {
     namespace zrtp_msg {
 
         /* DH Commit Message */
-        PACKED_STRUCT(zrtp_commit) {
+        PACK(struct zrtp_commit {
             zrtp_msg msg_start;
 
             uint32_t hash[8];
@@ -28,7 +28,7 @@ namespace uvg_rtp {
             uint32_t hvi[8];
             uint32_t mac[2];
             uint32_t crc;
-        };
+        });
 
         class commit {
             public:

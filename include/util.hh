@@ -18,13 +18,11 @@
 typedef SSIZE_T ssize_t;
 #endif
 
-
+/* https://stackoverflow.com/questions/1537964/visual-c-equivalent-of-gccs-attribute-packed  */
 #if defined(__MINGW32__) || defined(__MINGW64__) || defined(__linux__)
-#define PACKED_STRUCT(name) \
-    struct __attribute__((packed)) name
+#define PACK(__Declaration__) __Declaration__ __attribute__((__packed__))
 #else
-//#warning "structures are not packed!"
-#define PACKED_STRUCT(name) struct name
+#define PACK(__Declaration__) __pragma(pack(push, 1)) __Declaration__ __pragma(pack(pop))
 #endif
 
 #ifdef _WIN32

@@ -41,7 +41,7 @@ namespace uvg_rtp {
             RTCP_FT_APP  = 204  /* Application-specific message */
         };
 
-        PACKED_STRUCT(rtp_header) {
+        PACK(struct rtp_header {
             uint8_t version:2;
             uint8_t padding:1;
             uint8_t ext:1;
@@ -51,13 +51,13 @@ namespace uvg_rtp {
             uint16_t seq;
             uint32_t timestamp;
             uint32_t ssrc;
-        };
+        });
 
-        PACKED_STRUCT(ext_header) {
+        PACK(struct ext_header {
             uint16_t type;
             uint16_t len;
             uint8_t *data;
-        };
+        });
 
         struct rtp_frame {
             struct rtp_header header;
@@ -150,14 +150,14 @@ namespace uvg_rtp {
             uint8_t *payload;
         };
 
-        PACKED_STRUCT(zrtp_frame) {
+        PACK(struct zrtp_frame {
             uint8_t version:4;
             uint16_t unused:12;
             uint16_t seq;
             uint32_t magic;
             uint32_t ssrc;
             uint8_t payload[1];
-        };
+        });
 
         /* Allocate an RTP frame
          *

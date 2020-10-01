@@ -11,7 +11,7 @@ namespace uvg_rtp {
 
     namespace zrtp_msg {
 
-        PACKED_STRUCT(zrtp_confirm) {
+        PACK(struct zrtp_confirm {
             zrtp_msg msg_start;
 
             uint8_t confirm_mac[8];
@@ -32,7 +32,7 @@ namespace uvg_rtp {
             /* encrypted portion ends */
 
             uint32_t crc;
-        };
+        });
 
         class confirm {
             public:

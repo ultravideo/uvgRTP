@@ -13,7 +13,7 @@ namespace uvg_rtp {
 
     namespace zrtp_msg {
 
-        PACKED_STRUCT(zrtp_dh) {
+        PACK(struct zrtp_dh {
             zrtp_msg msg_start;
             uint32_t hash[8];
             uint8_t rs1_id[8];
@@ -23,7 +23,7 @@ namespace uvg_rtp {
             uint8_t pk[384];
             uint8_t mac[8];
             uint32_t crc;
-        };
+        });
 
         class dh_key_exchange {
             public:

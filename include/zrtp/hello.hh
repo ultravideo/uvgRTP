@@ -14,7 +14,7 @@ namespace uvg_rtp {
 
     namespace zrtp_msg {
 
-        PACKED_STRUCT(zrtp_hello) {
+        PACK(struct zrtp_hello {
             zrtp_msg msg_start;
 
             uint32_t version;
@@ -35,7 +35,7 @@ namespace uvg_rtp {
 
             uint64_t mac;
             uint32_t crc;
-        };
+        });
 
         class hello {
             public:

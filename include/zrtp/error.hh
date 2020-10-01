@@ -10,11 +10,11 @@ namespace uvg_rtp {
 
     namespace zrtp_msg {
 
-        PACKED_STRUCT(zrtp_error) {
+        PACK(struct zrtp_error {
             zrtp_msg msg_start;
             uint32_t error;
             uint32_t crc;
-        };
+        });
 
         class error {
             public:
