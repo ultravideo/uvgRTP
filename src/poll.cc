@@ -11,6 +11,43 @@
 #include "multicast.hh"
 #include "poll.hh"
 
+rtp_error_t uvg_rtp::poll::blocked_recv(uvg_rtp::socket *socket, uint8_t *buf, size_t buf_len, int timeout, int *bytes_read)
+{
+    if (!buf|| !buf_len)
+        return RTP_INVALID_VALUE;
+
+    fd_set read_fds;
+    rtp_error_t rtp_ret;
+
+    FD_ZERO(&read_fds);
+    FD_SET(socket->get_raw_socket(), &read_fds);
+
+    size_t msec = timeout % 1000;
+    size_t sec  = timeout - msec;
+
+    struct timeval t_val = {
+        (int)sec  / 1000,
+        (int)msec * 1000,
+    };
+
+    int ret = ::select(1, &read_fds, nullptr, nullptr, &t_val);
+
+    if (ret < 0) {
+        log_platform_error("select(2) failed");
+        return RTP_GENERIC_ERROR;
+    } else if (ret == 0) {
+        set_bytes(bytes_read, 0);
+        return RTP_INTERRUPTED;
+    }
+
+	if ((rtp_ret = socket->recv((uint8_t *)buf, (int)buf_len, 0, bytes_read)) != RTP_OK) {
+        set_bytes(bytes_read, -1);
+        log_platform_error("recv(2) failed");
+    }
+
+    return rtp_ret;
+}
+
 rtp_error_t uvg_rtp::poll::poll(std::vector<uvg_rtp::socket>& sockets, uint8_t *buf, size_t buf_len, int timeout, int *bytes_read)
 {
     if (buf == nullptr || buf_len == 0)
