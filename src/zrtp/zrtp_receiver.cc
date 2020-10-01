@@ -37,18 +37,29 @@ uvg_rtp::zrtp_msg::receiver::~receiver()
     delete[] mem_;
 }
 
-int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int flags)
+int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int timeout, int flags)
 {
     rtp_error_t ret = RTP_GENERIC_ERROR;
     int nread       = 0;
     rlen_           = 0;
 
 #ifdef _WIN32
-    if ((ret = uvg_rtp::poll::blocked_recv(socket, mem_, len_, 1000, &nread)) != RTP_OK) {
+    if ((ret = uvg_rtp::poll::blocked_recv(socket, mem_, len_, timeout, &nread)) != RTP_OK) {
         log_platform_error("blocked_recv() failed");
         return ret;
     }
 #else
+    size_t msec = timeout % 1000;
+    size_t sec  = timeout - msec;
+
+    struct timeval tv = {
+        (int)sec  / 1000,
+        (int)msec * 1000,
+    };
+
+    if (socket->setsockopt(SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) != RTP_OK)
+        return RTP_GENERIC_ERROR;
+
     if ((ret = socket->recv(mem_, len_, flags, &nread)) != RTP_OK) {
         if (ret == RTP_INTERRUPTED)
             return -ret;

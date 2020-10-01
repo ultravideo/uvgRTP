@@ -51,23 +51,6 @@ uvg_rtp::zrtp::~zrtp()
         delete[] session_.l_msg.dh.second;
 }
 
-/* "timeout" must be in milliseconds */
-rtp_error_t uvg_rtp::zrtp::set_timeout(size_t timeout)
-{
-    size_t msec = timeout % 1000;
-    size_t sec  = timeout - msec;
-
-    struct timeval tv = {
-        (int)sec  / 1000,
-        (int)msec * 1000,
-    };
-
-    if (socket_->setsockopt(SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) != RTP_OK)
-        return RTP_GENERIC_ERROR;
-
-    return RTP_OK;
-}
-
 void uvg_rtp::zrtp::generate_zid()
 {
     uvg_rtp::crypto::random::generate_random(session_.o_zid, 12);
@@ -362,13 +345,11 @@ rtp_error_t uvg_rtp::zrtp::begin_session()
     int i           = 0;
 
     for (i = 0; i < 20; ++i) {
-        set_timeout(rto);
-
         if ((ret = hello.send_msg(socket_, addr_)) != RTP_OK) {
             LOG_ERROR("Failed to send Hello message");
         }
 
-        if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
+        if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
             /* We received something interesting, either Hello message from remote in which case
              * we need to send HelloACK message back and keep sending our Hello until HelloACK is received,
              * or HelloACK message which means we can stop sending our  */
@@ -440,7 +421,7 @@ rtp_error_t uvg_rtp::zrtp::init_session(int key_agreement)
 
     /* First check if remote has already sent the message.
      * If so, they are the initiator and we're the responder */
-    while ((type = receiver_.recv_msg(socket_, MSG_DONTWAIT)) != -RTP_INTERRUPTED) {
+    while ((type = receiver_.recv_msg(socket_, 0, MSG_DONTWAIT)) != -RTP_INTERRUPTED) {
         if (type == ZRTP_FT_COMMIT) {
             commit.parse_msg(receiver_, session_);
             session_.role = RESPONDER;
@@ -455,13 +436,11 @@ rtp_error_t uvg_rtp::zrtp::init_session(int key_agreement)
     rto           = 150;
 
     for (int i = 0; i < 10; ++i) {
-        set_timeout(rto);
-
         if ((ret = commit.send_msg(socket_, addr_)) != RTP_OK) {
             LOG_ERROR("Failed to send Commit message!");
         }
 
-        if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
+        if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
 
             /* As per RFC 6189, if both parties have sent Commit message and the mode is DH,
              * hvi shall determine who is the initiator (the party with larger hvi is initiator) */
@@ -498,13 +477,11 @@ rtp_error_t uvg_rtp::zrtp::dh_part1()
     int type        = 0;
 
     for (int i = 0; i < 10; ++i) {
-        set_timeout(rto);
-
         if ((ret = dhpart.send_msg(socket_, addr_)) != RTP_OK) {
             LOG_ERROR("Failed to send DHPart1 Message!");
         }
 
-        if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
+        if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
             if (type == ZRTP_FT_DH_PART2) {
                 if ((ret = dhpart.parse_msg(receiver_, session_)) != RTP_OK) {
                     LOG_ERROR("Failed to parse DHPart2 Message!");
@@ -544,13 +521,11 @@ rtp_error_t uvg_rtp::zrtp::dh_part2()
     generate_shared_secrets_dh();
 
     for (int i = 0; i < 10; ++i) {
-        set_timeout(rto);
-
         if ((ret = dhpart.send_msg(socket_, addr_)) != RTP_OK) {
             LOG_ERROR("Failed to send DHPart2 Message!");
         }
 
-        if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
+        if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
             if (type == ZRTP_FT_CONFIRM1) {
                 LOG_DEBUG("Confirm1 Message received");
                 return RTP_OK;
@@ -573,13 +548,11 @@ rtp_error_t uvg_rtp::zrtp::responder_finalize_session()
     int type        = 0;
 
     for (int i = 0; i < 10; ++i) {
-        set_timeout(rto);
-
         if ((ret = confirm.send_msg(socket_, addr_)) != RTP_OK) {
             LOG_ERROR("Failed to send Confirm1 Message!");
         }
 
-        if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
+        if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
             if (type == ZRTP_FT_CONFIRM2) {
                 if ((ret = confirm.parse_msg(receiver_, session_)) != RTP_OK) {
                     LOG_ERROR("Failed to parse Confirm2 Message!");
@@ -622,13 +595,11 @@ rtp_error_t uvg_rtp::zrtp::initiator_finalize_session()
     }
 
     for (int i = 0; i < 10; ++i) {
-        set_timeout(rto);
-
         if ((ret = confirm.send_msg(socket_, addr_)) != RTP_OK) {
             LOG_ERROR("Failed to send Confirm2 Message!");
         }
 
-        if ((type = receiver_.recv_msg(socket_, 0)) > 0) {
+        if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
             if (type == ZRTP_FT_CONF2_ACK) {
                 LOG_DEBUG("Conf2ACK received successfully!");
                 return RTP_OK;
@@ -739,7 +710,10 @@ rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, uvg_rtp::socket *socket, sock
     initialized_ = true;
 
     /* reset the timeout (no longer needed) */
-    set_timeout(0);
+    struct timeval tv = { 0, 0 };
+
+    if (socket_->setsockopt(SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) != RTP_OK)
+        return RTP_GENERIC_ERROR;
 
     /* Session has been initialized successfully and SRTP can start */
     return RTP_OK;

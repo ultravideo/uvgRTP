@@ -207,14 +207,6 @@ namespace uvg_rtp {
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
             rtp_error_t init_msm(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr);
 
-            /* Set timeout for a socket, needed by backoff timers of ZRTP
-             *
-             * "timeout" tells the timeout in milliseconds
-             *
-             * Return RTP_OK on success
-             * Return RTP_GENERIC_ERROR if timeout could not be set */
-            rtp_error_t set_timeout(size_t timeout);
-
             /* Generate zid for this ZRTP instance. ZID is a unique, 96-bit long ID */
             void generate_zid();
 
