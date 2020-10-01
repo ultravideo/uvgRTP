@@ -16,7 +16,7 @@ namespace uvg_rtp {
                  * Return -EPROTONOSUPPORT if message contains incompatible version number
                  * Return -ENOPNOTSUPP if message type is not supported
                  * Return -errno for any other error */
-                int recv_msg(socket_t& socket, int flags);
+                int recv_msg(uvg_rtp::socket *socket, int flags);
 
                 /* TODO:  */
                 ssize_t get_msg(void *ptr, size_t len);

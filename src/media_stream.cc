@@ -204,7 +204,7 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
         return RTP_MEMORY_ERROR;
     }
 
-    if ((ret = zrtp->init(rtp_->get_ssrc(), socket_->get_raw_socket(), addr_out_)) != RTP_OK) {
+    if ((ret = zrtp->init(rtp_->get_ssrc(), socket_, addr_out_)) != RTP_OK) {
         LOG_WARN("Failed to initialize ZRTP for media stream!");
         delete rtp_;
         delete pkt_dispatcher_;

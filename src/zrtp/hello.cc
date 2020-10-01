@@ -80,27 +80,14 @@ uvg_rtp::zrtp_msg::hello::~hello()
     (void)uvg_rtp::frame::dealloc_frame(rframe_);
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::hello::send_msg(socket_t& socket, sockaddr_in& addr)
+rtp_error_t uvg_rtp::zrtp_msg::hello::send_msg(uvg_rtp::socket *socket, sockaddr_in& addr)
 {
-#ifdef __linux
-    if (::sendto(socket, (void *)frame_, len_, 0, (const struct sockaddr *)&addr, (socklen_t)sizeof(addr)) < 0) {
-        LOG_ERROR("Failed to send ZRTP Hello message: %s!", strerror(errno));
-        return RTP_SEND_ERROR;
-    }
-#else
-    DWORD sent_bytes;
-    WSABUF data_buf;
+    rtp_error_t ret;
 
-    data_buf.buf = (char *)frame_;
-    data_buf.len = len_;
+    if ((ret = socket->sendto(addr, (uint8_t *)frame_, len_, 0, nullptr)) != RTP_OK)
+        log_platform_error("Failed to send ZRTP Hello message");
 
-    if (WSASendTo(socket, &data_buf, 1, NULL, 0, (const struct sockaddr *)&addr, sizeof(addr), nullptr, nullptr) == -1) {
-        log_platform_error("WSASendTo failed");
-        return RTP_SEND_ERROR;
-    }
-#endif
-
-    return RTP_OK;
+    return ret;
 }
 
 rtp_error_t uvg_rtp::zrtp_msg::hello::parse_msg(uvg_rtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)

@@ -62,7 +62,7 @@ rtp_error_t uvg_rtp::zrtp::set_timeout(size_t timeout)
         (int)msec * 1000,
     };
 
-    if (setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) < 0)
+    if (socket_->setsockopt(SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) != RTP_OK)
         return RTP_GENERIC_ERROR;
 
     return RTP_OK;
@@ -642,14 +642,14 @@ rtp_error_t uvg_rtp::zrtp::initiator_finalize_session()
     return RTP_TIMEOUT;
 }
 
-rtp_error_t uvg_rtp::zrtp::init(uint32_t ssrc, socket_t& socket, sockaddr_in& addr)
+rtp_error_t uvg_rtp::zrtp::init(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr)
 {
     if (!initialized_)
         return init_dhm(ssrc, socket, addr);
     return init_msm(ssrc, socket, addr);
 }
 
-rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in& addr)
+rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr)
 {
     std::lock_guard<std::mutex> lock(zrtp_mtx_);
 
@@ -745,7 +745,7 @@ rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::zrtp::init_msm(uint32_t ssrc, socket_t& socket, sockaddr_in& addr)
+rtp_error_t uvg_rtp::zrtp::init_msm(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr)
 {
     std::lock_guard<std::mutex> lock(zrtp_mtx_);
 

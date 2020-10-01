@@ -48,18 +48,14 @@ uvg_rtp::zrtp_msg::confack::~confack()
     (void)uvg_rtp::frame::dealloc_frame(rframe_);
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::confack::send_msg(socket_t& socket, sockaddr_in& addr)
+rtp_error_t uvg_rtp::zrtp_msg::confack::send_msg(uvg_rtp::socket *socket, sockaddr_in& addr)
 {
-#ifdef __linux
-    if (::sendto(socket, (void *)frame_, len_, 0, (const struct sockaddr *)&addr, (socklen_t)sizeof(addr)) < 0) {
-        LOG_ERROR("Failed to send ZRTP Hello message: %s!", strerror(errno));
-        return RTP_SEND_ERROR;
-    }
-#else
-    /* TODO:  */
-#endif
+    rtp_error_t ret;
 
-    return RTP_OK;
+    if ((ret = socket->sendto(addr, (uint8_t *)frame_, len_, 0, nullptr)) != RTP_OK)
+        log_platform_error("Failed to send ZRTP Hello message");
+
+    return ret;
 }
 
 rtp_error_t uvg_rtp::zrtp_msg::confack::parse_msg(uvg_rtp::zrtp_msg::receiver& receiver)

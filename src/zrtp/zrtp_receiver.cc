@@ -36,28 +36,20 @@ uvg_rtp::zrtp_msg::receiver::~receiver()
     delete[] mem_;
 }
 
-int uvg_rtp::zrtp_msg::receiver::recv_msg(socket_t& socket, int flags)
+int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int flags)
 {
-    int nread = 0;
-    rlen_     = 0;
+    rtp_error_t ret = RTP_GENERIC_ERROR;
+    int nread       = 0;
+    rlen_           = 0;
 
-    if ((nread = ::recv(socket, (char *)mem_, len_, flags)) < 0) {
-#ifdef __linux__
-        if (errno == EAGAIN || errno == EINTR)
-            return -RTP_INTERRUPTED;
-
-        LOG_ERROR("Failed to receive ZRTP Hello message: %d %s!", errno, strerror(errno));
-        return -RTP_RECV_ERROR;
-#else
-        if (WSAGetLastError() == WSAEWOULDBLOCK)
-            return -RTP_INTERRUPTED;
+    if ((ret = socket->recv(mem_, len_, flags, &nread)) != RTP_OK) {
+        if (ret == RTP_INTERRUPTED)
+            return -ret;
 
         log_platform_error("recv(2) failed");
         return -RTP_RECV_ERROR;
-#endif
     }
 
-    /* TODO: validate header */
     zrtp_msg *msg = (zrtp_msg *)mem_;
     rlen_         = nread;
 

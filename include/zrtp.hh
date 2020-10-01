@@ -14,6 +14,7 @@
 
 #include "crypto.hh"
 #include "frame.hh"
+#include "socket.hh"
 #include "zrtp/defines.hh"
 #include "zrtp/zrtp_receiver.hh"
 
@@ -165,7 +166,7 @@ namespace uvg_rtp {
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init(uint32_t ssrc, socket_t& socket, sockaddr_in& addr);
+            rtp_error_t init(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr);
 
             /* Get SRTP keys for the session that was just initialized
              *
@@ -198,13 +199,13 @@ namespace uvg_rtp {
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in& addr);
+            rtp_error_t init_dhm(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr);
 
             /* Initialize ZRTP session between us and remote using Multistream mode
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init_msm(uint32_t ssrc, socket_t& socket, sockaddr_in& addr);
+            rtp_error_t init_msm(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr);
 
             /* Set timeout for a socket, needed by backoff timers of ZRTP
              *
@@ -287,7 +288,7 @@ namespace uvg_rtp {
             rtp_error_t initiator_finalize_session();
 
             uint32_t ssrc_;
-            socket_t socket_;
+            uvg_rtp::socket *socket_;
             sockaddr_in addr_;
 
             /* Has the ZRTP connection been initialized using DH */
