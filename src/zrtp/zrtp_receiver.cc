@@ -13,6 +13,7 @@
 #include "debug.hh"
 #include "util.hh"
 #include "crypto.hh"
+#include "poll.hh"
 #include "zrtp/defines.hh"
 #include "zrtp/dh_kxchng.hh"
 #include "zrtp/commit.hh"
@@ -42,6 +43,12 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int flags)
     int nread       = 0;
     rlen_           = 0;
 
+#ifdef _WIN32
+    if ((ret = uvg_rtp::poll::blocked_recv(socket, mem_, len_, 1000, &nread)) != RTP_OK) {
+        log_platform_error("blocked_recv() failed");
+        return ret;
+    }
+#else
     if ((ret = socket->recv(mem_, len_, flags, &nread)) != RTP_OK) {
         if (ret == RTP_INTERRUPTED)
             return -ret;
@@ -49,6 +56,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int flags)
         log_platform_error("recv(2) failed");
         return -RTP_RECV_ERROR;
     }
+#endif
 
     zrtp_msg *msg = (zrtp_msg *)mem_;
     rlen_         = nread;
