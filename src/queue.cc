@@ -130,6 +130,8 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction(std::unique_ptr<uint8_t[]> da
 
 rtp_error_t uvg_rtp::frame_queue::destroy_transaction(uvg_rtp::transaction_t *t)
 {
+    fprintf(stderr, "destroying transaction\n");
+
     if (!t)
         return RTP_INVALID_VALUE;
 

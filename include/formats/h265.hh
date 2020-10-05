@@ -12,6 +12,17 @@ namespace uvg_rtp {
 
     namespace formats {
 
+        enum H265_NAL_TYPES {
+            H265_PKT_AGGR = 48,
+            H265_PKT_FRAG = 49
+        };
+
+        struct h265_aggregation_packet {
+            uint8_t nal_header[uvg_rtp::frame::HEADER_SIZE_H265_NAL];
+            uvg_rtp::buf_vec buffers;  /* discrete NAL units */
+            uvg_rtp::buf_vec aggr_pkt; /* crafted aggregation packet */
+        };
+
         struct h265_headers {
             uint8_t nal_header[uvg_rtp::frame::HEADER_SIZE_H265_NAL];
 
@@ -82,7 +93,14 @@ namespace uvg_rtp {
                 rtp_error_t push_nal_unit(uint8_t *data, size_t data_len, bool more);
 
             private:
+                /* Construct an aggregation packet from data in "aggr_pkt_info_" */
+                rtp_error_t make_aggregation_pkt();
+
+                /* Clear aggregation buffers */
+                void clear_aggregation_info();
+
                 h265_frame_info_t finfo_;
+                h265_aggregation_packet aggr_pkt_info_;
         };
     };
 };

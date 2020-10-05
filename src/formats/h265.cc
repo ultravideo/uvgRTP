@@ -14,26 +14,103 @@
 
 #include "formats/h265.hh"
 
+void uvg_rtp::formats::h265::clear_aggregation_info()
+{
+    aggr_pkt_info_.buffers.clear();
+    aggr_pkt_info_.aggr_pkt.clear();
+}
+
+rtp_error_t uvg_rtp::formats::h265::make_aggregation_pkt()
+{
+    rtp_error_t ret;
+
+    if (aggr_pkt_info_.buffers.empty())
+        return RTP_INVALID_VALUE;
+
+    /* Only one buffer in the vector -> no need to create an aggregation packet */
+    if (aggr_pkt_info_.buffers.size() == 1) {
+        if ((ret = fqueue_->enqueue_message(aggr_pkt_info_.buffers)) != RTP_OK) {
+            LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
+            return ret;
+        }
+
+        return fqueue_->flush_queue();
+    }
+
+    /* create header for the packet and craft the aggregation packet
+     * according to the format defined in RFC 7798 */
+    aggr_pkt_info_.nal_header[0] = H265_PKT_AGGR << 1;
+    aggr_pkt_info_.nal_header[1] = 1;
+
+    aggr_pkt_info_.aggr_pkt.push_back(
+        std::make_pair(
+            uvg_rtp::frame::HEADER_SIZE_H265_NAL,
+            aggr_pkt_info_.nal_header
+        )
+    );
+
+    for (size_t i = 0; i < aggr_pkt_info_.buffers.size(); ++i) {
+        auto pkt_size                   = aggr_pkt_info_.buffers[i].first;
+        aggr_pkt_info_.buffers[i].first = htons(aggr_pkt_info_.buffers[i].first);
+
+        aggr_pkt_info_.aggr_pkt.push_back(
+            std::make_pair(
+                sizeof(uint16_t),
+                (uint8_t *)&aggr_pkt_info_.buffers[i].first
+            )
+        );
+
+        aggr_pkt_info_.aggr_pkt.push_back(
+            std::make_pair(
+                pkt_size,
+                aggr_pkt_info_.buffers[i].second
+            )
+        );
+    }
+
+    if ((ret = fqueue_->enqueue_message(aggr_pkt_info_.aggr_pkt)) != RTP_OK) {
+        LOG_ERROR("Failed to enqueue buffers of an aggregation packet!");
+        return ret;
+    }
+
+    return ret;
+}
+
 rtp_error_t uvg_rtp::formats::h265::push_nal_unit(uint8_t *data, size_t data_len, bool more)
 {
     if (data_len <= 3)
         return RTP_INVALID_VALUE;
 
-    uint8_t nal_type    = (data[0] >> 1) & 0x3F;
+    uint8_t nal_type    = (data[0] >> 1) & 0x3f;
     rtp_error_t ret     = RTP_OK;
     size_t data_left    = data_len;
     size_t data_pos     = 0;
     size_t payload_size = rtp_ctx_->get_payload_size();
 
     if (data_len - 3 <= payload_size) {
-        if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
-            LOG_ERROR("enqeueu failed for small packet");
-            return ret;
-        }
-
-        if (more)
+        /* If there is more data coming in (possibly another small packet)
+         * create entry to "aggr_pkt_info_" to construct an aggregation packet */
+        if (more) {
+            aggr_pkt_info_.buffers.push_back(std::make_pair(data_len, data));
             return RTP_NOT_READY;
-        return fqueue_->flush_queue();
+        } else {
+            if (aggr_pkt_info_.buffers.empty()) {
+                if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
+                    LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
+                    return ret;
+                }
+                return fqueue_->flush_queue();
+            } else {
+                (void)make_aggregation_pkt();
+                ret = fqueue_->flush_queue();
+                clear_aggregation_info();
+                return ret;
+            }
+        }
+    } else {
+        /* If smaller NALUs were queued before this NALU,
+         * send them in an aggregation packet before proceeding with fragmentation */
+        (void)make_aggregation_pkt();
     }
 
     /* The payload is larger than MTU (1500 bytes) so we must split it into smaller RTP frames
@@ -47,8 +124,8 @@ rtp_error_t uvg_rtp::formats::h265::push_nal_unit(uint8_t *data, size_t data_len
     auto buffers = fqueue_->get_buffer_vector();
     auto headers = (uvg_rtp::formats::h265_headers *)fqueue_->get_media_headers();
 
-    headers->nal_header[0] = 49 << 1; /* fragmentation unit */
-    headers->nal_header[1] = 1;       /* temporal id */
+    headers->nal_header[0] = H265_PKT_FRAG << 1; /* fragmentation unit */
+    headers->nal_header[1] = 1;                  /* temporal id */
 
     headers->fu_headers[0] = (uint8_t)((1 << 7) | nal_type);
     headers->fu_headers[1] = nal_type;
@@ -67,6 +144,7 @@ rtp_error_t uvg_rtp::formats::h265::push_nal_unit(uint8_t *data, size_t data_len
 
         if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
             LOG_ERROR("Queueing the message failed!");
+            clear_aggregation_info();
             fqueue_->deinit_transaction();
             return ret;
         }
@@ -86,12 +164,15 @@ rtp_error_t uvg_rtp::formats::h265::push_nal_unit(uint8_t *data, size_t data_len
 
     if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
         LOG_ERROR("Failed to send HEVC frame!");
+        clear_aggregation_info();
         fqueue_->deinit_transaction();
         return ret;
     }
 
     if (more)
         return RTP_NOT_READY;
+
+    clear_aggregation_info();
     return fqueue_->flush_queue();
 }
 
