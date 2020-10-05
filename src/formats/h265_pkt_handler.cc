@@ -22,6 +22,7 @@ enum FRAG_TYPES {
     FT_START     =  1, /* frame contains a fragment with S bit set */
     FT_MIDDLE    =  2, /* frame is fragment but not S or E fragment */
     FT_END       =  3, /* frame contains a fragment with E bit set */
+    FT_AGGR      =  4  /* aggregation packet */
 };
 
 enum NAL_TYPES {
@@ -35,7 +36,10 @@ static int __get_frag(uvg_rtp::frame::rtp_frame *frame)
     bool first_frag = frame->payload[2] & 0x80;
     bool last_frag  = frame->payload[2] & 0x40;
 
-    if ((frame->payload[0] >> 1) != 49)
+    if ((frame->payload[0] >> 1) == uvg_rtp::formats::H265_PKT_AGGR)
+        return FT_AGGR;
+
+    if ((frame->payload[0] >> 1) != uvg_rtp::formats::H265_PKT_FRAG)
         return FT_NOT_FRAG;
 
     if (first_frag && last_frag)
@@ -79,6 +83,39 @@ static void __drop_frame(uvg_rtp::formats::h265_frame_info_t *finfo, uint32_t ts
     finfo->frames.erase(ts);
 }
 
+static rtp_error_t __handle_ap(uvg_rtp::frame::rtp_frame **out)
+{
+    uvg_rtp::buf_vec nalus;
+
+    uint32_t sc  = 0x00000001;
+    size_t size  = 0;
+    size_t ptr   = 0;
+    auto  *frame = *out;
+
+    for (size_t i = 2; i < frame->payload_len; ) {
+        nalus.push_back(std::make_pair(ntohs(*(uint16_t *)&frame->payload[i]), &frame->payload[i]));
+
+        size += ntohs(*(uint16_t *)&frame->payload[i]);
+        i    += ntohs(*(uint16_t *)&frame->payload[i]) + sizeof(uint16_t);
+    }
+
+    uvg_rtp::frame::dealloc_frame(*out);
+    frame = uvg_rtp::frame::alloc_rtp_frame(size + (nalus.size() - 1) * 4);
+
+    for (size_t i = 0; i < nalus.size(); ++i) {
+        if (i) {
+            std::memcpy(&frame->payload[ptr], &sc, sizeof(sc));
+            ptr += sizeof(sc);
+        }
+
+        std::memcpy(&frame->payload[ptr], nalus[i].second, nalus[i].first);
+        ptr += nalus[i].first;
+    }
+
+    *out = frame;
+    return RTP_PKT_READY;
+}
+
 rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp::frame::rtp_frame **out)
 {
     uvg_rtp::frame::rtp_frame *frame;
@@ -109,6 +146,9 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
     uint32_t c_seq   = frame->header.seq;
     int frag_type    = __get_frag(frame);
     uint8_t nal_type = __get_nal(frame);
+
+    if (frag_type == FT_AGGR)
+        return __handle_ap(out);
 
     if (frag_type == FT_NOT_FRAG)
         return RTP_PKT_READY;
