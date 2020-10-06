@@ -52,8 +52,6 @@ SOURCES += \
 	src/formats/h264_pkt_handler.cc \
 	src/formats/h265.cc \
 	src/formats/h265_pkt_handler.cc \
-	src/formats/h266.cc \
-	src/formats/h266_pkt_handler.cc \
 	src/zrtp/zrtp_receiver.cc \
 	src/zrtp/hello.cc \
 	src/zrtp/hello_ack.cc \
@@ -98,7 +96,6 @@ HEADERS += \
 	include/formats/h26x.hh \
 	include/formats/h264.hh \
 	include/formats/h265.hh \
-	include/formats/h266.hh \
 	include/zrtp/zrtp_receiver.hh \
 	include/zrtp/hello.hh \
 	include/zrtp/hello_ack.hh \
