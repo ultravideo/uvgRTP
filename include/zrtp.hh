@@ -15,7 +15,7 @@
 #include "crypto.hh"
 #include "frame.hh"
 #include "zrtp/defines.hh"
-#include "zrtp/receiver.hh"
+#include "zrtp/zrtp_receiver.hh"
 
 namespace uvg_rtp {
 

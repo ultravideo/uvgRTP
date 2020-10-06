@@ -30,7 +30,7 @@
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
-static inline unsigned __find_hevc_start(uint32_t value)
+static inline unsigned __find_h265_start(uint32_t value)
 {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     uint16_t u = (value >> 16) & 0xffff;
@@ -71,7 +71,7 @@ static inline unsigned __find_hevc_start(uint32_t value)
 }
 
 /* NOTE: the area 0 - len (ie data[0] - data[len - 1]) must be addressable
- * Do not add offset to "data" ptr before passing it to __get_hevc_start()! */
+ * Do not add offset to "data" ptr before passing it to find_h26x_start_code()! */
 ssize_t uvg_rtp::formats::h26x::find_h26x_start_code(
     uint8_t *data,
     size_t len,
@@ -161,7 +161,7 @@ ssize_t uvg_rtp::formats::h26x::find_h26x_start_code(
 
 
         {
-            if ((ret = start_len = __find_hevc_start(value)) > 0) {
+            if ((ret = start_len = __find_h265_start(value)) > 0) {
                 if (ret == 5) {
                     ret = 3;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -232,7 +232,6 @@ end:
 
 rtp_error_t uvg_rtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_len)
 {
-#ifdef __linux__
     /* find first start code */
     uint8_t start_len   = 0;
     int offset          = find_h26x_start_code(data, data_len, 0, start_len);
@@ -269,32 +268,6 @@ rtp_error_t uvg_rtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_l
 error:
     fqueue_->deinit_transaction();
     return ret;
-#else
-    rtp_error_t ret = RTP_OK;
-    uint8_t start_len;
-    int32_t prev_offset = 0;
-    int offset = __get_hevc_start(data, data_len, 0, start_len);
-    prev_offset = offset;
-
-    while (offset != -1) {
-        offset = __get_hevc_start(data, data_len, offset, start_len);
-
-        if (offset > 4 && offset != -1) {
-            if ((ret = push_nal_unit(&data[prev_offset], offset - prev_offset - start_len, false)) == -1)
-                goto end;
-
-            prev_offset = offset;
-        }
-    }
-
-    if (prev_offset == -1)
-        prev_offset = 0;
-
-    ret = push_nal_unit(&data[prev_offset], data_len - prev_offset, false);
-end:
-    fqueue_->deinit_transaction();
-    return ret;
-#endif
 }
 
 rtp_error_t uvg_rtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len, bool more)

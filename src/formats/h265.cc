@@ -163,3 +163,8 @@ uvg_rtp::formats::h265::h265(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int fla
 uvg_rtp::formats::h265::~h265()
 {
 }
+
+uvg_rtp::formats::h265_frame_info_t *uvg_rtp::formats::h265::get_h265_frame_info()
+{
+    return &finfo_;
+}

@@ -42,7 +42,11 @@ namespace uvg_rtp {
             ZRTP_FT_PING_ACK  = 13
         };
 
+#ifdef _MSC_VER
+        enum ZRTP_MSG_TYPE: __int64 {
+#else
         enum ZRTP_MSG_TYPE {
+#endif
             ZRTP_MSG_HELLO     = 0x2020206f6c6c6548,
             ZRTP_MSG_HELLO_ACK = 0x4b43416f6c6c6548,
             ZRTP_MSG_COMMIT    = 0x202074696d6d6f43,

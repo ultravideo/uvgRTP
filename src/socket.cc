@@ -370,20 +370,22 @@ rtp_error_t uvg_rtp::socket::__sendtov(
     return RTP_OK;
 
 #else
-    INT sent_bytes, ret;
+    INT ret;
+    DWORD sent_bytes;
     WSABUF wsa_bufs[16];
 
     for (auto& buffer : buffers) {
         /* create WSABUFs from input buffer and send them at once */
         for (size_t i = 0; i < buffer.size(); ++i) {
             wsa_bufs[i].len = buffer.at(i).first;
-            wsa_bufs[i].buf = buffer.at(i).second;
+            wsa_bufs[i].buf = (char *)buffer.at(i).second;
         }
 
+send_:
         ret = WSASendTo(
             socket_,
             wsa_bufs,
-            buffers.size(),
+            buffer.size(),
             &sent_bytes,
             flags,
             (SOCKADDR *)&addr,
@@ -393,6 +395,8 @@ rtp_error_t uvg_rtp::socket::__sendtov(
         );
 
         if (ret == -1) {
+            if (WSAGetLastError() == WSAEWOULDBLOCK)
+                goto send_;
             log_platform_error("WSASendTo() failed");
             set_bytes(bytes_sent, -1);
             return RTP_SEND_ERROR;

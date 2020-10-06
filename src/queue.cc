@@ -86,6 +86,8 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction()
 
     if (flags_ & RCE_SRTP_AUTHENTICATE_RTP)
         active_->rtp_auth_tags = new uint8_t[10 * max_mcount_];
+    else
+        active_->rtp_auth_tags = nullptr;
 
     active_->out_addr = socket_->get_out_address();
     rtp_->fill_header((uint8_t *)&active_->rtp_common);

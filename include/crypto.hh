@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef __RTP_CRYPTO__
 #include <cryptopp/aes.h>
 #include <cryptopp/base32.h>
 #include <cryptopp/cryptlib.h>
@@ -9,6 +10,7 @@
 #include <cryptopp/osrng.h>
 #include <cryptopp/sha.h>
 #include <cryptopp/crc.h>
+#endif
 
 namespace uvg_rtp {
 

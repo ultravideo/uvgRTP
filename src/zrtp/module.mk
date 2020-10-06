@@ -1,5 +1,5 @@
 SOURCES += \
-	src/zrtp/receiver.cc \
+	src/zrtp/zrtp_receiver.cc \
 	src/zrtp/hello.cc \
 	src/zrtp/hello_ack.cc \
 	src/zrtp/commit.cc \
