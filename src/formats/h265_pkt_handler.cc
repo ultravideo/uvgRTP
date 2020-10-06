@@ -93,13 +93,17 @@ static rtp_error_t __handle_ap(uvg_rtp::frame::rtp_frame **out)
     auto  *frame = *out;
 
     for (size_t i = 2; i < frame->payload_len; ) {
-        nalus.push_back(std::make_pair(ntohs(*(uint16_t *)&frame->payload[i]), &frame->payload[i]));
+        nalus.push_back(
+            std::make_pair(
+                ntohs(*(uint16_t *)&frame->payload[i]),
+                &frame->payload[i] + sizeof(uint16_t)
+            )
+        );
 
         size += ntohs(*(uint16_t *)&frame->payload[i]);
         i    += ntohs(*(uint16_t *)&frame->payload[i]) + sizeof(uint16_t);
     }
 
-    uvg_rtp::frame::dealloc_frame(*out);
     frame = uvg_rtp::frame::alloc_rtp_frame(size + (nalus.size() - 1) * 4);
 
     for (size_t i = 0; i < nalus.size(); ++i) {
@@ -112,6 +116,7 @@ static rtp_error_t __handle_ap(uvg_rtp::frame::rtp_frame **out)
         ptr += nalus[i].first;
     }
 
+    uvg_rtp::frame::dealloc_frame(*out);
     *out = frame;
     return RTP_PKT_READY;
 }
