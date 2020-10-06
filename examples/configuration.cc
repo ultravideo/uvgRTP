@@ -8,7 +8,7 @@ int main(void)
     uvg_rtp::context ctx;
 
     /* Each new IP address requires a separate RTP session.
-     * This session objects contains all media streams and an RTCP object (if enabled) */
+     * This session object contains all media streams and an RTCP object (if enabled) */
     uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
 
     /* Enable system call dispatcher for the sender to minimize delay experienced by the application

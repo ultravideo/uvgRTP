@@ -8,7 +8,7 @@ int main(void)
     uvg_rtp::context ctx;
 
     /* Each new IP address requires a separate RTP session.
-     * This session objects contains all media streams and an RTCP object (if enabled) */
+     * This session object contains all media streams and an RTCP object (if enabled) */
     uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
 
     /* Each RTP session has one or more media streams. These media streams are bidirectional
@@ -24,7 +24,7 @@ int main(void)
      *
      * This same object is used for both sending and receiving media
      *
-     * In this example, we have one media streams with remote participant: hevc */
+     * In this example, we have one media stream with remote participant: hevc */
     uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, 0);
 
     uint8_t *buffer    = new uint8_t[PAYLOAD_MAXLEN];

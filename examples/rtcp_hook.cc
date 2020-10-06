@@ -5,11 +5,12 @@
  *
  * NOTE: If application uses hook, it must also free the frame when it's done with i
  * Frame must deallocated using uvg_rtp::frame::dealloc_frame() function */
-void receiver_hook(uvg_rtp::frame::rtcp_receiver_frame *frame)
+void receiver_hook(uvg_rtp::frame::rtcp_receiver_report *frame)
 {
     LOG_INFO("Received an RTCP Receiver Report");
 
-    (void)uvg_rtp::frame::dealloc_frame(frame);
+    /* RTCP frames can be deallocated using delete */
+    delete frame;
 }
 
 int main(void)
