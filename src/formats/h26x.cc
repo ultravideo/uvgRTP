@@ -242,8 +242,13 @@ rtp_error_t uvg_rtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_l
 
     if (data_len < payload_size) {
         r_off = (offset < 0) ? 0 : offset;
-        fqueue_->deinit_transaction();
-        return socket_->sendto(data + r_off, data_len - r_off, 0);
+
+        if ((ret = fqueue_->enqueue_message(data + r_off, data_len - r_off)) != RTP_OK) {
+            LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
+            return ret;
+        }
+
+        return fqueue_->flush_queue();
     }
 
     while (offset != -1) {
