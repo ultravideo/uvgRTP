@@ -156,7 +156,7 @@ rtp_error_t uvg_rtp::media_stream::init()
             media_ = new uvg_rtp::formats::h264(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
-                nullptr,
+                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->get_h265_frame_info(),
                 dynamic_cast<uvg_rtp::formats::h264 *>(media_)->packet_handler,
                 nullptr
             );
@@ -271,6 +271,16 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
             );
             break;
 
+        case RTP_FORMAT_H264:
+            media_ = new uvg_rtp::formats::h264(socket_, rtp_, ctx_config_.flags);
+            pkt_dispatcher_->install_aux_handler(
+                rtp_handler_key_,
+                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->get_h265_frame_info(),
+                dynamic_cast<uvg_rtp::formats::h264 *>(media_)->packet_handler,
+                nullptr
+            );
+            break;
+
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
             media_ = new uvg_rtp::formats::media(socket_, rtp_, ctx_config_.flags);
@@ -373,6 +383,16 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
                 nullptr,
                 dynamic_cast<uvg_rtp::formats::h265 *>(media_)->packet_handler,
                 dynamic_cast<uvg_rtp::formats::h265 *>(media_)->frame_getter
+            );
+            break;
+
+        case RTP_FORMAT_H264:
+            media_ = new uvg_rtp::formats::h264(socket_, rtp_, ctx_config_.flags);
+            pkt_dispatcher_->install_aux_handler(
+                rtp_handler_key_,
+                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->get_h265_frame_info(),
+                dynamic_cast<uvg_rtp::formats::h264 *>(media_)->packet_handler,
+                nullptr
             );
             break;
 
