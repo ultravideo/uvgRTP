@@ -146,7 +146,7 @@ rtp_error_t uvg_rtp::media_stream::init()
             media_ = new uvg_rtp::formats::h265(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
-                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->get_hevc_frame_info(),
+                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->get_h265_frame_info(),
                 dynamic_cast<uvg_rtp::formats::h265 *>(media_)->packet_handler
             );
             break;
