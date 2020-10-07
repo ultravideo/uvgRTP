@@ -1,5 +1,6 @@
 #pragma once
 
+#include <deque>
 #include <map>
 #include <unordered_set>
 #include <vector>
@@ -58,6 +59,7 @@ namespace uvg_rtp {
         } h265_info_t;
 
         typedef struct {
+            std::deque<uvg_rtp::frame::rtp_frame *> queued;
             std::unordered_map<uint32_t, h265_info_t> frames;
             std::unordered_set<uint32_t> dropped;
         } h265_frame_info_t;
@@ -85,6 +87,15 @@ namespace uvg_rtp {
                  * Return RTP_PKT_MODIFIED if the packet was modified but should be forwarded to other handlers
                  * Return RTP_GENERIC_ERROR if the packet was corrupted in some way */
                 static rtp_error_t packet_handler(void *arg, int flags, frame::rtp_frame **frame);
+
+                /* If the packet handler must return more than one frame, it can install a frame getter
+                 * that is called by the auxiliary handler caller if packet_handler() returns RTP_MULTIPLE_PKTS_READY
+                 *
+                 * "arg" is the same that is passed to packet_handler
+                 *
+                 * Return RTP_PKT_READY if "frame" contains a frame that can be returned to user
+                 * Return RTP_NOT_FOUND if there are no more frames */
+                static rtp_error_t frame_getter(void *arg, frame::rtp_frame **frame);
 
                 /* Return pointer to the internal frame info structure which is relayed to packet handler */
                 h265_frame_info_t *get_h265_frame_info();

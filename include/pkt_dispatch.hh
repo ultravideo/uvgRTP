@@ -12,10 +12,12 @@ namespace uvg_rtp {
 
     typedef rtp_error_t (*packet_handler)(ssize_t, void *, int, uvg_rtp::frame::rtp_frame **);
     typedef rtp_error_t (*packet_handler_aux)(void *, int, uvg_rtp::frame::rtp_frame **);
+    typedef rtp_error_t (*frame_getter)(void *, uvg_rtp::frame::rtp_frame **);
 
     struct auxiliary_handler {
         void *arg;
         packet_handler_aux handler;
+        frame_getter getter;
     };
 
     struct packet_handlers {
@@ -54,7 +56,7 @@ namespace uvg_rtp {
              *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "handler" is nullptr or if "key" is not valid */
-            rtp_error_t install_aux_handler(uint32_t key, void *arg, packet_handler_aux handler);
+            rtp_error_t install_aux_handler(uint32_t key, void *arg, packet_handler_aux handler, frame_getter getter);
 
             /* Install receive hook for the RTP packet dispatcher
              *

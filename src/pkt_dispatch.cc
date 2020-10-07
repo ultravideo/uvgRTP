@@ -107,7 +107,8 @@ uint32_t uvg_rtp::pkt_dispatcher::install_handler(uvg_rtp::packet_handler handle
 rtp_error_t uvg_rtp::pkt_dispatcher::install_aux_handler(
     uint32_t key,
     void *arg,
-    uvg_rtp::packet_handler_aux handler
+    uvg_rtp::packet_handler_aux handler,
+    uvg_rtp::frame_getter getter
 )
 {
     if (!handler)
@@ -116,7 +117,7 @@ rtp_error_t uvg_rtp::pkt_dispatcher::install_aux_handler(
     if (packet_handlers_.find(key) == packet_handlers_.end())
         return RTP_INVALID_VALUE;
 
-    packet_handlers_[key].auxiliary.push_back({ arg, handler });
+    packet_handlers_[key].auxiliary.push_back({ arg, handler, getter });
     return RTP_OK;
 }
 
@@ -145,6 +146,13 @@ void uvg_rtp::pkt_dispatcher::call_aux_handlers(uint32_t key, int flags, uvg_rtp
             /* packet was handled successfully */
             case RTP_OK:
                 break;
+
+            case RTP_MULTIPLE_PKTS_READY:
+            {
+                while ((*aux.getter)(aux.arg, frame) == RTP_PKT_READY)
+                    this->return_frame(*frame);
+            }
+            break;
 
             case RTP_PKT_READY:
                 this->return_frame(*frame);

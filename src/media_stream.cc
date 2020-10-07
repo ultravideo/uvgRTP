@@ -139,7 +139,7 @@ rtp_error_t uvg_rtp::media_stream::init()
     socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
 
     rtp_handler_key_ = pkt_dispatcher_->install_handler(rtp_->packet_handler);
-    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler);
+    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler, nullptr);
 
     switch (fmt_) {
         case RTP_FORMAT_H265:
@@ -147,7 +147,8 @@ rtp_error_t uvg_rtp::media_stream::init()
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 dynamic_cast<uvg_rtp::formats::h265 *>(media_)->get_h265_frame_info(),
-                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->packet_handler
+                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->packet_handler,
+                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->frame_getter
             );
             break;
 
@@ -156,14 +157,15 @@ rtp_error_t uvg_rtp::media_stream::init()
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 nullptr,
-                dynamic_cast<uvg_rtp::formats::h264 *>(media_)->packet_handler
+                dynamic_cast<uvg_rtp::formats::h264 *>(media_)->packet_handler,
+                nullptr
             );
             break;
 
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
             media_ = new uvg_rtp::formats::media(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, nullptr, media_->packet_handler);
+            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, nullptr, media_->packet_handler, nullptr);
             break;
 
         default:
@@ -255,8 +257,8 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
     rtp_handler_key_  = pkt_dispatcher_->install_handler(rtp_->packet_handler);
     zrtp_handler_key_ = pkt_dispatcher_->install_handler(zrtp->packet_handler);
 
-    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler);
-    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler);
+    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler, nullptr);
+    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler, nullptr);
 
     switch (fmt_) {
         case RTP_FORMAT_H265:
@@ -264,14 +266,15 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 nullptr,
-                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->packet_handler
+                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->packet_handler,
+                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->frame_getter
             );
             break;
 
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
             media_ = new uvg_rtp::formats::media(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, nullptr, media_->packet_handler);
+            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, nullptr, media_->packet_handler, nullptr);
             break;
 
         default:
@@ -359,8 +362,8 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     rtp_handler_key_ = pkt_dispatcher_->install_handler(rtp_->packet_handler);
 
-    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler);
-    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler);
+    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler, nullptr);
+    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler, nullptr);
 
     switch (fmt_) {
         case RTP_FORMAT_H265:
@@ -368,14 +371,15 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 nullptr,
-                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->packet_handler
+                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->packet_handler,
+                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->frame_getter
             );
             break;
 
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
             media_ = new uvg_rtp::formats::media(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, nullptr, media_->packet_handler);
+            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, nullptr, media_->packet_handler, nullptr);
             break;
 
         default:

@@ -83,13 +83,11 @@ static void __drop_frame(uvg_rtp::formats::h265_frame_info_t *finfo, uint32_t ts
     finfo->frames.erase(ts);
 }
 
-static rtp_error_t __handle_ap(uvg_rtp::frame::rtp_frame **out)
+static rtp_error_t __handle_ap(uvg_rtp::formats::h265_frame_info_t *finfo, uvg_rtp::frame::rtp_frame **out)
 {
     uvg_rtp::buf_vec nalus;
 
-    uint32_t sc  = 0x00000001;
     size_t size  = 0;
-    size_t ptr   = 0;
     auto  *frame = *out;
 
     for (size_t i = 2; i < frame->payload_len; ) {
@@ -104,21 +102,19 @@ static rtp_error_t __handle_ap(uvg_rtp::frame::rtp_frame **out)
         i    += ntohs(*(uint16_t *)&frame->payload[i]) + sizeof(uint16_t);
     }
 
-    frame = uvg_rtp::frame::alloc_rtp_frame(size + (nalus.size() - 1) * 4);
-
     for (size_t i = 0; i < nalus.size(); ++i) {
-        if (i) {
-            std::memcpy(&frame->payload[ptr], &sc, sizeof(sc));
-            ptr += sizeof(sc);
-        }
+        auto retframe = uvg_rtp::frame::alloc_rtp_frame(nalus[i].first);
 
-        std::memcpy(&frame->payload[ptr], nalus[i].second, nalus[i].first);
-        ptr += nalus[i].first;
+        std::memcpy(
+            retframe->payload,
+            nalus[i].second,
+            nalus[i].first
+        );
+
+        finfo->queued.push_back(retframe);
     }
 
-    uvg_rtp::frame::dealloc_frame(*out);
-    *out = frame;
-    return RTP_PKT_READY;
+    return RTP_MULTIPLE_PKTS_READY;
 }
 
 rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp::frame::rtp_frame **out)
@@ -153,7 +149,7 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
     uint8_t nal_type = __get_nal(frame);
 
     if (frag_type == FT_AGGR)
-        return __handle_ap(out);
+        return __handle_ap(finfo, out);
 
     if (frag_type == FT_NOT_FRAG)
         return RTP_PKT_READY;

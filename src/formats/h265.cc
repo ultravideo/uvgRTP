@@ -177,7 +177,7 @@ rtp_error_t uvg_rtp::formats::h265::push_nal_unit(uint8_t *data, size_t data_len
 }
 
 uvg_rtp::formats::h265::h265(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):
-    h26x(socket, rtp, flags)
+    h26x(socket, rtp, flags), finfo_{}
 {
 }
 
@@ -188,4 +188,17 @@ uvg_rtp::formats::h265::~h265()
 uvg_rtp::formats::h265_frame_info_t *uvg_rtp::formats::h265::get_h265_frame_info()
 {
     return &finfo_;
+}
+
+rtp_error_t uvg_rtp::formats::h265::frame_getter(void *arg, uvg_rtp::frame::rtp_frame **frame)
+{
+    auto finfo = (uvg_rtp::formats::h265_frame_info_t *)arg;
+
+    if (finfo->queued.size()) {
+        *frame = finfo->queued.front();
+        finfo->queued.pop_front();
+        return RTP_PKT_READY;
+    }
+
+    return RTP_NOT_FOUND;
 }
