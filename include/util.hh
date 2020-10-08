@@ -172,19 +172,8 @@ enum RTP_CTX_ENABLE_FLAGS {
     /* Disable System Call Clustering (SCC), System Call Dispatching is still usable */
     RCE_NO_SYSTEM_CALL_CLUSTERING = 1 << 8,
 
-    /* Make the media stream unidirectional, i.e. sender/receiver only */
-    RCE_UNIDIRECTIONAL            = 1 << 9,
-
-    /* Media stream is only used for sending
-     * Mutually exclusive with RCE_UNIDIR_RECEIVER */
-    RCE_UNIDIR_SENDER             = 1 << 10,
-
-    /* Media stream is only used for receiving
-     * Mutually exclusive with RCE_UNIDIR_SENDER */
-    RCE_UNIDIR_RECEIVER           = 1 << 11,
-
     /* Disable RTP payload encryption */
-    RCE_SRTP_NULL_CIPHER          = 1 << 12,
+    RCE_SRTP_NULL_CIPHER          = 1 << 9,
 
     /* Enable RTP packet authentication
      *
@@ -192,16 +181,16 @@ enum RTP_CTX_ENABLE_FLAGS {
      * to each outgoing RTP packet for all streams that have SRTP enabled.
      *
      * NOTE: this flag must be coupled with at least RCE_SRTP */
-    RCE_SRTP_AUTHENTICATE_RTP     = 1 << 13,
+    RCE_SRTP_AUTHENTICATE_RTP     = 1 << 10,
 
     /* Enable packet replay protection */
-    RCE_SRTP_REPLAY_PROTECTION    = 1 << 14,
+    RCE_SRTP_REPLAY_PROTECTION    = 1 << 11,
 
     /* Enable RTCP for the media stream.
      * If SRTP is enabled, SRTCP is used instead */
-    RCE_RTCP                      = 1 << 15,
+    RCE_RTCP                      = 1 << 12,
 
-    RCE_LAST                      = 1 << 15,
+    RCE_LAST                      = 1 << 13,
 };
 
 /* These options are given to configuration() */

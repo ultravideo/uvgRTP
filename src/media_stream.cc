@@ -10,12 +10,6 @@
 
 #define INVALID_TS UINT64_MAX
 
-#define RECV_ONLY_FLAGS (RCE_UNIDIRECTIONAL | RCE_UNIDIR_RECEIVER)
-#define SEND_ONLY_FLAGS (RCE_UNIDIRECTIONAL | RCE_UNIDIR_SENDER)
-
-#define RECV_ONLY(flags)   ((flags & RECV_ONLY_FLAGS) == RECV_ONLY_FLAGS)
-#define SEND_ONLY(flags)   ((flags & SEND_ONLY_FLAGS) == SEND_ONLY_FLAGS)
-
 uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     srtp_(nullptr),
     srtcp_(nullptr),
