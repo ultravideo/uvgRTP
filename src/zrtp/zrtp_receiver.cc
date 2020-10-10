@@ -45,8 +45,11 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int timeout, 
 
 #ifdef _WIN32
     if ((ret = uvg_rtp::poll::blocked_recv(socket, mem_, len_, timeout, &nread)) != RTP_OK) {
+        if (ret == RTP_INTERRUPTED)
+            return -ret;
+
         log_platform_error("blocked_recv() failed");
-        return ret;
+        return -RTP_RECV_ERROR;
     }
 #else
     size_t msec = timeout % 1000;
