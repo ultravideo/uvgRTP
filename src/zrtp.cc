@@ -507,7 +507,7 @@ rtp_error_t uvg_rtp::zrtp::dh_part1()
 rtp_error_t uvg_rtp::zrtp::dh_part2()
 {
     int type        = 0;
-    size_t rto      = 0;
+    size_t rto      = 150;
     rtp_error_t ret = RTP_OK;
     auto dhpart     = uvg_rtp::zrtp_msg::dh_key_exchange(session_, 2);
 
