@@ -16,7 +16,7 @@
 
 void uvg_rtp::formats::h265::clear_aggregation_info()
 {
-    aggr_pkt_info_.buffers.clear();
+    aggr_pkt_info_.nalus.clear();
     aggr_pkt_info_.aggr_pkt.clear();
 }
 
@@ -24,12 +24,12 @@ rtp_error_t uvg_rtp::formats::h265::make_aggregation_pkt()
 {
     rtp_error_t ret;
 
-    if (aggr_pkt_info_.buffers.empty())
+    if (aggr_pkt_info_.nalus.empty())
         return RTP_INVALID_VALUE;
 
     /* Only one buffer in the vector -> no need to create an aggregation packet */
-    if (aggr_pkt_info_.buffers.size() == 1) {
-        if ((ret = fqueue_->enqueue_message(aggr_pkt_info_.buffers)) != RTP_OK) {
+    if (aggr_pkt_info_.nalus.size() == 1) {
+        if ((ret = fqueue_->enqueue_message(aggr_pkt_info_.nalus)) != RTP_OK) {
             LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
             return ret;
         }
@@ -49,21 +49,21 @@ rtp_error_t uvg_rtp::formats::h265::make_aggregation_pkt()
         )
     );
 
-    for (size_t i = 0; i < aggr_pkt_info_.buffers.size(); ++i) {
-        auto pkt_size                   = aggr_pkt_info_.buffers[i].first;
-        aggr_pkt_info_.buffers[i].first = htons(aggr_pkt_info_.buffers[i].first);
+    for (size_t i = 0; i < aggr_pkt_info_.nalus.size(); ++i) {
+        auto pkt_size                   = aggr_pkt_info_.nalus[i].first;
+        aggr_pkt_info_.nalus[i].first = htons(aggr_pkt_info_.nalus[i].first);
 
         aggr_pkt_info_.aggr_pkt.push_back(
             std::make_pair(
                 sizeof(uint16_t),
-                (uint8_t *)&aggr_pkt_info_.buffers[i].first
+                (uint8_t *)&aggr_pkt_info_.nalus[i].first
             )
         );
 
         aggr_pkt_info_.aggr_pkt.push_back(
             std::make_pair(
                 pkt_size,
-                aggr_pkt_info_.buffers[i].second
+                aggr_pkt_info_.nalus[i].second
             )
         );
     }
@@ -91,10 +91,10 @@ rtp_error_t uvg_rtp::formats::h265::push_nal_unit(uint8_t *data, size_t data_len
         /* If there is more data coming in (possibly another small packet)
          * create entry to "aggr_pkt_info_" to construct an aggregation packet */
         if (more) {
-            aggr_pkt_info_.buffers.push_back(std::make_pair(data_len, data));
+            aggr_pkt_info_.nalus.push_back(std::make_pair(data_len, data));
             return RTP_NOT_READY;
         } else {
-            if (aggr_pkt_info_.buffers.empty()) {
+            if (aggr_pkt_info_.nalus.empty()) {
                 if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
                     LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
                     return ret;

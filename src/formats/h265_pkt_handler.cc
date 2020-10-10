@@ -90,7 +90,7 @@ static rtp_error_t __handle_ap(uvg_rtp::formats::h265_frame_info_t *finfo, uvg_r
     size_t size  = 0;
     auto  *frame = *out;
 
-    for (size_t i = 2; i < frame->payload_len; ) {
+    for (size_t i = uvg_rtp::frame::HEADER_SIZE_H265_NAL; i < frame->payload_len; ) {
         nalus.push_back(
             std::make_pair(
                 ntohs(*(uint16_t *)&frame->payload[i]),

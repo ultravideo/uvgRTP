@@ -1,5 +1,7 @@
 #pragma once
 
+#include <deque>
+
 #include "frame.hh"
 #include "queue.hh"
 #include "formats/h26x.hh"
@@ -7,6 +9,17 @@
 namespace uvg_rtp {
 
     namespace formats {
+
+        enum H264_NAL_TYPES {
+            H264_PKT_AGGR = 24,
+            H264_PKT_FRAG = 28
+        };
+
+        struct h264_aggregation_packet {
+            uint8_t fu_indicator[uvg_rtp::frame::HEADER_SIZE_H264_FU];
+            uvg_rtp::buf_vec nalus;  /* discrete NAL units */
+            uvg_rtp::buf_vec aggr_pkt; /* crafted aggregation packet */
+        };
 
         struct h264_headers {
             uint8_t fu_indicator[uvg_rtp::frame::HEADER_SIZE_H264_FU];
@@ -43,10 +56,10 @@ namespace uvg_rtp {
         } h264_info_t;
 
         typedef struct {
+            std::deque<uvg_rtp::frame::rtp_frame *> queued;
             std::unordered_map<uint32_t, h264_info_t> frames;
             std::unordered_set<uint32_t> dropped;
         } h264_frame_info_t;
-
 
         class h264 : public h26x {
             public:
@@ -72,6 +85,15 @@ namespace uvg_rtp {
                  * Return RTP_GENERIC_ERROR if the packet was corrupted in some way */
                 static rtp_error_t packet_handler(void *arg, int flags, frame::rtp_frame **frame);
 
+                /* If the packet handler must return more than one frame, it can install a frame getter
+                 * that is called by the auxiliary handler caller if packet_handler() returns RTP_MULTIPLE_PKTS_READY
+                 *
+                 * "arg" is the same that is passed to packet_handler
+                 *
+                 * Return RTP_PKT_READY if "frame" contains a frame that can be returned to user
+                 * Return RTP_NOT_FOUND if there are no more frames */
+                static rtp_error_t frame_getter(void *arg, frame::rtp_frame **frame);
+
                 /* Return pointer to the internal frame info structure which is relayed to packet handler */
                 h264_frame_info_t *get_h264_frame_info();
 
@@ -79,7 +101,14 @@ namespace uvg_rtp {
                 rtp_error_t push_nal_unit(uint8_t *data, size_t data_len, bool more);
 
             private:
+                /* Construct an aggregation packet from data in "aggr_pkt_info_" */
+                rtp_error_t make_aggregation_pkt();
+
+                /* Clear aggregation buffers */
+                void clear_aggregation_info();
+
                 h264_frame_info_t finfo_;
+                h264_aggregation_packet aggr_pkt_info_;
         };
     };
 };

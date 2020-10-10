@@ -20,7 +20,7 @@ namespace uvg_rtp {
 
         struct h265_aggregation_packet {
             uint8_t nal_header[uvg_rtp::frame::HEADER_SIZE_H265_NAL];
-            uvg_rtp::buf_vec buffers;  /* discrete NAL units */
+            uvg_rtp::buf_vec nalus;  /* discrete NAL units */
             uvg_rtp::buf_vec aggr_pkt; /* crafted aggregation packet */
         };
 

@@ -36,10 +36,10 @@ static int __get_frag(uvg_rtp::frame::rtp_frame *frame)
     bool first_frag = frame->payload[1] & 0x80;
     bool last_frag  = frame->payload[1] & 0x40;
 
-    if ((frame->payload[0] & 0x1f) == 24)
+    if ((frame->payload[0] & 0x1f) == uvg_rtp::formats::H264_PKT_AGGR)
         return FT_STAP_A;
 
-    if ((frame->payload[0] & 0x1f) != 28)
+    if ((frame->payload[0] & 0x1f) != uvg_rtp::formats::H264_PKT_FRAG)
         return FT_NOT_FRAG;
 
     if (first_frag && last_frag)
@@ -54,13 +54,38 @@ static int __get_frag(uvg_rtp::frame::rtp_frame *frame)
     return FT_MIDDLE;
 }
 
-/* TODO: This requires additional support from packet dispatcher.
- * Auxiliary handlers must be able to return more than one packet
- * or auxiliary handlers must provide additional hooking function
- * for the pkt dispatcher so it can query all received packets */
-static rtp_error_t __handle_stap_a(uvg_rtp::frame::rtp_frame **frame)
+static rtp_error_t __handle_stap_a(uvg_rtp::formats::h264_frame_info_t *finfo, uvg_rtp::frame::rtp_frame **out)
 {
-    return RTP_PKT_READY;
+    uvg_rtp::buf_vec nalus;
+
+    size_t size  = 0;
+    auto  *frame = *out;
+
+    for (size_t i = uvg_rtp::frame::HEADER_SIZE_H264_FU; i < frame->payload_len; ) {
+        nalus.push_back(
+            std::make_pair(
+                ntohs(*(uint16_t *)&frame->payload[i]),
+                &frame->payload[i] + sizeof(uint16_t)
+            )
+        );
+
+        size += ntohs(*(uint16_t *)&frame->payload[i]);
+        i    += ntohs(*(uint16_t *)&frame->payload[i]) + sizeof(uint16_t);
+    }
+
+    for (size_t i = 0; i < nalus.size(); ++i) {
+        auto retframe = uvg_rtp::frame::alloc_rtp_frame(nalus[i].first);
+
+        std::memcpy(
+            retframe->payload,
+            nalus[i].second,
+            nalus[i].first
+        );
+
+        finfo->queued.push_back(retframe);
+    }
+
+    return RTP_MULTIPLE_PKTS_READY;
 }
 
 static inline uint8_t __get_nal(uvg_rtp::frame::rtp_frame *frame)
@@ -124,7 +149,7 @@ rtp_error_t uvg_rtp::formats::h264::packet_handler(void *arg, int flags, uvg_rtp
     uint8_t nal_type = __get_nal(frame);
 
     if (frag_type == FT_STAP_A)
-        return __handle_stap_a(out);
+        return __handle_stap_a(finfo, out);
 
     if (frag_type == FT_NOT_FRAG)
         return RTP_PKT_READY;
