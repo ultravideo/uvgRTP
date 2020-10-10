@@ -8,7 +8,7 @@ int main(void)
     uvg_rtp::context ctx;
 
     /* Each new IP address requires a separate RTP session.
-     * This session objects contains all media streams and an RTCP object (if enabled) */
+     * This session object contains all media streams and an RTCP object (if enabled) */
     uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
 
     /* Each RTP session has one or more media streams. These media streams are bidirectional
@@ -24,26 +24,15 @@ int main(void)
      *
      * This same object is used for both sending and receiving media
      *
-     * In this example, we have one media streams with remote participant: hevc */
-    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_HEVC, 0);
+     * In this example, we have one media stream with remote participant: hevc */
+    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, 0);
 
     uint8_t *buffer    = new uint8_t[PAYLOAD_MAXLEN];
     uint32_t timestamp = 0;
 
     for (int i = 0; i < 10; ++i) {
-#ifndef CUSTOM_TIMESTAMPS
-        /* Sending data is as simple as calling push_frame().
-         *
-         * push_frame() will fragment the input buffer into payloads of 1500 bytes and send them to remote */
         if (hevc->push_frame(buffer, PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK)
             fprintf(stderr, "Failed to send RTP frame!");
-#else
-        /* If needed, custom timestamps can be given to push_frame().
-         *
-         * This overrides uvgRTP's own calculations and uses the given timestamp for all RTP packets of "buffer" */
-        if (hevc->push_frame(buffer, PAYLOAD_MAXLEN, (90000 / 30) * timestamp++, RTP_NO_FLAGS) != RTP_OK)
-            fprintf(stderr, "Failed to send RTP frame!");
-#endif
     }
 
     /* Session must be destroyed manually */

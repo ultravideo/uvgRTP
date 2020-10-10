@@ -1,4 +1,3 @@
-#ifdef __RTP_CRYPTO__
 #pragma once
 
 #ifdef _WIN32
@@ -10,15 +9,18 @@
 #include <arpa/inet.h>
 #endif
 
+#include <mutex>
 #include <vector>
 
 #include "crypto.hh"
-#include "mzrtp/defines.hh"
-#include "mzrtp/receiver.hh"
+#include "frame.hh"
+#include "socket.hh"
+#include "zrtp/defines.hh"
+#include "zrtp/zrtp_receiver.hh"
 
 namespace uvg_rtp {
 
-    enum ROLE {
+    enum ZRTP_ROLE {
         INITIATOR,
         RESPONDER
     };
@@ -164,7 +166,7 @@ namespace uvg_rtp {
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init(uint32_t ssrc, socket_t& socket, sockaddr_in& addr);
+            rtp_error_t init(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr);
 
             /* Get SRTP keys for the session that was just initialized
              *
@@ -182,26 +184,28 @@ namespace uvg_rtp {
                 uint8_t *their_msalt, size_t tsalt_len
             );
 
+            /* ZRTP packet handler is used after ZRTP state initialization has finished
+             * and media exchange has started. RTP packet dispatcher gives the packet
+             * to "zrtp_handler" which then checks whether the packet is a ZRTP packet
+             * or not and processes it accordingly.
+             *
+             * Return RTP_OK on success
+             * Return RTP_PKT_NOT_HANDLED if "buffer" does not contain a ZRTP message
+             * Return RTP_GENERIC_ERROR if "buffer" contains an invalid ZRTP message */
+            static rtp_error_t packet_handler(ssize_t size, void *packet, int flags, frame::rtp_frame **out);
+
         private:
             /* Initialize ZRTP session between us and remote using Diffie-Hellman Mode
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init_dhm(uint32_t ssrc, socket_t& socket, sockaddr_in& addr);
+            rtp_error_t init_dhm(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr);
 
             /* Initialize ZRTP session between us and remote using Multistream mode
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init_msm(uint32_t ssrc, socket_t& socket, sockaddr_in& addr);
-
-            /* Set timeout for a socket, needed by backoff timers of ZRTP
-             *
-             * "timeout" tells the timeout in milliseconds
-             *
-             * Return RTP_OK on success
-             * Return RTP_GENERIC_ERROR if timeout could not be set */
-            rtp_error_t set_timeout(size_t timeout);
+            rtp_error_t init_msm(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr);
 
             /* Generate zid for this ZRTP instance. ZID is a unique, 96-bit long ID */
             void generate_zid();
@@ -209,8 +213,12 @@ namespace uvg_rtp {
             /* Create private/public key pair and generate random values for retained secrets */
             void generate_secrets();
 
-            /* Calculate DHResult, total_hash, and s0 according to rules defined in RFC 6189 */
-            void generate_shared_secrets();
+            /* Calculate DHResult, total_hash, and s0
+             * according to rules defined in RFC 6189 for Diffie-Hellman mode*/
+            void generate_shared_secrets_dh();
+
+            /* Calculate shared secrets for Multistream Mode */
+            void generate_shared_secrets_msm();
 
             /* Compare our and remote's hvi values to determine who is the initiator */
             bool are_we_initiator(uint8_t *our_hvi, uint8_t *their_hvi);
@@ -236,7 +244,7 @@ namespace uvg_rtp {
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if no message is received from remote before T2 expires */
-            rtp_error_t init_session();
+            rtp_error_t init_session(int key_agreement);
 
             /* Calculate HMAC-SHA256 using "key" for "buf" of "len" bytes
              * and compare the truncated, 64-bit hash digest against "mac".
@@ -272,7 +280,7 @@ namespace uvg_rtp {
             rtp_error_t initiator_finalize_session();
 
             uint32_t ssrc_;
-            socket_t socket_;
+            uvg_rtp::socket *socket_;
             sockaddr_in addr_;
 
             /* Has the ZRTP connection been initialized using DH */
@@ -287,6 +295,7 @@ namespace uvg_rtp {
 
             zrtp_crypto_ctx_t cctx_;
             zrtp_session_t session_;
+
+            std::mutex zrtp_mtx_;
     };
 };
-#endif

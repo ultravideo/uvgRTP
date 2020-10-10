@@ -32,6 +32,12 @@ uvg_rtp::media_stream *uvg_rtp::session::create_stream(int r_port, int s_port, r
 {
     uvg_rtp::media_stream *stream = nullptr;
 
+    if (flags & RCE_SYSTEM_CALL_DISPATCHER) {
+        LOG_ERROR("SCD is not supported!");
+        rtp_errno = RTP_NOT_SUPPORTED;
+        return nullptr;
+    }
+
     if (laddr_ == "")
         stream = new uvg_rtp::media_stream(addr_, r_port, s_port, fmt, flags);
     else
@@ -44,12 +50,23 @@ uvg_rtp::media_stream *uvg_rtp::session::create_stream(int r_port, int s_port, r
         return nullptr;
     }
 
-#ifdef __RTP_CRYPTO__
     if (flags & RCE_SRTP) {
+        if (!uvg_rtp::crypto::enabled()) {
+            LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+            rtp_errno = RTP_GENERIC_ERROR;
+            return nullptr;
+        }
+
+        if (flags & RCE_SRTP_REPLAY_PROTECTION)
+            flags |= RCE_SRTP_AUTHENTICATE_RTP;
+
         if (flags & RCE_SRTP_KMNGMNT_ZRTP) {
-            if ((zrtp_ = new uvg_rtp::zrtp()) == nullptr) {
-                rtp_errno = RTP_MEMORY_ERROR;
-                return nullptr;
+
+            if (!zrtp_) {
+                if (!(zrtp_ = new uvg_rtp::zrtp())) {
+                    rtp_errno = RTP_MEMORY_ERROR;
+                    return nullptr;
+                }
             }
 
             if (stream->init(zrtp_) != RTP_OK) {
@@ -64,15 +81,11 @@ uvg_rtp::media_stream *uvg_rtp::session::create_stream(int r_port, int s_port, r
             return nullptr;
         }
     } else {
-#endif
         if (stream->init() != RTP_OK) {
             LOG_ERROR("Failed to initialize media stream %s:%d/%d", addr_.c_str(), r_port, s_port);
             return nullptr;
         }
-
-#ifdef __RTP_CRYPTO__
     }
-#endif
 
     streams_.insert(std::make_pair(stream->get_key(), stream));
 

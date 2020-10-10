@@ -15,7 +15,8 @@
 uvg_rtp::rtp::rtp(rtp_format_t fmt):
     wc_start_(0),
     sent_pkts_(0),
-    timestamp_(INVALID_TS)
+    timestamp_(INVALID_TS),
+    payload_size_(MAX_PAYLOAD)
 {
     seq_  = uvg_rtp::random::generate_32() & 0xffff;
     ts_   = uvg_rtp::random::generate_32();
@@ -43,7 +44,8 @@ void uvg_rtp::rtp::set_payload(rtp_format_t fmt)
     payload_ = fmt_ = fmt;
 
     switch (fmt_) {
-        case RTP_FORMAT_HEVC:
+        case RTP_FORMAT_H264:
+        case RTP_FORMAT_H265:
             clock_rate_ = 90000;
             break;
 
@@ -120,4 +122,104 @@ void uvg_rtp::rtp::set_timestamp(uint64_t timestamp)
 uint32_t uvg_rtp::rtp::get_clock_rate(void)
 {
     return clock_rate_;
+}
+
+void uvg_rtp::rtp::set_payload_size(size_t payload_size)
+{
+    payload_size_ = payload_size;
+}
+
+size_t uvg_rtp::rtp::get_payload_size()
+{
+    return payload_size_;
+}
+
+rtp_format_t uvg_rtp::rtp::get_payload()
+{
+    return (rtp_format_t)fmt_;
+}
+
+rtp_error_t uvg_rtp::rtp::packet_handler(ssize_t size, void *packet, int flags, uvg_rtp::frame::rtp_frame **out)
+{
+    (void)flags;
+
+    /* not an RTP frame */
+    if (size < 12)
+        return RTP_PKT_NOT_HANDLED;
+
+    uint8_t *ptr = (uint8_t *)packet;
+
+    /* invalid version */
+    if (((ptr[0] >> 6) & 0x03) != 0x2)
+        return RTP_PKT_NOT_HANDLED;
+
+    if (!(*out = uvg_rtp::frame::alloc_rtp_frame()))
+        return RTP_GENERIC_ERROR;
+
+    (*out)->header.version   = (ptr[0] >> 6) & 0x03;
+    (*out)->header.padding   = (ptr[0] >> 5) & 0x01;
+    (*out)->header.ext       = (ptr[0] >> 4) & 0x01;
+    (*out)->header.cc        = (ptr[0] >> 0) & 0x0f;
+    (*out)->header.marker    = (ptr[1] & 0x80) ? 1 : 0;
+    (*out)->header.payload   = (ptr[1] & 0x7f);
+    (*out)->header.seq       = ntohs(*(uint16_t *)&ptr[2]);
+    (*out)->header.timestamp = ntohl(*(uint32_t *)&ptr[4]);
+    (*out)->header.ssrc      = ntohl(*(uint32_t *)&ptr[8]);
+
+    (*out)->payload_len = (size_t)size - sizeof(uvg_rtp::frame::rtp_header);
+
+    /* Skip the generic RTP header
+     * There may be 0..N CSRC entries after the header, so check those */
+    ptr += sizeof(uvg_rtp::frame::rtp_header);
+
+    if ((*out)->header.cc > 0) {
+        LOG_DEBUG("frame contains csrc entries");
+
+        if ((ssize_t)((*out)->payload_len - (*out)->header.cc * sizeof(uint32_t)) < 0) {
+            LOG_DEBUG("Invalid frame length, %d CSRC entries, total length %zu", (*out)->header.cc, (*out)->payload_len);
+            (void)uvg_rtp::frame::dealloc_frame(*out);
+            return RTP_GENERIC_ERROR;
+        }
+        LOG_DEBUG("Allocating %u CSRC entries", (*out)->header.cc);
+
+        (*out)->csrc         = new uint32_t[(*out)->header.cc];
+        (*out)->payload_len -= (*out)->header.cc * sizeof(uint32_t);
+
+        for (size_t i = 0; i < (*out)->header.cc; ++i) {
+            (*out)->csrc[i]  = *(uint32_t *)ptr;
+            ptr             += sizeof(uint32_t);
+        }
+    }
+
+    if ((*out)->header.ext) {
+        LOG_DEBUG("Frame contains extension information");
+        (*out)->ext = new uvg_rtp::frame::ext_header;
+
+        (*out)->ext->type  = ntohs(*(uint16_t *)&ptr[0]);
+        (*out)->ext->len   = ntohs(*(uint32_t *)&ptr[1]);
+        (*out)->ext->data  = (uint8_t *)memdup(ptr + 2 * sizeof(uint16_t), (*out)->ext->len);
+        ptr               += 2 * sizeof(uint16_t) + (*out)->ext->len;
+    }
+
+    /* If padding is set to 1, the last byte of the payload indicates
+     * how many padding bytes was used. Make sure the padding length is
+     * valid and subtract the amount of padding bytes from payload length */
+    if ((*out)->header.padding) {
+        LOG_DEBUG("Frame contains padding");
+        uint8_t padding_len = (*out)->payload[(*out)->payload_len - 1];
+
+        if (!padding_len || (*out)->payload_len <= padding_len) {
+            uvg_rtp::frame::dealloc_frame(*out);
+            return RTP_GENERIC_ERROR;
+        }
+
+        (*out)->payload_len -= padding_len;
+        (*out)->padding_len  = padding_len;
+    }
+
+    (*out)->payload    = (uint8_t *)memdup(ptr, (*out)->payload_len);
+    (*out)->dgram      = (uint8_t *)packet;
+    (*out)->dgram_size = size;
+
+    return RTP_PKT_MODIFIED;
 }

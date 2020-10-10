@@ -1,26 +1,16 @@
 #include <uvgrtp/lib.hh>
 #include <cstring>
 
-/* uvgRTP calls this hook when it receives an RTCP Sender Report
- * In this example, this doesn't get called because there's only one sender
- *
- * NOTE: If application uses hook, it must also free the frame when it's done with i
- * Frame must deallocated using uvg_rtp::frame::dealloc_frame() function */
-void sender_hook(uvg_rtp::frame::rtcp_sender_frame *frame)
-{
-    fprintf(stderr, "Got RTCP Sender Report\n");
-
-    (void)uvg_rtp::frame::dealloc_frame(frame);
-}
 /* uvgRTP calls this hook when it receives an RTCP Receiver Report
  *
  * NOTE: If application uses hook, it must also free the frame when it's done with i
  * Frame must deallocated using uvg_rtp::frame::dealloc_frame() function */
-void receiver_hook(uvg_rtp::frame::rtcp_receiver_frame *frame)
+void receiver_hook(uvg_rtp::frame::rtcp_receiver_report *frame)
 {
-    fprintf(stderr, "got RTCP Receiver Report\n");
+    LOG_INFO("Received an RTCP Receiver Report");
 
-    (void)uvg_rtp::frame::dealloc_frame(frame);
+    /* RTCP frames can be deallocated using delete */
+    delete frame;
 }
 
 int main(void)
@@ -30,23 +20,18 @@ int main(void)
 
     uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
 
-    uvg_rtp::media_stream *s1 = sess->create_stream(7777, 8888, RTP_FORMAT_GENERIC, RTP_NO_FLAGS);
-    uvg_rtp::media_stream *s2 = sess->create_stream(8888, 7777, RTP_FORMAT_GENERIC, RTP_NO_FLAGS);
+    /* For s1, RTCP runner is using port 7778 and for s2 port 8889 */
+    uvg_rtp::media_stream *s1 = sess->create_stream(7777, 8888, RTP_FORMAT_GENERIC, RCE_RTCP);
+    uvg_rtp::media_stream *s2 = sess->create_stream(8888, 7777, RTP_FORMAT_GENERIC, RCE_RTCP);
 
-    s1->create_rtcp(7778, 8889);
-    s2->create_rtcp(8889, 7778);
-
-    /* Send Sender Reports 127.0.0.1:8889 and receive RTCP Reports to 5566
-     * Add hook for the Receiver Report */
-    /* (void)writer->create_rtcp("127.0.0.1", 8889, 5566); */
+    /* In this example code, s1 acts as the sender and because it is the only sender,
+     * it does not send any RTCP frames but only receives RTCP Receiver reports from s2.
+     *
+     * Because s1 only sends and s2 only receives, we only need to install receive hook for s1
+     *
+     * By default, all media_stream that have RTCP enabled start as receivers and only if/when they 
+     * call push_frame() are they converted into senders. */
     (void)s1->get_rtcp()->install_receiver_hook(receiver_hook);
-    (void)s1->get_rtcp()->install_sender_hook(sender_hook);
-
-    /* Send Receiver Reports 127.0.0.1:5566 and receive RTCP Reports to 8889
-     * and add hook for the Sender Report */
-    /* (void)reader->create_rtcp("127.0.0.1", 5566, 8889); */
-    (void)s2->get_rtcp()->install_sender_hook(sender_hook);
-    (void)s2->get_rtcp()->install_receiver_hook(receiver_hook);
 
     /* Send dummy data so there's some RTCP data to send */
     uint8_t buffer[50] = { 0 };

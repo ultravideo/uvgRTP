@@ -3,20 +3,16 @@
 #include <unordered_map>
 #include <memory>
 
-#include "receiver.hh"
+#include "pkt_dispatch.hh"
 #include "rtcp.hh"
-#include "sender.hh"
 #include "socket.hh"
-#include "srtp.hh"
+#include "srtp/srtcp.hh"
+#include "srtp/srtp.hh"
 #include "util.hh"
 
-namespace uvg_rtp {
+#include "formats/media.hh"
 
-    enum mstream_type {
-        BIDIRECTIONAL,
-        UNIDIRECTIONAL_SENDER,
-        UNIDIRECTIONAL_RECEIVER
-    };
+namespace uvg_rtp {
 
     class media_stream {
         public:
@@ -42,7 +38,6 @@ namespace uvg_rtp {
              * TODO document all error codes!
              *
              * Other error return codes are defined in {conn,writer,reader,srtp}.hh */
-#ifdef __RTP_CRYPTO__
             rtp_error_t init(uvg_rtp::zrtp *zrtp);
 
             /* Add key for user-managed SRTP session
@@ -59,7 +54,6 @@ namespace uvg_rtp {
              * Return RTP_INVALID_VALUE if "key" or "salt" is invalid
              * Return RTP_NOT_SUPPORTED if user-managed SRTP was not specified in create_stream() */
             rtp_error_t add_srtp_ctx(uint8_t *key, uint8_t *salt);
-#endif
 
             /* Split "data" into 1500 byte chunks and send them to remote
              *
@@ -156,17 +150,6 @@ namespace uvg_rtp {
              * Used by session to index media streams */
             uint32_t get_key();
 
-            /* Create RTCP object for this media stream
-             *
-             * "src_port" is the port where we receive RTCP reports and
-             * "dst_port" is the port where we send RTCP reports
-             *
-             * RTCP is destroyed automatically when the media stream is destroyed
-             *
-             * Return RTP_OK on success
-             * Return RTP_INITIALIZED if RTCP has already been initialized */
-            rtp_error_t create_rtcp(uint16_t src_port, uint16_t dst_port);
-
             /* Get pointer to the RTCP object of the media stream
              *
              * This object is used to control all RTCP-related functionality
@@ -184,12 +167,11 @@ namespace uvg_rtp {
 
             uint32_t key_;
 
-            uvg_rtp::srtp       *srtp_;
-            uvg_rtp::socket     socket_;
-            uvg_rtp::sender     *sender_;
-            uvg_rtp::receiver   *receiver_;
-            uvg_rtp::rtp        *rtp_;
-            uvg_rtp::rtcp       *rtcp_;
+            uvg_rtp::srtp   *srtp_;
+            uvg_rtp::srtcp  *srtcp_;
+            uvg_rtp::socket *socket_;
+            uvg_rtp::rtp    *rtp_;
+            uvg_rtp::rtcp   *rtcp_;
 
             sockaddr_in addr_out_;
             std::string addr_;
@@ -208,7 +190,15 @@ namespace uvg_rtp {
             /* Has the media stream been initialized */
             bool initialized_;
 
-            /* media stream type */
-            enum mstream_type type_;
+            /* Primary handler keys for the RTP packet dispatcher */
+            uint32_t rtp_handler_key_;
+            uint32_t zrtp_handler_key_;
+
+            /* RTP packet dispatcher for the receiver */
+            uvg_rtp::pkt_dispatcher *pkt_dispatcher_;
+            std::thread *dispatcher_thread_;
+
+            /* Media object associated with this media stream. */
+            uvg_rtp::formats::media *media_;
     };
 };

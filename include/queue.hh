@@ -7,7 +7,9 @@
 
 #include "dispatch.hh"
 #include "frame.hh"
-#include "sender.hh"
+#include "rtp.hh"
+#include "socket.hh"
+#include "srtp/base.hh"
 #include "util.hh"
 
 #if defined(_MSC_VER)
@@ -20,7 +22,6 @@ const int MAX_CHUNK_COUNT =   4;
 
 namespace uvg_rtp {
 
-    class sender;
     class dispatcher;
     class frame_queue;
 
@@ -29,19 +30,21 @@ namespace uvg_rtp {
         size_t c_start; size_t c_end;
     } active_t;
 
-    typedef std::vector<std::pair<size_t, uint8_t *>> buff_vec;
-
     typedef struct transaction {
         /* Each transaction has a unique key which is used by the SCD (if enabled)
          * when moving the transactions betwen "queued_" and "free_" */
         uint32_t key;
 
-        /* To provide true scatter/gather I/O, each transaction has a buff_vec
+        /* To provide true scatter/gather I/O, each transaction has a buf_vec
          * structure which may contain differents buffers and their sizes.
          *
          * This can be used, for example, for storing media-specific headers
          * which are then passed (along with the actual media) to enqueue_message() */
-        uvg_rtp::buff_vec buffers;
+        uvg_rtp::buf_vec buffers;
+
+        /* Each RTP frame of a transaction is constructed using buf_vec structure and
+         * each buf_vec structure is pushed to pkt_vec */
+        uvg_rtp::pkt_vec packets;
 
         /* All packets of a transaction share the common RTP header only differing in sequence number.
          * Keeping a separate common RTP header and then just copying this is cleaner than initializing
@@ -64,9 +67,13 @@ namespace uvg_rtp {
          * See src/formats/hevc.hh for example */
         void *media_headers;
 
+        /* Pointer to RTP authentication (if enabled) */
+        uint8_t *rtp_auth_tags;
+
         size_t chunk_ptr;
         size_t hdr_ptr;
         size_t rtphdr_ptr;
+        size_t rtpauth_ptr;
 
         /* Address of receiver, used by sendmmsg(2) */
         sockaddr_in out_addr;
@@ -96,13 +103,12 @@ namespace uvg_rtp {
 
     class frame_queue {
         public:
-            frame_queue(rtp_format_t fmt);
-            frame_queue(rtp_format_t fmt, uvg_rtp::dispatcher *dispatcher);
+            frame_queue(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags);
             ~frame_queue();
 
-            rtp_error_t init_transaction(uvg_rtp::sender *sender);
-            rtp_error_t init_transaction(uvg_rtp::sender *sender, uint8_t *data);
-            rtp_error_t init_transaction(uvg_rtp::sender *sender, std::unique_ptr<uint8_t[]> data);
+            rtp_error_t init_transaction();
+            rtp_error_t init_transaction(uint8_t *data);
+            rtp_error_t init_transaction(std::unique_ptr<uint8_t[]> data);
 
             /* If there are less than "MAX_QUEUED_MSGS" in the "free_" vector,
              * the transaction is moved there, otherwise it's destroyed
@@ -126,34 +132,28 @@ namespace uvg_rtp {
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if one of the parameters is invalid
              * Return RTP_MEMORY_ERROR if the maximum amount of chunks/messages is exceeded */
-            rtp_error_t enqueue_message(
-                uvg_rtp::sender *sender,
-                uint8_t *message, size_t message_len
-            );
+            rtp_error_t enqueue_message(uint8_t *message, size_t message_len);
 
             /* Cache all messages in "buffers" in order to frame queue
              *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if one of the parameters is invalid
              * Return RTP_MEMORY_ERROR if the maximum amount of chunks/messages is exceeded */
-            rtp_error_t enqueue_message(
-                uvg_rtp::sender *sender,
-                buff_vec& buffers
-            );
+            rtp_error_t enqueue_message(buf_vec& buffers);
 
             /* Flush the message queue
              *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "sender" is nullptr or message buffer is empty
              * return RTP_SEND_ERROR if send fails */
-            rtp_error_t flush_queue(uvg_rtp::sender *sender);
+            rtp_error_t flush_queue();
 
             /* Media may have extra headers (f.ex. NAL and FU headers for HEVC).
              * These headers must be valid until the message is sent (ie. they cannot be saved to
              * caller's stack).
              *
-             * Buff_vec is the place to store these extra headers (see src/formats/hevc.cc) */
-            uvg_rtp::buff_vec& get_buffer_vector();
+             * buf_vec is the place to store these extra headers (see src/formats/hevc.cc) */
+            uvg_rtp::buf_vec& get_buffer_vector();
 
             /* Each media may allocate extra buffers for the transaction struct if need be
              *
@@ -168,7 +168,7 @@ namespace uvg_rtp {
             void *get_media_headers();
 
             /* Update the active task's current packet's sequence number */
-            void update_rtp_header(uvg_rtp::sender *sender);
+            void update_rtp_header();
 
             /* Because frame queue supports both raw and smart pointers and the smart pointer ownership
              * is transferred to active transaction, the code that created the transaction must query
@@ -202,10 +202,6 @@ namespace uvg_rtp {
 
             transaction_t *active_;
 
-            /* What is the media format used to send data using this frame queue
-             * This is used when allocating new transactions */
-            rtp_format_t fmt_;
-
             /* Set to nullptr if this frame queue doesn't use dispatcher */
             uvg_rtp::dispatcher *dispatcher_;
 
@@ -215,5 +211,11 @@ namespace uvg_rtp {
             ssize_t max_queued_; /* number of queued transactions */
             ssize_t max_mcount_; /* number of messages per transactions */
             ssize_t max_ccount_; /* number of chunks per message */
+
+            uvg_rtp::rtp *rtp_;
+            uvg_rtp::socket *socket_;
+
+            /* RTP context flags */
+            int flags_;
     };
 };

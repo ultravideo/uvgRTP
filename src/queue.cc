@@ -11,12 +11,12 @@
 #include "debug.hh"
 #include "queue.hh"
 #include "random.hh"
-#include "sender.hh"
 
-#include "formats/hevc.hh"
+#include "formats/h264.hh"
+#include "formats/h265.hh"
 
-uvg_rtp::frame_queue::frame_queue(rtp_format_t fmt):
-    active_(nullptr), fmt_(fmt), dealloc_hook_(nullptr)
+uvg_rtp::frame_queue::frame_queue(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):
+    rtp_(rtp), socket_(socket), flags_(flags)
 {
     active_     = nullptr;
     dispatcher_ = nullptr;
@@ -24,12 +24,6 @@ uvg_rtp::frame_queue::frame_queue(rtp_format_t fmt):
     max_queued_ = MAX_QUEUED_MSGS;
     max_mcount_ = MAX_MSG_COUNT;
     max_ccount_ = MAX_CHUNK_COUNT * max_mcount_;
-}
-
-uvg_rtp::frame_queue::frame_queue(rtp_format_t fmt, uvg_rtp::dispatcher *dispatcher):
-    frame_queue(fmt)
-{
-    dispatcher_ = dispatcher;
 }
 
 uvg_rtp::frame_queue::~frame_queue()
@@ -43,7 +37,7 @@ uvg_rtp::frame_queue::~frame_queue()
         (void)destroy_transaction(active_);
 }
 
-rtp_error_t uvg_rtp::frame_queue::init_transaction(uvg_rtp::sender *sender)
+rtp_error_t uvg_rtp::frame_queue::init_transaction()
 {
     std::lock_guard<std::mutex> lock(transaction_mtx_);
 
@@ -63,9 +57,13 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction(uvg_rtp::sender *sender)
 #endif
         active_->rtp_headers = new uvg_rtp::frame::rtp_header[max_mcount_];
 
-        switch (fmt_) {
-            case RTP_FORMAT_HEVC:
-                active_->media_headers = new uvg_rtp::hevc::media_headers;
+        switch (rtp_->get_payload()) {
+            case RTP_FORMAT_H264:
+                active_->media_headers = new uvg_rtp::formats::h264_headers;
+                break;
+
+            case RTP_FORMAT_H265:
+                active_->media_headers = new uvg_rtp::formats::h265_headers;
                 break;
 
             default:
@@ -76,28 +74,34 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction(uvg_rtp::sender *sender)
         free_.pop_back();
     }
 
-    active_->chunk_ptr  = 0;
-    active_->hdr_ptr    = 0;
-    active_->rtphdr_ptr = 0;
-    active_->fqueue     = this;
+    active_->chunk_ptr   = 0;
+    active_->hdr_ptr     = 0;
+    active_->rtphdr_ptr  = 0;
+    active_->rtpauth_ptr = 0;
+    active_->fqueue      = this;
 
     active_->data_raw     = nullptr;
     active_->data_smart   = nullptr;
     active_->dealloc_hook = dealloc_hook_;
 
-    active_->out_addr = sender->get_socket().get_out_address();
-    sender->get_rtp_ctx()->fill_header((uint8_t *)&active_->rtp_common);
+    if (flags_ & RCE_SRTP_AUTHENTICATE_RTP)
+        active_->rtp_auth_tags = new uint8_t[10 * max_mcount_];
+    else
+        active_->rtp_auth_tags = nullptr;
+
+    active_->out_addr = socket_->get_out_address();
+    rtp_->fill_header((uint8_t *)&active_->rtp_common);
     active_->buffers.clear();
 
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::frame_queue::init_transaction(uvg_rtp::sender *sender, uint8_t *data)
+rtp_error_t uvg_rtp::frame_queue::init_transaction(uint8_t *data)
 {
-    if (!sender || !data)
+    if (!data)
         return RTP_INVALID_VALUE;
 
-    if (init_transaction(sender) != RTP_OK) {
+    if (init_transaction() != RTP_OK) {
         LOG_ERROR("Failed to initialize transaction");
         return RTP_GENERIC_ERROR;
     }
@@ -108,12 +112,12 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction(uvg_rtp::sender *sender, uint
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::frame_queue::init_transaction(uvg_rtp::sender *sender, std::unique_ptr<uint8_t[]> data)
+rtp_error_t uvg_rtp::frame_queue::init_transaction(std::unique_ptr<uint8_t[]> data)
 {
-    if (!sender || !data)
+    if (!data)
         return RTP_INVALID_VALUE;
 
-    if (init_transaction(sender) != RTP_OK) {
+    if (init_transaction() != RTP_OK) {
         LOG_ERROR("Failed to initialize transaction");
         return RTP_GENERIC_ERROR;
     }
@@ -126,20 +130,28 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction(uvg_rtp::sender *sender, std:
 
 rtp_error_t uvg_rtp::frame_queue::destroy_transaction(uvg_rtp::transaction_t *t)
 {
+    fprintf(stderr, "destroying transaction\n");
+
     if (!t)
         return RTP_INVALID_VALUE;
 
     delete[] t->headers;
     delete[] t->chunks;
     delete[] t->rtp_headers;
+    delete[] t->rtp_auth_tags;
 
     t->headers     = nullptr;
     t->chunks      = nullptr;
     t->rtp_headers = nullptr;
 
-    switch (fmt_) {
-        case RTP_FORMAT_HEVC:
-            delete (uvg_rtp::hevc::media_headers *)t->media_headers;
+    switch (rtp_->get_payload()) {
+        case RTP_FORMAT_H264:
+            delete (uvg_rtp::formats::h264_headers *)t->media_headers;
+            t->media_headers = nullptr;
+            break;
+
+        case RTP_FORMAT_H265:
+            delete (uvg_rtp::formats::h265_headers *)t->media_headers;
             t->media_headers = nullptr;
             break;
 
@@ -171,6 +183,16 @@ rtp_error_t uvg_rtp::frame_queue::deinit_transaction(uint32_t key)
     }
 
     if (active_ && active_->key == key) {
+        /* free all temporary buffers */
+        if ((flags_ & (RCE_SRTP | RCE_SRTP_INPLACE_ENCRYPTION | RCE_SRTP_NULL_CIPHER)) == RCE_SRTP) {
+            for (auto& packet : active_->packets) {
+                for (size_t i = 1; i < packet.size(); ++i) {
+                    delete[] packet[i].second;
+                }
+            }
+            /* TODO: fix memory leak from combined buffer */
+        }
+        active_->packets.clear();
         free_.push_back(active_);
         active_ = nullptr;
         return RTP_OK;
@@ -183,15 +205,20 @@ rtp_error_t uvg_rtp::frame_queue::deinit_transaction(uint32_t key)
     }
 
     if (free_.size() >= (size_t)max_queued_) {
-        switch (fmt_) {
-            case RTP_FORMAT_HEVC:
-                delete (uvg_rtp::hevc::media_headers *)transaction_it->second->media_headers;
+        switch (rtp_->get_payload()) {
+            case RTP_FORMAT_H264:
+                delete (uvg_rtp::formats::h264_headers *)transaction_it->second->media_headers;
+                break;
+
+            case RTP_FORMAT_H265:
+                delete (uvg_rtp::formats::h265_headers *)transaction_it->second->media_headers;
                 break;
 
             default:
                 break;
         }
 
+        delete[] transaction_it->second->rtp_auth_tags;
         delete[] transaction_it->second->headers;
         delete[] transaction_it->second->chunks;
         delete[] transaction_it->second->rtp_headers;
@@ -214,98 +241,104 @@ rtp_error_t uvg_rtp::frame_queue::deinit_transaction()
     return uvg_rtp::frame_queue::deinit_transaction(active_->key);
 }
 
-rtp_error_t uvg_rtp::frame_queue::enqueue_message(
-    uvg_rtp::sender *sender,
-    uint8_t *message, size_t message_len
-)
+rtp_error_t uvg_rtp::frame_queue::enqueue_message(uint8_t *message, size_t message_len)
 {
-    if (!sender || !message || message_len == 0)
+    if (!message || !message_len)
         return RTP_INVALID_VALUE;
 
-#ifdef __linux__
-    if (active_->chunk_ptr + 2 >= (size_t)max_ccount_ || active_->hdr_ptr + 1 >= (size_t)max_mcount_) {
-        LOG_ERROR("maximum amount of chunks (%zu) or messages (%zu) exceeded!", active_->chunk_ptr, active_->hdr_ptr);
-        return RTP_MEMORY_ERROR;
-    }
+    /* Create buffer vector where the full packet is constructed
+     * and which is then pushed to "active_"'s pkt_vec structure */
+    uvg_rtp::buf_vec tmp;
 
     /* update the RTP header at "rtpheaders_ptr_" */
-    uvg_rtp::frame_queue::update_rtp_header(sender);
+    uvg_rtp::frame_queue::update_rtp_header();
 
-    active_->chunks[active_->chunk_ptr + 0].iov_base = &active_->rtp_headers[active_->rtphdr_ptr];
-    active_->chunks[active_->chunk_ptr + 0].iov_len  = sizeof(active_->rtp_headers[active_->rtphdr_ptr]);
+    /* Push RTP header first and then push all payload buffers */
+    tmp.push_back({
+        sizeof(active_->rtp_headers[active_->rtphdr_ptr]),
+        (uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr++]
+    });
 
-    active_->chunks[active_->chunk_ptr + 1].iov_base = message;
-    active_->chunks[active_->chunk_ptr + 1].iov_len  = message_len;
+    /* If SRTP with proper encryption has been enabled but
+     * RCE_SRTP_INPLACE_ENCRYPTION has **not** been enabled, make a copy of the memory block*/
+    if ((flags_ & (RCE_SRTP | RCE_SRTP_INPLACE_ENCRYPTION | RCE_SRTP_NULL_CIPHER)) == RCE_SRTP)
+        message = (uint8_t *)memdup(message, message_len);
 
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_name       = (void *)&active_->out_addr;
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_namelen    = sizeof(active_->out_addr);
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_iov        = &active_->chunks[active_->chunk_ptr];
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_iovlen     = 2;
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_control    = 0;
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_controllen = 0;
+    tmp.push_back({ message_len, message });
 
-    active_->rtphdr_ptr += 1;
-    active_->chunk_ptr  += 2;
-    active_->hdr_ptr    += 1;
-#else
-    /* TODO: winsock stuff */
-#endif
+    if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
+        tmp.push_back({
+            AUTH_TAG_LENGTH,
+            (uint8_t *)&active_->rtp_auth_tags[10 * active_->rtpauth_ptr++]
+        });
+    }
 
-    sender->get_rtp_ctx()->inc_sequence();
-    sender->get_rtp_ctx()->inc_sent_pkts();
+    active_->packets.push_back(tmp);
+    rtp_->inc_sequence();
+    rtp_->inc_sent_pkts();
 
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::frame_queue::enqueue_message(
-    uvg_rtp::sender *sender,
-    std::vector<std::pair<size_t, uint8_t *>>& buffers
-)
+rtp_error_t uvg_rtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, uint8_t *>>& buffers)
 {
-    if (!sender || buffers.size() == 0)
+    if (!buffers.size())
         return RTP_INVALID_VALUE;
 
-#ifdef __linux__
-    if (active_->chunk_ptr + buffers.size() + 1 >= (size_t)max_ccount_ || active_->hdr_ptr + 1 >= (size_t)max_mcount_) {
-        LOG_ERROR("maximum amount of chunks (%zu) or messages (%zu) exceeded!", active_->chunk_ptr, active_->hdr_ptr);
-        return RTP_MEMORY_ERROR;
-    }
+    /* Create buffer vector where the full packet is constructed
+     * and which is then pushed to "active_"'s pkt_vec structure */
+    uvg_rtp::buf_vec tmp;
 
     /* update the RTP header at "rtpheaders_ptr_" */
-    uvg_rtp::frame_queue::update_rtp_header(sender);
+    uvg_rtp::frame_queue::update_rtp_header();
 
-    active_->chunks[active_->chunk_ptr].iov_len  = sizeof(active_->rtp_headers[active_->rtphdr_ptr]);
-    active_->chunks[active_->chunk_ptr].iov_base = &active_->rtp_headers[active_->rtphdr_ptr];
+    /* Push RTP header first and then push all payload buffers */
+    tmp.push_back({
+        sizeof(active_->rtp_headers[active_->rtphdr_ptr]),
+        (uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr++]
+    });
 
-    for (size_t i = 0; i < buffers.size(); ++i) {
-        active_->chunks[active_->chunk_ptr + i + 1].iov_len  = buffers.at(i).first;
-        active_->chunks[active_->chunk_ptr + i + 1].iov_base = buffers.at(i).second;
+    /* If SRTP with proper encryption is used and there are more than one buffer,
+     * frame queue must be a copy of the input and  */
+    if ((flags_ & RCE_SRTP) && !(flags_ & RCE_SRTP_NULL_CIPHER) && buffers.size() > 1) {
+        size_t total = 0;
+        uint8_t *mem = nullptr;
+
+        for (auto& buffer : buffers)
+            total += buffer.first;
+
+        if (!(mem = new uint8_t[total])) {
+            LOG_ERROR("Failed to allocate memory for copy block!");
+            return RTP_MEMORY_ERROR;
+        }
+
+        for (auto& buffer : buffers) {
+            memcpy(mem, buffer.second, buffer.first);
+            mem += buffer.first;
+        }
+    } else {
+        for (auto& buffer : buffers)
+            tmp.push_back({ buffer.first, buffer.second });
     }
 
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_name       = (void *)&active_->out_addr;
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_namelen    = sizeof(active_->out_addr);
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_iov        = &active_->chunks[active_->chunk_ptr];
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_iovlen     = buffers.size() + 1;
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_control    = 0;
-    active_->headers[active_->hdr_ptr].msg_hdr.msg_controllen = 0;
+    if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
+        tmp.push_back({
+            AUTH_TAG_LENGTH,
+            (uint8_t *)&active_->rtp_auth_tags[10 * active_->rtpauth_ptr++]
+        });
+    }
 
-    active_->chunk_ptr  += buffers.size() + 1;
-    active_->hdr_ptr    += 1;
-    active_->rtphdr_ptr += 1;
-#else
-    /* TODO: winsock stuff */
-#endif
-
-    sender->get_rtp_ctx()->inc_sequence();
-    sender->get_rtp_ctx()->inc_sent_pkts();
+    active_->packets.push_back(tmp);
+    rtp_->inc_sequence();
+    rtp_->inc_sent_pkts();
 
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::frame_queue::flush_queue(uvg_rtp::sender *sender)
+rtp_error_t uvg_rtp::frame_queue::flush_queue()
 {
-    if (!sender || active_->hdr_ptr == 0 || active_->chunk_ptr == 0) {
-        LOG_ERROR("Cannot send 0 messages or messages containing 0 chunks!");
+    if (active_->packets.empty()) {
+        LOG_ERROR("Cannot send an empty packet!");
         (void)deinit_transaction();
         return RTP_INVALID_VALUE;
     }
@@ -313,36 +346,27 @@ rtp_error_t uvg_rtp::frame_queue::flush_queue(uvg_rtp::sender *sender)
     /* set the marker bit of the last packet to 1 */
     ((uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr - 1])[1] |= (1 << 7);
 
-#ifdef __linux__
     transaction_mtx_.lock();
     queued_.insert(std::make_pair(active_->key, active_));
     transaction_mtx_.unlock();
 
-    if (dispatcher_) {
-        dispatcher_->trigger_send(active_);
-        active_ = nullptr;
-        return RTP_OK;
-    }
-
-    if (sender->get_socket().send_vecio(active_->headers, active_->hdr_ptr, 0) != RTP_OK) {
+    if (socket_->sendto(active_->packets, 0) != RTP_OK) {
         LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
         (void)deinit_transaction();
         return RTP_SEND_ERROR;
     }
 
     LOG_DEBUG("full message took %zu chunks and %zu messages", active_->chunk_ptr, active_->hdr_ptr);
-
     return deinit_transaction();
-#endif
 }
 
-void uvg_rtp::frame_queue::update_rtp_header(uvg_rtp::sender *sender)
+void uvg_rtp::frame_queue::update_rtp_header()
 {
     memcpy(&active_->rtp_headers[active_->rtphdr_ptr], &active_->rtp_common, sizeof(active_->rtp_common));
-    sender->get_rtp_ctx()->update_sequence((uint8_t *)(&active_->rtp_headers[active_->rtphdr_ptr]));
+    rtp_->update_sequence((uint8_t *)(&active_->rtp_headers[active_->rtphdr_ptr]));
 }
 
-uvg_rtp::buff_vec& uvg_rtp::frame_queue::get_buffer_vector()
+uvg_rtp::buf_vec& uvg_rtp::frame_queue::get_buffer_vector()
 {
     return active_->buffers;
 }

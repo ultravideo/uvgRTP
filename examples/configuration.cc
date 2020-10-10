@@ -8,13 +8,13 @@ int main(void)
     uvg_rtp::context ctx;
 
     /* Each new IP address requires a separate RTP session.
-     * This session objects contains all media streams and an RTCP object (if enabled) */
+     * This session object contains all media streams and an RTCP object (if enabled) */
     uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
 
     /* Enable system call dispatcher for the sender to minimize delay experienced by the application
      *
      * See sending.cc for more details about media stream initialization */
-    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_HEVC, RCE_SYSTEM_CALL_DISPATCHER);
+    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, RCE_SYSTEM_CALL_DISPATCHER);
 
     /* Increase UDP send/recv buffers to 40 MB */
     hevc->configure_ctx(RCC_UDP_RCV_BUF_SIZE, 40 * 1000 * 1000);

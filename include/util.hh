@@ -11,19 +11,18 @@
 #include <cstdint>
 #include <cstddef>
 #include <cstdio>
+#include <cstring>
 #include <string>
 
 #if defined(_MSC_VER)
 typedef SSIZE_T ssize_t;
 #endif
 
-
+/* https://stackoverflow.com/questions/1537964/visual-c-equivalent-of-gccs-attribute-packed  */
 #if defined(__MINGW32__) || defined(__MINGW64__) || defined(__linux__)
-#define PACKED_STRUCT(name) \
-    struct __attribute__((packed)) name
+#define PACK(__Declaration__) __Declaration__ __attribute__((__packed__))
 #else
-//#warning "structures are not packed!"
-#define PACKED_STRUCT(name) struct name
+#define PACK(__Declaration__) __pragma(pack(push, 1)) __Declaration__ __pragma(pack(pop))
 #endif
 
 #ifdef _WIN32
@@ -36,27 +35,33 @@ const int MAX_PACKET      = 65536;
 const int MAX_PAYLOAD     = 1443;
 
 typedef enum RTP_ERROR {
-    RTP_INTERRUPTED     =  2,
-    RTP_NOT_READY       =  1,
-    RTP_OK              =  0,
-    RTP_GENERIC_ERROR   = -1,
-    RTP_SOCKET_ERROR    = -2,
-    RTP_BIND_ERROR      = -3,
-    RTP_INVALID_VALUE   = -4,
-    RTP_SEND_ERROR      = -5,
-    RTP_MEMORY_ERROR    = -6,
-    RTP_SSRC_COLLISION  = -7,
-    RTP_INITIALIZED     = -8,   /* object already initialized */
-    RTP_NOT_INITIALIZED = -9,   /* object has not been initialized */
-    RTP_NOT_SUPPORTED   = -10,  /* method/version/extension not supported */
-    RTP_RECV_ERROR      = -11,  /* recv(2) or one of its derivatives failed */
-    RTP_TIMEOUT         = -12,  /* operation timed out */
-    RTP_NOT_FOUND       = -13,  /* object not found */
+    RTP_MULTIPLE_PKTS_READY = 6,   /* multiple packets can be queried from the layer */
+    RTP_PKT_READY           = 5,   /* packet can be returned to user */
+    RTP_PKT_MODIFIED        = 4,   /* packet was modified by the layer (see src/pkt_dispatch.cc) */
+    RTP_PKT_NOT_HANDLED     = 3,   /* packet does not belong to this layer */
+    RTP_INTERRUPTED         = 2,
+    RTP_NOT_READY           = 1,
+    RTP_OK                  = 0,
+    RTP_GENERIC_ERROR       = -1,
+    RTP_SOCKET_ERROR        = -2,
+    RTP_BIND_ERROR          = -3,
+    RTP_INVALID_VALUE       = -4,
+    RTP_SEND_ERROR          = -5,
+    RTP_MEMORY_ERROR        = -6,
+    RTP_SSRC_COLLISION      = -7,
+    RTP_INITIALIZED         = -8,   /* object already initialized */
+    RTP_NOT_INITIALIZED     = -9,   /* object has not been initialized */
+    RTP_NOT_SUPPORTED       = -10,  /* method/version/extension not supported */
+    RTP_RECV_ERROR          = -11,  /* recv(2) or one of its derivatives failed */
+    RTP_TIMEOUT             = -12,  /* operation timed out */
+    RTP_NOT_FOUND           = -13,  /* object not found */
+    RTP_AUTH_TAG_MISMATCH   = -14,  /* authentication tag does not match the RTP packet contents */
 } rtp_error_t;
 
 typedef enum RTP_FORMAT {
     RTP_FORMAT_GENERIC = 0,
-    RTP_FORMAT_HEVC    = 96,
+    RTP_FORMAT_H264    = 95,
+    RTP_FORMAT_H265    = 96,
     RTP_FORMAT_OPUS    = 97,
 } rtp_format_t;
 
@@ -100,12 +105,22 @@ enum RTP_CTX_ENABLE_FLAGS {
 
     /* Use ZRTP for key management
      *
-     * TODO selitä paremmin */
+     * If this flag is provided, before the session starts,
+     * ZRTP will negotiate keys with the remote participants
+     * and these keys are used as salting/keying material for the session.
+     *
+     * This flag must be coupled with RCE_SRTP and is mutually exclusive
+     * with RCE_SRTP_KMNGMNT_USER. */
     RCE_SRTP_KMNGMNT_ZRTP         = 1 << 4,
 
     /* Use user-defined way to manage keys
      *
-     * TODO selitä paremmin */
+     * If this flag is provided, before the media transportation starts,
+     * user must provide a master key and salt form which SRTP session
+     * keys are derived
+     *
+     * This flag must be coupled with RCE_SRTP and is mutually exclusive
+     * with RCE_SRTP_KMNGMNT_ZRTP */
     RCE_SRTP_KMNGMNT_USER         = 1 << 5,
 
     /* When uvgRTP is receiving HEVC stream, as an attempt to improve
@@ -128,7 +143,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      * This behavior can be disabled with RCE_HEVC_NO_INTRA_DELAY
      * If this flag is given, uvgRTP treats all frame types
      * equally and drops all frames that are late */
-    RCE_HEVC_NO_INTRA_DELAY       = 1 << 5,
+    RCE_H265_NO_INTRA_DELAY       = 1 << 5,
 
     /* Fragment generic frames into RTP packets of 1500 bytes.
      *
@@ -152,23 +167,30 @@ enum RTP_CTX_ENABLE_FLAGS {
      * unnecessary copy operations.
      *
      * If RCE_INPLACE_ENCRYPTION is given to push_frame(), the input pointer must be writable! */
-    RCE_INPLACE_ENCRYPTION        = 1 << 7,
+    RCE_SRTP_INPLACE_ENCRYPTION   = 1 << 7,
 
     /* Disable System Call Clustering (SCC), System Call Dispatching is still usable */
     RCE_NO_SYSTEM_CALL_CLUSTERING = 1 << 8,
 
-    /* Make the media stream unidirectional, i.e. sender/receiver only */
-    RCE_UNIDIRECTIONAL            = 1 << 9,
+    /* Disable RTP payload encryption */
+    RCE_SRTP_NULL_CIPHER          = 1 << 9,
 
-    /* Media stream is only used for sending
-     * Mutually exclusive with RCE_UNIDIR_RECEIVER */
-    RCE_UNIDIR_SENDER             = 1 << 10,
+    /* Enable RTP packet authentication
+     *
+     * This flag forces the security layer to add authentication tag
+     * to each outgoing RTP packet for all streams that have SRTP enabled.
+     *
+     * NOTE: this flag must be coupled with at least RCE_SRTP */
+    RCE_SRTP_AUTHENTICATE_RTP     = 1 << 10,
 
-    /* Media stream is only used for receiving
-     * Mutually exclusive with RCE_UNIDIR_SENDER */
-    RCE_UNIDIR_RECEIVER           = 1 << 11,
+    /* Enable packet replay protection */
+    RCE_SRTP_REPLAY_PROTECTION    = 1 << 11,
 
-    RCE_LAST                      = 1 << 12,
+    /* Enable RTCP for the media stream.
+     * If SRTP is enabled, SRTCP is used instead */
+    RCE_RTCP                      = 1 << 12,
+
+    RCE_LAST                      = 1 << 13,
 };
 
 /* These options are given to configuration() */
@@ -202,6 +224,11 @@ typedef struct rtp_ctx_conf {
 
 extern thread_local rtp_error_t rtp_errno;
 
+#define TIME_DIFF(s, e, u) ((ssize_t)std::chrono::duration_cast<std::chrono::u>(e - s).count())
+
+#define SET_NEXT_FIELD_32(a, p, v) do { *(uint32_t *)&(a)[p] = (v); p += 4; } while (0)
+#define SET_FIELD_32(a, i, v)      do { *(uint32_t *)&(a)[i] = (v); } while (0)
+
 static inline void hex_dump(uint8_t *buf, size_t len)
 {
     if (!buf)
@@ -220,6 +247,14 @@ static inline void set_bytes(int *ptr, int nbytes)
 {
     if (ptr)
         *ptr = nbytes;
+}
+
+static inline void *memdup(const void *src, size_t len)
+{
+    uint8_t *dst = new uint8_t[len];
+    std::memcpy(dst, src, len);
+
+    return dst;
 }
 
 static inline std::string generate_string(size_t length)

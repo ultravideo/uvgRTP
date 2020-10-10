@@ -1,6 +1,8 @@
 src/*.o
 src/formats/*.o
-src/mzrtp/*.o
+src/zrtp/*.o
+src/rtcp/*.o
+src/srtp/*.o
 src/crypto/*.o
 libkvzrtp.a
 *.a

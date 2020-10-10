@@ -19,7 +19,7 @@ int main(void)
      * This flag will split the input frame into packets of 1500 bytes and set the marker bit
      * for first and last fragment. When the receiver notices a generic frame with a marker bit
      * set, it knows that the RTP frame is in fact a fragment and when all fragments have been
-     * received uvgRTP constructs one full RTP frame from the fragments and returns the frame to user.
+     * received, uvgRTP constructs one full RTP frame from the fragments and returns the frame to user.
      *
      * See sending.cc for more details about create_stream() */
     uvg_rtp::media_stream *send = sess->create_stream(8888, 8889, RTP_FORMAT_GENERIC, RCE_FRAGMENT_GENERIC);

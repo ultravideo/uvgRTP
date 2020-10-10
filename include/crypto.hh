@@ -1,6 +1,6 @@
-#ifdef __RTP_CRYPTO__
 #pragma once
 
+#ifdef __RTP_CRYPTO__
 #include <cryptopp/aes.h>
 #include <cryptopp/base32.h>
 #include <cryptopp/cryptlib.h>
@@ -10,6 +10,7 @@
 #include <cryptopp/osrng.h>
 #include <cryptopp/sha.h>
 #include <cryptopp/crc.h>
+#endif
 
 namespace uvg_rtp {
 
@@ -25,8 +26,13 @@ namespace uvg_rtp {
                     void update(uint8_t *data, size_t len);
                     void final(uint8_t *digest);
 
+                    /* truncate digest to "size" bytes */
+                    void final(uint8_t *digest, size_t size);
+
                 private:
+#ifdef __RTP_CRYPTO__
                     CryptoPP::HMAC<CryptoPP::SHA1> hmac_;
+#endif
             };
 
             class sha256 {
@@ -38,7 +44,9 @@ namespace uvg_rtp {
                     void final(uint8_t *digest);
 
                 private:
+#ifdef __RTP_CRYPTO__
                     CryptoPP::HMAC<CryptoPP::SHA256> hmac_;
+#endif
             };
         };
 
@@ -51,7 +59,9 @@ namespace uvg_rtp {
                 void final(uint8_t *digest);
 
             private:
+#ifdef __RTP_CRYPTO__
                 CryptoPP::SHA256 sha_;
+#endif
         };
 
         namespace aes {
@@ -65,8 +75,10 @@ namespace uvg_rtp {
                     void decrypt(uint8_t *output, uint8_t *input, size_t len);
 
                 private:
+#ifdef __RTP_CRYPTO__
                     CryptoPP::ECB_Mode<CryptoPP::AES>::Encryption enc_;
                     CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption dec_;
+#endif
             };
 
             class cfb {
@@ -78,8 +90,10 @@ namespace uvg_rtp {
                     void decrypt(uint8_t *output, uint8_t *input, size_t len);
 
                 private:
+#ifdef __RTP_CRYPTO__
                     CryptoPP::CFB_Mode<CryptoPP::AES>::Encryption enc_;
                     CryptoPP::CFB_Mode<CryptoPP::AES>::Decryption dec_;
+#endif
             };
 
             class ctr {
@@ -91,8 +105,10 @@ namespace uvg_rtp {
                     void decrypt(uint8_t *output, uint8_t *input, size_t len);
 
                 private:
+#ifdef __RTP_CRYPTO__
                     CryptoPP::CTR_Mode<CryptoPP::AES>::Encryption enc_;
                     CryptoPP::CTR_Mode<CryptoPP::AES>::Decryption dec_;
+#endif
             };
         };
 
@@ -115,9 +131,11 @@ namespace uvg_rtp {
                 void get_shared_secret(uint8_t *ss, size_t len);
 
             private:
+#ifdef __RTP_CRYPTO__
                 CryptoPP::AutoSeededRandomPool prng_;
                 CryptoPP::DH dh_;
                 CryptoPP::Integer sk_, pk_, rpk_;
+#endif
         };
 
         /* base32 */
@@ -129,7 +147,9 @@ namespace uvg_rtp {
                 void encode(uint8_t *input, uint8_t *output, size_t len);
 
             private:
+#ifdef __RTP_CRYPTO__
                 CryptoPP::Base32Encoder enc_;
+#endif
         };
 
         namespace random {
@@ -139,7 +159,9 @@ namespace uvg_rtp {
         namespace crc32 {
             void get_crc32(uint8_t *input, size_t len, uint32_t *output);
             bool verify_crc32(uint8_t *input, size_t len, uint32_t old_crc);
+            uint32_t calculate_crc32(uint8_t *input, size_t len);
         };
+
+        bool enabled();
     };
 };
-#endif

@@ -1,5 +1,6 @@
 #include <uvgrtp/lib.hh>
 #include <climits>
+#include <cstring>
 
 void thread_func(void)
 {
@@ -41,7 +42,7 @@ int main(void)
     /* See sending.cc for more details about create_stream() */
     uvg_rtp::media_stream *send = sess->create_stream(8888, 8889, RTP_FORMAT_GENERIC, flags);
 
-    char *message  = "Hello, world!";
+    char *message  = (char *)"Hello, world!";
     size_t msg_len = strlen(message);
 
     for (;;) {

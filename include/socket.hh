@@ -13,19 +13,28 @@
 #include <vector>
 #include <string>
 
-#include "srtp.hh"
 #include "util.hh"
 
 namespace uvg_rtp {
 
 #ifdef _WIN32
-    typedef unsigned socklen_t;
-    typedef TRANSMIT_PACKETS_ELEMENT vecio_buf;
-#else
-    typedef mmsghdr vecio_buf;
+    typedef unsigned int socklen_t;
 #endif
 
     const int MAX_BUFFER_COUNT = 256;
+
+    /* Vector of buffers that contain a full RTP frame */
+    typedef std::vector<std::pair<size_t, uint8_t *>> buf_vec;
+
+    /* Vector of RTP frames constructed from buf_vec entries */
+    typedef std::vector<std::vector<std::pair<size_t, uint8_t *>>> pkt_vec;
+
+    typedef rtp_error_t (*packet_handler_vec)(void *, buf_vec&);
+
+    struct socket_packet_handler {
+        void *arg;
+        packet_handler_vec handler;
+    };
 
     class socket {
         public:
@@ -64,35 +73,18 @@ namespace uvg_rtp {
              * Return RTP_SEND_ERROR on error and set "bytes_sent" to -1 */
             rtp_error_t sendto(uint8_t *buf, size_t buf_len, int flags);
             rtp_error_t sendto(uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
-            rtp_error_t sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags);
-            rtp_error_t sendto(std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent);
+            rtp_error_t sendto(buf_vec& buffers, int flags);
+            rtp_error_t sendto(buf_vec& buffers, int flags, int *bytes_sent);
+            rtp_error_t sendto(pkt_vec& buffers, int flags);
+            rtp_error_t sendto(pkt_vec& buffers, int flags, int *bytes_sent);
 
             /* Same as sendto() but the remote address given as parameter */
             rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags);
             rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
-            rtp_error_t sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags);
-            rtp_error_t sendto(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent);
-
-            /* Special sendto() function, used to send multiple UDP packets with one system call
-             * Internally it uses sendmmsg(2) (Linux) or TransmitPackets (Windows)
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if one of the parameters is invalid
-             * Return RTP_SEND_ERROR if sendmmsg/TransmitPackets failed */
-            rtp_error_t send_vecio(vecio_buf *buffers, size_t nbuffers, int flags);
-
-            /* Special recv() function, used to receive multiple UDP packets with one system call
-             * Internally it uses recvmmsg(2) (Linux).
-             *
-             * TODO what about windows?
-             *
-             * Parameter "nread" is used to indicate how many packet were read from the OS.
-             * It may differ from "nbuffers"
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if one of the parameters is invalid
-             * Return RTP_SEND_ERROR if sendmmsg/TransmitPackets failed */
-            rtp_error_t recv_vecio(vecio_buf *buffers, size_t nbuffers, int flags, int *nread);
+            rtp_error_t sendto(sockaddr_in& addr, buf_vec& buffers, int flags);
+            rtp_error_t sendto(sockaddr_in& addr, buf_vec& buffers, int flags, int *bytes_sent);
+            rtp_error_t sendto(sockaddr_in& addr, pkt_vec& buffers, int flags);
+            rtp_error_t sendto(sockaddr_in& addr, pkt_vec& buffers, int flags, int *bytes_sent);
 
             /* Same as recv(2), receives a message from socket (remote address not known)
              *
@@ -132,21 +124,17 @@ namespace uvg_rtp {
              * This is used when calling send() */
             void set_sockaddr(sockaddr_in addr);
 
-            /* TODO:  */
-            void set_srtp(uvg_rtp::srtp *srtp);
-
             /* Get the out address for the socket if it exists */
             sockaddr_in& get_out_address();
 
-            /* Some media types (such as HEVC) require finer control over the sending/receiving process
-             * These functions can be used to install low-level (the higher level API will call these)
-             * functions for dealing with media-specific details
+            /* Install a packet handler for vector-based send operations.
              *
-             * Return RTP_OK if installation succeeded
-             * Return RTP_INVALID_VALUE if the handler is nullptr */
-            void install_ll_recv(rtp_error_t (*recv)(socket_t, uint8_t *, size_t , int , sockaddr_in *, int *));
-            void install_ll_sendto(rtp_error_t (*sendto)(socket_t, sockaddr_in&, uint8_t *, size_t, int, int *));
-            void install_ll_sendtov(rtp_error_t (*send)(socket_t, sockaddr_in&, std::vector<std::pair<size_t, uint8_t *>>, int, int *));
+             * This handler allows the caller to inject extra functionality to the send operation
+             * without polluting src/socket.cc with unrelated code
+             * (such as collecting RTCP session statistics info or encrypting a packet)
+             *
+             * "arg" is an optional parameter that can be passed to the handler when it's called */
+            rtp_error_t install_handler(void *arg, packet_handler_vec handler);
 
         private:
             /* helper function for sending UPD packets, see documentation for sendto() above */
@@ -155,16 +143,18 @@ namespace uvg_rtp {
             rtp_error_t __recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read);
 
             /* __sendtov() does the same as __sendto but it combines multiple buffers into one frame and sends them */
-            rtp_error_t __sendtov(sockaddr_in& addr, std::vector<std::pair<size_t, uint8_t *>> buffers, int flags, int *bytes_sent);
-
-            rtp_error_t (*recv_handler_)(socket_t, uint8_t *, size_t , int , sockaddr_in *, int *);
-            rtp_error_t (*sendto_handler_)(socket_t, sockaddr_in&, uint8_t *, size_t, int, int *);
-            rtp_error_t (*sendtov_handler_)(socket_t, sockaddr_in&, std::vector<std::pair<size_t, uint8_t *>>, int, int *);
+            rtp_error_t __sendtov(sockaddr_in& addr, buf_vec& buffers, int flags, int *bytes_sent);
+            rtp_error_t __sendtov(sockaddr_in& addr, uvg_rtp::pkt_vec& buffers, int flags, int *bytes_sent);
 
             socket_t socket_;
             sockaddr_in addr_;
-            uvg_rtp::srtp *srtp_;
             int flags_;
+
+            /* __sendto() calls these handlers in order before sending the packet */
+            std::vector<socket_packet_handler> buf_handlers_;
+
+            /* __sendtov() calls these handlers in order before sending the packet */
+            std::vector<socket_packet_handler> vec_handlers_;
 
 #ifdef _WIN32
             WSABUF buffers_[MAX_BUFFER_COUNT];

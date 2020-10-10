@@ -12,31 +12,48 @@ add_library(uvgrtp STATIC
 	src/media_stream.cc
 	src/mingw_inet.cc
 	src/multicast.cc
+	src/pkt_dispatch.cc
 	src/poll.cc
 	src/queue.cc
 	src/random.cc
-	src/receiver.cc
 	src/rtcp.cc
 	src/rtp.cc
 	src/runner.cc
-	src/send.cc
-	src/sender.cc
 	src/session.cc
 	src/socket.cc
-	src/srtp.cc
 	src/zrtp.cc
-	src/formats/generic.cc
-	src/formats/hevc.cc
-	src/formats/hevc_recv_normal.cc
-	src/formats/opus.cc
-	src/formats/hevc_recv_optimistic.cc
+	src/formats/media.cc
+	src/formats/h26x.cc
+	src/formats/h264.cc
+	src/formats/h264_pkt_handler.cc
+	src/formats/h265.cc
+	src/formats/h265_pkt_handler.cc
+	src/zrtp/zrtp_receiver.cc
+	src/zrtp/hello.cc
+	src/zrtp/hello_ack.cc
+	src/zrtp/commit.cc
+	src/zrtp/dh_kxchng.cc
+	src/zrtp/confirm.cc
+	src/zrtp/confack.cc
+	src/zrtp/error.cc
+	src/rtcp/app.cc
+	src/rtcp/sdes.cc
+	src/rtcp/bye.cc
+	src/rtcp/receiver.cc
+	src/rtcp/sender.cc
+	src/rtcp/rtcp_runner.cc
+	src/srtp/base.cc
+	src/srtp/srtp.cc
+	src/srtp/srtcp.cc
 )
 
 target_include_directories(uvgrtp
     PUBLIC
         ${PROJECT_SOURCE_DIR}/include
 		${PROJECT_SOURCE_DIR}/include/formats
-		${PROJECT_SOURCE_DIR}/include/mzrtp
+		${PROJECT_SOURCE_DIR}/include/zrtp
+		${PROJECT_SOURCE_DIR}/include/rtcp
+		${PROJECT_SOURCE_DIR}/include/srtp
 )
 
 if (UNIX)

@@ -77,12 +77,12 @@ uint64_t uvg_rtp::clock::hrc::diff_now_us(hrc_t& then)
 
 uint64_t uvg_rtp::clock::ms_to_jiffies(uint64_t ms)
 {
-    return ((double)ms / 1000) * 65536;
+    return (uint64_t)(((double)ms / 1000) * 65536);
 }
 
 uint64_t uvg_rtp::clock::jiffies_to_ms(uint64_t jiffies)
 {
-    return ((double)jiffies / 65536) * 1000;
+    return (uint64_t)(((double)jiffies / 65536) * 1000);
 }
 
 #ifdef _WIN32
