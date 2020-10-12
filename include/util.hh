@@ -94,9 +94,6 @@ typedef enum RTP_FLAGS {
 enum RTP_CTX_ENABLE_FLAGS {
     RTP_CTX_NO_FLAGS              = 0 << 0,
 
-    /* Use optimistic receiver (HEVC only) */
-    RCE_OPTIMISTIC_RECEIVER       = 1 << 0,
-
     /* Enable system call dispatcher (HEVC only) */
     RCE_SYSTEM_CALL_DISPATCHER    = 1 << 2,
 
