@@ -130,8 +130,6 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction(std::unique_ptr<uint8_t[]> da
 
 rtp_error_t uvg_rtp::frame_queue::destroy_transaction(uvg_rtp::transaction_t *t)
 {
-    fprintf(stderr, "destroying transaction\n");
-
     if (!t)
         return RTP_INVALID_VALUE;
 
@@ -190,7 +188,6 @@ rtp_error_t uvg_rtp::frame_queue::deinit_transaction(uint32_t key)
                     delete[] packet[i].second;
                 }
             }
-            /* TODO: fix memory leak from combined buffer */
         }
         active_->packets.clear();
         free_.push_back(active_);
@@ -303,19 +300,23 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, 
     if ((flags_ & RCE_SRTP) && !(flags_ & RCE_SRTP_NULL_CIPHER) && buffers.size() > 1) {
         size_t total = 0;
         uint8_t *mem = nullptr;
+        uint8_t *ptr = nullptr;
 
         for (auto& buffer : buffers)
             total += buffer.first;
 
-        if (!(mem = new uint8_t[total])) {
+        if (!(mem = ptr = new uint8_t[total])) {
             LOG_ERROR("Failed to allocate memory for copy block!");
             return RTP_MEMORY_ERROR;
         }
 
         for (auto& buffer : buffers) {
-            memcpy(mem, buffer.second, buffer.first);
-            mem += buffer.first;
+            memcpy(ptr, buffer.second, buffer.first);
+            ptr += buffer.first;
         }
+
+        tmp.push_back({ total, mem });
+
     } else {
         for (auto& buffer : buffers)
             tmp.push_back({ buffer.first, buffer.second });

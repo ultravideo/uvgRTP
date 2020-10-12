@@ -259,7 +259,7 @@ rtp_error_t uvg_rtp::socket::sendto(buf_vec& buffers, int flags)
 
     for (auto& handler : vec_handlers_) {
         if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
-            LOG_ERROR("Malfored packet");
+            LOG_ERROR("Malformed packet");
             return ret;
         }
     }
@@ -273,7 +273,7 @@ rtp_error_t uvg_rtp::socket::sendto(buf_vec& buffers, int flags, int *bytes_sent
 
     for (auto& handler : vec_handlers_) {
         if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
-            LOG_ERROR("Malfored packet");
+            LOG_ERROR("Malformed packet");
             return ret;
         }
     }
@@ -287,7 +287,7 @@ rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, buf_vec& buffers, int fla
 
     for (auto& handler : vec_handlers_) {
         if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
-            LOG_ERROR("Malfored packet");
+            LOG_ERROR("Malformed packet");
             return ret;
         }
     }
@@ -305,7 +305,7 @@ rtp_error_t uvg_rtp::socket::sendto(
 
     for (auto& handler : vec_handlers_) {
         if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
-            LOG_ERROR("Malfored packet");
+            LOG_ERROR("Malformed packet");
             return ret;
         }
     }
@@ -415,7 +415,7 @@ rtp_error_t uvg_rtp::socket::sendto(pkt_vec& buffers, int flags)
     for (auto& buffer : buffers) {
         for (auto& handler : vec_handlers_) {
             if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
-                LOG_ERROR("Malfored packet");
+                LOG_ERROR("Malformed packet");
                 return ret;
             }
         }
@@ -431,7 +431,7 @@ rtp_error_t uvg_rtp::socket::sendto(pkt_vec& buffers, int flags, int *bytes_sent
     for (auto& buffer : buffers) {
         for (auto& handler : vec_handlers_) {
             if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
-                LOG_ERROR("Malfored packet");
+                LOG_ERROR("Malformed packet");
                 return ret;
             }
         }
@@ -447,7 +447,7 @@ rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int fla
     for (auto& buffer : buffers) {
         for (auto& handler : vec_handlers_) {
             if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
-                LOG_ERROR("Malfored packet");
+                LOG_ERROR("Malformed packet");
                 return ret;
             }
         }
@@ -463,7 +463,7 @@ rtp_error_t uvg_rtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int fla
     for (auto& buffer : buffers) {
         for (auto& handler : vec_handlers_) {
             if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
-                LOG_ERROR("Malfored packet");
+                LOG_ERROR("Malformed packet");
                 return ret;
             }
         }
