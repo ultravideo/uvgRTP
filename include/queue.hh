@@ -133,6 +133,7 @@ namespace uvg_rtp {
              * Return RTP_INVALID_VALUE if one of the parameters is invalid
              * Return RTP_MEMORY_ERROR if the maximum amount of chunks/messages is exceeded */
             rtp_error_t enqueue_message(uint8_t *message, size_t message_len);
+            rtp_error_t enqueue_message(uint8_t *message, size_t message_len, bool set_marker);
 
             /* Cache all messages in "buffers" in order to frame queue
              *

@@ -159,7 +159,12 @@ rtp_error_t uvg_rtp::media_stream::init()
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
             media_ = new uvg_rtp::formats::media(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, nullptr, media_->packet_handler, nullptr);
+            pkt_dispatcher_->install_aux_handler(
+                rtp_handler_key_,
+                media_->get_media_frame_info(),
+                media_->packet_handler,
+                nullptr
+            );
             break;
 
         default:
@@ -278,7 +283,12 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
             media_ = new uvg_rtp::formats::media(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, nullptr, media_->packet_handler, nullptr);
+            pkt_dispatcher_->install_aux_handler(
+                rtp_handler_key_,
+                media_->get_media_frame_info(),
+                media_->packet_handler,
+                nullptr
+            );
             break;
 
         default:
@@ -393,7 +403,12 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
             media_ = new uvg_rtp::formats::media(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(rtp_handler_key_, nullptr, media_->packet_handler, nullptr);
+            pkt_dispatcher_->install_aux_handler(
+                rtp_handler_key_,
+                media_->get_media_frame_info(),
+                media_->packet_handler,
+                nullptr
+            );
             break;
 
         default:

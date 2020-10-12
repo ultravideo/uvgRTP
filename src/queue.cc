@@ -238,7 +238,7 @@ rtp_error_t uvg_rtp::frame_queue::deinit_transaction()
     return uvg_rtp::frame_queue::deinit_transaction(active_->key);
 }
 
-rtp_error_t uvg_rtp::frame_queue::enqueue_message(uint8_t *message, size_t message_len)
+rtp_error_t uvg_rtp::frame_queue::enqueue_message(uint8_t *message, size_t message_len, bool set_marker)
 {
     if (!message || !message_len)
         return RTP_INVALID_VALUE;
@@ -249,6 +249,9 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(uint8_t *message, size_t messa
 
     /* update the RTP header at "rtpheaders_ptr_" */
     uvg_rtp::frame_queue::update_rtp_header();
+
+    if (set_marker)
+        ((uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr])[1] |= (1 << 7);
 
     /* Push RTP header first and then push all payload buffers */
     tmp.push_back({
@@ -275,6 +278,11 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(uint8_t *message, size_t messa
     rtp_->inc_sent_pkts();
 
     return RTP_OK;
+}
+
+rtp_error_t uvg_rtp::frame_queue::enqueue_message(uint8_t *message, size_t message_len)
+{
+    return enqueue_message(message, message_len, false);
 }
 
 rtp_error_t uvg_rtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, uint8_t *>>& buffers)

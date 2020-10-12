@@ -53,7 +53,7 @@ namespace uvg_rtp {
                 static rtp_error_t packet_handler(void *arg, int flags, frame::rtp_frame **frame);
 
                 /* Return pointer to the internal frame info structure which is relayed to packet handler */
-                media_frame_info_t *get_hevc_frame_info();
+                media_frame_info_t *get_media_frame_info();
 
             protected:
                 virtual rtp_error_t push_media_frame(uint8_t *data, size_t data_len, int flags);
