@@ -33,7 +33,7 @@ namespace uvg_rtp {
                  *
                  * Return RTP_OK on success
                  * Return RTP_INVALID_VALUE if one the parameters is invalid */
-                rtp_error_t push_h26x_frame(uint8_t *data, size_t data_len);
+                rtp_error_t push_h26x_frame(uint8_t *data, size_t data_len, int flags);
 
             protected:
                 /* Each H26x class overrides this function with their custom NAL pushing function */
