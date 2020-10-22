@@ -10,9 +10,9 @@
 static inline uint32_t ntp_diff_ms(uint64_t t1, uint64_t t2)
 {
     uint32_t s_diff  = (t1 >> 32) - (t2 >> 32);
-    uint32_t us_diff = (t1 & 0xffffffff) - (t2 & 0xffffffff);
+    uint32_t us_diff = (((t1 & 0xffffffff) - (t2 & 0xffffffff)) * 1000000UL) >> 32;
 
-    return s_diff * 1000 + (us_diff / 1000000UL);
+    return s_diff / 1000 + (us_diff / 1000);
 }
 
 uint64_t uvg_rtp::clock::ntp::now()
