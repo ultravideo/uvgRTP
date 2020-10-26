@@ -90,10 +90,9 @@ void uvg_rtp::rtp::fill_header(uint8_t *buffer)
 
     /* This is the first RTP message, get wall clock reading (t = 0)
      * and generate random RTP timestamp for this reading */
-    if (wc_start_ == 0) {
+    if (!wc_start_) {
         ts_        = uvg_rtp::random::generate_32();
-        wc_start_2 = uvg_rtp::clock::hrc::now();
-        wc_start_  = 1;
+        wc_start_  = uvg_rtp::clock::ntp::now();
     }
 
     buffer[0] = 2 << 6; // RTP version
@@ -105,10 +104,11 @@ void uvg_rtp::rtp::fill_header(uint8_t *buffer)
     if (timestamp_ == INVALID_TS) {
         *(uint32_t *)&buffer[4] = htonl(
             ts_
-            + uvg_rtp::clock::hrc::diff_now(wc_start_2)
+            + uvg_rtp::clock::ntp::diff_now(wc_start_)
             * clock_rate_
             / 1000
         );
+
     } else {
         *(uint32_t *)&buffer[4] = htonl(timestamp_);
     }

@@ -42,7 +42,7 @@ namespace uvg_rtp {
             uint8_t payload_;
 
             uint32_t clock_rate_;
-            uint32_t wc_start_;
+            uint64_t wc_start_;
             uvg_rtp::clock::hrc::hrc_t wc_start_2;
 
             size_t sent_pkts_;
