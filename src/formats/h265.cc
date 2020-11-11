@@ -99,6 +99,9 @@ rtp_error_t uvg_rtp::formats::h265::push_nal_unit(uint8_t *data, size_t data_len
                     LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
                     return ret;
                 }
+
+                if (more)
+                    return RTP_NOT_READY;
                 return fqueue_->flush_queue();
             } else {
                 (void)make_aggregation_pkt();

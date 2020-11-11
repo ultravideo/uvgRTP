@@ -230,7 +230,7 @@ end:
     return -1;
 }
 
-rtp_error_t uvg_rtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_len)
+rtp_error_t uvg_rtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_len, int flags)
 {
     /* find first start code */
     uint8_t start_len   = 0;
@@ -240,15 +240,19 @@ rtp_error_t uvg_rtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_l
     rtp_error_t ret     = RTP_GENERIC_ERROR;
     size_t payload_size = rtp_ctx_->get_payload_size();
 
-    if (data_len < payload_size) {
+    if (data_len < payload_size || flags & RTP_SLICE) {
         r_off = (offset < 0) ? 0 : offset;
 
-        if ((ret = fqueue_->enqueue_message(data + r_off, data_len - r_off)) != RTP_OK) {
-            LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
-            return ret;
-        }
+        if (data_len > payload_size) {
+            return push_nal_unit(data + r_off, data_len, false);
+        } else {
+            if ((ret = fqueue_->enqueue_message(data + r_off, data_len - r_off)) != RTP_OK) {
+                LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
+                return ret;
+            }
 
-        return fqueue_->flush_queue();
+            return fqueue_->flush_queue();
+        }
     }
 
     while (offset != -1) {
@@ -296,8 +300,6 @@ uvg_rtp::formats::h26x::~h26x()
 
 rtp_error_t uvg_rtp::formats::h26x::push_media_frame(uint8_t *data, size_t data_len, int flags)
 {
-    (void)flags;
-
     rtp_error_t ret;
 
     if (!data || !data_len)
@@ -308,5 +310,5 @@ rtp_error_t uvg_rtp::formats::h26x::push_media_frame(uint8_t *data, size_t data_
         return ret;
     }
 
-    return push_h26x_frame(data, data_len);
+    return push_h26x_frame(data, data_len, flags);
 }

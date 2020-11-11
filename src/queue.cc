@@ -353,7 +353,8 @@ rtp_error_t uvg_rtp::frame_queue::flush_queue()
     }
 
     /* set the marker bit of the last packet to 1 */
-    ((uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr - 1])[1] |= (1 << 7);
+    if (active_->packets.size() > 1)
+        ((uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr - 1])[1] |= (1 << 7);
 
     transaction_mtx_.lock();
     queued_.insert(std::make_pair(active_->key, active_));

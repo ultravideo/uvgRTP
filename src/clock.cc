@@ -6,20 +6,23 @@
 #endif
 
 #include "clock.hh"
+#include <stdio.h>
+
+static const uint64_t EPOCH = 2208988800ULL;
+static const uint64_t NTP_SCALE_FRAC = 4294967296ULL;
 
 static inline uint32_t ntp_diff_ms(uint64_t t1, uint64_t t2)
 {
-    uint32_t s_diff  = (t1 >> 32) - (t2 >> 32);
-    uint32_t us_diff = (t1 & 0xffffffff) - (t2 & 0xffffffff);
+    uint32_t s1  = (t1 >> 32) & 0xffffffff;
+    uint32_t s2  = (t2 >> 32) & 0xffffffff;
+    uint64_t us1 = ((t1 & 0xffffffff) * 1000000UL) / NTP_SCALE_FRAC;
+    uint64_t us2 = ((t2 & 0xffffffff) * 1000000UL) / NTP_SCALE_FRAC;
 
-    return s_diff * 1000 + (us_diff / 1000000UL);
+    return (((s1 - s2) * 1000000) + ((us1 - us2))) / 1000;
 }
 
 uint64_t uvg_rtp::clock::ntp::now()
 {
-    static const uint64_t EPOCH = 2208988800ULL;
-    static const uint64_t NTP_SCALE_FRAC = 4294967296ULL;
-
     struct timeval tv;
 #ifdef _WIN32
     uvg_rtp::clock::gettimeofday(&tv, NULL);
@@ -30,7 +33,7 @@ uint64_t uvg_rtp::clock::ntp::now()
     uint64_t tv_ntp, tv_usecs;
 
     tv_ntp = tv.tv_sec + EPOCH;
-    tv_usecs = (NTP_SCALE_FRAC * tv.tv_usec) / 1000000UL;
+    tv_usecs = (float)(NTP_SCALE_FRAC * tv.tv_usec) / (float)1000000UL;
 
     return (tv_ntp << 32) | tv_usecs;
 }
