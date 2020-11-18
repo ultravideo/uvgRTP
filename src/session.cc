@@ -30,6 +30,8 @@ uvg_rtp::session::~session()
 
 uvg_rtp::media_stream *uvg_rtp::session::create_stream(int r_port, int s_port, rtp_format_t fmt, int flags)
 {
+    std::lock_guard<std::mutex> m(session_mtx_);
+
     uvg_rtp::media_stream *stream = nullptr;
 
     if (flags & RCE_SYSTEM_CALL_DISPATCHER) {

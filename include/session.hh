@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -47,5 +48,7 @@ namespace uvg_rtp {
 
             /* All media streams of this session */
             std::unordered_map<uint32_t, uvg_rtp::media_stream *> streams_;
+
+            std::mutex session_mtx_;
     };
 };
