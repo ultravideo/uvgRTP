@@ -101,9 +101,12 @@ rtp_error_t uvg_rtp::zrtp_msg::hello::parse_msg(uvg_rtp::zrtp_msg::receiver& rec
 
     zrtp_hello *msg = (zrtp_hello *)rframe_;
 
-    float version;
-    sscanf((const char *)&msg->version, "%f", &version);
-    session.capabilities.version = (int)(version * (float)10) * 10;
+    if (strncmp((const char *)&msg->version, ZRTP_VERSION, 4)) {
+        LOG_ERROR("Invalid ZRTP version!");
+        session.capabilities.version = 0;
+    } else {
+        session.capabilities.version = 110;
+    }
 
     /* finally add mandatory algorithms required by the specification to remote capabilities */
     session.capabilities.hash_algos.push_back(S256);
