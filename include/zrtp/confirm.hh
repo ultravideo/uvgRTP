@@ -20,13 +20,13 @@ namespace uvg_rtp {
             /* encrypted portion starts */
             uint8_t hash[32];
 
-            uint16_t unused:15;
-            uint16_t sig_len:9; /* signature length*/
-            uint8_t zeros:4;
-            uint8_t e:1;        /*  */
-            uint8_t v:1;        /*  */
-            uint8_t d:1;        /*  */
-            uint8_t a:1;        /*  */
+            uint32_t unused:15;
+            uint32_t sig_len:9; /* signature length*/
+            uint32_t zeros:4;
+            uint32_t e:1;        /*  */
+            uint32_t v:1;        /*  */
+            uint32_t d:1;        /*  */
+            uint32_t a:1;        /*  */
 
             uint32_t cache_expr; /* cache expiration interval */
             /* encrypted portion ends */

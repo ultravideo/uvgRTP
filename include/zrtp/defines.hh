@@ -12,7 +12,7 @@ namespace uvg_rtp {
         struct zrtp_dh;
 
         PACK(struct zrtp_header {
-            uint8_t version:4;
+            uint16_t version:4;
             uint16_t unused:12;
             uint16_t seq;
             uint32_t magic;
