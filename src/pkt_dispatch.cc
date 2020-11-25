@@ -38,6 +38,7 @@ rtp_error_t uvg_rtp::pkt_dispatcher::stop()
     while (!exit_mtx_.try_lock())
         ;
 
+    exit_mtx_.unlock();
     return RTP_OK;
 }
 
