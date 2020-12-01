@@ -30,7 +30,7 @@
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
-static inline unsigned __find_h265_start(uint32_t value)
+static inline unsigned __find_h26x_start(uint32_t value)
 {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     uint16_t u = (value >> 16) & 0xffff;
@@ -161,7 +161,7 @@ ssize_t uvg_rtp::formats::h26x::find_h26x_start_code(
 
 
         {
-            if ((ret = start_len = __find_h265_start(value)) > 0) {
+            if ((ret = start_len = __find_h26x_start(value)) > 0) {
                 if (ret == 5) {
                     ret = 3;
 #if __BYTE_ORDER == __LITTLE_ENDIAN

@@ -14,6 +14,7 @@
 
 #include "formats/h264.hh"
 #include "formats/h265.hh"
+#include "formats/h266.hh"
 
 uvg_rtp::frame_queue::frame_queue(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):
     rtp_(rtp), socket_(socket), flags_(flags)
@@ -65,6 +66,11 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction()
             case RTP_FORMAT_H265:
                 active_->media_headers = new uvg_rtp::formats::h265_headers;
                 break;
+
+            case RTP_FORMAT_H266:
+                active_->media_headers = new uvg_rtp::formats::h266_headers;
+                break;
+
 
             default:
                 break;
@@ -153,6 +159,11 @@ rtp_error_t uvg_rtp::frame_queue::destroy_transaction(uvg_rtp::transaction_t *t)
             t->media_headers = nullptr;
             break;
 
+        case RTP_FORMAT_H266:
+            delete (uvg_rtp::formats::h266_headers *)t->media_headers;
+            t->media_headers = nullptr;
+            break;
+
         default:
             break;
     }
@@ -209,6 +220,10 @@ rtp_error_t uvg_rtp::frame_queue::deinit_transaction(uint32_t key)
 
             case RTP_FORMAT_H265:
                 delete (uvg_rtp::formats::h265_headers *)transaction_it->second->media_headers;
+                break;
+
+            case RTP_FORMAT_H266:
+                delete (uvg_rtp::formats::h266_headers *)transaction_it->second->media_headers;
                 break;
 
             default:

@@ -1,6 +1,6 @@
 # uvgRTP
 
-uvgRTP is an RTP library written in C++ with a focus on usability and efficiency. It features a very intuitive and easy-to-use API, built-in support for HEVC, AVC, Opus, SRTP and ZRTP. In ideal conditions it is able to receive a goodput of 600 MB/s for HEVC stream.
+uvgRTP is an RTP library written in C++ with a focus on usability and efficiency. It features a very intuitive and easy-to-use API, built-in support for HEVC, AVC, Opus, SRTP and ZRTP. In ideal conditions it is able to reach a goodput of 600 MB/s for HEVC stream.
 
 uvgRTP is licensed under the permissive BSD 2-Clause License
 
@@ -23,6 +23,7 @@ Based on Marko Viitanen's [fRTPlib](https://github.com/fador/fRTPlib)
     * HEVC
     * Opus
     * SRTP/ZRTP
+* Preliminary VVC support
 * Generic interface for custom media types
 * UDP hole punching
 * Simple API

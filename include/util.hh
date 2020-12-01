@@ -62,7 +62,8 @@ typedef enum RTP_FORMAT {
     RTP_FORMAT_GENERIC = 0,
     RTP_FORMAT_H264    = 95,
     RTP_FORMAT_H265    = 96,
-    RTP_FORMAT_OPUS    = 97,
+    RTP_FORMAT_H266    = 97,
+    RTP_FORMAT_OPUS    = 98,
 } rtp_format_t;
 
 typedef enum RTP_FLAGS {
