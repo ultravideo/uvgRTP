@@ -61,7 +61,7 @@ if (UNIX)
 			ARCHIVE
 			DESTINATION /usr/local/lib
 	)
-	install(DIRECTORY src/ DESTINATION /usr/local/include/uvgrtp
+	install(DIRECTORY include/ DESTINATION /usr/local/include/uvgrtp
 			FILES_MATCHING PATTERN "*.hh"
 	)
 endif (UNIX)
@@ -71,7 +71,7 @@ if (WIN32)
 		    ARCHIVE
 			DESTINATION ${PROJECT_BINARY_DIR}/lib
 	)
-	install(DIRECTORY src/ DESTINATION ${PROJECT_BINARY_DIR}/include
+	install(DIRECTORY include/ DESTINATION ${PROJECT_BINARY_DIR}/include
 			FILES_MATCHING PATTERN "*.hh"
 	)
 endif (WIN32)
