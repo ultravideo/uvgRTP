@@ -88,6 +88,7 @@ namespace uvg_rtp {
     typedef struct srtp_ctx {
         int type;     /* srtp or srtcp */
         uint32_t roc; /* roll-over counter */
+        uint32_t rts; /* timestamp of the frame that causes ROC update */
 
         int enc;   /* identifier for encryption algorithm */
         int hmac;  /* identifier for message authentication algorithm */

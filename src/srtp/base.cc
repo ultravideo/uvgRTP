@@ -85,6 +85,7 @@ bool uvg_rtp::base_srtp::is_replayed_packet(uint8_t *digest)
 rtp_error_t uvg_rtp::base_srtp::init(int type, int flags)
 {
     srtp_ctx_->roc  = 0;
+    srtp_ctx_->rts  = 0;
     srtp_ctx_->type = type;
     srtp_ctx_->enc  = AES_128;
     srtp_ctx_->hmac = HMAC_SHA1;

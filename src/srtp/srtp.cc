@@ -5,6 +5,8 @@
 #include "srtp/base.hh"
 #include "srtp/srtp.hh"
 
+#define MAX_OFF 10000
+
 uvg_rtp::srtp::srtp()
 {
 }
@@ -71,11 +73,30 @@ rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_
     uint8_t iv[16]  = { 0 };
     uint16_t seq    = frame->header.seq;
     uint32_t ssrc   = frame->header.ssrc;
-    uint64_t index  = (((uint64_t)ctx->roc) << 16) + seq;
+    uint32_t ts     = frame->header.timestamp;
+    uint64_t index  = 0;
+
+    /* as the sequence number approaches 0xffff and is close to wrapping around,
+     * special care must be taken to use correct roll-over counter as it's entirely
+     * possible that packets come out of order around this overflow boundary
+     * and if e.g. we first receive packet with sequence number 0xffff and thus update
+     * ROC to ROC + 1 and after that we receive packet with sequence number 0xfffe,
+     * we use an incorrect value for ROC as the the packet 0xfffe was encrypted with ROC - 1.
+     *
+     * It is a reasonable assumption that correct ROC differs from "ctx->roc" at most by 1 (-, +)
+     * because if the difference is more than 1, the input frame would be larger than 90 MB.
+     *
+     * Here the assumption is that the offset for an incorrectly ordered packet is at most 10k */
+    if (ts == ctx->rts && seq + MAX_OFF < MAX_OFF)
+        index = (((uint64_t)ctx->roc - 1) << 16) + seq;
+    else
+        index = (((uint64_t)ctx->roc) << 16) + seq;
 
     /* Sequence number has wrapped around, update Roll-over Counter */
-    if (seq == 0xffff)
+    if (seq == 0xffff) {
         ctx->roc++;
+        ctx->rts = ts;
+    }
 
     if (srtp->create_iv(iv, ssrc, index, ctx->key_ctx.remote.salt_key) != RTP_OK) {
         LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
