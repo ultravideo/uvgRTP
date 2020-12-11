@@ -45,6 +45,6 @@ Building uvgRTP produces a static library and it should be linked to the applica
 
 Use `__RTP_SILENT__` to disable all prints
 
-Use `__RTP_CRYPTO__` to enable SRTP/ZRTP and crypto routines
+Use `__RTP_NO_CRYPTO__` to disable SRTP/ZRTP support
 
 Use `NDEBUG` to disable `LOG_DEBUG` which is the most verbose level of logging
