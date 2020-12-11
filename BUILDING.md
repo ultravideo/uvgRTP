@@ -1,12 +1,12 @@
 # Building
 
-There are several ways to build uvgRTP: GNU make, CMake, or QtCreator
+TODO
 
 NB: uvgRTP must be built with a 64-bit compiler!
 
 ## Dependencies
 
-The only dependency vanilla uvgRTP has is pthreads
+The only dependency vanilla uvgRTP has is POSIX threads
 
 ## Qt Creator
 
@@ -17,13 +17,7 @@ Open uvgrtp.pro in Qt Creator and build the library
 ```
 mkdir build && cd build
 cmake ..
-ninja
-```
-
-## GNU make
-
-```
-make -j5
+make
 sudo make install
 ```
 
