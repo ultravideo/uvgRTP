@@ -59,8 +59,16 @@ target_include_directories(uvgrtp
 )
 
 if (UNIX)
-	set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wuninitialized -Wshadow -O2 -std=c++17 -march=native -DNDEBUG")
-	target_link_libraries(uvgrtp PRIVATE -Wl,--whole-archive -lpthread -lcryptopp -Wl,--no-whole-archive)
+    set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wuninitialized -Wshadow -O2 -std=c++17 -march=native -DNDEBUG")
+
+    find_library(CRYPTOLIB NAMES cryptopp)
+    find_library(PTHREADS  NAMES pthread)
+
+    if (CRYPTOLIB AND PTHREADS)
+        target_link_libraries(uvgrtp PRIVATE "-Wl,--whole-archive -lpthread -lcryptopp -Wl,--no-whole-archive")
+    else()
+        message(WARNING "Crypto++ or POSIX threads not found!")
+    endif()
 
     install(TARGETS uvgrtp
             ARCHIVE
