@@ -1,18 +1,14 @@
 # Building
 
-TODO
+uvgRTP is built using CMake and a 64-bit compiler is required for compilation. By default, crypto is enabled.
 
-NB: uvgRTP must be built with a 64-bit compiler!
+uvgRTP can be built with QtCreator too, see uvgRTP.pro. Archive merging is not supported when QtCreator is used.
 
-## Dependencies
+## Examples
 
-The only dependency vanilla uvgRTP has is POSIX threads
+### Build uvgRTP with crypto enabled
 
-## Qt Creator
-
-Open uvgrtp.pro in Qt Creator and build the library
-
-## CMake
+Building
 
 ```
 mkdir build && cd build
@@ -21,24 +17,42 @@ make
 sudo make install
 ```
 
-# Linking
-
-Building uvgRTP produces a static library and it should be linked to the application as such:
+Linking
 
 ```
--luvgrtp -lpthread
+g++ main.cc -luvgrtp -lpthread -lcryptopp
 ```
 
-## Linking when SRTP/ZRTP is used
+### Build uvgRTP with crypto disabled
+
+Building
 
 ```
--luvgrtp -lcryptopp -lpthread
+mkdir build && cd build
+cmake -DDISABLE_CRYPTO=1 ..
+make
+sudo make install
 ```
 
-# Defines
+Linking
 
-Use `__RTP_SILENT__` to disable all prints
+```
+g++ main.cc -luvgrtp -lpthread
+```
 
-Use `__RTP_NO_CRYPTO__` to disable SRTP/ZRTP support
+### Build uvgRTP and include POSIX threads and Crypto++ into the final library
 
-Use `NDEBUG` to disable `LOG_DEBUG` which is the most verbose level of logging
+Building
+
+```
+mkdir build && cd build
+cmake -DCRYPTOPP_PATH=/usr/local/lib/libcryptopp.a -DPTHREADS_PATH=/usr/lib/libpthreads.a ..
+make
+sudo make install
+```
+
+Linking
+
+```
+g++ main.cc -luvgrtp
+```
