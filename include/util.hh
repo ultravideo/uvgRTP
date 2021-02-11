@@ -188,7 +188,10 @@ enum RTP_CTX_ENABLE_FLAGS {
      * If SRTP is enabled, SRTCP is used instead */
     RCE_RTCP                      = 1 << 12,
 
-    RCE_LAST                      = 1 << 13,
+    /* Prepend a 4-byte start code (0x00000001) to HEVC each frame */
+    RCE_H26X_PREPEND_SC           = 1 << 13,
+
+    RCE_LAST                      = 1 << 14,
 };
 
 /* These options are given to configuration() */

@@ -151,8 +151,29 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
     if (frag_type == FT_AGGR)
         return __handle_ap(finfo, out);
 
-    if (frag_type == FT_NOT_FRAG)
+    if (frag_type == FT_NOT_FRAG) {
+        if (flags & RCE_H26X_PREPEND_SC) {
+            uint8_t *pl = new uint8_t[(*out)->payload_len + 4];
+
+            if (!pl) {
+                LOG_ERROR("Failed to allocate space for a start code");
+                return RTP_GENERIC_ERROR;
+            }
+
+            pl[0] = 0;
+            pl[1] = 0;
+            pl[2] = 0;
+            pl[3] = 1;
+
+            std::memcpy(pl + 4, (*out)->payload, (*out)->payload_len);
+            delete[] (*out)->payload;
+
+            (*out)->payload      = pl;
+            (*out)->payload_len += 4;
+        }
+
         return RTP_PKT_READY;
+    }
 
     if (frag_type == FT_INVALID) {
         LOG_WARN("invalid frame received!");
@@ -263,11 +284,26 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
 
             uvg_rtp::frame::rtp_frame *complete = uvg_rtp::frame::alloc_rtp_frame();
 
-            complete->payload_len = finfo->frames[c_ts].total_size + uvg_rtp::frame::HEADER_SIZE_H265_NAL;
-            complete->payload     = new uint8_t[complete->payload_len];
+            complete->payload_len =
+                finfo->frames[c_ts].total_size
+                + uvg_rtp::frame::HEADER_SIZE_H265_NAL +
+                + ((flags & RCE_H26X_PREPEND_SC) ? 4 : 0);
 
-            std::memcpy(&complete->header,  &(*out)->header, RTP_HDR_SIZE);
-            std::memcpy(complete->payload,  nal_header,      NAL_HDR_SIZE);
+            if (!(complete->payload = new uint8_t[complete->payload_len])) {
+                LOG_ERROR("Failed to allocate memory for RTP frame");
+                return RTP_GENERIC_ERROR;
+            }
+
+            if (flags & RCE_H26X_PREPEND_SC) {
+                complete->payload[0]  = 0;
+                complete->payload[1]  = 0;
+                complete->payload[2]  = 0;
+                complete->payload[3]  = 1;
+                fptr                 += 4;
+            }
+
+            std::memcpy(&complete->header,        &(*out)->header, RTP_HDR_SIZE);
+            std::memcpy(&complete->payload[fptr], nal_header,      NAL_HDR_SIZE);
 
             fptr += uvg_rtp::frame::HEADER_SIZE_H265_NAL;
 
