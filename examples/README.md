@@ -40,9 +40,9 @@ NOTE: The hook should **not** be used for media processing. It should be used as
 
 ## Advanced RTP functionality
 
-[How to fragment generic media types](sending_generic.cc)
+[How to configure uvgRTP context](configuration.cc)
 
-[How to configure uvgRTP to send high-quality video](configuration.cc)
+[How to fragment generic media types](sending_generic.cc)
 
 [How to enable UDP hole punching](binding.cc)
 

@@ -11,18 +11,28 @@ int main(void)
      * This session object contains all media streams and an RTCP object (if enabled) */
     uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
 
-    /* Enable system call dispatcher for the sender to minimize delay experienced by the application
+    /* Some of the functionality of uvgRTP can be enabled/disabled using RCE_* flags.
      *
-     * See sending.cc for more details about media stream initialization */
-    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, RCE_SYSTEM_CALL_DISPATCHER);
+     * For example, here the created MediaStream object has RTCP enabled,
+     * does not utilize system call clustering to reduce the possibility of packet dropping
+     * and prepends a 4-byte HEVC start code (0x00000001) before each NAL unit */
+    unsigned flags =
+        RCE_RTCP |                      /* enable RTCP */
+        RCE_NO_SYSTEM_CALL_CLUSTERING | /* disable System Call Clustering */
+        RCE_H26X_PREPEND_SC;            /* prepend start code to each returned HEVC frame */
 
-    /* Increase UDP send/recv buffers to 40 MB */
+    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, flags);
+
+    /* uvgRTP context can also be configured using RCC_* flags
+     * These flags do not enable/disable functionality but alter default behaviour of uvgRTP
+     *
+     * For example, here UDP send/recv buffers are increased to 40MB
+     * and frame delay is set 150 milliseconds to allow frames to arrive a little late */
     hevc->configure_ctx(RCC_UDP_RCV_BUF_SIZE, 40 * 1000 * 1000);
     hevc->configure_ctx(RCC_UDP_SND_BUF_SIZE, 40 * 1000 * 1000);
+    hevc->configure_ctx(RCC_PKT_MAX_DELAY,                 150);
 
-    for (int i = 0; i < 1024; ++i) {
-        /* Because we're using SCD, one of the three deallocation methods must be used,
-         * here we use unique_ptrs */
+    for (;;) {
         auto buffer = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);
 
         if (hevc->push_frame(std::move(buffer), PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK)
