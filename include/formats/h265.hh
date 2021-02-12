@@ -62,6 +62,7 @@ namespace uvg_rtp {
             std::deque<uvg_rtp::frame::rtp_frame *> queued;
             std::unordered_map<uint32_t, h265_info_t> frames;
             std::unordered_set<uint32_t> dropped;
+            uvg_rtp::rtp *rtp_ctx;
         } h265_frame_info_t;
 
         class h265 : public h26x {

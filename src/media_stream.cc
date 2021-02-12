@@ -609,6 +609,14 @@ rtp_error_t uvg_rtp::media_stream::configure_ctx(int flag, ssize_t value)
         }
         break;
 
+        case RCC_PKT_MAX_DELAY: {
+            if (value <= 0)
+                return RTP_INVALID_VALUE;
+
+            rtp_->set_pkt_max_delay(value);
+        }
+        break;
+
         default:
             return RTP_INVALID_VALUE;
     }

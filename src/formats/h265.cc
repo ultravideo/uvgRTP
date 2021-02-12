@@ -182,6 +182,7 @@ rtp_error_t uvg_rtp::formats::h265::push_nal_unit(uint8_t *data, size_t data_len
 uvg_rtp::formats::h265::h265(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):
     h26x(socket, rtp, flags), finfo_{}
 {
+    finfo_.rtp_ctx = rtp;
 }
 
 uvg_rtp::formats::h265::~h265()

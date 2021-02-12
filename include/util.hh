@@ -33,6 +33,7 @@ typedef SSIZE_T ssize_t;
 
 const int MAX_PACKET      = 65536;
 const int MAX_PAYLOAD     = 1443;
+const int PKT_MAX_DELAY   = 100;
 
 typedef enum RTP_ERROR {
     RTP_MULTIPLE_PKTS_READY = 6,   /* multiple packets can be queried from the layer */
@@ -207,6 +208,14 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      * to a high number to prevent OS from dropping packets */
     RCC_UDP_RCV_BUF_SIZE = 1,
     RCC_UDP_SND_BUF_SIZE = 2,
+
+    /* How many milliseconds is each frame waited until it's dropped
+     *
+     * Default is 100 milliseconds
+     *
+     * This is valid only for fragmented frames,
+     * i.e. RTP_FORMAT_H26X and RTP_FORMAT_GENERIC with RCE_FRAGMENT_GENERIC (TODO) */
+    RCC_PKT_MAX_DELAY    = 3,
 
     RCC_LAST
 };

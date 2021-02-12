@@ -16,6 +16,7 @@ namespace uvg_rtp {
             uint16_t     get_sequence();
             uint32_t     get_clock_rate();
             size_t       get_payload_size();
+            size_t       get_pkt_max_delay();
             rtp_format_t get_payload();
 
             void inc_sent_pkts();
@@ -26,6 +27,7 @@ namespace uvg_rtp {
             void set_dynamic_payload(uint8_t payload);
             void set_timestamp(uint64_t timestamp);
             void set_payload_size(size_t payload_size);
+            void set_pkt_max_delay(size_t delay);
 
             void fill_header(uint8_t *buffer);
             void update_sequence(uint8_t *buffer);
@@ -55,6 +57,13 @@ namespace uvg_rtp {
              * By default, the value is set to 1443
              * (maximum amount of payload bytes when MTU is 1500) */
             size_t payload_size_;
+
+            /* What is the maximum delay allowed for each frame
+             * i.e. how long does the packet receiver wait for
+             * all fragments of a frame until it's considered late and dropped
+             *
+             * Default value is 100ms */
+            size_t delay_;
     };
 };
 

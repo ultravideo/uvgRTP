@@ -16,7 +16,8 @@ uvg_rtp::rtp::rtp(rtp_format_t fmt):
     wc_start_(0),
     sent_pkts_(0),
     timestamp_(INVALID_TS),
-    payload_size_(MAX_PAYLOAD)
+    payload_size_(MAX_PAYLOAD),
+    delay_(PKT_MAX_DELAY)
 {
     seq_  = uvg_rtp::random::generate_32() & 0xffff;
     ts_   = uvg_rtp::random::generate_32();
@@ -138,6 +139,16 @@ size_t uvg_rtp::rtp::get_payload_size()
 rtp_format_t uvg_rtp::rtp::get_payload()
 {
     return (rtp_format_t)fmt_;
+}
+
+void uvg_rtp::rtp::set_pkt_max_delay(size_t delay)
+{
+    delay_ = delay;
+}
+
+size_t uvg_rtp::rtp::get_pkt_max_delay()
+{
+    return delay_;
 }
 
 rtp_error_t uvg_rtp::rtp::packet_handler(ssize_t size, void *packet, int flags, uvg_rtp::frame::rtp_frame **out)

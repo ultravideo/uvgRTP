@@ -9,7 +9,6 @@
 
 #include "formats/h265.hh"
 
-#define RTP_FRAME_MAX_DELAY          100
 #define INVALID_SEQ           0x13371338
 #define INVALID_TS            0xffffffff
 
@@ -65,9 +64,9 @@ static inline uint8_t __get_nal(uvg_rtp::frame::rtp_frame *frame)
     return NT_OTHER;
 }
 
-static inline bool __frame_late(uvg_rtp::formats::h265_info_t& hinfo)
+static inline bool __frame_late(uvg_rtp::formats::h265_info_t& hinfo, size_t max_delay)
 {
-    return (uvg_rtp::clock::hrc::diff_now(hinfo.sframe_time) >= RTP_FRAME_MAX_DELAY);
+    return (uvg_rtp::clock::hrc::diff_now(hinfo.sframe_time) >= max_delay);
 }
 
 static void __drop_frame(uvg_rtp::formats::h265_frame_info_t *finfo, uint32_t ts)
@@ -326,7 +325,7 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
         }
     }
 
-    if (__frame_late(finfo->frames.at(c_ts))) {
+    if (__frame_late(finfo->frames.at(c_ts), finfo->rtp_ctx->get_pkt_max_delay())) {
         if (nal_type != NT_INTRA || (nal_type == NT_INTRA && !enable_idelay)) {
             __drop_frame(finfo, c_ts);
             finfo->dropped.insert(c_ts);
