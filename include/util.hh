@@ -217,6 +217,10 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      * i.e. RTP_FORMAT_H26X and RTP_FORMAT_GENERIC with RCE_FRAGMENT_GENERIC (TODO) */
     RCC_PKT_MAX_DELAY    = 3,
 
+    /* Overwrite uvgRTP's own payload type in RTP packets and specify your own
+     * dynamic payload type for all packets of an RTP stream */
+    RCC_DYN_PAYLOAD_TYPE = 4,
+
     RCC_LAST
 };
 

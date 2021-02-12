@@ -617,6 +617,14 @@ rtp_error_t uvg_rtp::media_stream::configure_ctx(int flag, ssize_t value)
         }
         break;
 
+        case RCC_DYN_PAYLOAD_TYPE: {
+            if (value <= 0)
+                return RTP_INVALID_VALUE;
+
+            rtp_->set_dynamic_payload(value);
+        }
+        break;
+
         default:
             return RTP_INVALID_VALUE;
     }
@@ -627,18 +635,6 @@ rtp_error_t uvg_rtp::media_stream::configure_ctx(int flag, ssize_t value)
 uint32_t uvg_rtp::media_stream::get_key()
 {
     return key_;
-}
-
-rtp_error_t uvg_rtp::media_stream::set_dynamic_payload(uint8_t payload)
-{
-    if (!initialized_) {
-        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
-        return RTP_NOT_INITIALIZED;
-    }
-
-    rtp_->set_dynamic_payload(payload);
-
-    return RTP_OK;
 }
 
 uvg_rtp::rtcp *uvg_rtp::media_stream::get_rtcp()
