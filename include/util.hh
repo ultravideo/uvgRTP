@@ -31,9 +31,9 @@ typedef SSIZE_T ssize_t;
     typedef int socket_t;
 #endif
 
-const int MAX_PACKET      = 65536;
-const int MAX_PAYLOAD     = 1443;
-const int PKT_MAX_DELAY   = 100;
+const int MAX_PACKET    = 65536;
+const int MAX_PAYLOAD   = 1446;
+const int PKT_MAX_DELAY = 100;
 
 typedef enum RTP_ERROR {
     RTP_MULTIPLE_PKTS_READY = 6,   /* multiple packets can be queried from the layer */

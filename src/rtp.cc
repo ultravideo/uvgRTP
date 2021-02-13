@@ -16,7 +16,6 @@ uvg_rtp::rtp::rtp(rtp_format_t fmt):
     wc_start_(0),
     sent_pkts_(0),
     timestamp_(INVALID_TS),
-    payload_size_(MAX_PAYLOAD),
     delay_(PKT_MAX_DELAY)
 {
     seq_  = uvg_rtp::random::generate_32() & 0xffff;
@@ -24,6 +23,7 @@ uvg_rtp::rtp::rtp(rtp_format_t fmt):
     ssrc_ = uvg_rtp::random::generate_32();
 
     set_payload(fmt);
+    set_payload_size(MAX_PAYLOAD);
 }
 
 uvg_rtp::rtp::~rtp()
@@ -128,6 +128,15 @@ uint32_t uvg_rtp::rtp::get_clock_rate(void)
 
 void uvg_rtp::rtp::set_payload_size(size_t payload_size)
 {
+    switch (fmt_) {
+        case RTP_FORMAT_H264:
+        case RTP_FORMAT_H265:
+        case RTP_FORMAT_H266:
+            if (payload_size > 3)
+                payload_size -= 3;
+            break;
+    }
+
     payload_size_ = payload_size;
 }
 
