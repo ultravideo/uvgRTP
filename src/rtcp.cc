@@ -14,9 +14,6 @@
 #include "rtcp.hh"
 #include "util.hh"
 
-#define UDP_HEADER_SIZE  8
-#define IP_HEADER_SIZE  20
-
 uvg_rtp::rtcp::rtcp(uvg_rtp::rtp *rtp, int flags):
     rtp_(rtp), flags_(flags), our_role_(RECEIVER),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
@@ -187,7 +184,7 @@ rtp_error_t uvg_rtp::rtcp::add_participant(uint32_t ssrc)
 void uvg_rtp::rtcp::update_rtcp_bandwidth(size_t pkt_size)
 {
     rtcp_pkt_count_    += 1;
-    rtcp_byte_count_   += pkt_size + UDP_HEADER_SIZE + IP_HEADER_SIZE;
+    rtcp_byte_count_   += pkt_size + UDP_HDR_SIZE + IPV4_HDR_SIZE;
     avg_rtcp_pkt_pize_  = rtcp_byte_count_ / rtcp_pkt_count_;
 }
 

@@ -31,9 +31,17 @@ typedef SSIZE_T ssize_t;
     typedef int socket_t;
 #endif
 
-const int MAX_PACKET    = 65536;
-const int MAX_PAYLOAD   = 1446;
-const int PKT_MAX_DELAY = 100;
+const int MAX_PACKET       = 65536;
+const int MAX_PAYLOAD      = 1446;
+const int PKT_MAX_DELAY    = 100;
+
+/* TODO: add ability for user to specify these? */
+enum HEADER_SIZES {
+    ETH_HDR_SIZE  = 14,
+    IPV4_HDR_SIZE = 20,
+    UDP_HDR_SIZE  =  8,
+    RTP_HDR_SIZE  = 12
+};
 
 typedef enum RTP_ERROR {
     RTP_MULTIPLE_PKTS_READY = 6,   /* multiple packets can be queried from the layer */
@@ -220,6 +228,16 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
     /* Overwrite uvgRTP's own payload type in RTP packets and specify your own
      * dynamic payload type for all packets of an RTP stream */
     RCC_DYN_PAYLOAD_TYPE = 4,
+
+    /* Set a maximum value for the Ethernet frame size assumed by uvgRTP.
+     *
+     * Default is 1500, from this Ethernet, IPv4 and UDP, and RTP headers
+     * are removed from this, giving a payload size of 1446 bytes
+     *
+     * If application wishes to use small UDP datagrams for some reason,
+     * it can set MTU size to, for example, 500 bytes or if it wishes
+     * to use jumbo frames, it can set the MTU size to 9000 bytes */
+    RCC_MTU_SIZE         = 5,
 
     RCC_LAST
 };

@@ -625,6 +625,19 @@ rtp_error_t uvg_rtp::media_stream::configure_ctx(int flag, ssize_t value)
         }
         break;
 
+        case RCC_MTU_SIZE: {
+            size_t hdr = ETH_HDR_SIZE + IPV4_HDR_SIZE + UDP_HDR_SIZE + RTP_HDR_SIZE;
+
+            if (ctx_config_.flags & RCE_SRTP_AUTHENTICATE_RTP)
+                hdr += AUTH_TAG_LENGTH;
+
+            if (value <= hdr)
+                return RTP_INVALID_VALUE;
+
+            rtp_->set_payload_size(value - hdr);
+        }
+        break;
+
         default:
             return RTP_INVALID_VALUE;
     }
