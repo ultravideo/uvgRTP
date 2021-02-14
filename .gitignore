@@ -15,3 +15,4 @@ benchmarks/*/*sender
 *.prof
 tags
 *a.out
+docs/latex

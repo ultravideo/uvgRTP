@@ -17,6 +17,7 @@ namespace uvg_rtp {
 
     class media_stream {
         public:
+            /// \cond DO_NOT_DOCUMENT
             media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags);
             media_stream(std::string remote_addr, std::string local_addr, int src_port, int dst_port, rtp_format_t fmt, int flags);
             ~media_stream();
@@ -40,6 +41,7 @@ namespace uvg_rtp {
              *
              * Other error return codes are defined in {conn,writer,reader,srtp}.hh */
             rtp_error_t init(uvg_rtp::zrtp *zrtp);
+            /// \endcond
 
             /* Add key for user-managed SRTP session
              *
@@ -56,7 +58,7 @@ namespace uvg_rtp {
              * Return RTP_NOT_SUPPORTED if user-managed SRTP was not specified in create_stream() */
             rtp_error_t add_srtp_ctx(uint8_t *key, uint8_t *salt);
 
-            /* Split "data" into 1500 byte chunks and send them to remote
+            /** Split "data" into 1500 byte chunks and send them to remote
              *
              * NOTE: If SCD has been enabled, calling this version of push_frame()
              * requires either that the caller has given a deallocation callback to
@@ -84,7 +86,10 @@ namespace uvg_rtp {
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags);
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int flags);
 
-            /* When a frame is received, it is put into the frame vector of the receiver
+            /**
+             * \brief Poll a frame indefinetily from the media stream object
+             *
+             * When a frame is received, it is put into the frame vector of the receiver
              * Calling application can poll frames by calling pull_frame().
              *
              * NOTE: pull_frame() is a blocking operation and a separate thread should be
@@ -96,9 +101,24 @@ namespace uvg_rtp {
              *
              * Return pointer to RTP frame on success */
             uvg_rtp::frame::rtp_frame *pull_frame();
+
+            /**
+             * \brief Poll a frame for a specified time from the media stream object
+             *
+             * When a frame is received, it is put into the frame vector of the receiver
+             * Calling application can poll frames by calling pull_frame().
+             *
+             * NOTE: pull_frame() is a blocking operation and a separate thread should be
+             * spawned for it!
+             *
+             * You can specify for how long should pull_frame() block by giving "timeout"
+             * parameter that denotes how long pull_frame() will wait for an incoming frame
+             * in milliseconds
+             *
+             * Return pointer to RTP frame on success */
             uvg_rtp::frame::rtp_frame *pull_frame(size_t timeout);
 
-            /* Alternative to pull_frame(). The provided hook is called when a frame is received.
+            /** Alternative to pull_frame(). The provided hook is called when a frame is received.
              *
              * "arg" is optional argument that is passed to hook when it is called. It may be nullptr
              *
@@ -109,6 +129,7 @@ namespace uvg_rtp {
              * Return RTP_INVALID_VALUE if "hook" is nullptr */
             rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvg_rtp::frame::rtp_frame *));
 
+            /// \cond DO_NOT_DOCUMENT
             /* If system call dispatcher is enabled and calling application has special requirements
              * for the deallocation of a frame, it may install a deallocation hook which is called
              * when SCD has processed the frame
@@ -131,15 +152,21 @@ namespace uvg_rtp {
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "hook" is nullptr */
             rtp_error_t install_notify_hook(void *arg, void (*hook)(void *, int));
+            /// \endcond
 
-            /* Configure the media stream in various ways
+            /**
+             * \brief Configure the media stream, see ::RTP_CTX_CONFIGURATION_FLAGS for more details
              *
-             * See utils.hh for more details
+             * \return RTP error code
              *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "flag" is not recognized or "value" is invalid */
+             * \retval RTP_OK On success
+             * \retval RTP_INVALID_VALUE If the provided value is not valid for a given configuration flag
+             * \retval RTP_INVALID_VALUE If the provided configuration flag is not supported
+             * \retval RTP_GENERIC_ERROR If setsockopt(2) failed
+             */
             rtp_error_t configure_ctx(int flag, ssize_t value);
 
+            /// \cond DO_NOT_DOCUMENT
             /* Setter and getter for media-specific config that can be used f.ex with Opus */
             void  set_media_config(void *config);
             void *get_media_config();
@@ -147,14 +174,20 @@ namespace uvg_rtp {
             /* Get unique key of the media stream
              * Used by session to index media streams */
             uint32_t get_key();
+            /// \endcond
 
-            /* Get pointer to the RTCP object of the media stream
+            /**
              *
-             * This object is used to control all RTCP-related functionality
-             * and RTCP documentation can be found from include/rtcp.hh
+             * \brief Get pointer to the RTCP object of the media stream
              *
-             * Return pointer to RTCP object on success
-             * Return nullptr if RTCP has been created */
+             * \details This object is used to control all RTCP-related functionality
+             * and RTCP documentation can be found from \ref uvg_rtp::rtcp
+             *
+             * \return Pointer to RTCP object
+             *
+             * \retval uvg_rtp::rtcp* If RTCP has been enabled (RCE_RTCP has been given to uvg_rtp::session::create_stream())
+             * \retval nullptr        If RTCP has not been enabled
+             */
             uvg_rtp::rtcp *get_rtcp();
 
         private:

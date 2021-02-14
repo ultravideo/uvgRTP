@@ -4,26 +4,72 @@
 #include "session.hh"
 
 namespace uvg_rtp {
-    
+
     class context {
         public:
+            /**
+             * \brief RTP context constructor
+             *
+             * \details Most of the time one RTP context per application is enough.
+             * If CNAME namespace isolation is required, multiple context objects can be created.
+             */
             context();
+
+            /**
+             * \brief RTP context destructor
+             *
+             * \details This does not destroy active sessions. They must be destroyed manually
+             * by calling uvg_rtp::context::destroy_session()
+             */
             ~context();
 
-            /* Create a new session with remote participant */
+            /**
+             * \brief Create a new RTP session
+             *
+             * \param addr IPv4 address of the remote participant
+             *
+             * \return RTP session object
+             *
+             * \retval uvg_rtp::session      On success
+             * \retval nullptr               If "addr" is empty
+             * \retval nullptr               If memory allocation failed
+             */
             uvg_rtp::session *create_session(std::string addr);
 
-            /* Create a new session with remote participant
-             * Bind ourselves to interface pointed to by "local_addr" */
+            /**
+             * \brief Create a new RTP session
+             *
+             * \details If UDP holepunching should be utilized, in addition to remote IP
+             * address, the caller must also provide local IP address where uvgRTP
+             * should bind itself to. If you are using uvgRTP for unidirectional streaming,
+             * please take a look at @ref RCE_HOLEPUNCH_KEEPALIVE
+             *
+             * \param remote_addr IPv4 address of the remote participant
+             * \param local_addr  IPv4 address of a local interface
+             *
+             * \return RTP session object
+             *
+             * \retval uvg_rtp::session     On success
+             * \retval nullptr              If remote_addr or local_addr is empty
+             * \retval nullptr              If memory allocation failed
+             */
             uvg_rtp::session *create_session(std::string remote_addr, std::string local_addr);
 
-            /* Destroy session and all media streams
+            /**
+             * \brief Destroy RTP session and all of its media streams
              *
-             * Return RTP_INVALID_VALUE if "session" is nullptr
-             * Return RTP_NOT_FOUND if "session" has not been allocated from this context */
+             * \param session Pointer to the session object that should be destroyed
+             *
+             * \return RTP error code
+             *
+             * \retval RTP_OK                On success
+             * \retval RTP_INVALID_VALUE     If session is nullptr
+             */
             rtp_error_t destroy_session(uvg_rtp::session *session);
 
+            /// \cond DO_NOT_DOCUMENT
             std::string& get_cname();
+            /// \endcond
 
         private:
             /* Generate CNAME for participant using host and login names */

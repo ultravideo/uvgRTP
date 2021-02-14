@@ -1,5 +1,7 @@
+/// \file util.hh
 #pragma once
 
+/// \cond DO_NOT_DOCUMENT
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
@@ -42,75 +44,87 @@ enum HEADER_SIZES {
     UDP_HDR_SIZE  =  8,
     RTP_HDR_SIZE  = 12
 };
+/// \endcond
 
+/**
+ * \enum RTP_ERROR
+ *
+ * \brief RTP error codes
+ *
+ * \details These error valus are returned from various uvgRTP functions. Functions that return a pointer set rtp_errno global value that should be checked if a function call failed
+ */
 typedef enum RTP_ERROR {
-    RTP_MULTIPLE_PKTS_READY = 6,   /* multiple packets can be queried from the layer */
-    RTP_PKT_READY           = 5,   /* packet can be returned to user */
-    RTP_PKT_MODIFIED        = 4,   /* packet was modified by the layer (see src/pkt_dispatch.cc) */
-    RTP_PKT_NOT_HANDLED     = 3,   /* packet does not belong to this layer */
+    RTP_MULTIPLE_PKTS_READY = 6,
+    RTP_PKT_READY           = 5,
+    RTP_PKT_MODIFIED        = 4,
+    RTP_PKT_NOT_HANDLED     = 3,
     RTP_INTERRUPTED         = 2,
     RTP_NOT_READY           = 1,
-    RTP_OK                  = 0,
-    RTP_GENERIC_ERROR       = -1,
-    RTP_SOCKET_ERROR        = -2,
-    RTP_BIND_ERROR          = -3,
-    RTP_INVALID_VALUE       = -4,
-    RTP_SEND_ERROR          = -5,
-    RTP_MEMORY_ERROR        = -6,
-    RTP_SSRC_COLLISION      = -7,
-    RTP_INITIALIZED         = -8,   /* object already initialized */
-    RTP_NOT_INITIALIZED     = -9,   /* object has not been initialized */
-    RTP_NOT_SUPPORTED       = -10,  /* method/version/extension not supported */
-    RTP_RECV_ERROR          = -11,  /* recv(2) or one of its derivatives failed */
-    RTP_TIMEOUT             = -12,  /* operation timed out */
-    RTP_NOT_FOUND           = -13,  /* object not found */
-    RTP_AUTH_TAG_MISMATCH   = -14,  /* authentication tag does not match the RTP packet contents */
+    RTP_OK                  = 0,    ///< Success
+    RTP_GENERIC_ERROR       = -1,   ///< Generic error condition
+    RTP_SOCKET_ERROR        = -2,   ///< Failed to create socket
+    RTP_BIND_ERROR          = -3,   ///< Failed to bind to interface
+    RTP_INVALID_VALUE       = -4,   ///< Invalid value
+    RTP_SEND_ERROR          = -5,   ///< System call send(2) or one of its derivatives failed
+    RTP_MEMORY_ERROR        = -6,   ///< Memory allocation failed
+    RTP_SSRC_COLLISION      = -7,   ///< SSRC collision detected
+    RTP_INITIALIZED         = -8,   ///< Object already initialized
+    RTP_NOT_INITIALIZED     = -9,   ///< Object has not been initialized
+    RTP_NOT_SUPPORTED       = -10,  ///< Method/version/extension not supported
+    RTP_RECV_ERROR          = -11,  ///< System call recv(2) or one of its derivatives failed
+    RTP_TIMEOUT             = -12,  ///< Operation timed out
+    RTP_NOT_FOUND           = -13,  ///< Object not found
+    RTP_AUTH_TAG_MISMATCH   = -14,  ///< Authentication tag does not match the RTP packet contents
 } rtp_error_t;
 
+/**
+ * \enum RTP_FORMAT
+ *
+ * \brief These flags are given to uvg_rtp::session::create_stream()
+ */
 typedef enum RTP_FORMAT {
-    RTP_FORMAT_GENERIC = 0,
-    RTP_FORMAT_H264    = 95,
-    RTP_FORMAT_H265    = 96,
-    RTP_FORMAT_H266    = 97,
-    RTP_FORMAT_OPUS    = 98,
+    RTP_FORMAT_GENERIC = 0,   ///< Generic format
+    RTP_FORMAT_H264    = 95,  ///< H.264/AVC
+    RTP_FORMAT_H265    = 96,  ///< H.265/HEVC
+    RTP_FORMAT_H266    = 97,  ///< H.266/VVC
+    RTP_FORMAT_OPUS    = 98,  ///< Opus
 } rtp_format_t;
 
+/**
+ * \enum RTP_FLAGS
+ *
+ * \brief These flags are given to uvg_rtp::media_stream::push_frame()
+ * and they can be OR'ed together
+ */
 typedef enum RTP_FLAGS {
+    /** No flags */
     RTP_NO_FLAGS = 0 << 0,
 
-    /* TODO  */
+    /** Treat the incoming frame as an H26X slice unit and do not perform start code lookup on it */
     RTP_SLICE    = 1 << 0,
 
-    /* TODO */
-    RTP_MORE     = 1 << 1,
+    /** Make a copy of the data given to push_frame() and operate on that */
+    RTP_COPY     = 1 << 1
 
-    /* Make a copy of "data" given to push_frame()
-     *
-     * This is an easy way out of the memory ownership/deallocation problem
-     * for the application but can significantly damage the performance
-     *
-     * NOTE: Copying is necessary only when the following conditions are met:
-     *   - SCD is enabled
-     *   - Media format is such that it uses SCD (HEVC is the only for now)
-     *   - Application hasn't provided a deallocation callback
-     *   - Application doens't use unique_ptrs
-     *
-     * If all of those conditions are met, then it's advised to pass RTP_COPY.
-     * Otherwise there might be a lot of leaked memory */
-    RTP_COPY = 1 << 2,
 } rtp_flags_t;
 
-/* These flags are given when uvgRTP context is created */
+/**
+ * \enum RTP_CTX_ENABLE_FLAGS
+ *
+ * \brief RTP context enable flags
+ *
+ * \details These flags are passed to uvg_rtp::session::create_stream and can be OR'ed together
+ */
 enum RTP_CTX_ENABLE_FLAGS {
-    RTP_CTX_NO_FLAGS              = 0 << 0,
+    RCE_NO_FLAGS                  = 0 << 0,
 
     /* Enable system call dispatcher (HEVC only) */
     RCE_SYSTEM_CALL_DISPATCHER    = 1 << 2,
 
-    /* Use SRTP for this connection */
+    /** Use SRTP for this connection */
     RCE_SRTP                      = 1 << 3,
 
-    /* Use ZRTP for key management
+    /** Use ZRTP for key management
      *
      * If this flag is provided, before the session starts,
      * ZRTP will negotiate keys with the remote participants
@@ -120,7 +134,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      * with RCE_SRTP_KMNGMNT_USER. */
     RCE_SRTP_KMNGMNT_ZRTP         = 1 << 4,
 
-    /* Use user-defined way to manage keys
+    /** Use user-defined way to manage keys
      *
      * If this flag is provided, before the media transportation starts,
      * user must provide a master key and salt form which SRTP session
@@ -130,7 +144,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      * with RCE_SRTP_KMNGMNT_ZRTP */
     RCE_SRTP_KMNGMNT_USER         = 1 << 5,
 
-    /* When uvgRTP is receiving HEVC stream, as an attempt to improve
+    /** When uvgRTP is receiving HEVC stream, as an attempt to improve
      * QoS, it will set frame delay for intra frames to be the same
      * as intra period.
      *
@@ -152,7 +166,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      * equally and drops all frames that are late */
     RCE_H265_NO_INTRA_DELAY       = 1 << 5,
 
-    /* Fragment generic frames into RTP packets of 1500 bytes.
+    /** Fragment generic frames into RTP packets of 1500 bytes.
      *
      * If RCE_FRAGMENT_GENERIC is given to create_stream(), uvgRTP will split frames
      * of type RTP_FORMAT_GENERIC into packets of 1500 bytes automatically and reconstruct
@@ -166,7 +180,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      * by uvgRTP but requires packetization because MEDIA_FRAME_SIZE > MTU */
     RCE_FRAGMENT_GENERIC          = 1 << 6,
 
-    /* If SRTP is enabled and RCE_INPLACE_ENCRYPTION flag is *not* given,
+    /** If SRTP is enabled and RCE_INPLACE_ENCRYPTION flag is *not* given,
      * uvgRTP will make a copy of the frame given to push_frame().
      *
      * If the frame is writable and the application no longer needs the frame,
@@ -176,13 +190,13 @@ enum RTP_CTX_ENABLE_FLAGS {
      * If RCE_INPLACE_ENCRYPTION is given to push_frame(), the input pointer must be writable! */
     RCE_SRTP_INPLACE_ENCRYPTION   = 1 << 7,
 
-    /* Disable System Call Clustering (SCC), System Call Dispatching is still usable */
+    /** Disable System Call Clustering (SCC) */
     RCE_NO_SYSTEM_CALL_CLUSTERING = 1 << 8,
 
-    /* Disable RTP payload encryption */
+    /** Disable RTP payload encryption */
     RCE_SRTP_NULL_CIPHER          = 1 << 9,
 
-    /* Enable RTP packet authentication
+    /** Enable RTP packet authentication
      *
      * This flag forces the security layer to add authentication tag
      * to each outgoing RTP packet for all streams that have SRTP enabled.
@@ -190,17 +204,17 @@ enum RTP_CTX_ENABLE_FLAGS {
      * NOTE: this flag must be coupled with at least RCE_SRTP */
     RCE_SRTP_AUTHENTICATE_RTP     = 1 << 10,
 
-    /* Enable packet replay protection */
+    /** Enable packet replay protection */
     RCE_SRTP_REPLAY_PROTECTION    = 1 << 11,
 
-    /* Enable RTCP for the media stream.
+    /** Enable RTCP for the media stream.
      * If SRTP is enabled, SRTCP is used instead */
     RCE_RTCP                      = 1 << 12,
 
-    /* Prepend a 4-byte start code (0x00000001) to HEVC each frame */
+    /** Prepend a 4-byte start code (0x00000001) to HEVC each frame */
     RCE_H26X_PREPEND_SC           = 1 << 13,
 
-    /* If the Mediastream object is used as a unidirectional stream
+    /** If the Mediastream object is used as a unidirectional stream
      * but holepunching has been enabled, this flag can be used to make
      * uvgRTP periodically send a short UDP datagram to keep the hole
      * in the firewall open */
@@ -209,21 +223,33 @@ enum RTP_CTX_ENABLE_FLAGS {
     RCE_LAST                      = 1 << 15,
 };
 
-/* These options are given to configuration() */
+/**
+ * \enum RTP_CTX_CONFIGURATION_FLAGS
+ *
+ * \brief RTP context configuration flags
+ *
+ * \details These flags are given to uvg_rtp::media_stream::configure_ctx
+ */
 enum RTP_CTX_CONFIGURATION_FLAGS {
-    /* No configuration flags */
     RCC_NO_FLAGS         = 0,
 
-    /* How large is the receiver/sender UDP buffer size
+    /** How large is the receiver UDP buffer size
      *
      * Default value is 4 MB
      *
      * For video with high bitrate, it is advisable to set this
      * to a high number to prevent OS from dropping packets */
     RCC_UDP_RCV_BUF_SIZE = 1,
+
+    /** How large is the sender UDP buffer size
+     *
+     * Default value is 4 MB
+     *
+     * For video with high bitrate, it is advisable to set this
+     * to a high number to prevent OS from dropping packets */
     RCC_UDP_SND_BUF_SIZE = 2,
 
-    /* How many milliseconds is each frame waited until it's dropped
+    /** How many milliseconds is each frame waited until it's dropped
      *
      * Default is 100 milliseconds
      *
@@ -231,11 +257,11 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      * i.e. RTP_FORMAT_H26X and RTP_FORMAT_GENERIC with RCE_FRAGMENT_GENERIC (TODO) */
     RCC_PKT_MAX_DELAY    = 3,
 
-    /* Overwrite uvgRTP's own payload type in RTP packets and specify your own
+    /** Overwrite uvgRTP's own payload type in RTP packets and specify your own
      * dynamic payload type for all packets of an RTP stream */
     RCC_DYN_PAYLOAD_TYPE = 4,
 
-    /* Set a maximum value for the Ethernet frame size assumed by uvgRTP.
+    /** Set a maximum value for the Ethernet frame size assumed by uvgRTP.
      *
      * Default is 1500, from this Ethernet, IPv4 and UDP, and RTP headers
      * are removed from this, giving a payload size of 1446 bytes
@@ -248,6 +274,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
     RCC_LAST
 };
 
+/// \cond DO_NOT_DOCUMENT
 enum NOTIFY_REASON {
 
     /* Timer for the active frame has expired and it has been dropped */
@@ -311,3 +338,4 @@ static inline std::string generate_string(size_t length)
     std::generate_n(str.begin(), length, randchar);
     return str;
 }
+/// \endcond

@@ -14,8 +14,7 @@
 
 namespace uvg_rtp {
 
-    class connection;
-
+    /// \cond DO_NOT_DOCUMENT
     enum RTCP_ROLE {
         RECEIVER,
         SENDER
@@ -70,9 +69,11 @@ namespace uvg_rtp {
         uvg_rtp::frame::rtcp_sdes_packet     *sdes_frame;
         uvg_rtp::frame::rtcp_app_packet      *app_frame;
     };
+    /// \endcond
 
     class rtcp : public runner {
         public:
+            /// \cond DO_NOT_DOCUMENT
             rtcp(uvg_rtp::rtp *rtp, int flags);
             rtcp(uvg_rtp::rtp *rtp, uvg_rtp::srtcp *srtcp, int flags);
             ~rtcp();
@@ -110,6 +111,7 @@ namespace uvg_rtp {
              *
              * Return RTP_OK on success and RTP_ERROR on error */
             rtp_error_t handle_incoming_packet(uint8_t *buffer, size_t size);
+            /// \endcond
 
             /* Send "frame" to all participants
              *
@@ -122,6 +124,7 @@ namespace uvg_rtp {
             rtp_error_t send_app_packet(char *name, uint8_t subtype, size_t payload_len, uint8_t *payload);
             rtp_error_t send_bye_packet(std::vector<uint32_t> ssrcs);
 
+            /// \cond DO_NOT_DOCUMENT
             /* Return the latest RTCP packet received from participant of "ssrc"
              * Return nullptr if we haven't received this kind of packet or if "ssrc" doesn't exist
              *
@@ -171,15 +174,16 @@ namespace uvg_rtp {
              * Return RTP_SSRC_COLLISION if our new SSRC has collided and we need to generate new SSRC */
             rtp_error_t reset_rtcp_state(uint32_t ssrc);
 
-            /* Set wallclock reading for t = 0 and random RTP timestamp from where the counting is started
-             * + clock rate for calculating the correct increment */
-            void set_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start);
-
             /* Update various session statistics */
             void update_session_statistics(uvg_rtp::frame::rtp_frame *frame);
 
             /* Return SSRCs of all participants */
             std::vector<uint32_t> get_participants();
+            /// \endcond
+
+            /* Set wallclock reading for t = 0 and random RTP timestamp from where the counting is started
+             * + clock rate for calculating the correct increment */
+            void set_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start);
 
             /* Alternate way to get RTCP packets is to install a hook for them. So instead of
              * polling an RTCP packet, user can install a function that is called when
@@ -189,6 +193,7 @@ namespace uvg_rtp {
             rtp_error_t install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_packet *));
             rtp_error_t install_app_hook(void (*hook)(uvg_rtp::frame::rtcp_app_packet *));
 
+            /// \cond DO_NOT_DOCUMENT
             /* Update RTCP-related sender statistics */
             rtp_error_t update_sender_stats(size_t pkt_size);
 
@@ -197,6 +202,7 @@ namespace uvg_rtp {
 
             /* Update RTCP-related sender statistics */
             static rtp_error_t send_packet_handler_vec(void *arg, uvg_rtp::buf_vec& buffers);
+            /// \endcond
 
         private:
             static void rtcp_runner(rtcp *rtcp);

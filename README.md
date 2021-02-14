@@ -36,7 +36,7 @@ See [BUILDING.md](BUILDING.md) for instructions on how to build and use uvgRTP
 
 ## Documentation and examples
 
-See [documentation](doc/README.md) and [examples](doc/examples) to get a better understanding of uvgRTP
+See [documentation](docs/README.md) and [examples](docs/examples) to get a better understanding of uvgRTP
 
 ## Paper
 

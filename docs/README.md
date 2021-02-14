@@ -2,83 +2,25 @@
 
 This file provides documentation of uvgRTP's usage and public API.
 
-## Public API
-
-The public API for uvgRTP is very short. Functions not listed in this document should not be called
-by an application using uvgRTP as they are for internal usage only. All of the features are provided
-as either built-in or they are enabled/modified through context configuration that is specified below.
-
 ## Architecture
 
 ![](arch.png)
 
 The top-level object for uvgRTP is the `uvgrtp::context` object. It is used to create RTP sessions
-that are bound to certain IP addresses and is used to provide CNAME namespace isolation if that is
+that are bound to certain IP addresses and to provide CNAME namespace isolation if that is
 required by the application. Most of the time only one context object is enough per application.
 
 RTP sessions, `uvgrtp::session` objects, are allocated from `uvgrtp::context`. For each remote IP address, a session object should be created. uvgRTP supports UDP holepunching so during session creation a source IP address can be specified and uvgRTP binds itself to that address before it starts streaming.
 
 Each session contains 1..n `uvgrtp::media_stream` objects. These objects are bidirectional streams, i.e. you use the same object to send and receive RTP frames. The object can be used as unidirectional stream too, a user then just doesn't either send or receive RTP frames using the object. Each `uvgrtp::media_stream` object contains source and destination ports, media format for the stream and a collection of context configuration flags that enable, for example, SRTP or RTCP.
 
-### uvgrtp::context
+## Public API
 
-`uvgrtp::context` contains only two functions 
+The public API for uvgRTP is very short. Functions not listed in the public API should not be called
+by an application using uvgRTP as they are for internal usage only. All of the features are provided
+as either built-in or they are enabled/modified through context configuration that is specified below.
 
-```
-rtp_error_t create_session(std::string remote_addr)
-```
-
-This function takes the remote IPv4 address as input and returns a session object.
-
-```
-rtp_error_t create_session(std::string remote_addr, std::string local_addr)
-```
-
-Inputs: IPv4 address of the remote participant
-Outputs:
-
-```
-rtp_error_t destroy_session(uvgrtp::session *session)
-```
-
-Inputs: IPv4 address of the remote participant
-Outputs:
-
-
-### uvgrtp::session
-
-```
-uvg_rtp::media_stream *create_stream(int src_port, int dst_port, rtp_format_t fmt, int flags);
-```
-```
-rtp_error_t destroy_stream(uvg_rtp::media_stream *stream);
-```
-
-### uvgrtp::media_stream
-
-```
-rtp_error_t add_srtp_ctx(uint8_t *key, uint8_t *salt);
-rtp_error_t push_frame(uint8_t *data, size_t data_len, int flags);
-rtp_error_t push_frame(uint8_t *data, size_t data_len, uint32_t ts, int flags);
-rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags);
-rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int flags);
-uvg_rtp::frame::rtp_frame *pull_frame();
-uvg_rtp::frame::rtp_frame *pull_frame(size_t timeout);
-rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvg_rtp::frame::rtp_frame *));
-rtp_error_t configure_ctx(int flag, ssize_t value);
-uvg_rtp::rtcp *get_rtcp();
-```
-
-### uvgrtp::rtcp
-
-```
-rtp_error_t send_sdes_packet(std::vector<uvg_rtp::frame::rtcp_sdes_item>& items);
-rtp_error_t send_app_packet(char *name, uint8_t subtype, size_t payload_len, uint8_t *payload);
-rtp_error_t install_sender_hook(void (*hook)(uvg_rtp::frame::rtcp_sender_report *));
-rtp_error_t install_receiver_hook(void (*hook)(uvg_rtp::frame::rtcp_receiver_report *));
-rtp_error_t install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_packet *));
-rtp_error_t install_app_hook(void (*hook)(uvg_rtp::frame::rtcp_app_packet *));
-```
+Read the documentation for uvgRTP's public API [here](https://ultravideo.github.com/uvgRTP/html/index.html)
 
 ## Supported media formats
 
@@ -93,7 +35,7 @@ see [this example code](examples/sending_generic.cc) for more details. Fragmenta
 
 ## Context configuration
 
-`RCE_*` flags are used to enable/disable functionality of an **individual** Mediastream object. Table below lists all supported flags and what they enable/disable.
+`RCE_*` flags are used to enable/disable functionality of an **individual** `uvgrtp::media_stream` object. Table below lists all supported flags and what they enable/disable.
 `RCE_*` flags are passed to `create_stream()` as the last parameter and they can be OR'ed together
 ```
 session->create_stream(..., RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP_NULL_CIPHER);
@@ -117,13 +59,13 @@ session->create_stream(..., RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP_NULL_CIP
 
 `RCC_*` flags are used to modify the default values used by uvgRTP. Table below lists all supported flags and what they modify.
 
-| Flag | Explanation |
-| ---- |:----------:|
-| RCC_UDP_RCV_BUF_SIZE | Specify UDP receive buffer size |
-| RCC_UDP_SND_BUF_SIZE | Specify UDP send buffer size |
-| RCC_PKT_MAX_DELAY | How many milliseconds is each frame waited until they're dropped (for fragmented frames only) |
-| RCC_DYN_PAYLOAD_TYPE | Override uvgRTP's payload type used in RTP headers |
-| RCC_MTU_SIZE | Set a maximum value for the Ethernet frame size assumed by uvgRTP (for enabling, for example, jumbo frame support) |
+| Flag | Explanation | Default |
+| ---- |:----------:|:----------:|
+| RCC_UDP_RCV_BUF_SIZE | Specify UDP receive buffer size | 4 MB |
+| RCC_UDP_SND_BUF_SIZE | Specify UDP send buffer size | 4 MB
+| RCC_PKT_MAX_DELAY | How many milliseconds is each frame waited until they're dropped (for fragmented frames only) | 100 ms |
+| RCC_DYN_PAYLOAD_TYPE | Override uvgRTP's payload type used in RTP headers | Format-specific, see `include/util.hh` |
+| RCC_MTU_SIZE | Set a maximum value for the Ethernet frame size assumed by uvgRTP (for enabling, for example, jumbo frame support) | 1500 bytes |
 
 Configuration done using `RCC_*` flags are done by calling `configure_ctx()` with a flag and a value
 
@@ -146,7 +88,7 @@ to `create_stream()`. See [ZRTP Multistream example](examples/zrtp_multistream.c
 ### User-managed SRTP
 
 The second way of handling key-management of SRTP is to do it yourself. uvgRTP supports 128-bit keys
-and and 112-bit salts which must be given to the Mediastream object using `add_srtp_ctx()` right after
+and and 112-bit salts which must be given to the `uvgrtp::media_stream` object using `add_srtp_ctx()` right after
 `create_stream()` has been called. All calls that try to modify or use the stream
 (other than `add_srtp_ctx()`) will fail with `RTP_NOT_INITIALIZED`.
 See [this example code](examples/srtp_user.cc) for more details.
