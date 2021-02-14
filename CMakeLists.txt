@@ -26,6 +26,7 @@ add_library(uvgrtp STATIC
     src/session.cc
     src/socket.cc
     src/zrtp.cc
+    src/holepuncher.cc
     src/formats/media.cc
     src/formats/h26x.cc
     src/formats/h264.cc

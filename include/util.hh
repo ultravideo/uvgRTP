@@ -200,7 +200,13 @@ enum RTP_CTX_ENABLE_FLAGS {
     /* Prepend a 4-byte start code (0x00000001) to HEVC each frame */
     RCE_H26X_PREPEND_SC           = 1 << 13,
 
-    RCE_LAST                      = 1 << 14,
+    /* If the Mediastream object is used as a unidirectional stream
+     * but holepunching has been enabled, this flag can be used to make
+     * uvgRTP periodically send a short UDP datagram to keep the hole
+     * in the firewall open */
+    RCE_HOLEPUNCH_KEEPALIVE       = 1 << 14,
+
+    RCE_LAST                      = 1 << 15,
 };
 
 /* These options are given to configuration() */

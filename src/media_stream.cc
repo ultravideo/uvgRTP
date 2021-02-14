@@ -23,7 +23,8 @@ uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port
     rtp_handler_key_(0),
     pkt_dispatcher_(nullptr),
     dispatcher_thread_(nullptr),
-    media_(nullptr)
+    media_(nullptr),
+    holepuncher_(nullptr)
 {
     fmt_      = fmt;
     addr_     = addr;
@@ -53,6 +54,9 @@ uvg_rtp::media_stream::~media_stream()
     if (ctx_config_.flags & RCE_RTCP)
         rtcp_->stop();
 
+    if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE)
+        holepuncher_->stop();
+
     delete socket_;
     delete rtcp_;
     delete rtp_;
@@ -60,6 +64,7 @@ uvg_rtp::media_stream::~media_stream()
     delete srtcp_;
     delete pkt_dispatcher_;
     delete dispatcher_thread_;
+    delete holepuncher_;
     delete media_;
 }
 
@@ -190,6 +195,17 @@ rtp_error_t uvg_rtp::media_stream::init()
         return RTP_MEMORY_ERROR;
     }
 
+    if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE) {
+        if (!(holepuncher_ = new uvg_rtp::holepuncher(socket_))) {
+            delete rtp_;
+            delete rtcp_;
+            delete pkt_dispatcher_;
+            delete media_;
+            return RTP_MEMORY_ERROR;
+        }
+        holepuncher_->start();
+    }
+
     if (ctx_config_.flags & RCE_RTCP) {
         rtcp_->add_participant(addr_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
         rtcp_->start();
@@ -315,6 +331,19 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
         return RTP_MEMORY_ERROR;
     }
 
+    if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE) {
+        if (!(holepuncher_ = new uvg_rtp::holepuncher(socket_))) {
+            delete rtp_;
+            delete srtp_;
+            delete srtcp_;
+            delete rtcp_;
+            delete pkt_dispatcher_;
+            delete media_;
+            return RTP_MEMORY_ERROR;
+        }
+        holepuncher_->start();
+    }
+
     if (ctx_config_.flags & RCE_RTCP) {
         rtcp_->add_participant(addr_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
         rtcp_->start();
@@ -435,6 +464,19 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         return RTP_MEMORY_ERROR;
     }
 
+    if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE) {
+        if (!(holepuncher_ = new uvg_rtp::holepuncher(socket_))) {
+            delete rtp_;
+            delete srtp_;
+            delete srtcp_;
+            delete rtcp_;
+            delete pkt_dispatcher_;
+            delete media_;
+            return RTP_MEMORY_ERROR;
+        }
+        holepuncher_->start();
+    }
+
     if (ctx_config_.flags & RCE_RTCP) {
         rtcp_->add_participant(addr_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
         rtcp_->start();
@@ -445,7 +487,6 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     initialized_ = true;
     return pkt_dispatcher_->start(socket_, ctx_config_.flags);
-
 }
 
 rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, int flags)
@@ -454,6 +495,9 @@ rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, in
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
+
+    if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE)
+        holepuncher_->notify();
 
     return media_->push_frame(data, data_len, flags);
 }
@@ -464,6 +508,9 @@ rtp_error_t uvg_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, s
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
+
+    if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE)
+        holepuncher_->notify();
 
     return media_->push_frame(std::move(data), data_len, flags);
 }
@@ -476,6 +523,9 @@ rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, ui
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
+
+    if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE)
+        holepuncher_->notify();
 
     rtp_->set_timestamp(ts);
     ret = media_->push_frame(data, data_len, flags);
@@ -492,6 +542,9 @@ rtp_error_t uvg_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, s
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
+
+    if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE)
+        holepuncher_->notify();
 
     rtp_->set_timestamp(ts);
     ret = media_->push_frame(std::move(data), data_len, flags);

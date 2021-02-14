@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <memory>
 
+#include "holepuncher.hh"
 #include "pkt_dispatch.hh"
 #include "rtcp.hh"
 #include "socket.hh"
@@ -197,5 +198,8 @@ namespace uvg_rtp {
 
             /* Media object associated with this media stream. */
             uvg_rtp::formats::media *media_;
+
+            /* Thread that keeps the holepunched connection open for unidirectional streams */
+            uvg_rtp::holepuncher *holepuncher_;
     };
 };
