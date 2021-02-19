@@ -120,7 +120,7 @@ static void __drop_frame(uvgrtp::formats::h264_frame_info_t *finfo, uint32_t ts)
 rtp_error_t uvgrtp::formats::h264::packet_handler(void *arg, int flags, uvgrtp::frame::rtp_frame **out)
 {
     uvgrtp::frame::rtp_frame *frame;
-    bool enable_idelay = false;
+    bool enable_idelay = !(flags & RCE_NO_H26X_INTRA_DELAY);
     auto finfo = (uvgrtp::formats::h264_frame_info_t *)arg;
 
     /* Use "intra" to keep track of intra frames

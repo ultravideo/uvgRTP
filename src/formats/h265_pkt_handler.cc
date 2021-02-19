@@ -119,7 +119,7 @@ static rtp_error_t __handle_ap(uvgrtp::formats::h265_frame_info_t *finfo, uvgrtp
 rtp_error_t uvgrtp::formats::h265::packet_handler(void *arg, int flags, uvgrtp::frame::rtp_frame **out)
 {
     uvgrtp::frame::rtp_frame *frame;
-    bool enable_idelay = !(flags & RCE_H265_NO_INTRA_DELAY);
+    bool enable_idelay = !(flags & RCE_NO_H26X_INTRA_DELAY);
     auto finfo = (uvgrtp::formats::h265_frame_info_t *)arg;
 
     /* Use "intra" to keep track of intra frames

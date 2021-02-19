@@ -46,7 +46,7 @@ session->create_stream(..., RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP_NULL_CIP
 | RCE_SRTP | Enable SRTP, must be coupled with either RCE_SRTP_KMNGMNT_ZRTP or RCE_SRTP_KMNGMNT_USER |
 | RCE_SRTP_KMNGMNT_ZRTP | Use ZRTP to manage keys (see section SRTP for more details) |
 | RCE_SRTP_KMNGMNT_USER | Let user manage keys (see section SRTP for more details) |
-| RCE_H265_NO_INTRA_DELAY | placeholder |
+| RCE_NO_H26X_INTRA_DELAY | placeholder |
 | RCE_FRAGMENT_GENERIC | Fragment generic media frames into RTP packets of 1500 bytes (size is configurable, see RCC_MTU_SIZE) |
 | RCE_SRTP_INPLACE_ENCRYPTION | Perform ciphering directly on the input frame. Saves a memory copy but makes the input frame unusable for the application |
 | RCE_NO_SYSTEM_CALL_CLUSTERING | Disable System Call Clustering, see the publication for more details |

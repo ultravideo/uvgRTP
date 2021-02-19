@@ -144,7 +144,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      * with RCE_SRTP_KMNGMNT_ZRTP */
     RCE_SRTP_KMNGMNT_USER         = 1 << 5,
 
-    /** When uvgRTP is receiving HEVC stream, as an attempt to improve
+    /** When uvgRTP is receiving H26X stream, as an attempt to improve
      * QoS, it will set frame delay for intra frames to be the same
      * as intra period.
      *
@@ -158,13 +158,13 @@ enum RTP_CTX_ENABLE_FLAGS {
      * b) a new intra frame is received
      *
      * This behaviour should reduce the number of gray screens during
-     * HEVC decoding but might cause the video stream to freeze for a while
+     * video decoding but might cause the video stream to freeze for a while
      * which is subjectively lesser of two evils
      *
-     * This behavior can be disabled with RCE_HEVC_NO_INTRA_DELAY
+     * This behavior can be disabled with RCE_NO_H26X_INTRA_DELAY
      * If this flag is given, uvgRTP treats all frame types
      * equally and drops all frames that are late */
-    RCE_H265_NO_INTRA_DELAY       = 1 << 5,
+    RCE_NO_H26X_INTRA_DELAY       = 1 << 5,
 
     /** Fragment generic frames into RTP packets of 1500 bytes.
      *

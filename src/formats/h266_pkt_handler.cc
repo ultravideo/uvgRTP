@@ -120,7 +120,7 @@ rtp_error_t uvgrtp::formats::h266::packet_handler(void *arg, int flags, uvgrtp::
     static std::unordered_set<uint32_t> dropped;
 
     uvgrtp::frame::rtp_frame *frame;
-    bool enable_idelay = false;
+    bool enable_idelay = !(flags & RCE_NO_H26X_INTRA_DELAY);
 
     /* Use "intra" to keep track of intra frames
      *
