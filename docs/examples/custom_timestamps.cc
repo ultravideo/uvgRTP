@@ -5,14 +5,14 @@
 int main(void)
 {
     /* To use the library, one must create a global RTP context object */
-    uvg_rtp::context ctx;
+    uvgrtp::context ctx;
 
     /* Each new IP address requires a separate RTP session.
      * This session object contains all media streams and an RTCP object (if enabled) */
-    uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
+    uvgrtp::session *sess = ctx.create_session("127.0.0.1");
 
     /* Create MediaStream and RTCP for the session */
-    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, RCE_RTCP);
+    uvgrtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, RCE_RTCP);
 
     uint8_t *buffer     = new uint8_t[PAYLOAD_MAXLEN];
     uint32_t clock_rate = 90000 / 30;
@@ -31,7 +31,7 @@ int main(void)
 
     /* You can also use uvgRTP's cross-platform clock interface to get current NTP timestamp */
     if (0)
-        hevc->get_rtcp()->set_ts_info(uvg_rtp::clock::ntp::now(), clock_rate, timestamp);
+        hevc->get_rtcp()->set_ts_info(uvgrtp::clock::ntp::now(), clock_rate, timestamp);
 
     for (int i = 0; i < 10; ++i) {
         /* If needed, custom timestamps can be given to push_frame().

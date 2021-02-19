@@ -1,7 +1,7 @@
 #include "debug.hh"
 #include "session.hh"
 
-uvg_rtp::session::session(std::string addr):
+uvgrtp::session::session(std::string addr):
 #ifdef __RTP_CRYPTO__
     zrtp_(nullptr),
 #endif
@@ -10,13 +10,13 @@ uvg_rtp::session::session(std::string addr):
 {
 }
 
-uvg_rtp::session::session(std::string remote_addr, std::string local_addr):
+uvgrtp::session::session(std::string remote_addr, std::string local_addr):
     session(remote_addr)
 {
     laddr_ = local_addr;
 }
 
-uvg_rtp::session::~session()
+uvgrtp::session::~session()
 {
     for (auto&i : streams_) {
         (void)destroy_stream(i.second);
@@ -28,11 +28,11 @@ uvg_rtp::session::~session()
 #endif
 }
 
-uvg_rtp::media_stream *uvg_rtp::session::create_stream(int r_port, int s_port, rtp_format_t fmt, int flags)
+uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp_format_t fmt, int flags)
 {
     std::lock_guard<std::mutex> m(session_mtx_);
 
-    uvg_rtp::media_stream *stream = nullptr;
+    uvgrtp::media_stream *stream = nullptr;
 
     if (flags & RCE_SYSTEM_CALL_DISPATCHER) {
         LOG_ERROR("SCD is not supported!");
@@ -41,9 +41,9 @@ uvg_rtp::media_stream *uvg_rtp::session::create_stream(int r_port, int s_port, r
     }
 
     if (laddr_ == "")
-        stream = new uvg_rtp::media_stream(addr_, r_port, s_port, fmt, flags);
+        stream = new uvgrtp::media_stream(addr_, r_port, s_port, fmt, flags);
     else
-        stream = new uvg_rtp::media_stream(addr_, laddr_, r_port, s_port, fmt, flags);
+        stream = new uvgrtp::media_stream(addr_, laddr_, r_port, s_port, fmt, flags);
 
     if (!stream) {
         LOG_ERROR("Failed to create media stream for %s:%d -> %s:%d",
@@ -53,7 +53,7 @@ uvg_rtp::media_stream *uvg_rtp::session::create_stream(int r_port, int s_port, r
     }
 
     if (flags & RCE_SRTP) {
-        if (!uvg_rtp::crypto::enabled()) {
+        if (!uvgrtp::crypto::enabled()) {
             LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
             rtp_errno = RTP_GENERIC_ERROR;
             return nullptr;
@@ -65,7 +65,7 @@ uvg_rtp::media_stream *uvg_rtp::session::create_stream(int r_port, int s_port, r
         if (flags & RCE_SRTP_KMNGMNT_ZRTP) {
 
             if (!zrtp_) {
-                if (!(zrtp_ = new uvg_rtp::zrtp())) {
+                if (!(zrtp_ = new uvgrtp::zrtp())) {
                     rtp_errno = RTP_MEMORY_ERROR;
                     return nullptr;
                 }
@@ -94,7 +94,7 @@ uvg_rtp::media_stream *uvg_rtp::session::create_stream(int r_port, int s_port, r
     return stream;
 }
 
-rtp_error_t uvg_rtp::session::destroy_stream(uvg_rtp::media_stream *stream)
+rtp_error_t uvgrtp::session::destroy_stream(uvgrtp::media_stream *stream)
 {
     if (!stream)
         return RTP_INVALID_VALUE;
@@ -110,7 +110,7 @@ rtp_error_t uvg_rtp::session::destroy_stream(uvg_rtp::media_stream *stream)
     return RTP_OK;
 }
 
-std::string& uvg_rtp::session::get_key()
+std::string& uvgrtp::session::get_key()
 {
     return addr_;
 }

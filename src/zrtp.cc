@@ -19,19 +19,19 @@
 #include "zrtp/hello_ack.hh"
 #include "zrtp/zrtp_receiver.hh"
 
-using namespace uvg_rtp::zrtp_msg;
+using namespace uvgrtp::zrtp_msg;
 
 #define ZRTP_VERSION 110
 
-uvg_rtp::zrtp::zrtp():
+uvgrtp::zrtp::zrtp():
     initialized_(false),
     receiver_()
 {
-    cctx_.sha256 = new uvg_rtp::crypto::sha256;
-    cctx_.dh     = new uvg_rtp::crypto::dh;
+    cctx_.sha256 = new uvgrtp::crypto::sha256;
+    cctx_.dh     = new uvgrtp::crypto::dh;
 }
 
-uvg_rtp::zrtp::~zrtp()
+uvgrtp::zrtp::~zrtp()
 {
     delete cctx_.sha256;
     delete cctx_.dh;
@@ -51,9 +51,9 @@ uvg_rtp::zrtp::~zrtp()
         delete[] session_.l_msg.dh.second;
 }
 
-void uvg_rtp::zrtp::generate_zid()
+void uvgrtp::zrtp::generate_zid()
 {
-    uvg_rtp::crypto::random::generate_random(session_.o_zid, 12);
+    uvgrtp::crypto::random::generate_random(session_.o_zid, 12);
 }
 
 /* ZRTP Key Derivation Function (KDF) (Section 4.5.2)
@@ -66,9 +66,9 @@ void uvg_rtp::zrtp::generate_zid()
  *    - Context = ZIDi || ZIDr || total_hash
  *    - L       = 256
  */
-void uvg_rtp::zrtp::derive_key(const char *label, uint32_t key_len, uint8_t *out_key)
+void uvgrtp::zrtp::derive_key(const char *label, uint32_t key_len, uint8_t *out_key)
 {
-    auto hmac_sha256 = uvg_rtp::crypto::hmac::sha256(session_.secrets.s0, 32);
+    auto hmac_sha256 = uvgrtp::crypto::hmac::sha256(session_.secrets.s0, 32);
     uint8_t tmp[32]  = { 0 };
     uint32_t length  = htonl(key_len);
     uint32_t counter = 0x1;
@@ -101,7 +101,7 @@ void uvg_rtp::zrtp::derive_key(const char *label, uint32_t key_len, uint8_t *out
     }
 }
 
-void uvg_rtp::zrtp::generate_secrets()
+void uvgrtp::zrtp::generate_secrets()
 {
     cctx_.dh->generate_keys();
     cctx_.dh->get_pk(session_.dh_ctx.public_key, 384);
@@ -111,13 +111,13 @@ void uvg_rtp::zrtp::generate_secrets()
      *
      * Generate random data for the retained secret values that are sent
      * in the DHPart1/DHPart2 message and, due to mismatch, ignored by remote */
-    uvg_rtp::crypto::random::generate_random(session_.secrets.rs1,  32);
-    uvg_rtp::crypto::random::generate_random(session_.secrets.rs2,  32);
-    uvg_rtp::crypto::random::generate_random(session_.secrets.raux, 32);
-    uvg_rtp::crypto::random::generate_random(session_.secrets.rpbx, 32);
+    uvgrtp::crypto::random::generate_random(session_.secrets.rs1,  32);
+    uvgrtp::crypto::random::generate_random(session_.secrets.rs2,  32);
+    uvgrtp::crypto::random::generate_random(session_.secrets.raux, 32);
+    uvgrtp::crypto::random::generate_random(session_.secrets.rpbx, 32);
 }
 
-void uvg_rtp::zrtp::generate_shared_secrets_dh()
+void uvgrtp::zrtp::generate_shared_secrets_dh()
 {
     cctx_.dh->set_remote_pk(session_.dh_ctx.remote_public, 384);
     cctx_.dh->get_shared_secret(session_.dh_ctx.dh_result, 384);
@@ -195,7 +195,7 @@ void uvg_rtp::zrtp::generate_shared_secrets_dh()
     derive_key("Responder HMAC key", 256, session_.key_ctx.hmac_keyr);
 }
 
-void uvg_rtp::zrtp::generate_shared_secrets_msm()
+void uvgrtp::zrtp::generate_shared_secrets_msm()
 {
     if (session_.role == INITIATOR) {
         cctx_.sha256->update((uint8_t *)session_.r_msg.hello.second,  session_.r_msg.hello.first);
@@ -237,11 +237,11 @@ void uvg_rtp::zrtp::generate_shared_secrets_msm()
     cctx_.sha256->final((uint8_t *)session_.secrets.s0);
 }
 
-rtp_error_t uvg_rtp::zrtp::verify_hash(uint8_t *key, uint8_t *buf, size_t len, uint64_t mac)
+rtp_error_t uvgrtp::zrtp::verify_hash(uint8_t *key, uint8_t *buf, size_t len, uint64_t mac)
 {
     uint64_t truncated = 0;
     uint8_t full[32]   = { 0 };
-    auto hmac_sha256   = uvg_rtp::crypto::hmac::sha256(key, 32);
+    auto hmac_sha256   = uvgrtp::crypto::hmac::sha256(key, 32);
 
     hmac_sha256.update((uint8_t *)buf, len);
     hmac_sha256.final(full);
@@ -251,7 +251,7 @@ rtp_error_t uvg_rtp::zrtp::verify_hash(uint8_t *key, uint8_t *buf, size_t len, u
     return (mac == truncated) ? RTP_OK : RTP_INVALID_VALUE;
 }
 
-rtp_error_t uvg_rtp::zrtp::validate_session()
+rtp_error_t uvgrtp::zrtp::validate_session()
 {
     /* Verify all MACs received from various messages in order starting from Hello message
      * Calculate HMAC-SHA256 over the saved message using H(i - 1) as the HMAC key and
@@ -307,9 +307,9 @@ rtp_error_t uvg_rtp::zrtp::validate_session()
     return RTP_OK;
 }
 
-void uvg_rtp::zrtp::init_session_hashes()
+void uvgrtp::zrtp::init_session_hashes()
 {
-    uvg_rtp::crypto::random::generate_random(session_.hash_ctx.o_hash[0], 32);
+    uvgrtp::crypto::random::generate_random(session_.hash_ctx.o_hash[0], 32);
 
     for (size_t i = 1; i < 4; ++i) {
         cctx_.sha256->update(session_.hash_ctx.o_hash[i - 1], 32);
@@ -317,7 +317,7 @@ void uvg_rtp::zrtp::init_session_hashes()
     }
 }
 
-bool uvg_rtp::zrtp::are_we_initiator(uint8_t *our_hvi, uint8_t *their_hvi)
+bool uvgrtp::zrtp::are_we_initiator(uint8_t *our_hvi, uint8_t *their_hvi)
 {
     const int bits = (session_.key_agreement_type == MULT) ? 15 : 31;
 
@@ -334,11 +334,11 @@ bool uvg_rtp::zrtp::are_we_initiator(uint8_t *our_hvi, uint8_t *their_hvi)
     return true;
 }
 
-rtp_error_t uvg_rtp::zrtp::begin_session()
+rtp_error_t uvgrtp::zrtp::begin_session()
 {
     rtp_error_t ret = RTP_OK;
-    auto hello      = uvg_rtp::zrtp_msg::hello(session_);
-    auto hello_ack  = uvg_rtp::zrtp_msg::hello_ack();
+    auto hello      = uvgrtp::zrtp_msg::hello(session_);
+    auto hello_ack  = uvgrtp::zrtp_msg::hello_ack();
     bool hello_recv = false;
     size_t rto      = 50;
     int type        = 0;
@@ -405,7 +405,7 @@ rtp_error_t uvg_rtp::zrtp::begin_session()
     return RTP_TIMEOUT;
 }
 
-rtp_error_t uvg_rtp::zrtp::init_session(int key_agreement)
+rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
 {
     /* Create ZRTP session from capabilities struct we've constructed */
     session_.hash_algo          = S256;
@@ -417,7 +417,7 @@ rtp_error_t uvg_rtp::zrtp::init_session(int key_agreement)
     int type        = 0;
     size_t rto      = 0;
     rtp_error_t ret = RTP_OK;
-    auto commit     = uvg_rtp::zrtp_msg::commit(session_);
+    auto commit     = uvgrtp::zrtp_msg::commit(session_);
 
     /* First check if remote has already sent the message.
      * If so, they are the initiator and we're the responder */
@@ -469,10 +469,10 @@ rtp_error_t uvg_rtp::zrtp::init_session(int key_agreement)
     return RTP_TIMEOUT;
 }
 
-rtp_error_t uvg_rtp::zrtp::dh_part1()
+rtp_error_t uvgrtp::zrtp::dh_part1()
 {
     rtp_error_t ret = RTP_OK;
-    auto dhpart     = uvg_rtp::zrtp_msg::dh_key_exchange(session_, 1);
+    auto dhpart     = uvgrtp::zrtp_msg::dh_key_exchange(session_, 1);
     size_t rto      = 150;
     int type        = 0;
 
@@ -504,12 +504,12 @@ rtp_error_t uvg_rtp::zrtp::dh_part1()
     return RTP_TIMEOUT;
 }
 
-rtp_error_t uvg_rtp::zrtp::dh_part2()
+rtp_error_t uvgrtp::zrtp::dh_part2()
 {
     int type        = 0;
     size_t rto      = 150;
     rtp_error_t ret = RTP_OK;
-    auto dhpart     = uvg_rtp::zrtp_msg::dh_key_exchange(session_, 2);
+    auto dhpart     = uvgrtp::zrtp_msg::dh_key_exchange(session_, 2);
 
     if ((ret = dhpart.parse_msg(receiver_, session_)) != RTP_OK) {
         LOG_ERROR("Failed to parse DHPart1 Message!");
@@ -539,11 +539,11 @@ rtp_error_t uvg_rtp::zrtp::dh_part2()
     return RTP_TIMEOUT;
 }
 
-rtp_error_t uvg_rtp::zrtp::responder_finalize_session()
+rtp_error_t uvgrtp::zrtp::responder_finalize_session()
 {
     rtp_error_t ret = RTP_OK;
-    auto confirm    = uvg_rtp::zrtp_msg::confirm(session_, 1);
-    auto confack    = uvg_rtp::zrtp_msg::confack(session_);
+    auto confirm    = uvgrtp::zrtp_msg::confirm(session_, 1);
+    auto confack    = uvgrtp::zrtp_msg::confack(session_);
     size_t rto      = 150;
     int type        = 0;
 
@@ -577,10 +577,10 @@ rtp_error_t uvg_rtp::zrtp::responder_finalize_session()
     return RTP_TIMEOUT;
 }
 
-rtp_error_t uvg_rtp::zrtp::initiator_finalize_session()
+rtp_error_t uvgrtp::zrtp::initiator_finalize_session()
 {
     rtp_error_t ret = RTP_OK;
-    auto confirm    = uvg_rtp::zrtp_msg::confirm(session_, 2);
+    auto confirm    = uvgrtp::zrtp_msg::confirm(session_, 2);
     size_t rto      = 150;
     int type        = 0;
 
@@ -613,7 +613,7 @@ rtp_error_t uvg_rtp::zrtp::initiator_finalize_session()
     return RTP_TIMEOUT;
 }
 
-rtp_error_t uvg_rtp::zrtp::init(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, uvgrtp::socket *socket, sockaddr_in& addr)
 {
     std::lock_guard<std::mutex> lock(zrtp_mtx_);
 
@@ -622,7 +622,7 @@ rtp_error_t uvg_rtp::zrtp::init(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr
     return init_msm(ssrc, socket, addr);
 }
 
-rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, uvgrtp::socket *socket, sockaddr_in& addr)
 {
     rtp_error_t ret = RTP_OK;
 
@@ -661,7 +661,7 @@ rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, uvg_rtp::socket *socket, sock
      * the hashed value of Initiators DHPart2 message and Responder's Hello
      * message. This should be calculated now because the next step is choosing
      * the the roles for participants. */
-    auto dh_msg = uvg_rtp::zrtp_msg::dh_key_exchange(session_, 2);
+    auto dh_msg = uvgrtp::zrtp_msg::dh_key_exchange(session_, 2);
 
     cctx_.sha256->update((uint8_t *)session_.l_msg.dh.second,    session_.l_msg.dh.first);
     cctx_.sha256->update((uint8_t *)session_.r_msg.hello.second, session_.r_msg.hello.first);
@@ -719,7 +719,7 @@ rtp_error_t uvg_rtp::zrtp::init_dhm(uint32_t ssrc, uvg_rtp::socket *socket, sock
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::zrtp::init_msm(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp::init_msm(uint32_t ssrc, uvgrtp::socket *socket, sockaddr_in& addr)
 {
     rtp_error_t ret;
 
@@ -758,7 +758,7 @@ rtp_error_t uvg_rtp::zrtp::init_msm(uint32_t ssrc, uvg_rtp::socket *socket, sock
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::zrtp::get_srtp_keys(
+rtp_error_t uvgrtp::zrtp::get_srtp_keys(
     uint8_t *our_mkey,    size_t okey_len,
     uint8_t *their_mkey,  size_t tkey_len,
     uint8_t *our_msalt,   size_t osalt_len,
@@ -791,11 +791,11 @@ rtp_error_t uvg_rtp::zrtp::get_srtp_keys(
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::zrtp::packet_handler(ssize_t size, void *packet, int flags, frame::rtp_frame **out)
+rtp_error_t uvgrtp::zrtp::packet_handler(ssize_t size, void *packet, int flags, frame::rtp_frame **out)
 {
     (void)size, (void)flags, (void)out;
 
-    auto msg = (uvg_rtp::zrtp_msg::zrtp_msg *)packet;
+    auto msg = (uvgrtp::zrtp_msg::zrtp_msg *)packet;
 
     /* not a ZRTP packet */
     if (msg->header.version || msg->header.magic != ZRTP_HEADER_MAGIC || msg->magic != ZRTP_MSG_MAGIC)
@@ -805,7 +805,7 @@ rtp_error_t uvg_rtp::zrtp::packet_handler(ssize_t size, void *packet, int flags,
         /* None of these messages should be received by this stream
          * during this stage so return RTP_GENERIC_ERROR to indicate that the packet
          * is invalid and that it should not be dispatched to other packet handlers */
-        case uvg_rtp::zrtp_msg::ZRTP_MSG_HELLO:
+        case uvgrtp::zrtp_msg::ZRTP_MSG_HELLO:
         case ZRTP_MSG_HELLO_ACK:
         case ZRTP_MSG_COMMIT:
         case ZRTP_MSG_DH_PART1:

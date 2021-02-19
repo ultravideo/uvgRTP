@@ -16,7 +16,7 @@
 #include "formats/h265.hh"
 #include "formats/h266.hh"
 
-uvg_rtp::frame_queue::frame_queue(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):
+uvgrtp::frame_queue::frame_queue(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags):
     rtp_(rtp), socket_(socket), flags_(flags)
 {
     active_     = nullptr;
@@ -27,7 +27,7 @@ uvg_rtp::frame_queue::frame_queue(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, in
     max_ccount_ = MAX_CHUNK_COUNT * max_mcount_;
 }
 
-uvg_rtp::frame_queue::~frame_queue()
+uvgrtp::frame_queue::~frame_queue()
 {
     for (auto& i : free_) {
         (void)destroy_transaction(i);
@@ -38,7 +38,7 @@ uvg_rtp::frame_queue::~frame_queue()
         (void)destroy_transaction(active_);
 }
 
-rtp_error_t uvg_rtp::frame_queue::init_transaction()
+rtp_error_t uvgrtp::frame_queue::init_transaction()
 {
     std::lock_guard<std::mutex> lock(transaction_mtx_);
 
@@ -47,7 +47,7 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction()
 
     if (free_.empty()) {
         active_      = new transaction_t;
-        active_->key = uvg_rtp::random::generate_32();
+        active_->key = uvgrtp::random::generate_32();
 
 #ifdef __linux__
         active_->headers     = new struct mmsghdr[max_mcount_];
@@ -56,19 +56,19 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction()
         active_->headers     = nullptr;
         active_->chunks      = nullptr;
 #endif
-        active_->rtp_headers = new uvg_rtp::frame::rtp_header[max_mcount_];
+        active_->rtp_headers = new uvgrtp::frame::rtp_header[max_mcount_];
 
         switch (rtp_->get_payload()) {
             case RTP_FORMAT_H264:
-                active_->media_headers = new uvg_rtp::formats::h264_headers;
+                active_->media_headers = new uvgrtp::formats::h264_headers;
                 break;
 
             case RTP_FORMAT_H265:
-                active_->media_headers = new uvg_rtp::formats::h265_headers;
+                active_->media_headers = new uvgrtp::formats::h265_headers;
                 break;
 
             case RTP_FORMAT_H266:
-                active_->media_headers = new uvg_rtp::formats::h266_headers;
+                active_->media_headers = new uvgrtp::formats::h266_headers;
                 break;
 
 
@@ -102,7 +102,7 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction()
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::frame_queue::init_transaction(uint8_t *data)
+rtp_error_t uvgrtp::frame_queue::init_transaction(uint8_t *data)
 {
     if (!data)
         return RTP_INVALID_VALUE;
@@ -118,7 +118,7 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction(uint8_t *data)
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::frame_queue::init_transaction(std::unique_ptr<uint8_t[]> data)
+rtp_error_t uvgrtp::frame_queue::init_transaction(std::unique_ptr<uint8_t[]> data)
 {
     if (!data)
         return RTP_INVALID_VALUE;
@@ -134,7 +134,7 @@ rtp_error_t uvg_rtp::frame_queue::init_transaction(std::unique_ptr<uint8_t[]> da
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::frame_queue::destroy_transaction(uvg_rtp::transaction_t *t)
+rtp_error_t uvgrtp::frame_queue::destroy_transaction(uvgrtp::transaction_t *t)
 {
     if (!t)
         return RTP_INVALID_VALUE;
@@ -150,17 +150,17 @@ rtp_error_t uvg_rtp::frame_queue::destroy_transaction(uvg_rtp::transaction_t *t)
 
     switch (rtp_->get_payload()) {
         case RTP_FORMAT_H264:
-            delete (uvg_rtp::formats::h264_headers *)t->media_headers;
+            delete (uvgrtp::formats::h264_headers *)t->media_headers;
             t->media_headers = nullptr;
             break;
 
         case RTP_FORMAT_H265:
-            delete (uvg_rtp::formats::h265_headers *)t->media_headers;
+            delete (uvgrtp::formats::h265_headers *)t->media_headers;
             t->media_headers = nullptr;
             break;
 
         case RTP_FORMAT_H266:
-            delete (uvg_rtp::formats::h266_headers *)t->media_headers;
+            delete (uvgrtp::formats::h266_headers *)t->media_headers;
             t->media_headers = nullptr;
             break;
 
@@ -173,7 +173,7 @@ rtp_error_t uvg_rtp::frame_queue::destroy_transaction(uvg_rtp::transaction_t *t)
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::frame_queue::deinit_transaction(uint32_t key)
+rtp_error_t uvgrtp::frame_queue::deinit_transaction(uint32_t key)
 {
     std::lock_guard<std::mutex> lock(transaction_mtx_);
 
@@ -215,15 +215,15 @@ rtp_error_t uvg_rtp::frame_queue::deinit_transaction(uint32_t key)
     if (free_.size() >= (size_t)max_queued_) {
         switch (rtp_->get_payload()) {
             case RTP_FORMAT_H264:
-                delete (uvg_rtp::formats::h264_headers *)transaction_it->second->media_headers;
+                delete (uvgrtp::formats::h264_headers *)transaction_it->second->media_headers;
                 break;
 
             case RTP_FORMAT_H265:
-                delete (uvg_rtp::formats::h265_headers *)transaction_it->second->media_headers;
+                delete (uvgrtp::formats::h265_headers *)transaction_it->second->media_headers;
                 break;
 
             case RTP_FORMAT_H266:
-                delete (uvg_rtp::formats::h266_headers *)transaction_it->second->media_headers;
+                delete (uvgrtp::formats::h266_headers *)transaction_it->second->media_headers;
                 break;
 
             default:
@@ -243,27 +243,27 @@ rtp_error_t uvg_rtp::frame_queue::deinit_transaction(uint32_t key)
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::frame_queue::deinit_transaction()
+rtp_error_t uvgrtp::frame_queue::deinit_transaction()
 {
     if (active_ == nullptr) {
         LOG_WARN("Trying to deinit transaction, no active transaction!");
         return RTP_INVALID_VALUE;
     }
 
-    return uvg_rtp::frame_queue::deinit_transaction(active_->key);
+    return uvgrtp::frame_queue::deinit_transaction(active_->key);
 }
 
-rtp_error_t uvg_rtp::frame_queue::enqueue_message(uint8_t *message, size_t message_len, bool set_marker)
+rtp_error_t uvgrtp::frame_queue::enqueue_message(uint8_t *message, size_t message_len, bool set_marker)
 {
     if (!message || !message_len)
         return RTP_INVALID_VALUE;
 
     /* Create buffer vector where the full packet is constructed
      * and which is then pushed to "active_"'s pkt_vec structure */
-    uvg_rtp::buf_vec tmp;
+    uvgrtp::buf_vec tmp;
 
     /* update the RTP header at "rtpheaders_ptr_" */
-    uvg_rtp::frame_queue::update_rtp_header();
+    uvgrtp::frame_queue::update_rtp_header();
 
     if (set_marker)
         ((uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr])[1] |= (1 << 7);
@@ -295,22 +295,22 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(uint8_t *message, size_t messa
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::frame_queue::enqueue_message(uint8_t *message, size_t message_len)
+rtp_error_t uvgrtp::frame_queue::enqueue_message(uint8_t *message, size_t message_len)
 {
     return enqueue_message(message, message_len, false);
 }
 
-rtp_error_t uvg_rtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, uint8_t *>>& buffers)
+rtp_error_t uvgrtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, uint8_t *>>& buffers)
 {
     if (!buffers.size())
         return RTP_INVALID_VALUE;
 
     /* Create buffer vector where the full packet is constructed
      * and which is then pushed to "active_"'s pkt_vec structure */
-    uvg_rtp::buf_vec tmp;
+    uvgrtp::buf_vec tmp;
 
     /* update the RTP header at "rtpheaders_ptr_" */
-    uvg_rtp::frame_queue::update_rtp_header();
+    uvgrtp::frame_queue::update_rtp_header();
 
     /* Push RTP header first and then push all payload buffers */
     tmp.push_back({
@@ -359,7 +359,7 @@ rtp_error_t uvg_rtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, 
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::frame_queue::flush_queue()
+rtp_error_t uvgrtp::frame_queue::flush_queue()
 {
     if (active_->packets.empty()) {
         LOG_ERROR("Cannot send an empty packet!");
@@ -385,23 +385,23 @@ rtp_error_t uvg_rtp::frame_queue::flush_queue()
     return deinit_transaction();
 }
 
-void uvg_rtp::frame_queue::update_rtp_header()
+void uvgrtp::frame_queue::update_rtp_header()
 {
     memcpy(&active_->rtp_headers[active_->rtphdr_ptr], &active_->rtp_common, sizeof(active_->rtp_common));
     rtp_->update_sequence((uint8_t *)(&active_->rtp_headers[active_->rtphdr_ptr]));
 }
 
-uvg_rtp::buf_vec& uvg_rtp::frame_queue::get_buffer_vector()
+uvgrtp::buf_vec& uvgrtp::frame_queue::get_buffer_vector()
 {
     return active_->buffers;
 }
 
-void *uvg_rtp::frame_queue::get_media_headers()
+void *uvgrtp::frame_queue::get_media_headers()
 {
     return active_->media_headers;
 }
 
-uint8_t *uvg_rtp::frame_queue::get_active_dataptr()
+uint8_t *uvgrtp::frame_queue::get_active_dataptr()
 {
     if (!active_)
         return nullptr;
@@ -411,7 +411,7 @@ uint8_t *uvg_rtp::frame_queue::get_active_dataptr()
     return active_->data_raw;
 }
 
-void uvg_rtp::frame_queue::install_dealloc_hook(void (*dealloc_hook)(void *))
+void uvgrtp::frame_queue::install_dealloc_hook(void (*dealloc_hook)(void *))
 {
     if (!dealloc_hook)
         return;

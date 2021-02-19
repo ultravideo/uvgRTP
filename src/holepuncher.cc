@@ -4,45 +4,45 @@
 
 #define THRESHOLD 2000
 
-uvg_rtp::holepuncher::holepuncher(uvg_rtp::socket *socket):
+uvgrtp::holepuncher::holepuncher(uvgrtp::socket *socket):
     socket_(socket),
     last_dgram_sent_(0)
 {
 }
 
-uvg_rtp::holepuncher::~holepuncher()
+uvgrtp::holepuncher::~holepuncher()
 {
 }
 
-rtp_error_t uvg_rtp::holepuncher::start()
+rtp_error_t uvgrtp::holepuncher::start()
 {
-    if (!(runner_ = new std::thread(&uvg_rtp::holepuncher::keepalive, this)))
+    if (!(runner_ = new std::thread(&uvgrtp::holepuncher::keepalive, this)))
         return RTP_MEMORY_ERROR;
 
     runner_->detach();
-    return uvg_rtp::runner::start();
+    return uvgrtp::runner::start();
 }
 
-rtp_error_t uvg_rtp::holepuncher::stop()
+rtp_error_t uvgrtp::holepuncher::stop()
 {
-    return uvg_rtp::runner::stop(); 
+    return uvgrtp::runner::stop(); 
 }
 
-void uvg_rtp::holepuncher::notify()
+void uvgrtp::holepuncher::notify()
 {
-    last_dgram_sent_ = uvg_rtp::clock::ntp::now();
+    last_dgram_sent_ = uvgrtp::clock::ntp::now();
 }
 
-void uvg_rtp::holepuncher::keepalive()
+void uvgrtp::holepuncher::keepalive()
 {
     while (active()) {
-        if (!last_dgram_sent_ || uvg_rtp::clock::ntp::diff_now(last_dgram_sent_) < THRESHOLD) {
+        if (!last_dgram_sent_ || uvgrtp::clock::ntp::diff_now(last_dgram_sent_) < THRESHOLD) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             continue;
         }
 
         uint8_t payload = 0x00;
         socket_->sendto(&payload, 1, 0);
-        last_dgram_sent_ = uvg_rtp::clock::ntp::now();
+        last_dgram_sent_ = uvgrtp::clock::ntp::now();
     }
 }

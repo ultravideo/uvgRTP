@@ -5,11 +5,11 @@
 int main(void)
 {
     /* To use the library, one must create a global RTP context object */
-    uvg_rtp::context ctx;
+    uvgrtp::context ctx;
 
     /* Each new IP address requires a separate RTP session.
      * This session object contains all media streams and an RTCP object (if enabled) */
-    uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
+    uvgrtp::session *sess = ctx.create_session("127.0.0.1");
 
     /* Some of the functionality of uvgRTP can be enabled/disabled using RCE_* flags.
      *
@@ -21,7 +21,7 @@ int main(void)
         RCE_NO_SYSTEM_CALL_CLUSTERING | /* disable System Call Clustering */
         RCE_H26X_PREPEND_SC;            /* prepend start code to each returned HEVC frame */
 
-    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, flags);
+    uvgrtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, flags);
 
     /* uvgRTP context can also be configured using RCC_* flags
      * These flags do not enable/disable functionality but alter default behaviour of uvgRTP

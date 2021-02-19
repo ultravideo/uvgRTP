@@ -3,7 +3,7 @@
 #include <map>
 #include "session.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     class context {
         public:
@@ -19,7 +19,7 @@ namespace uvg_rtp {
              * \brief RTP context destructor
              *
              * \details This does not destroy active sessions. They must be destroyed manually
-             * by calling uvg_rtp::context::destroy_session()
+             * by calling uvgrtp::context::destroy_session()
              */
             ~context();
 
@@ -30,11 +30,11 @@ namespace uvg_rtp {
              *
              * \return RTP session object
              *
-             * \retval uvg_rtp::session      On success
+             * \retval uvgrtp::session      On success
              * \retval nullptr               If "addr" is empty
              * \retval nullptr               If memory allocation failed
              */
-            uvg_rtp::session *create_session(std::string addr);
+            uvgrtp::session *create_session(std::string addr);
 
             /**
              * \brief Create a new RTP session
@@ -49,11 +49,11 @@ namespace uvg_rtp {
              *
              * \return RTP session object
              *
-             * \retval uvg_rtp::session     On success
+             * \retval uvgrtp::session     On success
              * \retval nullptr              If remote_addr or local_addr is empty
              * \retval nullptr              If memory allocation failed
              */
-            uvg_rtp::session *create_session(std::string remote_addr, std::string local_addr);
+            uvgrtp::session *create_session(std::string remote_addr, std::string local_addr);
 
             /**
              * \brief Destroy RTP session and all of its media streams
@@ -65,7 +65,7 @@ namespace uvg_rtp {
              * \retval RTP_OK                On success
              * \retval RTP_INVALID_VALUE     If session is nullptr
              */
-            rtp_error_t destroy_session(uvg_rtp::session *session);
+            rtp_error_t destroy_session(uvgrtp::session *session);
 
             /// \cond DO_NOT_DOCUMENT
             std::string& get_cname();
@@ -79,3 +79,5 @@ namespace uvg_rtp {
             std::string cname_;
         };
 };
+
+namespace uvg_rtp = uvgrtp;

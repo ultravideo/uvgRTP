@@ -16,7 +16,7 @@
 #define RTP_HEADER_LENGTH   12
 #define RTCP_HEADER_LENGTH  12
 
-namespace uvg_rtp {
+namespace uvgrtp {
     namespace frame {
         enum HEADER_SIZES {
             HEADER_SIZE_RTP      = 12,
@@ -191,12 +191,14 @@ namespace uvg_rtp {
          *
          * Return RTP_OK on successs
          * Return RTP_INVALID_VALUE if "frame" is nullptr */
-        rtp_error_t dealloc_frame(uvg_rtp::frame::rtp_frame *frame);
+        rtp_error_t dealloc_frame(uvgrtp::frame::rtp_frame *frame);
 
         /* Deallocate ZRTP frame
          *
          * Return RTP_OK on successs
          * Return RTP_INVALID_VALUE if "frame" is nullptr */
-        rtp_error_t dealloc_frame(uvg_rtp::frame::zrtp_frame *frame);
+        rtp_error_t dealloc_frame(uvgrtp::frame::zrtp_frame *frame);
     };
 };
+
+namespace uvg_rtp = uvgrtp;

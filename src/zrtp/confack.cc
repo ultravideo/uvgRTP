@@ -7,12 +7,12 @@
 
 #define ZRTP_CONFACK "Conf2ACK"
 
-uvg_rtp::zrtp_msg::confack::confack(zrtp_session_t& session)
+uvgrtp::zrtp_msg::confack::confack(zrtp_session_t& session)
 {
     LOG_DEBUG("Create ZRTP Conf2ACK message!");
 
-    frame_  = uvg_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_confack));
-    rframe_ = uvg_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_confack));
+    frame_  = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_confack));
+    rframe_ = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_confack));
 
     len_    = sizeof(zrtp_confack);
     rlen_   = sizeof(zrtp_confack);
@@ -37,18 +37,18 @@ uvg_rtp::zrtp_msg::confack::confack(zrtp_session_t& session)
     memcpy(&msg->msg_start.msgblock, ZRTP_CONFACK, 8);
 
     /* Calculate CRC32 for the whole ZRTP packet */
-    msg->crc = uvg_rtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
+    msg->crc = uvgrtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
 }
 
-uvg_rtp::zrtp_msg::confack::~confack()
+uvgrtp::zrtp_msg::confack::~confack()
 {
     LOG_DEBUG("Freeing Conf2ACK message...");
 
-    (void)uvg_rtp::frame::dealloc_frame(frame_);
-    (void)uvg_rtp::frame::dealloc_frame(rframe_);
+    (void)uvgrtp::frame::dealloc_frame(frame_);
+    (void)uvgrtp::frame::dealloc_frame(rframe_);
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::confack::send_msg(uvg_rtp::socket *socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp_msg::confack::send_msg(uvgrtp::socket *socket, sockaddr_in& addr)
 {
     rtp_error_t ret;
 
@@ -58,7 +58,7 @@ rtp_error_t uvg_rtp::zrtp_msg::confack::send_msg(uvg_rtp::socket *socket, sockad
     return ret;
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::confack::parse_msg(uvg_rtp::zrtp_msg::receiver& receiver)
+rtp_error_t uvgrtp::zrtp_msg::confack::parse_msg(uvgrtp::zrtp_msg::receiver& receiver)
 {
     ssize_t len = 0;
 

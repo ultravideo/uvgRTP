@@ -5,7 +5,7 @@
 #include "frame.hh"
 #include "util.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     class rtp {
         public:
@@ -45,7 +45,7 @@ namespace uvg_rtp {
 
             uint32_t clock_rate_;
             uint64_t wc_start_;
-            uvg_rtp::clock::hrc::hrc_t wc_start_2;
+            uvgrtp::clock::hrc::hrc_t wc_start_2;
 
             size_t sent_pkts_;
 
@@ -66,5 +66,7 @@ namespace uvg_rtp {
             size_t delay_;
     };
 };
+
+namespace uvg_rtp = uvgrtp;
 
 #endif /* __RTP_HH_ */

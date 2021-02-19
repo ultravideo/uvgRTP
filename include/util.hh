@@ -80,7 +80,7 @@ typedef enum RTP_ERROR {
 /**
  * \enum RTP_FORMAT
  *
- * \brief These flags are given to uvg_rtp::session::create_stream()
+ * \brief These flags are given to uvgrtp::session::create_stream()
  */
 typedef enum RTP_FORMAT {
     RTP_FORMAT_GENERIC = 0,   ///< Generic format
@@ -93,7 +93,7 @@ typedef enum RTP_FORMAT {
 /**
  * \enum RTP_FLAGS
  *
- * \brief These flags are given to uvg_rtp::media_stream::push_frame()
+ * \brief These flags are given to uvgrtp::media_stream::push_frame()
  * and they can be OR'ed together
  */
 typedef enum RTP_FLAGS {
@@ -113,7 +113,7 @@ typedef enum RTP_FLAGS {
  *
  * \brief RTP context enable flags
  *
- * \details These flags are passed to uvg_rtp::session::create_stream and can be OR'ed together
+ * \details These flags are passed to uvgrtp::session::create_stream and can be OR'ed together
  */
 enum RTP_CTX_ENABLE_FLAGS {
     RCE_NO_FLAGS                  = 0 << 0,
@@ -228,7 +228,7 @@ enum RTP_CTX_ENABLE_FLAGS {
  *
  * \brief RTP context configuration flags
  *
- * \details These flags are given to uvg_rtp::media_stream::configure_ctx
+ * \details These flags are given to uvgrtp::media_stream::configure_ctx
  */
 enum RTP_CTX_CONFIGURATION_FLAGS {
     RCC_NO_FLAGS         = 0,

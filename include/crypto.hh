@@ -25,7 +25,7 @@
 
 #endif
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     namespace crypto {
 
@@ -178,3 +178,5 @@ namespace uvg_rtp {
         bool enabled();
     };
 };
+
+namespace uvg_rtp = uvgrtp;

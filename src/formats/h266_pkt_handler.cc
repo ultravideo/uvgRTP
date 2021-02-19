@@ -35,7 +35,7 @@ typedef std::unordered_map<uint32_t, struct vvc_info> frame_info_t;
 
 struct vvc_info {
     /* clock reading when the first fragment is received */
-    uvg_rtp::clock::hrc::hrc_t sframe_time;
+    uvgrtp::clock::hrc::hrc_t sframe_time;
 
     /* sequence number of the frame with s-bit */
     uint32_t s_seq;
@@ -51,10 +51,10 @@ struct vvc_info {
 
     /* map of frame's fragments,
      * allows out-of-order insertion and loop-through in order */
-    std::map<uint16_t, uvg_rtp::frame::rtp_frame *> fragments;
+    std::map<uint16_t, uvgrtp::frame::rtp_frame *> fragments;
 };
 
-static int __get_frag(uvg_rtp::frame::rtp_frame *frame)
+static int __get_frag(uvgrtp::frame::rtp_frame *frame)
 {
     bool first_frag = frame->payload[2] & 0x80;
     bool last_frag  = frame->payload[2] & 0x40;
@@ -77,7 +77,7 @@ static int __get_frag(uvg_rtp::frame::rtp_frame *frame)
     return FT_MIDDLE;
 }
 
-static inline uint8_t __get_nal(uvg_rtp::frame::rtp_frame *frame)
+static inline uint8_t __get_nal(uvgrtp::frame::rtp_frame *frame)
 {
     switch (frame->payload[2] & 0x3f) {
         case 19: return NT_INTRA;
@@ -90,11 +90,11 @@ static inline uint8_t __get_nal(uvg_rtp::frame::rtp_frame *frame)
 
 static inline bool __frame_late(vvc_info& hinfo)
 {
-    return (uvg_rtp::clock::hrc::diff_now(hinfo.sframe_time) >= RTP_FRAME_MAX_DELAY);
+    return (uvgrtp::clock::hrc::diff_now(hinfo.sframe_time) >= RTP_FRAME_MAX_DELAY);
 }
 
 /* TODO: pkt dispatcher support needed */
-static rtp_error_t __handle_ap(uvg_rtp::frame::rtp_frame **out)
+static rtp_error_t __handle_ap(uvgrtp::frame::rtp_frame **out)
 {
     return RTP_PKT_READY;
 }
@@ -107,19 +107,19 @@ static void __drop_frame(frame_info_t& finfo, uint32_t ts)
     LOG_INFO("Dropping frame %u, %u - %u", ts, s_seq, e_seq);
 
     for (auto& fragment : finfo.at(ts).fragments)
-        (void)uvg_rtp::frame::dealloc_frame(fragment.second);
+        (void)uvgrtp::frame::dealloc_frame(fragment.second);
 
     finfo.erase(ts);
 }
 
-rtp_error_t uvg_rtp::formats::h266::packet_handler(void *arg, int flags, uvg_rtp::frame::rtp_frame **out)
+rtp_error_t uvgrtp::formats::h266::packet_handler(void *arg, int flags, uvgrtp::frame::rtp_frame **out)
 {
     (void)arg;
 
     static frame_info_t finfo;
     static std::unordered_set<uint32_t> dropped;
 
-    uvg_rtp::frame::rtp_frame *frame;
+    uvgrtp::frame::rtp_frame *frame;
     bool enable_idelay = false;
 
     /* Use "intra" to keep track of intra frames
@@ -137,8 +137,8 @@ rtp_error_t uvg_rtp::formats::h266::packet_handler(void *arg, int flags, uvg_rtp
     uint32_t intra = INVALID_TS;
 
     const size_t VVC_HDR_SIZE =
-        uvg_rtp::frame::HEADER_SIZE_H266_NAL +
-        uvg_rtp::frame::HEADER_SIZE_H266_FU;
+        uvgrtp::frame::HEADER_SIZE_H266_NAL +
+        uvgrtp::frame::HEADER_SIZE_H266_FU;
 
     frame = *out;
 
@@ -155,7 +155,7 @@ rtp_error_t uvg_rtp::formats::h266::packet_handler(void *arg, int flags, uvg_rtp
 
     if (frag_type == FT_INVALID) {
         LOG_WARN("invalid frame received!");
-        (void)uvg_rtp::frame::dealloc_frame(*out);
+        (void)uvgrtp::frame::dealloc_frame(*out);
         *out = nullptr;
         return RTP_GENERIC_ERROR;
     }
@@ -184,7 +184,7 @@ rtp_error_t uvg_rtp::formats::h266::packet_handler(void *arg, int flags, uvg_rtp
         if (frag_type == FT_START) finfo[c_ts].s_seq = c_seq;
         if (frag_type == FT_END)   finfo[c_ts].e_seq = c_seq;
 
-        finfo[c_ts].sframe_time   = uvg_rtp::clock::hrc::now();
+        finfo[c_ts].sframe_time   = uvgrtp::clock::hrc::now();
         finfo[c_ts].total_size    = frame->payload_len - VVC_HDR_SIZE;
         finfo[c_ts].pkts_received = 1;
 
@@ -228,16 +228,16 @@ rtp_error_t uvg_rtp::formats::h266::packet_handler(void *arg, int flags, uvg_rtp
                 (uint8_t)((frame->payload[0] & 0x81) | ((frame->payload[2] & 0x3f) << 1)),
                 (uint8_t)frame->payload[1]
             };
-            /* uvg_rtp::frame::rtp_frame *out = uvg_rtp::frame::alloc_rtp_frame(); */
-            uvg_rtp::frame::rtp_frame *complete = uvg_rtp::frame::alloc_rtp_frame();
+            /* uvgrtp::frame::rtp_frame *out = uvgrtp::frame::alloc_rtp_frame(); */
+            uvgrtp::frame::rtp_frame *complete = uvgrtp::frame::alloc_rtp_frame();
 
-            complete->payload_len = finfo[c_ts].total_size + uvg_rtp::frame::HEADER_SIZE_H266_NAL;
+            complete->payload_len = finfo[c_ts].total_size + uvgrtp::frame::HEADER_SIZE_H266_NAL;
             complete->payload     = new uint8_t[complete->payload_len];
 
             std::memcpy(&complete->header,  &(*out)->header, RTP_HDR_SIZE);
             std::memcpy(complete->payload,  nal_header,      NAL_HDR_SIZE);
 
-            fptr += uvg_rtp::frame::HEADER_SIZE_H266_NAL;
+            fptr += uvgrtp::frame::HEADER_SIZE_H266_NAL;
 
             for (auto& fragment : finfo.at(c_ts).fragments) {
                 std::memcpy(
@@ -246,7 +246,7 @@ rtp_error_t uvg_rtp::formats::h266::packet_handler(void *arg, int flags, uvg_rtp
                     fragment.second->payload_len - VVC_HDR_SIZE
                 );
                 fptr += fragment.second->payload_len - VVC_HDR_SIZE;
-                (void)uvg_rtp::frame::dealloc_frame(fragment.second);
+                (void)uvgrtp::frame::dealloc_frame(fragment.second);
             }
 
             if (nal_type == NT_INTRA)

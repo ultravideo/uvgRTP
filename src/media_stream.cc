@@ -11,7 +11,7 @@
 
 #define INVALID_TS UINT64_MAX
 
-uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
+uvgrtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     srtp_(nullptr),
     srtcp_(nullptr),
     socket_(nullptr),
@@ -32,12 +32,12 @@ uvg_rtp::media_stream::media_stream(std::string addr, int src_port, int dst_port
     flags_    = flags;
     src_port_ = src_port;
     dst_port_ = dst_port;
-    key_      = uvg_rtp::random::generate_32();
+    key_      = uvgrtp::random::generate_32();
 
     ctx_config_.flags = flags;
 }
 
-uvg_rtp::media_stream::media_stream(
+uvgrtp::media_stream::media_stream(
     std::string remote_addr, std::string local_addr,
     int src_port, int dst_port,
     rtp_format_t fmt, int flags
@@ -47,7 +47,7 @@ uvg_rtp::media_stream::media_stream(
     laddr_ = local_addr;
 }
 
-uvg_rtp::media_stream::~media_stream()
+uvgrtp::media_stream::~media_stream()
 {
     pkt_dispatcher_->stop();
 
@@ -68,11 +68,11 @@ uvg_rtp::media_stream::~media_stream()
     delete media_;
 }
 
-rtp_error_t uvg_rtp::media_stream::init_connection()
+rtp_error_t uvgrtp::media_stream::init_connection()
 {
     rtp_error_t ret = RTP_OK;
 
-    if (!(socket_ = new uvg_rtp::socket(ctx_config_.flags)))
+    if (!(socket_ = new uvgrtp::socket(ctx_config_.flags)))
         return ret;
 
     if ((ret = socket_->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
@@ -115,22 +115,22 @@ rtp_error_t uvg_rtp::media_stream::init_connection()
     return ret;
 }
 
-rtp_error_t uvg_rtp::media_stream::init()
+rtp_error_t uvgrtp::media_stream::init()
 {
     if (init_connection() != RTP_OK) {
         log_platform_error("Failed to initialize the underlying socket");
         return RTP_GENERIC_ERROR;
     }
 
-    if (!(pkt_dispatcher_ = new uvg_rtp::pkt_dispatcher()))
+    if (!(pkt_dispatcher_ = new uvgrtp::pkt_dispatcher()))
         return RTP_MEMORY_ERROR;
 
-    if (!(rtp_ = new uvg_rtp::rtp(fmt_))) {
+    if (!(rtp_ = new uvgrtp::rtp(fmt_))) {
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
     }
 
-    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_, ctx_config_.flags))) {
+    if (!(rtcp_ = new uvgrtp::rtcp(rtp_, ctx_config_.flags))) {
         delete rtp_;
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
@@ -143,38 +143,38 @@ rtp_error_t uvg_rtp::media_stream::init()
 
     switch (fmt_) {
         case RTP_FORMAT_H265:
-            media_ = new uvg_rtp::formats::h265(socket_, rtp_, ctx_config_.flags);
+            media_ = new uvgrtp::formats::h265(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
-                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->get_h265_frame_info(),
-                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->packet_handler,
-                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->frame_getter
+                dynamic_cast<uvgrtp::formats::h265 *>(media_)->get_h265_frame_info(),
+                dynamic_cast<uvgrtp::formats::h265 *>(media_)->packet_handler,
+                dynamic_cast<uvgrtp::formats::h265 *>(media_)->frame_getter
             );
             break;
 
         case RTP_FORMAT_H264:
-            media_ = new uvg_rtp::formats::h264(socket_, rtp_, ctx_config_.flags);
+            media_ = new uvgrtp::formats::h264(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
-                dynamic_cast<uvg_rtp::formats::h264 *>(media_)->get_h264_frame_info(),
-                dynamic_cast<uvg_rtp::formats::h264 *>(media_)->packet_handler,
-                dynamic_cast<uvg_rtp::formats::h264 *>(media_)->frame_getter
+                dynamic_cast<uvgrtp::formats::h264 *>(media_)->get_h264_frame_info(),
+                dynamic_cast<uvgrtp::formats::h264 *>(media_)->packet_handler,
+                dynamic_cast<uvgrtp::formats::h264 *>(media_)->frame_getter
             );
             break;
 
         case RTP_FORMAT_H266:
-            media_ = new uvg_rtp::formats::h266(socket_, rtp_, ctx_config_.flags);
+            media_ = new uvgrtp::formats::h266(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 nullptr,
-                dynamic_cast<uvg_rtp::formats::h266 *>(media_)->packet_handler,
+                dynamic_cast<uvgrtp::formats::h266 *>(media_)->packet_handler,
                 nullptr
             );
             break;
 
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
-            media_ = new uvg_rtp::formats::media(socket_, rtp_, ctx_config_.flags);
+            media_ = new uvgrtp::formats::media(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 media_->get_media_frame_info(),
@@ -196,7 +196,7 @@ rtp_error_t uvg_rtp::media_stream::init()
     }
 
     if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE) {
-        if (!(holepuncher_ = new uvg_rtp::holepuncher(socket_))) {
+        if (!(holepuncher_ = new uvgrtp::holepuncher(socket_))) {
             delete rtp_;
             delete rtcp_;
             delete pkt_dispatcher_;
@@ -215,7 +215,7 @@ rtp_error_t uvg_rtp::media_stream::init()
     return pkt_dispatcher_->start(socket_, ctx_config_.flags);
 }
 
-rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
+rtp_error_t uvgrtp::media_stream::init(uvgrtp::zrtp *zrtp)
 {
     rtp_error_t ret;
 
@@ -224,10 +224,10 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
         return RTP_GENERIC_ERROR;
     }
 
-    if (!(pkt_dispatcher_ = new uvg_rtp::pkt_dispatcher()))
+    if (!(pkt_dispatcher_ = new uvgrtp::pkt_dispatcher()))
         return RTP_MEMORY_ERROR;
 
-    if (!(rtp_ = new uvg_rtp::rtp(fmt_))) {
+    if (!(rtp_ = new uvgrtp::rtp(fmt_))) {
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
     }
@@ -239,7 +239,7 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
         return ret;
     }
 
-    if (!(srtp_ = new uvg_rtp::srtp())) {
+    if (!(srtp_ = new uvgrtp::srtp())) {
         delete rtp_;
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
@@ -253,7 +253,7 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
         return ret;
     }
 
-    if (!(srtcp_ = new uvg_rtp::srtcp())) {
+    if (!(srtcp_ = new uvgrtp::srtcp())) {
         delete rtp_;
         delete srtp_;
         delete pkt_dispatcher_;
@@ -269,7 +269,7 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
         return ret;
     }
 
-    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_, srtcp_, ctx_config_.flags))) {
+    if (!(rtcp_ = new uvgrtp::rtcp(rtp_, srtcp_, ctx_config_.flags))) {
         delete rtp_;
         delete srtp_;
         delete srtcp_;
@@ -288,28 +288,28 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
 
     switch (fmt_) {
         case RTP_FORMAT_H265:
-            media_ = new uvg_rtp::formats::h265(socket_, rtp_, ctx_config_.flags);
+            media_ = new uvgrtp::formats::h265(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
-                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->get_h265_frame_info(),
-                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->packet_handler,
-                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->frame_getter
+                dynamic_cast<uvgrtp::formats::h265 *>(media_)->get_h265_frame_info(),
+                dynamic_cast<uvgrtp::formats::h265 *>(media_)->packet_handler,
+                dynamic_cast<uvgrtp::formats::h265 *>(media_)->frame_getter
             );
             break;
 
         case RTP_FORMAT_H264:
-            media_ = new uvg_rtp::formats::h264(socket_, rtp_, ctx_config_.flags);
+            media_ = new uvgrtp::formats::h264(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
-                dynamic_cast<uvg_rtp::formats::h264 *>(media_)->get_h264_frame_info(),
-                dynamic_cast<uvg_rtp::formats::h264 *>(media_)->packet_handler,
-                dynamic_cast<uvg_rtp::formats::h264 *>(media_)->frame_getter
+                dynamic_cast<uvgrtp::formats::h264 *>(media_)->get_h264_frame_info(),
+                dynamic_cast<uvgrtp::formats::h264 *>(media_)->packet_handler,
+                dynamic_cast<uvgrtp::formats::h264 *>(media_)->frame_getter
             );
             break;
 
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
-            media_ = new uvg_rtp::formats::media(socket_, rtp_, ctx_config_.flags);
+            media_ = new uvgrtp::formats::media(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 media_->get_media_frame_info(),
@@ -332,7 +332,7 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
     }
 
     if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE) {
-        if (!(holepuncher_ = new uvg_rtp::holepuncher(socket_))) {
+        if (!(holepuncher_ = new uvgrtp::holepuncher(socket_))) {
             delete rtp_;
             delete srtp_;
             delete srtcp_;
@@ -356,7 +356,7 @@ rtp_error_t uvg_rtp::media_stream::init(uvg_rtp::zrtp *zrtp)
     return pkt_dispatcher_->start(socket_, ctx_config_.flags);
 }
 
-rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
+rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 {
     if (!key || !salt)
         return RTP_INVALID_VALUE;
@@ -372,15 +372,15 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     if ((flags_ & srtp_flags) != srtp_flags)
         return RTP_NOT_SUPPORTED;
 
-    if (!(pkt_dispatcher_ = new uvg_rtp::pkt_dispatcher()))
+    if (!(pkt_dispatcher_ = new uvgrtp::pkt_dispatcher()))
         return RTP_MEMORY_ERROR;
 
-    if (!(rtp_ = new uvg_rtp::rtp(fmt_))) {
+    if (!(rtp_ = new uvgrtp::rtp(fmt_))) {
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
     }
 
-    if (!(srtp_ = new uvg_rtp::srtp())) {
+    if (!(srtp_ = new uvgrtp::srtp())) {
         delete rtp_;
         delete pkt_dispatcher_;
         return RTP_MEMORY_ERROR;
@@ -391,7 +391,7 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         return ret;
     }
 
-    if (!(srtcp_ = new uvg_rtp::srtcp())) {
+    if (!(srtcp_ = new uvgrtp::srtcp())) {
         delete rtp_;
         delete srtp_;
         delete pkt_dispatcher_;
@@ -403,7 +403,7 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         return ret;
     }
 
-    if (!(rtcp_ = new uvg_rtp::rtcp(rtp_, srtcp_, ctx_config_.flags))) {
+    if (!(rtcp_ = new uvgrtp::rtcp(rtp_, srtcp_, ctx_config_.flags))) {
         delete rtp_;
         delete srtp_;
         delete srtcp_;
@@ -421,28 +421,28 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     switch (fmt_) {
         case RTP_FORMAT_H265:
-            media_ = new uvg_rtp::formats::h265(socket_, rtp_, ctx_config_.flags);
+            media_ = new uvgrtp::formats::h265(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
-                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->get_h265_frame_info(),
-                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->packet_handler,
-                dynamic_cast<uvg_rtp::formats::h265 *>(media_)->frame_getter
+                dynamic_cast<uvgrtp::formats::h265 *>(media_)->get_h265_frame_info(),
+                dynamic_cast<uvgrtp::formats::h265 *>(media_)->packet_handler,
+                dynamic_cast<uvgrtp::formats::h265 *>(media_)->frame_getter
             );
             break;
 
         case RTP_FORMAT_H264:
-            media_ = new uvg_rtp::formats::h264(socket_, rtp_, ctx_config_.flags);
+            media_ = new uvgrtp::formats::h264(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
-                dynamic_cast<uvg_rtp::formats::h264 *>(media_)->get_h264_frame_info(),
-                dynamic_cast<uvg_rtp::formats::h264 *>(media_)->packet_handler,
-                dynamic_cast<uvg_rtp::formats::h264 *>(media_)->frame_getter
+                dynamic_cast<uvgrtp::formats::h264 *>(media_)->get_h264_frame_info(),
+                dynamic_cast<uvgrtp::formats::h264 *>(media_)->packet_handler,
+                dynamic_cast<uvgrtp::formats::h264 *>(media_)->frame_getter
             );
             break;
 
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
-            media_ = new uvg_rtp::formats::media(socket_, rtp_, ctx_config_.flags);
+            media_ = new uvgrtp::formats::media(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 media_->get_media_frame_info(),
@@ -465,7 +465,7 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     }
 
     if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE) {
-        if (!(holepuncher_ = new uvg_rtp::holepuncher(socket_))) {
+        if (!(holepuncher_ = new uvgrtp::holepuncher(socket_))) {
             delete rtp_;
             delete srtp_;
             delete srtcp_;
@@ -489,7 +489,7 @@ rtp_error_t uvg_rtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     return pkt_dispatcher_->start(socket_, ctx_config_.flags);
 }
 
-rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, int flags)
+rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int flags)
 {
     if (!initialized_) {
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
@@ -502,7 +502,7 @@ rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, in
     return media_->push_frame(data, data_len, flags);
 }
 
-rtp_error_t uvg_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
+rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
 {
     if (!initialized_) {
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
@@ -515,7 +515,7 @@ rtp_error_t uvg_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, s
     return media_->push_frame(std::move(data), data_len, flags);
 }
 
-rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, uint32_t ts, int flags)
+rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, uint32_t ts, int flags)
 {
     rtp_error_t ret = RTP_GENERIC_ERROR;
 
@@ -534,7 +534,7 @@ rtp_error_t uvg_rtp::media_stream::push_frame(uint8_t *data, size_t data_len, ui
     return ret;
 }
 
-rtp_error_t uvg_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int flags)
+rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int flags)
 {
     rtp_error_t ret = RTP_GENERIC_ERROR;
 
@@ -553,7 +553,7 @@ rtp_error_t uvg_rtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, s
     return ret;
 }
 
-uvg_rtp::frame::rtp_frame *uvg_rtp::media_stream::pull_frame()
+uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame()
 {
     if (!initialized_) {
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
@@ -564,7 +564,7 @@ uvg_rtp::frame::rtp_frame *uvg_rtp::media_stream::pull_frame()
     return pkt_dispatcher_->pull_frame();
 }
 
-uvg_rtp::frame::rtp_frame *uvg_rtp::media_stream::pull_frame(size_t timeout)
+uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame(size_t timeout)
 {
     if (!initialized_) {
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
@@ -575,7 +575,7 @@ uvg_rtp::frame::rtp_frame *uvg_rtp::media_stream::pull_frame(size_t timeout)
     return pkt_dispatcher_->pull_frame(timeout);
 }
 
-rtp_error_t uvg_rtp::media_stream::install_receive_hook(void *arg, void (*hook)(void *, uvg_rtp::frame::rtp_frame *))
+rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *))
 {
     if (!initialized_) {
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
@@ -590,7 +590,7 @@ rtp_error_t uvg_rtp::media_stream::install_receive_hook(void *arg, void (*hook)(
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::media_stream::install_deallocation_hook(void (*hook)(void *))
+rtp_error_t uvgrtp::media_stream::install_deallocation_hook(void (*hook)(void *))
 {
     if (!initialized_) {
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
@@ -605,7 +605,7 @@ rtp_error_t uvg_rtp::media_stream::install_deallocation_hook(void (*hook)(void *
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::media_stream::install_notify_hook(void *arg, void (*hook)(void *, int))
+rtp_error_t uvgrtp::media_stream::install_notify_hook(void *arg, void (*hook)(void *, int))
 {
     (void)arg, (void)hook;
 
@@ -622,17 +622,17 @@ rtp_error_t uvg_rtp::media_stream::install_notify_hook(void *arg, void (*hook)(v
     return RTP_OK;
 }
 
-void uvg_rtp::media_stream::set_media_config(void *config)
+void uvgrtp::media_stream::set_media_config(void *config)
 {
     media_config_ = config;
 }
 
-void *uvg_rtp::media_stream::get_media_config()
+void *uvgrtp::media_stream::get_media_config()
 {
     return media_config_;
 }
 
-rtp_error_t uvg_rtp::media_stream::configure_ctx(int flag, ssize_t value)
+rtp_error_t uvgrtp::media_stream::configure_ctx(int flag, ssize_t value)
 {
     if (!initialized_) {
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
@@ -698,12 +698,12 @@ rtp_error_t uvg_rtp::media_stream::configure_ctx(int flag, ssize_t value)
     return ret;
 }
 
-uint32_t uvg_rtp::media_stream::get_key()
+uint32_t uvgrtp::media_stream::get_key()
 {
     return key_;
 }
 
-uvg_rtp::rtcp *uvg_rtp::media_stream::get_rtcp()
+uvgrtp::rtcp *uvgrtp::media_stream::get_rtcp()
 {
     return rtcp_;
 }

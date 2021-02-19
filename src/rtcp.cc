@@ -14,7 +14,7 @@
 #include "rtcp.hh"
 #include "util.hh"
 
-uvg_rtp::rtcp::rtcp(uvg_rtp::rtp *rtp, int flags):
+uvgrtp::rtcp::rtcp(uvgrtp::rtp *rtp, int flags):
     rtp_(rtp), flags_(flags), our_role_(RECEIVER),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
@@ -36,17 +36,17 @@ uvg_rtp::rtcp::rtcp(uvg_rtp::rtp *rtp, int flags):
     zero_stats(&our_stats);
 }
 
-uvg_rtp::rtcp::rtcp(uvg_rtp::rtp *rtp, uvg_rtp::srtcp *srtcp, int flags):
+uvgrtp::rtcp::rtcp(uvgrtp::rtp *rtp, uvgrtp::srtcp *srtcp, int flags):
     rtcp(rtp, flags)
 {
     srtcp_ = srtcp;
 }
 
-uvg_rtp::rtcp::~rtcp()
+uvgrtp::rtcp::~rtcp()
 {
 }
 
-rtp_error_t uvg_rtp::rtcp::start()
+rtp_error_t uvgrtp::rtcp::start()
 {
     if (sockets_.empty()) {
         LOG_ERROR("Cannot start RTCP Runner because no connections have been initialized");
@@ -64,7 +64,7 @@ rtp_error_t uvg_rtp::rtcp::start()
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::stop()
+rtp_error_t uvgrtp::rtcp::stop()
 {
     if (!runner_)
         goto free_mem;
@@ -86,7 +86,7 @@ rtp_error_t uvg_rtp::rtcp::stop()
 
 end:
     /* Send BYE packet with our SSRC to all participants */
-    return uvg_rtp::rtcp::send_bye_packet({ ssrc_ });
+    return uvgrtp::rtcp::send_bye_packet({ ssrc_ });
 
 free_mem:
     /* free all receiver statistic structs */
@@ -98,7 +98,7 @@ free_mem:
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_port, uint16_t src_port, uint32_t clock_rate)
+rtp_error_t uvgrtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_port, uint16_t src_port, uint32_t clock_rate)
 {
     if (dst_addr == "" || !dst_port || !src_port) {
         LOG_ERROR("Invalid values given (%s, %d, %d), cannot create RTCP instance",
@@ -159,7 +159,7 @@ rtp_error_t uvg_rtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_po
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::add_participant(uint32_t ssrc)
+rtp_error_t uvgrtp::rtcp::add_participant(uint32_t ssrc)
 {
     /* RTCP is not in use for this media stream,
      * create a "fake" participant that is only used for storing statistics information */
@@ -181,14 +181,14 @@ rtp_error_t uvg_rtp::rtcp::add_participant(uint32_t ssrc)
     return RTP_OK;
 }
 
-void uvg_rtp::rtcp::update_rtcp_bandwidth(size_t pkt_size)
+void uvgrtp::rtcp::update_rtcp_bandwidth(size_t pkt_size)
 {
     rtcp_pkt_count_    += 1;
     rtcp_byte_count_   += pkt_size + UDP_HDR_SIZE + IPV4_HDR_SIZE;
     avg_rtcp_pkt_pize_  = rtcp_byte_count_ / rtcp_pkt_count_;
 }
 
-void uvg_rtp::rtcp::zero_stats(uvg_rtp::rtcp_statistics *stats)
+void uvgrtp::rtcp::zero_stats(uvgrtp::rtcp_statistics *stats)
 {
     stats->received_pkts  = 0;
     stats->dropped_pkts   = 0;
@@ -211,19 +211,19 @@ void uvg_rtp::rtcp::zero_stats(uvg_rtp::rtcp_statistics *stats)
     stats->cycles   = 0;
 }
 
-bool uvg_rtp::rtcp::is_participant(uint32_t ssrc)
+bool uvgrtp::rtcp::is_participant(uint32_t ssrc)
 {
     return participants_.find(ssrc) != participants_.end();
 }
 
-void uvg_rtp::rtcp::set_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start)
+void uvgrtp::rtcp::set_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start)
 {
     clock_start_  = clock_start;
     clock_rate_   = clock_rate;
     rtp_ts_start_ = rtp_ts_start;
 }
 
-void uvg_rtp::rtcp::sender_update_stats(uvg_rtp::frame::rtp_frame *frame)
+void uvgrtp::rtcp::sender_update_stats(uvgrtp::frame::rtp_frame *frame)
 {
     if (!frame)
         return;
@@ -233,14 +233,14 @@ void uvg_rtp::rtcp::sender_update_stats(uvg_rtp::frame::rtp_frame *frame)
     our_stats.max_seq     = frame->header.seq;
 }
 
-rtp_error_t uvg_rtp::rtcp::init_new_participant(uvg_rtp::frame::rtp_frame *frame)
+rtp_error_t uvgrtp::rtcp::init_new_participant(uvgrtp::frame::rtp_frame *frame)
 {
     rtp_error_t ret;
 
-    if ((ret = uvg_rtp::rtcp::add_participant(frame->header.ssrc)) != RTP_OK)
+    if ((ret = uvgrtp::rtcp::add_participant(frame->header.ssrc)) != RTP_OK)
         return ret;
 
-    if ((ret = uvg_rtp::rtcp::init_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK)
+    if ((ret = uvgrtp::rtcp::init_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK)
         return ret;
 
     /* Set the probation to MIN_SEQUENTIAL (2)
@@ -252,14 +252,14 @@ rtp_error_t uvg_rtp::rtcp::init_new_participant(uvg_rtp::frame::rtp_frame *frame
     /* This is the first RTP frame from remote to frame->header.timestamp represents t = 0
      * Save the timestamp and current NTP timestamp so we can do jitter calculations later on */
     participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
-    participants_[frame->header.ssrc]->stats.initial_ntp = uvg_rtp::clock::ntp::now();
+    participants_[frame->header.ssrc]->stats.initial_ntp = uvgrtp::clock::ntp::now();
 
     senders_++;
 
     return ret;
 }
 
-rtp_error_t uvg_rtp::rtcp::update_sender_stats(size_t pkt_size)
+rtp_error_t uvgrtp::rtcp::update_sender_stats(size_t pkt_size)
 {
     if (our_role_ == RECEIVER)
         our_role_ = SENDER;
@@ -270,7 +270,7 @@ rtp_error_t uvg_rtp::rtcp::update_sender_stats(size_t pkt_size)
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::init_participant_seq(uint32_t ssrc, uint16_t base_seq)
+rtp_error_t uvgrtp::rtcp::init_participant_seq(uint32_t ssrc, uint16_t base_seq)
 {
     if (participants_.find(ssrc) == participants_.end())
         return RTP_NOT_FOUND;
@@ -282,7 +282,7 @@ rtp_error_t uvg_rtp::rtcp::init_participant_seq(uint32_t ssrc, uint16_t base_seq
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
+rtp_error_t uvgrtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
 {
     if (participants_.find(ssrc) == participants_.end())
         return RTP_GENERIC_ERROR;
@@ -298,7 +298,7 @@ rtp_error_t uvg_rtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
            p->probation--;
            p->stats.max_seq = seq;
            if (!p->probation) {
-               uvg_rtp::rtcp::init_participant_seq(ssrc, seq);
+               uvgrtp::rtcp::init_participant_seq(ssrc, seq);
                return RTP_OK;
             }
        } else {
@@ -319,7 +319,7 @@ rtp_error_t uvg_rtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
            /* Two sequential packets -- assume that the other side
             * restarted without telling us so just re-sync
             * (i.e., pretend this was the first packet).  */
-           uvg_rtp::rtcp::init_participant_seq(ssrc, seq);
+           uvgrtp::rtcp::init_participant_seq(ssrc, seq);
        }
        else {
            p->stats.bad_seq = (seq + 1) & (RTP_SEQ_MOD - 1);
@@ -332,7 +332,7 @@ rtp_error_t uvg_rtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::reset_rtcp_state(uint32_t ssrc)
+rtp_error_t uvgrtp::rtcp::reset_rtcp_state(uint32_t ssrc)
 {
     if (participants_.find(ssrc) != participants_.end())
         return RTP_SSRC_COLLISION;
@@ -352,7 +352,7 @@ rtp_error_t uvg_rtp::rtcp::reset_rtcp_state(uint32_t ssrc)
     return RTP_OK;
 }
 
-bool uvg_rtp::rtcp::collision_detected(uint32_t ssrc, sockaddr_in& src_addr)
+bool uvgrtp::rtcp::collision_detected(uint32_t ssrc, sockaddr_in& src_addr)
 {
     if (participants_.find(ssrc) == participants_.end())
         return false;
@@ -366,7 +366,7 @@ bool uvg_rtp::rtcp::collision_detected(uint32_t ssrc, sockaddr_in& src_addr)
     return false;
 }
 
-void uvg_rtp::rtcp::update_session_statistics(uvg_rtp::frame::rtp_frame *frame)
+void uvgrtp::rtcp::update_session_statistics(uvgrtp::frame::rtp_frame *frame)
 {
     auto p = participants_[frame->header.ssrc];
 
@@ -382,7 +382,7 @@ void uvg_rtp::rtcp::update_session_statistics(uvg_rtp::frame::rtp_frame *frame)
 
     int arrival =
         p->stats.initial_rtp +
-        + uvg_rtp::clock::ntp::diff_now(p->stats.initial_ntp)
+        + uvgrtp::clock::ntp::diff_now(p->stats.initial_ntp)
         * (p->stats.clock_rate
         / 1000);
 
@@ -402,13 +402,13 @@ void uvg_rtp::rtcp::update_session_statistics(uvg_rtp::frame::rtp_frame *frame)
  *   have been received.
  * - it keeps track of participants' SSRCs and if a collision
  *   is detected, the RTP context is updated */
-rtp_error_t uvg_rtp::rtcp::recv_packet_handler(void *arg, int flags, frame::rtp_frame **out)
+rtp_error_t uvgrtp::rtcp::recv_packet_handler(void *arg, int flags, frame::rtp_frame **out)
 {
     (void)flags;
 
     rtp_error_t ret;
-    uvg_rtp::frame::rtp_frame *frame = *out;
-    uvg_rtp::rtcp *rtcp              = (uvg_rtp::rtcp *)arg;
+    uvgrtp::frame::rtp_frame *frame = *out;
+    uvgrtp::rtcp *rtcp              = (uvgrtp::rtcp *)arg;
 
     /* If this is the first packet from remote, move the participant from initial_participants_
      * to participants_, initialize its state and put it on probation until enough valid
@@ -431,9 +431,9 @@ rtp_error_t uvg_rtp::rtcp::recv_packet_handler(void *arg, int flags, frame::rtp_
     return RTP_PKT_NOT_HANDLED;
 }
 
-rtp_error_t uvg_rtp::rtcp::send_packet_handler_vec(void *arg, uvg_rtp::buf_vec& buffers)
+rtp_error_t uvgrtp::rtcp::send_packet_handler_vec(void *arg, uvgrtp::buf_vec& buffers)
 {
-    ssize_t pkt_size = -uvg_rtp::frame::HEADER_SIZE_RTP;
+    ssize_t pkt_size = -uvgrtp::frame::HEADER_SIZE_RTP;
 
     for (auto& buffer : buffers)
         pkt_size += buffer.first;
@@ -441,10 +441,10 @@ rtp_error_t uvg_rtp::rtcp::send_packet_handler_vec(void *arg, uvg_rtp::buf_vec& 
     if (pkt_size < 0)
         return RTP_INVALID_VALUE;
 
-    return ((uvg_rtp::rtcp *)arg)->update_sender_stats(pkt_size);
+    return ((uvgrtp::rtcp *)arg)->update_sender_stats(pkt_size);
 }
 
-rtp_error_t uvg_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
+rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
 {
     (void)size;
 
@@ -462,8 +462,8 @@ rtp_error_t uvg_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
         return RTP_INVALID_VALUE;
     }
 
-    if (pkt_type > uvg_rtp::frame::RTCP_FT_BYE ||
-        pkt_type < uvg_rtp::frame::RTCP_FT_SR) {
+    if (pkt_type > uvgrtp::frame::RTCP_FT_BYE ||
+        pkt_type < uvgrtp::frame::RTCP_FT_SR) {
         LOG_ERROR("Invalid packet type (%u)!", pkt_type);
         return RTP_INVALID_VALUE;
     }
@@ -473,23 +473,23 @@ rtp_error_t uvg_rtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
     rtp_error_t ret = RTP_INVALID_VALUE;
 
     switch (pkt_type) {
-        case uvg_rtp::frame::RTCP_FT_SR:
+        case uvgrtp::frame::RTCP_FT_SR:
             ret = handle_sender_report_packet(buffer, size);
             break;
 
-        case uvg_rtp::frame::RTCP_FT_RR:
+        case uvgrtp::frame::RTCP_FT_RR:
             ret = handle_receiver_report_packet(buffer, size);
             break;
 
-        case uvg_rtp::frame::RTCP_FT_SDES:
+        case uvgrtp::frame::RTCP_FT_SDES:
             ret = handle_sdes_packet(buffer, size);
             break;
 
-        case uvg_rtp::frame::RTCP_FT_BYE:
+        case uvgrtp::frame::RTCP_FT_BYE:
             ret = handle_bye_packet(buffer, size);
             break;
 
-        case uvg_rtp::frame::RTCP_FT_APP:
+        case uvgrtp::frame::RTCP_FT_APP:
             ret = handle_app_packet(buffer, size);
             break;
 

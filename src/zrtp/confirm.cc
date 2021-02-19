@@ -8,15 +8,15 @@
 #define ZRTP_CONFRIM1 "Confirm1"
 #define ZRTP_CONFRIM2 "Confirm2"
 
-uvg_rtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part)
+uvgrtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part)
 {
     /* temporary storage for the full hmac hash */
     uint8_t mac_full[32];
 
     LOG_DEBUG("Create ZRTP Confirm%d message!", part);
 
-    frame_  = uvg_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_confirm));
-    rframe_ = uvg_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_confirm));
+    frame_  = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_confirm));
+    rframe_ = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_confirm));
 
     len_    = sizeof(zrtp_confirm);
     rlen_   = sizeof(zrtp_confirm);
@@ -39,20 +39,20 @@ uvg_rtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part)
     memcpy(&msg->hash,               session.hash_ctx.o_hash[0],                  32); /* 256 bits */
 
     /* Generate random 128-bit nonce for CFB IV */
-    uvg_rtp::crypto::random::generate_random(msg->cfb_iv, 16);
+    uvgrtp::crypto::random::generate_random(msg->cfb_iv, 16);
 
-    uvg_rtp::crypto::hmac::sha256 *hmac_sha256;
-    uvg_rtp::crypto::aes::cfb     *aes_cfb;
+    uvgrtp::crypto::hmac::sha256 *hmac_sha256;
+    uvgrtp::crypto::aes::cfb     *aes_cfb;
 
     /* Responder */
     if (part == 1) {
-        aes_cfb     = new uvg_rtp::crypto::aes::cfb(session.key_ctx.zrtp_keyr, 16, msg->cfb_iv);
-        hmac_sha256 = new uvg_rtp::crypto::hmac::sha256(session.key_ctx.hmac_keyr, 32);
+        aes_cfb     = new uvgrtp::crypto::aes::cfb(session.key_ctx.zrtp_keyr, 16, msg->cfb_iv);
+        hmac_sha256 = new uvgrtp::crypto::hmac::sha256(session.key_ctx.hmac_keyr, 32);
 
     /* Initiator */
     } else {
-        aes_cfb     = new uvg_rtp::crypto::aes::cfb(session.key_ctx.zrtp_keyi, 16, msg->cfb_iv);
-        hmac_sha256 = new uvg_rtp::crypto::hmac::sha256(session.key_ctx.hmac_keyi, 32);
+        aes_cfb     = new uvgrtp::crypto::aes::cfb(session.key_ctx.zrtp_keyi, 16, msg->cfb_iv);
+        hmac_sha256 = new uvgrtp::crypto::hmac::sha256(session.key_ctx.hmac_keyi, 32);
     }
 
     msg->e          = 0;
@@ -72,21 +72,21 @@ uvg_rtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part)
     memcpy(&msg->confirm_mac, mac_full, sizeof(uint64_t));
 
     /* Calculate CRC32 for the whole ZRTP packet */
-    msg->crc = uvg_rtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
+    msg->crc = uvgrtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
 
     delete hmac_sha256;
     delete aes_cfb;
 }
 
-uvg_rtp::zrtp_msg::confirm::~confirm()
+uvgrtp::zrtp_msg::confirm::~confirm()
 {
     LOG_DEBUG("Freeing ConfirmN message...");
 
-    (void)uvg_rtp::frame::dealloc_frame(frame_);
-    (void)uvg_rtp::frame::dealloc_frame(rframe_);
+    (void)uvgrtp::frame::dealloc_frame(frame_);
+    (void)uvgrtp::frame::dealloc_frame(rframe_);
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::confirm::send_msg(uvg_rtp::socket *socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp_msg::confirm::send_msg(uvgrtp::socket *socket, sockaddr_in& addr)
 {
     rtp_error_t ret;
 
@@ -96,7 +96,7 @@ rtp_error_t uvg_rtp::zrtp_msg::confirm::send_msg(uvg_rtp::socket *socket, sockad
     return ret;
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::confirm::parse_msg(uvg_rtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
+rtp_error_t uvgrtp::zrtp_msg::confirm::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
     ssize_t len          = 0;
     uint64_t mac         = 0;
@@ -108,16 +108,16 @@ rtp_error_t uvg_rtp::zrtp_msg::confirm::parse_msg(uvg_rtp::zrtp_msg::receiver& r
         return RTP_INVALID_VALUE;
     }
 
-    uvg_rtp::crypto::hmac::sha256 *hmac_sha256 = nullptr;
-    uvg_rtp::crypto::aes::cfb *aes_cfb         = nullptr;
+    uvgrtp::crypto::hmac::sha256 *hmac_sha256 = nullptr;
+    uvgrtp::crypto::aes::cfb *aes_cfb         = nullptr;
     zrtp_confirm *msg                          = (zrtp_confirm *)rframe_;
 
     if (!memcmp(&msg->msg_start.msgblock, (const void *)ZRTP_CONFRIM1, sizeof(uint64_t))) {
-        aes_cfb     = new uvg_rtp::crypto::aes::cfb(session.key_ctx.zrtp_keyr, 16, msg->cfb_iv);
-        hmac_sha256 = new uvg_rtp::crypto::hmac::sha256(session.key_ctx.hmac_keyr, 32);
+        aes_cfb     = new uvgrtp::crypto::aes::cfb(session.key_ctx.zrtp_keyr, 16, msg->cfb_iv);
+        hmac_sha256 = new uvgrtp::crypto::hmac::sha256(session.key_ctx.hmac_keyr, 32);
     } else {
-        aes_cfb     = new uvg_rtp::crypto::aes::cfb(session.key_ctx.zrtp_keyi, 16, msg->cfb_iv);
-        hmac_sha256 = new uvg_rtp::crypto::hmac::sha256(session.key_ctx.hmac_keyi, 32);
+        aes_cfb     = new uvgrtp::crypto::aes::cfb(session.key_ctx.zrtp_keyi, 16, msg->cfb_iv);
+        hmac_sha256 = new uvgrtp::crypto::hmac::sha256(session.key_ctx.hmac_keyi, 32);
     }
 
     /* Verify confirm_mac before decrypting the message */

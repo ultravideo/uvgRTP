@@ -25,7 +25,7 @@
 #define AUTH_TAG_LENGTH     10
 #define SRTCP_INDEX_LENGTH   4
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     /* Vector of buffers that contain a full RTP frame */
     typedef std::vector<std::pair<size_t, uint8_t *>> buf_vec;
@@ -123,7 +123,7 @@ namespace uvg_rtp {
              * Return RTP_OK if SRTP setup was successful
              * Return RTP_INVALID_VALUE if "zrtp" is nullptr
              * Return RTP_MEMORY allocation failed */
-            rtp_error_t init_zrtp(int type, int flags, uvg_rtp::rtp *rtp, uvg_rtp::zrtp *zrtp);
+            rtp_error_t init_zrtp(int type, int flags, uvgrtp::rtp *rtp, uvgrtp::zrtp *zrtp);
 
             /* Setup Secure RTP/RTCP connection using user-managed keys
              *
@@ -177,3 +177,5 @@ namespace uvg_rtp {
             bool authenticate_rtp_;
     };
 };
+
+namespace uvg_rtp = uvgrtp;

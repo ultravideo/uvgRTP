@@ -4,7 +4,7 @@
 
 #include "rtcp.hh"
 
-uvg_rtp::frame::rtcp_receiver_report *uvg_rtp::rtcp::get_receiver_packet(uint32_t ssrc)
+uvgrtp::frame::rtcp_receiver_report *uvgrtp::rtcp::get_receiver_packet(uint32_t ssrc)
 {
     if (participants_.find(ssrc) == participants_.end())
         return nullptr;
@@ -15,7 +15,7 @@ uvg_rtp::frame::rtcp_receiver_report *uvg_rtp::rtcp::get_receiver_packet(uint32_
     return frame;
 }
 
-rtp_error_t uvg_rtp::rtcp::install_receiver_hook(void (*hook)(uvg_rtp::frame::rtcp_receiver_report *))
+rtp_error_t uvgrtp::rtcp::install_receiver_hook(void (*hook)(uvgrtp::frame::rtcp_receiver_report *))
 {
     if (!hook)
         return RTP_INVALID_VALUE;
@@ -24,13 +24,13 @@ rtp_error_t uvg_rtp::rtcp::install_receiver_hook(void (*hook)(uvg_rtp::frame::rt
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::handle_receiver_report_packet(uint8_t *packet, size_t size)
+rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t *packet, size_t size)
 {
     if (!packet || !size)
         return RTP_INVALID_VALUE;
 
     auto srtpi = (*(uint32_t *)&packet[size - SRTCP_INDEX_LENGTH - AUTH_TAG_LENGTH]);
-    auto frame = new uvg_rtp::frame::rtcp_receiver_report;
+    auto frame = new uvgrtp::frame::rtcp_receiver_report;
     auto ret   = RTP_OK;
 
     frame->header.version = (packet[0] >> 6) & 0x3;
@@ -73,7 +73,7 @@ rtp_error_t uvg_rtp::rtcp::handle_receiver_report_packet(uint8_t *packet, size_t
         delete participants_[frame->ssrc]->r_frame;
 
     for (int i = 0; i < frame->header.count; ++i) {
-        uvg_rtp::frame::rtcp_report_block report;
+        uvgrtp::frame::rtcp_report_block report;
 
         report.ssrc     = ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 0]);
         report.lost     = ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 4]);
@@ -93,7 +93,7 @@ rtp_error_t uvg_rtp::rtcp::handle_receiver_report_packet(uint8_t *packet, size_t
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::generate_receiver_report()
+rtp_error_t uvgrtp::rtcp::generate_receiver_report()
 {
     if (!senders_) {
         LOG_WARN("Session doesn't have any participants!");
@@ -119,7 +119,7 @@ rtp_error_t uvg_rtp::rtcp::generate_receiver_report()
     memset(frame, 0, frame_size);
 
     frame[0] = (2 << 6) | (0 << 5) | num_receivers_;
-    frame[1] = uvg_rtp::frame::RTCP_FT_RR;
+    frame[1] = uvgrtp::frame::RTCP_FT_RR;
 
     *(uint16_t *)&frame[2] = htons(frame_size);
     *(uint32_t *)&frame[4] = htonl(ssrc_);
@@ -138,8 +138,8 @@ rtp_error_t uvg_rtp::rtcp::generate_receiver_report()
 
         /* calculate delay of last SR only if SR has been received at least once */
         if (p.second->stats.lsr) {
-            uint64_t diff = uvg_rtp::clock::hrc::diff_now(p.second->stats.sr_ts);
-            SET_NEXT_FIELD_32(frame, ptr, htonl(uvg_rtp::clock::ms_to_jiffies(diff)));
+            uint64_t diff = uvgrtp::clock::hrc::diff_now(p.second->stats.sr_ts);
+            SET_NEXT_FIELD_32(frame, ptr, htonl(uvgrtp::clock::ms_to_jiffies(diff)));
         }
         ptr += p.second->stats.lsr ? 0 : 4;
     }

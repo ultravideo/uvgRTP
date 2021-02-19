@@ -7,15 +7,15 @@
 
 #define MAX_OFF 10000
 
-uvg_rtp::srtp::srtp()
+uvgrtp::srtp::srtp()
 {
 }
 
-uvg_rtp::srtp::~srtp()
+uvgrtp::srtp::~srtp()
 {
 }
 
-rtp_error_t uvg_rtp::srtp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len)
+rtp_error_t uvgrtp::srtp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len)
 {
     if (use_null_cipher_)
         return RTP_OK;
@@ -32,24 +32,24 @@ rtp_error_t uvg_rtp::srtp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer,
         return RTP_INVALID_VALUE;
     }
 
-    uvg_rtp::crypto::aes::ctr ctr(srtp_ctx_->key_ctx.local.enc_key, sizeof(srtp_ctx_->key_ctx.local.enc_key), iv);
+    uvgrtp::crypto::aes::ctr ctr(srtp_ctx_->key_ctx.local.enc_key, sizeof(srtp_ctx_->key_ctx.local.enc_key), iv);
     ctr.encrypt(buffer, buffer, len);
 
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_frame **out)
+rtp_error_t uvgrtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_frame **out)
 {
     (void)flags;
 
-    auto srtp  = (uvg_rtp::srtp *)arg;
+    auto srtp  = (uvgrtp::srtp *)arg;
     auto ctx   = srtp->get_ctx();
     auto frame = *out;
 
     /* Calculate authentication tag for the packet and compare it against the one we received */
     if (srtp->authenticate_rtp()) {
         uint8_t digest[10] = { 0 };
-        auto hmac_sha1     = uvg_rtp::crypto::hmac::sha1(ctx->key_ctx.remote.auth_key, AES_KEY_LENGTH);
+        auto hmac_sha1     = uvgrtp::crypto::hmac::sha1(ctx->key_ctx.remote.auth_key, AES_KEY_LENGTH);
 
         hmac_sha1.update(frame->dgram, frame->dgram_size - AUTH_TAG_LENGTH);
         hmac_sha1.update((uint8_t *)&ctx->roc, sizeof(ctx->roc));
@@ -103,20 +103,20 @@ rtp_error_t uvg_rtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_
         return RTP_GENERIC_ERROR;
     }
 
-    uvg_rtp::crypto::aes::ctr ctr(ctx->key_ctx.remote.enc_key, sizeof(ctx->key_ctx.remote.enc_key), iv);
+    uvgrtp::crypto::aes::ctr ctr(ctx->key_ctx.remote.enc_key, sizeof(ctx->key_ctx.remote.enc_key), iv);
     ctr.decrypt(frame->payload, frame->payload, frame->payload_len);
 
     return RTP_PKT_MODIFIED;
 }
 
-rtp_error_t uvg_rtp::srtp::send_packet_handler(void *arg, uvg_rtp::buf_vec& buffers)
+rtp_error_t uvgrtp::srtp::send_packet_handler(void *arg, uvgrtp::buf_vec& buffers)
 {
-    auto srtp       = (uvg_rtp::srtp *)arg;
-    auto frame      = (uvg_rtp::frame::rtp_frame *)buffers.at(0).second;
+    auto srtp       = (uvgrtp::srtp *)arg;
+    auto frame      = (uvgrtp::frame::rtp_frame *)buffers.at(0).second;
     auto ctx        = srtp->get_ctx();
     auto off        = srtp->authenticate_rtp() ? 2 : 1;
     auto data       = buffers.at(buffers.size() - off);
-    auto hmac_sha1  = uvg_rtp::crypto::hmac::sha1(ctx->key_ctx.local.auth_key, AES_KEY_LENGTH);
+    auto hmac_sha1  = uvgrtp::crypto::hmac::sha1(ctx->key_ctx.local.auth_key, AES_KEY_LENGTH);
     rtp_error_t ret = RTP_OK;
 
     if (srtp->use_null_cipher())

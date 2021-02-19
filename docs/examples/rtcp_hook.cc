@@ -4,8 +4,8 @@
 /* uvgRTP calls this hook when it receives an RTCP Receiver Report
  *
  * NOTE: If application uses hook, it must also free the frame when it's done with i
- * Frame must deallocated using uvg_rtp::frame::dealloc_frame() function */
-void receiver_hook(uvg_rtp::frame::rtcp_receiver_report *frame)
+ * Frame must deallocated using uvgrtp::frame::dealloc_frame() function */
+void receiver_hook(uvgrtp::frame::rtcp_receiver_report *frame)
 {
     LOG_INFO("Received an RTCP Receiver Report");
 
@@ -16,13 +16,13 @@ void receiver_hook(uvg_rtp::frame::rtcp_receiver_report *frame)
 int main(void)
 {
     /* See rtp/sending.cc for more information about session initialization */
-    uvg_rtp::context ctx;
+    uvgrtp::context ctx;
 
-    uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
+    uvgrtp::session *sess = ctx.create_session("127.0.0.1");
 
     /* For s1, RTCP runner is using port 7778 and for s2 port 8889 */
-    uvg_rtp::media_stream *s1 = sess->create_stream(7777, 8888, RTP_FORMAT_GENERIC, RCE_RTCP);
-    uvg_rtp::media_stream *s2 = sess->create_stream(8888, 7777, RTP_FORMAT_GENERIC, RCE_RTCP);
+    uvgrtp::media_stream *s1 = sess->create_stream(7777, 8888, RTP_FORMAT_GENERIC, RCE_RTCP);
+    uvgrtp::media_stream *s2 = sess->create_stream(8888, 7777, RTP_FORMAT_GENERIC, RCE_RTCP);
 
     /* In this example code, s1 acts as the sender and because it is the only sender,
      * it does not send any RTCP frames but only receives RTCP Receiver reports from s2.

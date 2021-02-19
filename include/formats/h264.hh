@@ -6,7 +6,7 @@
 #include "queue.hh"
 #include "formats/h26x.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     namespace formats {
 
@@ -16,24 +16,24 @@ namespace uvg_rtp {
         };
 
         struct h264_aggregation_packet {
-            uint8_t fu_indicator[uvg_rtp::frame::HEADER_SIZE_H264_FU];
-            uvg_rtp::buf_vec nalus;  /* discrete NAL units */
-            uvg_rtp::buf_vec aggr_pkt; /* crafted aggregation packet */
+            uint8_t fu_indicator[uvgrtp::frame::HEADER_SIZE_H264_FU];
+            uvgrtp::buf_vec nalus;  /* discrete NAL units */
+            uvgrtp::buf_vec aggr_pkt; /* crafted aggregation packet */
         };
 
         struct h264_headers {
-            uint8_t fu_indicator[uvg_rtp::frame::HEADER_SIZE_H264_FU];
+            uint8_t fu_indicator[uvgrtp::frame::HEADER_SIZE_H264_FU];
 
             /* there are three types of Fragmentation Unit headers:
              *  - header for the first fragment
              *  - header for all middle fragments
              *  - header for the last fragment */
-            uint8_t fu_headers[3 * uvg_rtp::frame::HEADER_SIZE_H264_FU];
+            uint8_t fu_headers[3 * uvgrtp::frame::HEADER_SIZE_H264_FU];
         };
 
         typedef struct h264_info {
             /* clock reading when the first fragment is received */
-            uvg_rtp::clock::hrc::hrc_t sframe_time;
+            uvgrtp::clock::hrc::hrc_t sframe_time;
 
             /* sequence number of the frame with s-bit */
             uint32_t s_seq;
@@ -49,21 +49,21 @@ namespace uvg_rtp {
 
             /* map of frame's fragments,
              * allows out-of-order insertion and loop-through in order */
-            std::map<uint16_t, uvg_rtp::frame::rtp_frame *> fragments;
+            std::map<uint16_t, uvgrtp::frame::rtp_frame *> fragments;
 
             /* storage for fragments that require relocation */
-            std::vector<uvg_rtp::frame::rtp_frame *> temporary;
+            std::vector<uvgrtp::frame::rtp_frame *> temporary;
         } h264_info_t;
 
         typedef struct {
-            std::deque<uvg_rtp::frame::rtp_frame *> queued;
+            std::deque<uvgrtp::frame::rtp_frame *> queued;
             std::unordered_map<uint32_t, h264_info_t> frames;
             std::unordered_set<uint32_t> dropped;
         } h264_frame_info_t;
 
         class h264 : public h26x {
             public:
-                h264(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags);
+                h264(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags);
                 ~h264();
 
                 /* Packet handler for RTP frames that transport HEVC bitstream
@@ -112,3 +112,5 @@ namespace uvg_rtp {
         };
     };
 };
+
+namespace uvg_rtp = uvgrtp;

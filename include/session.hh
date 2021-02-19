@@ -7,7 +7,7 @@
 #include "media_stream.hh"
 #include "zrtp.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     class session {
         public:
@@ -22,11 +22,11 @@ namespace uvg_rtp {
              *
              * \details
              *
-             * If local_addr was provided when uvg_rtp::session was created, uvgRTP binds
+             * If local_addr was provided when uvgrtp::session was created, uvgRTP binds
              * itself to local_addr:src_port, otherwise to INADDR_ANY:src_port
              *
              * This object is used for both sending and receiving media, see documentation
-             * for uvg_rtp::media_stream for more details.
+             * for uvgrtp::media_stream for more details.
              *
              * User can enable and disable functionality of uvgRTP by OR'ing RCE_* flags
              * together and passing them using the flags parameter
@@ -38,7 +38,7 @@ namespace uvg_rtp {
              *
              * \return RTP media stream object
              *
-             * \retval uvg_rtp::media_stream*  On success
+             * \retval uvgrtp::media_stream*  On success
              * \retval nullptr                 If src_port or dst_port is 0
              * \retval nullptr                 If fmt is not a supported media format
              * \retval nullptr                 If socket initialization failed
@@ -47,7 +47,7 @@ namespace uvg_rtp {
              * \retval nullptr                 If RCE_SRTP is given but RCE_SRTP_KMNGMNT_* flag is not given
              * \retval nullptr                 If memory allocation failed
              */
-            uvg_rtp::media_stream *create_stream(int src_port, int dst_port, rtp_format_t fmt, int flags);
+            uvgrtp::media_stream *create_stream(int src_port, int dst_port, rtp_format_t fmt, int flags);
 
             /**
              * \brief Destroy a media stream
@@ -60,7 +60,7 @@ namespace uvg_rtp {
              * \retval RTP_INVALID_VALUE  If stream is nullptr
              * \retval RTP_NOT_FOUND      If stream does not belong to this session
              */
-            rtp_error_t destroy_stream(uvg_rtp::media_stream *stream);
+            rtp_error_t destroy_stream(uvgrtp::media_stream *stream);
 
             /// \cond DO_NOT_DOCUMENT
             /* Get unique key of the session
@@ -70,7 +70,7 @@ namespace uvg_rtp {
 
         private:
             /* Each RTP multimedia session shall have one ZRTP session from which all session are derived */
-            uvg_rtp::zrtp *zrtp_;
+            uvgrtp::zrtp *zrtp_;
 
             /* Each RTP multimedia session is always IP-specific */
             std::string addr_;
@@ -79,8 +79,10 @@ namespace uvg_rtp {
             std::string laddr_;
 
             /* All media streams of this session */
-            std::unordered_map<uint32_t, uvg_rtp::media_stream *> streams_;
+            std::unordered_map<uint32_t, uvgrtp::media_stream *> streams_;
 
             std::mutex session_mtx_;
     };
 };
+
+namespace uvg_rtp = uvgrtp;

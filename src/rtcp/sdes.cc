@@ -4,7 +4,7 @@
 
 #include "rtcp.hh"
 
-uvg_rtp::frame::rtcp_sdes_packet *uvg_rtp::rtcp::get_sdes_packet(uint32_t ssrc)
+uvgrtp::frame::rtcp_sdes_packet *uvgrtp::rtcp::get_sdes_packet(uint32_t ssrc)
 {
     if (participants_.find(ssrc) == participants_.end())
         return nullptr;
@@ -15,7 +15,7 @@ uvg_rtp::frame::rtcp_sdes_packet *uvg_rtp::rtcp::get_sdes_packet(uint32_t ssrc)
     return frame;
 }
 
-rtp_error_t uvg_rtp::rtcp::install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_packet *))
+rtp_error_t uvgrtp::rtcp::install_sdes_hook(void (*hook)(uvgrtp::frame::rtcp_sdes_packet *))
 {
     if (!hook)
         return RTP_INVALID_VALUE;
@@ -24,13 +24,13 @@ rtp_error_t uvg_rtp::rtcp::install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_s
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::handle_sdes_packet(uint8_t *packet, size_t size)
+rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t *packet, size_t size)
 {
     if (!packet || !size)
         return RTP_INVALID_VALUE;
 
     auto srtpi = (*(uint32_t *)&packet[size - SRTCP_INDEX_LENGTH - AUTH_TAG_LENGTH]);
-    auto frame = new uvg_rtp::frame::rtcp_sdes_packet;
+    auto frame = new uvgrtp::frame::rtcp_sdes_packet;
     auto ret   = RTP_OK;
 
     frame->header.version = (packet[0] >> 6) & 0x3;
@@ -61,7 +61,7 @@ rtp_error_t uvg_rtp::rtcp::handle_sdes_packet(uint8_t *packet, size_t size)
     }
 
     for (int ptr = 8; ptr < frame->header.length; ) {
-        uvg_rtp::frame::rtcp_sdes_item item;
+        uvgrtp::frame::rtcp_sdes_item item;
 
         item.type   = packet[ptr++];
         item.length = packet[ptr++];
@@ -79,7 +79,7 @@ rtp_error_t uvg_rtp::rtcp::handle_sdes_packet(uint8_t *packet, size_t size)
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::send_sdes_packet(std::vector<uvg_rtp::frame::rtcp_sdes_item>& items)
+rtp_error_t uvgrtp::rtcp::send_sdes_packet(std::vector<uvgrtp::frame::rtcp_sdes_item>& items)
 {
     if (items.empty()) {
         LOG_ERROR("Cannot send an empty SDES packet!");
@@ -104,7 +104,7 @@ rtp_error_t uvg_rtp::rtcp::send_sdes_packet(std::vector<uvg_rtp::frame::rtcp_sde
     memset(frame, 0, frame_size);
 
     frame[0] = (2 << 6) | (0 << 5) | num_receivers_;
-    frame[1] = uvg_rtp::frame::RTCP_FT_SDES;
+    frame[1] = uvgrtp::frame::RTCP_FT_SDES;
 
     *(uint16_t *)&frame[2] = htons(frame_size);
     *(uint32_t *)&frame[4] = htonl(ssrc_);

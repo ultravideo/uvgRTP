@@ -6,11 +6,11 @@
 #include "socket.hh"
 #include "util.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     class holepuncher : public runner {
         public:
-            holepuncher(uvg_rtp::socket *socket);
+            holepuncher(uvgrtp::socket *socket);
             ~holepuncher();
 
             /* Create new thread object and start the holepuncher
@@ -29,7 +29,9 @@ namespace uvg_rtp {
         private:
             void keepalive();
 
-            uvg_rtp::socket *socket_;
+            uvgrtp::socket *socket_;
             std::atomic<uint64_t> last_dgram_sent_;
     };
 };
+
+namespace uvg_rtp = uvgrtp;

@@ -13,7 +13,7 @@
 
 #include "formats/media.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     class media_stream {
         public:
@@ -40,7 +40,7 @@ namespace uvg_rtp {
              * TODO document all error codes!
              *
              * Other error return codes are defined in {conn,writer,reader,srtp}.hh */
-            rtp_error_t init(uvg_rtp::zrtp *zrtp);
+            rtp_error_t init(uvgrtp::zrtp *zrtp);
             /// \endcond
 
             /* Add key for user-managed SRTP session
@@ -100,7 +100,7 @@ namespace uvg_rtp {
              * in milliseconds
              *
              * Return pointer to RTP frame on success */
-            uvg_rtp::frame::rtp_frame *pull_frame();
+            uvgrtp::frame::rtp_frame *pull_frame();
 
             /**
              * \brief Poll a frame for a specified time from the media stream object
@@ -116,7 +116,7 @@ namespace uvg_rtp {
              * in milliseconds
              *
              * Return pointer to RTP frame on success */
-            uvg_rtp::frame::rtp_frame *pull_frame(size_t timeout);
+            uvgrtp::frame::rtp_frame *pull_frame(size_t timeout);
 
             /** Alternative to pull_frame(). The provided hook is called when a frame is received.
              *
@@ -127,7 +127,7 @@ namespace uvg_rtp {
              *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "hook" is nullptr */
-            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvg_rtp::frame::rtp_frame *));
+            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *));
 
             /// \cond DO_NOT_DOCUMENT
             /* If system call dispatcher is enabled and calling application has special requirements
@@ -181,14 +181,14 @@ namespace uvg_rtp {
              * \brief Get pointer to the RTCP object of the media stream
              *
              * \details This object is used to control all RTCP-related functionality
-             * and RTCP documentation can be found from \ref uvg_rtp::rtcp
+             * and RTCP documentation can be found from \ref uvgrtp::rtcp
              *
              * \return Pointer to RTCP object
              *
-             * \retval uvg_rtp::rtcp* If RTCP has been enabled (RCE_RTCP has been given to uvg_rtp::session::create_stream())
+             * \retval uvgrtp::rtcp* If RTCP has been enabled (RCE_RTCP has been given to uvgrtp::session::create_stream())
              * \retval nullptr        If RTCP has not been enabled
              */
-            uvg_rtp::rtcp *get_rtcp();
+            uvgrtp::rtcp *get_rtcp();
 
         private:
             /* Initialize the connection by initializing the socket
@@ -198,11 +198,11 @@ namespace uvg_rtp {
 
             uint32_t key_;
 
-            uvg_rtp::srtp   *srtp_;
-            uvg_rtp::srtcp  *srtcp_;
-            uvg_rtp::socket *socket_;
-            uvg_rtp::rtp    *rtp_;
-            uvg_rtp::rtcp   *rtcp_;
+            uvgrtp::srtp   *srtp_;
+            uvgrtp::srtcp  *srtcp_;
+            uvgrtp::socket *socket_;
+            uvgrtp::rtp    *rtp_;
+            uvgrtp::rtcp   *rtcp_;
 
             sockaddr_in addr_out_;
             std::string addr_;
@@ -226,13 +226,15 @@ namespace uvg_rtp {
             uint32_t zrtp_handler_key_;
 
             /* RTP packet dispatcher for the receiver */
-            uvg_rtp::pkt_dispatcher *pkt_dispatcher_;
+            uvgrtp::pkt_dispatcher *pkt_dispatcher_;
             std::thread *dispatcher_thread_;
 
             /* Media object associated with this media stream. */
-            uvg_rtp::formats::media *media_;
+            uvgrtp::formats::media *media_;
 
             /* Thread that keeps the holepunched connection open for unidirectional streams */
-            uvg_rtp::holepuncher *holepuncher_;
+            uvgrtp::holepuncher *holepuncher_;
     };
 };
+
+namespace uvg_rtp = uvgrtp;

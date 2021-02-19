@@ -5,21 +5,21 @@
 void thread_func(void)
 {
     /* See sending.cc for more details */
-    uvg_rtp::context ctx;
-    uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
+    uvgrtp::context ctx;
+    uvgrtp::session *sess = ctx.create_session("127.0.0.1");
 
     /* Enable SRTP and use ZRTP to manage keys */
     unsigned flags = RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP;
 
     /* See sending.cc for more details about create_stream() */
-    uvg_rtp::media_stream *recv = sess->create_stream(8889, 8888, RTP_FORMAT_GENERIC, flags);
+    uvgrtp::media_stream *recv = sess->create_stream(8889, 8888, RTP_FORMAT_GENERIC, flags);
 
     for (;;) {
         auto frame = recv->pull_frame();
         fprintf(stderr, "Message: '%s'\n", frame->payload);
 
         /* the frame must be destroyed manually */
-        (void)uvg_rtp::frame::dealloc_frame(frame);
+        (void)uvgrtp::frame::dealloc_frame(frame);
     }
 }
 
@@ -33,14 +33,14 @@ int main(void)
     new std::thread(thread_func);
 
     /* See sending.cc for more details */
-    uvg_rtp::context ctx;
-    uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
+    uvgrtp::context ctx;
+    uvgrtp::session *sess = ctx.create_session("127.0.0.1");
 
     /* Enable SRTP and use ZRTP to manage keys */
     unsigned flags = RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP;
 
     /* See sending.cc for more details about create_stream() */
-    uvg_rtp::media_stream *send = sess->create_stream(8888, 8889, RTP_FORMAT_GENERIC, flags);
+    uvgrtp::media_stream *send = sess->create_stream(8888, 8889, RTP_FORMAT_GENERIC, flags);
 
     char *message  = (char *)"Hello, world!";
     size_t msg_len = strlen(message);

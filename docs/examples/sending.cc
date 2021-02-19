@@ -5,11 +5,11 @@
 int main(void)
 {
     /* To use the library, one must create a global RTP context object */
-    uvg_rtp::context ctx;
+    uvgrtp::context ctx;
 
     /* Each new IP address requires a separate RTP session.
      * This session object contains all media streams and an RTCP object (if enabled) */
-    uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
+    uvgrtp::session *sess = ctx.create_session("127.0.0.1");
 
     /* Each RTP session has one or more media streams. These media streams are bidirectional
      * and they require both source and destination ports for the connection. One must also
@@ -25,7 +25,7 @@ int main(void)
      * This same object is used for both sending and receiving media
      *
      * In this example, we have one media stream with remote participant: hevc */
-    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, 0);
+    uvgrtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, 0);
 
     uint8_t *buffer    = new uint8_t[PAYLOAD_MAXLEN];
     uint32_t timestamp = 0;

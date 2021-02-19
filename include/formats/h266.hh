@@ -4,23 +4,23 @@
 #include "queue.hh"
 #include "formats/h26x.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     namespace formats {
 
         struct h266_headers {
-            uint8_t nal_header[uvg_rtp::frame::HEADER_SIZE_H266_NAL];
+            uint8_t nal_header[uvgrtp::frame::HEADER_SIZE_H266_NAL];
 
             /* there are three types of Fragmentation Unit headers:
              *  - header for the first fragment
              *  - header for all middle fragments
              *  - header for the last fragment */
-            uint8_t fu_headers[3 * uvg_rtp::frame::HEADER_SIZE_H266_FU];
+            uint8_t fu_headers[3 * uvgrtp::frame::HEADER_SIZE_H266_FU];
         };
 
         class h266 : public h26x {
             public:
-                h266(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags);
+                h266(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags);
                 ~h266();
 
                 /* Packet handler for RTP frames that transport HEVC bitstream
@@ -47,3 +47,5 @@ namespace uvg_rtp {
         };
     };
 };
+
+namespace uvg_rtp = uvgrtp;

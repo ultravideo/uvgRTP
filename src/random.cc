@@ -12,7 +12,7 @@
 #include "debug.hh"
 #include "random.hh"
 
-rtp_error_t uvg_rtp::random::init()
+rtp_error_t uvgrtp::random::init()
 {
 #ifdef _WIN32
     srand(GetTickCount());
@@ -22,7 +22,7 @@ rtp_error_t uvg_rtp::random::init()
     return RTP_OK;
 }
 
-int uvg_rtp::random::generate(void *buf, size_t n)
+int uvgrtp::random::generate(void *buf, size_t n)
 {
 #ifdef __linux__
     return getrandom(buf, n, 0);
@@ -39,21 +39,21 @@ int uvg_rtp::random::generate(void *buf, size_t n)
 #endif
 }
 
-uint32_t uvg_rtp::random::generate_32()
+uint32_t uvgrtp::random::generate_32()
 {
     uint32_t value;
 
-    if (uvg_rtp::random::generate(&value, sizeof(uint32_t)) < 0)
+    if (uvgrtp::random::generate(&value, sizeof(uint32_t)) < 0)
         return rand();
 
     return value;
 }
 
-uint64_t uvg_rtp::random::generate_64()
+uint64_t uvgrtp::random::generate_64()
 {
     uint64_t value;
 
-    if (uvg_rtp::random::generate(&value, sizeof(uint64_t)) < 0)
+    if (uvgrtp::random::generate(&value, sizeof(uint64_t)) < 0)
         return rand();
 
     return value;

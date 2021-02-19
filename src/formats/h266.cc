@@ -14,7 +14,7 @@
 
 #include "formats/h266.hh"
 
-rtp_error_t uvg_rtp::formats::h266::push_nal_unit(uint8_t *data, size_t data_len, bool more)
+rtp_error_t uvgrtp::formats::h266::push_nal_unit(uint8_t *data, size_t data_len, bool more)
 {
     if (data_len <= 3)
         return RTP_INVALID_VALUE;
@@ -45,7 +45,7 @@ rtp_error_t uvg_rtp::formats::h266::push_nal_unit(uint8_t *data, size_t data_len
      * During Connection initialization, the frame queue was given VVC as the payload format so the
      * transaction also contains our media-specific headers [get_media_headers()]. */
     auto buffers = fqueue_->get_buffer_vector();
-    auto headers = (uvg_rtp::formats::h266_headers *)fqueue_->get_media_headers();
+    auto headers = (uvgrtp::formats::h266_headers *)fqueue_->get_media_headers();
 
     headers->nal_header[0] = data[0];
     headers->nal_header[1] = (29 << 3) | (data[1] & 0x7);
@@ -58,8 +58,8 @@ rtp_error_t uvg_rtp::formats::h266::push_nal_unit(uint8_t *data, size_t data_len
     buffers.push_back(std::make_pair(sizeof(uint8_t),             &headers->fu_headers[0]));
     buffers.push_back(std::make_pair(payload_size,                nullptr));
 
-    data_pos   = uvg_rtp::frame::HEADER_SIZE_H266_NAL;
-    data_left -= uvg_rtp::frame::HEADER_SIZE_H266_NAL;
+    data_pos   = uvgrtp::frame::HEADER_SIZE_H266_NAL;
+    data_left -= uvgrtp::frame::HEADER_SIZE_H266_NAL;
 
     while (data_left > payload_size) {
         buffers.at(2).first  = payload_size;
@@ -95,11 +95,11 @@ rtp_error_t uvg_rtp::formats::h266::push_nal_unit(uint8_t *data, size_t data_len
     return fqueue_->flush_queue();
 }
 
-uvg_rtp::formats::h266::h266(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):
+uvgrtp::formats::h266::h266(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags):
     h26x(socket, rtp, flags)
 {
 }
 
-uvg_rtp::formats::h266::~h266()
+uvgrtp::formats::h266::~h266()
 {
 }

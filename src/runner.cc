@@ -1,11 +1,11 @@
 #include "runner.hh"
 
-uvg_rtp::runner::runner():
+uvgrtp::runner::runner():
     active_(false), runner_(nullptr)
 {
 }
 
-uvg_rtp::runner::~runner()
+uvgrtp::runner::~runner()
 {
     active_ = false;
 
@@ -13,21 +13,21 @@ uvg_rtp::runner::~runner()
         delete runner_;
 }
 
-rtp_error_t uvg_rtp::runner::start()
+rtp_error_t uvgrtp::runner::start()
 {
     active_ = true;
 
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::runner::stop()
+rtp_error_t uvgrtp::runner::stop()
 {
     active_ = false;
 
     return RTP_OK;
 }
 
-bool uvg_rtp::runner::active()
+bool uvgrtp::runner::active()
 {
     return active_;
 }

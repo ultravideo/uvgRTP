@@ -21,11 +21,11 @@ static inline uint32_t ntp_diff_ms(uint64_t t1, uint64_t t2)
     return (((s1 - s2) * 1000000) + ((us1 - us2))) / 1000;
 }
 
-uint64_t uvg_rtp::clock::ntp::now()
+uint64_t uvgrtp::clock::ntp::now()
 {
     struct timeval tv;
 #ifdef _WIN32
-    uvg_rtp::clock::gettimeofday(&tv, NULL);
+    uvgrtp::clock::gettimeofday(&tv, NULL);
 #else
     gettimeofday(&tv, NULL);
 #endif
@@ -38,29 +38,29 @@ uint64_t uvg_rtp::clock::ntp::now()
     return (tv_ntp << 32) | tv_usecs;
 }
 
-uint64_t uvg_rtp::clock::ntp::diff(uint64_t ntp1, uint64_t ntp2)
+uint64_t uvgrtp::clock::ntp::diff(uint64_t ntp1, uint64_t ntp2)
 {
     return ntp_diff_ms(ntp1, ntp2);
 }
 
-uint64_t uvg_rtp::clock::ntp::diff_now(uint64_t then)
+uint64_t uvgrtp::clock::ntp::diff_now(uint64_t then)
 {
-    uint64_t now = uvg_rtp::clock::ntp::now();
+    uint64_t now = uvgrtp::clock::ntp::now();
 
     return ntp_diff_ms(now, then);
 }
 
-uvg_rtp::clock::hrc::hrc_t uvg_rtp::clock::hrc::now()
+uvgrtp::clock::hrc::hrc_t uvgrtp::clock::hrc::now()
 {
     return std::chrono::high_resolution_clock::now();
 }
 
-uint64_t uvg_rtp::clock::hrc::diff(hrc_t hrc1, hrc_t hrc2)
+uint64_t uvgrtp::clock::hrc::diff(hrc_t hrc1, hrc_t hrc2)
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(hrc1 - hrc2).count();
 }
 
-uint64_t uvg_rtp::clock::hrc::diff_now(hrc_t then)
+uint64_t uvgrtp::clock::hrc::diff_now(hrc_t then)
 {
     uint64_t diff = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::high_resolution_clock::now() - then
@@ -69,7 +69,7 @@ uint64_t uvg_rtp::clock::hrc::diff_now(hrc_t then)
     return diff;
 }
 
-uint64_t uvg_rtp::clock::hrc::diff_now_us(hrc_t& then)
+uint64_t uvgrtp::clock::hrc::diff_now_us(hrc_t& then)
 {
     uint64_t diff = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::high_resolution_clock::now() - then
@@ -78,18 +78,18 @@ uint64_t uvg_rtp::clock::hrc::diff_now_us(hrc_t& then)
     return diff;
 }
 
-uint64_t uvg_rtp::clock::ms_to_jiffies(uint64_t ms)
+uint64_t uvgrtp::clock::ms_to_jiffies(uint64_t ms)
 {
     return (uint64_t)(((double)ms / 1000) * 65536);
 }
 
-uint64_t uvg_rtp::clock::jiffies_to_ms(uint64_t jiffies)
+uint64_t uvgrtp::clock::jiffies_to_ms(uint64_t jiffies)
 {
     return (uint64_t)(((double)jiffies / 65536) * 1000);
 }
 
 #ifdef _WIN32
-int uvg_rtp::clock::gettimeofday(struct timeval * tp, struct timezone * tzp)
+int uvgrtp::clock::gettimeofday(struct timeval * tp, struct timezone * tzp)
 {
     // Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
     // This magic number is the number of 100 nanosecond intervals since January 1, 1601 (UTC)

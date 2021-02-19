@@ -4,13 +4,13 @@
 #include "media.hh"
 #include "queue.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     namespace formats {
 
         class h26x : public media {
             public:
-                h26x(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags);
+                h26x(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags);
                 virtual ~h26x();
 
                 /* Find H26x start code from "data"
@@ -41,3 +41,5 @@ namespace uvg_rtp {
         };
     };
 };
+
+namespace uvg_rtp = uvgrtp;

@@ -2,9 +2,11 @@
 
 #include <string>
 
-namespace uvg_rtp {
+namespace uvgrtp {
     namespace hostname {
         std::string get_hostname();
         std::string get_username();
     };
 };
+
+namespace uvg_rtp = uvgrtp;

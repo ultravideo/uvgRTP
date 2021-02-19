@@ -2,7 +2,7 @@
 
 #include "base.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     class srtcp : public base_srtp {
         public:
@@ -38,3 +38,5 @@ namespace uvg_rtp {
             rtp_error_t decrypt(uint32_t ssrc, uint32_t seq, uint8_t *buffer, size_t len);
     };
 };
+
+namespace uvg_rtp = uvgrtp;

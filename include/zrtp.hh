@@ -18,7 +18,7 @@
 #include "zrtp/defines.hh"
 #include "zrtp/zrtp_receiver.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     enum ZRTP_ROLE {
         INITIATOR,
@@ -46,9 +46,9 @@ namespace uvg_rtp {
     } zrtp_capab_t;
 
 	typedef struct zrtp_crypto_ctx {
-        uvg_rtp::crypto::hmac::sha256 *hmac_sha256;
-        uvg_rtp::crypto::sha256 *sha256;
-        uvg_rtp::crypto::dh *dh;
+        uvgrtp::crypto::hmac::sha256 *hmac_sha256;
+        uvgrtp::crypto::sha256 *sha256;
+        uvgrtp::crypto::dh *dh;
     } zrtp_crypto_ctx_t;
 
     typedef struct zrtp_secrets {
@@ -70,9 +70,9 @@ namespace uvg_rtp {
     } zrtp_secrets_t;
 
     typedef struct zrtp_messages {
-        std::pair<size_t, struct uvg_rtp::zrtp_msg::zrtp_commit  *> commit;
-        std::pair<size_t, struct uvg_rtp::zrtp_msg::zrtp_hello   *> hello;
-        std::pair<size_t, struct uvg_rtp::zrtp_msg::zrtp_dh      *> dh;
+        std::pair<size_t, struct uvgrtp::zrtp_msg::zrtp_commit  *> commit;
+        std::pair<size_t, struct uvgrtp::zrtp_msg::zrtp_hello   *> hello;
+        std::pair<size_t, struct uvgrtp::zrtp_msg::zrtp_dh      *> dh;
     } zrtp_messages_t;
 
     /* Various ZRTP-related keys */
@@ -166,7 +166,7 @@ namespace uvg_rtp {
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr);
+            rtp_error_t init(uint32_t ssrc, uvgrtp::socket *socket, sockaddr_in& addr);
 
             /* Get SRTP keys for the session that was just initialized
              *
@@ -199,13 +199,13 @@ namespace uvg_rtp {
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init_dhm(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr);
+            rtp_error_t init_dhm(uint32_t ssrc, uvgrtp::socket *socket, sockaddr_in& addr);
 
             /* Initialize ZRTP session between us and remote using Multistream mode
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init_msm(uint32_t ssrc, uvg_rtp::socket *socket, sockaddr_in& addr);
+            rtp_error_t init_msm(uint32_t ssrc, uvgrtp::socket *socket, sockaddr_in& addr);
 
             /* Generate zid for this ZRTP instance. ZID is a unique, 96-bit long ID */
             void generate_zid();
@@ -280,7 +280,7 @@ namespace uvg_rtp {
             rtp_error_t initiator_finalize_session();
 
             uint32_t ssrc_;
-            uvg_rtp::socket *socket_;
+            uvgrtp::socket *socket_;
             sockaddr_in addr_;
 
             /* Has the ZRTP connection been initialized using DH */
@@ -291,7 +291,7 @@ namespace uvg_rtp {
             zrtp_capab_t rcapab_;
 
             /* ZRTP packet receiver */
-            uvg_rtp::zrtp_msg::receiver receiver_;
+            uvgrtp::zrtp_msg::receiver receiver_;
 
             zrtp_crypto_ctx_t cctx_;
             zrtp_session_t session_;
@@ -299,3 +299,5 @@ namespace uvg_rtp {
             std::mutex zrtp_mtx_;
     };
 };
+
+namespace uvg_rtp = uvgrtp;

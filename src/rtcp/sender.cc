@@ -4,7 +4,7 @@
 
 #include "rtcp.hh"
 
-uvg_rtp::frame::rtcp_sender_report *uvg_rtp::rtcp::get_sender_packet(uint32_t ssrc)
+uvgrtp::frame::rtcp_sender_report *uvgrtp::rtcp::get_sender_packet(uint32_t ssrc)
 {
     if (participants_.find(ssrc) == participants_.end())
         return nullptr;
@@ -15,7 +15,7 @@ uvg_rtp::frame::rtcp_sender_report *uvg_rtp::rtcp::get_sender_packet(uint32_t ss
     return frame;
 }
 
-rtp_error_t uvg_rtp::rtcp::install_sender_hook(void (*hook)(uvg_rtp::frame::rtcp_sender_report *))
+rtp_error_t uvgrtp::rtcp::install_sender_hook(void (*hook)(uvgrtp::frame::rtcp_sender_report *))
 {
     if (!hook)
         return RTP_INVALID_VALUE;
@@ -24,13 +24,13 @@ rtp_error_t uvg_rtp::rtcp::install_sender_hook(void (*hook)(uvg_rtp::frame::rtcp
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::handle_sender_report_packet(uint8_t *packet, size_t size)
+rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t *packet, size_t size)
 {
     if (!packet || !size)
         return RTP_INVALID_VALUE;
 
     auto srtpi = (*(uint32_t *)&packet[size - SRTCP_INDEX_LENGTH - AUTH_TAG_LENGTH]);
-    auto frame = new uvg_rtp::frame::rtcp_sender_report;
+    auto frame = new uvgrtp::frame::rtcp_sender_report;
     auto ret   = RTP_OK;
 
     frame->header.version = (packet[0] >> 6) & 0x3;
@@ -68,13 +68,13 @@ rtp_error_t uvg_rtp::rtcp::handle_sender_report_packet(uint8_t *packet, size_t s
     frame->sender_info.pkt_cnt  = ntohl(*(uint32_t *)&packet[20]);
     frame->sender_info.byte_cnt = ntohl(*(uint32_t *)&packet[24]);
 
-    participants_[frame->ssrc]->stats.sr_ts = uvg_rtp::clock::hrc::now();
+    participants_[frame->ssrc]->stats.sr_ts = uvgrtp::clock::hrc::now();
     participants_[frame->ssrc]->stats.lsr   =
         ((frame->sender_info.ntp_msw >> 16) & 0xffff) |
         ((frame->sender_info.ntp_lsw & 0xffff0000) >> 16);
 
     for (int i = 0; i < frame->header.count; ++i) {
-        uvg_rtp::frame::rtcp_report_block report;
+        uvgrtp::frame::rtcp_report_block report;
 
         report.ssrc     = ntohl(*(uint32_t *)&packet[(i * 24) + 28 +  0]);
         report.lost     = ntohl(*(uint32_t *)&packet[(i * 24) + 28 +  4]);
@@ -94,7 +94,7 @@ rtp_error_t uvg_rtp::rtcp::handle_sender_report_packet(uint8_t *packet, size_t s
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::generate_sender_report()
+rtp_error_t uvgrtp::rtcp::generate_sender_report()
 {
     LOG_DEBUG("Generating RTCP Sender Report");
 
@@ -124,14 +124,14 @@ rtp_error_t uvg_rtp::rtcp::generate_sender_report()
     memset(frame, 0, frame_size);
 
     frame[0] = (2 << 6) | (0 << 5) | num_receivers_;
-    frame[1] = uvg_rtp::frame::RTCP_FT_SR;
+    frame[1] = uvgrtp::frame::RTCP_FT_SR;
 
     *(uint16_t *)&frame[2] = htons(frame_size);
     *(uint32_t *)&frame[4] = htonl(ssrc_);
 
     /* Sender information */
-    ntp_ts = uvg_rtp::clock::ntp::now();
-    rtp_ts = rtp_ts_start_ + (uvg_rtp::clock::ntp::diff(ntp_ts, clock_start_)) * clock_rate_ / 1000;
+    ntp_ts = uvgrtp::clock::ntp::now();
+    rtp_ts = rtp_ts_start_ + (uvgrtp::clock::ntp::diff(ntp_ts, clock_start_)) * clock_rate_ / 1000;
 
     SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts >> 32));
     SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts & 0xffffffff));
@@ -153,8 +153,8 @@ rtp_error_t uvg_rtp::rtcp::generate_sender_report()
 
         /* calculate delay of last SR only if SR has been received at least once */
         if (p.second->stats.lsr) {
-            uint64_t diff = uvg_rtp::clock::hrc::diff_now(p.second->stats.sr_ts);
-            SET_NEXT_FIELD_32(frame, ptr, htonl(uvg_rtp::clock::ms_to_jiffies(diff)));
+            uint64_t diff = uvgrtp::clock::hrc::diff_now(p.second->stats.sr_ts);
+            SET_NEXT_FIELD_32(frame, ptr, htonl(uvgrtp::clock::ms_to_jiffies(diff)));
         }
         ptr += p.second->stats.lsr ? 0 : 4;
     }

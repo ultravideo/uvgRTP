@@ -6,10 +6,10 @@
 int main(void)
 {
     /* See sending.cc for more details */
-    uvg_rtp::context ctx;
+    uvgrtp::context ctx;
 
     /* See sending.cc for more details */
-    uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
+    uvgrtp::session *sess = ctx.create_session("127.0.0.1");
 
     /* To enable interoperability between RTP libraries, uvgRTP won't fragment generic frames by default.
      *
@@ -22,8 +22,8 @@ int main(void)
      * received, uvgRTP constructs one full RTP frame from the fragments and returns the frame to user.
      *
      * See sending.cc for more details about create_stream() */
-    uvg_rtp::media_stream *send = sess->create_stream(8888, 8889, RTP_FORMAT_GENERIC, RCE_FRAGMENT_GENERIC);
-    uvg_rtp::media_stream *recv = sess->create_stream(8889, 8888, RTP_FORMAT_GENERIC, RCE_FRAGMENT_GENERIC);
+    uvgrtp::media_stream *send = sess->create_stream(8888, 8889, RTP_FORMAT_GENERIC, RCE_FRAGMENT_GENERIC);
+    uvgrtp::media_stream *recv = sess->create_stream(8889, 8888, RTP_FORMAT_GENERIC, RCE_FRAGMENT_GENERIC);
 
     /* Notice that PAYLOAD_MAXLEN > MTU (4096 > 1500).
      *
@@ -48,7 +48,7 @@ int main(void)
     }
 
     /* the frame must be destroyed manually */
-    (void)uvg_rtp::frame::dealloc_frame(frame);
+    (void)uvgrtp::frame::dealloc_frame(frame);
 
     /* Session must be destroyed manually */
     ctx.destroy_session(sess);

@@ -23,28 +23,28 @@
 #include "zrtp/hello_ack.hh"
 #include "zrtp/zrtp_receiver.hh"
 
-using namespace uvg_rtp::zrtp_msg;
+using namespace uvgrtp::zrtp_msg;
 
-uvg_rtp::zrtp_msg::receiver::receiver()
+uvgrtp::zrtp_msg::receiver::receiver()
 {
     mem_ = new uint8_t[1024];
     len_  = 1024;
 }
 
-uvg_rtp::zrtp_msg::receiver::~receiver()
+uvgrtp::zrtp_msg::receiver::~receiver()
 {
     LOG_DEBUG("destroy receiver");
     delete[] mem_;
 }
 
-int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int timeout, int flags)
+int uvgrtp::zrtp_msg::receiver::recv_msg(uvgrtp::socket *socket, int timeout, int flags)
 {
     rtp_error_t ret = RTP_GENERIC_ERROR;
     int nread       = 0;
     rlen_           = 0;
 
 #ifdef _WIN32
-    if ((ret = uvg_rtp::poll::blocked_recv(socket, mem_, len_, timeout, &nread)) != RTP_OK) {
+    if ((ret = uvgrtp::poll::blocked_recv(socket, mem_, len_, timeout, &nread)) != RTP_OK) {
         if (ret == RTP_INTERRUPTED)
             return -ret;
 
@@ -92,7 +92,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int timeout, 
 
             zrtp_hello *hello = (zrtp_hello *)msg;
 
-            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, hello->crc))
+            if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, hello->crc))
                 return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_HELLO;
@@ -103,7 +103,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int timeout, 
 
             zrtp_hello_ack *ha_msg = (zrtp_hello_ack *)msg;
 
-            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, ha_msg->crc))
+            if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, ha_msg->crc))
                 return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_HELLO_ACK;
@@ -114,7 +114,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int timeout, 
 
             zrtp_commit *commit = (zrtp_commit *)msg;
 
-            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, commit->crc))
+            if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, commit->crc))
                 return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_COMMIT;
@@ -125,7 +125,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int timeout, 
 
             zrtp_dh *dh = (zrtp_dh *)msg;
 
-            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
+            if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
                 return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_DH_PART1;
@@ -136,7 +136,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int timeout, 
 
             zrtp_dh *dh = (zrtp_dh *)msg;
 
-            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
+            if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
                 return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_DH_PART2;
@@ -147,7 +147,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int timeout, 
 
             zrtp_confirm *dh = (zrtp_confirm *)msg;
 
-            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
+            if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
                 return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_CONFIRM1;
@@ -158,7 +158,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int timeout, 
 
             zrtp_confirm *dh = (zrtp_confirm *)msg;
 
-            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
+            if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
                 return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_CONFIRM2;
@@ -169,7 +169,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int timeout, 
 
             zrtp_confack *ca = (zrtp_confack *)msg;
 
-            if (!uvg_rtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, ca->crc))
+            if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, ca->crc))
                 return RTP_NOT_SUPPORTED;
         }
         return ZRTP_FT_CONF2_ACK;
@@ -199,7 +199,7 @@ int uvg_rtp::zrtp_msg::receiver::recv_msg(uvg_rtp::socket *socket, int timeout, 
     return -RTP_NOT_SUPPORTED;
 }
 
-ssize_t uvg_rtp::zrtp_msg::receiver::get_msg(void *ptr, size_t len)
+ssize_t uvgrtp::zrtp_msg::receiver::get_msg(void *ptr, size_t len)
 {
     if (!ptr || !len)
         return -RTP_INVALID_VALUE;

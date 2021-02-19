@@ -30,15 +30,15 @@ enum NAL_TYPES {
     NT_OTHER = 0xff
 };
 
-static int __get_frag(uvg_rtp::frame::rtp_frame *frame)
+static int __get_frag(uvgrtp::frame::rtp_frame *frame)
 {
     bool first_frag = frame->payload[2] & 0x80;
     bool last_frag  = frame->payload[2] & 0x40;
 
-    if ((frame->payload[0] >> 1) == uvg_rtp::formats::H265_PKT_AGGR)
+    if ((frame->payload[0] >> 1) == uvgrtp::formats::H265_PKT_AGGR)
         return FT_AGGR;
 
-    if ((frame->payload[0] >> 1) != uvg_rtp::formats::H265_PKT_FRAG)
+    if ((frame->payload[0] >> 1) != uvgrtp::formats::H265_PKT_FRAG)
         return FT_NOT_FRAG;
 
     if (first_frag && last_frag)
@@ -53,7 +53,7 @@ static int __get_frag(uvg_rtp::frame::rtp_frame *frame)
     return FT_MIDDLE;
 }
 
-static inline uint8_t __get_nal(uvg_rtp::frame::rtp_frame *frame)
+static inline uint8_t __get_nal(uvgrtp::frame::rtp_frame *frame)
 {
     switch (frame->payload[2] & 0x3f) {
         case 19: return NT_INTRA;
@@ -64,12 +64,12 @@ static inline uint8_t __get_nal(uvg_rtp::frame::rtp_frame *frame)
     return NT_OTHER;
 }
 
-static inline bool __frame_late(uvg_rtp::formats::h265_info_t& hinfo, size_t max_delay)
+static inline bool __frame_late(uvgrtp::formats::h265_info_t& hinfo, size_t max_delay)
 {
-    return (uvg_rtp::clock::hrc::diff_now(hinfo.sframe_time) >= max_delay);
+    return (uvgrtp::clock::hrc::diff_now(hinfo.sframe_time) >= max_delay);
 }
 
-static void __drop_frame(uvg_rtp::formats::h265_frame_info_t *finfo, uint32_t ts)
+static void __drop_frame(uvgrtp::formats::h265_frame_info_t *finfo, uint32_t ts)
 {
     uint16_t s_seq = finfo->frames.at(ts).s_seq;
     uint16_t e_seq = finfo->frames.at(ts).e_seq;
@@ -77,19 +77,19 @@ static void __drop_frame(uvg_rtp::formats::h265_frame_info_t *finfo, uint32_t ts
     LOG_INFO("Dropping frame %u, %u - %u", ts, s_seq, e_seq);
 
     for (auto& fragment : finfo->frames.at(ts).fragments)
-        (void)uvg_rtp::frame::dealloc_frame(fragment.second);
+        (void)uvgrtp::frame::dealloc_frame(fragment.second);
 
     finfo->frames.erase(ts);
 }
 
-static rtp_error_t __handle_ap(uvg_rtp::formats::h265_frame_info_t *finfo, uvg_rtp::frame::rtp_frame **out)
+static rtp_error_t __handle_ap(uvgrtp::formats::h265_frame_info_t *finfo, uvgrtp::frame::rtp_frame **out)
 {
-    uvg_rtp::buf_vec nalus;
+    uvgrtp::buf_vec nalus;
 
     size_t size  = 0;
     auto  *frame = *out;
 
-    for (size_t i = uvg_rtp::frame::HEADER_SIZE_H265_NAL; i < frame->payload_len; ) {
+    for (size_t i = uvgrtp::frame::HEADER_SIZE_H265_NAL; i < frame->payload_len; ) {
         nalus.push_back(
             std::make_pair(
                 ntohs(*(uint16_t *)&frame->payload[i]),
@@ -102,7 +102,7 @@ static rtp_error_t __handle_ap(uvg_rtp::formats::h265_frame_info_t *finfo, uvg_r
     }
 
     for (size_t i = 0; i < nalus.size(); ++i) {
-        auto retframe = uvg_rtp::frame::alloc_rtp_frame(nalus[i].first);
+        auto retframe = uvgrtp::frame::alloc_rtp_frame(nalus[i].first);
 
         std::memcpy(
             retframe->payload,
@@ -116,11 +116,11 @@ static rtp_error_t __handle_ap(uvg_rtp::formats::h265_frame_info_t *finfo, uvg_r
     return RTP_MULTIPLE_PKTS_READY;
 }
 
-rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp::frame::rtp_frame **out)
+rtp_error_t uvgrtp::formats::h265::packet_handler(void *arg, int flags, uvgrtp::frame::rtp_frame **out)
 {
-    uvg_rtp::frame::rtp_frame *frame;
+    uvgrtp::frame::rtp_frame *frame;
     bool enable_idelay = !(flags & RCE_H265_NO_INTRA_DELAY);
-    auto finfo = (uvg_rtp::formats::h265_frame_info_t *)arg;
+    auto finfo = (uvgrtp::formats::h265_frame_info_t *)arg;
 
     /* Use "intra" to keep track of intra frames
      *
@@ -137,8 +137,8 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
     uint32_t intra = INVALID_TS;
 
     const size_t H265_HDR_SIZE =
-        uvg_rtp::frame::HEADER_SIZE_H265_NAL +
-        uvg_rtp::frame::HEADER_SIZE_H265_FU;
+        uvgrtp::frame::HEADER_SIZE_H265_NAL +
+        uvgrtp::frame::HEADER_SIZE_H265_FU;
 
     frame = *out;
 
@@ -176,7 +176,7 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
 
     if (frag_type == FT_INVALID) {
         LOG_WARN("invalid frame received!");
-        (void)uvg_rtp::frame::dealloc_frame(*out);
+        (void)uvgrtp::frame::dealloc_frame(*out);
         *out = nullptr;
         return RTP_GENERIC_ERROR;
     }
@@ -205,7 +205,7 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
         if (frag_type == FT_START) finfo->frames[c_ts].s_seq = c_seq;
         if (frag_type == FT_END)   finfo->frames[c_ts].e_seq = c_seq;
 
-        finfo->frames[c_ts].sframe_time   = uvg_rtp::clock::hrc::now();
+        finfo->frames[c_ts].sframe_time   = uvgrtp::clock::hrc::now();
         finfo->frames[c_ts].total_size    = frame->payload_len - H265_HDR_SIZE;
         finfo->frames[c_ts].pkts_received = 1;
 
@@ -281,11 +281,11 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
                 (uint8_t)frame->payload[1]
             };
 
-            uvg_rtp::frame::rtp_frame *complete = uvg_rtp::frame::alloc_rtp_frame();
+            uvgrtp::frame::rtp_frame *complete = uvgrtp::frame::alloc_rtp_frame();
 
             complete->payload_len =
                 finfo->frames[c_ts].total_size
-                + uvg_rtp::frame::HEADER_SIZE_H265_NAL +
+                + uvgrtp::frame::HEADER_SIZE_H265_NAL +
                 + ((flags & RCE_H26X_PREPEND_SC) ? 4 : 0);
 
             if (!(complete->payload = new uint8_t[complete->payload_len])) {
@@ -304,7 +304,7 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
             std::memcpy(&complete->header,        &(*out)->header, RTP_HDR_SIZE);
             std::memcpy(&complete->payload[fptr], nal_header,      NAL_HDR_SIZE);
 
-            fptr += uvg_rtp::frame::HEADER_SIZE_H265_NAL;
+            fptr += uvgrtp::frame::HEADER_SIZE_H265_NAL;
 
             for (auto& fragment : finfo->frames.at(c_ts).fragments) {
                 std::memcpy(
@@ -313,7 +313,7 @@ rtp_error_t uvg_rtp::formats::h265::packet_handler(void *arg, int flags, uvg_rtp
                     fragment.second->payload_len - H265_HDR_SIZE
                 );
                 fptr += fragment.second->payload_len - H265_HDR_SIZE;
-                (void)uvg_rtp::frame::dealloc_frame(fragment.second);
+                (void)uvgrtp::frame::dealloc_frame(fragment.second);
             }
 
             if (nal_type == NT_INTRA)

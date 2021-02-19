@@ -1,7 +1,7 @@
 #include <uvgrtp/lib.hh>
 #include <thread>
 
-void receive_hook(void *arg, uvg_rtp::frame::rtp_frame *frame)
+void receive_hook(void *arg, uvgrtp::frame::rtp_frame *frame)
 {
     if (!frame) {
         fprintf(stderr, "invalid frame received!\n");
@@ -14,17 +14,17 @@ void receive_hook(void *arg, uvg_rtp::frame::rtp_frame *frame)
      * arg->copy_frame(frame) or whatever
      *
      * When we're done with the frame, it must be deallocated manually */
-    (void)uvg_rtp::frame::dealloc_frame(frame);
+    (void)uvgrtp::frame::dealloc_frame(frame);
 }
 
 int main(void)
 {
     /* To use the library, one must create a global RTP context object */
-    uvg_rtp::context ctx;
+    uvgrtp::context ctx;
 
     /* Each new IP address requires a separate RTP session.
      * This session object contains all media streams and an RTCP object (if enabled) */
-    uvg_rtp::session *sess = ctx.create_session("127.0.0.1");
+    uvgrtp::session *sess = ctx.create_session("127.0.0.1");
 
     /* Each RTP session has one or more media streams. These media streams are bidirectional
      * and they require both source and destination ports for the connection. One must also
@@ -40,7 +40,7 @@ int main(void)
      * This same object is used for both sending and receiving media
      *
      * In this example, we have one media stream with remote participant: HEVC */
-    uvg_rtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, 0);
+    uvgrtp::media_stream *hevc = sess->create_stream(8888, 8889, RTP_FORMAT_H265, 0);
 
     /* Receive hook can be installed and the receiver will call this hook when an RTP frame is received
      *
