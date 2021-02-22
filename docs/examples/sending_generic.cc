@@ -50,6 +50,19 @@ int main(void)
     /* the frame must be destroyed manually */
     (void)uvgrtp::frame::dealloc_frame(frame);
 
+    /* The input data size doesn't always have to be larger than MTU,
+     * i.e., you can still send small packets */
+    uint8_t data[5] = { 0x1, 0x5, 0xa, 0x77, 0xff };
+
+    send->push_frame(data, sizeof(data), 0);
+    frame = recv->pull_frame();
+
+    if (memcmp(data, frame->payload, 5))
+        fprintf(stderr, "frame was corrupted during transfer!\n");
+
+    /* the frame must be destroyed manually */
+    (void)uvgrtp::frame::dealloc_frame(frame);
+
     /* Session must be destroyed manually */
     ctx.destroy_session(sess);
 
