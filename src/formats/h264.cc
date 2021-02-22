@@ -138,6 +138,7 @@ rtp_error_t uvgrtp::formats::h264::push_nal_unit(uint8_t *data, size_t data_len,
 
         if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
             LOG_ERROR("Queueing the message failed!");
+            clear_aggregation_info();
             fqueue_->deinit_transaction();
             return ret;
         }
@@ -157,12 +158,15 @@ rtp_error_t uvgrtp::formats::h264::push_nal_unit(uint8_t *data, size_t data_len,
 
     if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
         LOG_ERROR("Failed to send AVC frame!");
+        clear_aggregation_info();
         fqueue_->deinit_transaction();
         return ret;
     }
 
     if (more)
         return RTP_NOT_READY;
+
+    clear_aggregation_info();
     return fqueue_->flush_queue();
 }
 
