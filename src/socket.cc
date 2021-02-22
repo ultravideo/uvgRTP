@@ -21,6 +21,8 @@ using namespace mingw;
 #include "socket.hh"
 #include "util.hh"
 
+#define WSABUF_SIZE 32
+
 uvgrtp::socket::socket(int flags):
     socket_(-1),
     flags_(flags)
@@ -372,7 +374,12 @@ rtp_error_t uvgrtp::socket::__sendtov(
 #else
     INT ret;
     DWORD sent_bytes;
-    WSABUF wsa_bufs[16];
+    WSABUF wsa_bufs[WSABUF_SIZE];
+
+    if (buffer.size() > WSABUF_SIZE) {
+        LOG_ERROR("Input vector to __sendtov() has more than %u elements!", WSABUF_SIZE);
+        return RTP_GENERIC_ERROR;
+    }
 
     for (auto& buffer : buffers) {
         /* create WSABUFs from input buffer and send them at once */
