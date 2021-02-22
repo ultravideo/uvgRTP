@@ -47,10 +47,11 @@ rtp_error_t uvgrtp::formats::media::push_media_frame(uint8_t *data, size_t data_
         return ret;
     }
 
-    if (!(flags_ & RCE_FRAGMENT_GENERIC)) {
+    if (!(flags_ & RCE_FRAGMENT_GENERIC) || data_len <= rtp_ctx_->get_payload_size()) {
         if (data_len > rtp_ctx_->get_payload_size()) {
             LOG_WARN("Packet is larger (%zu bytes) than maximum payload size (%zu bytes)",
                     data_len, rtp_ctx_->get_payload_size());
+            LOG_WARN("Consider using RCE_FRAGMENT_GENERIC!");
         }
 
         if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
