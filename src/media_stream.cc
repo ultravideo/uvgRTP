@@ -166,7 +166,7 @@ rtp_error_t uvgrtp::media_stream::init()
             media_ = new uvgrtp::formats::h266(socket_, rtp_, ctx_config_.flags);
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
-                nullptr,
+                dynamic_cast<uvgrtp::formats::h266 *>(media_)->get_h266_frame_info(),
                 dynamic_cast<uvgrtp::formats::h266 *>(media_)->packet_handler,
                 nullptr
             );

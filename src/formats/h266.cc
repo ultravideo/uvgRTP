@@ -96,10 +96,16 @@ rtp_error_t uvgrtp::formats::h266::push_nal_unit(uint8_t *data, size_t data_len,
 }
 
 uvgrtp::formats::h266::h266(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags):
-    h26x(socket, rtp, flags)
+    h26x(socket, rtp, flags), finfo_{}
 {
+    finfo_.rtp_ctx = rtp;
 }
 
 uvgrtp::formats::h266::~h266()
 {
+}
+
+uvgrtp::formats::h266_frame_info_t *uvgrtp::formats::h266::get_h266_frame_info()
+{
+    return &finfo_;
 }
