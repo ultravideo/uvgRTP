@@ -75,8 +75,8 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a0950a91bd645cbf842d8218ae4171aed"><td class="memItemLeft" align="right" valign="top"><a id="a0950a91bd645cbf842d8218ae4171aed"></a>
-rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>add_srtp_ctx</b> (uint8_t *key, uint8_t *salt)</td></tr>
+<tr class="memitem:a0950a91bd645cbf842d8218ae4171aed"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1media__stream.html#a0950a91bd645cbf842d8218ae4171aed">add_srtp_ctx</a> (uint8_t *key, uint8_t *salt)</td></tr>
+<tr class="memdesc:a0950a91bd645cbf842d8218ae4171aed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add keying information for user-managed SRTP session.  <a href="classuvgrtp_1_1media__stream.html#a0950a91bd645cbf842d8218ae4171aed">More...</a><br /></td></tr>
 <tr class="separator:a0950a91bd645cbf842d8218ae4171aed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab2b7507d5b2c76bef74c9bceec07ba18"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1media__stream.html#ab2b7507d5b2c76bef74c9bceec07ba18">push_frame</a> (uint8_t *data, size_t data_len, int flags)</td></tr>
 <tr class="memdesc:ab2b7507d5b2c76bef74c9bceec07ba18"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to remote participant with a custom timestamp.  <a href="classuvgrtp_1_1media__stream.html#ab2b7507d5b2c76bef74c9bceec07ba18">More...</a><br /></td></tr>
@@ -107,6 +107,49 @@ rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>add_srtp_ctx</
 <tr class="separator:a1134ff0271ad54bf1e07feed422118c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a id="a0950a91bd645cbf842d8218ae4171aed"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0950a91bd645cbf842d8218ae4171aed">&#9670;&nbsp;</a></span>add_srtp_ctx()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">rtp_error_t uvgrtp::media_stream::add_srtp_ctx </td>
+          <td>(</td>
+          <td class="paramtype">uint8_t *&#160;</td>
+          <td class="paramname"><em>key</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t *&#160;</td>
+          <td class="paramname"><em>salt</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Add keying information for user-managed SRTP session. </p>
+<p>For user-managed SRTP session, the media stream is not started until SRTP key has been added and all calls to <a class="el" href="classuvgrtp_1_1media__stream.html#ab2b7507d5b2c76bef74c9bceec07ba18" title="Send data to remote participant with a custom timestamp.">push_frame()</a> will fail</p>
+<p>Currently uvgRTP only supports key length of 16 bytes (128 bits) and salt length of 14 bytes (112 bits).</p>
+<p>If the key or salt is longer, it is implicitly truncated to correct length and if the key or salt is shorter, a memory violation may occur</p>
+<p>Notice that if user-managed SRTP has been enabled during media stream creation, this function must be called before anything else. All calls to other functions will fail with <a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba32d67254c4da35568e7007ec3825f98a" title="Object has not been initialized.">RTP_NOT_INITIALIZED</a> until the SRTP context has been specified</p>
+<dl class="section return"><dt>Returns</dt><dd>RTP error code</dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">RTP_OK</td><td>On success </td></tr>
+    <tr><td class="paramname">RTP_INVALID_VALUE</td><td>If key or salt is invalid </td></tr>
+    <tr><td class="paramname">RTP_NOT_SUPPORTED</td><td>If user-managed SRTP was not specified in create_stream() </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="addf1cde9cb8c4e4af3160ce24c4288a5"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#addf1cde9cb8c4e4af3160ce24c4288a5">&#9670;&nbsp;</a></span>configure_ctx()</h2>
 

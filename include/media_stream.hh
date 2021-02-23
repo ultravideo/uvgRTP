@@ -43,19 +43,31 @@ namespace uvgrtp {
             rtp_error_t init(uvgrtp::zrtp *zrtp);
             /// \endcond
 
-            /* Add key for user-managed SRTP session
+            /**
              *
-             * For user-managed SRTP session, the media stream is not started
+             * \brief Add keying information for user-managed SRTP session
+             *
+             * \details For user-managed SRTP session, the media stream is not started
              * until SRTP key has been added and all calls to push_frame() will fail
              *
              * Currently uvgRTP only supports key length of 16 bytes (128 bits)
              * and salt length of 14 bytes (112 bits).
-             * If the key/salt is longer, it is implicitly truncated to correct length
-             * and if the key/salt is shorter a memory violation may occur
              *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "key" or "salt" is invalid
-             * Return RTP_NOT_SUPPORTED if user-managed SRTP was not specified in create_stream() */
+             * If the key or salt is longer, it is implicitly truncated to correct length
+             * and if the key or salt is shorter, a memory violation may occur
+             *
+             * Notice that if user-managed SRTP has been enabled during media stream creation,
+             * this function must be called before anything else. All calls to other functions
+             * will fail with ::RTP_NOT_INITIALIZED until the SRTP context has been specified
+             *
+             * \param key 128-bit long key
+             * \param salt 112-bit long salt
+             *
+             * \return RTP error code
+             *
+             * \retval  RTP_OK On success
+             * \retval  RTP_INVALID_VALUE If key or salt is invalid
+             * \retval  RTP_NOT_SUPPORTED If user-managed SRTP was not specified in create_stream() */
             rtp_error_t add_srtp_ctx(uint8_t *key, uint8_t *salt);
 
             /**

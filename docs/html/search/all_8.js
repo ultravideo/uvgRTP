@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['util_2ehh_59',['util.hh',['../util_8hh.html',1,'']]],
-  ['uvgrtp_20public_20api_20documentation_60',['uvgRTP public API documentation',['../index.html',1,'']]]
+  ['session_59',['session',['../classuvgrtp_1_1session.html',1,'uvgrtp']]]
 ];

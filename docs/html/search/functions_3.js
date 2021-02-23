@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['install_5freceive_5fhook_74',['install_receive_hook',['../classuvgrtp_1_1media__stream.html#a74a558b23866976e52c5903996544a27',1,'uvgrtp::media_stream']]]
+  ['get_5frtcp_75',['get_rtcp',['../classuvgrtp_1_1media__stream.html#a1134ff0271ad54bf1e07feed422118c2',1,'uvgrtp::media_stream']]]
 ];

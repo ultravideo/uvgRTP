@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['get_5frtcp_73',['get_rtcp',['../classuvgrtp_1_1media__stream.html#a1134ff0271ad54bf1e07feed422118c2',1,'uvgrtp::media_stream']]]
+  ['destroy_5fsession_73',['destroy_session',['../classuvgrtp_1_1context.html#a61daf2f3cdcdf2542ee997ab6de5efa9',1,'uvgrtp::context']]],
+  ['destroy_5fstream_74',['destroy_stream',['../classuvgrtp_1_1session.html#a291629a3bfb910463b88d8edb3984149',1,'uvgrtp::session']]]
 ];

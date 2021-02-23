@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['media_5fstream_8',['media_stream',['../classuvgrtp_1_1media__stream.html',1,'uvgrtp']]]
+  ['install_5freceive_5fhook_8',['install_receive_hook',['../classuvgrtp_1_1media__stream.html#a74a558b23866976e52c5903996544a27',1,'uvgrtp::media_stream']]]
 ];
