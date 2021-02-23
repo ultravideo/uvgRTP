@@ -138,6 +138,13 @@ Public Member Functions</h2></td></tr>
 <p>Currently uvgRTP only supports key length of 16 bytes (128 bits) and salt length of 14 bytes (112 bits).</p>
 <p>If the key or salt is longer, it is implicitly truncated to correct length and if the key or salt is shorter, a memory violation may occur</p>
 <p>Notice that if user-managed SRTP has been enabled during media stream creation, this function must be called before anything else. All calls to other functions will fail with <a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba32d67254c4da35568e7007ec3825f98a" title="Object has not been initialized.">RTP_NOT_INITIALIZED</a> until the SRTP context has been specified</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">key</td><td>128-bit long key </td></tr>
+    <tr><td class="paramname">salt</td><td>112-bit long salt</td></tr>
+  </table>
+  </dd>
+</dl>
 <dl class="section return"><dt>Returns</dt><dd>RTP error code</dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
@@ -420,7 +427,7 @@ Public Member Functions</h2></td></tr>
 <p>Send data to remote participant with a custom timestamp. </p>
 <p>If so specified either by the selected media format and/or given <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af" title="RTP context enable flags.">RTP_CTX_ENABLE_FLAGS</a>, uvgRTP fragments the input data into RTP packets of 1500 bytes, or to any other size defined by the application using <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa7667fb72b42a2c11991b4879619f9f83">RCC_MTU_SIZE</a></p>
 <p>The frame is automatically reconstructed by the receiver if all fragments have been received successfully.</p>
-<p>If application so wishes, it may override uvgRTP's own timestamp calculations and provide timestamping information for the stream itself. This requires that the application provides a sensible value for the ts parameter. If RTCP has been enabled, uvgrtp::rtcp::set_ts_info() should have been called.</p>
+<p>If application so wishes, it may override uvgRTP's own timestamp calculations and provide timestamping information for the stream itself. This requires that the application provides a sensible value for the ts parameter. If RTCP has been enabled, <a class="el" href="classuvgrtp_1_1rtcp.html#a5d0d06f9b4b7779d96d8d60938627316" title="Provide timestamping information for RTCP.">uvgrtp::rtcp::set_ts_info()</a> should have been called.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">data</td><td>Smart pointer to data the that should be sent </td></tr>
@@ -543,7 +550,7 @@ Public Member Functions</h2></td></tr>
 <p>Send data to remote participant with a custom timestamp. </p>
 <p>If so specified either by the selected media format and/or given <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af" title="RTP context enable flags.">RTP_CTX_ENABLE_FLAGS</a>, uvgRTP fragments the input data into RTP packets of 1500 bytes, or to any other size defined by the application using <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa7667fb72b42a2c11991b4879619f9f83">RCC_MTU_SIZE</a></p>
 <p>The frame is automatically reconstructed by the receiver if all fragments have been received successfully.</p>
-<p>If application so wishes, it may override uvgRTP's own timestamp calculations and provide timestamping information for the stream itself. This requires that the application provides a sensible value for the ts parameter. If RTCP has been enabled, uvgrtp::rtcp::set_ts_info() should have been called.</p>
+<p>If application so wishes, it may override uvgRTP's own timestamp calculations and provide timestamping information for the stream itself. This requires that the application provides a sensible value for the ts parameter. If RTCP has been enabled, <a class="el" href="classuvgrtp_1_1rtcp.html#a5d0d06f9b4b7779d96d8d60938627316" title="Provide timestamping information for RTCP.">uvgrtp::rtcp::set_ts_info()</a> should have been called.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">data</td><td>Pointer to data the that should be sent </td></tr>

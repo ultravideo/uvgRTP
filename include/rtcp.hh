@@ -181,8 +181,20 @@ namespace uvgrtp {
             std::vector<uint32_t> get_participants();
             /// \endcond
 
-            /* Set wallclock reading for t = 0 and random RTP timestamp from where the counting is started
-             * + clock rate for calculating the correct increment */
+            /**
+             * \brief Provide timestamping information for RTCP
+             *
+             * \details If the application wishes to timestamp the stream itself AND it has
+             * enabled RTCP by using ::RCE_RTCP, it must provide timestamping information for
+             * RTCP so sensible synchronization values can be calculated for Sender Reports
+             *
+             * The application can call uvgrtp::clock::ntp::now() to get the current wall clock
+             * reading as an NTP timestamp value
+             *
+             * \param clock_start NTP timestamp for t = 0
+             * \param clock_rate Clock rate of the stream
+             * \param rtp_ts_start RTP timestamp for t = 0
+             */
             void set_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start);
 
             /* Alternate way to get RTCP packets is to install a hook for them. So instead of

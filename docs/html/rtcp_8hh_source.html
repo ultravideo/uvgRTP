@@ -246,163 +246,162 @@ $(function() {
 <div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;            <span class="comment">/* Return SSRCs of all participants */</span></div>
 <div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;            std::vector&lt;uint32_t&gt; get_participants();</div>
 <div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160; </div>
-<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160;            <span class="comment">/* Set wallclock reading for t = 0 and random RTP timestamp from where the counting is started</span></div>
-<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;<span class="comment">             * + clock rate for calculating the correct increment */</span></div>
-<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160;            <span class="keywordtype">void</span> set_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start);</div>
-<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160; </div>
-<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;            <span class="comment">/* Alternate way to get RTCP packets is to install a hook for them. So instead of</span></div>
-<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160;<span class="comment">             * polling an RTCP packet, user can install a function that is called when</span></div>
-<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160;<span class="comment">             * a specific RTCP packet is received. */</span></div>
-<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;            rtp_error_t install_sender_hook(<span class="keywordtype">void</span> (*hook)(uvgrtp::frame::rtcp_sender_report *));</div>
-<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;            rtp_error_t install_receiver_hook(<span class="keywordtype">void</span> (*hook)(uvgrtp::frame::rtcp_receiver_report *));</div>
-<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;            rtp_error_t install_sdes_hook(<span class="keywordtype">void</span> (*hook)(uvgrtp::frame::rtcp_sdes_packet *));</div>
-<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;            rtp_error_t install_app_hook(<span class="keywordtype">void</span> (*hook)(uvgrtp::frame::rtcp_app_packet *));</div>
-<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160; </div>
-<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;            <span class="comment">/* Update RTCP-related sender statistics */</span></div>
-<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160;            rtp_error_t update_sender_stats(<span class="keywordtype">size_t</span> pkt_size);</div>
+<div class="line"><a name="l00198"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1rtcp.html#a5d0d06f9b4b7779d96d8d60938627316">  198</a></span>&#160;            <span class="keywordtype">void</span> <a class="code" href="classuvgrtp_1_1rtcp.html#a5d0d06f9b4b7779d96d8d60938627316">set_ts_info</a>(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start);</div>
 <div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160; </div>
-<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160;            <span class="comment">/* Update RTCP-related receiver statistics */</span></div>
-<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;            <span class="keyword">static</span> rtp_error_t recv_packet_handler(<span class="keywordtype">void</span> *arg, <span class="keywordtype">int</span> flags, frame::rtp_frame **out);</div>
-<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160; </div>
-<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;            <span class="comment">/* Update RTCP-related sender statistics */</span></div>
-<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;            <span class="keyword">static</span> rtp_error_t send_packet_handler_vec(<span class="keywordtype">void</span> *arg, uvgrtp::buf_vec&amp; buffers);</div>
-<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160; </div>
-<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160;        <span class="keyword">private</span>:</div>
-<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;            <span class="keyword">static</span> <span class="keywordtype">void</span> rtcp_runner(<a class="code" href="classuvgrtp_1_1rtcp.html">rtcp</a> *<a class="code" href="classuvgrtp_1_1rtcp.html">rtcp</a>);</div>
-<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160; </div>
-<div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;            <span class="comment">/* when we start the RTCP instance, we don&#39;t know what the SSRC of the remote is</span></div>
-<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160;<span class="comment">             * when an RTP packet is received, we must check if we&#39;ve already received a packet</span></div>
-<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160;<span class="comment">             * from this sender and if not, create new entry to receiver_stats_ map */</span></div>
-<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;            <span class="keywordtype">bool</span> is_participant(uint32_t ssrc);</div>
+<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160;            <span class="comment">/* Alternate way to get RTCP packets is to install a hook for them. So instead of</span></div>
+<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;<span class="comment">             * polling an RTCP packet, user can install a function that is called when</span></div>
+<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160;<span class="comment">             * a specific RTCP packet is received. */</span></div>
+<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;            rtp_error_t install_sender_hook(<span class="keywordtype">void</span> (*hook)(uvgrtp::frame::rtcp_sender_report *));</div>
+<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;            rtp_error_t install_receiver_hook(<span class="keywordtype">void</span> (*hook)(uvgrtp::frame::rtcp_receiver_report *));</div>
+<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160;            rtp_error_t install_sdes_hook(<span class="keywordtype">void</span> (*hook)(uvgrtp::frame::rtcp_sdes_packet *));</div>
+<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;            rtp_error_t install_app_hook(<span class="keywordtype">void</span> (*hook)(uvgrtp::frame::rtcp_app_packet *));</div>
+<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160; </div>
+<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160;            <span class="comment">/* Update RTCP-related sender statistics */</span></div>
+<div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;            rtp_error_t update_sender_stats(<span class="keywordtype">size_t</span> pkt_size);</div>
+<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160; </div>
+<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160;            <span class="comment">/* Update RTCP-related receiver statistics */</span></div>
+<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;            <span class="keyword">static</span> rtp_error_t recv_packet_handler(<span class="keywordtype">void</span> *arg, <span class="keywordtype">int</span> flags, frame::rtp_frame **out);</div>
 <div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160; </div>
-<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;            <span class="comment">/* When we receive an RTP or RTCP packet, we need to check the source address and see if it&#39;s</span></div>
-<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160;<span class="comment">             * the same address where we&#39;ve received packets before.</span></div>
-<div class="line"><a name="l00217"></a><span class="lineno">  217</span>&#160;<span class="comment">             *</span></div>
-<div class="line"><a name="l00218"></a><span class="lineno">  218</span>&#160;<span class="comment">             * If the address is new, it means we have detected an SSRC collision and the paket should</span></div>
-<div class="line"><a name="l00219"></a><span class="lineno">  219</span>&#160;<span class="comment">             * be dropped We also need to check whether this SSRC matches with our own SSRC and if it does</span></div>
-<div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160;<span class="comment">             * we need to send RTCP BYE and rejoin to the session */</span></div>
-<div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160;            <span class="keywordtype">bool</span> collision_detected(uint32_t ssrc, sockaddr_in&amp; src_addr);</div>
-<div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160; </div>
-<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160;            <span class="comment">/* Move participant from initial_peers_ to participants_ */</span></div>
-<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;            rtp_error_t add_participant(uint32_t ssrc);</div>
-<div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160; </div>
-<div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160;            <span class="comment">/* We&#39;ve got a message from new source (the SSRC of the frame is not known to us)</span></div>
-<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;<span class="comment">             * Initialize statistics for the peer and move it to participants_ */</span></div>
-<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;            rtp_error_t init_new_participant(uvgrtp::frame::rtp_frame *frame);</div>
-<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160; </div>
-<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160;            <span class="comment">/* Initialize the RTP Sequence related stuff of peer</span></div>
-<div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160;<span class="comment">             * This function assumes that the peer already exists in the participants_ map */</span></div>
-<div class="line"><a name="l00232"></a><span class="lineno">  232</span>&#160;            rtp_error_t init_participant_seq(uint32_t ssrc, uint16_t base_seq);</div>
-<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160; </div>
-<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160;            <span class="comment">/* Update the SSRC&#39;s sequence related data in participants_ map</span></div>
-<div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160;<span class="comment">             *</span></div>
-<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160;<span class="comment">             * Return RTP_OK if the received packet was OK</span></div>
-<div class="line"><a name="l00237"></a><span class="lineno">  237</span>&#160;<span class="comment">             * Return RTP_GENERIC_ERROR if it wasn&#39;t and</span></div>
-<div class="line"><a name="l00238"></a><span class="lineno">  238</span>&#160;<span class="comment">             * packet-related statistics should not be updated */</span></div>
-<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160;            rtp_error_t update_participant_seq(uint32_t ssrc, uint16_t seq);</div>
-<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160; </div>
-<div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160;            <span class="comment">/* Update the RTCP bandwidth variables</span></div>
-<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160;<span class="comment">             *</span></div>
-<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160;<span class="comment">             * &quot;pkt_size&quot; tells how much rtcp_byte_count_</span></div>
-<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160;<span class="comment">             * should be increased before calculating the new average */</span></div>
-<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160;            <span class="keywordtype">void</span> update_rtcp_bandwidth(<span class="keywordtype">size_t</span> pkt_size);</div>
-<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160; </div>
-<div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160;            <span class="comment">/* Functions for generating different kinds of reports.</span></div>
-<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160;<span class="comment">             * These functions will both generate the report and send it</span></div>
-<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160;<span class="comment">             *</span></div>
-<div class="line"><a name="l00250"></a><span class="lineno">  250</span>&#160;<span class="comment">             * Return RTP_OK on success and RTP_ERROR on error */</span></div>
-<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160;            rtp_error_t generate_sender_report();</div>
-<div class="line"><a name="l00252"></a><span class="lineno">  252</span>&#160;            rtp_error_t generate_receiver_report();</div>
-<div class="line"><a name="l00253"></a><span class="lineno">  253</span>&#160; </div>
-<div class="line"><a name="l00254"></a><span class="lineno">  254</span>&#160;            <span class="comment">/* Because struct statistics contains uvgRTP clock object we cannot</span></div>
-<div class="line"><a name="l00255"></a><span class="lineno">  255</span>&#160;<span class="comment">             * zero it out without compiler complaining about it so all the fields</span></div>
-<div class="line"><a name="l00256"></a><span class="lineno">  256</span>&#160;<span class="comment">             * must be set to zero manually */</span></div>
-<div class="line"><a name="l00257"></a><span class="lineno">  257</span>&#160;            <span class="keywordtype">void</span> zero_stats(uvgrtp::rtcp_statistics *stats);</div>
+<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;            <span class="comment">/* Update RTCP-related sender statistics */</span></div>
+<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160;            <span class="keyword">static</span> rtp_error_t send_packet_handler_vec(<span class="keywordtype">void</span> *arg, uvgrtp::buf_vec&amp; buffers);</div>
+<div class="line"><a name="l00218"></a><span class="lineno">  218</span>&#160; </div>
+<div class="line"><a name="l00219"></a><span class="lineno">  219</span>&#160;        <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160;            <span class="keyword">static</span> <span class="keywordtype">void</span> rtcp_runner(<a class="code" href="classuvgrtp_1_1rtcp.html">rtcp</a> *<a class="code" href="classuvgrtp_1_1rtcp.html">rtcp</a>);</div>
+<div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160; </div>
+<div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160;            <span class="comment">/* when we start the RTCP instance, we don&#39;t know what the SSRC of the remote is</span></div>
+<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160;<span class="comment">             * when an RTP packet is received, we must check if we&#39;ve already received a packet</span></div>
+<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;<span class="comment">             * from this sender and if not, create new entry to receiver_stats_ map */</span></div>
+<div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160;            <span class="keywordtype">bool</span> is_participant(uint32_t ssrc);</div>
+<div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160; </div>
+<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;            <span class="comment">/* When we receive an RTP or RTCP packet, we need to check the source address and see if it&#39;s</span></div>
+<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;<span class="comment">             * the same address where we&#39;ve received packets before.</span></div>
+<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160;<span class="comment">             *</span></div>
+<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160;<span class="comment">             * If the address is new, it means we have detected an SSRC collision and the paket should</span></div>
+<div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160;<span class="comment">             * be dropped We also need to check whether this SSRC matches with our own SSRC and if it does</span></div>
+<div class="line"><a name="l00232"></a><span class="lineno">  232</span>&#160;<span class="comment">             * we need to send RTCP BYE and rejoin to the session */</span></div>
+<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160;            <span class="keywordtype">bool</span> collision_detected(uint32_t ssrc, sockaddr_in&amp; src_addr);</div>
+<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160; </div>
+<div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160;            <span class="comment">/* Move participant from initial_peers_ to participants_ */</span></div>
+<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160;            rtp_error_t add_participant(uint32_t ssrc);</div>
+<div class="line"><a name="l00237"></a><span class="lineno">  237</span>&#160; </div>
+<div class="line"><a name="l00238"></a><span class="lineno">  238</span>&#160;            <span class="comment">/* We&#39;ve got a message from new source (the SSRC of the frame is not known to us)</span></div>
+<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160;<span class="comment">             * Initialize statistics for the peer and move it to participants_ */</span></div>
+<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160;            rtp_error_t init_new_participant(uvgrtp::frame::rtp_frame *frame);</div>
+<div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160; </div>
+<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160;            <span class="comment">/* Initialize the RTP Sequence related stuff of peer</span></div>
+<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160;<span class="comment">             * This function assumes that the peer already exists in the participants_ map */</span></div>
+<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160;            rtp_error_t init_participant_seq(uint32_t ssrc, uint16_t base_seq);</div>
+<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160; </div>
+<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160;            <span class="comment">/* Update the SSRC&#39;s sequence related data in participants_ map</span></div>
+<div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160;<span class="comment">             *</span></div>
+<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160;<span class="comment">             * Return RTP_OK if the received packet was OK</span></div>
+<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160;<span class="comment">             * Return RTP_GENERIC_ERROR if it wasn&#39;t and</span></div>
+<div class="line"><a name="l00250"></a><span class="lineno">  250</span>&#160;<span class="comment">             * packet-related statistics should not be updated */</span></div>
+<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160;            rtp_error_t update_participant_seq(uint32_t ssrc, uint16_t seq);</div>
+<div class="line"><a name="l00252"></a><span class="lineno">  252</span>&#160; </div>
+<div class="line"><a name="l00253"></a><span class="lineno">  253</span>&#160;            <span class="comment">/* Update the RTCP bandwidth variables</span></div>
+<div class="line"><a name="l00254"></a><span class="lineno">  254</span>&#160;<span class="comment">             *</span></div>
+<div class="line"><a name="l00255"></a><span class="lineno">  255</span>&#160;<span class="comment">             * &quot;pkt_size&quot; tells how much rtcp_byte_count_</span></div>
+<div class="line"><a name="l00256"></a><span class="lineno">  256</span>&#160;<span class="comment">             * should be increased before calculating the new average */</span></div>
+<div class="line"><a name="l00257"></a><span class="lineno">  257</span>&#160;            <span class="keywordtype">void</span> update_rtcp_bandwidth(<span class="keywordtype">size_t</span> pkt_size);</div>
 <div class="line"><a name="l00258"></a><span class="lineno">  258</span>&#160; </div>
-<div class="line"><a name="l00259"></a><span class="lineno">  259</span>&#160;            <span class="comment">/* Pointer to RTP context from which clock rate etc. info is collected and which is</span></div>
-<div class="line"><a name="l00260"></a><span class="lineno">  260</span>&#160;<span class="comment">             * used to change SSRC if a collision is detected */</span></div>
-<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;            uvgrtp::rtp *rtp_;</div>
-<div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160; </div>
-<div class="line"><a name="l00263"></a><span class="lineno">  263</span>&#160;            <span class="comment">/* Secure RTCP context */</span></div>
-<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160;            uvgrtp::srtcp *srtcp_;</div>
+<div class="line"><a name="l00259"></a><span class="lineno">  259</span>&#160;            <span class="comment">/* Functions for generating different kinds of reports.</span></div>
+<div class="line"><a name="l00260"></a><span class="lineno">  260</span>&#160;<span class="comment">             * These functions will both generate the report and send it</span></div>
+<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;<span class="comment">             *</span></div>
+<div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160;<span class="comment">             * Return RTP_OK on success and RTP_ERROR on error */</span></div>
+<div class="line"><a name="l00263"></a><span class="lineno">  263</span>&#160;            rtp_error_t generate_sender_report();</div>
+<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160;            rtp_error_t generate_receiver_report();</div>
 <div class="line"><a name="l00265"></a><span class="lineno">  265</span>&#160; </div>
-<div class="line"><a name="l00266"></a><span class="lineno">  266</span>&#160;            <span class="comment">/* RTP context flags */</span></div>
-<div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160;            <span class="keywordtype">int</span> flags_;</div>
-<div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160; </div>
-<div class="line"><a name="l00269"></a><span class="lineno">  269</span>&#160;            <span class="comment">/* are we a sender or a receiver */</span></div>
-<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160;            <span class="keywordtype">int</span> our_role_;</div>
-<div class="line"><a name="l00271"></a><span class="lineno">  271</span>&#160; </div>
-<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160;            <span class="comment">/* TODO: time_t?? */</span></div>
-<div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160;            <span class="keywordtype">size_t</span> tp_;       <span class="comment">/* the last time an RTCP packet was transmitted */</span></div>
-<div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160;            <span class="keywordtype">size_t</span> tc_;       <span class="comment">/* the current time */</span></div>
-<div class="line"><a name="l00275"></a><span class="lineno">  275</span>&#160;            <span class="keywordtype">size_t</span> tn_;       <span class="comment">/* the next scheduled transmission time of an RTCP packet */</span></div>
-<div class="line"><a name="l00276"></a><span class="lineno">  276</span>&#160;            <span class="keywordtype">size_t</span> pmembers_; <span class="comment">/* the estimated number of session members at the time tn was last recomputed */</span></div>
-<div class="line"><a name="l00277"></a><span class="lineno">  277</span>&#160;            <span class="keywordtype">size_t</span> members_;  <span class="comment">/* the most current estimate for the number of session members */</span></div>
-<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160;            <span class="keywordtype">size_t</span> senders_;  <span class="comment">/* the most current estimate for the number of senders in the session */</span></div>
-<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160; </div>
-<div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160;            <span class="comment">/* The target RTCP bandwidth, i.e., the total bandwidth</span></div>
-<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;<span class="comment">             * that will be used for RTCP packets by all members of this session,</span></div>
-<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;<span class="comment">             * in octets per second.  This will be a specified fraction of the</span></div>
-<div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160;<span class="comment">             * &quot;session bandwidth&quot; parameter supplied to the application at startup. */</span></div>
-<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160;            <span class="keywordtype">size_t</span> rtcp_bandwidth_;</div>
-<div class="line"><a name="l00285"></a><span class="lineno">  285</span>&#160; </div>
-<div class="line"><a name="l00286"></a><span class="lineno">  286</span>&#160;            <span class="comment">/* Flag that is true if the application has sent data since</span></div>
-<div class="line"><a name="l00287"></a><span class="lineno">  287</span>&#160;<span class="comment">             * the 2nd previous RTCP report was transmitted. */</span></div>
-<div class="line"><a name="l00288"></a><span class="lineno">  288</span>&#160;            <span class="keywordtype">bool</span> we_sent_;</div>
-<div class="line"><a name="l00289"></a><span class="lineno">  289</span>&#160; </div>
-<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160;            <span class="comment">/* The average compound RTCP packet size, in octets,</span></div>
-<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160;<span class="comment">             * over all RTCP packets sent and received by this participant. The</span></div>
-<div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160;<span class="comment">             * size includes lower-layer transport and network protocol headers</span></div>
-<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;<span class="comment">             * (e.g., UDP and IP) as explained in Section 6.2 */</span></div>
-<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160;            <span class="keywordtype">size_t</span> avg_rtcp_pkt_pize_;</div>
-<div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160; </div>
-<div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160;            <span class="comment">/* Number of RTCP packets and bytes sent and received by this participant */</span></div>
-<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160;            <span class="keywordtype">size_t</span> rtcp_pkt_count_;</div>
-<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;            <span class="keywordtype">size_t</span> rtcp_byte_count_;</div>
-<div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160; </div>
-<div class="line"><a name="l00300"></a><span class="lineno">  300</span>&#160;            <span class="comment">/* Number of RTCP packets sent */</span></div>
-<div class="line"><a name="l00301"></a><span class="lineno">  301</span>&#160;            <span class="keywordtype">size_t</span> rtcp_pkt_sent_count_;</div>
-<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160; </div>
-<div class="line"><a name="l00303"></a><span class="lineno">  303</span>&#160;            <span class="comment">/* Flag that is true if the application has not yet sent an RTCP packet. */</span></div>
-<div class="line"><a name="l00304"></a><span class="lineno">  304</span>&#160;            <span class="keywordtype">bool</span> initial_;</div>
-<div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160; </div>
-<div class="line"><a name="l00306"></a><span class="lineno">  306</span>&#160;            <span class="comment">/* Copy of our own current SSRC */</span></div>
-<div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160;            uint32_t ssrc_;</div>
-<div class="line"><a name="l00308"></a><span class="lineno">  308</span>&#160; </div>
-<div class="line"><a name="l00309"></a><span class="lineno">  309</span>&#160;            <span class="comment">/* NTP timestamp associated with initial RTP timestamp (aka t = 0) */</span></div>
-<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;            uint64_t clock_start_;</div>
+<div class="line"><a name="l00266"></a><span class="lineno">  266</span>&#160;            <span class="comment">/* Because struct statistics contains uvgRTP clock object we cannot</span></div>
+<div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160;<span class="comment">             * zero it out without compiler complaining about it so all the fields</span></div>
+<div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160;<span class="comment">             * must be set to zero manually */</span></div>
+<div class="line"><a name="l00269"></a><span class="lineno">  269</span>&#160;            <span class="keywordtype">void</span> zero_stats(uvgrtp::rtcp_statistics *stats);</div>
+<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160; </div>
+<div class="line"><a name="l00271"></a><span class="lineno">  271</span>&#160;            <span class="comment">/* Pointer to RTP context from which clock rate etc. info is collected and which is</span></div>
+<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160;<span class="comment">             * used to change SSRC if a collision is detected */</span></div>
+<div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160;            uvgrtp::rtp *rtp_;</div>
+<div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160; </div>
+<div class="line"><a name="l00275"></a><span class="lineno">  275</span>&#160;            <span class="comment">/* Secure RTCP context */</span></div>
+<div class="line"><a name="l00276"></a><span class="lineno">  276</span>&#160;            uvgrtp::srtcp *srtcp_;</div>
+<div class="line"><a name="l00277"></a><span class="lineno">  277</span>&#160; </div>
+<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160;            <span class="comment">/* RTP context flags */</span></div>
+<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160;            <span class="keywordtype">int</span> flags_;</div>
+<div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160; </div>
+<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;            <span class="comment">/* are we a sender or a receiver */</span></div>
+<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;            <span class="keywordtype">int</span> our_role_;</div>
+<div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160; </div>
+<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160;            <span class="comment">/* TODO: time_t?? */</span></div>
+<div class="line"><a name="l00285"></a><span class="lineno">  285</span>&#160;            <span class="keywordtype">size_t</span> tp_;       <span class="comment">/* the last time an RTCP packet was transmitted */</span></div>
+<div class="line"><a name="l00286"></a><span class="lineno">  286</span>&#160;            <span class="keywordtype">size_t</span> tc_;       <span class="comment">/* the current time */</span></div>
+<div class="line"><a name="l00287"></a><span class="lineno">  287</span>&#160;            <span class="keywordtype">size_t</span> tn_;       <span class="comment">/* the next scheduled transmission time of an RTCP packet */</span></div>
+<div class="line"><a name="l00288"></a><span class="lineno">  288</span>&#160;            <span class="keywordtype">size_t</span> pmembers_; <span class="comment">/* the estimated number of session members at the time tn was last recomputed */</span></div>
+<div class="line"><a name="l00289"></a><span class="lineno">  289</span>&#160;            <span class="keywordtype">size_t</span> members_;  <span class="comment">/* the most current estimate for the number of session members */</span></div>
+<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160;            <span class="keywordtype">size_t</span> senders_;  <span class="comment">/* the most current estimate for the number of senders in the session */</span></div>
+<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160; </div>
+<div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160;            <span class="comment">/* The target RTCP bandwidth, i.e., the total bandwidth</span></div>
+<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;<span class="comment">             * that will be used for RTCP packets by all members of this session,</span></div>
+<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160;<span class="comment">             * in octets per second.  This will be a specified fraction of the</span></div>
+<div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160;<span class="comment">             * &quot;session bandwidth&quot; parameter supplied to the application at startup. */</span></div>
+<div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160;            <span class="keywordtype">size_t</span> rtcp_bandwidth_;</div>
+<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160; </div>
+<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;            <span class="comment">/* Flag that is true if the application has sent data since</span></div>
+<div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160;<span class="comment">             * the 2nd previous RTCP report was transmitted. */</span></div>
+<div class="line"><a name="l00300"></a><span class="lineno">  300</span>&#160;            <span class="keywordtype">bool</span> we_sent_;</div>
+<div class="line"><a name="l00301"></a><span class="lineno">  301</span>&#160; </div>
+<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160;            <span class="comment">/* The average compound RTCP packet size, in octets,</span></div>
+<div class="line"><a name="l00303"></a><span class="lineno">  303</span>&#160;<span class="comment">             * over all RTCP packets sent and received by this participant. The</span></div>
+<div class="line"><a name="l00304"></a><span class="lineno">  304</span>&#160;<span class="comment">             * size includes lower-layer transport and network protocol headers</span></div>
+<div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160;<span class="comment">             * (e.g., UDP and IP) as explained in Section 6.2 */</span></div>
+<div class="line"><a name="l00306"></a><span class="lineno">  306</span>&#160;            <span class="keywordtype">size_t</span> avg_rtcp_pkt_pize_;</div>
+<div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160; </div>
+<div class="line"><a name="l00308"></a><span class="lineno">  308</span>&#160;            <span class="comment">/* Number of RTCP packets and bytes sent and received by this participant */</span></div>
+<div class="line"><a name="l00309"></a><span class="lineno">  309</span>&#160;            <span class="keywordtype">size_t</span> rtcp_pkt_count_;</div>
+<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;            <span class="keywordtype">size_t</span> rtcp_byte_count_;</div>
 <div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160; </div>
-<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160;            <span class="comment">/* Clock rate of the media ie. how fast does the time increase */</span></div>
-<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;            uint32_t clock_rate_;</div>
+<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160;            <span class="comment">/* Number of RTCP packets sent */</span></div>
+<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;            <span class="keywordtype">size_t</span> rtcp_pkt_sent_count_;</div>
 <div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160; </div>
-<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;            <span class="comment">/* The first value of RTP timestamp (aka t = 0) */</span></div>
-<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;            uint32_t rtp_ts_start_;</div>
+<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;            <span class="comment">/* Flag that is true if the application has not yet sent an RTCP packet. */</span></div>
+<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;            <span class="keywordtype">bool</span> initial_;</div>
 <div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160; </div>
-<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160;            std::map&lt;uint32_t, rtcp_participant *&gt; participants_;</div>
-<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;            <span class="keywordtype">size_t</span> num_receivers_;</div>
+<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160;            <span class="comment">/* Copy of our own current SSRC */</span></div>
+<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;            uint32_t ssrc_;</div>
 <div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160; </div>
-<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;            <span class="comment">/* statistics for RTCP Sender and Receiver Reports */</span></div>
-<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;            <span class="keyword">struct </span>rtcp_statistics our_stats;</div>
+<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;            <span class="comment">/* NTP timestamp associated with initial RTP timestamp (aka t = 0) */</span></div>
+<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;            uint64_t clock_start_;</div>
 <div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160; </div>
-<div class="line"><a name="l00324"></a><span class="lineno">  324</span>&#160;            <span class="comment">/* If we expect frames from remote but haven&#39;t received anything from remote yet,</span></div>
-<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160;<span class="comment">             * the participant resides in this vector until he&#39;s moved to participants_ */</span></div>
-<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160;            std::vector&lt;rtcp_participant *&gt; initial_participants_;</div>
-<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160; </div>
-<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;            <span class="comment">/* Vector of sockets the RTCP runner is listening to</span></div>
-<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;<span class="comment">             *</span></div>
-<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;<span class="comment">             * The socket are also stored here (in addition to participants_ map) so they&#39;re easier</span></div>
-<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;<span class="comment">             * to pass to poll when RTCP runner is listening to incoming packets */</span></div>
-<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;            std::vector&lt;uvgrtp::socket&gt; sockets_;</div>
-<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160; </div>
-<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;            void (*sender_hook_)(uvgrtp::frame::rtcp_sender_report *);</div>
-<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;            void (*receiver_hook_)(uvgrtp::frame::rtcp_receiver_report *);</div>
-<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;            void (*sdes_hook_)(uvgrtp::frame::rtcp_sdes_packet *);</div>
-<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;            void (*app_hook_)(uvgrtp::frame::rtcp_app_packet *);</div>
-<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160;    };</div>
-<div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160;};</div>
-<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160; </div>
-<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;<span class="keyword">namespace </span>uvg_rtp = uvgrtp;</div>
+<div class="line"><a name="l00324"></a><span class="lineno">  324</span>&#160;            <span class="comment">/* Clock rate of the media ie. how fast does the time increase */</span></div>
+<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160;            uint32_t clock_rate_;</div>
+<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160; </div>
+<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160;            <span class="comment">/* The first value of RTP timestamp (aka t = 0) */</span></div>
+<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;            uint32_t rtp_ts_start_;</div>
+<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160; </div>
+<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;            std::map&lt;uint32_t, rtcp_participant *&gt; participants_;</div>
+<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;            <span class="keywordtype">size_t</span> num_receivers_;</div>
+<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160; </div>
+<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160;            <span class="comment">/* statistics for RTCP Sender and Receiver Reports */</span></div>
+<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;            <span class="keyword">struct </span>rtcp_statistics our_stats;</div>
+<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160; </div>
+<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;            <span class="comment">/* If we expect frames from remote but haven&#39;t received anything from remote yet,</span></div>
+<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;<span class="comment">             * the participant resides in this vector until he&#39;s moved to participants_ */</span></div>
+<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160;            std::vector&lt;rtcp_participant *&gt; initial_participants_;</div>
+<div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160; </div>
+<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160;            <span class="comment">/* Vector of sockets the RTCP runner is listening to</span></div>
+<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;<span class="comment">             *</span></div>
+<div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160;<span class="comment">             * The socket are also stored here (in addition to participants_ map) so they&#39;re easier</span></div>
+<div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160;<span class="comment">             * to pass to poll when RTCP runner is listening to incoming packets */</span></div>
+<div class="line"><a name="l00344"></a><span class="lineno">  344</span>&#160;            std::vector&lt;uvgrtp::socket&gt; sockets_;</div>
+<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160; </div>
+<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160;            void (*sender_hook_)(uvgrtp::frame::rtcp_sender_report *);</div>
+<div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160;            void (*receiver_hook_)(uvgrtp::frame::rtcp_receiver_report *);</div>
+<div class="line"><a name="l00348"></a><span class="lineno">  348</span>&#160;            void (*sdes_hook_)(uvgrtp::frame::rtcp_sdes_packet *);</div>
+<div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160;            void (*app_hook_)(uvgrtp::frame::rtcp_app_packet *);</div>
+<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160;    };</div>
+<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;};</div>
+<div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160; </div>
+<div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160;<span class="keyword">namespace </span>uvg_rtp = uvgrtp;</div>
 <div class="ttc" id="aclassuvgrtp_1_1rtcp_html"><div class="ttname"><a href="classuvgrtp_1_1rtcp.html">uvgrtp::rtcp</a></div><div class="ttdef"><b>Definition:</b> rtcp.hh:74</div></div>
+<div class="ttc" id="aclassuvgrtp_1_1rtcp_html_a5d0d06f9b4b7779d96d8d60938627316"><div class="ttname"><a href="classuvgrtp_1_1rtcp.html#a5d0d06f9b4b7779d96d8d60938627316">uvgrtp::rtcp::set_ts_info</a></div><div class="ttdeci">void set_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start)</div><div class="ttdoc">Provide timestamping information for RTCP.</div></div>
 <div class="ttc" id="autil_8hh_html"><div class="ttname"><a href="util_8hh.html">util.hh</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
