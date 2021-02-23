@@ -166,39 +166,29 @@ namespace uvgrtp {
              * \retval  RTP_INVALID_VALUE If one of the parameters are invalid
              * \retval  RTP_MEMORY_ERROR  If the data chunk is too large to be processed
              * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
-             * \retval  RTP_GENERIC_ERROR If an unspecified error occurred */
+             * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
+             */
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int flags);
 
             /**
-             * \brief Poll a frame indefinetily from the media stream object
+             * \brief Poll a frame indefinitely from the media stream object
              *
-             * When a frame is received, it is put into the frame vector of the receiver
-             * Calling application can poll frames by calling pull_frame().
+             * \return RTP frame
              *
-             * NOTE: pull_frame() is a blocking operation and a separate thread should be
-             * spawned for it!
-             *
-             * You can specify for how long should pull_frame() block by giving "timeout"
-             * parameter that denotes how long pull_frame() will wait for an incoming frame
-             * in milliseconds
-             *
-             * Return pointer to RTP frame on success */
+             * \retval uvgrtp::frame::rtp_frame* On success
+             * \retval nullptr If an unrecoverable error happened
+             */
             uvgrtp::frame::rtp_frame *pull_frame();
 
             /**
              * \brief Poll a frame for a specified time from the media stream object
              *
-             * When a frame is received, it is put into the frame vector of the receiver
-             * Calling application can poll frames by calling pull_frame().
+             ** \return RTP frame
              *
-             * NOTE: pull_frame() is a blocking operation and a separate thread should be
-             * spawned for it!
-             *
-             * You can specify for how long should pull_frame() block by giving "timeout"
-             * parameter that denotes how long pull_frame() will wait for an incoming frame
-             * in milliseconds
-             *
-             * Return pointer to RTP frame on success */
+             * \retval uvgrtp::frame::rtp_frame* On success
+             * \retval nullptr If a frame was not received within the specified time limit
+             * \retval nullptr If an unrecoverable error happened
+             */
             uvgrtp::frame::rtp_frame *pull_frame(size_t timeout);
 
             /**

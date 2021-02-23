@@ -91,7 +91,7 @@ rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>add_srtp_ctx</
 <tr class="memdesc:a85fed1e02b97326d3b794551f0677e2b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to remote participant with a custom timestamp.  <a href="classuvgrtp_1_1media__stream.html#a85fed1e02b97326d3b794551f0677e2b">More...</a><br /></td></tr>
 <tr class="separator:a85fed1e02b97326d3b794551f0677e2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae2fe9e8d9b67e25f103a78a25417149f"><td class="memItemLeft" align="right" valign="top">uvgrtp::frame::rtp_frame *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1media__stream.html#ae2fe9e8d9b67e25f103a78a25417149f">pull_frame</a> ()</td></tr>
-<tr class="memdesc:ae2fe9e8d9b67e25f103a78a25417149f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Poll a frame indefinetily from the media stream object.  <a href="classuvgrtp_1_1media__stream.html#ae2fe9e8d9b67e25f103a78a25417149f">More...</a><br /></td></tr>
+<tr class="memdesc:ae2fe9e8d9b67e25f103a78a25417149f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Poll a frame indefinitely from the media stream object.  <a href="classuvgrtp_1_1media__stream.html#ae2fe9e8d9b67e25f103a78a25417149f">More...</a><br /></td></tr>
 <tr class="separator:ae2fe9e8d9b67e25f103a78a25417149f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a441263e19be4383223884fde8838f736"><td class="memItemLeft" align="right" valign="top">uvgrtp::frame::rtp_frame *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1media__stream.html#a441263e19be4383223884fde8838f736">pull_frame</a> (size_t timeout)</td></tr>
 <tr class="memdesc:a441263e19be4383223884fde8838f736"><td class="mdescLeft">&#160;</td><td class="mdescRight">Poll a frame for a specified time from the media stream object.  <a href="classuvgrtp_1_1media__stream.html#a441263e19be4383223884fde8838f736">More...</a><br /></td></tr>
@@ -202,7 +202,7 @@ rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>add_srtp_ctx</
 </div><div class="memdoc">
 
 <p>Asynchronous way of getting frames. </p>
-<p>Receive hook is an alternative to polling frames using <a class="el" href="classuvgrtp_1_1media__stream.html#ae2fe9e8d9b67e25f103a78a25417149f" title="Poll a frame indefinetily from the media stream object.">uvgrtp::media_stream::pull_frame()</a>. Instead of application asking from uvgRTP if there are any new frames available, uvgRTP will notify the application when a frame has been received</p>
+<p>Receive hook is an alternative to polling frames using <a class="el" href="classuvgrtp_1_1media__stream.html#ae2fe9e8d9b67e25f103a78a25417149f" title="Poll a frame indefinitely from the media stream object.">uvgrtp::media_stream::pull_frame()</a>. Instead of application asking from uvgRTP if there are any new frames available, uvgRTP will notify the application when a frame has been received</p>
 <p>The hook should not be used for media processing as it will block the receiver from reading more frames. Instead, it should only be used as an interface between uvgRTP and the calling application where the frame hand-off happens.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -237,11 +237,15 @@ rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>add_srtp_ctx</
       </table>
 </div><div class="memdoc">
 
-<p>Poll a frame indefinetily from the media stream object. </p>
-<p>When a frame is received, it is put into the frame vector of the receiver Calling application can poll frames by calling <a class="el" href="classuvgrtp_1_1media__stream.html#ae2fe9e8d9b67e25f103a78a25417149f" title="Poll a frame indefinetily from the media stream object.">pull_frame()</a>.</p>
-<p>NOTE: <a class="el" href="classuvgrtp_1_1media__stream.html#ae2fe9e8d9b67e25f103a78a25417149f" title="Poll a frame indefinetily from the media stream object.">pull_frame()</a> is a blocking operation and a separate thread should be spawned for it!</p>
-<p>You can specify for how long should <a class="el" href="classuvgrtp_1_1media__stream.html#ae2fe9e8d9b67e25f103a78a25417149f" title="Poll a frame indefinetily from the media stream object.">pull_frame()</a> block by giving "timeout" parameter that denotes how long <a class="el" href="classuvgrtp_1_1media__stream.html#ae2fe9e8d9b67e25f103a78a25417149f" title="Poll a frame indefinetily from the media stream object.">pull_frame()</a> will wait for an incoming frame in milliseconds</p>
-<p>Return pointer to RTP frame on success </p>
+<p>Poll a frame indefinitely from the media stream object. </p>
+<dl class="section return"><dt>Returns</dt><dd>RTP frame</dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">uvgrtp::frame::rtp_frame*</td><td>On success </td></tr>
+    <tr><td class="paramname">nullptr</td><td>If an unrecoverable error happened </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -262,10 +266,15 @@ rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>add_srtp_ctx</
 </div><div class="memdoc">
 
 <p>Poll a frame for a specified time from the media stream object. </p>
-<p>When a frame is received, it is put into the frame vector of the receiver Calling application can poll frames by calling <a class="el" href="classuvgrtp_1_1media__stream.html#ae2fe9e8d9b67e25f103a78a25417149f" title="Poll a frame indefinetily from the media stream object.">pull_frame()</a>.</p>
-<p>NOTE: <a class="el" href="classuvgrtp_1_1media__stream.html#ae2fe9e8d9b67e25f103a78a25417149f" title="Poll a frame indefinetily from the media stream object.">pull_frame()</a> is a blocking operation and a separate thread should be spawned for it!</p>
-<p>You can specify for how long should <a class="el" href="classuvgrtp_1_1media__stream.html#ae2fe9e8d9b67e25f103a78a25417149f" title="Poll a frame indefinetily from the media stream object.">pull_frame()</a> block by giving "timeout" parameter that denotes how long <a class="el" href="classuvgrtp_1_1media__stream.html#ae2fe9e8d9b67e25f103a78a25417149f" title="Poll a frame indefinetily from the media stream object.">pull_frame()</a> will wait for an incoming frame in milliseconds</p>
-<p>Return pointer to RTP frame on success </p>
+<dl class="section return"><dt>Returns</dt><dd>RTP frame</dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">uvgrtp::frame::rtp_frame*</td><td>On success </td></tr>
+    <tr><td class="paramname">nullptr</td><td>If a frame was not received within the specified time limit </td></tr>
+    <tr><td class="paramname">nullptr</td><td>If an unrecoverable error happened </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
