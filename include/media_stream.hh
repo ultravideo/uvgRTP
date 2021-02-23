@@ -58,32 +58,115 @@ namespace uvgrtp {
              * Return RTP_NOT_SUPPORTED if user-managed SRTP was not specified in create_stream() */
             rtp_error_t add_srtp_ctx(uint8_t *key, uint8_t *salt);
 
-            /** Split "data" into 1500 byte chunks and send them to remote
+            /**
+             * \brief Send data to remote participant with a custom timestamp
              *
-             * NOTE: If SCD has been enabled, calling this version of push_frame()
-             * requires either that the caller has given a deallocation callback to
-             * SCD OR that "flags" contains flags "RTP_COPY"
+             * \details If so specified either by the selected media format and/or given
+             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1500 bytes,
+             * or to any other size defined by the application using ::RCC_MTU_SIZE
              *
-             * NOTE: Each push_frame() sends one discrete frame of data. If the input frame
-             * is fragmented, calling application should call push_frame() with RTP_MORE
-             * and RTP_SLICE flags to prevent uvgRTP from flushing the frame queue after
-             * push_frame().
+             * The frame is automatically reconstructed by the receiver if all fragments have been
+             * received successfully.
              *
-             * push_frame(..., RTP_MORE | RTP_SLICE); // more data coming in, do not flush queue
-             * push_frame(..., RTP_MORE | RTP_SLICE); // more data coming in, do not flush queue
-             * push_frame(..., RTP_SLICE);            // no more data coming in, flush queue
+             * \param data Pointer to data the that should be sent
+             * \param data_len Length of data
+             * \param ts 32-bit timestamp value for the data
+             * \param flags Optional flags, see ::RTP_FLAGS for more details
              *
-             * If user wishes to manage RTP timestamps himself, he may pass "ts" to push_frame()
-             * which forces uvgRTP to use that timestamp for all RTP packets of "data".
+             * \return RTP error code
              *
-             * Return RTP_OK success
-             * Return RTP_INVALID_VALUE if one of the parameters are invalid
-             * Return RTP_MEMORY_ERROR  if the data chunk is too large to be processed
-             * Return RTP_SEND_ERROR    if uvgRTP failed to send the data to remote
-             * Return RTP_GENERIC_ERROR for any other error condition */
+             * \retval  RTP_OK            On success
+             * \retval  RTP_INVALID_VALUE If one of the parameters are invalid
+             * \retval  RTP_MEMORY_ERROR  If the data chunk is too large to be processed
+             * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
+             * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
+             */
             rtp_error_t push_frame(uint8_t *data, size_t data_len, int flags);
-            rtp_error_t push_frame(uint8_t *data, size_t data_len, uint32_t ts, int flags);
+
+            /**
+             * \brief Send data to remote participant with a custom timestamp
+             *
+             * \details If so specified either by the selected media format and/or given
+             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1500 bytes,
+             * or to any other size defined by the application using ::RCC_MTU_SIZE
+             *
+             * The frame is automatically reconstructed by the receiver if all fragments have been
+             * received successfully.
+             *
+             * \param data Smart pointer to data the that should be sent
+             * \param data_len Length of data
+             * \param ts 32-bit timestamp value for the data
+             * \param flags Optional flags, see ::RTP_FLAGS for more details
+             *
+             * \return RTP error code
+             *
+             * \retval  RTP_OK            On success
+             * \retval  RTP_INVALID_VALUE If one of the parameters are invalid
+             * \retval  RTP_MEMORY_ERROR  If the data chunk is too large to be processed
+             * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
+             * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
+             */
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags);
+
+            /**
+             * \brief Send data to remote participant with a custom timestamp
+             *
+             * \details If so specified either by the selected media format and/or given
+             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1500 bytes,
+             * or to any other size defined by the application using ::RCC_MTU_SIZE
+             *
+             * The frame is automatically reconstructed by the receiver if all fragments have been
+             * received successfully.
+             *
+             * If application so wishes, it may override uvgRTP's own timestamp
+             * calculations and provide timestamping information for the stream itself.
+             * This requires that the application provides a sensible value for the ts
+             * parameter. If RTCP has been enabled, uvgrtp::rtcp::set_ts_info() should have
+             * been called.
+             *
+             * \param data Pointer to data the that should be sent
+             * \param data_len Length of data
+             * \param ts 32-bit timestamp value for the data
+             * \param flags Optional flags, see ::RTP_FLAGS for more details
+             *
+             * \return RTP error code
+             *
+             * \retval  RTP_OK            On success
+             * \retval  RTP_INVALID_VALUE If one of the parameters are invalid
+             * \retval  RTP_MEMORY_ERROR  If the data chunk is too large to be processed
+             * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
+             * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
+             */
+            rtp_error_t push_frame(uint8_t *data, size_t data_len, uint32_t ts, int flags);
+
+            /**
+             * \brief Send data to remote participant with a custom timestamp
+             *
+             * \details If so specified either by the selected media format and/or given
+             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1500 bytes,
+             * or to any other size defined by the application using ::RCC_MTU_SIZE
+             *
+             * The frame is automatically reconstructed by the receiver if all fragments have been
+             * received successfully.
+             *
+             * If application so wishes, it may override uvgRTP's own timestamp
+             * calculations and provide timestamping information for the stream itself.
+             * This requires that the application provides a sensible value for the ts
+             * parameter. If RTCP has been enabled, uvgrtp::rtcp::set_ts_info() should have
+             * been called.
+             *
+             * \param data Smart pointer to data the that should be sent
+             * \param data_len Length of data
+             * \param ts 32-bit timestamp value for the data
+             * \param flags Optional flags, see ::RTP_FLAGS for more details
+             *
+             * \return RTP error code
+             *
+             * \retval  RTP_OK            On success
+             * \retval  RTP_INVALID_VALUE If one of the parameters are invalid
+             * \retval  RTP_MEMORY_ERROR  If the data chunk is too large to be processed
+             * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
+             * \retval  RTP_GENERIC_ERROR If an unspecified error occurred */
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int flags);
 
             /**
