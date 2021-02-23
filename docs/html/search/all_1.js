@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['destroy_5fsession_4',['destroy_session',['../classuvg__rtp_1_1context.html#a67f96eb554a395d8f225371bfc209f63',1,'uvg_rtp::context']]],
-  ['destroy_5fstream_5',['destroy_stream',['../classuvg__rtp_1_1session.html#a6a4419b42aeba70fb2a63b3cd87d663a',1,'uvg_rtp::session']]]
+  ['destroy_5fsession_4',['destroy_session',['../classuvgrtp_1_1context.html#a61daf2f3cdcdf2542ee997ab6de5efa9',1,'uvgrtp::context']]],
+  ['destroy_5fstream_5',['destroy_stream',['../classuvgrtp_1_1session.html#a291629a3bfb910463b88d8edb3984149',1,'uvgrtp::session']]]
 ];

@@ -83,7 +83,7 @@ $(function() {
 <div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="preprocessor">#include &quot;srtp/srtcp.hh&quot;</span></div>
 <div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="util_8hh.html">util.hh</a>&quot;</span></div>
 <div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
-<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="keyword">namespace </span>uvg_rtp {</div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="keyword">namespace </span>uvgrtp {</div>
 <div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160; </div>
 <div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;    <span class="keyword">enum</span> RTCP_ROLE {</div>
 <div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;        RECEIVER,</div>
@@ -116,7 +116,7 @@ $(function() {
 <div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;        uint32_t clock_rate;  <span class="comment">/* Rate of the clock (used for jitter calculations) */</span></div>
 <div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160; </div>
 <div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;        uint32_t lsr;                     <span class="comment">/* Middle 32 bits of the 64-bit NTP timestamp of previous SR */</span></div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;        uvg_rtp::clock::hrc::hrc_t sr_ts; <span class="comment">/* When the last SR was received (used to calculate delay) */</span></div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;        uvgrtp::clock::hrc::hrc_t sr_ts; <span class="comment">/* When the last SR was received (used to calculate delay) */</span></div>
 <div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160; </div>
 <div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;        uint16_t max_seq;  <span class="comment">/* Highest sequence number received */</span></div>
 <div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;        uint16_t base_seq; <span class="comment">/* First sequence number received */</span></div>
@@ -125,7 +125,7 @@ $(function() {
 <div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;    };</div>
 <div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160; </div>
 <div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;    <span class="keyword">struct </span>rtcp_participant {</div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;        uvg_rtp::socket *socket; <span class="comment">/* socket associated with this participant */</span></div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;        uvgrtp::socket *socket; <span class="comment">/* socket associated with this participant */</span></div>
 <div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;        sockaddr_in address;     <span class="comment">/* address of the participant */</span></div>
 <div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;        <span class="keyword">struct </span>rtcp_statistics stats; <span class="comment">/* RTCP session statistics of the participant */</span></div>
 <div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160; </div>
@@ -134,17 +134,17 @@ $(function() {
 <div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160; </div>
 <div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;        <span class="comment">/* Save the latest RTCP packets received from this participant</span></div>
 <div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;<span class="comment">         * Users can query these packets using the SSRC of participant */</span></div>
-<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;        uvg_rtp::frame::rtcp_sender_report   *s_frame;</div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;        uvg_rtp::frame::rtcp_receiver_report *r_frame;</div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;        uvg_rtp::frame::rtcp_sdes_packet     *sdes_frame;</div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;        uvg_rtp::frame::rtcp_app_packet      *app_frame;</div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;        uvgrtp::frame::rtcp_sender_report   *s_frame;</div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;        uvgrtp::frame::rtcp_receiver_report *r_frame;</div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;        uvgrtp::frame::rtcp_sdes_packet     *sdes_frame;</div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;        uvgrtp::frame::rtcp_app_packet      *app_frame;</div>
 <div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;    };</div>
 <div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160; </div>
-<div class="line"><a name="l00074"></a><span class="lineno"><a class="line" href="classuvg__rtp_1_1rtcp.html">   74</a></span>&#160;    <span class="keyword">class </span><a class="code" href="classuvg__rtp_1_1rtcp.html">rtcp</a> : <span class="keyword">public</span> runner {</div>
+<div class="line"><a name="l00074"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1rtcp.html">   74</a></span>&#160;    <span class="keyword">class </span><a class="code" href="classuvgrtp_1_1rtcp.html">rtcp</a> : <span class="keyword">public</span> runner {</div>
 <div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;        <span class="keyword">public</span>:</div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;            <a class="code" href="classuvg__rtp_1_1rtcp.html">rtcp</a>(uvg_rtp::rtp *rtp, <span class="keywordtype">int</span> flags);</div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;            <a class="code" href="classuvg__rtp_1_1rtcp.html">rtcp</a>(uvg_rtp::rtp *rtp, uvg_rtp::srtcp *srtcp, <span class="keywordtype">int</span> flags);</div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;            ~<a class="code" href="classuvg__rtp_1_1rtcp.html">rtcp</a>();</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;            <a class="code" href="classuvgrtp_1_1rtcp.html">rtcp</a>(uvgrtp::rtp *rtp, <span class="keywordtype">int</span> flags);</div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;            <a class="code" href="classuvgrtp_1_1rtcp.html">rtcp</a>(uvgrtp::rtp *rtp, uvgrtp::srtcp *srtcp, <span class="keywordtype">int</span> flags);</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;            ~<a class="code" href="classuvgrtp_1_1rtcp.html">rtcp</a>();</div>
 <div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160; </div>
 <div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;            <span class="comment">/* start the RTCP runner thread</span></div>
 <div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;<span class="comment">             *</span></div>
@@ -187,7 +187,7 @@ $(function() {
 <div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;<span class="comment">             * Return RTP_OK on success</span></div>
 <div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;<span class="comment">             * Return RTP_INVALID_VALUE if &quot;frame&quot; is in some way invalid</span></div>
 <div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;<span class="comment">             * Return RTP_SEND_ERROR if sending &quot;frame&quot; did not succeed (see socket.hh for details) */</span></div>
-<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;            rtp_error_t send_sdes_packet(std::vector&lt;uvg_rtp::frame::rtcp_sdes_item&gt;&amp; items);</div>
+<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;            rtp_error_t send_sdes_packet(std::vector&lt;uvgrtp::frame::rtcp_sdes_item&gt;&amp; items);</div>
 <div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;            rtp_error_t send_app_packet(<span class="keywordtype">char</span> *name, uint8_t subtype, <span class="keywordtype">size_t</span> payload_len, uint8_t *payload);</div>
 <div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;            rtp_error_t send_bye_packet(std::vector&lt;uint32_t&gt; ssrcs);</div>
 <div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160; </div>
@@ -195,13 +195,13 @@ $(function() {
 <div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;<span class="comment">             * Return nullptr if we haven&#39;t received this kind of packet or if &quot;ssrc&quot; doesn&#39;t exist</span></div>
 <div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;<span class="comment">             *</span></div>
 <div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;<span class="comment">             * NOTE: Caller is responsible for deallocating the memory */</span></div>
-<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;            uvg_rtp::frame::rtcp_sender_report   *get_sender_packet(uint32_t ssrc);</div>
-<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;            uvg_rtp::frame::rtcp_receiver_report *get_receiver_packet(uint32_t ssrc);</div>
-<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;            uvg_rtp::frame::rtcp_sdes_packet     *get_sdes_packet(uint32_t ssrc);</div>
-<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;            uvg_rtp::frame::rtcp_app_packet      *get_app_packet(uint32_t ssrc);</div>
+<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;            uvgrtp::frame::rtcp_sender_report   *get_sender_packet(uint32_t ssrc);</div>
+<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;            uvgrtp::frame::rtcp_receiver_report *get_receiver_packet(uint32_t ssrc);</div>
+<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;            uvgrtp::frame::rtcp_sdes_packet     *get_sdes_packet(uint32_t ssrc);</div>
+<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;            uvgrtp::frame::rtcp_app_packet      *get_app_packet(uint32_t ssrc);</div>
 <div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160; </div>
 <div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;            <span class="comment">/* Return a reference to vector that contains the sockets of all participants */</span></div>
-<div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160;            std::vector&lt;uvg_rtp::socket&gt;&amp; get_sockets();</div>
+<div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160;            std::vector&lt;uvgrtp::socket&gt;&amp; get_sockets();</div>
 <div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160; </div>
 <div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160;            <span class="comment">/* Somebody joined the multicast group the owner of this RTCP instance is part of</span></div>
 <div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160;<span class="comment">             * Add it to RTCP participant list so we can start listening for reports</span></div>
@@ -217,7 +217,7 @@ $(function() {
 <div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;            <span class="keywordtype">void</span> sender_inc_seq_cycle_count();</div>
 <div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;            <span class="keywordtype">void</span> sender_inc_sent_pkts(<span class="keywordtype">size_t</span> n);</div>
 <div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;            <span class="keywordtype">void</span> sender_inc_sent_bytes(<span class="keywordtype">size_t</span> n);</div>
-<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;            <span class="keywordtype">void</span> sender_update_stats(uvg_rtp::frame::rtp_frame *frame);</div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;            <span class="keywordtype">void</span> sender_update_stats(uvgrtp::frame::rtp_frame *frame);</div>
 <div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160; </div>
 <div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;            <span class="keywordtype">void</span> receiver_inc_sent_bytes(uint32_t sender_ssrc, <span class="keywordtype">size_t</span> n);</div>
 <div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;            <span class="keywordtype">void</span> receiver_inc_overhead_bytes(uint32_t sender_ssrc, <span class="keywordtype">size_t</span> n);</div>
@@ -229,7 +229,7 @@ $(function() {
 <div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;<span class="comment">             * Return RTP_OK if packet is valid</span></div>
 <div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;<span class="comment">             * Return RTP_INVALID_VALUE if SSRCs of remotes have collided or the packet is invalid in some way</span></div>
 <div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;<span class="comment">             * return RTP_SSRC_COLLISION if our own SSRC has collided and we need to reinitialize it */</span></div>
-<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;            rtp_error_t receiver_update_stats(uvg_rtp::frame::rtp_frame *frame);</div>
+<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;            rtp_error_t receiver_update_stats(uvgrtp::frame::rtp_frame *frame);</div>
 <div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160; </div>
 <div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;            <span class="comment">/* If we&#39;ve detected that our SSRC has collided with someone else&#39;s SSRC, we need to</span></div>
 <div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;<span class="comment">             * generate new random SSRC and reinitialize our own RTCP state.</span></div>
@@ -241,7 +241,7 @@ $(function() {
 <div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;            rtp_error_t reset_rtcp_state(uint32_t ssrc);</div>
 <div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160; </div>
 <div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;            <span class="comment">/* Update various session statistics */</span></div>
-<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;            <span class="keywordtype">void</span> update_session_statistics(uvg_rtp::frame::rtp_frame *frame);</div>
+<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;            <span class="keywordtype">void</span> update_session_statistics(uvgrtp::frame::rtp_frame *frame);</div>
 <div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160; </div>
 <div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;            <span class="comment">/* Return SSRCs of all participants */</span></div>
 <div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;            std::vector&lt;uint32_t&gt; get_participants();</div>
@@ -253,10 +253,10 @@ $(function() {
 <div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;            <span class="comment">/* Alternate way to get RTCP packets is to install a hook for them. So instead of</span></div>
 <div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160;<span class="comment">             * polling an RTCP packet, user can install a function that is called when</span></div>
 <div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160;<span class="comment">             * a specific RTCP packet is received. */</span></div>
-<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;            rtp_error_t install_sender_hook(<span class="keywordtype">void</span> (*hook)(uvg_rtp::frame::rtcp_sender_report *));</div>
-<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;            rtp_error_t install_receiver_hook(<span class="keywordtype">void</span> (*hook)(uvg_rtp::frame::rtcp_receiver_report *));</div>
-<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;            rtp_error_t install_sdes_hook(<span class="keywordtype">void</span> (*hook)(uvg_rtp::frame::rtcp_sdes_packet *));</div>
-<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;            rtp_error_t install_app_hook(<span class="keywordtype">void</span> (*hook)(uvg_rtp::frame::rtcp_app_packet *));</div>
+<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;            rtp_error_t install_sender_hook(<span class="keywordtype">void</span> (*hook)(uvgrtp::frame::rtcp_sender_report *));</div>
+<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;            rtp_error_t install_receiver_hook(<span class="keywordtype">void</span> (*hook)(uvgrtp::frame::rtcp_receiver_report *));</div>
+<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;            rtp_error_t install_sdes_hook(<span class="keywordtype">void</span> (*hook)(uvgrtp::frame::rtcp_sdes_packet *));</div>
+<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;            rtp_error_t install_app_hook(<span class="keywordtype">void</span> (*hook)(uvgrtp::frame::rtcp_app_packet *));</div>
 <div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160; </div>
 <div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;            <span class="comment">/* Update RTCP-related sender statistics */</span></div>
 <div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160;            rtp_error_t update_sender_stats(<span class="keywordtype">size_t</span> pkt_size);</div>
@@ -265,10 +265,10 @@ $(function() {
 <div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;            <span class="keyword">static</span> rtp_error_t recv_packet_handler(<span class="keywordtype">void</span> *arg, <span class="keywordtype">int</span> flags, frame::rtp_frame **out);</div>
 <div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160; </div>
 <div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;            <span class="comment">/* Update RTCP-related sender statistics */</span></div>
-<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;            <span class="keyword">static</span> rtp_error_t send_packet_handler_vec(<span class="keywordtype">void</span> *arg, uvg_rtp::buf_vec&amp; buffers);</div>
+<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;            <span class="keyword">static</span> rtp_error_t send_packet_handler_vec(<span class="keywordtype">void</span> *arg, uvgrtp::buf_vec&amp; buffers);</div>
 <div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160; </div>
 <div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160;        <span class="keyword">private</span>:</div>
-<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;            <span class="keyword">static</span> <span class="keywordtype">void</span> rtcp_runner(<a class="code" href="classuvg__rtp_1_1rtcp.html">rtcp</a> *<a class="code" href="classuvg__rtp_1_1rtcp.html">rtcp</a>);</div>
+<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;            <span class="keyword">static</span> <span class="keywordtype">void</span> rtcp_runner(<a class="code" href="classuvgrtp_1_1rtcp.html">rtcp</a> *<a class="code" href="classuvgrtp_1_1rtcp.html">rtcp</a>);</div>
 <div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160; </div>
 <div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;            <span class="comment">/* when we start the RTCP instance, we don&#39;t know what the SSRC of the remote is</span></div>
 <div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160;<span class="comment">             * when an RTP packet is received, we must check if we&#39;ve already received a packet</span></div>
@@ -288,7 +288,7 @@ $(function() {
 <div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160; </div>
 <div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160;            <span class="comment">/* We&#39;ve got a message from new source (the SSRC of the frame is not known to us)</span></div>
 <div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;<span class="comment">             * Initialize statistics for the peer and move it to participants_ */</span></div>
-<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;            rtp_error_t init_new_participant(uvg_rtp::frame::rtp_frame *frame);</div>
+<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;            rtp_error_t init_new_participant(uvgrtp::frame::rtp_frame *frame);</div>
 <div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160; </div>
 <div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160;            <span class="comment">/* Initialize the RTP Sequence related stuff of peer</span></div>
 <div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160;<span class="comment">             * This function assumes that the peer already exists in the participants_ map */</span></div>
@@ -317,14 +317,14 @@ $(function() {
 <div class="line"><a name="l00254"></a><span class="lineno">  254</span>&#160;            <span class="comment">/* Because struct statistics contains uvgRTP clock object we cannot</span></div>
 <div class="line"><a name="l00255"></a><span class="lineno">  255</span>&#160;<span class="comment">             * zero it out without compiler complaining about it so all the fields</span></div>
 <div class="line"><a name="l00256"></a><span class="lineno">  256</span>&#160;<span class="comment">             * must be set to zero manually */</span></div>
-<div class="line"><a name="l00257"></a><span class="lineno">  257</span>&#160;            <span class="keywordtype">void</span> zero_stats(uvg_rtp::rtcp_statistics *stats);</div>
+<div class="line"><a name="l00257"></a><span class="lineno">  257</span>&#160;            <span class="keywordtype">void</span> zero_stats(uvgrtp::rtcp_statistics *stats);</div>
 <div class="line"><a name="l00258"></a><span class="lineno">  258</span>&#160; </div>
 <div class="line"><a name="l00259"></a><span class="lineno">  259</span>&#160;            <span class="comment">/* Pointer to RTP context from which clock rate etc. info is collected and which is</span></div>
 <div class="line"><a name="l00260"></a><span class="lineno">  260</span>&#160;<span class="comment">             * used to change SSRC if a collision is detected */</span></div>
-<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;            uvg_rtp::rtp *rtp_;</div>
+<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;            uvgrtp::rtp *rtp_;</div>
 <div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160; </div>
 <div class="line"><a name="l00263"></a><span class="lineno">  263</span>&#160;            <span class="comment">/* Secure RTCP context */</span></div>
-<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160;            uvg_rtp::srtcp *srtcp_;</div>
+<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160;            uvgrtp::srtcp *srtcp_;</div>
 <div class="line"><a name="l00265"></a><span class="lineno">  265</span>&#160; </div>
 <div class="line"><a name="l00266"></a><span class="lineno">  266</span>&#160;            <span class="comment">/* RTP context flags */</span></div>
 <div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160;            <span class="keywordtype">int</span> flags_;</div>
@@ -392,15 +392,17 @@ $(function() {
 <div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;<span class="comment">             *</span></div>
 <div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;<span class="comment">             * The socket are also stored here (in addition to participants_ map) so they&#39;re easier</span></div>
 <div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;<span class="comment">             * to pass to poll when RTCP runner is listening to incoming packets */</span></div>
-<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;            std::vector&lt;uvg_rtp::socket&gt; sockets_;</div>
+<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;            std::vector&lt;uvgrtp::socket&gt; sockets_;</div>
 <div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160; </div>
-<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;            void (*sender_hook_)(uvg_rtp::frame::rtcp_sender_report *);</div>
-<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;            void (*receiver_hook_)(uvg_rtp::frame::rtcp_receiver_report *);</div>
-<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;            void (*sdes_hook_)(uvg_rtp::frame::rtcp_sdes_packet *);</div>
-<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;            void (*app_hook_)(uvg_rtp::frame::rtcp_app_packet *);</div>
+<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;            void (*sender_hook_)(uvgrtp::frame::rtcp_sender_report *);</div>
+<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;            void (*receiver_hook_)(uvgrtp::frame::rtcp_receiver_report *);</div>
+<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;            void (*sdes_hook_)(uvgrtp::frame::rtcp_sdes_packet *);</div>
+<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;            void (*app_hook_)(uvgrtp::frame::rtcp_app_packet *);</div>
 <div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160;    };</div>
 <div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160;};</div>
-<div class="ttc" id="aclassuvg__rtp_1_1rtcp_html"><div class="ttname"><a href="classuvg__rtp_1_1rtcp.html">uvg_rtp::rtcp</a></div><div class="ttdef"><b>Definition:</b> rtcp.hh:74</div></div>
+<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160; </div>
+<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;<span class="keyword">namespace </span>uvg_rtp = uvgrtp;</div>
+<div class="ttc" id="aclassuvgrtp_1_1rtcp_html"><div class="ttname"><a href="classuvgrtp_1_1rtcp.html">uvgrtp::rtcp</a></div><div class="ttdef"><b>Definition:</b> rtcp.hh:74</div></div>
 <div class="ttc" id="autil_8hh_html"><div class="ttname"><a href="util_8hh.html">util.hh</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->

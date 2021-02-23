@@ -1,7 +1,7 @@
 var searchData=
 [
-  ['configure_5fctx_66',['configure_ctx',['../classuvg__rtp_1_1media__stream.html#a3316a89869b321774ed726157e1f3c89',1,'uvg_rtp::media_stream']]],
-  ['context_67',['context',['../classuvg__rtp_1_1context.html#ae3b8ae9cdbf99e2b3a7bc079ff25b98d',1,'uvg_rtp::context']]],
-  ['create_5fsession_68',['create_session',['../classuvg__rtp_1_1context.html#a14fde47e733a97b99bf4a6cd464ce4be',1,'uvg_rtp::context::create_session(std::string addr)'],['../classuvg__rtp_1_1context.html#ac2a8c7654f8b1e94187253bc738ec546',1,'uvg_rtp::context::create_session(std::string remote_addr, std::string local_addr)']]],
-  ['create_5fstream_69',['create_stream',['../classuvg__rtp_1_1session.html#af083d3908e337ad5f58a2edc317e18d4',1,'uvg_rtp::session']]]
+  ['configure_5fctx_67',['configure_ctx',['../classuvgrtp_1_1media__stream.html#addf1cde9cb8c4e4af3160ce24c4288a5',1,'uvgrtp::media_stream']]],
+  ['context_68',['context',['../classuvgrtp_1_1context.html#a98be18c2848404549cfadf910ba1573a',1,'uvgrtp::context']]],
+  ['create_5fsession_69',['create_session',['../classuvgrtp_1_1context.html#aa109aa2a419933359d225d19bcf3b2f9',1,'uvgrtp::context::create_session(std::string addr)'],['../classuvgrtp_1_1context.html#a0007eebfd5131bf0930cfedc0c4018e8',1,'uvgrtp::context::create_session(std::string remote_addr, std::string local_addr)']]],
+  ['create_5fstream_70',['create_stream',['../classuvgrtp_1_1session.html#a71aad1226214b1b0b1ba60a46c048ab2',1,'uvgrtp::session']]]
 ];

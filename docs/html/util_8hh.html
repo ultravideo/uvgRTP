@@ -147,7 +147,7 @@ Enumerations</h2></td></tr>
 &#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a4e6ef095b4645cdc8aef241aad1f974b">RTP_FORMAT_OPUS</a> = 98
 <br />
  }</td></tr>
-<tr class="memdesc:a313c6640ac5ed9384184a94ec57a9a96"><td class="mdescLeft">&#160;</td><td class="mdescRight">These flags are given to <a class="el" href="classuvg__rtp_1_1session.html#af083d3908e337ad5f58a2edc317e18d4" title="Create a bidirectional media stream for an RTP session.">uvg_rtp::session::create_stream()</a>  <a href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96">More...</a><br /></td></tr>
+<tr class="memdesc:a313c6640ac5ed9384184a94ec57a9a96"><td class="mdescLeft">&#160;</td><td class="mdescRight">These flags are given to <a class="el" href="classuvgrtp_1_1session.html#a71aad1226214b1b0b1ba60a46c048ab2" title="Create a bidirectional media stream for an RTP session.">uvgrtp::session::create_stream()</a>  <a href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96">More...</a><br /></td></tr>
 <tr class="separator:a313c6640ac5ed9384184a94ec57a9a96"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af03a75996471fc531742cd640c7caf2d"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="util_8hh.html#af03a75996471fc531742cd640c7caf2d">RTP_FLAGS</a> { <br />
 &#160;&#160;<a class="el" href="util_8hh.html#af03a75996471fc531742cd640c7caf2da084c095dae54bbbc6d9509568c58f9a6">RTP_NO_FLAGS</a> = 0 &lt;&lt; 0
@@ -157,7 +157,7 @@ Enumerations</h2></td></tr>
 &#160;&#160;<a class="el" href="util_8hh.html#af03a75996471fc531742cd640c7caf2dab1d5797a23c37a33168046a2ae6aef6a">RTP_COPY</a> = 1 &lt;&lt; 1
 <br />
  }</td></tr>
-<tr class="memdesc:af03a75996471fc531742cd640c7caf2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">These flags are given to <a class="el" href="classuvg__rtp_1_1media__stream.html#ac4c9fd2a2dbe2ae2695063eaa094e5d7">uvg_rtp::media_stream::push_frame()</a> and they can be OR'ed together.  <a href="util_8hh.html#af03a75996471fc531742cd640c7caf2d">More...</a><br /></td></tr>
+<tr class="memdesc:af03a75996471fc531742cd640c7caf2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">These flags are given to <a class="el" href="classuvgrtp_1_1media__stream.html#ab2b7507d5b2c76bef74c9bceec07ba18">uvgrtp::media_stream::push_frame()</a> and they can be OR'ed together.  <a href="util_8hh.html#af03a75996471fc531742cd640c7caf2d">More...</a><br /></td></tr>
 <tr class="separator:af03a75996471fc531742cd640c7caf2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a15b2d6364db6065a482c99827f4bd2af"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af">RTP_CTX_ENABLE_FLAGS</a> { <br />
 &#160;&#160;<b>RCE_NO_FLAGS</b> = 0 &lt;&lt; 0
@@ -170,7 +170,7 @@ Enumerations</h2></td></tr>
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa4722105b4fd34467a56b8aca8fc03773">RCE_SRTP_KMNGMNT_USER</a> = 1 &lt;&lt; 5
 , <br />
-&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa51cc3b4776d9dfda76789556aa581230">RCE_H265_NO_INTRA_DELAY</a> = 1 &lt;&lt; 5
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa5e9f19a63c964806ac9ff4ee089745e0">RCE_NO_H26X_INTRA_DELAY</a> = 1 &lt;&lt; 5
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa5b0a8dbb22c20ebe8c0711541fb68a79">RCE_FRAGMENT_GENERIC</a> = 1 &lt;&lt; 6
 , <br />
@@ -228,7 +228,7 @@ Enumerations</h2></td></tr>
 </div><div class="memdoc">
 
 <p>RTP context configuration flags. </p>
-<p>These flags are given to <a class="el" href="classuvg__rtp_1_1media__stream.html#a3316a89869b321774ed726157e1f3c89" title="Configure the media stream, see RTP_CTX_CONFIGURATION_FLAGS for more details.">uvg_rtp::media_stream::configure_ctx</a> </p>
+<p>These flags are given to <a class="el" href="classuvgrtp_1_1media__stream.html#addf1cde9cb8c4e4af3160ce24c4288a5" title="Configure the media stream, see RTP_CTX_CONFIGURATION_FLAGS for more details.">uvgrtp::media_stream::configure_ctx</a> </p>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="aa98d9238629e33567e73af0d239e587fac52afca9d1a8c24b1a788bc5b8524663"></a>RCC_UDP_RCV_BUF_SIZE&#160;</td><td class="fielddoc"><p>How large is the receiver UDP buffer size</p>
 <p>Default value is 4 MB</p>
@@ -265,7 +265,7 @@ Enumerations</h2></td></tr>
 </div><div class="memdoc">
 
 <p>RTP context enable flags. </p>
-<p>These flags are passed to <a class="el" href="classuvg__rtp_1_1session.html#af083d3908e337ad5f58a2edc317e18d4" title="Create a bidirectional media stream for an RTP session.">uvg_rtp::session::create_stream</a> and can be OR'ed together </p>
+<p>These flags are passed to <a class="el" href="classuvgrtp_1_1session.html#a71aad1226214b1b0b1ba60a46c048ab2" title="Create a bidirectional media stream for an RTP session.">uvgrtp::session::create_stream</a> and can be OR'ed together </p>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afaf235cba606675b9c38284ee1a491696b"></a>RCE_SRTP&#160;</td><td class="fielddoc"><p>Use SRTP for this connection </p>
 </td></tr>
@@ -277,10 +277,10 @@ Enumerations</h2></td></tr>
 <p>If this flag is provided, before the media transportation starts, user must provide a master key and salt form which SRTP session keys are derived</p>
 <p>This flag must be coupled with RCE_SRTP and is mutually exclusive with RCE_SRTP_KMNGMNT_ZRTP </p>
 </td></tr>
-<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa51cc3b4776d9dfda76789556aa581230"></a>RCE_H265_NO_INTRA_DELAY&#160;</td><td class="fielddoc"><p>When uvgRTP is receiving HEVC stream, as an attempt to improve QoS, it will set frame delay for intra frames to be the same as intra period.</p>
+<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa5e9f19a63c964806ac9ff4ee089745e0"></a>RCE_NO_H26X_INTRA_DELAY&#160;</td><td class="fielddoc"><p>When uvgRTP is receiving H26X stream, as an attempt to improve QoS, it will set frame delay for intra frames to be the same as intra period.</p>
 <p>What this means is that if the regular timer expires for frame (100 ms) and the frame type is intra, uvgRTP will not drop the frame but will continue receiving packets in hopes that all the packets of the intra frame will be received and the frame can be returned to user. During this period, when the intra frame is deemed to be late and incomplete, uvgRTP will drop all inter frames until a) all the packets of late intra frame are received or b) a new intra frame is received</p>
-<p>This behaviour should reduce the number of gray screens during HEVC decoding but might cause the video stream to freeze for a while which is subjectively lesser of two evils</p>
-<p>This behavior can be disabled with RCE_HEVC_NO_INTRA_DELAY If this flag is given, uvgRTP treats all frame types equally and drops all frames that are late </p>
+<p>This behaviour should reduce the number of gray screens during video decoding but might cause the video stream to freeze for a while which is subjectively lesser of two evils</p>
+<p>This behavior can be disabled with RCE_NO_H26X_INTRA_DELAY If this flag is given, uvgRTP treats all frame types equally and drops all frames that are late </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa5b0a8dbb22c20ebe8c0711541fb68a79"></a>RCE_FRAGMENT_GENERIC&#160;</td><td class="fielddoc"><p>Fragment generic frames into RTP packets of 1500 bytes.</p>
 <p>If RCE_FRAGMENT_GENERIC is given to create_stream(), uvgRTP will split frames of type RTP_FORMAT_GENERIC into packets of 1500 bytes automatically and reconstruct the full frame from the fragments in the receiver</p>
@@ -372,7 +372,7 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>These flags are given to <a class="el" href="classuvg__rtp_1_1media__stream.html#ac4c9fd2a2dbe2ae2695063eaa094e5d7">uvg_rtp::media_stream::push_frame()</a> and they can be OR'ed together. </p>
+<p>These flags are given to <a class="el" href="classuvgrtp_1_1media__stream.html#ab2b7507d5b2c76bef74c9bceec07ba18">uvgrtp::media_stream::push_frame()</a> and they can be OR'ed together. </p>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="af03a75996471fc531742cd640c7caf2da084c095dae54bbbc6d9509568c58f9a6"></a>RTP_NO_FLAGS&#160;</td><td class="fielddoc"><p>No flags </p>
 </td></tr>
@@ -396,7 +396,7 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>These flags are given to <a class="el" href="classuvg__rtp_1_1session.html#af083d3908e337ad5f58a2edc317e18d4" title="Create a bidirectional media stream for an RTP session.">uvg_rtp::session::create_stream()</a> </p>
+<p>These flags are given to <a class="el" href="classuvgrtp_1_1session.html#a71aad1226214b1b0b1ba60a46c048ab2" title="Create a bidirectional media stream for an RTP session.">uvgrtp::session::create_stream()</a> </p>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a313c6640ac5ed9384184a94ec57a9a96ad4b1be929d880baa2c2ca85c614f61b9"></a>RTP_FORMAT_GENERIC&#160;</td><td class="fielddoc"><p>Generic format. </p>
 </td></tr>
