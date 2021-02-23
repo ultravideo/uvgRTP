@@ -96,6 +96,7 @@ rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>push_frame</b>
 <tr class="memdesc:a441263e19be4383223884fde8838f736"><td class="mdescLeft">&#160;</td><td class="mdescRight">Poll a frame for a specified time from the media stream object.  <a href="classuvgrtp_1_1media__stream.html#a441263e19be4383223884fde8838f736">More...</a><br /></td></tr>
 <tr class="separator:a441263e19be4383223884fde8838f736"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a74a558b23866976e52c5903996544a27"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1media__stream.html#a74a558b23866976e52c5903996544a27">install_receive_hook</a> (void *arg, void(*hook)(void *, uvgrtp::frame::rtp_frame *))</td></tr>
+<tr class="memdesc:a74a558b23866976e52c5903996544a27"><td class="mdescLeft">&#160;</td><td class="mdescRight">Asynchronous way of getting frames.  <a href="classuvgrtp_1_1media__stream.html#a74a558b23866976e52c5903996544a27">More...</a><br /></td></tr>
 <tr class="separator:a74a558b23866976e52c5903996544a27"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:addf1cde9cb8c4e4af3160ce24c4288a5"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1media__stream.html#addf1cde9cb8c4e4af3160ce24c4288a5">configure_ctx</a> (int flag, ssize_t value)</td></tr>
 <tr class="memdesc:addf1cde9cb8c4e4af3160ce24c4288a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Configure the media stream, see <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587f" title="RTP context configuration flags.">RTP_CTX_CONFIGURATION_FLAGS</a> for more details.  <a href="classuvgrtp_1_1media__stream.html#addf1cde9cb8c4e4af3160ce24c4288a5">More...</a><br /></td></tr>
@@ -198,10 +199,25 @@ rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>push_frame</b>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Alternative to <a class="el" href="classuvgrtp_1_1media__stream.html#ae2fe9e8d9b67e25f103a78a25417149f" title="Poll a frame indefinetily from the media stream object.">pull_frame()</a>. The provided hook is called when a frame is received.</p>
-<p>"arg" is optional argument that is passed to hook when it is called. It may be nullptr</p>
-<p>NOTE: Hook should not be used to process the frame but it should be a place where the frame handout happens from uvgRTP to application</p>
-<p>Return RTP_OK on success Return RTP_INVALID_VALUE if "hook" is nullptr </p>
+
+<p>Asynchronous way of getting frames. </p>
+<p>Receive hook is an alternative to polling frames using <a class="el" href="classuvgrtp_1_1media__stream.html#ae2fe9e8d9b67e25f103a78a25417149f" title="Poll a frame indefinetily from the media stream object.">uvgrtp::media_stream::pull_frame()</a>. Instead of application asking from uvgRTP if there are any new frames available, uvgRTP will notify the application when a frame has been received</p>
+<p>The hook should not be used for media processing as it will block the receiver from reading more frames. Instead, it should only be used as an interface between uvgRTP and the calling application where the frame hand-off happens.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">arg</td><td>Optional argument that is passed to the hook when it is called, can be set to nullptr </td></tr>
+    <tr><td class="paramname">hook</td><td>Function pointer to the receive hook that uvgRTP should call</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>RTP error code</dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">RTP_OK</td><td>On success </td></tr>
+    <tr><td class="paramname">RTP_INVALID_VALUE</td><td>If hook is nullptr </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

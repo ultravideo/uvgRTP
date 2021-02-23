@@ -118,15 +118,24 @@ namespace uvgrtp {
              * Return pointer to RTP frame on success */
             uvgrtp::frame::rtp_frame *pull_frame(size_t timeout);
 
-            /** Alternative to pull_frame(). The provided hook is called when a frame is received.
+            /**
+             * \brief Asynchronous way of getting frames
              *
-             * "arg" is optional argument that is passed to hook when it is called. It may be nullptr
+             * \details Receive hook is an alternative to polling frames using uvgrtp::media_stream::pull_frame().
+             * Instead of application asking from uvgRTP if there are any new frames available, uvgRTP will notify
+             * the application when a frame has been received
              *
-             * NOTE: Hook should not be used to process the frame but it should be a place where the
-             * frame handout happens from uvgRTP to application
+             * The hook should not be used for media processing as it will block the receiver from
+             * reading more frames. Instead, it should only be used as an interface between uvgRTP and
+             * the calling application where the frame hand-off happens.
              *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "hook" is nullptr */
+             * \param arg Optional argument that is passed to the hook when it is called, can be set to nullptr
+             * \param hook Function pointer to the receive hook that uvgRTP should call
+             *
+             * \return RTP error code
+             *
+             * \retval RTP_OK On success
+             * \retval RTP_INVALID_VALUE If hook is nullptr */
             rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *));
 
             /// \cond DO_NOT_DOCUMENT
