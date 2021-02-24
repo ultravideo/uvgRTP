@@ -316,6 +316,12 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Poll a frame for a specified time from the media stream object. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">timeout</td><td>How long is a frame waited, in milliseconds</td></tr>
+  </table>
+  </dd>
+</dl>
 <dl class="section return"><dt>Returns</dt><dd>RTP frame</dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
@@ -367,7 +373,6 @@ Public Member Functions</h2></td></tr>
   <table class="params">
     <tr><td class="paramname">data</td><td>Smart pointer to data the that should be sent </td></tr>
     <tr><td class="paramname">data_len</td><td>Length of data </td></tr>
-    <tr><td class="paramname">ts</td><td>32-bit timestamp value for the data </td></tr>
     <tr><td class="paramname">flags</td><td>Optional flags, see <a class="el" href="util_8hh.html#af03a75996471fc531742cd640c7caf2d" title="These flags are given to uvgrtp::media_stream::push_frame() and they can be OR&#39;ed together.">RTP_FLAGS</a> for more details</td></tr>
   </table>
   </dd>
@@ -490,7 +495,6 @@ Public Member Functions</h2></td></tr>
   <table class="params">
     <tr><td class="paramname">data</td><td>Pointer to data the that should be sent </td></tr>
     <tr><td class="paramname">data_len</td><td>Length of data </td></tr>
-    <tr><td class="paramname">ts</td><td>32-bit timestamp value for the data </td></tr>
     <tr><td class="paramname">flags</td><td>Optional flags, see <a class="el" href="util_8hh.html#af03a75996471fc531742cd640c7caf2d" title="These flags are given to uvgrtp::media_stream::push_frame() and they can be OR&#39;ed together.">RTP_FLAGS</a> for more details</td></tr>
   </table>
   </dd>

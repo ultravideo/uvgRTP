@@ -82,7 +82,6 @@ namespace uvgrtp {
              *
              * \param data Pointer to data the that should be sent
              * \param data_len Length of data
-             * \param ts 32-bit timestamp value for the data
              * \param flags Optional flags, see ::RTP_FLAGS for more details
              *
              * \return RTP error code
@@ -107,7 +106,6 @@ namespace uvgrtp {
              *
              * \param data Smart pointer to data the that should be sent
              * \param data_len Length of data
-             * \param ts 32-bit timestamp value for the data
              * \param flags Optional flags, see ::RTP_FLAGS for more details
              *
              * \return RTP error code
@@ -195,7 +193,9 @@ namespace uvgrtp {
             /**
              * \brief Poll a frame for a specified time from the media stream object
              *
-             ** \return RTP frame
+             * \param timeout How long is a frame waited, in milliseconds
+             *
+             * \return RTP frame
              *
              * \retval uvgrtp::frame::rtp_frame* On success
              * \retval nullptr If a frame was not received within the specified time limit
