@@ -79,7 +79,7 @@ uvg_rtp::frame::rtp_frame *uvg_rtp::pkt_dispatcher::pull_frame(size_t timeout)
         --timeout;
     }
 
-    if (!this->active() && frames_.empty())
+    if (!this->active() || frames_.empty())
         return nullptr;
 
     frames_mtx_.lock();
