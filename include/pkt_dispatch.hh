@@ -87,8 +87,9 @@ namespace uvgrtp {
             uvgrtp::frame::rtp_frame *pull_frame();
             uvgrtp::frame::rtp_frame *pull_frame(size_t ms);
 
-            /* Return reference to the map that holds all installed handlers */
-            std::unordered_map<uint32_t, uvgrtp::packet_handlers>& get_handlers();
+        private:
+            /* RTP packet dispatcher thread */
+            void runner(uvgrtp::socket *socket, int flags);
 
             /* Return a processed RTP frame to user either through frame queue or receive hook */
             void return_frame(uvgrtp::frame::rtp_frame *frame);
@@ -96,15 +97,7 @@ namespace uvgrtp {
             /* Call auxiliary handlers of a primary handler */
             void call_aux_handlers(uint32_t key, int flags, uvgrtp::frame::rtp_frame **frame);
 
-            /* RTP packet dispatcher thread */
-            static void runner(
-                uvgrtp::pkt_dispatcher *dispatcher,
-                uvgrtp::socket *socket,
-                int flags,
-                std::mutex *exit_mtx
-            );
-
-        private:
+            /* Primary handlers for the socket */
             std::unordered_map<uint32_t, packet_handlers> packet_handlers_;
 
             /* If receive hook has not been installed, frames are pushed to "frames_"

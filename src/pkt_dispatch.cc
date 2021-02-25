@@ -24,7 +24,7 @@ uvgrtp::pkt_dispatcher::~pkt_dispatcher()
 
 rtp_error_t uvgrtp::pkt_dispatcher::start(uvgrtp::socket *socket, int flags)
 {
-    if (!(runner_ = new std::thread(runner, this, socket, flags, &exit_mtx_)))
+    if (!(runner_ = new std::thread(&uvgrtp::pkt_dispatcher::runner, this, socket, flags)))
         return RTP_MEMORY_ERROR;
 
     runner_->detach();
@@ -122,11 +122,6 @@ rtp_error_t uvgrtp::pkt_dispatcher::install_aux_handler(
     return RTP_OK;
 }
 
-std::unordered_map<uint32_t, uvgrtp::packet_handlers>& uvgrtp::pkt_dispatcher::get_handlers()
-{
-    return packet_handlers_;
-}
-
 void uvgrtp::pkt_dispatcher::return_frame(uvgrtp::frame::rtp_frame *frame)
 {
     if (recv_hook_) {
@@ -212,12 +207,7 @@ void uvgrtp::pkt_dispatcher::call_aux_handlers(uint32_t key, int flags, uvgrtp::
  *
  * If a handler receives a non-null "out", it can safely ignore "packet" and operate just on
  * the "out" parameter because at that point it already contains all needed information. */
-void uvgrtp::pkt_dispatcher::runner(
-    uvgrtp::pkt_dispatcher *dispatcher,
-    uvgrtp::socket *socket,
-    int flags,
-    std::mutex *exit_mtx
-)
+void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
 {
     int nread;
     fd_set read_fds;
@@ -232,14 +222,13 @@ void uvgrtp::pkt_dispatcher::runner(
 
     const size_t recv_buffer_len = 8192;
     uint8_t recv_buffer[recv_buffer_len] = { 0 };
-    auto handlers = dispatcher->get_handlers();
 
-    while (!dispatcher->active())
+    while (!this->active())
         ;
 
-    exit_mtx->lock();
+    exit_mtx_.lock();
 
-    while (dispatcher->active()) {
+    while (this->active()) {
         FD_SET(socket->get_raw_socket(), &read_fds);
         int sret = ::select(socket->get_raw_socket() + 1, &read_fds, nullptr, nullptr, &t_val);
 
@@ -257,7 +246,7 @@ void uvgrtp::pkt_dispatcher::runner(
                 break;
             }
 
-            for (auto& handler : handlers) {
+            for (auto& handler : packet_handlers_) {
                 switch ((ret = (*handler.second.primary)(nread, recv_buffer, flags, &frame))) {
                     /* packet was handled successfully */
                     case RTP_OK:
@@ -270,7 +259,7 @@ void uvgrtp::pkt_dispatcher::runner(
                     /* packet was handled by the primary handler
                      * and should be dispatched to the auxiliary handler(s) */
                     case RTP_PKT_MODIFIED:
-                        dispatcher->call_aux_handlers(handler.first, flags, &frame);
+                        this->call_aux_handlers(handler.first, flags, &frame);
                         break;
 
                     case RTP_GENERIC_ERROR:
@@ -285,5 +274,5 @@ void uvgrtp::pkt_dispatcher::runner(
         } while (ret == RTP_OK);
     }
 
-    exit_mtx->unlock();
+    exit_mtx_.unlock();
 }
