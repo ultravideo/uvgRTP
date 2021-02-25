@@ -110,7 +110,9 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
 {
     switch (fmt_) {
         case RTP_FORMAT_H264:
-            media_ = new uvgrtp::formats::h264(socket_, rtp_, ctx_config_.flags);
+            if (!(media_ = new uvgrtp::formats::h264(socket_, rtp_, ctx_config_.flags)))
+                return RTP_MEMORY_ERROR;
+
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 dynamic_cast<uvgrtp::formats::h264 *>(media_)->get_h264_frame_info(),
@@ -120,7 +122,9 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
             return RTP_OK;
 
         case RTP_FORMAT_H265:
-            media_ = new uvgrtp::formats::h265(socket_, rtp_, ctx_config_.flags);
+            if (!(media_ = new uvgrtp::formats::h265(socket_, rtp_, ctx_config_.flags)))
+                return RTP_MEMORY_ERROR;
+
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 dynamic_cast<uvgrtp::formats::h265 *>(media_)->get_h265_frame_info(),
@@ -130,7 +134,9 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
             return RTP_OK;
 
         case RTP_FORMAT_H266:
-            media_ = new uvgrtp::formats::h266(socket_, rtp_, ctx_config_.flags);
+            if (!(media_ = new uvgrtp::formats::h266(socket_, rtp_, ctx_config_.flags)))
+                return RTP_MEMORY_ERROR;
+
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 dynamic_cast<uvgrtp::formats::h266 *>(media_)->get_h266_frame_info(),
@@ -141,7 +147,9 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
 
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
-            media_ = new uvgrtp::formats::media(socket_, rtp_, ctx_config_.flags);
+            if (!(media_ = new uvgrtp::formats::media(socket_, rtp_, ctx_config_.flags)))
+                return RTP_MEMORY_ERROR;
+
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
                 media_->get_media_frame_info(),
