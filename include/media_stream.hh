@@ -293,6 +293,9 @@ namespace uvgrtp {
             /* Create the media object for the stream */
             rtp_error_t create_media(rtp_format_t fmt);
 
+            /* free all allocated resources */
+            rtp_error_t free_resources(rtp_error_t ret);
+
             uint32_t key_;
 
             uvgrtp::srtp   *srtp_;
@@ -324,7 +327,6 @@ namespace uvgrtp {
 
             /* RTP packet dispatcher for the receiver */
             uvgrtp::pkt_dispatcher *pkt_dispatcher_;
-            std::thread *dispatcher_thread_;
 
             /* Media object associated with this media stream. */
             uvgrtp::formats::media *media_;
