@@ -1,6 +1,5 @@
 #ifdef __linux__
 #include <errno.h>
-
 #else
 #define MSG_DONTWAIT 0
 #endif
@@ -214,14 +213,10 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
     rtp_error_t ret;
     struct timeval t_val;
     uvgrtp::frame::rtp_frame *frame;
-
-    FD_ZERO(&read_fds);
-
-    t_val.tv_sec  = 0;
-    t_val.tv_usec = 1500;
-
     const size_t recv_buffer_len = 8192;
     uint8_t recv_buffer[recv_buffer_len] = { 0 };
+
+    FD_ZERO(&read_fds);
 
     while (!this->active())
         ;
@@ -229,7 +224,11 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
     exit_mtx_.lock();
 
     while (this->active()) {
+        /* reset state before each call */
+        t_val.tv_sec  = 0;
+        t_val.tv_usec = 1500;
         FD_SET(socket->get_raw_socket(), &read_fds);
+
         int sret = ::select(socket->get_raw_socket() + 1, &read_fds, nullptr, nullptr, &t_val);
 
         if (sret < 0) {
