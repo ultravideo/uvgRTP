@@ -115,6 +115,57 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     return ret;
 }
 
+rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
+{
+    switch (fmt_) {
+        case RTP_FORMAT_H264:
+            media_ = new uvgrtp::formats::h264(socket_, rtp_, ctx_config_.flags);
+            pkt_dispatcher_->install_aux_handler(
+                rtp_handler_key_,
+                dynamic_cast<uvgrtp::formats::h264 *>(media_)->get_h264_frame_info(),
+                dynamic_cast<uvgrtp::formats::h264 *>(media_)->packet_handler,
+                dynamic_cast<uvgrtp::formats::h264 *>(media_)->frame_getter
+            );
+            return RTP_OK;
+
+        case RTP_FORMAT_H265:
+            media_ = new uvgrtp::formats::h265(socket_, rtp_, ctx_config_.flags);
+            pkt_dispatcher_->install_aux_handler(
+                rtp_handler_key_,
+                dynamic_cast<uvgrtp::formats::h265 *>(media_)->get_h265_frame_info(),
+                dynamic_cast<uvgrtp::formats::h265 *>(media_)->packet_handler,
+                dynamic_cast<uvgrtp::formats::h265 *>(media_)->frame_getter
+            );
+            return RTP_OK;
+
+        case RTP_FORMAT_H266:
+            media_ = new uvgrtp::formats::h266(socket_, rtp_, ctx_config_.flags);
+            pkt_dispatcher_->install_aux_handler(
+                rtp_handler_key_,
+                dynamic_cast<uvgrtp::formats::h266 *>(media_)->get_h266_frame_info(),
+                dynamic_cast<uvgrtp::formats::h266 *>(media_)->packet_handler,
+                nullptr
+            );
+            return RTP_OK;
+
+        case RTP_FORMAT_OPUS:
+        case RTP_FORMAT_GENERIC:
+            media_ = new uvgrtp::formats::media(socket_, rtp_, ctx_config_.flags);
+            pkt_dispatcher_->install_aux_handler(
+                rtp_handler_key_,
+                media_->get_media_frame_info(),
+                media_->packet_handler,
+                nullptr
+            );
+            return RTP_OK;
+
+        default:
+            LOG_ERROR("Unknown payload format %u\n", fmt_);
+            media_ = nullptr;
+            return RTP_NOT_SUPPORTED;
+    }
+}
+
 rtp_error_t uvgrtp::media_stream::init()
 {
     if (init_connection() != RTP_OK) {
@@ -141,54 +192,7 @@ rtp_error_t uvgrtp::media_stream::init()
     rtp_handler_key_ = pkt_dispatcher_->install_handler(rtp_->packet_handler);
     pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler, nullptr);
 
-    switch (fmt_) {
-        case RTP_FORMAT_H265:
-            media_ = new uvgrtp::formats::h265(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(
-                rtp_handler_key_,
-                dynamic_cast<uvgrtp::formats::h265 *>(media_)->get_h265_frame_info(),
-                dynamic_cast<uvgrtp::formats::h265 *>(media_)->packet_handler,
-                dynamic_cast<uvgrtp::formats::h265 *>(media_)->frame_getter
-            );
-            break;
-
-        case RTP_FORMAT_H264:
-            media_ = new uvgrtp::formats::h264(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(
-                rtp_handler_key_,
-                dynamic_cast<uvgrtp::formats::h264 *>(media_)->get_h264_frame_info(),
-                dynamic_cast<uvgrtp::formats::h264 *>(media_)->packet_handler,
-                dynamic_cast<uvgrtp::formats::h264 *>(media_)->frame_getter
-            );
-            break;
-
-        case RTP_FORMAT_H266:
-            media_ = new uvgrtp::formats::h266(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(
-                rtp_handler_key_,
-                dynamic_cast<uvgrtp::formats::h266 *>(media_)->get_h266_frame_info(),
-                dynamic_cast<uvgrtp::formats::h266 *>(media_)->packet_handler,
-                nullptr
-            );
-            break;
-
-        case RTP_FORMAT_OPUS:
-        case RTP_FORMAT_GENERIC:
-            media_ = new uvgrtp::formats::media(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(
-                rtp_handler_key_,
-                media_->get_media_frame_info(),
-                media_->packet_handler,
-                nullptr
-            );
-            break;
-
-        default:
-            LOG_ERROR("Unknown payload format %u\n", fmt_);
-            media_ = nullptr;
-    }
-
-    if (!media_) {
+    if (create_media(fmt_) != RTP_OK) {
         delete rtp_;
         delete rtcp_;
         delete pkt_dispatcher_;
@@ -286,43 +290,7 @@ rtp_error_t uvgrtp::media_stream::init(uvgrtp::zrtp *zrtp)
     pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler, nullptr);
     pkt_dispatcher_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler, nullptr);
 
-    switch (fmt_) {
-        case RTP_FORMAT_H265:
-            media_ = new uvgrtp::formats::h265(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(
-                rtp_handler_key_,
-                dynamic_cast<uvgrtp::formats::h265 *>(media_)->get_h265_frame_info(),
-                dynamic_cast<uvgrtp::formats::h265 *>(media_)->packet_handler,
-                dynamic_cast<uvgrtp::formats::h265 *>(media_)->frame_getter
-            );
-            break;
-
-        case RTP_FORMAT_H264:
-            media_ = new uvgrtp::formats::h264(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(
-                rtp_handler_key_,
-                dynamic_cast<uvgrtp::formats::h264 *>(media_)->get_h264_frame_info(),
-                dynamic_cast<uvgrtp::formats::h264 *>(media_)->packet_handler,
-                dynamic_cast<uvgrtp::formats::h264 *>(media_)->frame_getter
-            );
-            break;
-
-        case RTP_FORMAT_OPUS:
-        case RTP_FORMAT_GENERIC:
-            media_ = new uvgrtp::formats::media(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(
-                rtp_handler_key_,
-                media_->get_media_frame_info(),
-                media_->packet_handler,
-                nullptr
-            );
-            break;
-
-        default:
-            LOG_ERROR("Unknown payload format %u\n", fmt_);
-    }
-
-    if (!media_) {
+    if (create_media(fmt_) != RTP_OK) {
         delete rtp_;
         delete srtp_;
         delete srtcp_;
@@ -419,43 +387,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler, nullptr);
     pkt_dispatcher_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler, nullptr);
 
-    switch (fmt_) {
-        case RTP_FORMAT_H265:
-            media_ = new uvgrtp::formats::h265(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(
-                rtp_handler_key_,
-                dynamic_cast<uvgrtp::formats::h265 *>(media_)->get_h265_frame_info(),
-                dynamic_cast<uvgrtp::formats::h265 *>(media_)->packet_handler,
-                dynamic_cast<uvgrtp::formats::h265 *>(media_)->frame_getter
-            );
-            break;
-
-        case RTP_FORMAT_H264:
-            media_ = new uvgrtp::formats::h264(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(
-                rtp_handler_key_,
-                dynamic_cast<uvgrtp::formats::h264 *>(media_)->get_h264_frame_info(),
-                dynamic_cast<uvgrtp::formats::h264 *>(media_)->packet_handler,
-                dynamic_cast<uvgrtp::formats::h264 *>(media_)->frame_getter
-            );
-            break;
-
-        case RTP_FORMAT_OPUS:
-        case RTP_FORMAT_GENERIC:
-            media_ = new uvgrtp::formats::media(socket_, rtp_, ctx_config_.flags);
-            pkt_dispatcher_->install_aux_handler(
-                rtp_handler_key_,
-                media_->get_media_frame_info(),
-                media_->packet_handler,
-                nullptr
-            );
-            break;
-
-        default:
-            LOG_ERROR("Unknown payload format %u\n", fmt_);
-    }
-
-    if (!media_) {
+    if (create_media(fmt_) != RTP_OK) {
         delete rtp_;
         delete srtp_;
         delete srtcp_;

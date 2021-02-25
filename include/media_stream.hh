@@ -290,6 +290,9 @@ namespace uvgrtp {
              * an outgoing address */
             rtp_error_t init_connection();
 
+            /* Create the media object for the stream */
+            rtp_error_t create_media(rtp_format_t fmt);
+
             uint32_t key_;
 
             uvgrtp::srtp   *srtp_;
