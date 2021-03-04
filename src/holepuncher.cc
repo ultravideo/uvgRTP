@@ -36,7 +36,7 @@ void uvgrtp::holepuncher::notify()
 void uvgrtp::holepuncher::keepalive()
 {
     while (active()) {
-        if (!last_dgram_sent_ || uvgrtp::clock::ntp::diff_now(last_dgram_sent_) < THRESHOLD) {
+        if (uvgrtp::clock::ntp::diff_now(last_dgram_sent_) < THRESHOLD) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             continue;
         }
