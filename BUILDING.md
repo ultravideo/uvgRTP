@@ -2,7 +2,7 @@
 
 uvgRTP is built using CMake and a 64-bit compiler is required for compilation.
 
-uvgRTP can be built with QtCreator too, see uvgRTP.pro. Archive merging is not supported when QtCreator is used.
+uvgRTP can be built with QtCreator too, see uvgRTP.pro.
 
 ## Note about Crypto++ and SRTP/ZRTP support
 
@@ -50,21 +50,4 @@ Linking
 
 ```
 g++ main.cc -luvgrtp -lpthread
-```
-
-### Build uvgRTP and include POSIX threads and Crypto++ into the final library
-
-Building
-
-```
-mkdir build && cd build
-cmake -DCRYPTOPP_PATH=/usr/local/lib/libcryptopp.a -DPTHREADS_PATH=/usr/lib/libpthreads.a ..
-make
-sudo make install
-```
-
-Linking
-
-```
-g++ main.cc -luvgrtp
 ```

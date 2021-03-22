@@ -80,22 +80,22 @@ if (UNIX)
         string(APPEND CMAKE_CXX_FLAGS " -D__RTP_NO_CRYPTO__")
     endif(DISABLE_CRYPTO)
 
-    if (NOT "${LIBRARY_PATHS}" STREQUAL "")
-        add_custom_command(TARGET uvgrtp POST_BUILD
-            COMMAND ar crsT ARGS libuvgrtp_thin.a libuvgrtp.a ${LIBRARY_PATHS}
-            BYPRODUCTS libuvgrtp_thin.a
-            COMMENT "Creating combined archive"
-        )
-        install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libuvgrtp_thin.a
-                RENAME libuvgrtp.a
-                DESTINATION /usr/local/lib
-        )
-    else (NOT "${LIBRARY_PATHS}" STREQUAL "")
+    # if (NOT "${LIBRARY_PATHS}" STREQUAL "")
+    #     add_custom_command(TARGET uvgrtp POST_BUILD
+    #         COMMAND ar crsT ARGS libuvgrtp_thin.a libuvgrtp.a ${LIBRARY_PATHS}
+    #         BYPRODUCTS libuvgrtp_thin.a
+    #         COMMENT "Creating combined archive"
+    #     )
+    #     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libuvgrtp_thin.a
+    #             RENAME libuvgrtp.a
+    #             DESTINATION /usr/local/lib
+    #     )
+    # else (NOT "${LIBRARY_PATHS}" STREQUAL "")
         install(TARGETS uvgrtp
                 ARCHIVE
                 DESTINATION /usr/local/lib
         )
-    endif (NOT "${LIBRARY_PATHS}" STREQUAL "")
+    # endif (NOT "${LIBRARY_PATHS}" STREQUAL "")
 
     install(DIRECTORY include/ DESTINATION /usr/local/include/uvgrtp
             FILES_MATCHING PATTERN "*.hh"
@@ -110,18 +110,18 @@ if (WIN32)
         string(APPEND CMAKE_CXX_FLAGS " /D__RTP_NO_CRYPTO__")
     endif(DISABLE_CRYPTO)
 
-    if (NOT "${LIBRARY_PATHS}" STREQUAL "")
-        add_custom_command(TARGET uvgrtp POST_BUILD
-            COMMAND lib /out:${OUT_DIR}/uvgrtp.lib ${OUT_DIR}/uvgrtp.lib ${LIBRARY_PATHS}
-            BYPRODUCTS uvgrtp.lib
-            COMMENT "Creating combined archive"
-        )
-    else (NOT "${LIBRARY_PATHS}" STREQUAL "")
+    # if (NOT "${LIBRARY_PATHS}" STREQUAL "")
+    #     add_custom_command(TARGET uvgrtp POST_BUILD
+    #         COMMAND lib /out:${OUT_DIR}/uvgrtp.lib ${OUT_DIR}/uvgrtp.lib ${LIBRARY_PATHS}
+    #         BYPRODUCTS uvgrtp.lib
+    #         COMMENT "Creating combined archive"
+    #     )
+    # else (NOT "${LIBRARY_PATHS}" STREQUAL "")
         install(TARGETS uvgrtp
                 ARCHIVE
                 DESTINATION ${PROJECT_BINARY_DIR}/lib
         )
-    endif (NOT "${LIBRARY_PATHS}" STREQUAL "")
+    # endif (NOT "${LIBRARY_PATHS}" STREQUAL "")
 
     install(DIRECTORY include/ DESTINATION ${PROJECT_BINARY_DIR}/include
             FILES_MATCHING PATTERN "*.hh"
