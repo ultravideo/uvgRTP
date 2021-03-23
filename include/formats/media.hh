@@ -10,7 +10,7 @@
 #include "../queue.hh"
 #include "../util.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     namespace formats {
 
@@ -19,7 +19,7 @@ namespace uvg_rtp {
             uint32_t e_seq;
             size_t npkts;
             size_t size;
-            std::map<uint16_t, uvg_rtp::frame::rtp_frame *> fragments;
+            std::map<uint16_t, uvgrtp::frame::rtp_frame *> fragments;
         } media_info_t;
 
         typedef struct media_frame_info {
@@ -29,7 +29,7 @@ namespace uvg_rtp {
 
         class media {
             public:
-                media(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp_ctx, int flags);
+                media(uvgrtp::socket *socket, uvgrtp::rtp *rtp_ctx, int flags);
                 virtual ~media();
 
                 /* These two functions are called by media_stream which is self is called by the application.
@@ -58,13 +58,15 @@ namespace uvg_rtp {
             protected:
                 virtual rtp_error_t push_media_frame(uint8_t *data, size_t data_len, int flags);
 
-                uvg_rtp::socket *socket_;
-                uvg_rtp::rtp *rtp_ctx_;
+                uvgrtp::socket *socket_;
+                uvgrtp::rtp *rtp_ctx_;
                 int flags_;
-                uvg_rtp::frame_queue *fqueue_;
+                uvgrtp::frame_queue *fqueue_;
 
             private:
                 media_frame_info_t minfo_;
         };
     };
 };
+
+namespace uvg_rtp = uvgrtp;

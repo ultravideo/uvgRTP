@@ -30,7 +30,7 @@
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
-static inline unsigned __find_h265_start(uint32_t value)
+static inline unsigned __find_h26x_start(uint32_t value)
 {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     uint16_t u = (value >> 16) & 0xffff;
@@ -72,7 +72,7 @@ static inline unsigned __find_h265_start(uint32_t value)
 
 /* NOTE: the area 0 - len (ie data[0] - data[len - 1]) must be addressable
  * Do not add offset to "data" ptr before passing it to find_h26x_start_code()! */
-ssize_t uvg_rtp::formats::h26x::find_h26x_start_code(
+ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
     uint8_t *data,
     size_t len,
     size_t offset,
@@ -161,7 +161,7 @@ ssize_t uvg_rtp::formats::h26x::find_h26x_start_code(
 
 
         {
-            if ((ret = start_len = __find_h265_start(value)) > 0) {
+            if ((ret = start_len = __find_h26x_start(value)) > 0) {
                 if (ret == 5) {
                     ret = 3;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -230,7 +230,7 @@ end:
     return -1;
 }
 
-rtp_error_t uvg_rtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_len, int flags)
+rtp_error_t uvgrtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_len, int flags)
 {
     /* find first start code */
     uint8_t start_len   = 0;
@@ -279,7 +279,7 @@ error:
     return ret;
 }
 
-rtp_error_t uvg_rtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len, bool more)
+rtp_error_t uvgrtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len, bool more)
 {
     (void)data, (void)data_len, (void)more;
 
@@ -288,17 +288,17 @@ rtp_error_t uvg_rtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len
     return RTP_NOT_SUPPORTED;
 }
 
-uvg_rtp::formats::h26x::h26x(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):
+uvgrtp::formats::h26x::h26x(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags):
     media(socket, rtp, flags)
 {
 }
 
-uvg_rtp::formats::h26x::~h26x()
+uvgrtp::formats::h26x::~h26x()
 {
     delete fqueue_;
 }
 
-rtp_error_t uvg_rtp::formats::h26x::push_media_frame(uint8_t *data, size_t data_len, int flags)
+rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t *data, size_t data_len, int flags)
 {
     rtp_error_t ret;
 

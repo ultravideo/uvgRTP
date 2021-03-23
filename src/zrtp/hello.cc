@@ -9,9 +9,9 @@
 #define ZRTP_HELLO       "Hello   "
 #define ZRTP_CLIENT_ID   "uvgRTP,UVG,TUNI "
 
-using namespace uvg_rtp::zrtp_msg;
+using namespace uvgrtp::zrtp_msg;
 
-uvg_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
+uvgrtp::zrtp_msg::hello::hello(zrtp_session_t& session)
 {
     /* temporary storage for the full hmac hash */
     uint8_t mac_full[32];
@@ -24,8 +24,8 @@ uvg_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
     len_  = sizeof(zrtp_hello);
     rlen_ = sizeof(zrtp_hello) + 5 * 8;
 
-    frame_  = uvg_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_hello));
-    rframe_ = uvg_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_hello) + 5 * 8);
+    frame_  = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_hello));
+    rframe_ = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_hello) + 5 * 8);
 
     memset(frame_,  0, sizeof(zrtp_hello));
     memset(rframe_, 0, sizeof(zrtp_hello) + 5 * 8);
@@ -38,7 +38,7 @@ uvg_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
     msg->msg_start.header.seq     = session.seq++;
 
     msg->msg_start.magic  = ZRTP_MSG_MAGIC;
-    msg->msg_start.length = len_ - sizeof(uvg_rtp::frame::zrtp_frame);
+    msg->msg_start.length = len_ - sizeof(uvgrtp::frame::zrtp_frame);
 
     memcpy(&msg->msg_start.msgblock, ZRTP_HELLO,                  8);
     memcpy(&msg->version,            ZRTP_VERSION,                4);
@@ -57,7 +57,7 @@ uvg_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
     msg->sc     = 0;
 
     /* Calculate MAC for the Hello message (only the ZRTP message part) */
-    auto hmac_sha256 = uvg_rtp::crypto::hmac::sha256(session.hash_ctx.o_hash[2], 32);
+    auto hmac_sha256 = uvgrtp::crypto::hmac::sha256(session.hash_ctx.o_hash[2], 32);
 
     hmac_sha256.update((uint8_t *)frame_, 81);
     hmac_sha256.final(mac_full);
@@ -65,22 +65,22 @@ uvg_rtp::zrtp_msg::hello::hello(zrtp_session_t& session)
     memcpy(&msg->mac, mac_full, sizeof(uint64_t));
 
     /* Calculate CRC32 of the whole packet (excluding crc) */
-    msg->crc = uvg_rtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
+    msg->crc = uvgrtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
 
     /* Finally make a copy of the message and save it for later use */
     session.l_msg.hello.first  = len_;
-    session.l_msg.hello.second = (uvg_rtp::zrtp_msg::zrtp_hello *)new uint8_t[len_];
+    session.l_msg.hello.second = (uvgrtp::zrtp_msg::zrtp_hello *)new uint8_t[len_];
     memcpy(session.l_msg.hello.second, msg, len_);
 }
 
-uvg_rtp::zrtp_msg::hello::~hello()
+uvgrtp::zrtp_msg::hello::~hello()
 {
     LOG_DEBUG("Freeing ZRTP hello message...");
-    (void)uvg_rtp::frame::dealloc_frame(frame_);
-    (void)uvg_rtp::frame::dealloc_frame(rframe_);
+    (void)uvgrtp::frame::dealloc_frame(frame_);
+    (void)uvgrtp::frame::dealloc_frame(rframe_);
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::hello::send_msg(uvg_rtp::socket *socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp_msg::hello::send_msg(uvgrtp::socket *socket, sockaddr_in& addr)
 {
     rtp_error_t ret;
 
@@ -90,7 +90,7 @@ rtp_error_t uvg_rtp::zrtp_msg::hello::send_msg(uvg_rtp::socket *socket, sockaddr
     return ret;
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::hello::parse_msg(uvg_rtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
+rtp_error_t uvgrtp::zrtp_msg::hello::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
     ssize_t len = 0;
 
@@ -125,7 +125,7 @@ rtp_error_t uvg_rtp::zrtp_msg::hello::parse_msg(uvg_rtp::zrtp_msg::receiver& rec
 
     /* Finally make a copy of the message and save it for later use */
     session.r_msg.hello.first  = len;
-    session.r_msg.hello.second = (uvg_rtp::zrtp_msg::zrtp_hello *)new uint8_t[len];
+    session.r_msg.hello.second = (uvgrtp::zrtp_msg::zrtp_hello *)new uint8_t[len];
     memcpy(session.r_msg.hello.second, msg, len);
 
     return RTP_OK;

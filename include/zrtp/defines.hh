@@ -2,7 +2,7 @@
 
 #include "../util.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     namespace zrtp_msg {
 
@@ -132,3 +132,5 @@ namespace uvg_rtp {
         };
     };
 };
+
+namespace uvg_rtp = uvgrtp;

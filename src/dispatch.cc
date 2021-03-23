@@ -3,26 +3,26 @@
 #include "socket.hh"
 
 #ifndef _WIN32
-uvg_rtp::dispatcher::dispatcher(uvg_rtp::socket *socket):
+uvgrtp::dispatcher::dispatcher(uvgrtp::socket *socket):
     socket_(socket)
 {
 }
 
-uvg_rtp::dispatcher::~dispatcher()
+uvgrtp::dispatcher::~dispatcher()
 {
 }
 
-rtp_error_t uvg_rtp::dispatcher::start()
+rtp_error_t uvgrtp::dispatcher::start()
 {
     if ((runner_ = new std::thread(dispatch_runner, this, socket_)) == nullptr)
         return RTP_MEMORY_ERROR;
 
     runner_->detach();
 
-    return uvg_rtp::runner::start();
+    return uvgrtp::runner::start();
 }
 
-rtp_error_t uvg_rtp::dispatcher::stop()
+rtp_error_t uvgrtp::dispatcher::stop()
 {
     if (tasks_.size() > 0)
         return RTP_NOT_READY;
@@ -30,7 +30,7 @@ rtp_error_t uvg_rtp::dispatcher::stop()
     /* notify dispatcher that we must stop now, lock the dispatcher mutex
      * and wait until it's unlocked by the dispatcher at which point it is safe
      * to return and release all memory */
-    (void)uvg_rtp::runner::stop();
+    (void)uvgrtp::runner::stop();
     d_mtx_.lock();
     cv_.notify_one();
     while (d_mtx_.try_lock());
@@ -38,17 +38,17 @@ rtp_error_t uvg_rtp::dispatcher::stop()
     return RTP_OK;
 }
 
-std::condition_variable& uvg_rtp::dispatcher::get_cvar()
+std::condition_variable& uvgrtp::dispatcher::get_cvar()
 {
     return cv_;
 }
 
-std::mutex& uvg_rtp::dispatcher::get_mutex()
+std::mutex& uvgrtp::dispatcher::get_mutex()
 {
     return d_mtx_;
 }
 
-rtp_error_t uvg_rtp::dispatcher::trigger_send(uvg_rtp::transaction_t *t)
+rtp_error_t uvgrtp::dispatcher::trigger_send(uvgrtp::transaction_t *t)
 {
     std::lock_guard<std::mutex> lock(d_mtx_);
 
@@ -61,7 +61,7 @@ rtp_error_t uvg_rtp::dispatcher::trigger_send(uvg_rtp::transaction_t *t)
     return RTP_OK;
 }
 
-uvg_rtp::transaction_t *uvg_rtp::dispatcher::get_transaction()
+uvgrtp::transaction_t *uvgrtp::dispatcher::get_transaction()
 {
     std::lock_guard<std::mutex> lock(d_mtx_);
 
@@ -74,7 +74,7 @@ uvg_rtp::transaction_t *uvg_rtp::dispatcher::get_transaction()
     return elem;
 }
 
-void uvg_rtp::dispatcher::dispatch_runner(uvg_rtp::dispatcher *dispatcher, uvg_rtp::socket *socket)
+void uvgrtp::dispatcher::dispatch_runner(uvgrtp::dispatcher *dispatcher, uvgrtp::socket *socket)
 {
     if (!dispatcher || !socket) {
         LOG_ERROR("System call dispatcher cannot continue, invalid value given!");
@@ -83,7 +83,7 @@ void uvg_rtp::dispatcher::dispatch_runner(uvg_rtp::dispatcher *dispatcher, uvg_r
 
     std::mutex m;
     std::unique_lock<std::mutex> lk(m);
-    uvg_rtp::transaction_t *t = nullptr;
+    uvgrtp::transaction_t *t = nullptr;
 
     while (!dispatcher->active())
         ;

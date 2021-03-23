@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-namespace uvg_rtp {
+namespace uvgrtp {
     namespace clock {
 
         /* network time protocol */
@@ -42,3 +42,5 @@ namespace uvg_rtp {
 #endif
     };
 };
+
+namespace uvg_rtp = uvgrtp;

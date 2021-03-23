@@ -1,6 +1,6 @@
 #pragma once
 
-namespace uvg_rtp {
+namespace uvgrtp {
     namespace zrtp_msg {
 
         class receiver {
@@ -16,7 +16,7 @@ namespace uvg_rtp {
                  * Return -EPROTONOSUPPORT if message contains incompatible version number
                  * Return -ENOPNOTSUPP if message type is not supported
                  * Return -errno for any other error */
-                int recv_msg(uvg_rtp::socket *socket, int timeout, int flags);
+                int recv_msg(uvgrtp::socket *socket, int timeout, int flags);
 
                 /* TODO:  */
                 ssize_t get_msg(void *ptr, size_t len);
@@ -38,3 +38,5 @@ namespace uvg_rtp {
         };
     };
 };
+
+namespace uvg_rtp = uvgrtp;

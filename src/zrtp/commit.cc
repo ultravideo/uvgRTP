@@ -8,15 +8,15 @@
 
 #define ZRTP_COMMIT "Commit  "
 
-uvg_rtp::zrtp_msg::commit::commit(zrtp_session_t& session)
+uvgrtp::zrtp_msg::commit::commit(zrtp_session_t& session)
 {
     /* temporary storage for the full hmac hash */
     uint8_t mac_full[32] = { 0 };
 
     LOG_DEBUG("Create ZRTP Commit message!");
 
-    frame_  = uvg_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_commit));
-    rframe_ = uvg_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_commit));
+    frame_  = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_commit));
+    rframe_ = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_commit));
     len_    = sizeof(zrtp_commit);
     rlen_   = sizeof(zrtp_commit);
 
@@ -40,7 +40,7 @@ uvg_rtp::zrtp_msg::commit::commit(zrtp_session_t& session)
     /* Multistream mode must use unique random nonce */
     if (session.key_agreement_type == MULT) {
         memset((uint8_t *)session.hash_ctx.o_hvi, 0, 32);
-        uvg_rtp::crypto::random::generate_random((uint8_t *)session.hash_ctx.o_hvi, 16);
+        uvgrtp::crypto::random::generate_random((uint8_t *)session.hash_ctx.o_hvi, 16);
         memcpy(msg->hvi, session.hash_ctx.o_hvi, 16); /* 128 bits */
     } else {
         memcpy(msg->hvi, session.hash_ctx.o_hvi, 32); /* 256 bits */
@@ -53,7 +53,7 @@ uvg_rtp::zrtp_msg::commit::commit(zrtp_session_t& session)
     msg->key_agreement_type = session.key_agreement_type;
 
     /* Calculate truncated HMAC-SHA256 for the Commit Message */
-    auto hmac_sha256 = uvg_rtp::crypto::hmac::sha256(session.hash_ctx.o_hash[1], 32);
+    auto hmac_sha256 = uvgrtp::crypto::hmac::sha256(session.hash_ctx.o_hash[1], 32);
 
     hmac_sha256.update((uint8_t *)frame_, len_ - 8 - 4);
     hmac_sha256.final(mac_full);
@@ -61,23 +61,23 @@ uvg_rtp::zrtp_msg::commit::commit(zrtp_session_t& session)
     memcpy(&msg->mac, mac_full, sizeof(uint64_t));
 
     /* Calculate CRC32 for the whole ZRTP packet */
-    msg->crc = uvg_rtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
+    msg->crc = uvgrtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
 
     /* Finally make a copy of the message and save it for later use */
     session.l_msg.commit.first  = len_;
-    session.l_msg.commit.second = (uvg_rtp::zrtp_msg::zrtp_commit *)new uint8_t[len_];
+    session.l_msg.commit.second = (uvgrtp::zrtp_msg::zrtp_commit *)new uint8_t[len_];
     memcpy(session.l_msg.commit.second, msg, len_);
 }
 
-uvg_rtp::zrtp_msg::commit::~commit()
+uvgrtp::zrtp_msg::commit::~commit()
 {
     LOG_DEBUG("Freeing Commit message...");
 
-    (void)uvg_rtp::frame::dealloc_frame(frame_);
-    (void)uvg_rtp::frame::dealloc_frame(rframe_);
+    (void)uvgrtp::frame::dealloc_frame(frame_);
+    (void)uvgrtp::frame::dealloc_frame(rframe_);
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::commit::send_msg(uvg_rtp::socket *socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp_msg::commit::send_msg(uvgrtp::socket *socket, sockaddr_in& addr)
 {
     rtp_error_t ret;
 
@@ -87,7 +87,7 @@ rtp_error_t uvg_rtp::zrtp_msg::commit::send_msg(uvg_rtp::socket *socket, sockadd
     return ret;
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::commit::parse_msg(uvg_rtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
+rtp_error_t uvgrtp::zrtp_msg::commit::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
     ssize_t len = 0;
 
@@ -114,7 +114,7 @@ rtp_error_t uvg_rtp::zrtp_msg::commit::parse_msg(uvg_rtp::zrtp_msg::receiver& re
 
     /* Finally make a copy of the message and save it for later use */
     session.r_msg.commit.first  = len;
-    session.r_msg.commit.second = (uvg_rtp::zrtp_msg::zrtp_commit *)new uint8_t[len];
+    session.r_msg.commit.second = (uvgrtp::zrtp_msg::zrtp_commit *)new uint8_t[len];
     memcpy(session.r_msg.commit.second, msg, len);
 
     return RTP_OK;

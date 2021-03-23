@@ -15,7 +15,7 @@
 
 #include "util.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
 #ifdef _WIN32
     typedef unsigned int socklen_t;
@@ -144,7 +144,7 @@ namespace uvg_rtp {
 
             /* __sendtov() does the same as __sendto but it combines multiple buffers into one frame and sends them */
             rtp_error_t __sendtov(sockaddr_in& addr, buf_vec& buffers, int flags, int *bytes_sent);
-            rtp_error_t __sendtov(sockaddr_in& addr, uvg_rtp::pkt_vec& buffers, int flags, int *bytes_sent);
+            rtp_error_t __sendtov(sockaddr_in& addr, uvgrtp::pkt_vec& buffers, int flags, int *bytes_sent);
 
             socket_t socket_;
             sockaddr_in addr_;
@@ -164,3 +164,5 @@ namespace uvg_rtp {
 #endif
     };
 };
+
+namespace uvg_rtp = uvgrtp;

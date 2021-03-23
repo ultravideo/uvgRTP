@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <memory>
 
+#include "holepuncher.hh"
 #include "pkt_dispatch.hh"
 #include "rtcp.hh"
 #include "socket.hh"
@@ -12,10 +13,11 @@
 
 #include "formats/media.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     class media_stream {
         public:
+            /// \cond DO_NOT_DOCUMENT
             media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags);
             media_stream(std::string remote_addr, std::string local_addr, int src_port, int dst_port, rtp_format_t fmt, int flags);
             ~media_stream();
@@ -38,76 +40,190 @@ namespace uvg_rtp {
              * TODO document all error codes!
              *
              * Other error return codes are defined in {conn,writer,reader,srtp}.hh */
-            rtp_error_t init(uvg_rtp::zrtp *zrtp);
+            rtp_error_t init(uvgrtp::zrtp *zrtp);
+            /// \endcond
 
-            /* Add key for user-managed SRTP session
+            /**
              *
-             * For user-managed SRTP session, the media stream is not started
+             * \brief Add keying information for user-managed SRTP session
+             *
+             * \details For user-managed SRTP session, the media stream is not started
              * until SRTP key has been added and all calls to push_frame() will fail
              *
              * Currently uvgRTP only supports key length of 16 bytes (128 bits)
              * and salt length of 14 bytes (112 bits).
-             * If the key/salt is longer, it is implicitly truncated to correct length
-             * and if the key/salt is shorter a memory violation may occur
              *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "key" or "salt" is invalid
-             * Return RTP_NOT_SUPPORTED if user-managed SRTP was not specified in create_stream() */
+             * If the key or salt is longer, it is implicitly truncated to correct length
+             * and if the key or salt is shorter, a memory violation may occur
+             *
+             * Notice that if user-managed SRTP has been enabled during media stream creation,
+             * this function must be called before anything else. All calls to other functions
+             * will fail with ::RTP_NOT_INITIALIZED until the SRTP context has been specified
+             *
+             * \param key 128-bit long key
+             * \param salt 112-bit long salt
+             *
+             * \return RTP error code
+             *
+             * \retval  RTP_OK On success
+             * \retval  RTP_INVALID_VALUE If key or salt is invalid
+             * \retval  RTP_NOT_SUPPORTED If user-managed SRTP was not specified in create_stream() */
             rtp_error_t add_srtp_ctx(uint8_t *key, uint8_t *salt);
 
-            /* Split "data" into 1500 byte chunks and send them to remote
+            /**
+             * \brief Send data to remote participant with a custom timestamp
              *
-             * NOTE: If SCD has been enabled, calling this version of push_frame()
-             * requires either that the caller has given a deallocation callback to
-             * SCD OR that "flags" contains flags "RTP_COPY"
+             * \details If so specified either by the selected media format and/or given
+             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1500 bytes,
+             * or to any other size defined by the application using ::RCC_MTU_SIZE
              *
-             * NOTE: Each push_frame() sends one discrete frame of data. If the input frame
-             * is fragmented, calling application should call push_frame() with RTP_MORE
-             * and RTP_SLICE flags to prevent uvgRTP from flushing the frame queue after
-             * push_frame().
+             * The frame is automatically reconstructed by the receiver if all fragments have been
+             * received successfully.
              *
-             * push_frame(..., RTP_MORE | RTP_SLICE); // more data coming in, do not flush queue
-             * push_frame(..., RTP_MORE | RTP_SLICE); // more data coming in, do not flush queue
-             * push_frame(..., RTP_SLICE);            // no more data coming in, flush queue
+             * \param data Pointer to data the that should be sent
+             * \param data_len Length of data
+             * \param flags Optional flags, see ::RTP_FLAGS for more details
              *
-             * If user wishes to manage RTP timestamps himself, he may pass "ts" to push_frame()
-             * which forces uvgRTP to use that timestamp for all RTP packets of "data".
+             * \return RTP error code
              *
-             * Return RTP_OK success
-             * Return RTP_INVALID_VALUE if one of the parameters are invalid
-             * Return RTP_MEMORY_ERROR  if the data chunk is too large to be processed
-             * Return RTP_SEND_ERROR    if uvgRTP failed to send the data to remote
-             * Return RTP_GENERIC_ERROR for any other error condition */
+             * \retval  RTP_OK            On success
+             * \retval  RTP_INVALID_VALUE If one of the parameters are invalid
+             * \retval  RTP_MEMORY_ERROR  If the data chunk is too large to be processed
+             * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
+             * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
+             */
             rtp_error_t push_frame(uint8_t *data, size_t data_len, int flags);
-            rtp_error_t push_frame(uint8_t *data, size_t data_len, uint32_t ts, int flags);
+
+            /**
+             * \brief Send data to remote participant with a custom timestamp
+             *
+             * \details If so specified either by the selected media format and/or given
+             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1500 bytes,
+             * or to any other size defined by the application using ::RCC_MTU_SIZE
+             *
+             * The frame is automatically reconstructed by the receiver if all fragments have been
+             * received successfully.
+             *
+             * \param data Smart pointer to data the that should be sent
+             * \param data_len Length of data
+             * \param flags Optional flags, see ::RTP_FLAGS for more details
+             *
+             * \return RTP error code
+             *
+             * \retval  RTP_OK            On success
+             * \retval  RTP_INVALID_VALUE If one of the parameters are invalid
+             * \retval  RTP_MEMORY_ERROR  If the data chunk is too large to be processed
+             * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
+             * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
+             */
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags);
+
+            /**
+             * \brief Send data to remote participant with a custom timestamp
+             *
+             * \details If so specified either by the selected media format and/or given
+             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1500 bytes,
+             * or to any other size defined by the application using ::RCC_MTU_SIZE
+             *
+             * The frame is automatically reconstructed by the receiver if all fragments have been
+             * received successfully.
+             *
+             * If application so wishes, it may override uvgRTP's own timestamp
+             * calculations and provide timestamping information for the stream itself.
+             * This requires that the application provides a sensible value for the ts
+             * parameter. If RTCP has been enabled, uvgrtp::rtcp::set_ts_info() should have
+             * been called.
+             *
+             * \param data Pointer to data the that should be sent
+             * \param data_len Length of data
+             * \param ts 32-bit timestamp value for the data
+             * \param flags Optional flags, see ::RTP_FLAGS for more details
+             *
+             * \return RTP error code
+             *
+             * \retval  RTP_OK            On success
+             * \retval  RTP_INVALID_VALUE If one of the parameters are invalid
+             * \retval  RTP_MEMORY_ERROR  If the data chunk is too large to be processed
+             * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
+             * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
+             */
+            rtp_error_t push_frame(uint8_t *data, size_t data_len, uint32_t ts, int flags);
+
+            /**
+             * \brief Send data to remote participant with a custom timestamp
+             *
+             * \details If so specified either by the selected media format and/or given
+             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1500 bytes,
+             * or to any other size defined by the application using ::RCC_MTU_SIZE
+             *
+             * The frame is automatically reconstructed by the receiver if all fragments have been
+             * received successfully.
+             *
+             * If application so wishes, it may override uvgRTP's own timestamp
+             * calculations and provide timestamping information for the stream itself.
+             * This requires that the application provides a sensible value for the ts
+             * parameter. If RTCP has been enabled, uvgrtp::rtcp::set_ts_info() should have
+             * been called.
+             *
+             * \param data Smart pointer to data the that should be sent
+             * \param data_len Length of data
+             * \param ts 32-bit timestamp value for the data
+             * \param flags Optional flags, see ::RTP_FLAGS for more details
+             *
+             * \return RTP error code
+             *
+             * \retval  RTP_OK            On success
+             * \retval  RTP_INVALID_VALUE If one of the parameters are invalid
+             * \retval  RTP_MEMORY_ERROR  If the data chunk is too large to be processed
+             * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
+             * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
+             */
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int flags);
 
-            /* When a frame is received, it is put into the frame vector of the receiver
-             * Calling application can poll frames by calling pull_frame().
+            /**
+             * \brief Poll a frame indefinitely from the media stream object
              *
-             * NOTE: pull_frame() is a blocking operation and a separate thread should be
-             * spawned for it!
+             * \return RTP frame
              *
-             * You can specify for how long should pull_frame() block by giving "timeout"
-             * parameter that denotes how long pull_frame() will wait for an incoming frame
-             * in milliseconds
-             *
-             * Return pointer to RTP frame on success */
-            uvg_rtp::frame::rtp_frame *pull_frame();
-            uvg_rtp::frame::rtp_frame *pull_frame(size_t timeout);
+             * \retval uvgrtp::frame::rtp_frame* On success
+             * \retval nullptr If an unrecoverable error happened
+             */
+            uvgrtp::frame::rtp_frame *pull_frame();
 
-            /* Alternative to pull_frame(). The provided hook is called when a frame is received.
+            /**
+             * \brief Poll a frame for a specified time from the media stream object
              *
-             * "arg" is optional argument that is passed to hook when it is called. It may be nullptr
+             * \param timeout How long is a frame waited, in milliseconds
              *
-             * NOTE: Hook should not be used to process the frame but it should be a place where the
-             * frame handout happens from uvgRTP to application
+             * \return RTP frame
              *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "hook" is nullptr */
-            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvg_rtp::frame::rtp_frame *));
+             * \retval uvgrtp::frame::rtp_frame* On success
+             * \retval nullptr If a frame was not received within the specified time limit
+             * \retval nullptr If an unrecoverable error happened
+             */
+            uvgrtp::frame::rtp_frame *pull_frame(size_t timeout);
 
+            /**
+             * \brief Asynchronous way of getting frames
+             *
+             * \details Receive hook is an alternative to polling frames using uvgrtp::media_stream::pull_frame().
+             * Instead of application asking from uvgRTP if there are any new frames available, uvgRTP will notify
+             * the application when a frame has been received
+             *
+             * The hook should not be used for media processing as it will block the receiver from
+             * reading more frames. Instead, it should only be used as an interface between uvgRTP and
+             * the calling application where the frame hand-off happens.
+             *
+             * \param arg Optional argument that is passed to the hook when it is called, can be set to nullptr
+             * \param hook Function pointer to the receive hook that uvgRTP should call
+             *
+             * \return RTP error code
+             *
+             * \retval RTP_OK On success
+             * \retval RTP_INVALID_VALUE If hook is nullptr */
+            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *));
+
+            /// \cond DO_NOT_DOCUMENT
             /* If system call dispatcher is enabled and calling application has special requirements
              * for the deallocation of a frame, it may install a deallocation hook which is called
              * when SCD has processed the frame
@@ -130,34 +246,43 @@ namespace uvg_rtp {
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "hook" is nullptr */
             rtp_error_t install_notify_hook(void *arg, void (*hook)(void *, int));
+            /// \endcond
 
-            /* Configure the media stream in various ways
+            /**
+             * \brief Configure the media stream, see ::RTP_CTX_CONFIGURATION_FLAGS for more details
              *
-             * See utils.hh for more details
+             * \return RTP error code
              *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "flag" is not recognized or "value" is invalid */
+             * \retval RTP_OK On success
+             * \retval RTP_INVALID_VALUE If the provided value is not valid for a given configuration flag
+             * \retval RTP_INVALID_VALUE If the provided configuration flag is not supported
+             * \retval RTP_GENERIC_ERROR If setsockopt(2) failed
+             */
             rtp_error_t configure_ctx(int flag, ssize_t value);
 
+            /// \cond DO_NOT_DOCUMENT
             /* Setter and getter for media-specific config that can be used f.ex with Opus */
             void  set_media_config(void *config);
             void *get_media_config();
 
-            /* Overwrite the payload type set during initialization */
-            rtp_error_t set_dynamic_payload(uint8_t payload);
-
             /* Get unique key of the media stream
              * Used by session to index media streams */
             uint32_t get_key();
+            /// \endcond
 
-            /* Get pointer to the RTCP object of the media stream
+            /**
              *
-             * This object is used to control all RTCP-related functionality
-             * and RTCP documentation can be found from include/rtcp.hh
+             * \brief Get pointer to the RTCP object of the media stream
              *
-             * Return pointer to RTCP object on success
-             * Return nullptr if RTCP has been created */
-            uvg_rtp::rtcp *get_rtcp();
+             * \details This object is used to control all RTCP-related functionality
+             * and RTCP documentation can be found from \ref uvgrtp::rtcp
+             *
+             * \return Pointer to RTCP object
+             *
+             * \retval uvgrtp::rtcp* If RTCP has been enabled (RCE_RTCP has been given to uvgrtp::session::create_stream())
+             * \retval nullptr        If RTCP has not been enabled
+             */
+            uvgrtp::rtcp *get_rtcp();
 
         private:
             /* Initialize the connection by initializing the socket
@@ -165,13 +290,19 @@ namespace uvg_rtp {
              * an outgoing address */
             rtp_error_t init_connection();
 
+            /* Create the media object for the stream */
+            rtp_error_t create_media(rtp_format_t fmt);
+
+            /* free all allocated resources */
+            rtp_error_t free_resources(rtp_error_t ret);
+
             uint32_t key_;
 
-            uvg_rtp::srtp   *srtp_;
-            uvg_rtp::srtcp  *srtcp_;
-            uvg_rtp::socket *socket_;
-            uvg_rtp::rtp    *rtp_;
-            uvg_rtp::rtcp   *rtcp_;
+            uvgrtp::srtp   *srtp_;
+            uvgrtp::srtcp  *srtcp_;
+            uvgrtp::socket *socket_;
+            uvgrtp::rtp    *rtp_;
+            uvgrtp::rtcp   *rtcp_;
 
             sockaddr_in addr_out_;
             std::string addr_;
@@ -195,10 +326,14 @@ namespace uvg_rtp {
             uint32_t zrtp_handler_key_;
 
             /* RTP packet dispatcher for the receiver */
-            uvg_rtp::pkt_dispatcher *pkt_dispatcher_;
-            std::thread *dispatcher_thread_;
+            uvgrtp::pkt_dispatcher *pkt_dispatcher_;
 
             /* Media object associated with this media stream. */
-            uvg_rtp::formats::media *media_;
+            uvgrtp::formats::media *media_;
+
+            /* Thread that keeps the holepunched connection open for unidirectional streams */
+            uvgrtp::holepuncher *holepuncher_;
     };
 };
+
+namespace uvg_rtp = uvgrtp;

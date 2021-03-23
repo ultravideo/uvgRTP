@@ -7,10 +7,10 @@
 
 #define ZRTP_HELLO_ACK "HelloACK"
 
-uvg_rtp::zrtp_msg::hello_ack::hello_ack()
+uvgrtp::zrtp_msg::hello_ack::hello_ack()
 {
     len_   = sizeof(zrtp_hello_ack);
-    frame_ = uvg_rtp::frame::alloc_zrtp_frame(len_);
+    frame_ = uvgrtp::frame::alloc_zrtp_frame(len_);
 
     zrtp_hello_ack *msg = (zrtp_hello_ack *)frame_;
 
@@ -24,16 +24,16 @@ uvg_rtp::zrtp_msg::hello_ack::hello_ack()
 
     memcpy(&msg->msg_start.msgblock, ZRTP_HELLO_ACK, 8);
 
-    msg->crc = uvg_rtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
+    msg->crc = uvgrtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
 }
 
-uvg_rtp::zrtp_msg::hello_ack::~hello_ack()
+uvgrtp::zrtp_msg::hello_ack::~hello_ack()
 {
     LOG_DEBUG("Freeing ZRTP Hello ACK message...");
-    (void)uvg_rtp::frame::dealloc_frame(frame_);
+    (void)uvgrtp::frame::dealloc_frame(frame_);
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::hello_ack::send_msg(uvg_rtp::socket *socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp_msg::hello_ack::send_msg(uvgrtp::socket *socket, sockaddr_in& addr)
 {
     rtp_error_t ret;
 
@@ -43,7 +43,7 @@ rtp_error_t uvg_rtp::zrtp_msg::hello_ack::send_msg(uvg_rtp::socket *socket, sock
     return ret;
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::hello_ack::parse_msg(uvg_rtp::zrtp_msg::receiver& receiver)
+rtp_error_t uvgrtp::zrtp_msg::hello_ack::parse_msg(uvgrtp::zrtp_msg::receiver& receiver)
 {
     (void)receiver;
 

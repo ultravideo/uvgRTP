@@ -7,10 +7,10 @@
 
 #define ZRTP_ERROR "Error   "
 
-uvg_rtp::zrtp_msg::error::error(int error_code)
+uvgrtp::zrtp_msg::error::error(int error_code)
 {
     len_   = sizeof(zrtp_error);
-    frame_ = uvg_rtp::frame::alloc_zrtp_frame(len_);
+    frame_ = uvgrtp::frame::alloc_zrtp_frame(len_);
 
     zrtp_error *msg = (zrtp_error *)frame_;
 
@@ -26,16 +26,16 @@ uvg_rtp::zrtp_msg::error::error(int error_code)
 
     msg->error = error_code;
 
-    msg->crc = uvg_rtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
+    msg->crc = uvgrtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
 }
 
-uvg_rtp::zrtp_msg::error::~error()
+uvgrtp::zrtp_msg::error::~error()
 {
     LOG_DEBUG("Freeing ZRTP Error message...");
-    (void)uvg_rtp::frame::dealloc_frame(frame_);
+    (void)uvgrtp::frame::dealloc_frame(frame_);
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::error::send_msg(uvg_rtp::socket *socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp_msg::error::send_msg(uvgrtp::socket *socket, sockaddr_in& addr)
 {
     rtp_error_t ret;
 
@@ -45,7 +45,7 @@ rtp_error_t uvg_rtp::zrtp_msg::error::send_msg(uvg_rtp::socket *socket, sockaddr
     return ret;
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::error::parse_msg(uvg_rtp::zrtp_msg::receiver& receiver)
+rtp_error_t uvgrtp::zrtp_msg::error::parse_msg(uvgrtp::zrtp_msg::receiver& receiver)
 {
     (void)receiver;
 

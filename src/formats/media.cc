@@ -10,17 +10,17 @@
 
 #define INVALID_SEQ 0xffffffff
 
-uvg_rtp::formats::media::media(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp_ctx, int flags):
+uvgrtp::formats::media::media(uvgrtp::socket *socket, uvgrtp::rtp *rtp_ctx, int flags):
     socket_(socket), rtp_ctx_(rtp_ctx), flags_(flags), minfo_{}
 {
-    fqueue_ = new uvg_rtp::frame_queue(socket, rtp_ctx, flags);
+    fqueue_ = new uvgrtp::frame_queue(socket, rtp_ctx, flags);
 }
 
-uvg_rtp::formats::media::~media()
+uvgrtp::formats::media::~media()
 {
 }
 
-rtp_error_t uvg_rtp::formats::media::push_frame(uint8_t *data, size_t data_len, int flags)
+rtp_error_t uvgrtp::formats::media::push_frame(uint8_t *data, size_t data_len, int flags)
 {
     if (!data || !data_len)
         return RTP_INVALID_VALUE;
@@ -28,7 +28,7 @@ rtp_error_t uvg_rtp::formats::media::push_frame(uint8_t *data, size_t data_len, 
     return push_media_frame(data, data_len, flags);
 }
 
-rtp_error_t uvg_rtp::formats::media::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
+rtp_error_t uvgrtp::formats::media::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
 {
     if (!data || !data_len)
         return RTP_INVALID_VALUE;
@@ -36,7 +36,7 @@ rtp_error_t uvg_rtp::formats::media::push_frame(std::unique_ptr<uint8_t[]> data,
     return push_media_frame(data.get(), data_len, flags);
 }
 
-rtp_error_t uvg_rtp::formats::media::push_media_frame(uint8_t *data, size_t data_len, int flags)
+rtp_error_t uvgrtp::formats::media::push_media_frame(uint8_t *data, size_t data_len, int flags)
 {
     (void)flags;
 
@@ -47,10 +47,11 @@ rtp_error_t uvg_rtp::formats::media::push_media_frame(uint8_t *data, size_t data
         return ret;
     }
 
-    if (!(flags_ & RCE_FRAGMENT_GENERIC)) {
+    if (!(flags_ & RCE_FRAGMENT_GENERIC) || data_len <= rtp_ctx_->get_payload_size()) {
         if (data_len > rtp_ctx_->get_payload_size()) {
             LOG_WARN("Packet is larger (%zu bytes) than maximum payload size (%zu bytes)",
                     data_len, rtp_ctx_->get_payload_size());
+            LOG_WARN("Consider using RCE_FRAGMENT_GENERIC!");
         }
 
         if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
@@ -86,14 +87,14 @@ rtp_error_t uvg_rtp::formats::media::push_media_frame(uint8_t *data, size_t data
     return fqueue_->flush_queue();
 }
 
-uvg_rtp::formats::media_frame_info_t *uvg_rtp::formats::media::get_media_frame_info()
+uvgrtp::formats::media_frame_info_t *uvgrtp::formats::media::get_media_frame_info()
 {
     return &minfo_;
 }
 
-rtp_error_t uvg_rtp::formats::media::packet_handler(void *arg, int flags, uvg_rtp::frame::rtp_frame **out)
+rtp_error_t uvgrtp::formats::media::packet_handler(void *arg, int flags, uvgrtp::frame::rtp_frame **out)
 {
-    auto minfo   = (uvg_rtp::formats::media_frame_info_t *)arg;
+    auto minfo   = (uvgrtp::formats::media_frame_info_t *)arg;
     auto frame   = *out;
     uint32_t ts  = frame->header.timestamp;
     uint32_t seq = frame->header.seq;
@@ -120,7 +121,7 @@ rtp_error_t uvg_rtp::formats::media::packet_handler(void *arg, int flags, uvg_rt
                 recv = minfo->frames[ts].e_seq - minfo->frames[ts].s_seq + 1;
 
             if (recv == minfo->frames[ts].npkts) {
-                auto retframe = uvg_rtp::frame::alloc_rtp_frame(minfo->frames[ts].size);
+                auto retframe = uvgrtp::frame::alloc_rtp_frame(minfo->frames[ts].size);
                 size_t ptr    = 0;
 
                 std::memcpy(&retframe->header, &frame->header, sizeof(frame->header));
@@ -132,11 +133,11 @@ rtp_error_t uvg_rtp::formats::media::packet_handler(void *arg, int flags, uvg_rt
                         frag.second->payload_len
                     );
                     ptr += frag.second->payload_len;
-                    (void)uvg_rtp::frame::dealloc_frame(frag.second);
+                    (void)uvgrtp::frame::dealloc_frame(frag.second);
                 }
 
                 minfo->frames.erase(ts);
-                (void)uvg_rtp::frame::dealloc_frame(*out);
+                (void)uvgrtp::frame::dealloc_frame(*out);
                 *out = retframe;
                 return RTP_PKT_READY;
             }

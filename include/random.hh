@@ -1,7 +1,7 @@
 
 #include "util.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
     namespace random {
 
         /* Initialize the PSRNG of standard lib and for windows
@@ -16,3 +16,5 @@ namespace uvg_rtp {
         uint64_t generate_64();
     };
 };
+
+namespace uvg_rtp = uvgrtp;

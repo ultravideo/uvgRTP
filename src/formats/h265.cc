@@ -14,13 +14,13 @@
 
 #include "formats/h265.hh"
 
-void uvg_rtp::formats::h265::clear_aggregation_info()
+void uvgrtp::formats::h265::clear_aggregation_info()
 {
     aggr_pkt_info_.nalus.clear();
     aggr_pkt_info_.aggr_pkt.clear();
 }
 
-rtp_error_t uvg_rtp::formats::h265::make_aggregation_pkt()
+rtp_error_t uvgrtp::formats::h265::make_aggregation_pkt()
 {
     rtp_error_t ret;
 
@@ -44,7 +44,7 @@ rtp_error_t uvg_rtp::formats::h265::make_aggregation_pkt()
 
     aggr_pkt_info_.aggr_pkt.push_back(
         std::make_pair(
-            uvg_rtp::frame::HEADER_SIZE_H265_NAL,
+            uvgrtp::frame::HEADER_SIZE_H265_NAL,
             aggr_pkt_info_.nal_header
         )
     );
@@ -76,7 +76,7 @@ rtp_error_t uvg_rtp::formats::h265::make_aggregation_pkt()
     return ret;
 }
 
-rtp_error_t uvg_rtp::formats::h265::push_nal_unit(uint8_t *data, size_t data_len, bool more)
+rtp_error_t uvgrtp::formats::h265::push_nal_unit(uint8_t *data, size_t data_len, bool more)
 {
     if (data_len <= 3)
         return RTP_INVALID_VALUE;
@@ -125,7 +125,7 @@ rtp_error_t uvg_rtp::formats::h265::push_nal_unit(uint8_t *data, size_t data_len
      * During Connection initialization, the frame queue was given HEVC as the payload format so the
      * transaction also contains our media-specifi headers [get_media_headers()]. */
     auto buffers = fqueue_->get_buffer_vector();
-    auto headers = (uvg_rtp::formats::h265_headers *)fqueue_->get_media_headers();
+    auto headers = (uvgrtp::formats::h265_headers *)fqueue_->get_media_headers();
 
     headers->nal_header[0] = H265_PKT_FRAG << 1; /* fragmentation unit */
     headers->nal_header[1] = 1;                  /* temporal id */
@@ -138,8 +138,8 @@ rtp_error_t uvg_rtp::formats::h265::push_nal_unit(uint8_t *data, size_t data_len
     buffers.push_back(std::make_pair(sizeof(uint8_t),             &headers->fu_headers[0]));
     buffers.push_back(std::make_pair(payload_size,                nullptr));
 
-    data_pos   = uvg_rtp::frame::HEADER_SIZE_H265_NAL;
-    data_left -= uvg_rtp::frame::HEADER_SIZE_H265_NAL;
+    data_pos   = uvgrtp::frame::HEADER_SIZE_H265_NAL;
+    data_left -= uvgrtp::frame::HEADER_SIZE_H265_NAL;
 
     while (data_left > payload_size) {
         buffers.at(2).first  = payload_size;
@@ -179,23 +179,24 @@ rtp_error_t uvg_rtp::formats::h265::push_nal_unit(uint8_t *data, size_t data_len
     return fqueue_->flush_queue();
 }
 
-uvg_rtp::formats::h265::h265(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):
+uvgrtp::formats::h265::h265(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags):
     h26x(socket, rtp, flags), finfo_{}
 {
+    finfo_.rtp_ctx = rtp;
 }
 
-uvg_rtp::formats::h265::~h265()
+uvgrtp::formats::h265::~h265()
 {
 }
 
-uvg_rtp::formats::h265_frame_info_t *uvg_rtp::formats::h265::get_h265_frame_info()
+uvgrtp::formats::h265_frame_info_t *uvgrtp::formats::h265::get_h265_frame_info()
 {
     return &finfo_;
 }
 
-rtp_error_t uvg_rtp::formats::h265::frame_getter(void *arg, uvg_rtp::frame::rtp_frame **frame)
+rtp_error_t uvgrtp::formats::h265::frame_getter(void *arg, uvgrtp::frame::rtp_frame **frame)
 {
-    auto finfo = (uvg_rtp::formats::h265_frame_info_t *)arg;
+    auto finfo = (uvgrtp::formats::h265_frame_info_t *)arg;
 
     if (finfo->queued.size()) {
         *frame = finfo->queued.front();

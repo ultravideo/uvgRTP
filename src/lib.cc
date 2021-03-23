@@ -9,9 +9,9 @@
 
 thread_local rtp_error_t rtp_errno;
 
-uvg_rtp::context::context()
+uvgrtp::context::context()
 {
-    cname_  = uvg_rtp::context::generate_cname();
+    cname_  = uvgrtp::context::generate_cname();
 
 #ifdef _WIN32
     WSADATA wsd;
@@ -21,33 +21,33 @@ uvg_rtp::context::context()
         log_platform_error("WSAStartup() failed");
 #endif
 
-    uvg_rtp::random::init();
+    uvgrtp::random::init();
 }
 
-uvg_rtp::context::~context()
+uvgrtp::context::~context()
 {
 #ifdef _WIN32
     WSACleanup();
 #endif
 }
 
-uvg_rtp::session *uvg_rtp::context::create_session(std::string address)
+uvgrtp::session *uvgrtp::context::create_session(std::string address)
 {
     if (address == "")
         return nullptr;
 
-    return new uvg_rtp::session(address);
+    return new uvgrtp::session(address);
 }
 
-uvg_rtp::session *uvg_rtp::context::create_session(std::string remote_addr, std::string local_addr)
+uvgrtp::session *uvgrtp::context::create_session(std::string remote_addr, std::string local_addr)
 {
     if (remote_addr == "" || local_addr == "")
         return nullptr;
 
-    return new uvg_rtp::session(remote_addr, local_addr);
+    return new uvgrtp::session(remote_addr, local_addr);
 }
 
-rtp_error_t uvg_rtp::context::destroy_session(uvg_rtp::session *session)
+rtp_error_t uvgrtp::context::destroy_session(uvgrtp::session *session)
 {
     if (!session)
         return RTP_INVALID_VALUE;
@@ -57,10 +57,10 @@ rtp_error_t uvg_rtp::context::destroy_session(uvg_rtp::session *session)
     return RTP_OK;
 }
 
-std::string uvg_rtp::context::generate_cname()
+std::string uvgrtp::context::generate_cname()
 {
-    std::string host = uvg_rtp::hostname::get_hostname();
-    std::string user = uvg_rtp::hostname::get_username();
+    std::string host = uvgrtp::hostname::get_hostname();
+    std::string user = uvgrtp::hostname::get_username();
 
     if (host == "")
         host = generate_string(10);
@@ -71,7 +71,7 @@ std::string uvg_rtp::context::generate_cname()
     return host + "@" + user;
 }
 
-std::string& uvg_rtp::context::get_cname()
+std::string& uvgrtp::context::get_cname()
 {
     return cname_;
 }

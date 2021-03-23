@@ -5,12 +5,12 @@
 #include "rtcp.hh"
 #include "poll.hh"
 
-std::vector<uvg_rtp::socket>& uvg_rtp::rtcp::get_sockets()
+std::vector<uvgrtp::socket>& uvgrtp::rtcp::get_sockets()
 {
     return sockets_;
 }
 
-std::vector<uint32_t> uvg_rtp::rtcp::get_participants()
+std::vector<uint32_t> uvgrtp::rtcp::get_participants()
 {
     std::vector<uint32_t> ssrcs;
 
@@ -21,7 +21,7 @@ std::vector<uint32_t> uvg_rtp::rtcp::get_participants()
     return ssrcs;
 }
 
-rtp_error_t uvg_rtp::rtcp::generate_report()
+rtp_error_t uvgrtp::rtcp::generate_report()
 {
     rtcp_pkt_sent_count_++;
 
@@ -30,18 +30,18 @@ rtp_error_t uvg_rtp::rtcp::generate_report()
     return generate_sender_report();
 }
 
-void uvg_rtp::rtcp::rtcp_runner(uvg_rtp::rtcp *rtcp)
+void uvgrtp::rtcp::rtcp_runner(uvgrtp::rtcp *rtcp)
 {
     LOG_INFO("RTCP instance created!");
 
-    uvg_rtp::clock::hrc::hrc_t start, end;
+    uvgrtp::clock::hrc::hrc_t start, end;
     int nread, diff, timeout = MIN_TIMEOUT;
     uint8_t buffer[MAX_PACKET];
     rtp_error_t ret;
 
     while (rtcp->active()) {
-        start = uvg_rtp::clock::hrc::now();
-        ret   = uvg_rtp::poll::poll(rtcp->get_sockets(), buffer, MAX_PACKET, timeout, &nread);
+        start = uvgrtp::clock::hrc::now();
+        ret   = uvgrtp::poll::poll(rtcp->get_sockets(), buffer, MAX_PACKET, timeout, &nread);
 
         if (ret == RTP_OK && nread > 0) {
             (void)rtcp->handle_incoming_packet(buffer, (size_t)nread);
@@ -51,7 +51,7 @@ void uvg_rtp::rtcp::rtcp_runner(uvg_rtp::rtcp *rtcp)
             LOG_ERROR("recvfrom failed, %d", ret);
         }
 
-        diff = (int)uvg_rtp::clock::hrc::diff_now(start);
+        diff = (int)uvgrtp::clock::hrc::diff_now(start);
 
         if (diff >= MIN_TIMEOUT) {
             if ((ret = rtcp->generate_report()) != RTP_OK && ret != RTP_NOT_READY) {

@@ -1,6 +1,18 @@
 #pragma once
 
-#ifdef __RTP_CRYPTO__
+#if __has_include(<cryptopp/aes.h>) && \
+    __has_include(<cryptopp/base32.h>) && \
+    __has_include(<cryptopp/cryptlib.h>) && \
+    __has_include(<cryptopp/dh.h>) && \
+    __has_include(<cryptopp/hmac.h>) && \
+    __has_include(<cryptopp/modes.h>) && \
+    __has_include(<cryptopp/osrng.h>) && \
+    __has_include(<cryptopp/sha.h>) && \
+    __has_include(<cryptopp/crc.h>) && \
+    !defined(__RTP_NO_CRYPTO__)
+
+#define __RTP_CRYPTO__
+
 #include <cryptopp/aes.h>
 #include <cryptopp/base32.h>
 #include <cryptopp/cryptlib.h>
@@ -10,9 +22,10 @@
 #include <cryptopp/osrng.h>
 #include <cryptopp/sha.h>
 #include <cryptopp/crc.h>
+
 #endif
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     namespace crypto {
 
@@ -165,3 +178,5 @@ namespace uvg_rtp {
         bool enabled();
     };
 };
+
+namespace uvg_rtp = uvgrtp;

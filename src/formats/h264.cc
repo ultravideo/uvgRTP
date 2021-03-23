@@ -14,13 +14,13 @@
 
 #include "formats/h264.hh"
 
-void uvg_rtp::formats::h264::clear_aggregation_info()
+void uvgrtp::formats::h264::clear_aggregation_info()
 {
     aggr_pkt_info_.nalus.clear();
     aggr_pkt_info_.aggr_pkt.clear();
 }
 
-rtp_error_t uvg_rtp::formats::h264::make_aggregation_pkt()
+rtp_error_t uvgrtp::formats::h264::make_aggregation_pkt()
 {
     rtp_error_t ret;
     uint8_t nri = 0;
@@ -51,7 +51,7 @@ rtp_error_t uvg_rtp::formats::h264::make_aggregation_pkt()
 
     aggr_pkt_info_.aggr_pkt.push_back(
         std::make_pair(
-            uvg_rtp::frame::HEADER_SIZE_H264_FU,
+            uvgrtp::frame::HEADER_SIZE_H264_FU,
             aggr_pkt_info_.fu_indicator
         )
     );
@@ -71,7 +71,7 @@ rtp_error_t uvg_rtp::formats::h264::make_aggregation_pkt()
     return ret;
 }
 
-rtp_error_t uvg_rtp::formats::h264::push_nal_unit(uint8_t *data, size_t data_len, bool more)
+rtp_error_t uvgrtp::formats::h264::push_nal_unit(uint8_t *data, size_t data_len, bool more)
 {
     if (data_len <= 3)
         return RTP_INVALID_VALUE;
@@ -117,7 +117,7 @@ rtp_error_t uvg_rtp::formats::h264::push_nal_unit(uint8_t *data, size_t data_len
      * During Connection initialization, the frame queue was given AVC as the payload format so the
      * transaction also contains our media-specific headers */
     auto buffers = fqueue_->get_buffer_vector();
-    auto headers = (uvg_rtp::formats::h264_headers *)fqueue_->get_media_headers();
+    auto headers = (uvgrtp::formats::h264_headers *)fqueue_->get_media_headers();
 
     headers->fu_indicator[0] = (data[0] & 0xe0) | H264_PKT_FRAG;
 
@@ -129,8 +129,8 @@ rtp_error_t uvg_rtp::formats::h264::push_nal_unit(uint8_t *data, size_t data_len
     buffers.push_back(std::make_pair(sizeof(uint8_t),               &headers->fu_headers[0]));
     buffers.push_back(std::make_pair(payload_size,                  nullptr));
 
-    data_pos   = uvg_rtp::frame::HEADER_SIZE_H264_NAL;
-    data_left -= uvg_rtp::frame::HEADER_SIZE_H264_NAL;
+    data_pos   = uvgrtp::frame::HEADER_SIZE_H264_NAL;
+    data_left -= uvgrtp::frame::HEADER_SIZE_H264_NAL;
 
     while (data_left > payload_size) {
         buffers.at(2).first  = payload_size;
@@ -166,23 +166,23 @@ rtp_error_t uvg_rtp::formats::h264::push_nal_unit(uint8_t *data, size_t data_len
     return fqueue_->flush_queue();
 }
 
-uvg_rtp::formats::h264::h264(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags):
+uvgrtp::formats::h264::h264(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags):
     h26x(socket, rtp, flags)
 {
 }
 
-uvg_rtp::formats::h264::~h264()
+uvgrtp::formats::h264::~h264()
 {
 }
 
-uvg_rtp::formats::h264_frame_info_t *uvg_rtp::formats::h264::get_h264_frame_info()
+uvgrtp::formats::h264_frame_info_t *uvgrtp::formats::h264::get_h264_frame_info()
 {
     return &finfo_;
 }
 
-rtp_error_t uvg_rtp::formats::h264::frame_getter(void *arg, uvg_rtp::frame::rtp_frame **frame)
+rtp_error_t uvgrtp::formats::h264::frame_getter(void *arg, uvgrtp::frame::rtp_frame **frame)
 {
-    auto finfo = (uvg_rtp::formats::h264_frame_info_t *)arg;
+    auto finfo = (uvgrtp::formats::h264_frame_info_t *)arg;
 
     if (finfo->queued.size()) {
         *frame = finfo->queued.front();

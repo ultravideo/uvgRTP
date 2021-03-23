@@ -2,7 +2,7 @@
 
 #include "base.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     class srtp : public base_srtp {
         public:
@@ -22,3 +22,5 @@ namespace uvg_rtp {
             static rtp_error_t send_packet_handler(void *arg, buf_vec& buffers);
     };
 };
+
+namespace uvg_rtp = uvgrtp;

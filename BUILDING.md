@@ -1,50 +1,53 @@
 # Building
 
-There are several ways to build uvgRTP: GNU make, CMake, or QtCreator
+uvgRTP is built using CMake and a 64-bit compiler is required for compilation.
 
-NB: uvgRTP must be built with a 64-bit compiler!
+uvgRTP can be built with QtCreator too, see uvgRTP.pro.
 
-## Dependencies
+## Note about Crypto++ and SRTP/ZRTP support
 
-The only dependency vanilla uvgRTP has is pthreads
+uvgRTP uses [*__has_include*](https://en.cppreference.com/w/cpp/preprocessor/include) to detect if Crypto++ is present in the file system. Thus, SRTP/ZRTP is automatically enabled/disabled based whether it's found in the file system requiring no extra work from the user.
 
-## Qt Creator
+If, for some reason, you have Crypto++ available but would like to disable SRTP/ZRTP anyway, plase compile uvgRTP with `-DDISABLE_CRYPTO=1`, see the example below for more details.
 
-Open uvgrtp.pro in Qt Creator and build the library
+## Examples
 
-## CMake
+### Build uvgRTP
+
+Building
 
 ```
 mkdir build && cd build
 cmake ..
-ninja
-```
-
-## GNU make
-
-```
-make -j5
+make
 sudo make install
 ```
 
-# Linking
-
-Building uvgRTP produces a static library and it should be linked to the application as such:
+Linking if Crypto++ was **not** found in the filesystem
 
 ```
--luvgrtp -lpthread
+g++ main.cc -luvgrtp -lpthread
 ```
 
-## Linking when SRTP/ZRTP is used
+Linking if Crypto++ was found in the filesystem
 
 ```
--luvgrtp -lcryptopp -lpthread
+g++ main.cc -luvgrtp -lpthread -lcryptopp
 ```
 
-# Defines
+### Build uvgRTP with crypto disabled
 
-Use `__RTP_SILENT__` to disable all prints
+Building
 
-Use `__RTP_CRYPTO__` to enable SRTP/ZRTP and crypto routines
+```
+mkdir build && cd build
+cmake -DDISABLE_CRYPTO=1 ..
+make
+sudo make install
+```
 
-Use `NDEBUG` to disable `LOG_DEBUG` which is the most verbose level of logging
+Linking
+
+```
+g++ main.cc -luvgrtp -lpthread
+```

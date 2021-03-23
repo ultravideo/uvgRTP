@@ -20,7 +20,7 @@ const int MAX_MSG_COUNT   = 5000;
 const int MAX_QUEUED_MSGS =  10;
 const int MAX_CHUNK_COUNT =   4;
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
     class dispatcher;
     class frame_queue;
@@ -40,17 +40,17 @@ namespace uvg_rtp {
          *
          * This can be used, for example, for storing media-specific headers
          * which are then passed (along with the actual media) to enqueue_message() */
-        uvg_rtp::buf_vec buffers;
+        uvgrtp::buf_vec buffers;
 
         /* Each RTP frame of a transaction is constructed using buf_vec structure and
          * each buf_vec structure is pushed to pkt_vec */
-        uvg_rtp::pkt_vec packets;
+        uvgrtp::pkt_vec packets;
 
         /* All packets of a transaction share the common RTP header only differing in sequence number.
          * Keeping a separate common RTP header and then just copying this is cleaner than initializing
          * RTP header for each packet */
-        uvg_rtp::frame::rtp_header rtp_common;
-        uvg_rtp::frame::rtp_header *rtp_headers;
+        uvgrtp::frame::rtp_header rtp_common;
+        uvgrtp::frame::rtp_header *rtp_headers;
 
 #ifdef __linux__
         struct mmsghdr *headers;
@@ -61,7 +61,7 @@ namespace uvg_rtp {
 #endif
 
         /* Media may need space for additional buffers,
-         * this pointer is initialized with uvg_rtp::MEDIA_TYPE::media_headers
+         * this pointer is initialized with uvgrtp::MEDIA_TYPE::media_headers
          * when the transaction is initialized for the first time
          *
          * See src/formats/hevc.hh for example */
@@ -79,7 +79,7 @@ namespace uvg_rtp {
         sockaddr_in out_addr;
 
         /* Used by the system call dispatcher for transaction deinitialization */
-        uvg_rtp::frame_queue *fqueue;
+        uvgrtp::frame_queue *fqueue;
 
         /* If SCD is used, it's absolutely essential to initialize transaction
          * by giving the data pointer to frame queue
@@ -103,7 +103,7 @@ namespace uvg_rtp {
 
     class frame_queue {
         public:
-            frame_queue(uvg_rtp::socket *socket, uvg_rtp::rtp *rtp, int flags);
+            frame_queue(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags);
             ~frame_queue();
 
             rtp_error_t init_transaction();
@@ -125,7 +125,7 @@ namespace uvg_rtp {
              *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "t" is nullptr */
-            rtp_error_t destroy_transaction(uvg_rtp::transaction_t *t);
+            rtp_error_t destroy_transaction(uvgrtp::transaction_t *t);
 
             /* Cache "message" to frame queue
              *
@@ -154,7 +154,7 @@ namespace uvg_rtp {
              * caller's stack).
              *
              * buf_vec is the place to store these extra headers (see src/formats/hevc.cc) */
-            uvg_rtp::buf_vec& get_buffer_vector();
+            uvgrtp::buf_vec& get_buffer_vector();
 
             /* Each media may allocate extra buffers for the transaction struct if need be
              *
@@ -204,7 +204,7 @@ namespace uvg_rtp {
             transaction_t *active_;
 
             /* Set to nullptr if this frame queue doesn't use dispatcher */
-            uvg_rtp::dispatcher *dispatcher_;
+            uvgrtp::dispatcher *dispatcher_;
 
             /* Deallocation hook is stored here and copied to transaction upon initialization */
             void (*dealloc_hook_)(void *);
@@ -213,10 +213,12 @@ namespace uvg_rtp {
             ssize_t max_mcount_; /* number of messages per transactions */
             ssize_t max_ccount_; /* number of chunks per message */
 
-            uvg_rtp::rtp *rtp_;
-            uvg_rtp::socket *socket_;
+            uvgrtp::rtp *rtp_;
+            uvgrtp::socket *socket_;
 
             /* RTP context flags */
             int flags_;
     };
 };
+
+namespace uvg_rtp = uvgrtp;

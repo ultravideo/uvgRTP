@@ -4,7 +4,7 @@
 
 #include "rtcp.hh"
 
-rtp_error_t uvg_rtp::rtcp::handle_bye_packet(uint8_t *packet, size_t size)
+rtp_error_t uvgrtp::rtcp::handle_bye_packet(uint8_t *packet, size_t size)
 {
     if (!packet || !size)
         return RTP_INVALID_VALUE;
@@ -25,7 +25,7 @@ rtp_error_t uvg_rtp::rtcp::handle_bye_packet(uint8_t *packet, size_t size)
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
+rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
 {
     if (ssrcs.empty()) {
         LOG_WARN("Source Count in RTCP BYE packet is 0");
@@ -46,7 +46,7 @@ rtp_error_t uvg_rtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
     memset(frame, 0, frame_size);
 
     frame[0] = (2 << 6) | (0 << 5) | (ssrcs.size() & 0x1f);
-    frame[1] = uvg_rtp::frame::RTCP_FT_BYE;
+    frame[1] = uvgrtp::frame::RTCP_FT_BYE;
 
     for (auto& ssrc : ssrcs)
         SET_NEXT_FIELD_32(frame, ptr, htonl(ssrc));

@@ -16,7 +16,7 @@
 #define RTP_HEADER_LENGTH   12
 #define RTCP_HEADER_LENGTH  12
 
-namespace uvg_rtp {
+namespace uvgrtp {
     namespace frame {
         enum HEADER_SIZES {
             HEADER_SIZE_RTP      = 12,
@@ -25,12 +25,15 @@ namespace uvg_rtp {
             HEADER_SIZE_H264_FU  =  1,
             HEADER_SIZE_H265_NAL =  2,
             HEADER_SIZE_H265_FU  =  1,
+            HEADER_SIZE_H266_NAL =  2,
+            HEADER_SIZE_H266_FU  =  1,
         };
 
         enum RTP_FRAME_TYPE {
             RTP_FT_GENERIC = 0, /* payload length + RTP Header size (N + 12) */
             RTP_FT_OPUS    = 1, /* payload length + RTP Header size + Opus header (N + 12 + 0 [for now]) */
             RTP_FT_H265_FU = 2, /* payload length + RTP Header size + HEVC NAL Header + FU Header (N + 12 + 2 + 1) */
+            RTP_FT_H266_FU = 2, /* payload length + RTP Header size + HEVC NAL Header + FU Header (N + 12 + 2 + 1) */
         };
 
         enum RTCP_FRAME_TYPE {
@@ -188,12 +191,14 @@ namespace uvg_rtp {
          *
          * Return RTP_OK on successs
          * Return RTP_INVALID_VALUE if "frame" is nullptr */
-        rtp_error_t dealloc_frame(uvg_rtp::frame::rtp_frame *frame);
+        rtp_error_t dealloc_frame(uvgrtp::frame::rtp_frame *frame);
 
         /* Deallocate ZRTP frame
          *
          * Return RTP_OK on successs
          * Return RTP_INVALID_VALUE if "frame" is nullptr */
-        rtp_error_t dealloc_frame(uvg_rtp::frame::zrtp_frame *frame);
+        rtp_error_t dealloc_frame(uvgrtp::frame::zrtp_frame *frame);
     };
 };
+
+namespace uvg_rtp = uvgrtp;

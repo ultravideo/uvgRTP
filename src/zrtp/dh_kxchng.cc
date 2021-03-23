@@ -8,7 +8,7 @@
 #define ZRTP_DH_PART1       "DHPart1 "
 #define ZRTP_DH_PART2       "DHPart2 "
 
-uvg_rtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int part)
+uvgrtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int part)
 {
     const char *strs[2][2] = {
         {
@@ -21,8 +21,8 @@ uvg_rtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int
 
     LOG_DEBUG("Create ZRTP DHPart%d message", part);
 
-    frame_  = uvg_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_dh));
-    rframe_ = uvg_rtp::frame::alloc_zrtp_frame(sizeof(zrtp_dh));
+    frame_  = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_dh));
+    rframe_ = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_dh));
     len_    = sizeof(zrtp_dh);
     rlen_   = sizeof(zrtp_dh);
 
@@ -52,25 +52,25 @@ uvg_rtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int
     uint8_t mac_full[32];
 
     /* rs1IDr */
-    auto hmac_sha256 = uvg_rtp::crypto::hmac::sha256(session.secrets.rs1, 32);
+    auto hmac_sha256 = uvgrtp::crypto::hmac::sha256(session.secrets.rs1, 32);
     hmac_sha256.update((uint8_t *)strs[part - 1][1], 9);
     hmac_sha256.final(mac_full);
     memcpy(msg->rs1_id, mac_full, 8);
 
     /* rs2IDr */
-    hmac_sha256 = uvg_rtp::crypto::hmac::sha256(session.secrets.rs2, 32);
+    hmac_sha256 = uvgrtp::crypto::hmac::sha256(session.secrets.rs2, 32);
     hmac_sha256.update((uint8_t *)strs[part - 1][1], 9);
     hmac_sha256.final(mac_full);
     memcpy(msg->rs2_id, mac_full, 8);
 
     /* auxsecretIDr */
-    hmac_sha256 = uvg_rtp::crypto::hmac::sha256(session.secrets.raux, 32);
+    hmac_sha256 = uvgrtp::crypto::hmac::sha256(session.secrets.raux, 32);
     hmac_sha256.update(session.hash_ctx.o_hash[3], 32);
     hmac_sha256.final(mac_full);
     memcpy(msg->aux_secret, mac_full, 8);
 
     /* pbxsecretIDr */
-    hmac_sha256 = uvg_rtp::crypto::hmac::sha256(session.secrets.rpbx, 32);
+    hmac_sha256 = uvgrtp::crypto::hmac::sha256(session.secrets.rpbx, 32);
     hmac_sha256.update((uint8_t *)strs[part - 1][1], 9);
     hmac_sha256.final(mac_full);
     memcpy(msg->pbx_secret, mac_full, 8);
@@ -79,38 +79,38 @@ uvg_rtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int
     memcpy(msg->pk, session.dh_ctx.public_key, sizeof(session.dh_ctx.public_key));
 
     /* Calculate truncated HMAC-SHA256 for the Commit Message */
-    hmac_sha256 = uvg_rtp::crypto::hmac::sha256(session.hash_ctx.o_hash[0], 32);
+    hmac_sha256 = uvgrtp::crypto::hmac::sha256(session.hash_ctx.o_hash[0], 32);
     hmac_sha256.update((uint8_t *)frame_, len_ - 8 - 4);
     hmac_sha256.final(mac_full);
 
     memcpy(msg->mac, mac_full, 8);
 
     /* Calculate CRC32 for the whole ZRTP packet */
-    msg->crc = uvg_rtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
+    msg->crc = uvgrtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
 
     /* Finally make a copy of the message and save it for later use */
     if (session.l_msg.dh.second)
         delete[] session.l_msg.dh.second ;
 
     session.l_msg.dh.first  = len_;
-    session.l_msg.dh.second = (uvg_rtp::zrtp_msg::zrtp_dh *)new uint8_t[len_];
+    session.l_msg.dh.second = (uvgrtp::zrtp_msg::zrtp_dh *)new uint8_t[len_];
     memcpy(session.l_msg.dh.second, msg, len_);
 }
 
-uvg_rtp::zrtp_msg::dh_key_exchange::dh_key_exchange(struct zrtp_dh *dh)
+uvgrtp::zrtp_msg::dh_key_exchange::dh_key_exchange(struct zrtp_dh *dh)
 {
     (void)dh;
 }
 
-uvg_rtp::zrtp_msg::dh_key_exchange::~dh_key_exchange()
+uvgrtp::zrtp_msg::dh_key_exchange::~dh_key_exchange()
 {
     LOG_DEBUG("Freeing DHPartN message...");
 
-    (void)uvg_rtp::frame::dealloc_frame(frame_);
-    (void)uvg_rtp::frame::dealloc_frame(rframe_);
+    (void)uvgrtp::frame::dealloc_frame(frame_);
+    (void)uvgrtp::frame::dealloc_frame(rframe_);
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::dh_key_exchange::send_msg(uvg_rtp::socket *socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::send_msg(uvgrtp::socket *socket, sockaddr_in& addr)
 {
     rtp_error_t ret;
 
@@ -120,7 +120,7 @@ rtp_error_t uvg_rtp::zrtp_msg::dh_key_exchange::send_msg(uvg_rtp::socket *socket
     return ret;
 }
 
-rtp_error_t uvg_rtp::zrtp_msg::dh_key_exchange::parse_msg(uvg_rtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
+rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
     LOG_DEBUG("Parsing DHPart1/DHPart2 message...");
 
@@ -149,7 +149,7 @@ rtp_error_t uvg_rtp::zrtp_msg::dh_key_exchange::parse_msg(uvg_rtp::zrtp_msg::rec
 
     /* Finally make a copy of the message and save it for later use */
     session.r_msg.dh.first  = len;
-    session.r_msg.dh.second = (uvg_rtp::zrtp_msg::zrtp_dh *)new uint8_t[len];
+    session.r_msg.dh.second = (uvgrtp::zrtp_msg::zrtp_dh *)new uint8_t[len];
     memcpy(session.r_msg.dh.second, msg, len);
 
     return RTP_OK;

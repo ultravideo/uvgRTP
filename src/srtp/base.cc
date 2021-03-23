@@ -4,33 +4,33 @@
 #include "crypto.hh"
 #include "srtp/base.hh"
 
-uvg_rtp::base_srtp::base_srtp():
-    srtp_ctx_(new uvg_rtp::srtp_ctx_t),
+uvgrtp::base_srtp::base_srtp():
+    srtp_ctx_(new uvgrtp::srtp_ctx_t),
     use_null_cipher_(false),
     authenticate_rtp_(false)
 {
 }
 
-uvg_rtp::base_srtp::~base_srtp()
+uvgrtp::base_srtp::~base_srtp()
 {
 }
 
-bool uvg_rtp::base_srtp::use_null_cipher()
+bool uvgrtp::base_srtp::use_null_cipher()
 {
     return use_null_cipher_;
 }
 
-bool uvg_rtp::base_srtp::authenticate_rtp()
+bool uvgrtp::base_srtp::authenticate_rtp()
 {
     return authenticate_rtp_;
 }
 
-uvg_rtp::srtp_ctx_t *uvg_rtp::base_srtp::get_ctx()
+uvgrtp::srtp_ctx_t *uvgrtp::base_srtp::get_ctx()
 {
     return srtp_ctx_;
 }
 
-rtp_error_t uvg_rtp::base_srtp::derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t out_len)
+rtp_error_t uvgrtp::base_srtp::derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t out_len)
 {
     uint8_t input[AES_KEY_LENGTH] = { 0 };
     memcpy(input, salt, SALT_LENGTH);
@@ -38,13 +38,13 @@ rtp_error_t uvg_rtp::base_srtp::derive_key(int label, uint8_t *key, uint8_t *sal
     input[7] ^= label;
     memset(out, 0, out_len);
 
-    uvg_rtp::crypto::aes::ecb ecb(key, AES_KEY_LENGTH);
+    uvgrtp::crypto::aes::ecb ecb(key, AES_KEY_LENGTH);
     ecb.encrypt(out, input, AES_KEY_LENGTH);
 
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::base_srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t index, uint8_t *salt)
+rtp_error_t uvgrtp::base_srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t index, uint8_t *salt)
 {
     if (!out || !salt)
         return RTP_INVALID_VALUE;
@@ -65,7 +65,7 @@ rtp_error_t uvg_rtp::base_srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t 
     return RTP_OK;
 }
 
-bool uvg_rtp::base_srtp::is_replayed_packet(uint8_t *digest)
+bool uvgrtp::base_srtp::is_replayed_packet(uint8_t *digest)
 {
     if (!(srtp_ctx_->flags & RCE_SRTP_REPLAY_PROTECTION))
         return false;
@@ -82,9 +82,10 @@ bool uvg_rtp::base_srtp::is_replayed_packet(uint8_t *digest)
     return false;
 }
 
-rtp_error_t uvg_rtp::base_srtp::init(int type, int flags)
+rtp_error_t uvgrtp::base_srtp::init(int type, int flags)
 {
     srtp_ctx_->roc  = 0;
+    srtp_ctx_->rts  = 0;
     srtp_ctx_->type = type;
     srtp_ctx_->enc  = AES_128;
     srtp_ctx_->hmac = HMAC_SHA1;
@@ -171,7 +172,7 @@ rtp_error_t uvg_rtp::base_srtp::init(int type, int flags)
     return RTP_OK;
 }
 
-rtp_error_t uvg_rtp::base_srtp::init_zrtp(int type, int flags, uvg_rtp::rtp *rtp, uvg_rtp::zrtp *zrtp)
+rtp_error_t uvgrtp::base_srtp::init_zrtp(int type, int flags, uvgrtp::rtp *rtp, uvgrtp::zrtp *zrtp)
 {
     (void)rtp;
 
@@ -194,7 +195,7 @@ rtp_error_t uvg_rtp::base_srtp::init_zrtp(int type, int flags, uvg_rtp::rtp *rtp
     return init(type, flags);
 }
 
-rtp_error_t uvg_rtp::base_srtp::init_user(int type, int flags, uint8_t *key, uint8_t *salt)
+rtp_error_t uvgrtp::base_srtp::init_user(int type, int flags, uint8_t *key, uint8_t *salt)
 {
     if (!key || !salt)
         return RTP_INVALID_VALUE;

@@ -12,10 +12,9 @@
 #include "srtp/srtcp.hh"
 #include "util.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
 
-    class connection;
-
+    /// \cond DO_NOT_DOCUMENT
     enum RTCP_ROLE {
         RECEIVER,
         SENDER
@@ -47,7 +46,7 @@ namespace uvg_rtp {
         uint32_t clock_rate;  /* Rate of the clock (used for jitter calculations) */
 
         uint32_t lsr;                     /* Middle 32 bits of the 64-bit NTP timestamp of previous SR */
-        uvg_rtp::clock::hrc::hrc_t sr_ts; /* When the last SR was received (used to calculate delay) */
+        uvgrtp::clock::hrc::hrc_t sr_ts; /* When the last SR was received (used to calculate delay) */
 
         uint16_t max_seq;  /* Highest sequence number received */
         uint16_t base_seq; /* First sequence number received */
@@ -56,7 +55,7 @@ namespace uvg_rtp {
     };
 
     struct rtcp_participant {
-        uvg_rtp::socket *socket; /* socket associated with this participant */
+        uvgrtp::socket *socket; /* socket associated with this participant */
         sockaddr_in address;     /* address of the participant */
         struct rtcp_statistics stats; /* RTCP session statistics of the participant */
 
@@ -65,16 +64,18 @@ namespace uvg_rtp {
 
         /* Save the latest RTCP packets received from this participant
          * Users can query these packets using the SSRC of participant */
-        uvg_rtp::frame::rtcp_sender_report   *s_frame;
-        uvg_rtp::frame::rtcp_receiver_report *r_frame;
-        uvg_rtp::frame::rtcp_sdes_packet     *sdes_frame;
-        uvg_rtp::frame::rtcp_app_packet      *app_frame;
+        uvgrtp::frame::rtcp_sender_report   *s_frame;
+        uvgrtp::frame::rtcp_receiver_report *r_frame;
+        uvgrtp::frame::rtcp_sdes_packet     *sdes_frame;
+        uvgrtp::frame::rtcp_app_packet      *app_frame;
     };
+    /// \endcond
 
     class rtcp : public runner {
         public:
-            rtcp(uvg_rtp::rtp *rtp, int flags);
-            rtcp(uvg_rtp::rtp *rtp, uvg_rtp::srtcp *srtcp, int flags);
+            /// \cond DO_NOT_DOCUMENT
+            rtcp(uvgrtp::rtp *rtp, int flags);
+            rtcp(uvgrtp::rtp *rtp, uvgrtp::srtcp *srtcp, int flags);
             ~rtcp();
 
             /* start the RTCP runner thread
@@ -110,6 +111,7 @@ namespace uvg_rtp {
              *
              * Return RTP_OK on success and RTP_ERROR on error */
             rtp_error_t handle_incoming_packet(uint8_t *buffer, size_t size);
+            /// \endcond
 
             /* Send "frame" to all participants
              *
@@ -118,21 +120,22 @@ namespace uvg_rtp {
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "frame" is in some way invalid
              * Return RTP_SEND_ERROR if sending "frame" did not succeed (see socket.hh for details) */
-            rtp_error_t send_sdes_packet(std::vector<uvg_rtp::frame::rtcp_sdes_item>& items);
+            rtp_error_t send_sdes_packet(std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
             rtp_error_t send_app_packet(char *name, uint8_t subtype, size_t payload_len, uint8_t *payload);
             rtp_error_t send_bye_packet(std::vector<uint32_t> ssrcs);
 
+            /// \cond DO_NOT_DOCUMENT
             /* Return the latest RTCP packet received from participant of "ssrc"
              * Return nullptr if we haven't received this kind of packet or if "ssrc" doesn't exist
              *
              * NOTE: Caller is responsible for deallocating the memory */
-            uvg_rtp::frame::rtcp_sender_report   *get_sender_packet(uint32_t ssrc);
-            uvg_rtp::frame::rtcp_receiver_report *get_receiver_packet(uint32_t ssrc);
-            uvg_rtp::frame::rtcp_sdes_packet     *get_sdes_packet(uint32_t ssrc);
-            uvg_rtp::frame::rtcp_app_packet      *get_app_packet(uint32_t ssrc);
+            uvgrtp::frame::rtcp_sender_report   *get_sender_packet(uint32_t ssrc);
+            uvgrtp::frame::rtcp_receiver_report *get_receiver_packet(uint32_t ssrc);
+            uvgrtp::frame::rtcp_sdes_packet     *get_sdes_packet(uint32_t ssrc);
+            uvgrtp::frame::rtcp_app_packet      *get_app_packet(uint32_t ssrc);
 
             /* Return a reference to vector that contains the sockets of all participants */
-            std::vector<uvg_rtp::socket>& get_sockets();
+            std::vector<uvgrtp::socket>& get_sockets();
 
             /* Somebody joined the multicast group the owner of this RTCP instance is part of
              * Add it to RTCP participant list so we can start listening for reports
@@ -148,7 +151,7 @@ namespace uvg_rtp {
             void sender_inc_seq_cycle_count();
             void sender_inc_sent_pkts(size_t n);
             void sender_inc_sent_bytes(size_t n);
-            void sender_update_stats(uvg_rtp::frame::rtp_frame *frame);
+            void sender_update_stats(uvgrtp::frame::rtp_frame *frame);
 
             void receiver_inc_sent_bytes(uint32_t sender_ssrc, size_t n);
             void receiver_inc_overhead_bytes(uint32_t sender_ssrc, size_t n);
@@ -160,7 +163,7 @@ namespace uvg_rtp {
              * Return RTP_OK if packet is valid
              * Return RTP_INVALID_VALUE if SSRCs of remotes have collided or the packet is invalid in some way
              * return RTP_SSRC_COLLISION if our own SSRC has collided and we need to reinitialize it */
-            rtp_error_t receiver_update_stats(uvg_rtp::frame::rtp_frame *frame);
+            rtp_error_t receiver_update_stats(uvgrtp::frame::rtp_frame *frame);
 
             /* If we've detected that our SSRC has collided with someone else's SSRC, we need to
              * generate new random SSRC and reinitialize our own RTCP state.
@@ -171,24 +174,38 @@ namespace uvg_rtp {
              * Return RTP_SSRC_COLLISION if our new SSRC has collided and we need to generate new SSRC */
             rtp_error_t reset_rtcp_state(uint32_t ssrc);
 
-            /* Set wallclock reading for t = 0 and random RTP timestamp from where the counting is started
-             * + clock rate for calculating the correct increment */
-            void set_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start);
-
             /* Update various session statistics */
-            void update_session_statistics(uvg_rtp::frame::rtp_frame *frame);
+            void update_session_statistics(uvgrtp::frame::rtp_frame *frame);
 
             /* Return SSRCs of all participants */
             std::vector<uint32_t> get_participants();
+            /// \endcond
+
+            /**
+             * \brief Provide timestamping information for RTCP
+             *
+             * \details If the application wishes to timestamp the stream itself AND it has
+             * enabled RTCP by using ::RCE_RTCP, it must provide timestamping information for
+             * RTCP so sensible synchronization values can be calculated for Sender Reports
+             *
+             * The application can call uvgrtp::clock::ntp::now() to get the current wall clock
+             * reading as an NTP timestamp value
+             *
+             * \param clock_start NTP timestamp for t = 0
+             * \param clock_rate Clock rate of the stream
+             * \param rtp_ts_start RTP timestamp for t = 0
+             */
+            void set_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start);
 
             /* Alternate way to get RTCP packets is to install a hook for them. So instead of
              * polling an RTCP packet, user can install a function that is called when
              * a specific RTCP packet is received. */
-            rtp_error_t install_sender_hook(void (*hook)(uvg_rtp::frame::rtcp_sender_report *));
-            rtp_error_t install_receiver_hook(void (*hook)(uvg_rtp::frame::rtcp_receiver_report *));
-            rtp_error_t install_sdes_hook(void (*hook)(uvg_rtp::frame::rtcp_sdes_packet *));
-            rtp_error_t install_app_hook(void (*hook)(uvg_rtp::frame::rtcp_app_packet *));
+            rtp_error_t install_sender_hook(void (*hook)(uvgrtp::frame::rtcp_sender_report *));
+            rtp_error_t install_receiver_hook(void (*hook)(uvgrtp::frame::rtcp_receiver_report *));
+            rtp_error_t install_sdes_hook(void (*hook)(uvgrtp::frame::rtcp_sdes_packet *));
+            rtp_error_t install_app_hook(void (*hook)(uvgrtp::frame::rtcp_app_packet *));
 
+            /// \cond DO_NOT_DOCUMENT
             /* Update RTCP-related sender statistics */
             rtp_error_t update_sender_stats(size_t pkt_size);
 
@@ -196,7 +213,8 @@ namespace uvg_rtp {
             static rtp_error_t recv_packet_handler(void *arg, int flags, frame::rtp_frame **out);
 
             /* Update RTCP-related sender statistics */
-            static rtp_error_t send_packet_handler_vec(void *arg, uvg_rtp::buf_vec& buffers);
+            static rtp_error_t send_packet_handler_vec(void *arg, uvgrtp::buf_vec& buffers);
+            /// \endcond
 
         private:
             static void rtcp_runner(rtcp *rtcp);
@@ -219,7 +237,7 @@ namespace uvg_rtp {
 
             /* We've got a message from new source (the SSRC of the frame is not known to us)
              * Initialize statistics for the peer and move it to participants_ */
-            rtp_error_t init_new_participant(uvg_rtp::frame::rtp_frame *frame);
+            rtp_error_t init_new_participant(uvgrtp::frame::rtp_frame *frame);
 
             /* Initialize the RTP Sequence related stuff of peer
              * This function assumes that the peer already exists in the participants_ map */
@@ -248,14 +266,14 @@ namespace uvg_rtp {
             /* Because struct statistics contains uvgRTP clock object we cannot
              * zero it out without compiler complaining about it so all the fields
              * must be set to zero manually */
-            void zero_stats(uvg_rtp::rtcp_statistics *stats);
+            void zero_stats(uvgrtp::rtcp_statistics *stats);
 
             /* Pointer to RTP context from which clock rate etc. info is collected and which is
              * used to change SSRC if a collision is detected */
-            uvg_rtp::rtp *rtp_;
+            uvgrtp::rtp *rtp_;
 
             /* Secure RTCP context */
-            uvg_rtp::srtcp *srtcp_;
+            uvgrtp::srtcp *srtcp_;
 
             /* RTP context flags */
             int flags_;
@@ -323,11 +341,13 @@ namespace uvg_rtp {
              *
              * The socket are also stored here (in addition to participants_ map) so they're easier
              * to pass to poll when RTCP runner is listening to incoming packets */
-            std::vector<uvg_rtp::socket> sockets_;
+            std::vector<uvgrtp::socket> sockets_;
 
-            void (*sender_hook_)(uvg_rtp::frame::rtcp_sender_report *);
-            void (*receiver_hook_)(uvg_rtp::frame::rtcp_receiver_report *);
-            void (*sdes_hook_)(uvg_rtp::frame::rtcp_sdes_packet *);
-            void (*app_hook_)(uvg_rtp::frame::rtcp_app_packet *);
+            void (*sender_hook_)(uvgrtp::frame::rtcp_sender_report *);
+            void (*receiver_hook_)(uvgrtp::frame::rtcp_receiver_report *);
+            void (*sdes_hook_)(uvgrtp::frame::rtcp_sdes_packet *);
+            void (*app_hook_)(uvgrtp::frame::rtcp_app_packet *);
     };
 };
+
+namespace uvg_rtp = uvgrtp;

@@ -4,7 +4,7 @@
 
 #include "util.hh"
 
-namespace uvg_rtp {
+namespace uvgrtp {
     class runner {
         public:
             runner();
@@ -20,3 +20,5 @@ namespace uvg_rtp {
             std::thread *runner_;
     };
 };
+
+namespace uvg_rtp = uvgrtp;
