@@ -45,6 +45,7 @@ SOURCES += \
 	src/runner.cc \
 	src/session.cc \
 	src/socket.cc \
+	src/holepuncher.cc \
 	src/zrtp.cc \
 	src/formats/media.cc \
 	src/formats/h26x.cc \
@@ -82,6 +83,7 @@ HEADERS += \
 	include/mingw_inet.hh \
 	include/multicast.hh \
 	include/pkt_dispatch.hh \
+	include/holepuncher.hh \
 	include/poll.hh \
 	include/queue.hh \
 	include/random.hh \
