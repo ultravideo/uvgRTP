@@ -37,6 +37,12 @@ Alternatively, if you want to disable Crypto++, use command:
 cmake -DDISABLE_CRYPTO=1 ..
 ```
 
+You can also use MinGW for building:
+
+```
+cmake -G"MinGW Makefiles" ..
+```
+
 ### Visual Studio
 
 ##### Building
