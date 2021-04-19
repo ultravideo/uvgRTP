@@ -82,30 +82,34 @@ rtp_error_t uvgrtp::formats::h264::push_nal_unit(uint8_t *data, size_t data_len,
     size_t data_pos     = 0;
     size_t payload_size = rtp_ctx_->get_payload_size();
 
+    /* send all packets smaller than MTU as single NAL unit packets */
     if (data_len - 3 <= payload_size) {
         /* If there is more data coming in (possibly another small packet)
          * create entry to "aggr_pkt_info_" to construct an aggregation packet */
-        if (more) {
-            aggr_pkt_info_.nalus.push_back(std::make_pair(data_len, data));
-            return RTP_NOT_READY;
-        } else {
-            if (aggr_pkt_info_.nalus.empty()) {
+        /* if (more) { */
+        /*     aggr_pkt_info_.nalus.push_back(std::make_pair(data_len, data)); */
+        /*     return RTP_NOT_READY; */
+        /* } else { */
+        /*     if (aggr_pkt_info_.nalus.empty()) { */
                 if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
                     LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
                     return ret;
                 }
+
+                if (more)
+                    return RTP_NOT_READY;
                 return fqueue_->flush_queue();
-            } else {
-                (void)make_aggregation_pkt();
-                ret = fqueue_->flush_queue();
-                clear_aggregation_info();
-                return ret;
-            }
-        }
+            /* } else { */
+            /*     (void)make_aggregation_pkt(); */
+            /*     ret = fqueue_->flush_queue(); */
+            /*     clear_aggregation_info(); */
+            /*     return ret; */
+            /* } */
+        /* } */
     } else {
         /* If smaller NALUs were queued before this NALU,
          * send them in an aggregation packet before proceeding with fragmentation */
-        (void)make_aggregation_pkt();
+        /* (void)make_aggregation_pkt(); */
     }
 
     /* The payload is larger than MTU (1500 bytes) so we must split it into smaller RTP frames
