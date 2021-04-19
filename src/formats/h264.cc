@@ -73,7 +73,7 @@ rtp_error_t uvgrtp::formats::h264::make_aggregation_pkt()
 
 rtp_error_t uvgrtp::formats::h264::push_nal_unit(uint8_t *data, size_t data_len, bool more)
 {
-    if (data_len <= 3)
+    if (data_len < 2)
         return RTP_INVALID_VALUE;
 
     uint8_t nal_type    = data[0] & 0x1f;
@@ -83,7 +83,7 @@ rtp_error_t uvgrtp::formats::h264::push_nal_unit(uint8_t *data, size_t data_len,
     size_t payload_size = rtp_ctx_->get_payload_size();
 
     /* send all packets smaller than MTU as single NAL unit packets */
-    if (data_len - 3 <= payload_size) {
+    if ((ssize_t)data_len - 3 <= payload_size) {
         /* If there is more data coming in (possibly another small packet)
          * create entry to "aggr_pkt_info_" to construct an aggregation packet */
         /* if (more) { */
