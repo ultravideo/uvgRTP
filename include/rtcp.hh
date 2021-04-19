@@ -120,8 +120,46 @@ namespace uvgrtp {
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "frame" is in some way invalid
              * Return RTP_SEND_ERROR if sending "frame" did not succeed (see socket.hh for details) */
+
+            /**
+             * \brief Send an RTCP SDES packet
+             *
+             * \param items Vector of SDES items
+             *
+             * \retval RTP_OK On success
+             * \retval RTP_MEMORY_ERROR If allocation fails
+             * \retval RTP_GENERIC_ERROR If sending fails
+             */
             rtp_error_t send_sdes_packet(std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
+
+            /**
+             * \brief Send an RTCP APP packet
+             *
+             * \param name Name of the APP item, e.g., EMAIL or PHONE
+             * \param subtype Subtype of the APP item
+             * \param payload_len Length of the payload
+             * \param payload Payload
+             *
+             * \retval RTP_OK On success
+             * \retval RTP_MEMORY_ERROR If allocation fails
+             * \retval RTP_GENERIC_ERROR If sending fails
+             */
             rtp_error_t send_app_packet(char *name, uint8_t subtype, size_t payload_len, uint8_t *payload);
+
+            /**
+             * \brief Send an RTCP BYE packet
+             *
+             * \details In case the quitting participant is a mixer and is serving multiple
+             * paricipants, the input vector contains the SSRCs of all those participants. If the
+             * participant is a regular member of the session, the vector only contains the SSRC
+             * of the participant.
+             *
+             * \param ssrcs Vector of SSRCs of those participants who are quitting
+             *
+             * \retval RTP_OK On success
+             * \retval RTP_MEMORY_ERROR If allocation fails
+             * \retval RTP_GENERIC_ERROR If sending fails
+             */
             rtp_error_t send_bye_packet(std::vector<uint32_t> ssrcs);
 
             /// \cond DO_NOT_DOCUMENT
@@ -200,9 +238,53 @@ namespace uvgrtp {
             /* Alternate way to get RTCP packets is to install a hook for them. So instead of
              * polling an RTCP packet, user can install a function that is called when
              * a specific RTCP packet is received. */
+
+            /**
+             * \brief Install an RTCP Sender Report hook
+             *
+             * \details This function is called when an RTCP Sender Report is received
+             *
+             * \param hook Function pointer to the hook
+             *
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If hook is nullptr
+             */
             rtp_error_t install_sender_hook(void (*hook)(uvgrtp::frame::rtcp_sender_report *));
+
+            /**
+             * \brief Install an RTCP Receiver Report hook
+             *
+             * \details This function is called when an RTCP Receiver Report is received
+             *
+             * \param hook Function pointer to the hook
+             *
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If hook is nullptr
+             */
             rtp_error_t install_receiver_hook(void (*hook)(uvgrtp::frame::rtcp_receiver_report *));
+
+            /**
+             * \brief Install an RTCP SDES packet hook
+             *
+             * \details This function is called when an RTCP SDES packet is received
+             *
+             * \param hook Function pointer to the hook
+             *
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If hook is nullptr
+             */
             rtp_error_t install_sdes_hook(void (*hook)(uvgrtp::frame::rtcp_sdes_packet *));
+
+            /**
+             * \brief Install an RTCP APP packet hook
+             *
+             * \details This function is called when an RTCP APP packet is received
+             *
+             * \param hook Function pointer to the hook
+             *
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If hook is nullptr
+             */
             rtp_error_t install_app_hook(void (*hook)(uvgrtp::frame::rtcp_app_packet *));
 
             /// \cond DO_NOT_DOCUMENT
