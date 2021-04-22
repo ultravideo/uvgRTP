@@ -87,7 +87,7 @@ rtp_error_t uvgrtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_f
      * because if the difference is more than 1, the input frame would be larger than 90 MB.
      *
      * Here the assumption is that the offset for an incorrectly ordered packet is at most 10k */
-    if (ts == ctx->rts && seq + MAX_OFF < MAX_OFF)
+    if (ts == ctx->rts && (uint16_t)(seq + MAX_OFF) < MAX_OFF)
         index = (((uint64_t)ctx->roc - 1) << 16) + seq;
     else
         index = (((uint64_t)ctx->roc) << 16) + seq;
