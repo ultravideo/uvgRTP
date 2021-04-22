@@ -135,12 +135,10 @@ Public Member Functions</h2></td></tr>
 
 <p>Add keying information for user-managed SRTP session. </p>
 <p>For user-managed SRTP session, the media stream is not started until SRTP key has been added and all calls to <a class="el" href="classuvgrtp_1_1media__stream.html#ab2b7507d5b2c76bef74c9bceec07ba18" title="Send data to remote participant with a custom timestamp.">push_frame()</a> will fail</p>
-<p>Currently uvgRTP only supports key length of 16 bytes (128 bits) and salt length of 14 bytes (112 bits).</p>
-<p>If the key or salt is longer, it is implicitly truncated to correct length and if the key or salt is shorter, a memory violation may occur</p>
 <p>Notice that if user-managed SRTP has been enabled during media stream creation, this function must be called before anything else. All calls to other functions will fail with <a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba32d67254c4da35568e7007ec3825f98a" title="Object has not been initialized.">RTP_NOT_INITIALIZED</a> until the SRTP context has been specified</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">key</td><td>128-bit long key </td></tr>
+    <tr><td class="paramname">key</td><td>SRTP master key, default is 128-bit long </td></tr>
     <tr><td class="paramname">salt</td><td>112-bit long salt</td></tr>
   </table>
   </dd>

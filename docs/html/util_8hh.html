@@ -190,7 +190,11 @@ Enumerations</h2></td></tr>
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa8e66f45819774772a0156647d3788a95">RCE_HOLEPUNCH_KEEPALIVE</a> = 1 &lt;&lt; 14
 , <br />
-&#160;&#160;<b>RCE_LAST</b> = 1 &lt;&lt; 15
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afaedeac11cc80833b61b51ae32f787db73">RCE_SRTP_KEYSIZE_192</a> = 1 &lt;&lt; 15
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa163744fe7c054b8396a4a07ae82a80c0">RCE_SRTP_KEYSIZE_256</a> = 1 &lt;&lt; 16
+, <br />
+&#160;&#160;<b>RCE_LAST</b> = 1 &lt;&lt; 17
 <br />
  }</td></tr>
 <tr class="memdesc:a15b2d6364db6065a482c99827f4bd2af"><td class="mdescLeft">&#160;</td><td class="mdescRight">RTP context enable flags.  <a href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af">More...</a><br /></td></tr>
@@ -306,6 +310,10 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa75a655a9170ae88e07e993c1dd7ca4f7"></a>RCE_H26X_PREPEND_SC&#160;</td><td class="fielddoc"><p>Prepend a 4-byte start code (0x00000001) to HEVC each frame </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa8e66f45819774772a0156647d3788a95"></a>RCE_HOLEPUNCH_KEEPALIVE&#160;</td><td class="fielddoc"><p>If the Mediastream object is used as a unidirectional stream but holepunching has been enabled, this flag can be used to make uvgRTP periodically send a short UDP datagram to keep the hole in the firewall open </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afaedeac11cc80833b61b51ae32f787db73"></a>RCE_SRTP_KEYSIZE_192&#160;</td><td class="fielddoc"><p>Use 192-bit keys with SRTP </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa163744fe7c054b8396a4a07ae82a80c0"></a>RCE_SRTP_KEYSIZE_256&#160;</td><td class="fielddoc"><p>Use 256-bit keys with SRTP </p>
 </td></tr>
 </table>
 

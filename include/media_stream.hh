@@ -50,17 +50,11 @@ namespace uvgrtp {
              * \details For user-managed SRTP session, the media stream is not started
              * until SRTP key has been added and all calls to push_frame() will fail
              *
-             * Currently uvgRTP only supports key length of 16 bytes (128 bits)
-             * and salt length of 14 bytes (112 bits).
-             *
-             * If the key or salt is longer, it is implicitly truncated to correct length
-             * and if the key or salt is shorter, a memory violation may occur
-             *
              * Notice that if user-managed SRTP has been enabled during media stream creation,
              * this function must be called before anything else. All calls to other functions
              * will fail with ::RTP_NOT_INITIALIZED until the SRTP context has been specified
              *
-             * \param key 128-bit long key
+             * \param key SRTP master key, default is 128-bit long
              * \param salt 112-bit long salt
              *
              * \return RTP error code

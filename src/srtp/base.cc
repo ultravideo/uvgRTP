@@ -13,6 +13,11 @@ uvgrtp::base_srtp::base_srtp():
 
 uvgrtp::base_srtp::~base_srtp()
 {
+    delete[] srtp_ctx_->key_ctx.master.local_key;
+    delete[] srtp_ctx_->key_ctx.master.remote_key;
+    delete[] srtp_ctx_->key_ctx.local.enc_key;
+    delete[] srtp_ctx_->key_ctx.remote.enc_key;
+    delete srtp_ctx_;
 }
 
 bool uvgrtp::base_srtp::use_null_cipher()
@@ -32,15 +37,18 @@ uvgrtp::srtp_ctx_t *uvgrtp::base_srtp::get_ctx()
 
 rtp_error_t uvgrtp::base_srtp::derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t out_len)
 {
-    uint8_t input[AES_KEY_LENGTH] = { 0 };
-    memcpy(input, salt, SALT_LENGTH);
+    uint8_t input[IV_LENGTH]    = { 0 };
+    uint8_t ks[AES128_KEY_SIZE] = { 0 };
 
-    input[7] ^= label;
+    memcpy(input, salt, SALT_LENGTH);
     memset(out, 0, out_len);
 
-    uvgrtp::crypto::aes::ecb ecb(key, AES_KEY_LENGTH);
-    ecb.encrypt(out, input, AES_KEY_LENGTH);
+    input[7] ^= label;
 
+    uvgrtp::crypto::aes::ecb ecb(key, srtp_ctx_->n_e);
+    ecb.encrypt(ks, input, IV_LENGTH);
+
+    memcpy(out, ks, out_len);
     return RTP_OK;
 }
 
@@ -52,7 +60,7 @@ rtp_error_t uvgrtp::base_srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t i
     uint8_t buf[8];
     int i;
 
-    memset(out,         0,  AES_KEY_LENGTH);
+    memset(out,         0,  IV_LENGTH);
     memcpy(&out[4], &ssrc,  sizeof(uint32_t));
     memcpy(buf,     &index, sizeof(uint64_t));
 
@@ -82,13 +90,26 @@ bool uvgrtp::base_srtp::is_replayed_packet(uint8_t *digest)
     return false;
 }
 
-rtp_error_t uvgrtp::base_srtp::init(int type, int flags)
+rtp_error_t uvgrtp::base_srtp::init(int type, int flags, size_t key_size)
 {
     srtp_ctx_->roc  = 0;
     srtp_ctx_->rts  = 0;
     srtp_ctx_->type = type;
-    srtp_ctx_->enc  = AES_128;
     srtp_ctx_->hmac = HMAC_SHA1;
+
+    switch (key_size) {
+        case AES128_KEY_SIZE:
+            srtp_ctx_->enc  = AES_128;
+            break;
+
+        case AES192_KEY_SIZE:
+            srtp_ctx_->enc  = AES_192;
+            break;
+
+        case AES256_KEY_SIZE:
+            srtp_ctx_->enc  = AES_256;
+            break;
+    }
 
     srtp_ctx_->mki_size    = 0;
     srtp_ctx_->mki_present = false;
@@ -98,7 +119,7 @@ rtp_error_t uvgrtp::base_srtp::init(int type, int flags)
     srtp_ctx_->master_salt = srtp_ctx_->key_ctx.master.local_salt;
     srtp_ctx_->mk_cnt      = 0;
 
-    srtp_ctx_->n_e = AES_KEY_LENGTH;
+    srtp_ctx_->n_e = key_size;
     srtp_ctx_->n_a = HMAC_KEY_LENGTH;
 
     srtp_ctx_->s_l    = 0;
@@ -129,14 +150,14 @@ rtp_error_t uvgrtp::base_srtp::init(int type, int flags)
         srtp_ctx_->key_ctx.master.local_key,
         srtp_ctx_->key_ctx.master.local_salt,
         srtp_ctx_->key_ctx.local.enc_key,
-        AES_KEY_LENGTH
+        key_size
     );
     (void)derive_key(
         label_auth,
         srtp_ctx_->key_ctx.master.local_key,
         srtp_ctx_->key_ctx.master.local_salt,
         srtp_ctx_->key_ctx.local.auth_key,
-        AES_KEY_LENGTH
+        AUTH_LENGTH
     );
     (void)derive_key(
         label_salt,
@@ -152,14 +173,14 @@ rtp_error_t uvgrtp::base_srtp::init(int type, int flags)
         srtp_ctx_->key_ctx.master.remote_key,
         srtp_ctx_->key_ctx.master.remote_salt,
         srtp_ctx_->key_ctx.remote.enc_key,
-        AES_KEY_LENGTH
+        key_size
     );
     (void)derive_key(
         label_auth,
         srtp_ctx_->key_ctx.master.remote_key,
         srtp_ctx_->key_ctx.master.remote_salt,
         srtp_ctx_->key_ctx.remote.auth_key,
-        AES_KEY_LENGTH
+        AUTH_LENGTH
     );
     (void)derive_key(
         label_salt,
@@ -172,6 +193,40 @@ rtp_error_t uvgrtp::base_srtp::init(int type, int flags)
     return RTP_OK;
 }
 
+rtp_error_t uvgrtp::base_srtp::allocate_crypto_ctx(size_t key_size)
+{
+    if (!(srtp_ctx_->key_ctx.master.local_key = new uint8_t[key_size])) {
+        LOG_ERROR("Failed to allocate space for local master key");
+        return RTP_MEMORY_ERROR;
+    }
+
+    if (!(srtp_ctx_->key_ctx.master.remote_key = new uint8_t[key_size])) {
+        LOG_ERROR("Failed to allocate space for remote master key");
+
+        delete[] srtp_ctx_->key_ctx.master.local_key;
+        return RTP_MEMORY_ERROR;
+    }
+
+    if (!(srtp_ctx_->key_ctx.local.enc_key = new uint8_t[key_size])) {
+        LOG_ERROR("Failed to allocate space for local session key");
+
+        delete[] srtp_ctx_->key_ctx.master.local_key;
+        delete[] srtp_ctx_->key_ctx.master.remote_key;
+        return RTP_MEMORY_ERROR;
+    }
+
+    if (!(srtp_ctx_->key_ctx.remote.enc_key = new uint8_t[key_size])) {
+        LOG_ERROR("Failed to allocate space for remote session key");
+
+        delete[] srtp_ctx_->key_ctx.master.local_key;
+        delete[] srtp_ctx_->key_ctx.master.remote_key;
+        delete[] srtp_ctx_->key_ctx.local.enc_key;
+        return RTP_MEMORY_ERROR;
+    }
+
+    return RTP_OK;
+}
+
 rtp_error_t uvgrtp::base_srtp::init_zrtp(int type, int flags, uvgrtp::rtp *rtp, uvgrtp::zrtp *zrtp)
 {
     (void)rtp;
@@ -179,12 +234,17 @@ rtp_error_t uvgrtp::base_srtp::init_zrtp(int type, int flags, uvgrtp::rtp *rtp, 
     if (!zrtp)
         return RTP_INVALID_VALUE;
 
+    rtp_error_t ret = allocate_crypto_ctx(AES128_KEY_SIZE);
+
+    if (ret != RTP_OK)
+        return ret;
+
     /* ZRTP key derivation function expects the keys lengths to be given in bits */
-    rtp_error_t ret = zrtp->get_srtp_keys(
-        srtp_ctx_->key_ctx.master.local_key,   AES_KEY_LENGTH * 8,
-        srtp_ctx_->key_ctx.master.remote_key,  AES_KEY_LENGTH * 8,
-        srtp_ctx_->key_ctx.master.local_salt,  SALT_LENGTH    * 8,
-        srtp_ctx_->key_ctx.master.remote_salt, SALT_LENGTH    * 8
+    ret = zrtp->get_srtp_keys(
+        srtp_ctx_->key_ctx.master.local_key,   AES128_KEY_SIZE * 8,
+        srtp_ctx_->key_ctx.master.remote_key,  AES128_KEY_SIZE * 8,
+        srtp_ctx_->key_ctx.master.local_salt,  SALT_LENGTH     * 8,
+        srtp_ctx_->key_ctx.master.remote_salt, SALT_LENGTH     * 8
     );
 
     if (ret != RTP_OK) {
@@ -192,18 +252,30 @@ rtp_error_t uvgrtp::base_srtp::init_zrtp(int type, int flags, uvgrtp::rtp *rtp, 
         return ret;
     }
 
-    return init(type, flags);
+    return init(type, flags, AES128_KEY_SIZE);
 }
 
 rtp_error_t uvgrtp::base_srtp::init_user(int type, int flags, uint8_t *key, uint8_t *salt)
 {
+    rtp_error_t ret;
+
     if (!key || !salt)
         return RTP_INVALID_VALUE;
 
-    memcpy(srtp_ctx_->key_ctx.master.local_key,    key, AES_KEY_LENGTH);
-    memcpy(srtp_ctx_->key_ctx.master.remote_key,   key, AES_KEY_LENGTH);
+    size_t key_size = AES128_KEY_SIZE;
+
+    if (flags & RCE_SRTP_KEYSIZE_192)
+        key_size = AES192_KEY_SIZE;
+    else if (flags & RCE_SRTP_KEYSIZE_256)
+        key_size = AES256_KEY_SIZE;
+
+    if ((ret = allocate_crypto_ctx(key_size)) != RTP_OK)
+        return ret;
+
+    memcpy(srtp_ctx_->key_ctx.master.local_key,    key,    key_size);
+    memcpy(srtp_ctx_->key_ctx.master.remote_key,   key,    key_size);
     memcpy(srtp_ctx_->key_ctx.master.local_salt,  salt, SALT_LENGTH);
     memcpy(srtp_ctx_->key_ctx.master.remote_salt, salt, SALT_LENGTH);
 
-    return init(type, flags);
+    return init(type, flags, key_size);
 }

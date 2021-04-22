@@ -220,7 +220,13 @@ enum RTP_CTX_ENABLE_FLAGS {
      * in the firewall open */
     RCE_HOLEPUNCH_KEEPALIVE       = 1 << 14,
 
-    RCE_LAST                      = 1 << 15,
+    /** Use 192-bit keys with SRTP */
+    RCE_SRTP_KEYSIZE_192          = 1 << 15,
+
+    /** Use 256-bit keys with SRTP */
+    RCE_SRTP_KEYSIZE_256          = 1 << 16,
+
+    RCE_LAST                      = 1 << 17,
 };
 
 /**

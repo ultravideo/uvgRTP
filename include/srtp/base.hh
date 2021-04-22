@@ -19,9 +19,17 @@
 #include "../util.hh"
 #include "../zrtp.hh"
 
+enum {
+    AES128_KEY_SIZE = 16,
+    AES192_KEY_SIZE = 24,
+    AES256_KEY_SIZE = 32
+};
+
 #define AES_KEY_LENGTH      16 /* 128 bits */
 #define HMAC_KEY_LENGTH     32 /* 256 bits */
 #define SALT_LENGTH         14 /* 112 bits */
+#define AUTH_LENGTH         16
+#define IV_LENGTH           16
 #define AUTH_TAG_LENGTH     10
 #define SRTCP_INDEX_LENGTH   4
 
@@ -37,6 +45,8 @@ namespace uvgrtp {
 
     enum ETYPE {
         AES_128 = 0,
+        AES_192 = 1,
+        AES_256 = 2
     };
 
     enum HTYPE {
@@ -61,26 +71,26 @@ namespace uvgrtp {
         /* Keys negotiated by ZRTP */
         struct {
             /* Our master key and salt */
-            uint8_t local_key[AES_KEY_LENGTH];
+            uint8_t *local_key;
             uint8_t local_salt[SALT_LENGTH];
 
             /* Remote's master key and salt */
-            uint8_t remote_key[AES_KEY_LENGTH];
+            uint8_t *remote_key;
             uint8_t remote_salt[SALT_LENGTH];
         } master;
 
         /* Used to encrypt/authenticate packets sent by us */
         struct {
-            uint8_t enc_key[AES_KEY_LENGTH];
-            uint8_t auth_key[AES_KEY_LENGTH];
-            uint8_t salt_key[AES_KEY_LENGTH]; /* TODO: make sure this is correct */
+            uint8_t *enc_key;
+            uint8_t auth_key[AUTH_LENGTH];
+            uint8_t salt_key[SALT_LENGTH];
         } local;
 
         /* Used to decrypt/Authenticate packets sent by remote */
         struct {
-            uint8_t enc_key[AES_KEY_LENGTH];
-            uint8_t auth_key[AES_KEY_LENGTH];
-            uint8_t salt_key[AES_KEY_LENGTH];
+            uint8_t *enc_key;
+            uint8_t auth_key[AUTH_LENGTH];
+            uint8_t salt_key[SALT_LENGTH];
         } remote;
 
     } srtp_key_ctx_t;
@@ -127,8 +137,8 @@ namespace uvgrtp {
 
             /* Setup Secure RTP/RTCP connection using user-managed keys
              *
-             * Length of "key" must be AES_KEY_LENGTH (16 bytes)
-             * Length of "salt" must be SALT_LENGTH   (14 bytes)
+             * Length of the "key" must be either 128, 192, or 256 bits
+             * Length of "salt" must be SALT_LENGTH (14 bytes, 112 bits)
              *
              * Return RTP_OK if SRTP setup was successful
              * Return RTP_INVALID_VALUE if "key" or "salt" is nullptr
@@ -158,7 +168,11 @@ namespace uvgrtp {
             rtp_error_t create_iv(uint8_t *out, uint32_t ssrc, uint64_t index, uint8_t *salt);
 
             /* Internal init method that initialize the SRTP context using values in key_ctx_.master */
-            rtp_error_t init(int type, int flags);
+            rtp_error_t init(int type, int flags, size_t key_size);
+
+            /* Allocate space for master/session encryption keys */
+            rtp_error_t allocate_crypto_ctx(size_t key_size);
+
             /* SRTP context containing all session information and keys */
             srtp_ctx_t *srtp_ctx_;
 

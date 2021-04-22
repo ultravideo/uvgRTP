@@ -17,14 +17,14 @@ rtp_error_t uvgrtp::srtcp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer,
     if (use_null_cipher_)
         return RTP_OK;
 
-    uint8_t iv[16] = { 0 };
+    uint8_t iv[IV_LENGTH] = { 0 };
 
     if (create_iv(iv, ssrc, seq, srtp_ctx_->key_ctx.local.salt_key) != RTP_OK) {
         LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
         return RTP_INVALID_VALUE;
     }
 
-    uvgrtp::crypto::aes::ctr ctr(srtp_ctx_->key_ctx.local.enc_key, sizeof(srtp_ctx_->key_ctx.local.enc_key), iv);
+    uvgrtp::crypto::aes::ctr ctr(srtp_ctx_->key_ctx.local.enc_key, srtp_ctx_->n_e, iv);
     ctr.encrypt(buffer, buffer, len);
 
     return RTP_OK;
@@ -65,14 +65,14 @@ rtp_error_t uvgrtp::srtcp::verify_auth_tag(uint8_t *buffer, size_t len)
 
 rtp_error_t uvgrtp::srtcp::decrypt(uint32_t ssrc, uint32_t seq, uint8_t *buffer, size_t size)
 {
-    uint8_t iv[16]  = { 0 };
+    uint8_t iv[IV_LENGTH]  = { 0 };
 
     if (create_iv(iv, ssrc, seq, srtp_ctx_->key_ctx.remote.salt_key) != RTP_OK) {
         LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
         return RTP_INVALID_VALUE;
     }
 
-    uvgrtp::crypto::aes::ctr ctr(srtp_ctx_->key_ctx.remote.enc_key, sizeof(srtp_ctx_->key_ctx.remote.enc_key), iv);
+    uvgrtp::crypto::aes::ctr ctr(srtp_ctx_->key_ctx.remote.enc_key, srtp_ctx_->n_e, iv);
 
     /* skip header and sender ssrc */
     ctr.decrypt(&buffer[8], &buffer[8], size - 8 - AUTH_TAG_LENGTH - SRTCP_INDEX_LENGTH);
