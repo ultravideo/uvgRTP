@@ -7,18 +7,39 @@ namespace uvgrtp {
 
         /* network time protocol */
         namespace ntp {
+            /**
+             * \brief Get current time in NTP units
+             *
+             * \return NTP timestamp
+             */
             uint64_t now();
 
-            /* return the difference of ntp timestamps in milliseconds */
+            /**
+             * \brief Calculate the time difference of two NTP times
+             *
+             * The second timestamp is subtracted from the first one
+             *
+             * \param ntp1 First NTP timestamp
+             * \param ntp2 Second NTP timestamp
+             *
+             * \return Difference of the timestamps in milliseconds
+             */
             uint64_t diff(uint64_t ntp1, uint64_t ntp2);
 
-            /* Calculate the difference between now
-             * (a wall clock reading when the function is called) and "then"
+            /**
+             * \brief Calculate the time difference of two NTP times
              *
-             * The result is in milliseconds */
+             * \details This function calls uvgrtp::clock::ntp::now()
+             * and then subtracts the input parameter from that timestamp value.
+             *
+             * \param then NTP timestamp
+             *
+             * \return Difference of the timestamps in milliseconds
+             */
             uint64_t diff_now(uint64_t then);
         };
 
+        /// \cond DO_NOT_DOCUMENT
         /* high-resolution clock */
         namespace hrc {
             typedef std::chrono::high_resolution_clock::time_point hrc_t;
@@ -40,6 +61,7 @@ namespace uvgrtp {
 #ifdef _WIN32
         int gettimeofday(struct timeval *tp, struct timezone *tzp);
 #endif
+        /// \endcond
     };
 };
 
