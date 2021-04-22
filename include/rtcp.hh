@@ -45,7 +45,7 @@ namespace uvgrtp {
         uint32_t initial_rtp; /* RTP timestamp of the first RTP packet received */
         uint32_t clock_rate;  /* Rate of the clock (used for jitter calculations) */
 
-        uint32_t lsr;                     /* Middle 32 bits of the 64-bit NTP timestamp of previous SR */
+        uint32_t lsr;                    /* Middle 32 bits of the 64-bit NTP timestamp of previous SR */
         uvgrtp::clock::hrc::hrc_t sr_ts; /* When the last SR was received (used to calculate delay) */
 
         uint16_t max_seq;  /* Highest sequence number received */

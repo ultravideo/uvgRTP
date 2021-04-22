@@ -75,12 +75,13 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t *packet, size_t 
     for (int i = 0; i < frame->header.count; ++i) {
         uvgrtp::frame::rtcp_report_block report;
 
-        report.ssrc     = ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 0]);
-        report.lost     = ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 4]);
-        report.last_seq = ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 8]);
-        report.jitter   = ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 12]);
-        report.lsr      = ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 16]);
-        report.dlsr     = ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 20]);
+        report.ssrc     =  ntohl(*(uint32_t *)&packet[(i * 24) + 8 +  0]);
+        report.fraction = (ntohl(*(uint32_t *)&packet[(i * 24) + 8 +  4])) >> 24;
+        report.lost     = (ntohl(*(uint32_t *)&packet[(i * 24) + 8 +  4])) & 0xfffffd;
+        report.last_seq =  ntohl(*(uint32_t *)&packet[(i * 24) + 8 +  8]);
+        report.jitter   =  ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 12]);
+        report.lsr      =  ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 16]);
+        report.dlsr     =  ntohl(*(uint32_t *)&packet[(i * 24) + 8 + 20]);
 
         frame->report_blocks.push_back(report);
     }
