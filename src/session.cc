@@ -64,6 +64,11 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
 
         if (flags & RCE_SRTP_KMNGMNT_ZRTP) {
 
+            if (flags & (RCE_SRTP_KEYSIZE_192 | RCE_SRTP_KEYSIZE_256)) {
+                LOG_ERROR("Only 128-bit keys are supported with ZRTP");
+                return nullptr;
+            }
+
             if (!zrtp_) {
                 if (!(zrtp_ = new uvgrtp::zrtp())) {
                     rtp_errno = RTP_MEMORY_ERROR;
