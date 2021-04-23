@@ -1,7 +1,7 @@
 #include <uvgrtp/lib.hh>
 #include <climits>
 
-#define PAYLOAD_MAXLEN 4096
+#define PAYLOAD_MAXLEN (0xffff - 0x1000)
 
 int main(void)
 {
@@ -29,8 +29,32 @@ int main(void)
      *
      * uvgRTP fragments all generic input frames that are larger than 1500 and in the receiving end,
      * it will reconstruct the full sent frame from fragments when all fragments have been received */
-    auto custom_media = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);
+    auto media = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);
 
+    srand(time(NULL));
+
+    while (true) {
+        int size = (rand() % PAYLOAD_MAXLEN) + 1;
+
+        for (int i = 0; i < size; ++i)
+            media[i] = (i + size) % CHAR_MAX;
+
+        if (send->push_frame(media.get(), size, RTP_NO_FLAGS) != RTP_OK) {
+            fprintf(stderr, "Failed to send frame!\n");
+            return -1;
+        }
+
+        auto frame = recv->pull_frame();
+
+        if (memcmp(frame->payload, media.get(), size))
+            LOG_ERROR("frame is corrupted!");
+
+        fprintf(stderr, "received frame of size %u, rand %d\n", frame->payload_len, size);
+
+        uvgrtp::frame::dealloc_frame(frame);
+    }
+
+#if 0
     for (int i = 0; i < PAYLOAD_MAXLEN; ++i)
         custom_media[i] = i % CHAR_MAX;
 
@@ -62,6 +86,7 @@ int main(void)
 
     /* the frame must be destroyed manually */
     (void)uvgrtp::frame::dealloc_frame(frame);
+#endif
 
     /* Session must be destroyed manually */
     ctx.destroy_session(sess);

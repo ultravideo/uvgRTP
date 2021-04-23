@@ -12,17 +12,17 @@ void thread_func(void)
     unsigned flags = RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP;
 
     /* Keys creates using Diffie-Hellman mode */
-    uvgrtp::media_stream *recv1 = sess->create_stream(8889, 8888, RTP_FORMAT_GENERIC, flags);
+    uvgrtp::media_stream *video = sess->create_stream(8889, 8888, RTP_FORMAT_GENERIC, flags);
 
     /* Keys created using Multistream mode */
-    uvgrtp::media_stream *recv2 = sess->create_stream(7778, 7777, RTP_FORMAT_GENERIC, flags);
+    uvgrtp::media_stream *audio = sess->create_stream(7778, 7777, RTP_FORMAT_GENERIC, flags);
 
     for (;;) {
-        auto frame = recv1->pull_frame();
+        auto frame = video->pull_frame();
         fprintf(stderr, "Message: '%s'\n", frame->payload);
         (void)uvgrtp::frame::dealloc_frame(frame);
 
-        frame = recv2->pull_frame();
+        frame = audio->pull_frame();
         fprintf(stderr, "Message: '%s'\n", frame->payload);
         (void)uvgrtp::frame::dealloc_frame(frame);
     }
@@ -45,19 +45,19 @@ int main(void)
     unsigned flags = RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP;
 
     /* Initialize ZRTP and negotiate the keys used to encrypt the media */
-    uvgrtp::media_stream *send1 = sess->create_stream(8888, 8889, RTP_FORMAT_GENERIC, flags);
+    uvgrtp::media_stream *video = sess->create_stream(8888, 8889, RTP_FORMAT_GENERIC, flags);
 
     /* The first call to create_stream() creates keys for the session using Diffie-Hellman
      * key exchange and all subsequent calls to create_stream() initialize keys for the
      * stream using Multistream mode */
-    uvgrtp::media_stream *send2 = sess->create_stream(7777, 7778, RTP_FORMAT_GENERIC, flags);
+    uvgrtp::media_stream *audio = sess->create_stream(7777, 7778, RTP_FORMAT_GENERIC, flags);
 
     char *message  = (char *)"Hello, world!";
     size_t msg_len = strlen(message);
 
     for (;;) {
-        send1->push_frame((uint8_t *)message, msg_len, RTP_NO_FLAGS);
-        send2->push_frame((uint8_t *)message, msg_len, RTP_NO_FLAGS);
+        video->push_frame((uint8_t *)message, msg_len, RTP_NO_FLAGS);
+        audio->push_frame((uint8_t *)message, msg_len, RTP_NO_FLAGS);
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 }
