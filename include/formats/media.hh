@@ -19,7 +19,7 @@ namespace uvgrtp {
             uint32_t e_seq;
             size_t npkts;
             size_t size;
-            std::map<uint16_t, uvgrtp::frame::rtp_frame *> fragments;
+            std::map<uint32_t, uvgrtp::frame::rtp_frame *> fragments;
         } media_info_t;
 
         typedef struct media_frame_info {

@@ -107,8 +107,13 @@ rtp_error_t uvgrtp::formats::media::packet_handler(void *arg, int flags, uvgrtp:
 
     if (minfo->frames.find(ts) != minfo->frames.end()) {
         minfo->frames[ts].npkts++;
-        minfo->frames[ts].fragments[seq] = frame;
         minfo->frames[ts].size += frame->payload_len;
+
+        if (seq < minfo->frames[ts].s_seq)
+            minfo->frames[ts].fragments[seq + 0x10000] = frame;
+        else
+            minfo->frames[ts].fragments[seq] = frame;
+
         *out = nullptr;
 
         if (frame->header.marker)
