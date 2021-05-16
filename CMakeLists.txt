@@ -2,6 +2,35 @@ cmake_minimum_required(VERSION 3.5)
 
 project(uvgrtp)
 
+include(CheckCXXCompilerFlag)
+include(CheckCXXSymbolExists)
+
+# Check for standard to use
+check_cxx_compiler_flag(-std=c++17 HAVE_FLAG_STD_CXX17)
+
+if(HAVE_FLAG_STD_CXX17)
+    # Have -std=c++17, use it
+    set(CXX_STANDARD c++17)
+else()
+    check_cxx_compiler_flag(-std=c++11 HAVE_FLAG_STD_CXX11)
+
+    if(HAVE_FLAG_STD_CXX11)
+        # Have -std=c++11, use it
+        set(CXX_STANDARD c++11)
+    else()
+        # Abort
+        message( FATAL_ERROR "The compiler doen't support neither c++17 nor c++11. CMake will exit." )
+    endif()
+endif()
+
+# Check the getrandom() function exists
+check_cxx_symbol_exists(getrandom sys/random.h HAVE_GETRANDOM)
+
+if(HAVE_GETRANDOM)
+    add_compile_definitions(HAVE_GETRANDOM=1)
+endif()
+
+
 option(DISABLE_CRYPTO "Do not build uvgRTP with crypto enabled")
 option(PTHREADS_PATH  "Path to POSIX threads static library")
 option(CRYPTOPP_PATH  "Path to Crypto++ static library")
@@ -74,7 +103,7 @@ if (CRYPTOPP_PATH AND NOT DISABLE_CRYPTO)
 endif (CRYPTOPP_PATH AND NOT DISABLE_CRYPTO)
 
 if (UNIX)
-    set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wuninitialized -Wshadow -O2 -g -std=c++17 -march=native -DNDEBUG")
+    set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wuninitialized -Wshadow -O2 -g -std=${CXX_STANDARD} -march=native -DNDEBUG")
 
     if (DISABLE_CRYPTO)
         string(APPEND CMAKE_CXX_FLAGS " -D__RTP_NO_CRYPTO__")
@@ -104,9 +133,9 @@ endif (UNIX)
 
 if (WIN32)
     if(MSVC)
-        set(CMAKE_CXX_FLAGS "/O2 /std:c++17 /DNDEBUG")
+        set(CMAKE_CXX_FLAGS "/O2 /std:${CXX_STANDARD} /DNDEBUG")
     else(MSVC)
-        set(CMAKE_CXX_FLAGS "-O2 -std=c++17 -DNDEBUG")
+        set(CMAKE_CXX_FLAGS "-O2 -std=${CXX_STANDARD} -DNDEBUG")
     endif(MSVC)
     SET(OUT_DIR ${CMAKE_BINARY_DIR}/Debug)
 
