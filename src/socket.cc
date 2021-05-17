@@ -376,7 +376,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
     DWORD sent_bytes;
     WSABUF wsa_bufs[WSABUF_SIZE];
 
-    if (buffer.size() > WSABUF_SIZE) {
+    if (buffers.size() > WSABUF_SIZE) {
         LOG_ERROR("Input vector to __sendtov() has more than %u elements!", WSABUF_SIZE);
         return RTP_GENERIC_ERROR;
     }
