@@ -20,7 +20,7 @@ The public API for uvgRTP is very short. Functions not listed in the public API 
 by an application using uvgRTP as they are for internal usage only. All of the features are provided
 as either built-in or they are enabled/modified through context configuration that is specified below.
 
-Read the documentation for uvgRTP's public API [here](https://ultravideo.github.com/uvgRTP/html/index.html)
+Read the documentation for uvgRTP's public API [here](https://ultravideo.github.io/uvgRTP/html/index.html)
 
 ## Supported media formats
 

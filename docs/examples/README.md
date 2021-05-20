@@ -1,6 +1,6 @@
 # uvgRTP example codes
 
-This directory contains a collection of simple and thoroughly commented examples that demonstrate how to use uvgRTP
+This directory contains a collection of simple and thoroughly commented examples that demonstrate how to use uvgRTP.
 
 Below is a very simple example usage of uvgRTP:
 

@@ -94,6 +94,9 @@ target_include_directories(uvgrtp
 
 set(LIBRARY_PATHS "")
 
+# This decays to older standard if c++17 is not supported
+set(CMAKE_CXX_STANDARD 17)
+
 if (PTHREADS_PATH)
     separate_arguments(LIBRARY_PATHS NATIVE_COMMAND ${PTHREADS_PATH})
 endif (PTHREADS_PATH)
@@ -103,10 +106,11 @@ if (CRYPTOPP_PATH AND NOT DISABLE_CRYPTO)
 endif (CRYPTOPP_PATH AND NOT DISABLE_CRYPTO)
 
 if (UNIX)
-    set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wuninitialized -Wshadow -O2 -g -std=${CXX_STANDARD} -march=native -DNDEBUG")
+    add_definitions(-DNDEBUG)
+    add_compile_options(-Wall -Wextra -Wuninitialized -Wshadow -O2 -g -march=native)
 
     if (DISABLE_CRYPTO)
-        string(APPEND CMAKE_CXX_FLAGS " -D__RTP_NO_CRYPTO__")
+        add_definitions(-D__RTP_NO_CRYPTO__)
     endif(DISABLE_CRYPTO)
 
     # if (NOT "${LIBRARY_PATHS}" STREQUAL "")
@@ -133,17 +137,19 @@ endif (UNIX)
 
 if (WIN32)
     if(MSVC)
-        set(CMAKE_CXX_FLAGS "/O2 /std:${CXX_STANDARD} /DNDEBUG")
+        add_definitions(/DNDEBUG)
+        add_compile_options(/O2)
     else(MSVC)
-        set(CMAKE_CXX_FLAGS "-O2 -std=${CXX_STANDARD} -DNDEBUG")
+        add_definitions(-DNDEBUG)
+        add_compile_options(-O2)
     endif(MSVC)
     SET(OUT_DIR ${CMAKE_BINARY_DIR}/Debug)
 
     if (DISABLE_CRYPTO)
         if(MSVC)
-            string(APPEND CMAKE_CXX_FLAGS " /D__RTP_NO_CRYPTO__")
+            add_definitions(/D__RTP_NO_CRYPTO__)
         else(MSVC)
-            string(APPEND CMAKE_CXX_FLAGS " -D__RTP_NO_CRYPTO__")
+            add_definitions(-D__RTP_NO_CRYPTO__)
         endif(MSVC)
     endif(DISABLE_CRYPTO)
 
