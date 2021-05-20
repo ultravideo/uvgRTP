@@ -106,11 +106,10 @@ if (CRYPTOPP_PATH AND NOT DISABLE_CRYPTO)
 endif (CRYPTOPP_PATH AND NOT DISABLE_CRYPTO)
 
 if (UNIX)
-    add_definitions(-DNDEBUG)
-    add_compile_options(-Wall -Wextra -Wuninitialized -Wshadow -O2 -g -march=native)
+    set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wuninitialized -Wshadow -O2 -g -std=${CXX_STANDARD} -march=native -DNDEBUG")
 
     if (DISABLE_CRYPTO)
-        add_definitions(-D__RTP_NO_CRYPTO__)
+        string(APPEND CMAKE_CXX_FLAGS " -D__RTP_NO_CRYPTO__")
     endif(DISABLE_CRYPTO)
 
     # if (NOT "${LIBRARY_PATHS}" STREQUAL "")
