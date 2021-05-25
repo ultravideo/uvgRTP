@@ -2,9 +2,14 @@
 #include <winsock2.h>
 #include <windows.h>
 #include <wincrypt.h>
-#else
+#else // _WIN32
+#ifdef HAVE_GETRANDOM
 #include <sys/random.h>
-#endif
+#else // HAVE_GETRANDOM
+#include <unistd.h>
+#include <sys/syscall.h>
+#endif // HAVE_GETRANDOM
+#endif // _WIN32
 
 #include <cstdlib>
 #include <ctime>
@@ -25,8 +30,27 @@ rtp_error_t uvgrtp::random::init()
 int uvgrtp::random::generate(void *buf, size_t n)
 {
 #ifdef __linux__
+#ifdef HAVE_GETRANDOM
     return getrandom(buf, n, 0);
-#else
+#else // HAVE_GETRANDOM
+
+    // Replace with the syscall
+    int read = syscall(SYS_getrandom, buf, n, 0);
+
+    // On error, return the same value as getrandom()
+    if (read == -EINTR || read == -ERESTART) {
+        errno = EINTR;
+        read = -1;
+    }
+
+    if (read < -1) {
+        errno = -read;
+        read = -1;
+    }
+
+    return read;
+#endif // HAVE_GETRANDOM
+#else // __linux__
     HCRYPTPROV hCryptProv;
     if (CryptAcquireContext(&hCryptProv, NULL, NULL, PROV_RSA_FULL, 0) == TRUE) {
         bool res = CryptGenRandom(hCryptProv, n, (BYTE *)buf);
