@@ -6,13 +6,13 @@ As an alternative to CMake, uvgRTP also includes a Qt project file (uvgRTP.pro) 
 
 ## Dependencies
 
-uvgRTP uses [Crypto++](https://www.cryptopp.com/) for SRTP/ZRTP support. It is also possible to use uvgRTP without Crypto++. uvgRTP uses [*__has_include*](https://en.cppreference.com/w/cpp/preprocessor/include) to detect if Crypto++ is present in the file system. Thus, SRTP/ZRTP functionality is automatically disabled if crypto++ is not found in the system.
+uvgRTP uses [Crypto++](https://www.cryptopp.com/) for SRTP/ZRTP support. With compilers that support c++17, uvgRTP uses [*__has_include*](https://en.cppreference.com/w/cpp/preprocessor/include) to detect if Crypto++ is present in the file system. Thus, SRTP/ZRTP functionality is automatically disabled if crypto++ is not found in the system.
 
-If for some reason you have Crypto++ available but would like to disable SRTP/ZRTP anyway, you may compile uvgRTP with `-DDISABLE_CRYPTO=1`. See the instructions below for more details.
+It is also possible to use uvgRTP without Crypto++. If you have Crypto++ available but would like to disable SRTP/ZRTP anyway, you may compile uvgRTP with `-DDISABLE_CRYPTO=1`. See the instructions below for more details.
 
 ## Building uvgRTP
 
-Install [CMake](https://cmake.org) and make sure it is found in PATH. You can use Git Bash or other command terminals to the run the CMake commands on Windows.
+Install [CMake](https://cmake.org) and make sure it is found in PATH. On Windows, you can use Git Bash or other command terminals to the run the CMake commands.
 
 ### Build configuration generation with CMake
 
@@ -33,7 +33,7 @@ Alternatively, if you want to disable Crypto++, use command:
 cmake -DDISABLE_CRYPTO=1 ..
 ```
 
-If you are using MinGW for your compilation, use the following command the generate the build configuration instead:
+If you are using MinGW for your compilation, add the generate parameter the generate the MinGW build configuration:
 
 ```
 cmake -G"MinGW Makefiles" ..
