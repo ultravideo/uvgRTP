@@ -83,6 +83,14 @@ if (UNIX)
         string(APPEND COMPILER_FLAGS " -D__RTP_NO_CRYPTO__")
     endif(DISABLE_CRYPTO)
 
+    # Check the getrandom() function exists
+    include(CheckCXXSymbolExists)
+    check_cxx_symbol_exists(getrandom sys/random.h HAVE_GETRANDOM)
+
+    if(HAVE_GETRANDOM)
+        add_compile_definitions(HAVE_GETRANDOM=1)
+    endif()
+
     # if (NOT "${LIBRARY_PATHS}" STREQUAL "")
     #     add_custom_command(TARGET uvgrtp POST_BUILD
     #         COMMAND ar crsT ARGS libuvgrtp_thin.a libuvgrtp.a ${LIBRARY_PATHS}
