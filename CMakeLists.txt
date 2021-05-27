@@ -115,7 +115,8 @@ endif (UNIX)
 
 if (WIN32)
     if(MSVC)
-        set(COMPILER_FLAGS "/O2 /DNDEBUG")
+	    # /Zc:__cplusplus makes it so the correct c++ version is defined 
+        set(COMPILER_FLAGS "/O2 /DNDEBUG /Zc:__cplusplus")
     else(MSVC)
         set(COMPILER_FLAGS "-O2 -DNDEBUG")
     endif(MSVC)
