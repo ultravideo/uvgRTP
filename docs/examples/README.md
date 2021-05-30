@@ -17,7 +17,7 @@ int main(void)
     uvgrtp::media_stream *strm = sess->create_stream(8888, 8888, RTP_FORMAT_GENERIC, RTP_NO_FLAGS);
 
     char *message  = (char *)"Hello, world!";
-    size_t msg_len = strlen(message);
+    size_t msg_len = strlen(message) + 1;
 
     for (;;) {
         strm->push_frame((uint8_t *)message, msg_len, RTP_NO_FLAGS);
