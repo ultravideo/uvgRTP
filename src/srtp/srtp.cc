@@ -1,9 +1,10 @@
+#include "srtp/srtp.hh"
+#include "srtp/base.hh"
+#include "crypto.hh"
+
 #include <cstring>
 #include <iostream>
 
-#include "crypto.hh"
-#include "srtp/base.hh"
-#include "srtp/srtp.hh"
 
 #define MAX_OFF 10000
 

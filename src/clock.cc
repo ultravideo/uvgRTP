@@ -1,11 +1,5 @@
-#ifdef _WIN32
-#include <winsock2.h>
-#include <windows.h>
-#else
-#include <sys/time.h>
-#endif
-
 #include "clock.hh"
+
 #include <stdio.h>
 
 static const uint64_t EPOCH = 2208988800ULL;

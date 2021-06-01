@@ -1,10 +1,10 @@
 #pragma once
 
-#include <atomic>
-
 #include "runner.hh"
 #include "socket.hh"
 #include "util.hh"
+
+#include <atomic>
 
 namespace uvgrtp {
 

@@ -1,9 +1,9 @@
-#include <cstring>
+#include "zrtp/confack.hh"
 
 #include "debug.hh"
-#include "zrtp.hh"
 
-#include "zrtp/confack.hh"
+#include <cstring>
+
 
 #define ZRTP_CONFACK "Conf2ACK"
 

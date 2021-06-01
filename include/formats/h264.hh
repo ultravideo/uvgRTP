@@ -1,10 +1,10 @@
 #pragma once
 
-#include <deque>
-
+#include "formats/h26x.hh"
 #include "frame.hh"
 #include "queue.hh"
-#include "formats/h26x.hh"
+
+#include <deque>
 
 namespace uvgrtp {
 

@@ -1,11 +1,12 @@
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
+#include "lib.hh"
 
 #include "debug.hh"
 #include "hostname.hh"
-#include "lib.hh"
 #include "random.hh"
+
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
 
 thread_local rtp_error_t rtp_errno;
 

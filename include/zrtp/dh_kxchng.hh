@@ -1,11 +1,13 @@
 #pragma once
 
+#include "zrtp/defines.hh"
+#include "zrtp/zrtp_receiver.hh"
+
 #include "frame.hh"
 #include "socket.hh"
 #include "util.hh"
 
-#include "zrtp/defines.hh"
-#include "zrtp/zrtp_receiver.hh"
+
 
 namespace uvgrtp {
 

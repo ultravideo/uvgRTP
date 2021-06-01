@@ -1,7 +1,7 @@
-#ifdef _WIN32
-#else
-#include <sys/socket.h>
-#endif
+#include "formats/h266.hh"
+
+#include "queue.hh"
+#include "debug.hh"
 
 #include <cstdint>
 #include <cstring>
@@ -9,10 +9,10 @@
 #include <unordered_map>
 #include <queue>
 
-#include "debug.hh"
-#include "queue.hh"
 
-#include "formats/h266.hh"
+#ifndef _WIN32
+#include <sys/socket.h>
+#endif
 
 rtp_error_t uvgrtp::formats::h266::push_nal_unit(uint8_t *data, size_t data_len, bool more)
 {

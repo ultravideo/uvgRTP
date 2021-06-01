@@ -1,13 +1,13 @@
+#include "formats/h265.hh"
+
+#include "debug.hh"
+#include "queue.hh"
+
 #include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <map>
 #include <unordered_set>
-
-#include "debug.hh"
-#include "queue.hh"
-
-#include "formats/h265.hh"
 
 #define INVALID_SEQ           0x13371338
 #define INVALID_TS            0xffffffff

@@ -1,9 +1,8 @@
-#include <cstring>
+#include "zrtp/confirm.hh"
 
 #include "debug.hh"
-#include "zrtp.hh"
 
-#include "zrtp/confirm.hh"
+#include <cstring>
 
 #define ZRTP_CONFRIM1 "Confirm1"
 #define ZRTP_CONFRIM2 "Confirm2"

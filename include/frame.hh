@@ -1,5 +1,7 @@
 #pragma once
 
+#include "util.hh"
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
@@ -11,7 +13,6 @@
 #include <string>
 #include <vector>
 
-#include "util.hh"
 
 #define RTP_HEADER_LENGTH   12
 #define RTCP_HEADER_LENGTH  12

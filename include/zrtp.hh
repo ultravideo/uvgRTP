@@ -1,5 +1,11 @@
 #pragma once
 
+#include "crypto.hh"
+#include "frame.hh"
+#include "socket.hh"
+#include "zrtp/defines.hh"
+#include "zrtp/zrtp_receiver.hh"
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <mswsock.h>
@@ -12,11 +18,7 @@
 #include <mutex>
 #include <vector>
 
-#include "crypto.hh"
-#include "frame.hh"
-#include "socket.hh"
-#include "zrtp/defines.hh"
-#include "zrtp/zrtp_receiver.hh"
+
 
 namespace uvgrtp {
 

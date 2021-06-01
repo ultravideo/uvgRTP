@@ -1,7 +1,3 @@
-#ifdef _WIN32
-#else
-#endif
-
 #include "rtcp.hh"
 
 uvgrtp::frame::rtcp_receiver_report *uvgrtp::rtcp::get_receiver_packet(uint32_t ssrc)

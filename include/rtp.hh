@@ -1,5 +1,4 @@
-#ifndef __RTP_HH_
-#define __RTP_HH_
+#pragma once
 
 #include "clock.hh"
 #include "frame.hh"
@@ -68,5 +67,3 @@ namespace uvgrtp {
 };
 
 namespace uvg_rtp = uvgrtp;
-
-#endif /* __RTP_HH_ */

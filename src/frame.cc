@@ -1,8 +1,10 @@
+#include "frame.hh"
+
+#include "util.hh"
+#include "debug.hh"
+
 #include <cstring>
 
-#include "debug.hh"
-#include "frame.hh"
-#include "util.hh"
 
 uvgrtp::frame::rtp_frame *uvgrtp::frame::alloc_rtp_frame()
 {

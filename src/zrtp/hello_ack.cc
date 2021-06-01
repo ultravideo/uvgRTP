@@ -1,9 +1,10 @@
-#include <cstring>
+#include "zrtp/hello_ack.hh"
 
-#include "debug.hh"
 #include "zrtp.hh"
 #include "zrtp/defines.hh"
-#include "zrtp/hello_ack.hh"
+#include "debug.hh"
+
+#include <cstring>
 
 #define ZRTP_HELLO_ACK "HelloACK"
 

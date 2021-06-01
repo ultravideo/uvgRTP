@@ -1,9 +1,12 @@
-#include <cstring>
+#include "zrtp/error.hh"
+
+#include "zrtp/defines.hh"
+#include "zrtp.hh"
 
 #include "debug.hh"
-#include "zrtp.hh"
-#include "zrtp/defines.hh"
-#include "zrtp/error.hh"
+
+
+#include <cstring>
 
 #define ZRTP_ERROR "Error   "
 

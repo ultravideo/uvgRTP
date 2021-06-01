@@ -1,13 +1,13 @@
 #pragma once
 
-#include <condition_variable>
-#include <queue>
-#include <thread>
-
 #include "queue.hh"
 #include "socket.hh"
 #include "runner.hh"
 #include "util.hh"
+
+#include <condition_variable>
+#include <queue>
+#include <thread>
 
 namespace uvgrtp {
 

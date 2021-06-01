@@ -1,5 +1,11 @@
-#ifdef _WIN32
-#else
+#include "rtcp.hh"
+
+#include "hostname.hh"
+#include "poll.hh"
+#include "debug.hh"
+#include "util.hh"
+
+#ifndef _WIN32
 #include <sys/time.h>
 #endif
 
@@ -8,11 +14,6 @@
 #include <cstring>
 #include <iostream>
 
-#include "debug.hh"
-#include "hostname.hh"
-#include "poll.hh"
-#include "rtcp.hh"
-#include "util.hh"
 
 uvgrtp::rtcp::rtcp(uvgrtp::rtp *rtp, int flags):
     rtp_(rtp), flags_(flags), our_role_(RECEIVER),

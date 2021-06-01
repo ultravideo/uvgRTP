@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
-
 #include "socket.hh"
+
+#include <vector>
 
 namespace uvgrtp {
     namespace poll {

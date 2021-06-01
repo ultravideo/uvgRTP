@@ -1,10 +1,10 @@
+#include "zrtp/commit.hh"
+
+#include "zrtp.hh"
+#include "debug.hh"
+
 #include <cassert>
 #include <cstring>
-
-#include "debug.hh"
-#include "zrtp.hh"
-
-#include "zrtp/commit.hh"
 
 #define ZRTP_COMMIT "Commit  "
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <thread>
-
 #include "util.hh"
+
+#include <thread>
 
 namespace uvgrtp {
     class runner {

@@ -1,3 +1,7 @@
+#include "hostname.hh"
+
+#include "debug.hh"
+
 #ifdef _WIN32
 //#include <windows.h>
 //#include <winbase.h>
@@ -7,9 +11,6 @@
 #include <limits.h>
 #include <errno.h>
 #endif
-
-#include "debug.hh"
-#include "hostname.hh"
 
 #define NAME_MAXLEN 512
 

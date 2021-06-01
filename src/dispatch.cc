@@ -1,6 +1,8 @@
-#include "debug.hh"
 #include "dispatch.hh"
+
 #include "socket.hh"
+#include "debug.hh"
+
 
 #ifndef _WIN32
 uvgrtp::dispatcher::dispatcher(uvgrtp::socket *socket):

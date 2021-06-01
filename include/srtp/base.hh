@@ -1,5 +1,11 @@
 #pragma once
 
+#include "../debug.hh"
+#include "../frame.hh"
+#include "../rtp.hh"
+#include "../util.hh"
+#include "../zrtp.hh"
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <mswsock.h>
@@ -13,11 +19,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "../debug.hh"
-#include "../frame.hh"
-#include "../rtp.hh"
-#include "../util.hh"
-#include "../zrtp.hh"
+
 
 enum {
     AES128_KEY_SIZE = 16,

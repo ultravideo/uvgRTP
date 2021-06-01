@@ -1,5 +1,7 @@
 #pragma once
 
+#include "socket.hh"
+
 namespace uvgrtp {
     namespace zrtp_msg {
 

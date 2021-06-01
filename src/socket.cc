@@ -1,3 +1,8 @@
+#include "socket.hh"
+
+#include "debug.hh"
+#include "util.hh"
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <Ws2tcpip.h>
@@ -17,9 +22,6 @@ using namespace mingw;
 #include <cstring>
 #include <cassert>
 
-#include "debug.hh"
-#include "socket.hh"
-#include "util.hh"
 
 #define WSABUF_SIZE 32
 

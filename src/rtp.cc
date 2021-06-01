@@ -1,3 +1,9 @@
+#include "rtp.hh"
+
+#include "clock.hh"
+#include "debug.hh"
+#include "random.hh"
+
 #ifdef __linux__
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -5,10 +11,7 @@
 
 #include <chrono>
 
-#include "clock.hh"
-#include "debug.hh"
-#include "random.hh"
-#include "rtp.hh"
+
 
 #define INVALID_TS UINT64_MAX
 

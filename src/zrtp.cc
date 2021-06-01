@@ -1,14 +1,3 @@
-#ifdef _WIN32
-#define MSG_DONTWAIT 0
-#else
-#endif
-
-#include <cstring>
-#include <thread>
-
-#include "debug.hh"
-#include "crypto.hh"
-#include "random.hh"
 #include "zrtp.hh"
 
 #include "zrtp/commit.hh"
@@ -19,7 +8,19 @@
 #include "zrtp/hello_ack.hh"
 #include "zrtp/zrtp_receiver.hh"
 
+#include "debug.hh"
+#include "crypto.hh"
+#include "random.hh"
+
+#include <cstring>
+#include <thread>
+
 using namespace uvgrtp::zrtp_msg;
+
+#ifdef _WIN32
+#define MSG_DONTWAIT 0
+#endif
+
 
 #define ZRTP_VERSION 110
 

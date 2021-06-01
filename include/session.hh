@@ -1,11 +1,11 @@
 #pragma once
 
+#include "media_stream.hh"
+#include "zrtp.hh"
+
 #include <mutex>
 #include <string>
 #include <vector>
-
-#include "media_stream.hh"
-#include "zrtp.hh"
 
 namespace uvgrtp {
 

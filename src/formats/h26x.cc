@@ -1,7 +1,7 @@
-#ifdef _WIN32
-#else
-#include <sys/socket.h>
-#endif
+#include "formats/h26x.hh"
+
+#include "queue.hh"
+#include "debug.hh"
 
 #include <cstdint>
 #include <cstring>
@@ -9,10 +9,11 @@
 #include <unordered_map>
 #include <queue>
 
-#include "debug.hh"
-#include "queue.hh"
 
-#include "formats/h26x.hh"
+#ifndef _WIN32
+#include <sys/socket.h>
+#endif
+
 
 #define PTR_DIFF(a, b)  ((ptrdiff_t)((char *)(a) - (char *)(b)))
 

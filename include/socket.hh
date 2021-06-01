@@ -1,5 +1,7 @@
 #pragma once
 
+#include "util.hh"
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <mswsock.h>
@@ -13,7 +15,6 @@
 #include <vector>
 #include <string>
 
-#include "util.hh"
 
 namespace uvgrtp {
 

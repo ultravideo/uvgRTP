@@ -1,7 +1,3 @@
-#ifdef _WIN32
-#else
-#endif
-
 #include "rtcp.hh"
 
 uvgrtp::frame::rtcp_sdes_packet *uvgrtp::rtcp::get_sdes_packet(uint32_t ssrc)

@@ -1,7 +1,7 @@
 #if defined(__MINGW32__) || defined(__MINGW64__)
-#include <winsock2.h>
-#include <cstdint>
 #include "mingw_inet.hh"
+
+#include <cstdint>
 
 #define NS_INADDRSZ  4
 #define NS_IN6ADDRSZ 16

@@ -1,7 +1,3 @@
-#ifdef _WIN32
-#else
-#endif
-
 #include "rtcp.hh"
 #include "poll.hh"
 

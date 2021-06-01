@@ -1,9 +1,10 @@
-#include <cstring>
-
-#include "debug.hh"
-#include "zrtp.hh"
 #include "zrtp/dh_kxchng.hh"
+
+#include "zrtp.hh"
 #include "zrtp/defines.hh"
+#include "debug.hh"
+
+#include <cstring>
 
 #define ZRTP_DH_PART1       "DHPart1 "
 #define ZRTP_DH_PART2       "DHPart2 "

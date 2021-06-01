@@ -1,9 +1,10 @@
-#include <cstring>
-
-#include "debug.hh"
-#include "zrtp.hh"
 #include "zrtp/hello.hh"
+
 #include "zrtp/defines.hh"
+#include "zrtp.hh"
+#include "debug.hh"
+
+#include <cstring>
 
 #define ZRTP_VERSION     "1.10"
 #define ZRTP_HELLO       "Hello   "

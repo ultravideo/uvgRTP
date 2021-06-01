@@ -1,7 +1,3 @@
-#ifdef _WIN32
-#else
-#endif
-
 #include "rtcp.hh"
 
 rtp_error_t uvgrtp::rtcp::handle_bye_packet(uint8_t *packet, size_t size)

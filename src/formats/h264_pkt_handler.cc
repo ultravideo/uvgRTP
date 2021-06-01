@@ -1,13 +1,13 @@
+#include "formats/h264.hh"
+
+#include "queue.hh"
+#include "debug.hh"
+
 #include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <map>
 #include <unordered_set>
-
-#include "debug.hh"
-#include "queue.hh"
-
-#include "formats/h264.hh"
 
 #define RTP_FRAME_MAX_DELAY          100
 #define INVALID_SEQ           0x13371338

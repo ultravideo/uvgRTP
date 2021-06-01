@@ -1,5 +1,6 @@
-#include "debug.hh"
 #include "session.hh"
+#include "debug.hh"
+
 
 uvgrtp::session::session(std::string addr):
 #ifdef __RTP_CRYPTO__

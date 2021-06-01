@@ -1,7 +1,7 @@
-#ifdef _WIN32
-#else
-#include <sys/socket.h>
-#endif
+#include "formats/h264.hh"
+
+#include "queue.hh"
+#include "debug.hh"
 
 #include <cstdint>
 #include <cstring>
@@ -9,10 +9,10 @@
 #include <unordered_map>
 #include <queue>
 
-#include "debug.hh"
-#include "queue.hh"
+#ifndef _WIN32
+#include <sys/socket.h>
+#endif
 
-#include "formats/h264.hh"
 
 void uvgrtp::formats::h264::clear_aggregation_info()
 {

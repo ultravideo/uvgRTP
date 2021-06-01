@@ -1,3 +1,12 @@
+#include "queue.hh"
+
+#include "formats/h264.hh"
+#include "formats/h265.hh"
+#include "formats/h266.hh"
+
+#include "debug.hh"
+#include "random.hh"
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
@@ -8,13 +17,6 @@
 #include <cstring>
 #endif
 
-#include "debug.hh"
-#include "queue.hh"
-#include "random.hh"
-
-#include "formats/h264.hh"
-#include "formats/h265.hh"
-#include "formats/h266.hh"
 
 uvgrtp::frame_queue::frame_queue(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags):
     rtp_(rtp), socket_(socket), flags_(flags)

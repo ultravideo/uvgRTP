@@ -1,3 +1,18 @@
+#include "zrtp/zrtp_receiver.hh"
+
+#include "zrtp/defines.hh"
+#include "zrtp/dh_kxchng.hh"
+#include "zrtp/commit.hh"
+#include "zrtp/confack.hh"
+#include "zrtp/confirm.hh"
+#include "zrtp/hello.hh"
+#include "zrtp/hello_ack.hh"
+
+#include "crypto.hh"
+#include "poll.hh"
+#include "debug.hh"
+#include "util.hh"
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <mswsock.h>
@@ -10,18 +25,6 @@
 
 #include <cstring>
 
-#include "debug.hh"
-#include "util.hh"
-#include "crypto.hh"
-#include "poll.hh"
-#include "zrtp/defines.hh"
-#include "zrtp/dh_kxchng.hh"
-#include "zrtp/commit.hh"
-#include "zrtp/confack.hh"
-#include "zrtp/confirm.hh"
-#include "zrtp/hello.hh"
-#include "zrtp/hello_ack.hh"
-#include "zrtp/zrtp_receiver.hh"
 
 using namespace uvgrtp::zrtp_msg;
 

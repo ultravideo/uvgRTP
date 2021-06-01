@@ -25,7 +25,7 @@
 #include <cryptopp/crc.h>
 
 #endif
-#else // __cplusplus
+#else // __cplusplus < 201703L
 #ifndef __RTP_NO_CRYPTO__
 #define __RTP_CRYPTO__
 
@@ -41,6 +41,8 @@
 
 #endif
 #endif // __cplusplus
+
+#include <iostream>
 
 namespace uvgrtp {
 

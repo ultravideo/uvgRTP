@@ -1,3 +1,9 @@
+#include "pkt_dispatch.hh"
+
+#include "debug.hh"
+#include "random.hh"
+#include "util.hh"
+
 #ifdef __linux__
 #include <errno.h>
 #else
@@ -5,11 +11,6 @@
 #endif
 
 #include <cstring>
-
-#include "debug.hh"
-#include "pkt_dispatch.hh"
-#include "random.hh"
-#include "util.hh"
 
 uvgrtp::pkt_dispatcher::pkt_dispatcher():
     recv_hook_arg_(nullptr),

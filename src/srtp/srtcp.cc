@@ -1,8 +1,10 @@
+#include "srtp/srtcp.hh"
+
+#include "crypto.hh"
+
 #include <cstring>
 #include <iostream>
 
-#include "crypto.hh"
-#include "srtp/srtcp.hh"
 
 uvgrtp::srtcp::srtcp()
 {

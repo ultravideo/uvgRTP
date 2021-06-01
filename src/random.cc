@@ -1,8 +1,12 @@
+#include "random.hh"
+
+#include "debug.hh"
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
 #include <wincrypt.h>
-#else // _WIN32
+#else // non _WIN32
 #ifdef HAVE_GETRANDOM
 #include <sys/random.h>
 #else // HAVE_GETRANDOM
@@ -11,11 +15,9 @@
 #endif // HAVE_GETRANDOM
 #endif // _WIN32
 
+
 #include <cstdlib>
 #include <ctime>
-
-#include "debug.hh"
-#include "random.hh"
 
 rtp_error_t uvgrtp::random::init()
 {
