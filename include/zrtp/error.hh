@@ -4,6 +4,10 @@
 
 #include "util.hh"
 
+#ifndef _WIN32
+#include <netinet/in.h>
+#endif
+
 namespace uvgrtp {
 
     class socket;

@@ -7,6 +7,11 @@
 #include <string>
 
 
+#ifndef _WIN32
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
+
 namespace uvgrtp {
 
     // forward declarations

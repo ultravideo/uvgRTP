@@ -5,6 +5,10 @@
 
 #include "util.hh"
 
+#ifndef _WIN32
+#include <netinet/in.h>
+#endif
+
 namespace uvgrtp {
 
     typedef struct zrtp_session zrtp_session_t;

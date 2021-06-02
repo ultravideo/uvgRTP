@@ -4,6 +4,10 @@
 
 #include "util.hh"
 
+#ifndef _WIN32
+#include <netinet/in.h>
+#endif
+
 namespace uvgrtp {
 
     typedef struct capabilities zrtp_capab_t;
@@ -16,7 +20,7 @@ namespace uvgrtp {
     };
 
     namespace zrtp_msg {
-        
+
         class receiver;
 
         PACK(struct zrtp_hello {
