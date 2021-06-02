@@ -1,6 +1,6 @@
 #pragma once
 
-#if __cplusplus >= 201703L
+#if __cplusplus >= 201703L || _MSC_VER >= 1911
 #if __has_include(<cryptopp/aes.h>) && \
     __has_include(<cryptopp/base32.h>) && \
     __has_include(<cryptopp/cryptlib.h>) && \
