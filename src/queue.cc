@@ -287,7 +287,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(uint8_t *message, size_t messag
 
     if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
         tmp.push_back({
-            AUTH_TAG_LENGTH,
+            UVG_AUTH_TAG_LENGTH,
             (uint8_t *)&active_->rtp_auth_tags[10 * active_->rtpauth_ptr++]
         });
     }
@@ -351,7 +351,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, u
 
     if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
         tmp.push_back({
-            AUTH_TAG_LENGTH,
+            UVG_AUTH_TAG_LENGTH,
             (uint8_t *)&active_->rtp_auth_tags[10 * active_->rtpauth_ptr++]
         });
     }

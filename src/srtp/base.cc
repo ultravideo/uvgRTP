@@ -40,16 +40,16 @@ uvgrtp::srtp_ctx_t *uvgrtp::base_srtp::get_ctx()
 
 rtp_error_t uvgrtp::base_srtp::derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t out_len)
 {
-    uint8_t input[IV_LENGTH]    = { 0 };
+    uint8_t input[UVG_IV_LENGTH]    = { 0 };
     uint8_t ks[AES128_KEY_SIZE] = { 0 };
 
-    memcpy(input, salt, SALT_LENGTH);
+    memcpy(input, salt, UVG_SALT_LENGTH);
     memset(out, 0, out_len);
 
     input[7] ^= label;
 
     uvgrtp::crypto::aes::ecb ecb(key, srtp_ctx_->n_e);
-    ecb.encrypt(ks, input, IV_LENGTH);
+    ecb.encrypt(ks, input, UVG_IV_LENGTH);
 
     memcpy(out, ks, out_len);
     return RTP_OK;
@@ -63,7 +63,7 @@ rtp_error_t uvgrtp::base_srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t i
     uint8_t buf[8];
     int i;
 
-    memset(out,         0,  IV_LENGTH);
+    memset(out,         0,  UVG_IV_LENGTH);
     memcpy(&out[4], &ssrc,  sizeof(uint32_t));
     memcpy(buf,     &index, sizeof(uint64_t));
 
@@ -123,7 +123,7 @@ rtp_error_t uvgrtp::base_srtp::init(int type, int flags, size_t key_size)
     srtp_ctx_->mk_cnt      = 0;
 
     srtp_ctx_->n_e = key_size;
-    srtp_ctx_->n_a = HMAC_KEY_LENGTH;
+    srtp_ctx_->n_a = UVG_HMAC_KEY_LENGTH;
 
     srtp_ctx_->s_l    = 0;
     srtp_ctx_->replay = nullptr;
@@ -160,14 +160,14 @@ rtp_error_t uvgrtp::base_srtp::init(int type, int flags, size_t key_size)
         srtp_ctx_->key_ctx.master.local_key,
         srtp_ctx_->key_ctx.master.local_salt,
         srtp_ctx_->key_ctx.local.auth_key,
-        AUTH_LENGTH
+        UVG_AUTH_LENGTH
     );
     (void)derive_key(
         label_salt,
         srtp_ctx_->key_ctx.master.local_key,
         srtp_ctx_->key_ctx.master.local_salt,
         srtp_ctx_->key_ctx.local.salt_key,
-        SALT_LENGTH
+        UVG_SALT_LENGTH
     );
 
     /* Remote aka decryption keys */
@@ -183,14 +183,14 @@ rtp_error_t uvgrtp::base_srtp::init(int type, int flags, size_t key_size)
         srtp_ctx_->key_ctx.master.remote_key,
         srtp_ctx_->key_ctx.master.remote_salt,
         srtp_ctx_->key_ctx.remote.auth_key,
-        AUTH_LENGTH
+        UVG_AUTH_LENGTH
     );
     (void)derive_key(
         label_salt,
         srtp_ctx_->key_ctx.master.remote_key,
         srtp_ctx_->key_ctx.master.remote_salt,
         srtp_ctx_->key_ctx.remote.salt_key,
-        SALT_LENGTH
+        UVG_SALT_LENGTH
     );
 
     return RTP_OK;
@@ -246,8 +246,8 @@ rtp_error_t uvgrtp::base_srtp::init_zrtp(int type, int flags, uvgrtp::rtp *rtp, 
     ret = zrtp->get_srtp_keys(
         srtp_ctx_->key_ctx.master.local_key,   AES128_KEY_SIZE * 8,
         srtp_ctx_->key_ctx.master.remote_key,  AES128_KEY_SIZE * 8,
-        srtp_ctx_->key_ctx.master.local_salt,  SALT_LENGTH     * 8,
-        srtp_ctx_->key_ctx.master.remote_salt, SALT_LENGTH     * 8
+        srtp_ctx_->key_ctx.master.local_salt,  UVG_SALT_LENGTH     * 8,
+        srtp_ctx_->key_ctx.master.remote_salt, UVG_SALT_LENGTH     * 8
     );
 
     if (ret != RTP_OK) {
@@ -277,8 +277,8 @@ rtp_error_t uvgrtp::base_srtp::init_user(int type, int flags, uint8_t *key, uint
 
     memcpy(srtp_ctx_->key_ctx.master.local_key,    key,    key_size);
     memcpy(srtp_ctx_->key_ctx.master.remote_key,   key,    key_size);
-    memcpy(srtp_ctx_->key_ctx.master.local_salt,  salt, SALT_LENGTH);
-    memcpy(srtp_ctx_->key_ctx.master.remote_salt, salt, SALT_LENGTH);
+    memcpy(srtp_ctx_->key_ctx.master.local_salt,  salt, UVG_SALT_LENGTH);
+    memcpy(srtp_ctx_->key_ctx.master.remote_salt, salt, UVG_SALT_LENGTH);
 
     return init(type, flags, key_size);
 }

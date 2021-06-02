@@ -28,7 +28,7 @@ rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t *packet, size_t size)
     if (!packet || !size)
         return RTP_INVALID_VALUE;
 
-    auto srtpi = (*(uint32_t *)&packet[size - SRTCP_INDEX_LENGTH - AUTH_TAG_LENGTH]);
+    auto srtpi = (*(uint32_t *)&packet[size - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH]);
     auto frame = new uvgrtp::frame::rtcp_sdes_packet;
     auto ret   = RTP_OK;
 
@@ -119,10 +119,10 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(std::vector<uvgrtp::frame::rtcp_sdes_
      * calculate authentication tag for the packet and add SRTCP index at the end */
     if (flags_ & RCE_SRTP) {
         if (!(RCE_SRTP & RCE_SRTP_NULL_CIPHER)) {
-            srtcp_->encrypt(ssrc_, rtcp_pkt_sent_count_, &frame[8], frame_size - 8 - SRTCP_INDEX_LENGTH - AUTH_TAG_LENGTH);
-            SET_FIELD_32(frame, frame_size - SRTCP_INDEX_LENGTH - AUTH_TAG_LENGTH, (1 << 31) | rtcp_pkt_sent_count_);
+            srtcp_->encrypt(ssrc_, rtcp_pkt_sent_count_, &frame[8], frame_size - 8 - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH);
+            SET_FIELD_32(frame, frame_size - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH, (1 << 31) | rtcp_pkt_sent_count_);
         } else  {
-            SET_FIELD_32(frame, frame_size - SRTCP_INDEX_LENGTH - AUTH_TAG_LENGTH, (0 << 31) | rtcp_pkt_sent_count_);
+            SET_FIELD_32(frame, frame_size - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH, (0 << 31) | rtcp_pkt_sent_count_);
         }
         srtcp_->add_auth_tag(frame, frame_size);
     }

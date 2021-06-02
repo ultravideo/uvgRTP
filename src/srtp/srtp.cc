@@ -24,7 +24,7 @@ rtp_error_t uvgrtp::srtp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, 
     if (use_null_cipher_)
         return RTP_OK;
 
-    uint8_t iv[IV_LENGTH] = { 0 };
+    uint8_t iv[UVG_IV_LENGTH] = { 0 };
     uint64_t index = (((uint64_t)srtp_ctx_->roc) << 16) + seq;
 
     /* Sequence number has wrapped around, update Roll-over Counter */
@@ -53,13 +53,13 @@ rtp_error_t uvgrtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_f
     /* Calculate authentication tag for the packet and compare it against the one we received */
     if (srtp->authenticate_rtp()) {
         uint8_t digest[10] = { 0 };
-        auto hmac_sha1     = uvgrtp::crypto::hmac::sha1(ctx->key_ctx.remote.auth_key, AUTH_LENGTH);
+        auto hmac_sha1     = uvgrtp::crypto::hmac::sha1(ctx->key_ctx.remote.auth_key, UVG_AUTH_LENGTH);
 
-        hmac_sha1.update(frame->dgram, frame->dgram_size - AUTH_TAG_LENGTH);
+        hmac_sha1.update(frame->dgram, frame->dgram_size - UVG_AUTH_TAG_LENGTH);
         hmac_sha1.update((uint8_t *)&ctx->roc, sizeof(ctx->roc));
-        hmac_sha1.final((uint8_t *)digest, AUTH_TAG_LENGTH);
+        hmac_sha1.final((uint8_t *)digest, UVG_AUTH_TAG_LENGTH);
 
-        if (memcmp(digest, &frame->dgram[frame->dgram_size - AUTH_TAG_LENGTH], AUTH_TAG_LENGTH)) {
+        if (memcmp(digest, &frame->dgram[frame->dgram_size - UVG_AUTH_TAG_LENGTH], UVG_AUTH_TAG_LENGTH)) {
             LOG_ERROR("Authentication tag mismatch!");
             return RTP_GENERIC_ERROR;
         }
@@ -68,13 +68,13 @@ rtp_error_t uvgrtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_f
             LOG_ERROR("Replayed packet received, discarding!");
             return RTP_GENERIC_ERROR;
         }
-        frame->payload_len -= AUTH_TAG_LENGTH;
+        frame->payload_len -= UVG_AUTH_TAG_LENGTH;
     }
 
     if (srtp->use_null_cipher())
         return RTP_PKT_NOT_HANDLED;
 
-    uint8_t iv[IV_LENGTH] = { 0 };
+    uint8_t iv[UVG_IV_LENGTH] = { 0 };
     uint16_t seq          = frame->header.seq;
     uint32_t ssrc         = frame->header.ssrc;
     uint32_t ts           = frame->header.timestamp;
@@ -120,7 +120,7 @@ rtp_error_t uvgrtp::srtp::send_packet_handler(void *arg, uvgrtp::buf_vec& buffer
     auto ctx        = srtp->get_ctx();
     auto off        = srtp->authenticate_rtp() ? 2 : 1;
     auto data       = buffers.at(buffers.size() - off);
-    auto hmac_sha1  = uvgrtp::crypto::hmac::sha1(ctx->key_ctx.local.auth_key, AUTH_LENGTH);
+    auto hmac_sha1  = uvgrtp::crypto::hmac::sha1(ctx->key_ctx.local.auth_key, UVG_AUTH_LENGTH);
     rtp_error_t ret = RTP_OK;
 
     if (srtp->use_null_cipher())
@@ -146,7 +146,7 @@ authenticate:
         hmac_sha1.update((uint8_t *)buffers[i].second, buffers[i].first);
 
     hmac_sha1.update((uint8_t *)&ctx->roc, sizeof(ctx->roc));
-    hmac_sha1.final((uint8_t *)buffers[buffers.size() - 1].second, AUTH_TAG_LENGTH);
+    hmac_sha1.final((uint8_t *)buffers[buffers.size() - 1].second, UVG_AUTH_TAG_LENGTH);
 
     return ret;
 }

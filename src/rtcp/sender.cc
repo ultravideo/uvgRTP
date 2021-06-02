@@ -28,7 +28,7 @@ rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t *packet, size_t si
     if (!packet || !size)
         return RTP_INVALID_VALUE;
 
-    auto srtpi = (*(uint32_t *)&packet[size - SRTCP_INDEX_LENGTH - AUTH_TAG_LENGTH]);
+    auto srtpi = (*(uint32_t *)&packet[size - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH]);
     auto frame = new uvgrtp::frame::rtcp_sender_report;
     auto ret   = RTP_OK;
 
@@ -115,7 +115,7 @@ rtp_error_t uvgrtp::rtcp::generate_sender_report()
     frame_size += num_receivers_ * 24; /* report blocks */
 
     if (flags_ & RCE_SRTP)
-        frame_size += SRTCP_INDEX_LENGTH + AUTH_TAG_LENGTH;
+        frame_size += UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH;
 
     if (!(frame = new uint8_t[frame_size])) {
         LOG_ERROR("Failed to allocate space for RTCP Receiver Report");
@@ -163,10 +163,10 @@ rtp_error_t uvgrtp::rtcp::generate_sender_report()
      * calculate authentication tag for the packet and add SRTCP index at the end */
     if (flags_ & RCE_SRTP) {
         if (!(RCE_SRTP & RCE_SRTP_NULL_CIPHER)) {
-            srtcp_->encrypt(ssrc_, rtcp_pkt_sent_count_, &frame[8], frame_size - 8 - SRTCP_INDEX_LENGTH - AUTH_TAG_LENGTH);
-            SET_FIELD_32(frame, frame_size - SRTCP_INDEX_LENGTH - AUTH_TAG_LENGTH, (1 << 31) | rtcp_pkt_sent_count_);
+            srtcp_->encrypt(ssrc_, rtcp_pkt_sent_count_, &frame[8], frame_size - 8 - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH);
+            SET_FIELD_32(frame, frame_size - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH, (1 << 31) | rtcp_pkt_sent_count_);
         } else  {
-            SET_FIELD_32(frame, frame_size - SRTCP_INDEX_LENGTH - AUTH_TAG_LENGTH, (0 << 31) | rtcp_pkt_sent_count_);
+            SET_FIELD_32(frame, frame_size - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH, (0 << 31) | rtcp_pkt_sent_count_);
         }
         srtcp_->add_auth_tag(frame, frame_size);
     }

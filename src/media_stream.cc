@@ -290,7 +290,7 @@ rtp_error_t uvgrtp::media_stream::init(uvgrtp::zrtp *zrtp)
     }
 
     if (ctx_config_.flags & RCE_SRTP_AUTHENTICATE_RTP)
-        rtp_->set_payload_size(MAX_PAYLOAD - AUTH_TAG_LENGTH);
+        rtp_->set_payload_size(MAX_PAYLOAD - UVG_AUTH_TAG_LENGTH);
 
     initialized_ = true;
     return pkt_dispatcher_->start(socket_, ctx_config_.flags);
@@ -360,7 +360,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     }
 
     if (ctx_config_.flags & RCE_SRTP_AUTHENTICATE_RTP)
-        rtp_->set_payload_size(MAX_PAYLOAD - AUTH_TAG_LENGTH);
+        rtp_->set_payload_size(MAX_PAYLOAD - UVG_AUTH_TAG_LENGTH);
 
     initialized_ = true;
     return pkt_dispatcher_->start(socket_, ctx_config_.flags);
@@ -560,7 +560,7 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int flag, ssize_t value)
             ssize_t max_size = 0xffff - IPV4_HDR_SIZE - UDP_HDR_SIZE;
 
             if (ctx_config_.flags & RCE_SRTP_AUTHENTICATE_RTP)
-                hdr += AUTH_TAG_LENGTH;
+                hdr += UVG_AUTH_TAG_LENGTH;
 
             if (value <= hdr)
                 return RTP_INVALID_VALUE;

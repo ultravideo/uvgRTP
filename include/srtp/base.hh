@@ -23,15 +23,17 @@ enum {
     AES256_KEY_SIZE = 32
 };
 
-#define AES_KEY_LENGTH      16 /* 128 bits */
-#define HMAC_KEY_LENGTH     32 /* 256 bits */
-#define SALT_LENGTH         14 /* 112 bits */
-#define AUTH_LENGTH         16
-#define IV_LENGTH           16
-#define AUTH_TAG_LENGTH     10
-#define SRTCP_INDEX_LENGTH   4
+#define UVG_AES_KEY_LENGTH      16 /* 128 bits */
+#define UVG_HMAC_KEY_LENGTH     32 /* 256 bits */
+#define UVG_SALT_LENGTH         14 /* 112 bits */
+#define UVG_AUTH_LENGTH         16
+#define UVG_IV_LENGTH           16
+#define UVG_AUTH_TAG_LENGTH     10
+#define UVG_SRTCP_INDEX_LENGTH   4
 
 namespace uvgrtp {
+
+
 
     class zrtp;
     class rtp;
@@ -73,25 +75,25 @@ namespace uvgrtp {
         struct {
             /* Our master key and salt */
             uint8_t *local_key;
-            uint8_t local_salt[SALT_LENGTH];
+            uint8_t local_salt[UVG_SALT_LENGTH];
 
             /* Remote's master key and salt */
             uint8_t *remote_key;
-            uint8_t remote_salt[SALT_LENGTH];
+            uint8_t remote_salt[UVG_SALT_LENGTH];
         } master;
 
         /* Used to encrypt/authenticate packets sent by us */
         struct {
             uint8_t *enc_key;
-            uint8_t auth_key[AUTH_LENGTH];
-            uint8_t salt_key[SALT_LENGTH];
+            uint8_t auth_key[UVG_AUTH_LENGTH];
+            uint8_t salt_key[UVG_SALT_LENGTH];
         } local;
 
         /* Used to decrypt/Authenticate packets sent by remote */
         struct {
             uint8_t *enc_key;
-            uint8_t auth_key[AUTH_LENGTH];
-            uint8_t salt_key[SALT_LENGTH];
+            uint8_t auth_key[UVG_AUTH_LENGTH];
+            uint8_t salt_key[UVG_SALT_LENGTH];
         } remote;
 
     } srtp_key_ctx_t;
