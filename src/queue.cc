@@ -4,6 +4,8 @@
 #include "formats/h265.hh"
 #include "formats/h266.hh"
 
+#include "rtp.hh"
+#include "srtp/base.hh"
 #include "debug.hh"
 #include "random.hh"
 

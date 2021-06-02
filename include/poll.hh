@@ -1,10 +1,12 @@
 #pragma once
 
-#include "socket.hh"
+#include "util.hh"
 
 #include <vector>
 
 namespace uvgrtp {
+    class socket;
+
     namespace poll {
         /* Cross-platform poll implementation for listening to a socket for a period of time
          *

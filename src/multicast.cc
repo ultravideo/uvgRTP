@@ -1,5 +1,7 @@
 #include "multicast.hh"
 
+#include "frame.hh"
+
 uvgrtp::multicast::multicast()
 {
 }

@@ -1,6 +1,6 @@
 #include "rtp.hh"
 
-#include "clock.hh"
+#include "frame.hh"
 #include "debug.hh"
 #include "random.hh"
 

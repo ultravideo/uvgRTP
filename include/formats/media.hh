@@ -1,8 +1,5 @@
 #pragma once
 
-#include "../rtp.hh"
-#include "../socket.hh"
-#include "../queue.hh"
 #include "../util.hh"
 
 #include <map>
@@ -11,6 +8,14 @@
 #include <unordered_set>
 
 namespace uvgrtp {
+
+    class socket;
+    class rtp;
+    class frame_queue;
+
+    namespace frame {
+        struct rtp_frame;
+    };
 
     namespace formats {
 

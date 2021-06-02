@@ -1,11 +1,11 @@
 #pragma once
 
 #include "clock.hh"
+#include "util.hh"
+#include "socket.hh"
 #include "frame.hh"
 #include "runner.hh"
-#include "socket.hh"
-#include "srtp/srtcp.hh"
-#include "util.hh"
+
 
 #include <bitset>
 #include <map>
@@ -13,6 +13,9 @@
 #include <vector>
 
 namespace uvgrtp {
+
+    class rtp;
+    class srtcp;
 
     /// \cond DO_NOT_DOCUMENT
     enum RTCP_ROLE {

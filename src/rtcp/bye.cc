@@ -1,5 +1,7 @@
 #include "rtcp.hh"
 
+#include "debug.hh"
+
 rtp_error_t uvgrtp::rtcp::handle_bye_packet(uint8_t *packet, size_t size)
 {
     if (!packet || !size)

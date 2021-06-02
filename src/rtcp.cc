@@ -4,6 +4,7 @@
 #include "poll.hh"
 #include "debug.hh"
 #include "util.hh"
+#include "rtp.hh"
 
 #ifndef _WIN32
 #include <sys/time.h>

@@ -1,8 +1,11 @@
 #pragma once
 
-#include "socket.hh"
+#include "util.hh"
 
 namespace uvgrtp {
+
+    class socket;
+
     namespace zrtp_msg {
 
         class receiver {

@@ -1,21 +1,31 @@
 #pragma once
 
-#include "holepuncher.hh"
-#include "pkt_dispatch.hh"
-#include "rtcp.hh"
-#include "socket.hh"
-#include "srtp/srtcp.hh"
-#include "srtp/srtp.hh"
 #include "util.hh"
-
-#include "formats/media.hh"
 
 #include <unordered_map>
 #include <memory>
-
+#include <string>
 
 
 namespace uvgrtp {
+
+    // forward declarations
+    class rtp;
+    class zrtp;
+    class rtcp;
+    class srtp;
+    class srtcp;
+    class pkt_dispatcher;
+    class holepuncher;
+    class socket;
+
+    namespace frame {
+        struct rtp_frame;
+    };
+
+    namespace formats {
+        class media;
+    };
 
     class media_stream {
         public:

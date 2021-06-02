@@ -8,6 +8,7 @@
 #include "zrtp/hello.hh"
 #include "zrtp/hello_ack.hh"
 
+#include "socket.hh"
 #include "crypto.hh"
 #include "poll.hh"
 #include "debug.hh"

@@ -1,6 +1,7 @@
 #include "holepuncher.hh"
 
 #include "clock.hh"
+#include "socket.hh"
 #include "debug.hh"
 
 

@@ -1,7 +1,10 @@
 #include "zrtp/commit.hh"
 
 #include "zrtp.hh"
+#include "crypto.hh"
 #include "debug.hh"
+#include "frame.hh"
+#include "socket.hh"
 
 #include <cassert>
 #include <cstring>

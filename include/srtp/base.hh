@@ -1,10 +1,6 @@
 #pragma once
 
-#include "../debug.hh"
-#include "../frame.hh"
-#include "../rtp.hh"
 #include "../util.hh"
-#include "../zrtp.hh"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -36,6 +32,9 @@ enum {
 #define SRTCP_INDEX_LENGTH   4
 
 namespace uvgrtp {
+
+    class zrtp;
+    class rtp;
 
     /* Vector of buffers that contain a full RTP frame */
     typedef std::vector<std::pair<size_t, uint8_t *>> buf_vec;

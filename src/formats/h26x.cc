@@ -1,7 +1,10 @@
 #include "formats/h26x.hh"
 
+#include "rtp.hh"
 #include "queue.hh"
+#include "socket.hh"
 #include "debug.hh"
+
 
 #include <cstdint>
 #include <cstring>

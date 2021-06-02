@@ -1,5 +1,9 @@
 #include "zrtp/confirm.hh"
 
+#include "zrtp.hh"
+#include "crypto.hh"
+#include "frame.hh"
+#include "socket.hh"
 #include "debug.hh"
 
 #include <cstring>

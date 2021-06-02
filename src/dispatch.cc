@@ -1,5 +1,6 @@
 #include "dispatch.hh"
 
+#include "queue.hh"
 #include "socket.hh"
 #include "debug.hh"
 

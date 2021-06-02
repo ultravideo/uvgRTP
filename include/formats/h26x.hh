@@ -1,10 +1,14 @@
 #pragma once
 
-#include "frame.hh"
 #include "media.hh"
-#include "queue.hh"
+#include "util.hh"
 
 namespace uvgrtp {
+
+    // forward definitions
+    class socket;
+    class rtp;
+
 
     namespace formats {
 

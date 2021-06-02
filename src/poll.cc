@@ -1,6 +1,7 @@
 #include "poll.hh"
 
 #include "multicast.hh"
+#include "socket.hh"
 #include "debug.hh"
 
 #ifdef _WIN32

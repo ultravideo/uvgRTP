@@ -1,6 +1,8 @@
 #include "formats/h266.hh"
 
+#include "rtp.hh"
 #include "queue.hh"
+#include "frame.hh"
 #include "debug.hh"
 
 #include <cstdint>

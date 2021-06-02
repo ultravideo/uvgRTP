@@ -1,13 +1,13 @@
 #pragma once
 
-#include "queue.hh"
-#include "socket.hh"
 #include "runner.hh"
+
 #include "util.hh"
 
 #include <condition_variable>
 #include <queue>
 #include <thread>
+#include <mutex>
 
 namespace uvgrtp {
 
@@ -30,6 +30,9 @@ namespace uvgrtp {
      * By using a separate dispatcher thread, we're able to reduce the amount of delay application
      * experiences to very small (<50 us even for large frames [>170 kB]) */
     typedef struct transaction transaction_t;
+
+    class socket;
+    class dispatcher;
 
     class dispatcher : public runner {
         public:

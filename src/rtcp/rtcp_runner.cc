@@ -1,6 +1,8 @@
 #include "rtcp.hh"
 #include "poll.hh"
 
+#include "debug.hh"
+
 std::vector<uvgrtp::socket>& uvgrtp::rtcp::get_sockets()
 {
     return sockets_;

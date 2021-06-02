@@ -1,5 +1,7 @@
 #include "pkt_dispatch.hh"
 
+#include "frame.hh"
+#include "socket.hh"
 #include "debug.hh"
 #include "random.hh"
 #include "util.hh"

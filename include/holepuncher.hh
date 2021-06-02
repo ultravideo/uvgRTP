@@ -1,12 +1,13 @@
 #pragma once
 
 #include "runner.hh"
-#include "socket.hh"
 #include "util.hh"
 
 #include <atomic>
 
 namespace uvgrtp {
+
+    class socket;
 
     class holepuncher : public runner {
         public:

@@ -4,6 +4,10 @@
 
 namespace uvgrtp {
 
+    namespace frame {
+        struct rtp_frame;
+    };
+
     class srtp : public base_srtp {
         public:
             srtp();

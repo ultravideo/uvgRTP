@@ -1,18 +1,23 @@
 #pragma once
 
 
-#include "zrtp/zrtp_receiver.hh"
-#include "zrtp.hh"
 #include "zrtp/defines.hh"
 
-#include "frame.hh"
-#include "socket.hh"
 #include "util.hh"
-
 
 namespace uvgrtp {
 
+    typedef struct zrtp_session zrtp_session_t;
+    class socket;
+
+    namespace frame {
+        struct zrtp_frame;
+    };
+
     namespace zrtp_msg {
+
+        class receiver;
+
 
         PACK(struct zrtp_confirm {
             zrtp_msg msg_start;

@@ -1,16 +1,15 @@
 #pragma once
 
-#include "dispatch.hh"
+
 #include "frame.hh"
-#include "rtp.hh"
 #include "socket.hh"
-#include "srtp/base.hh"
 #include "util.hh"
 
 #include <atomic>
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <mutex>
 
 #if defined(_MSC_VER)
 typedef SSIZE_T ssize_t;
@@ -24,6 +23,8 @@ namespace uvgrtp {
 
     class dispatcher;
     class frame_queue;
+    class rtp;
+
 
     typedef struct active_range {
         size_t h_start; size_t h_end;

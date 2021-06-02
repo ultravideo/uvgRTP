@@ -1,10 +1,7 @@
 #pragma once
 
-#include "crypto.hh"
-#include "frame.hh"
-#include "socket.hh"
-#include "zrtp/defines.hh"
 #include "zrtp/zrtp_receiver.hh"
+
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -21,6 +18,27 @@
 
 
 namespace uvgrtp {
+
+    namespace frame {
+        struct rtp_frame;
+    };
+
+    namespace crypto
+    {
+        namespace hmac {
+            class sha256;
+        };
+
+        class sha256;
+        class dh;
+    };
+
+    namespace zrtp_msg {
+        struct zrtp_hello_ack;
+        struct zrtp_commit;
+        struct zrtp_hello;
+        struct zrtp_dh;
+    };
 
     enum ZRTP_ROLE {
         INITIATOR,

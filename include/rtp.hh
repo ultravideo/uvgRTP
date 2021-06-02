@@ -1,10 +1,14 @@
 #pragma once
 
 #include "clock.hh"
-#include "frame.hh"
 #include "util.hh"
 
 namespace uvgrtp {
+
+    namespace frame
+    {
+        struct rtp_frame;
+    };
 
     class rtp {
         public:

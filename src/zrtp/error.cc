@@ -1,7 +1,11 @@
 #include "zrtp/error.hh"
 
-#include "zrtp/defines.hh"
+#include "zrtp/zrtp_receiver.hh"
+
 #include "zrtp.hh"
+#include "crypto.hh"
+#include "socket.hh"
+#include "frame.hh"
 
 #include "debug.hh"
 

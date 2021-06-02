@@ -6,7 +6,7 @@
 #include "zrtp/dh_kxchng.hh"
 #include "zrtp/hello.hh"
 #include "zrtp/hello_ack.hh"
-#include "zrtp/zrtp_receiver.hh"
+#include "socket.hh"
 
 #include "debug.hh"
 #include "crypto.hh"

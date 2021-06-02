@@ -1,14 +1,19 @@
 #pragma once
 
-#include "frame.hh"
 #include "runner.hh"
-#include "socket.hh"
+
 #include "util.hh"
 
 #include <mutex>
 #include <unordered_map>
 
 namespace uvgrtp {
+
+    namespace frame {
+        struct rtp_frame;
+    };
+
+    class socket;
 
     typedef rtp_error_t (*packet_handler)(ssize_t, void *, int, uvgrtp::frame::rtp_frame **);
     typedef rtp_error_t (*packet_handler_aux)(void *, int, uvgrtp::frame::rtp_frame **);

@@ -1,6 +1,9 @@
 #include "srtp/srtp.hh"
+
 #include "srtp/base.hh"
 #include "crypto.hh"
+#include "debug.hh"
+#include "frame.hh"
 
 #include <cstring>
 #include <iostream>

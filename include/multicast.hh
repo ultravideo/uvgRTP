@@ -1,10 +1,13 @@
 #pragma once
 
 #include "util.hh"
-#include "frame.hh"
 
 namespace uvgrtp {
     class connection;
+
+    namespace frame {
+        struct rtp_frame;
+    };
 
     const int MULTICAST_MAX_PEERS = 64;
 

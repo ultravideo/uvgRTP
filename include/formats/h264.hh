@@ -1,12 +1,16 @@
 #pragma once
 
 #include "formats/h26x.hh"
+#include "clock.hh"
+#include "util.hh"
 #include "frame.hh"
-#include "queue.hh"
+#include "socket.hh"
 
 #include <deque>
 
 namespace uvgrtp {
+
+    class rtp;
 
     namespace formats {
 

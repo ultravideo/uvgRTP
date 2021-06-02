@@ -5,6 +5,16 @@
 #include "formats/h266.hh"
 #include "debug.hh"
 #include "random.hh"
+#include "rtp.hh"
+#include "zrtp.hh"
+
+#include "holepuncher.hh"
+#include "pkt_dispatch.hh"
+#include "rtcp.hh"
+#include "socket.hh"
+#include "srtp/srtcp.hh"
+#include "srtp/srtp.hh"
+#include "formats/media.hh"
 
 #include <cstring>
 #include <errno.h>

@@ -1,4 +1,8 @@
 #include "session.hh"
+
+#include "media_stream.hh"
+#include "zrtp.hh"
+#include "crypto.hh"
 #include "debug.hh"
 
 

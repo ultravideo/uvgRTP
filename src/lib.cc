@@ -3,6 +3,7 @@
 #include "debug.hh"
 #include "hostname.hh"
 #include "random.hh"
+#include "session.hh"
 
 #include <cstdlib>
 #include <cstring>
