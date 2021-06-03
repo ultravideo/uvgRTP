@@ -216,8 +216,10 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
     rtp_error_t ret;
     struct timeval t_val;
     uvgrtp::frame::rtp_frame *frame;
+    
+    // stack size isn't enough for this so we allocate temporary memory for it from heap
     const size_t recv_buffer_len = 0xffff - IPV4_HDR_SIZE - UDP_HDR_SIZE;
-    uint8_t recv_buffer[recv_buffer_len] = { 0 };
+    uint8_t* recv_buffer = new uint8_t[recv_buffer_len];
 
     FD_ZERO(&read_fds);
 
@@ -275,6 +277,8 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
             }
         } while (ret == RTP_OK);
     }
-
     exit_mtx_.unlock();
+
+    delete[] recv_buffer;
+
 }
