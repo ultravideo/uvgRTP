@@ -26,7 +26,7 @@ namespace uvgrtp {
         PACK(struct zrtp_hello {
             zrtp_msg msg_start;
 
-            uint32_t version;
+            uint32_t version = 0;
             uint32_t client[4];
             uint32_t hash[8];
             uint32_t zid[3];
@@ -35,15 +35,15 @@ namespace uvgrtp {
             uint8_t s:1;
             uint8_t m:1;
             uint8_t p:1;
-            uint8_t unused;
+            uint8_t unused = 0;
             uint8_t hc:4;
             uint8_t cc:4;
             uint8_t ac:4;
             uint8_t kc:4;
             uint8_t sc:4;
 
-            uint64_t mac;
-            uint32_t crc;
+            uint64_t mac = 0;
+            uint32_t crc = 0;
         });
 
         class hello {

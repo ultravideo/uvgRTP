@@ -22,7 +22,7 @@ namespace uvgrtp {
 
         PACK(struct zrtp_hello_ack {
             zrtp_msg msg_start;
-            uint32_t crc;
+            uint32_t crc = 0;
         });
 
         class hello_ack {

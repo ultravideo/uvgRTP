@@ -20,13 +20,13 @@ namespace uvgrtp {
     typedef rtp_error_t (*frame_getter)(void *, uvgrtp::frame::rtp_frame **);
 
     struct auxiliary_handler {
-        void *arg;
-        packet_handler_aux handler;
-        frame_getter getter;
+        void *arg = nullptr;
+        packet_handler_aux handler = nullptr;
+        frame_getter getter = nullptr;
     };
 
     struct packet_handlers {
-        packet_handler primary;
+        packet_handler primary = nullptr;
         std::vector<auxiliary_handler> auxiliary;
     };
 

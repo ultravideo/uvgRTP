@@ -14,16 +14,16 @@ namespace uvgrtp {
         PACK(struct zrtp_header {
             uint16_t version:4;
             uint16_t unused:12;
-            uint16_t seq;
-            uint32_t magic;
-            uint32_t ssrc;
+            uint16_t seq = 0;
+            uint32_t magic = 0;
+            uint32_t ssrc = 0;
         });
 
         PACK(struct zrtp_msg {
             struct zrtp_header header;
-            uint16_t magic;
-            uint16_t length;
-            uint64_t msgblock;
+            uint16_t magic = 0;
+            uint16_t length = 0;
+            uint64_t msgblock = 0;
         });
 
         enum ZRTP_FRAME_TYPE {

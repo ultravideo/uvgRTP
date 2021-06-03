@@ -52,24 +52,24 @@ namespace uvgrtp {
             uint8_t cc:4;
             uint8_t marker:1;
             uint8_t payload:7;
-            uint16_t seq;
-            uint32_t timestamp;
-            uint32_t ssrc;
+            uint16_t seq = 0;
+            uint32_t timestamp = 0;
+            uint32_t ssrc = 0;
         });
 
         PACK(struct ext_header {
-            uint16_t type;
-            uint16_t len;
-            uint8_t *data;
+            uint16_t type = 0;
+            uint16_t len = 0;
+            uint8_t *data = nullptr;
         });
 
         struct rtp_frame {
             struct rtp_header header;
-            uint32_t *csrc;
+            uint32_t *csrc = nullptr;
             struct ext_header *ext;
 
-            size_t padding_len; /* non-zero if frame is padded */
-            size_t payload_len; /* payload_len: total_len - header_len - padding length (if padded) */
+            size_t padding_len = 0; /* non-zero if frame is padded */
+            size_t payload_len = 0; /* payload_len: total_len - header_len - padding length (if padded) */
 
             /* Probation zone is a small area of free-to-use memory for the frame receiver
              * when handling fragments. For example HEVC fragments that belong to future frames
@@ -80,86 +80,86 @@ namespace uvgrtp {
              * the internal fragmentation as this memory is not usable for anything else
              *
              * NOTE 2: This is a Linux-only optimization */
-            size_t probation_len;
-            size_t probation_off;
-            uint8_t *probation;
-            uint8_t *payload;
+            size_t probation_len = 0;
+            size_t probation_off = 0;
+            uint8_t *probation = nullptr;
+            uint8_t *payload = nullptr;
 
-            uint8_t *dgram;      /* pointer to the UDP datagram (for internal use only) */
-            size_t   dgram_size; /* size of the UDP datagram */
+            uint8_t *dgram = nullptr;      /* pointer to the UDP datagram (for internal use only) */
+            size_t   dgram_size = 0; /* size of the UDP datagram */
 
-            rtp_format_t format;
-            int  type;
+            rtp_format_t format = RTP_FORMAT_GENERIC;
+            int  type = 0;
             sockaddr_in src_addr;
         };
 
         struct rtcp_header {
-            uint8_t version;
-            uint8_t padding;
+            uint8_t version = 0;
+            uint8_t padding = 0;
             union {
                 uint8_t count;
                 uint8_t pkt_subtype; /* for app packets */
             };
-            uint8_t pkt_type;
-            uint16_t length;
+            uint8_t pkt_type = 0;
+            uint16_t length = 0;
         };
 
         struct rtcp_sender_info {
-            uint32_t ntp_msw; /* NTP timestamp, most significant word */
-            uint32_t ntp_lsw; /* NTP timestamp, least significant word */
-            uint32_t rtp_ts;  /* RTP timestamp corresponding to same time as NTP */
-            uint32_t pkt_cnt;
-            uint32_t byte_cnt;
+            uint32_t ntp_msw = 0; /* NTP timestamp, most significant word */
+            uint32_t ntp_lsw = 0; /* NTP timestamp, least significant word */
+            uint32_t rtp_ts = 0;  /* RTP timestamp corresponding to same time as NTP */
+            uint32_t pkt_cnt = 0;
+            uint32_t byte_cnt = 0;
         };
 
         struct rtcp_report_block {
-            uint32_t ssrc;
-            uint8_t  fraction;
-            int32_t  lost;
-            uint32_t last_seq;
-            uint32_t jitter;
-            uint32_t lsr;  /* last Sender Report */
-            uint32_t dlsr; /* delay since last Sender Report */
+            uint32_t ssrc = 0;
+            uint8_t  fraction = 0;
+            int32_t  lost = 0;
+            uint32_t last_seq = 0;
+            uint32_t jitter = 0;
+            uint32_t lsr = 0;  /* last Sender Report */
+            uint32_t dlsr = 0; /* delay since last Sender Report */
         };
 
         struct rtcp_receiver_report {
             struct rtcp_header header;
-            uint32_t ssrc;
+            uint32_t ssrc = 0;
             std::vector<rtcp_report_block> report_blocks;
         };
 
         struct rtcp_sender_report {
             struct rtcp_header header;
-            uint32_t ssrc;
+            uint32_t ssrc = 0;
             struct rtcp_sender_info sender_info;
             std::vector<rtcp_report_block> report_blocks;
         };
 
         struct rtcp_sdes_item {
-            uint8_t type;
-            uint8_t length;
-            void *data;
+            uint8_t type = 0;
+            uint8_t length = 0;
+            void *data = nullptr;
         };
 
         struct rtcp_sdes_packet {
             struct rtcp_header header;
-            uint32_t ssrc;
+            uint32_t ssrc = 0;
             std::vector<rtcp_sdes_item> items;
         };
 
         struct rtcp_app_packet {
             struct rtcp_header header;
-            uint32_t ssrc;
+            uint32_t ssrc = 0;
             uint8_t name[4];
-            uint8_t *payload;
+            uint8_t *payload = nullptr;
         };
 
         PACK(struct zrtp_frame {
             uint8_t version:4;
             uint16_t unused:12;
-            uint16_t seq;
-            uint32_t magic;
-            uint32_t ssrc;
+            uint16_t seq = 0;
+            uint32_t magic = 0;
+            uint32_t ssrc = 0;
             uint8_t payload[1];
         });
 

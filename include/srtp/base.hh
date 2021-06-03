@@ -74,24 +74,24 @@ namespace uvgrtp {
         /* Keys negotiated by ZRTP */
         struct {
             /* Our master key and salt */
-            uint8_t *local_key;
+            uint8_t *local_key = nullptr;
             uint8_t local_salt[UVG_SALT_LENGTH];
 
             /* Remote's master key and salt */
-            uint8_t *remote_key;
+            uint8_t *remote_key = nullptr;
             uint8_t remote_salt[UVG_SALT_LENGTH];
         } master;
 
         /* Used to encrypt/authenticate packets sent by us */
         struct {
-            uint8_t *enc_key;
+            uint8_t *enc_key = nullptr;
             uint8_t auth_key[UVG_AUTH_LENGTH];
             uint8_t salt_key[UVG_SALT_LENGTH];
         } local;
 
         /* Used to decrypt/Authenticate packets sent by remote */
         struct {
-            uint8_t *enc_key;
+            uint8_t *enc_key = nullptr;
             uint8_t auth_key[UVG_AUTH_LENGTH];
             uint8_t salt_key[UVG_SALT_LENGTH];
         } remote;
@@ -99,29 +99,29 @@ namespace uvgrtp {
     } srtp_key_ctx_t;
 
     typedef struct srtp_ctx {
-        int type;     /* srtp or srtcp */
-        uint32_t roc; /* roll-over counter */
-        uint32_t rts; /* timestamp of the frame that causes ROC update */
+        int type = 0;     /* srtp or srtcp */
+        uint32_t roc = 0; /* roll-over counter */
+        uint32_t rts = 0; /* timestamp of the frame that causes ROC update */
 
-        int enc;   /* identifier for encryption algorithm */
-        int hmac;  /* identifier for message authentication algorithm */
+        int enc = 0;   /* identifier for encryption algorithm */
+        int hmac = 0;  /* identifier for message authentication algorithm */
 
-        bool mki_present; /* is MKI present in SRTP packets */
-        size_t mki_size;  /* length of the MKI field in bytes if it's present */
-        uint8_t *mki;     /* master key identifier */
+        bool mki_present = 0; /* is MKI present in SRTP packets */
+        size_t mki_size = 0;  /* length of the MKI field in bytes if it's present */
+        uint8_t *mki = nullptr;     /* master key identifier */
 
-        uint8_t *master_key;  /* master key */
-        uint8_t *master_salt; /* master salt */
-        size_t  mk_cnt;       /* how many packets have been encrypted with master key */
+        uint8_t *master_key = nullptr;  /* master key */
+        uint8_t *master_salt = nullptr; /* master salt */
+        size_t  mk_cnt = 0;       /* how many packets have been encrypted with master key */
 
-        size_t n_e; /* size of encryption key */
-        size_t n_a; /* size of hmac key */
+        size_t n_e = 0; /* size of encryption key */
+        size_t n_a = 0; /* size of hmac key */
 
         /* following fields are receiver-only */
-        uint16_t s_l;    /* highest received sequence number */
-        uint8_t *replay; /* list of recently received and authenticated SRTP packets */
+        uint16_t s_l = 0;    /* highest received sequence number */
+        uint8_t *replay = nullptr; /* list of recently received and authenticated SRTP packets */
 
-        int flags; /* context configuration flags */
+        int flags = 0; /* context configuration flags */
 
         srtp_key_ctx_t key_ctx;
     } srtp_ctx_t;

@@ -22,8 +22,8 @@ namespace uvgrtp {
 
         PACK(struct zrtp_error {
             zrtp_msg msg_start;
-            uint32_t error;
-            uint32_t crc;
+            uint32_t error = 0;
+            uint32_t crc = 0;
         });
 
         class error {

@@ -34,7 +34,7 @@ namespace uvgrtp {
     typedef struct transaction {
         /* Each transaction has a unique key which is used by the SCD (if enabled)
          * when moving the transactions betwen "queued_" and "free_" */
-        uint32_t key;
+        uint32_t key = 0;
 
         /* To provide true scatter/gather I/O, each transaction has a buf_vec
          * structure which may contain differents buffers and their sizes.
@@ -51,14 +51,14 @@ namespace uvgrtp {
          * Keeping a separate common RTP header and then just copying this is cleaner than initializing
          * RTP header for each packet */
         uvgrtp::frame::rtp_header rtp_common;
-        uvgrtp::frame::rtp_header *rtp_headers;
+        uvgrtp::frame::rtp_header *rtp_headers = nullptr;
 
 #ifdef __linux__
-        struct mmsghdr *headers;
-        struct iovec   *chunks;
+        struct mmsghdr *headers = nullptr;
+        struct iovec   *chunks = nullptr;
 #else
-        char *headers;
-        char *chunks;
+        char *headers = nullptr;
+        char *chunks = nullptr;
 #endif
 
         /* Media may need space for additional buffers,
@@ -66,21 +66,21 @@ namespace uvgrtp {
          * when the transaction is initialized for the first time
          *
          * See src/formats/hevc.hh for example */
-        void *media_headers;
+        void *media_headers = nullptr;
 
         /* Pointer to RTP authentication (if enabled) */
-        uint8_t *rtp_auth_tags;
+        uint8_t *rtp_auth_tags = nullptr;
 
-        size_t chunk_ptr;
-        size_t hdr_ptr;
-        size_t rtphdr_ptr;
-        size_t rtpauth_ptr;
+        size_t chunk_ptr = 0;
+        size_t hdr_ptr = 0;
+        size_t rtphdr_ptr = 0;
+        size_t rtpauth_ptr = 0;
 
         /* Address of receiver, used by sendmmsg(2) */
         sockaddr_in out_addr;
 
         /* Used by the system call dispatcher for transaction deinitialization */
-        uvgrtp::frame_queue *fqueue;
+        uvgrtp::frame_queue *fqueue = nullptr;
 
         /* If SCD is used, it's absolutely essential to initialize transaction
          * by giving the data pointer to frame queue
@@ -94,7 +94,7 @@ namespace uvgrtp {
          * If callback is not provided, SCD will check if "flags" field contains the flag "RTP_COPY"
          * which means that uvgRTP has a made a copy of the original chunk and it can be safely freed */
         std::unique_ptr<uint8_t[]> data_smart;
-        uint8_t *data_raw;
+        uint8_t *data_raw = nullptr;
 
         /* If the application code provided us a deallocation hook, this points to it.
          * When SCD finishes processing a transaction, it will call this hook with "data_raw" pointer */

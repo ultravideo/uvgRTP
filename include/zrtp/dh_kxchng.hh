@@ -31,7 +31,7 @@ namespace uvgrtp {
             uint8_t pbx_secret[8];
             uint8_t pk[384];
             uint8_t mac[8];
-            uint32_t crc;
+            uint32_t crc = 0;
         });
 
         class dh_key_exchange {

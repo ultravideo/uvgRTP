@@ -47,7 +47,7 @@ namespace uvgrtp {
 
     typedef struct capabilities {
         /* Supported ZRTP version */
-        uint32_t version;
+        uint32_t version = 0;
 
         /* Supported hash algorithms (empty for us) */
         std::vector<uint32_t> hash_algos;
@@ -66,9 +66,9 @@ namespace uvgrtp {
     } zrtp_capab_t;
 
 	typedef struct zrtp_crypto_ctx {
-        uvgrtp::crypto::hmac::sha256 *hmac_sha256;
-        uvgrtp::crypto::sha256 *sha256;
-        uvgrtp::crypto::dh *dh;
+        uvgrtp::crypto::hmac::sha256 *hmac_sha256 = nullptr;
+        uvgrtp::crypto::sha256 *sha256 = nullptr;
+        uvgrtp::crypto::dh *dh = nullptr;
     } zrtp_crypto_ctx_t;
 
     typedef struct zrtp_secrets {
@@ -84,9 +84,9 @@ namespace uvgrtp {
          * Because uvgRTP supports only DH mode,
          * other shared secrets (s1 - s3) are null */
         uint8_t s0[32];
-        uint8_t *s1;
-        uint8_t *s2;
-        uint8_t *s3;
+        uint8_t *s1 = nullptr;
+        uint8_t *s2 = nullptr;
+        uint8_t *s3 = nullptr;
     } zrtp_secrets_t;
 
     typedef struct zrtp_messages {
@@ -139,15 +139,15 @@ namespace uvgrtp {
     /* Collection of algorithms that are used by ZRTP
      * (based on information gathered from Hello message) */
     typedef struct zrtp_session {
-        int role;       /* initiator/responder */
-        uint32_t ssrc;
-        uint16_t seq;
+        int role = 0;       /* initiator/responder */
+        uint32_t ssrc = 0;
+        uint16_t seq = 0;
 
-        uint32_t hash_algo;
-        uint32_t cipher_algo;
-        uint32_t auth_tag_type;
-        uint32_t key_agreement_type;
-        uint32_t sas_type;
+        uint32_t hash_algo = 0;
+        uint32_t cipher_algo = 0;
+        uint32_t auth_tag_type = 0;
+        uint32_t key_agreement_type = 0;
+        uint32_t sas_type = 0;
 
         /* Session capabilities */
         zrtp_capab_t capabilities;

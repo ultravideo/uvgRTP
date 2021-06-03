@@ -32,45 +32,45 @@ namespace uvgrtp {
 
     struct rtcp_statistics {
         /* receiver stats */
-        uint32_t received_pkts;  /* Number of packets received */
-        uint32_t dropped_pkts;   /* Number of dropped RTP packets */
-        uint32_t received_bytes; /* Number of bytes received excluding RTP Header */
+        uint32_t received_pkts = 0;  /* Number of packets received */
+        uint32_t dropped_pkts = 0;   /* Number of dropped RTP packets */
+        uint32_t received_bytes = 0; /* Number of bytes received excluding RTP Header */
 
         /* sender stats */
-        uint32_t sent_pkts;   /* Number of sent RTP packets */
-        uint32_t sent_bytes;  /* Number of sent bytes excluding RTP Header */
+        uint32_t sent_pkts = 0;      /* Number of sent RTP packets */
+        uint32_t sent_bytes = 0;     /* Number of sent bytes excluding RTP Header */
 
-        uint32_t jitter;      /* TODO: */
-        uint32_t transit;     /* TODO: */
+        uint32_t jitter = 0;         /* TODO: */
+        uint32_t transit = 0;        /* TODO: */
 
         /* Receiver clock related stuff */
-        uint64_t initial_ntp; /* Wallclock reading when the first RTP packet was received */
-        uint32_t initial_rtp; /* RTP timestamp of the first RTP packet received */
-        uint32_t clock_rate;  /* Rate of the clock (used for jitter calculations) */
+        uint64_t initial_ntp = 0;    /* Wallclock reading when the first RTP packet was received */
+        uint32_t initial_rtp = 0;    /* RTP timestamp of the first RTP packet received */
+        uint32_t clock_rate = 0;     /* Rate of the clock (used for jitter calculations) */
 
-        uint32_t lsr;                    /* Middle 32 bits of the 64-bit NTP timestamp of previous SR */
+        uint32_t lsr = 0;                /* Middle 32 bits of the 64-bit NTP timestamp of previous SR */
         uvgrtp::clock::hrc::hrc_t sr_ts; /* When the last SR was received (used to calculate delay) */
 
-        uint16_t max_seq;  /* Highest sequence number received */
-        uint16_t base_seq; /* First sequence number received */
-        uint16_t bad_seq;  /* TODO:  */
-        uint16_t cycles;   /* Number of sequence cycles */
+        uint16_t max_seq = 0;        /* Highest sequence number received */
+        uint16_t base_seq = 0;       /* First sequence number received */
+        uint16_t bad_seq = 0;        /* TODO:  */
+        uint16_t cycles = 0;         /* Number of sequence cycles */
     };
 
     struct rtcp_participant {
-        uvgrtp::socket *socket; /* socket associated with this participant */
-        sockaddr_in address;     /* address of the participant */
+        uvgrtp::socket *socket = nullptr; /* socket associated with this participant */
+        sockaddr_in address;         /* address of the participant */
         struct rtcp_statistics stats; /* RTCP session statistics of the participant */
 
-        int probation;           /* has the participant been fully accepted to the session */
-        int role;                /* is the participant a sender or a receiver */
+        int probation = 0;           /* has the participant been fully accepted to the session */
+        int role = 0;                /* is the participant a sender or a receiver */
 
         /* Save the latest RTCP packets received from this participant
          * Users can query these packets using the SSRC of participant */
-        uvgrtp::frame::rtcp_sender_report   *s_frame;
-        uvgrtp::frame::rtcp_receiver_report *r_frame;
-        uvgrtp::frame::rtcp_sdes_packet     *sdes_frame;
-        uvgrtp::frame::rtcp_app_packet      *app_frame;
+        uvgrtp::frame::rtcp_sender_report   *s_frame = nullptr;
+        uvgrtp::frame::rtcp_receiver_report *r_frame = nullptr;
+        uvgrtp::frame::rtcp_sdes_packet     *sdes_frame = nullptr;
+        uvgrtp::frame::rtcp_app_packet      *app_frame = nullptr;
     };
     /// \endcond
 

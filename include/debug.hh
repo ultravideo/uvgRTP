@@ -12,7 +12,7 @@
 #include <string>
 
 // TODO constexpr??
-inline const char *className(const std::string& prettyFunction)
+inline const std::string className(const std::string& prettyFunction)
 {
     size_t colons = prettyFunction.find("::");
     if (colons == std::string::npos)
@@ -21,7 +21,9 @@ inline const char *className(const std::string& prettyFunction)
     size_t begin = prettyFunction.substr(0,colons).rfind(" ") + 1;
     size_t end = colons - begin;
 
-    return prettyFunction.substr(begin,end).c_str();
+    std::string partialString = prettyFunction.substr(begin, end);
+
+    return partialString;
 }
 
 #ifdef _WIN32

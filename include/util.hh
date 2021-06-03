@@ -289,7 +289,7 @@ enum NOTIFY_REASON {
 
 /* see src/util.hh for more information */
 typedef struct rtp_ctx_conf {
-    int flags;
+    int flags = 0;
     ssize_t ctx_values[RCC_LAST];
 } rtp_ctx_conf_t;
 

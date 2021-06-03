@@ -31,15 +31,15 @@ namespace uvgrtp {
 
             uint32_t hash[8];
             uint32_t zid[3];
-            uint32_t hash_algo;
-            uint32_t cipher_algo;
-            uint32_t auth_tag_type;
-            uint32_t key_agreement_type;
-            uint32_t sas_type;
+            uint32_t hash_algo = 0;
+            uint32_t cipher_algo = 0;
+            uint32_t auth_tag_type = 0;
+            uint32_t key_agreement_type = 0;
+            uint32_t sas_type = 0;
 
             uint32_t hvi[8];
             uint32_t mac[2];
-            uint32_t crc;
+            uint32_t crc = 0;
         });
 
         class commit {

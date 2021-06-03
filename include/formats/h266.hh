@@ -41,16 +41,16 @@ namespace uvgrtp {
             uvgrtp::clock::hrc::hrc_t sframe_time;
 
             /* sequence number of the frame with s-bit */
-            uint32_t s_seq;
+            uint32_t s_seq = 0;
 
             /* sequence number of the frame with e-bit */
-            uint32_t e_seq;
+            uint32_t e_seq = 0;
 
             /* how many fragments have been received */
-            size_t pkts_received;
+            size_t pkts_received = 0;
 
             /* total size of all fragments */
-            size_t total_size;
+            size_t total_size = 0;
 
             /* map of frame's fragments,
              * allows out-of-order insertion and loop-through in order */

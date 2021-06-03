@@ -40,10 +40,10 @@ namespace uvgrtp {
             uint32_t d:1;        /*  */
             uint32_t a:1;        /*  */
 
-            uint32_t cache_expr; /* cache expiration interval */
+            uint32_t cache_expr = 0; /* cache expiration interval */
             /* encrypted portion ends */
 
-            uint32_t crc;
+            uint32_t crc = 0;
         });
 
         class confirm {

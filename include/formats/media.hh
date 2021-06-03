@@ -20,10 +20,10 @@ namespace uvgrtp {
     namespace formats {
 
         typedef struct media_info {
-            uint32_t s_seq;
-            uint32_t e_seq;
-            size_t npkts;
-            size_t size;
+            uint32_t s_seq = 0;
+            uint32_t e_seq = 0;
+            size_t npkts = 0;
+            size_t size = 0;
             std::map<uint32_t, uvgrtp::frame::rtp_frame *> fragments;
         } media_info_t;
 

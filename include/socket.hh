@@ -33,8 +33,8 @@ namespace uvgrtp {
     typedef rtp_error_t (*packet_handler_vec)(void *, buf_vec&);
 
     struct socket_packet_handler {
-        void *arg;
-        packet_handler_vec handler;
+        void *arg = nullptr;
+        packet_handler_vec handler = nullptr;
     };
 
     class socket {
