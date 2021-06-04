@@ -1,42 +1,41 @@
 #pragma once
 
-#include "formats/h26x.hh"
+#include "h26x.hh"
 #include "clock.hh"
 #include "util.hh"
 #include "frame.hh"
 #include "socket.hh"
 
 #include <deque>
-#include <map>
-#include <unordered_set>
-#include <vector>
 
 namespace uvgrtp {
 
+    class rtp;
+
     namespace formats {
 
-        enum H265_NAL_TYPES {
-            H265_PKT_AGGR = 48,
-            H265_PKT_FRAG = 49
+        enum H264_NAL_TYPES {
+            H264_PKT_AGGR = 24,
+            H264_PKT_FRAG = 28
         };
 
-        struct h265_aggregation_packet {
-            uint8_t nal_header[uvgrtp::frame::HEADER_SIZE_H265_NAL];
+        struct h264_aggregation_packet {
+            uint8_t fu_indicator[uvgrtp::frame::HEADER_SIZE_H264_FU];
             uvgrtp::buf_vec nalus;  /* discrete NAL units */
             uvgrtp::buf_vec aggr_pkt; /* crafted aggregation packet */
         };
 
-        struct h265_headers {
-            uint8_t nal_header[uvgrtp::frame::HEADER_SIZE_H265_NAL];
+        struct h264_headers {
+            uint8_t fu_indicator[uvgrtp::frame::HEADER_SIZE_H264_FU];
 
             /* there are three types of Fragmentation Unit headers:
              *  - header for the first fragment
              *  - header for all middle fragments
              *  - header for the last fragment */
-            uint8_t fu_headers[3 * uvgrtp::frame::HEADER_SIZE_H265_FU];
+            uint8_t fu_headers[3 * uvgrtp::frame::HEADER_SIZE_H264_FU];
         };
 
-        typedef struct h265_info {
+        typedef struct h264_info {
             /* clock reading when the first fragment is received */
             uvgrtp::clock::hrc::hrc_t sframe_time;
 
@@ -54,23 +53,22 @@ namespace uvgrtp {
 
             /* map of frame's fragments,
              * allows out-of-order insertion and loop-through in order */
-            std::map<uint32_t, uvgrtp::frame::rtp_frame *> fragments;
+            std::map<uint16_t, uvgrtp::frame::rtp_frame *> fragments;
 
             /* storage for fragments that require relocation */
             std::vector<uvgrtp::frame::rtp_frame *> temporary;
-        } h265_info_t;
+        } h264_info_t;
 
         typedef struct {
             std::deque<uvgrtp::frame::rtp_frame *> queued;
-            std::unordered_map<uint32_t, h265_info_t> frames;
+            std::unordered_map<uint32_t, h264_info_t> frames;
             std::unordered_set<uint32_t> dropped;
-            uvgrtp::rtp *rtp_ctx; // cannot be initialized because struct unnamed
-        } h265_frame_info_t;
+        } h264_frame_info_t;
 
-        class h265 : public h26x {
+        class h264 : public h26x {
             public:
-                h265(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags);
-                ~h265();
+                h264(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags);
+                ~h264();
 
                 /* Packet handler for RTP frames that transport HEVC bitstream
                  *
@@ -101,7 +99,7 @@ namespace uvgrtp {
                 static rtp_error_t frame_getter(void *arg, frame::rtp_frame **frame);
 
                 /* Return pointer to the internal frame info structure which is relayed to packet handler */
-                h265_frame_info_t *get_h265_frame_info();
+                h264_frame_info_t *get_h264_frame_info();
 
             protected:
                 rtp_error_t push_nal_unit(uint8_t *data, size_t data_len, bool more);
@@ -113,8 +111,8 @@ namespace uvgrtp {
                 /* Clear aggregation buffers */
                 void clear_aggregation_info();
 
-                h265_frame_info_t finfo_;
-                h265_aggregation_packet aggr_pkt_info_;
+                h264_frame_info_t finfo_;
+                h264_aggregation_packet aggr_pkt_info_;
         };
     };
 };

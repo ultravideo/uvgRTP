@@ -1,7 +1,6 @@
 #pragma once
 
-
-#include "zrtp/defines.hh"
+#include "defines.hh"
 
 #include "util.hh"
 
@@ -9,43 +8,48 @@
 #include <netinet/in.h>
 #endif
 
-
 namespace uvgrtp {
 
-    namespace frame {
-        struct zrtp_frame;
-    }
+    typedef struct capabilities zrtp_capab_t;
+    typedef struct zrtp_session zrtp_session_t;
 
     class socket;
 
-    typedef struct zrtp_session zrtp_session_t;
+    namespace frame {
+        struct zrtp_frame;
+    };
 
     namespace zrtp_msg {
 
         class receiver;
 
-
-        /* DH Commit Message */
-        PACK(struct zrtp_commit {
+        PACK(struct zrtp_hello {
             zrtp_msg msg_start;
 
+            uint32_t version = 0;
+            uint32_t client[4];
             uint32_t hash[8];
             uint32_t zid[3];
-            uint32_t hash_algo = 0;
-            uint32_t cipher_algo = 0;
-            uint32_t auth_tag_type = 0;
-            uint32_t key_agreement_type = 0;
-            uint32_t sas_type = 0;
 
-            uint32_t hvi[8];
-            uint32_t mac[2];
+            uint8_t zero:1;
+            uint8_t s:1;
+            uint8_t m:1;
+            uint8_t p:1;
+            uint8_t unused = 0;
+            uint8_t hc:4;
+            uint8_t cc:4;
+            uint8_t ac:4;
+            uint8_t kc:4;
+            uint8_t sc:4;
+
+            uint64_t mac = 0;
             uint32_t crc = 0;
         });
 
-        class commit {
+        class hello {
             public:
-                commit(zrtp_session_t& session);
-                ~commit();
+                hello(zrtp_session_t& session);
+                ~hello();
 
                 /* TODO:  */
                 rtp_error_t send_msg(uvgrtp::socket *socket, sockaddr_in& addr);
@@ -57,7 +61,6 @@ namespace uvgrtp {
                 uvgrtp::frame::zrtp_frame *frame_;
                 uvgrtp::frame::zrtp_frame *rframe_;
                 size_t len_, rlen_;
-
         };
     };
 };

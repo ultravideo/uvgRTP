@@ -1,6 +1,6 @@
 #pragma once
 
-#include "zrtp/defines.hh"
+#include "defines.hh"
 
 #include "util.hh"
 
@@ -10,7 +10,6 @@
 
 namespace uvgrtp {
 
-    typedef struct capabilities zrtp_capab_t;
     typedef struct zrtp_session zrtp_session_t;
 
     class socket;
@@ -23,33 +22,23 @@ namespace uvgrtp {
 
         class receiver;
 
-        PACK(struct zrtp_hello {
+        PACK(struct zrtp_dh {
             zrtp_msg msg_start;
-
-            uint32_t version = 0;
-            uint32_t client[4];
             uint32_t hash[8];
-            uint32_t zid[3];
-
-            uint8_t zero:1;
-            uint8_t s:1;
-            uint8_t m:1;
-            uint8_t p:1;
-            uint8_t unused = 0;
-            uint8_t hc:4;
-            uint8_t cc:4;
-            uint8_t ac:4;
-            uint8_t kc:4;
-            uint8_t sc:4;
-
-            uint64_t mac = 0;
+            uint8_t rs1_id[8];
+            uint8_t rs2_id[8];
+            uint8_t aux_secret[8];
+            uint8_t pbx_secret[8];
+            uint8_t pk[384];
+            uint8_t mac[8];
             uint32_t crc = 0;
         });
 
-        class hello {
+        class dh_key_exchange {
             public:
-                hello(zrtp_session_t& session);
-                ~hello();
+                dh_key_exchange(zrtp_session_t& session, int part);
+                dh_key_exchange(struct zrtp_dh *dh);
+                ~dh_key_exchange();
 
                 /* TODO:  */
                 rtp_error_t send_msg(uvgrtp::socket *socket, sockaddr_in& addr);
@@ -61,6 +50,7 @@ namespace uvgrtp {
                 uvgrtp::frame::zrtp_frame *frame_;
                 uvgrtp::frame::zrtp_frame *rframe_;
                 size_t len_, rlen_;
+
         };
     };
 };

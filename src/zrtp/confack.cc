@@ -1,6 +1,6 @@
-#include "zrtp/confack.hh"
+#include "confack.hh"
 
-#include "zrtp.hh"
+#include "../zrtp.hh"
 #include "crypto.hh"
 #include "frame.hh"
 #include "socket.hh"

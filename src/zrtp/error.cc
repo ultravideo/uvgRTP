@@ -1,8 +1,8 @@
-#include "zrtp/error.hh"
+#include "error.hh"
 
-#include "zrtp/zrtp_receiver.hh"
+#include "zrtp_receiver.hh"
 
-#include "zrtp.hh"
+#include "../zrtp.hh"
 #include "crypto.hh"
 #include "socket.hh"
 #include "frame.hh"

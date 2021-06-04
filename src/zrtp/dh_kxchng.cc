@@ -1,8 +1,8 @@
-#include "zrtp/dh_kxchng.hh"
+#include "dh_kxchng.hh"
 
-#include "zrtp/zrtp_receiver.hh"
+#include "zrtp_receiver.hh"
 
-#include "zrtp.hh"
+#include "../zrtp.hh"
 #include "crypto.hh"
 #include "frame.hh"
 #include "socket.hh"

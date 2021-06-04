@@ -1,6 +1,6 @@
-#include "formats/h264.hh"
+#include "h264.hh"
 
-#include "queue.hh"
+#include "../queue.hh"
 #include "debug.hh"
 
 #include <cstdint>

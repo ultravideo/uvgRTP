@@ -1,6 +1,6 @@
 #pragma once
 
-#include "zrtp/defines.hh"
+#include "defines.hh"
 
 #include "util.hh"
 
@@ -17,19 +17,18 @@ namespace uvgrtp {
     };
 
     namespace zrtp_msg {
-        
+
         class receiver;
 
-        PACK(struct zrtp_error {
+        PACK(struct zrtp_hello_ack {
             zrtp_msg msg_start;
-            uint32_t error = 0;
             uint32_t crc = 0;
         });
 
-        class error {
+        class hello_ack {
             public:
-                error(int error_code);
-                ~error();
+                hello_ack();
+                ~hello_ack();
 
                 rtp_error_t send_msg(uvgrtp::socket *socket, sockaddr_in& addr);
 

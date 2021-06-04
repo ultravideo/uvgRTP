@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../util.hh"
+#include "util.hh"
 
 #include <map>
 #include <memory>

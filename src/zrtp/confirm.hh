@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "zrtp/defines.hh"
+#include "defines.hh"
 
 #include "util.hh"
 

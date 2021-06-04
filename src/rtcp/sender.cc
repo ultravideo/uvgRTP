@@ -1,6 +1,6 @@
 #include "rtcp.hh"
 
-#include "srtp/srtcp.hh"
+#include "../srtp/srtcp.hh"
 #include "debug.hh"
 
 uvgrtp::frame::rtcp_sender_report *uvgrtp::rtcp::get_sender_packet(uint32_t ssrc)

@@ -1,7 +1,7 @@
-#include "formats/h26x.hh"
+#include "h26x.hh"
 
-#include "rtp.hh"
-#include "queue.hh"
+#include "../rtp.hh"
+#include "../queue.hh"
 #include "socket.hh"
 #include "debug.hh"
 

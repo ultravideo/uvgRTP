@@ -1,8 +1,8 @@
-#include "zrtp/hello_ack.hh"
+#include "hello_ack.hh"
 
-#include "zrtp/zrtp_receiver.hh"
+#include "zrtp_receiver.hh"
 
-#include "zrtp.hh"
+#include "../zrtp.hh"
 #include "crypto.hh"
 #include "frame.hh"
 #include "socket.hh"

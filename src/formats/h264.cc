@@ -1,7 +1,7 @@
-#include "formats/h264.hh"
+#include "h264.hh"
 
-#include "queue.hh"
-#include "rtp.hh"
+#include "../queue.hh"
+#include "../rtp.hh"
 #include "debug.hh"
 
 #include <cstdint>

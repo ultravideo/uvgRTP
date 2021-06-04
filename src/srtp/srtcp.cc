@@ -1,4 +1,4 @@
-#include "srtp/srtcp.hh"
+#include "srtcp.hh"
 
 #include "crypto.hh"
 #include "debug.hh"

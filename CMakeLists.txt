@@ -60,10 +60,6 @@ add_library(uvgrtp STATIC
 target_include_directories(uvgrtp
     PUBLIC
         ${PROJECT_SOURCE_DIR}/include
-        ${PROJECT_SOURCE_DIR}/include/formats
-        ${PROJECT_SOURCE_DIR}/include/zrtp
-        ${PROJECT_SOURCE_DIR}/include/rtcp
-        ${PROJECT_SOURCE_DIR}/include/srtp
 )
 
 set(LIBRARY_PATHS "")

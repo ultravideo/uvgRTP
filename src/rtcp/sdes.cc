@@ -1,6 +1,6 @@
 #include "rtcp.hh"
 
-#include "srtp/srtcp.hh"
+#include "../srtp/srtcp.hh"
 #include "debug.hh"
 
 uvgrtp::frame::rtcp_sdes_packet *uvgrtp::rtcp::get_sdes_packet(uint32_t ssrc)

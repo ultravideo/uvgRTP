@@ -1,7 +1,7 @@
-#include "formats/h266.hh"
+#include "h266.hh"
 
-#include "rtp.hh"
-#include "queue.hh"
+#include "../rtp.hh"
+#include "../queue.hh"
 #include "debug.hh"
 
 #include <cstdint>

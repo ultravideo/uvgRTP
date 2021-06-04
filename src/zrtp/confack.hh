@@ -1,6 +1,7 @@
 #pragma once
 
-#include "zrtp/defines.hh"
+#include "defines.hh"
+#include "zrtp_receiver.hh"
 
 #include "util.hh"
 
@@ -10,35 +11,35 @@
 
 namespace uvgrtp {
 
-    class socket;
-
     namespace frame {
         struct zrtp_frame;
     };
 
+    typedef struct zrtp_session zrtp_session_t;
+
     namespace zrtp_msg {
 
-        class receiver;
-
-        PACK(struct zrtp_hello_ack {
+        PACK(struct zrtp_confack {
             zrtp_msg msg_start;
             uint32_t crc = 0;
         });
 
-        class hello_ack {
+        class confack {
             public:
-                hello_ack();
-                ~hello_ack();
+                confack(zrtp_session_t& session);
+                ~confack();
 
+                /* TODO:  */
                 rtp_error_t send_msg(uvgrtp::socket *socket, sockaddr_in& addr);
 
+                /* TODO:  */
                 rtp_error_t parse_msg(uvgrtp::zrtp_msg::receiver& receiver);
 
             private:
                 uvgrtp::frame::zrtp_frame *frame_;
-                size_t len_;
+                uvgrtp::frame::zrtp_frame *rframe_;
+                size_t len_, rlen_;
         };
-
     };
 };
 

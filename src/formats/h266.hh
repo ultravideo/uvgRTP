@@ -1,6 +1,6 @@
 #pragma once
 
-#include "formats/h26x.hh"
+#include "h26x.hh"
 
 #include "util.hh"
 

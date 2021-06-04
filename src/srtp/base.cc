@@ -1,7 +1,7 @@
-#include "srtp/base.hh"
+#include "base.hh"
 
 #include "crypto.hh"
-#include "zrtp.hh"
+#include "../zrtp.hh"
 #include "debug.hh"
 
 #include <cstring>

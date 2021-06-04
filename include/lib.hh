@@ -1,48 +1,14 @@
 #pragma once
 
 // these includes are here for easier usage of this library
-// At this point I don't know which ones are required so I'll include them all
-#include "formats/h26x.hh"
-#include "formats/h264.hh"
-#include "formats/h265.hh"
-#include "formats/h266.hh"
-#include "formats/media.hh"
-
-#include "srtp/base.hh"
-#include "srtp/srtcp.hh"
-#include "srtp/srtp.hh"
-
-#include "zrtp/commit.hh"
-#include "zrtp/confack.hh"
-#include "zrtp/confirm.hh"
-#include "zrtp/defines.hh"
-#include "zrtp/dh_kxchng.hh"
-#include "zrtp/error.hh"
-#include "zrtp/hello.hh"
-#include "zrtp/hello_ack.hh"
-#include "zrtp/zrtp_receiver.hh"
-
-#include "clock.hh"
-#include "crypto.hh"
-#include "debug.hh"
-#include "dispatch.hh"
-#include "frame.hh"
-#include "holepuncher.hh"
-#include "hostname.hh"
-#include "media_stream.hh"
-#include "mingw_inet.hh"
-#include "multicast.hh"
-#include "pkt_dispatch.hh"
-#include "poll.hh"
-#include "queue.hh"
-#include "random.hh"
-#include "rtcp.hh"
-#include "rtp.hh"
-#include "runner.hh"
-#include "session.hh"
-#include "socket.hh"
-#include "util.hh"
-#include "zrtp.hh"
+#include "media_stream.hh"  // media streamer class
+#include "session.hh"       // session class
+#include "rtcp.hh"          // RTCP
+#include "clock.hh"         // time related functions
+#include "crypto.hh"        // check if crypto is enabled
+#include "debug.hh"         // debug prints
+#include "frame.hh"         // frame related functions
+#include "util.hh"          // types
 
 #include <map>
 #include <string>
