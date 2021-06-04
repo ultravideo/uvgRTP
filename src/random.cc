@@ -53,9 +53,16 @@ int uvgrtp::random::generate(void *buf, size_t n)
     return read;
 #endif // HAVE_GETRANDOM
 #else // __linux__
+
+    if (n > UINT32_MAX)
+    {
+        LOG_WARN("Tried to generate too large random number");
+        n = UINT32_MAX;
+    }
+
     HCRYPTPROV hCryptProv;
     if (CryptAcquireContext(&hCryptProv, NULL, NULL, PROV_RSA_FULL, 0) == TRUE) {
-        bool res = CryptGenRandom(hCryptProv, n, (BYTE *)buf);
+        bool res = CryptGenRandom(hCryptProv, (DWORD)n, (BYTE *)buf);
 
         CryptReleaseContext(hCryptProv, 0);
 

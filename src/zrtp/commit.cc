@@ -34,7 +34,7 @@ uvgrtp::zrtp_msg::commit::commit(zrtp_session_t& session)
     msg->msg_start.header.seq     = session.seq++;
 
     msg->msg_start.magic  = ZRTP_MSG_MAGIC;
-    msg->msg_start.length = len_ - sizeof(zrtp_header);
+    msg->msg_start.length = (uint16_t)len_ - (uint16_t)sizeof(zrtp_header);
 
     memcpy(&msg->msg_start.msgblock, ZRTP_COMMIT,                 8);
     memcpy(msg->zid,                 session.o_zid,              12); /* 96 bits */

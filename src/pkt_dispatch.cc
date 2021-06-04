@@ -234,7 +234,7 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
         t_val.tv_usec = 1500;
         FD_SET(socket->get_raw_socket(), &read_fds);
 
-        int sret = ::select(socket->get_raw_socket() + 1, &read_fds, nullptr, nullptr, &t_val);
+        int sret = ::select((int)socket->get_raw_socket() + 1, &read_fds, nullptr, nullptr, &t_val);
 
         if (sret < 0) {
             log_platform_error("select(2) failed");

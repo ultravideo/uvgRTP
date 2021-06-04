@@ -35,7 +35,7 @@ uvgrtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part)
     msg->msg_start.header.seq     = session.seq++;
 
     msg->msg_start.magic  = ZRTP_MSG_MAGIC;
-    msg->msg_start.length = len_ - sizeof(zrtp_header);
+    msg->msg_start.length = (uint16_t)len_ - (uint16_t)sizeof(zrtp_header);
 
     /* Message Type Block and H0 */
     memcpy(&msg->msg_start.msgblock, (part == 1) ? ZRTP_CONFRIM1 : ZRTP_CONFRIM2,  8);

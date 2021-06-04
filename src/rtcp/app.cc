@@ -72,7 +72,7 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t *packet, size_t size)
 rtp_error_t uvgrtp::rtcp::send_app_packet(char *name, uint8_t subtype, size_t payload_len, uint8_t *payload)
 {
     size_t frame_size;
-    rtp_error_t ret;
+    rtp_error_t ret = RTP_OK;
     uint8_t *frame;
 
     frame_size  = 4; /* rtcp header */
@@ -87,9 +87,9 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(char *name, uint8_t subtype, size_t pa
     memset(frame, 0, frame_size);
 
     frame[0] = (2 << 6) | (0 << 5) | (subtype & 0x1f);
-    frame[1] = uvgrtp::frame::RTCP_FT_APP;
+    frame[1] = (uint8_t)uvgrtp::frame::RTCP_FT_APP;
 
-    *(uint16_t *)&frame[2] = htons(frame_size);
+    *(uint16_t *)&frame[2] = htons((u_short)frame_size);
     *(uint32_t *)&frame[4] = htonl(ssrc_);
 
     memcpy(&frame[ 8],    name,           4);

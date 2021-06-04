@@ -45,7 +45,7 @@ uvgrtp::zrtp_msg::hello::hello(zrtp_session_t& session)
     msg->msg_start.header.seq     = session.seq++;
 
     msg->msg_start.magic  = ZRTP_MSG_MAGIC;
-    msg->msg_start.length = len_ - sizeof(uvgrtp::frame::zrtp_frame);
+    msg->msg_start.length = (uint16_t)len_ - (uint16_t)sizeof(uvgrtp::frame::zrtp_frame);
 
     memcpy(&msg->msg_start.msgblock, ZRTP_HELLO,                  8);
     memcpy(&msg->version,            ZRTP_VERSION,                4);

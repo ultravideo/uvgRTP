@@ -43,7 +43,7 @@ uvgrtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int 
     msg->msg_start.header.seq     = session.seq++;
 
     msg->msg_start.magic  = ZRTP_MSG_MAGIC;
-    msg->msg_start.length = len_ - sizeof(zrtp_header);
+    msg->msg_start.length = (uint16_t)len_ - (uint16_t)sizeof(zrtp_header);
     msg->crc = 0;
 
     memcpy(&msg->msg_start.msgblock, strs[part - 1][0],           8);

@@ -238,8 +238,8 @@ rtp_error_t uvgrtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_le
 {
     /* find first start code */
     uint8_t start_len   = 0;
-    int offset          = find_h26x_start_code(data, data_len, 0, start_len);
-    int prev_offset     = offset;
+    ssize_t offset          = find_h26x_start_code(data, data_len, 0, start_len);
+    ssize_t prev_offset     = offset;
     size_t r_off        = 0;
     rtp_error_t ret     = RTP_GENERIC_ERROR;
     size_t payload_size = rtp_ctx_->get_payload_size();

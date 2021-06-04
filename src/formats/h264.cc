@@ -58,11 +58,19 @@ rtp_error_t uvgrtp::formats::h264::make_aggregation_pkt()
     );
 
     for (auto& nalu: aggr_pkt_info_.nalus) {
-        auto pkt_size = nalu.first;
-        nalu.first    = htons(nalu.first);
 
-        aggr_pkt_info_.aggr_pkt.push_back(std::make_pair(sizeof(uint16_t), (uint8_t *)&nalu.first));
-        aggr_pkt_info_.aggr_pkt.push_back(std::make_pair(pkt_size, nalu.second));
+        if (nalu.first <= UINT16_MAX)
+        {
+            auto pkt_size = nalu.first;
+            nalu.first = htons((u_short)nalu.first);
+
+            aggr_pkt_info_.aggr_pkt.push_back(std::make_pair(sizeof(uint16_t), (uint8_t*)&nalu.first));
+            aggr_pkt_info_.aggr_pkt.push_back(std::make_pair(pkt_size, nalu.second));
+        }
+        else
+        {
+            LOG_ERROR("NAL unit is too large");
+        }
     }
 
     if ((ret = fqueue_->enqueue_message(aggr_pkt_info_.aggr_pkt)) != RTP_OK) {
@@ -84,7 +92,7 @@ rtp_error_t uvgrtp::formats::h264::push_nal_unit(uint8_t *data, size_t data_len,
     size_t payload_size = rtp_ctx_->get_payload_size();
 
     /* send all packets smaller than MTU as single NAL unit packets */
-    if ((ssize_t)data_len - 3 <= payload_size) {
+    if ((size_t)(data_len - 3) <= payload_size) {
         /* If there is more data coming in (possibly another small packet)
          * create entry to "aggr_pkt_info_" to construct an aggregation packet */
         /* if (more) { */

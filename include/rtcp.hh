@@ -24,11 +24,11 @@ namespace uvgrtp {
     };
 
     /* TODO: explain these constants */
-    const int RTP_SEQ_MOD    = 1 << 16;
-    const int MIN_SEQUENTIAL = 2;
-    const int MAX_DROPOUT    = 3000;
-    const int MAX_MISORDER   = 100;
-    const int MIN_TIMEOUT    = 5000;
+    const uint32_t RTP_SEQ_MOD    = 1 << 16;
+    const uint32_t MIN_SEQUENTIAL = 2;
+    const uint32_t MAX_DROPOUT    = 3000;
+    const uint32_t MAX_MISORDER   = 100;
+    const uint32_t MIN_TIMEOUT    = 5000;
 
     struct rtcp_statistics {
         /* receiver stats */
@@ -52,9 +52,9 @@ namespace uvgrtp {
         uvgrtp::clock::hrc::hrc_t sr_ts; /* When the last SR was received (used to calculate delay) */
 
         uint16_t max_seq = 0;        /* Highest sequence number received */
-        uint16_t base_seq = 0;       /* First sequence number received */
-        uint16_t bad_seq = 0;        /* TODO:  */
-        uint16_t cycles = 0;         /* Number of sequence cycles */
+        uint32_t base_seq = 0;       /* First sequence number received */
+        uint32_t bad_seq = 0;        /* TODO:  */
+        uint32_t cycles = 0;         /* Number of sequence cycles */
     };
 
     struct rtcp_participant {
@@ -62,7 +62,7 @@ namespace uvgrtp {
         sockaddr_in address;         /* address of the participant */
         struct rtcp_statistics stats; /* RTCP session statistics of the participant */
 
-        int probation = 0;           /* has the participant been fully accepted to the session */
+        uint32_t probation = 0;           /* has the participant been fully accepted to the session */
         int role = 0;                /* is the participant a sender or a receiver */
 
         /* Save the latest RTCP packets received from this participant
@@ -395,7 +395,7 @@ namespace uvgrtp {
             size_t rtcp_byte_count_;
 
             /* Number of RTCP packets sent */
-            size_t rtcp_pkt_sent_count_;
+            uint32_t rtcp_pkt_sent_count_;
 
             /* Flag that is true if the application has not yet sent an RTCP packet. */
             bool initial_;
@@ -413,7 +413,7 @@ namespace uvgrtp {
             uint32_t rtp_ts_start_;
 
             std::map<uint32_t, rtcp_participant *> participants_;
-            size_t num_receivers_;
+            uint8_t num_receivers_; // maximum is 32 (5 bits)
 
             /* statistics for RTCP Sender and Receiver Reports */
             struct rtcp_statistics our_stats;

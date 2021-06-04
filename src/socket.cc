@@ -162,11 +162,11 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf
         return RTP_SEND_ERROR;
     }
 #else
-    DWORD sent_bytes;
+    DWORD sent_bytes = 0;
     WSABUF data_buf;
 
     data_buf.buf = (char *)buf;
-    data_buf.len = buf_len;
+    data_buf.len = (ULONG)buf_len;
 
     if (WSASendTo(socket_, &data_buf, 1, &sent_bytes, flags, (const struct sockaddr *)&addr, sizeof(addr_), nullptr, nullptr) == -1) {
         win_get_last_error();
@@ -237,15 +237,23 @@ rtp_error_t uvgrtp::socket::__sendtov(
     return RTP_OK;
 
 #else
-    DWORD sent_bytes;
+    DWORD sent_bytes = 0;
+
+    // DWORD corresponds to uint16 on most platforms
+    if (buffers.size() > UINT16_MAX)
+    {
+        LOG_ERROR("Trying to send too large buffer");
+        return RTP_INVALID_VALUE;
+    }
 
     /* create WSABUFs from input buffers and send them at once */
     for (size_t i = 0; i < buffers.size(); ++i) {
-        buffers_[i].len = buffers.at(i).first;
+        buffers_[i].len = (ULONG)buffers.at(i).first;
         buffers_[i].buf = (char *)buffers.at(i).second;
     }
 
-    if (WSASendTo(socket_, buffers_, buffers.size(), &sent_bytes, flags, (SOCKADDR *)&addr, sizeof(addr_), nullptr, nullptr) == -1) {
+    if (WSASendTo(socket_, buffers_, (DWORD)buffers.size(), &sent_bytes, flags, 
+                  (SOCKADDR *)&addr, sizeof(addr_), nullptr, nullptr) == -1) {
         win_get_last_error();
 
         set_bytes(bytes_sent, -1);
@@ -375,7 +383,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
 
 #else
     INT ret;
-    DWORD sent_bytes;
+    DWORD sent_bytes = 0;
     WSABUF wsa_bufs[WSABUF_SIZE];
 
     if (buffers.size() > WSABUF_SIZE) {
@@ -386,7 +394,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
     for (auto& buffer : buffers) {
         /* create WSABUFs from input buffer and send them at once */
         for (size_t i = 0; i < buffer.size(); ++i) {
-            wsa_bufs[i].len = buffer.at(i).first;
+            wsa_bufs[i].len = (ULONG)buffer.at(i).first;
             wsa_bufs[i].buf = (char *)buffer.at(i).second;
         }
 
@@ -394,7 +402,7 @@ send_:
         ret = WSASendTo(
             socket_,
             wsa_bufs,
-            buffer.size(),
+            (DWORD)buffer.size(),
             &sent_bytes,
             flags,
             (SOCKADDR *)&addr,

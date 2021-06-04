@@ -199,7 +199,7 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(uvgrtp::socket *socket, int timeout, in
             return ZRTP_FT_PING_ACK;
     }
 
-    LOG_WARN("Unknown message type received: 0x%lx", msg->msgblock);
+    LOG_WARN("Unknown message type received: 0x%lx", (int)msg->msgblock);
     return -RTP_NOT_SUPPORTED;
 }
 

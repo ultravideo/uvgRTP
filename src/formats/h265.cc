@@ -51,22 +51,28 @@ rtp_error_t uvgrtp::formats::h265::make_aggregation_pkt()
     );
 
     for (size_t i = 0; i < aggr_pkt_info_.nalus.size(); ++i) {
-        auto pkt_size                   = aggr_pkt_info_.nalus[i].first;
-        aggr_pkt_info_.nalus[i].first = htons(aggr_pkt_info_.nalus[i].first);
 
-        aggr_pkt_info_.aggr_pkt.push_back(
-            std::make_pair(
-                sizeof(uint16_t),
-                (uint8_t *)&aggr_pkt_info_.nalus[i].first
-            )
-        );
+        if (aggr_pkt_info_.nalus[i].first < UINT16_MAX)
+        {
+            auto pkt_size = aggr_pkt_info_.nalus[i].first;
+            aggr_pkt_info_.nalus[i].first = htons((u_short)aggr_pkt_info_.nalus[i].first);
 
-        aggr_pkt_info_.aggr_pkt.push_back(
-            std::make_pair(
-                pkt_size,
-                aggr_pkt_info_.nalus[i].second
-            )
-        );
+            aggr_pkt_info_.aggr_pkt.push_back(
+                std::make_pair(
+                    sizeof(uint16_t),
+                    (uint8_t*)&aggr_pkt_info_.nalus[i].first
+                )
+            );
+
+            aggr_pkt_info_.aggr_pkt.push_back(
+                std::make_pair(
+                    pkt_size,
+                    aggr_pkt_info_.nalus[i].second
+                )
+            );
+        } else {
+            LOG_ERROR("NALU too large");
+        }
     }
 
     if ((ret = fqueue_->enqueue_message(aggr_pkt_info_.aggr_pkt)) != RTP_OK) {

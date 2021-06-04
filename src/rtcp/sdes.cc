@@ -85,10 +85,17 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(std::vector<uvgrtp::frame::rtcp_sdes_
         return RTP_INVALID_VALUE;
     }
 
+    if (num_receivers_ > 31) {
+        LOG_ERROR("Source count is larger than packet supports!");
+
+        // TODO: Multiple SDES packets should be sent in this case
+        return RTP_GENERIC_ERROR;
+    }
+
     int ptr = 8;
-    uint8_t *frame;
-    rtp_error_t ret;
-    size_t frame_size;
+    uint8_t *frame = nullptr;
+    rtp_error_t ret = RTP_OK;
+    size_t frame_size = 0;
 
     frame_size  = 4 + 4;            /* rtcp header + ssrc */
     frame_size += items.size() * 2; /* sdes item type + length */
@@ -102,10 +109,11 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(std::vector<uvgrtp::frame::rtcp_sdes_
     }
     memset(frame, 0, frame_size);
 
+    // header |V=2|P|    SC   |  PT=SDES=202  |             length            |
     frame[0] = (2 << 6) | (0 << 5) | num_receivers_;
     frame[1] = uvgrtp::frame::RTCP_FT_SDES;
 
-    *(uint16_t *)&frame[2] = htons(frame_size);
+    *(uint16_t *)&frame[2] = htons((u_short)frame_size);
     *(uint32_t *)&frame[4] = htonl(ssrc_);
 
     for (auto& item : items) {

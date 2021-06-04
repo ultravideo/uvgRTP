@@ -548,10 +548,10 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int flag, ssize_t value)
         break;
 
         case RCC_DYN_PAYLOAD_TYPE: {
-            if (value <= 0)
+            if (value <= 0 || UINT8_MAX < value)
                 return RTP_INVALID_VALUE;
 
-            rtp_->set_dynamic_payload(value);
+            rtp_->set_dynamic_payload((uint8_t)value);
         }
         break;
 
@@ -567,8 +567,9 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int flag, ssize_t value)
 
 
             if (value > max_size) {
+                unsigned int u_max_size = (unsigned int)max_size;
                 LOG_ERROR("Payload size (%zd) is larger than maximum UDP datagram size (%u)",
-                        value, max_size);
+                        value, u_max_size);
                 return RTP_INVALID_VALUE;
             }
 

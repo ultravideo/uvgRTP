@@ -198,10 +198,10 @@ namespace uvgrtp {
              * Return RTP_NOT_INITIALIZED if init() has not been called yet
              * Return RTP_INVALID_VALUE if one of the parameters is invalid */
             rtp_error_t get_srtp_keys(
-                uint8_t *our_mkey,    size_t okey_len,
-                uint8_t *their_mkey,  size_t tkey_len,
-                uint8_t *our_msalt,   size_t osalt_len,
-                uint8_t *their_msalt, size_t tsalt_len
+                uint8_t *our_mkey,    uint32_t okey_len,
+                uint8_t *their_mkey,  uint32_t tkey_len,
+                uint8_t *our_msalt,   uint32_t osalt_len,
+                uint8_t *their_msalt, uint32_t tsalt_len
             );
 
             /* ZRTP packet handler is used after ZRTP state initialization has finished

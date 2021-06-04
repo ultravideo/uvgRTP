@@ -341,7 +341,7 @@ rtp_error_t uvgrtp::zrtp::begin_session()
     auto hello      = uvgrtp::zrtp_msg::hello(session_);
     auto hello_ack  = uvgrtp::zrtp_msg::hello_ack();
     bool hello_recv = false;
-    size_t rto      = 50;
+    int rto         = 50;
     int type        = 0;
     int i           = 0;
 
@@ -416,7 +416,7 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
     session_.sas_type           = B32;
 
     int type        = 0;
-    size_t rto      = 0;
+    int rto         = 0;
     rtp_error_t ret = RTP_OK;
     auto commit     = uvgrtp::zrtp_msg::commit(session_);
 
@@ -474,7 +474,7 @@ rtp_error_t uvgrtp::zrtp::dh_part1()
 {
     rtp_error_t ret = RTP_OK;
     auto dhpart     = uvgrtp::zrtp_msg::dh_key_exchange(session_, 1);
-    size_t rto      = 150;
+    int rto      = 150;
     int type        = 0;
 
     for (int i = 0; i < 10; ++i) {
@@ -508,7 +508,7 @@ rtp_error_t uvgrtp::zrtp::dh_part1()
 rtp_error_t uvgrtp::zrtp::dh_part2()
 {
     int type        = 0;
-    size_t rto      = 150;
+    int rto      = 150;
     rtp_error_t ret = RTP_OK;
     auto dhpart     = uvgrtp::zrtp_msg::dh_key_exchange(session_, 2);
 
@@ -545,7 +545,7 @@ rtp_error_t uvgrtp::zrtp::responder_finalize_session()
     rtp_error_t ret = RTP_OK;
     auto confirm    = uvgrtp::zrtp_msg::confirm(session_, 1);
     auto confack    = uvgrtp::zrtp_msg::confack(session_);
-    size_t rto      = 150;
+    int rto         = 150;
     int type        = 0;
 
     for (int i = 0; i < 10; ++i) {
@@ -582,7 +582,7 @@ rtp_error_t uvgrtp::zrtp::initiator_finalize_session()
 {
     rtp_error_t ret = RTP_OK;
     auto confirm    = uvgrtp::zrtp_msg::confirm(session_, 2);
-    size_t rto      = 150;
+    int rto         = 150;
     int type        = 0;
 
     if ((ret = confirm.parse_msg(receiver_, session_)) != RTP_OK) {
@@ -760,10 +760,10 @@ rtp_error_t uvgrtp::zrtp::init_msm(uint32_t ssrc, uvgrtp::socket *socket, sockad
 }
 
 rtp_error_t uvgrtp::zrtp::get_srtp_keys(
-    uint8_t *our_mkey,    size_t okey_len,
-    uint8_t *their_mkey,  size_t tkey_len,
-    uint8_t *our_msalt,   size_t osalt_len,
-    uint8_t *their_msalt, size_t tsalt_len
+    uint8_t *our_mkey,    uint32_t okey_len,
+    uint8_t *their_mkey,  uint32_t tkey_len,
+    uint8_t *our_msalt,   uint32_t osalt_len,
+    uint8_t *their_msalt, uint32_t tsalt_len
 )
 {
     if (!our_mkey || !their_mkey || !our_msalt || !their_msalt ||

@@ -36,7 +36,7 @@ uvgrtp::zrtp_msg::confack::confack(zrtp_session_t& session)
     msg->msg_start.header.magic   = ZRTP_HEADER_MAGIC;
     msg->msg_start.header.ssrc    = session.ssrc;
     msg->msg_start.header.seq     = session.seq++;
-    msg->msg_start.length         = len_ - sizeof(zrtp_header);
+    msg->msg_start.length         = (uint16_t)len_ - (uint16_t)sizeof(zrtp_header);
 
     memcpy(&msg->msg_start.msgblock, ZRTP_CONFACK, 8);
 

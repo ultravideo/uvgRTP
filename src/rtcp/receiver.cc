@@ -100,14 +100,20 @@ rtp_error_t uvgrtp::rtcp::generate_receiver_report()
         return RTP_NOT_READY;
     }
 
-    size_t frame_size;
-    rtp_error_t ret;
-    uint8_t *frame;
+    size_t frame_size = 0;
+    rtp_error_t ret = RTP_OK;
+    uint8_t *frame = nullptr;
     int ptr = 8;
 
     frame_size  = 4;                   /* rtcp header */
     frame_size += 4;                   /* our ssrc */
-    frame_size += num_receivers_ * 24; /* report blocks */
+    frame_size += (size_t)num_receivers_ * 24; /* report blocks */
+
+    if (frame_size > UINT16_MAX)
+    {
+        LOG_ERROR("RTCP receiver report packet size too large!");
+        return RTP_GENERIC_ERROR;
+    }
 
     if (flags_ & RCE_SRTP)
         frame_size += UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH;
@@ -121,13 +127,15 @@ rtp_error_t uvgrtp::rtcp::generate_receiver_report()
     frame[0] = (2 << 6) | (0 << 5) | num_receivers_;
     frame[1] = uvgrtp::frame::RTCP_FT_RR;
 
-    *(uint16_t *)&frame[2] = htons(frame_size);
+    *(uint16_t *)&frame[2] = htons((u_short)frame_size);
     *(uint32_t *)&frame[4] = htonl(ssrc_);
 
     LOG_DEBUG("Receiver Report from 0x%x has %zu blocks", ssrc_, num_receivers_);
 
     for (auto& p : participants_) {
         int dropped  = p.second->stats.dropped_pkts;
+
+        // TODO: Shouldn't this be number of packets received no bytes?
         uint8_t frac = dropped ? p.second->stats.received_bytes / dropped : 0;
 
         SET_NEXT_FIELD_32(frame, ptr, htonl(p.first)); /* ssrc */
@@ -139,7 +147,7 @@ rtp_error_t uvgrtp::rtcp::generate_receiver_report()
         /* calculate delay of last SR only if SR has been received at least once */
         if (p.second->stats.lsr) {
             uint64_t diff = uvgrtp::clock::hrc::diff_now(p.second->stats.sr_ts);
-            SET_NEXT_FIELD_32(frame, ptr, htonl(uvgrtp::clock::ms_to_jiffies(diff)));
+            SET_NEXT_FIELD_32(frame, ptr, (uint32_t)htonl((u_long)uvgrtp::clock::ms_to_jiffies(diff)));
         }
         ptr += p.second->stats.lsr ? 0 : 4;
     }

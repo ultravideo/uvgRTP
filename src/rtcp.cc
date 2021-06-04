@@ -163,6 +163,13 @@ rtp_error_t uvgrtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_por
 
 rtp_error_t uvgrtp::rtcp::add_participant(uint32_t ssrc)
 {
+    if (num_receivers_ == 31)
+    {
+        LOG_ERROR("Maximum number of RTCP participants reached.");
+        // TODO: Support more participants by sending the multiple messages at the same time
+        return RTP_GENERIC_ERROR;
+    }
+
     /* RTCP is not in use for this media stream,
      * create a "fake" participant that is only used for storing statistics information */
     if (initial_participants_.empty()) {
@@ -230,8 +237,14 @@ void uvgrtp::rtcp::sender_update_stats(uvgrtp::frame::rtp_frame *frame)
     if (!frame)
         return;
 
+    if (frame->payload_len > UINT32_MAX)
+    {
+        LOG_ERROR("Payload size larger than uint32 max which is not supported by RFC 3550");
+        return;
+    }
+
     our_stats.sent_pkts  += 1;
-    our_stats.sent_bytes += frame->payload_len;
+    our_stats.sent_bytes += (uint32_t)frame->payload_len;
     our_stats.max_seq     = frame->header.seq;
 }
 
@@ -266,8 +279,13 @@ rtp_error_t uvgrtp::rtcp::update_sender_stats(size_t pkt_size)
     if (our_role_ == RECEIVER)
         our_role_ = SENDER;
 
+    if (our_stats.sent_bytes + pkt_size > UINT32_MAX)
+    {
+        LOG_ERROR("Sent bytes overflow");
+    }
+
     our_stats.sent_pkts  += 1;
-    our_stats.sent_bytes += pkt_size;
+    our_stats.sent_bytes += (uint32_t)pkt_size;
 
     return RTP_OK;
 }
@@ -279,7 +297,7 @@ rtp_error_t uvgrtp::rtcp::init_participant_seq(uint32_t ssrc, uint16_t base_seq)
 
     participants_[ssrc]->stats.base_seq = base_seq;
     participants_[ssrc]->stats.max_seq  = base_seq;
-    participants_[ssrc]->stats.bad_seq  = (uint16_t)RTP_SEQ_MOD + 1;
+    participants_[ssrc]->stats.bad_seq  = (RTP_SEQ_MOD + 1)%UINT32_MAX;
 
     return RTP_OK;
 }
@@ -373,7 +391,7 @@ void uvgrtp::rtcp::update_session_statistics(uvgrtp::frame::rtp_frame *frame)
     auto p = participants_[frame->header.ssrc];
 
     p->stats.received_pkts  += 1;
-    p->stats.received_bytes += frame->payload_len;
+    p->stats.received_bytes += (uint32_t)frame->payload_len;
 
     /* calculate number of dropped packets */
     int extended_max = p->stats.cycles + p->stats.max_seq;
@@ -382,18 +400,27 @@ void uvgrtp::rtcp::update_session_statistics(uvgrtp::frame::rtp_frame *frame)
     int dropped = expected - p->stats.received_pkts;
     p->stats.dropped_pkts = dropped >= 0 ? dropped : 0;
 
-    int arrival =
+
+
+    uint64_t arrival =
         p->stats.initial_rtp +
         + uvgrtp::clock::ntp::diff_now(p->stats.initial_ntp)
         * (p->stats.clock_rate
         / 1000);
 
-	/* calculate interarrival jitter */
-    int transit = arrival - frame->header.timestamp;
-    int d = std::abs((int)(transit - p->stats.transit));
+	/* calculate interarrival jitter. See RFC 3550 A.8 */
+    uint64_t transit = arrival - frame->header.timestamp;
 
-    p->stats.transit = transit;
-    p->stats.jitter += (1.f / 16.f) * ((double)d - p->stats.jitter);
+    if (transit > UINT32_MAX)
+    {
+        transit = UINT32_MAX;
+    }
+
+    uint32_t transit32 = (uint32_t)transit;
+    uint32_t trans_difference = std::abs((int)(transit32 - p->stats.transit));
+
+    p->stats.transit = transit32;
+    p->stats.jitter += (uint32_t)((1.f / 16.f) * ((double)trans_difference - p->stats.jitter));
 }
 
 /* RTCP packet handler is responsible for doing two things:

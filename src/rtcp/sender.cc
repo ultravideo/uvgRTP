@@ -126,7 +126,7 @@ rtp_error_t uvgrtp::rtcp::generate_sender_report()
     frame[0] = (2 << 6) | (0 << 5) | num_receivers_;
     frame[1] = uvgrtp::frame::RTCP_FT_SR;
 
-    *(uint16_t *)&frame[2] = htons(frame_size);
+    *(uint16_t *)&frame[2] = htons((u_short)frame_size);
     *(uint32_t *)&frame[4] = htonl(ssrc_);
 
     /* Sender information */
@@ -135,7 +135,7 @@ rtp_error_t uvgrtp::rtcp::generate_sender_report()
 
     SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts >> 32));
     SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts & 0xffffffff));
-    SET_NEXT_FIELD_32(frame, ptr, htonl(rtp_ts));
+    SET_NEXT_FIELD_32(frame, ptr, htonl((u_long)rtp_ts));
     SET_NEXT_FIELD_32(frame, ptr, htonl(our_stats.sent_pkts));
     SET_NEXT_FIELD_32(frame, ptr, htonl(our_stats.sent_bytes));
 
@@ -153,8 +153,8 @@ rtp_error_t uvgrtp::rtcp::generate_sender_report()
 
         /* calculate delay of last SR only if SR has been received at least once */
         if (p.second->stats.lsr) {
-            uint64_t diff = uvgrtp::clock::hrc::diff_now(p.second->stats.sr_ts);
-            SET_NEXT_FIELD_32(frame, ptr, htonl(uvgrtp::clock::ms_to_jiffies(diff)));
+            uint64_t diff = (u_long)uvgrtp::clock::hrc::diff_now(p.second->stats.sr_ts);
+            SET_NEXT_FIELD_32(frame, ptr, (uint32_t)htonl((u_long)uvgrtp::clock::ms_to_jiffies(diff)));
         }
         ptr += p.second->stats.lsr ? 0 : 4;
     }

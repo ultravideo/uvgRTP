@@ -107,15 +107,13 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer)
     *(uint32_t *)&buffer[8] = htonl(ssrc_);
 
     if (timestamp_ == INVALID_TS) {
-        *(uint32_t *)&buffer[4] = htonl(
-            ts_
-            + uvgrtp::clock::ntp::diff_now(wc_start_)
-            * clock_rate_
-            / 1000
+        *(uint32_t *)&buffer[4] = htonl((u_long)(
+            ts_ + 
+            uvgrtp::clock::ntp::diff_now(wc_start_) * clock_rate_ / 1000)
         );
 
     } else {
-        *(uint32_t *)&buffer[4] = htonl(timestamp_);
+        *(uint32_t *)&buffer[4] = htonl((u_long)timestamp_);
     }
 }
 
