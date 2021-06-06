@@ -491,7 +491,7 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
         return RTP_INVALID_VALUE;
     }
 
-    if (pkt_type > uvgrtp::frame::RTCP_FT_BYE ||
+    if (pkt_type > uvgrtp::frame::RTCP_FT_APP ||
         pkt_type < uvgrtp::frame::RTCP_FT_SR) {
         LOG_ERROR("Invalid packet type (%u)!", pkt_type);
         return RTP_INVALID_VALUE;

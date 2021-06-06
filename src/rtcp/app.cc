@@ -53,10 +53,12 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t *packet, size_t size)
     }
 
     /* Deallocate previous frame from the buffer if it exists, it's going to get overwritten */
-    if (participants_[frame->ssrc]->app_frame) {
-        delete[] participants_[frame->ssrc]->app_frame->payload;
-        delete   participants_[frame->ssrc]->app_frame;
-    }
+	if (participants_[frame->ssrc]) {
+		delete[] participants_[frame->ssrc]->app_frame->payload;
+		delete   participants_[frame->ssrc]->app_frame;
+	}
+
+	frame->payload = new uint8_t[frame->header.length];
 
     memcpy(frame->name,    &packet[ 8],                         4);
     memcpy(frame->payload, &packet[12], frame->header.length - 12);
