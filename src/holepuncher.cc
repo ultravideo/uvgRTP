@@ -19,9 +19,7 @@ uvgrtp::holepuncher::~holepuncher()
 
 rtp_error_t uvgrtp::holepuncher::start()
 {
-    if (!(runner_ = new std::thread(&uvgrtp::holepuncher::keepalive, this)))
-        return RTP_MEMORY_ERROR;
-
+    runner_ = new std::thread(&uvgrtp::holepuncher::keepalive, this);
     runner_->detach();
     return uvgrtp::runner::start();
 }

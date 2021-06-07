@@ -117,11 +117,6 @@ rtp_error_t uvgrtp::formats::h266::packet_handler(void *arg, int flags, uvgrtp::
         if (flags & RCE_H26X_PREPEND_SC) {
             uint8_t *pl = new uint8_t[(*out)->payload_len + 4];
 
-            if (!pl) {
-                LOG_ERROR("Failed to allocate space for a start code");
-                return RTP_GENERIC_ERROR;
-            }
-
             pl[0] = 0;
             pl[1] = 0;
             pl[2] = 0;
@@ -251,10 +246,7 @@ rtp_error_t uvgrtp::formats::h266::packet_handler(void *arg, int flags, uvgrtp::
                 + uvgrtp::frame::HEADER_SIZE_H266_NAL +
                 + ((flags & RCE_H26X_PREPEND_SC) ? 4 : 0);
 
-            if (!(complete->payload = new uint8_t[complete->payload_len])) {
-                LOG_ERROR("Failed to allocate memory for RTP frame");
-                return RTP_GENERIC_ERROR;
-            }
+           complete->payload = new uint8_t[complete->payload_len];
 
             if (flags & RCE_H26X_PREPEND_SC) {
                 complete->payload[0]  = 0;

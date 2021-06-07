@@ -103,10 +103,7 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(std::vector<uvgrtp::frame::rtcp_sdes_
     for (auto& item : items)
         frame_size += item.length;
 
-    if (!(frame = new uint8_t[frame_size])) {
-        LOG_ERROR("Failed to allocate space for RTCP Receiver Report");
-        return RTP_MEMORY_ERROR;
-    }
+    frame = new uint8_t[frame_size];
     memset(frame, 0, frame_size);
 
     // header |V=2|P|    SC   |  PT=SDES=202  |             length            |

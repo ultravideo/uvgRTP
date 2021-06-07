@@ -336,10 +336,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
     int sent_bytes = 0;
     struct mmsghdr *hptr, *headers;
 
-    if (!(hptr = headers = new struct mmsghdr[buffers.size()])) {
-        LOG_ERROR("Failed to allocate space for struct mmsghdr!");
-        return RTP_MEMORY_ERROR;
-    }
+    hptr = headers = new struct mmsghdr[buffers.size()];
 
     for (size_t i = 0; i < buffers.size(); ++i) {
         headers[i].msg_hdr.msg_iov        = new struct iovec[buffers[i].size()];

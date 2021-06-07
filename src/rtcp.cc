@@ -56,11 +56,7 @@ rtp_error_t uvgrtp::rtcp::start()
     }
     active_ = true;
 
-    if (!(runner_ = new std::thread(rtcp_runner, this))) {
-        active_ = false;
-        LOG_ERROR("Failed to create RTCP thread!");
-        return RTP_MEMORY_ERROR;
-    }
+    runner_ = new std::thread(rtcp_runner, this);
     runner_->detach();
 
     return RTP_OK;
@@ -111,13 +107,11 @@ rtp_error_t uvgrtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_por
     rtp_error_t ret;
     rtcp_participant *p;
 
-    if (!(p = new rtcp_participant))
-        return RTP_MEMORY_ERROR;
+    p = new rtcp_participant();
 
     zero_stats(&p->stats);
 
-    if (!(p->socket = new uvgrtp::socket(0)))
-        return RTP_MEMORY_ERROR;
+    p->socket = new uvgrtp::socket(0);
 
     if ((ret = p->socket->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
         return ret;
@@ -173,8 +167,7 @@ rtp_error_t uvgrtp::rtcp::add_participant(uint32_t ssrc)
     /* RTCP is not in use for this media stream,
      * create a "fake" participant that is only used for storing statistics information */
     if (initial_participants_.empty()) {
-        if (!(participants_[ssrc] = new rtcp_participant))
-            return RTP_MEMORY_ERROR;
+        participants_[ssrc] = new rtcp_participant();
         zero_stats(&participants_[ssrc]->stats);
     } else {
         participants_[ssrc] = initial_participants_.back();
