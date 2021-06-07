@@ -73,8 +73,7 @@ rtp_error_t uvgrtp::media_stream::init_connection()
 {
     rtp_error_t ret = RTP_OK;
 
-    if (!(socket_ = new uvgrtp::socket(ctx_config_.flags)))
-        return ret;
+    socket_ = new uvgrtp::socket(ctx_config_.flags);
 
     if ((ret = socket_->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
         return ret;
@@ -120,8 +119,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
 {
     switch (fmt_) {
         case RTP_FORMAT_H264:
-            if (!(media_ = new uvgrtp::formats::h264(socket_, rtp_, ctx_config_.flags)))
-                return RTP_MEMORY_ERROR;
+            media_ = new uvgrtp::formats::h264(socket_, rtp_, ctx_config_.flags);
 
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
@@ -132,8 +130,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
             return RTP_OK;
 
         case RTP_FORMAT_H265:
-            if (!(media_ = new uvgrtp::formats::h265(socket_, rtp_, ctx_config_.flags)))
-                return RTP_MEMORY_ERROR;
+            media_ = new uvgrtp::formats::h265(socket_, rtp_, ctx_config_.flags);
 
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
@@ -144,8 +141,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
             return RTP_OK;
 
         case RTP_FORMAT_H266:
-            if (!(media_ = new uvgrtp::formats::h266(socket_, rtp_, ctx_config_.flags)))
-                return RTP_MEMORY_ERROR;
+            media_ = new uvgrtp::formats::h266(socket_, rtp_, ctx_config_.flags);
 
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
@@ -157,8 +153,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
 
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
-            if (!(media_ = new uvgrtp::formats::media(socket_, rtp_, ctx_config_.flags)))
-                return RTP_MEMORY_ERROR;
+            media_ = new uvgrtp::formats::media(socket_, rtp_, ctx_config_.flags);
 
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
@@ -195,14 +190,11 @@ rtp_error_t uvgrtp::media_stream::init()
         return free_resources(RTP_GENERIC_ERROR);
     }
 
-    if (!(pkt_dispatcher_ = new uvgrtp::pkt_dispatcher()))
-        return free_resources(RTP_MEMORY_ERROR);
+    pkt_dispatcher_ = new uvgrtp::pkt_dispatcher();
 
-    if (!(rtp_ = new uvgrtp::rtp(fmt_)))
-        return free_resources(RTP_MEMORY_ERROR);
+    rtp_ = new uvgrtp::rtp(fmt_);
 
-    if (!(rtcp_ = new uvgrtp::rtcp(rtp_, ctx_config_.flags)))
-        return free_resources(RTP_MEMORY_ERROR);
+    rtcp_ = new uvgrtp::rtcp(rtp_, ctx_config_.flags);
 
     socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
 
@@ -213,8 +205,7 @@ rtp_error_t uvgrtp::media_stream::init()
         return free_resources(RTP_MEMORY_ERROR);
 
     if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE) {
-        if (!(holepuncher_ = new uvgrtp::holepuncher(socket_)))
-            return free_resources(RTP_MEMORY_ERROR);
+        holepuncher_ = new uvgrtp::holepuncher(socket_);
         holepuncher_->start();
     }
 
@@ -236,35 +227,30 @@ rtp_error_t uvgrtp::media_stream::init(uvgrtp::zrtp *zrtp)
         return RTP_GENERIC_ERROR;
     }
 
-    if (!(pkt_dispatcher_ = new uvgrtp::pkt_dispatcher()))
-        return free_resources(RTP_MEMORY_ERROR);
+    pkt_dispatcher_ = new uvgrtp::pkt_dispatcher();
 
-    if (!(rtp_ = new uvgrtp::rtp(fmt_)))
-        return free_resources(RTP_MEMORY_ERROR);
+    rtp_ = new uvgrtp::rtp(fmt_);
 
     if ((ret = zrtp->init(rtp_->get_ssrc(), socket_, addr_out_)) != RTP_OK) {
         LOG_WARN("Failed to initialize ZRTP for media stream!");
         return free_resources(ret);
     }
 
-    if (!(srtp_ = new uvgrtp::srtp()))
-        return free_resources(RTP_MEMORY_ERROR);
+    srtp_ = new uvgrtp::srtp();
 
     if ((ret = srtp_->init_zrtp(SRTP, ctx_config_.flags, rtp_, zrtp)) != RTP_OK) {
         LOG_WARN("Failed to initialize SRTP for media stream!");
         return free_resources(ret);
     }
 
-    if (!(srtcp_ = new uvgrtp::srtcp()))
-        return free_resources(RTP_MEMORY_ERROR);
+    srtcp_ = new uvgrtp::srtcp();
 
     if ((ret = srtcp_->init_zrtp(SRTCP, ctx_config_.flags, rtp_, zrtp)) != RTP_OK) {
         LOG_ERROR("Failed to initialize SRTCP for media stream!");
         return free_resources(ret);
     }
 
-    if (!(rtcp_ = new uvgrtp::rtcp(rtp_, srtcp_, ctx_config_.flags)))
-        return free_resources(RTP_MEMORY_ERROR);
+    rtcp_ = new uvgrtp::rtcp(rtp_, srtcp_, ctx_config_.flags);
 
     socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
     socket_->install_handler(srtp_, srtp_->send_packet_handler);
@@ -279,8 +265,7 @@ rtp_error_t uvgrtp::media_stream::init(uvgrtp::zrtp *zrtp)
         return free_resources(RTP_MEMORY_ERROR);
 
     if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE) {
-        if (!(holepuncher_ = new uvgrtp::holepuncher(socket_)))
-            return free_resources(RTP_MEMORY_ERROR);
+        holepuncher_ = new uvgrtp::holepuncher(socket_);
         holepuncher_->start();
     }
 
@@ -312,30 +297,25 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     if ((flags_ & srtp_flags) != srtp_flags)
         return free_resources(RTP_NOT_SUPPORTED);
 
-    if (!(pkt_dispatcher_ = new uvgrtp::pkt_dispatcher()))
-        return free_resources(RTP_MEMORY_ERROR);
+    pkt_dispatcher_ = new uvgrtp::pkt_dispatcher();
 
-    if (!(rtp_ = new uvgrtp::rtp(fmt_)))
-        return free_resources(RTP_MEMORY_ERROR);
+    rtp_ = new uvgrtp::rtp(fmt_);
 
-    if (!(srtp_ = new uvgrtp::srtp()))
-        return free_resources(RTP_MEMORY_ERROR);
+    srtp_ = new uvgrtp::srtp();
 
     if ((ret = srtp_->init_user(SRTP, ctx_config_.flags, key, salt)) != RTP_OK) {
         LOG_WARN("Failed to initialize SRTP for media stream!");
         return free_resources(ret);
     }
 
-    if (!(srtcp_ = new uvgrtp::srtcp()))
-        return free_resources(RTP_MEMORY_ERROR);
+    srtcp_ = new uvgrtp::srtcp();
 
     if ((ret = srtcp_->init_user(SRTCP, ctx_config_.flags, key, salt)) != RTP_OK) {
         LOG_WARN("Failed to initialize SRTCP for media stream!");
         return free_resources(ret);
     }
 
-    if (!(rtcp_ = new uvgrtp::rtcp(rtp_, srtcp_, ctx_config_.flags)))
-        return free_resources(RTP_MEMORY_ERROR);
+    rtcp_ = new uvgrtp::rtcp(rtp_, srtcp_, ctx_config_.flags);
 
     socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
     socket_->install_handler(srtp_, srtp_->send_packet_handler);
@@ -349,8 +329,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         return free_resources(RTP_MEMORY_ERROR);
 
     if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE) {
-        if (!(holepuncher_ = new uvgrtp::holepuncher(socket_)))
-            return free_resources(RTP_MEMORY_ERROR);
+        holepuncher_ = new uvgrtp::holepuncher(socket_);
         holepuncher_->start();
     }
 

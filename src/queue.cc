@@ -332,10 +332,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, u
         for (auto& buffer : buffers)
             total += buffer.first;
 
-        if (!(mem = ptr = new uint8_t[total])) {
-            LOG_ERROR("Failed to allocate memory for copy block!");
-            return RTP_MEMORY_ERROR;
-        }
+        mem = ptr = new uint8_t[total];
 
         for (auto& buffer : buffers) {
             memcpy(ptr, buffer.second, buffer.first);

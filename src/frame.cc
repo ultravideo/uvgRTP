@@ -10,11 +10,6 @@ uvgrtp::frame::rtp_frame *uvgrtp::frame::alloc_rtp_frame()
 {
     uvgrtp::frame::rtp_frame *frame = new uvgrtp::frame::rtp_frame;
 
-    if (!frame) {
-        rtp_errno = RTP_MEMORY_ERROR;
-        return nullptr;
-    }
-
     std::memset(&frame->header, 0, sizeof(uvgrtp::frame::rtp_header));
     std::memset(frame,          0, sizeof(uvgrtp::frame::rtp_frame));
 

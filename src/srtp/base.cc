@@ -198,34 +198,13 @@ rtp_error_t uvgrtp::base_srtp::init(int type, int flags, size_t key_size)
 
 rtp_error_t uvgrtp::base_srtp::allocate_crypto_ctx(size_t key_size)
 {
-    if (!(srtp_ctx_->key_ctx.master.local_key = new uint8_t[key_size])) {
-        LOG_ERROR("Failed to allocate space for local master key");
-        return RTP_MEMORY_ERROR;
-    }
+    srtp_ctx_->key_ctx.master.local_key = new uint8_t[key_size];
 
-    if (!(srtp_ctx_->key_ctx.master.remote_key = new uint8_t[key_size])) {
-        LOG_ERROR("Failed to allocate space for remote master key");
+    srtp_ctx_->key_ctx.master.remote_key = new uint8_t[key_size];
 
-        delete[] srtp_ctx_->key_ctx.master.local_key;
-        return RTP_MEMORY_ERROR;
-    }
+    srtp_ctx_->key_ctx.local.enc_key = new uint8_t[key_size];
 
-    if (!(srtp_ctx_->key_ctx.local.enc_key = new uint8_t[key_size])) {
-        LOG_ERROR("Failed to allocate space for local session key");
-
-        delete[] srtp_ctx_->key_ctx.master.local_key;
-        delete[] srtp_ctx_->key_ctx.master.remote_key;
-        return RTP_MEMORY_ERROR;
-    }
-
-    if (!(srtp_ctx_->key_ctx.remote.enc_key = new uint8_t[key_size])) {
-        LOG_ERROR("Failed to allocate space for remote session key");
-
-        delete[] srtp_ctx_->key_ctx.master.local_key;
-        delete[] srtp_ctx_->key_ctx.master.remote_key;
-        delete[] srtp_ctx_->key_ctx.local.enc_key;
-        return RTP_MEMORY_ERROR;
-    }
+    srtp_ctx_->key_ctx.remote.enc_key = new uint8_t[key_size];
 
     return RTP_OK;
 }
@@ -238,9 +217,6 @@ rtp_error_t uvgrtp::base_srtp::init_zrtp(int type, int flags, uvgrtp::rtp *rtp, 
         return RTP_INVALID_VALUE;
 
     rtp_error_t ret = allocate_crypto_ctx(AES128_KEY_SIZE);
-
-    if (ret != RTP_OK)
-        return ret;
 
     /* ZRTP key derivation function expects the keys lengths to be given in bits */
     ret = zrtp->get_srtp_keys(

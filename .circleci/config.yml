@@ -1,0 +1,27 @@
+# Simple CircleCI configuration for building uvgRTP
+# ToDo: add tests
+
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      - image: cimg/base:2021.04
+    steps:
+      - checkout
+      - run:
+          name: Install GCC
+          command: 'sudo apt-get update && sudo apt-get install -y gcc g++'
+      - run:
+          name: Install CMAKE
+          command: 'sudo apt-get install -y cmake'
+      - run:
+          name: Create build files
+          command: 'cmake -H. -Bbuild'
+      - run:
+          name: Build the uvgRTP library
+          command: 'cmake --build build -j'
+      - run:
+          name: Build test application
+          # ToDo: add -lcrypto++ 
+          command: 'mkdir include/uvgrtp && cp -rf include/*.hh include/uvgrtp/ && g++ -D__RTP_NO_CRYPTO__ docs/examples/configuration.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_configuration'
