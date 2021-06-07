@@ -37,10 +37,7 @@ rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
     frame_size  = 4; /* rtcp header */
     frame_size += ssrcs.size() * sizeof(uint32_t);
 
-    if (!(frame = new uint8_t[frame_size])) {
-        LOG_ERROR("Failed to allocate space for RTCP Receiver Report");
-        return RTP_MEMORY_ERROR;
-    }
+    frame = new uint8_t[frame_size];
     memset(frame, 0, frame_size);
 
     frame[0] = (2 << 6) | (0 << 5) | (ssrcs.size() & 0x1f);

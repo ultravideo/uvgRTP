@@ -80,10 +80,7 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(char *name, uint8_t subtype, size_t pa
     frame_size += 4; /* name */
     frame_size += payload_len;
 
-    if (!(frame = new uint8_t[frame_size])) {
-        LOG_ERROR("Failed to allocate space for RTCP Receiver Report");
-        return RTP_MEMORY_ERROR;
-    }
+    frame = new uint8_t[frame_size];
     memset(frame, 0, frame_size);
 
     frame[0] = (2 << 6) | (0 << 5) | (subtype & 0x1f);

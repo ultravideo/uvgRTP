@@ -118,10 +118,7 @@ rtp_error_t uvgrtp::rtcp::generate_receiver_report()
     if (flags_ & RCE_SRTP)
         frame_size += UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH;
 
-    if (!(frame = new uint8_t[frame_size])) {
-        LOG_ERROR("Failed to allocate space for RTCP Receiver Report");
-        return RTP_MEMORY_ERROR;
-    }
+    frame = new uint8_t[frame_size];
     memset(frame, 0, frame_size);
 
     frame[0] = (2 << 6) | (0 << 5) | num_receivers_;
