@@ -357,6 +357,9 @@ namespace uvgrtp {
             rtp_error_t construct_rtcp_header(size_t packet_size, uint8_t*& frame,
                 uint16_t secondField, uvgrtp::frame::RTCP_FRAME_TYPE frame_type, bool addLocalSSRC);
 
+            /* read the header values from rtcp packet */
+            void read_rtcp_header(uint8_t* packet, uvgrtp::frame::rtcp_header& header, bool app);
+
             /* Pointer to RTP context from which clock rate etc. info is collected and which is
              * used to change SSRC if a collision is detected */
             uvgrtp::rtp *rtp_;

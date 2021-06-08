@@ -544,3 +544,15 @@ rtp_error_t uvgrtp::rtcp::construct_rtcp_header(size_t packet_size,
 
     return RTP_OK;
 }
+
+void uvgrtp::rtcp::read_rtcp_header(uint8_t* packet, uvgrtp::frame::rtcp_header& header, bool app)
+{
+    header.version = (packet[0] >> 6) & 0x3;
+    header.padding = (packet[0] >> 5) & 0x1;
+    if (app)
+        header.pkt_subtype = packet[0] & 0x1f;
+    else
+        header.count = packet[0] & 0x1f;
+
+    header.length = ntohs(*(uint16_t*)&packet[2]);
+}

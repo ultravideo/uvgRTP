@@ -29,14 +29,10 @@ rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t *packet, size_t si
         return RTP_INVALID_VALUE;
 
     auto frame = new uvgrtp::frame::rtcp_sender_report;
-    auto ret   = RTP_OK;
-
-    frame->header.version = (packet[0] >> 6) & 0x3;
-    frame->header.padding = (packet[0] >> 5) & 0x1;
-    frame->header.count   = packet[0] & 0x1f;
-    frame->header.length  = ntohs(*(uint16_t *)&packet[2]);
+    read_rtcp_header(packet, frame->header, false);
     frame->ssrc           = ntohl(*(uint32_t *)&packet[4]);
 
+    auto ret = RTP_OK;
     if (srtcp_ && (ret = srtcp_->handle_rtcp_decryption(flags_, frame->ssrc, packet, size)) != RTP_OK)
         return ret;
 
