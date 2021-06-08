@@ -36,6 +36,6 @@ See [documentation](docs/README.md) and [examples](docs/examples) to get a bette
 
 ## Paper
 
-If you use uvgRTP in your research, please cite the following paper:
+If you use uvgRTP in your research, please cite the following [paper](https://researchportal.tuni.fi/en/publications/open-source-rtp-library-for-high-speed-4k-hevc-video-streaming):
 
 ```A. Altonen, J. Räsänen, J. Laitinen, M. Viitanen, and J. Vanne, “Open-Source RTP Library for High-Speed 4K HEVC Video Streaming”, in Proc. IEEE Int. Workshop on Multimedia Signal Processing, Tampere, Finland, Sept. 2020.```
