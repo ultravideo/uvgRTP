@@ -28,7 +28,6 @@ rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t *packet, size_t size)
     if (!packet || !size)
         return RTP_INVALID_VALUE;
 
-    auto srtpi = (*(uint32_t *)&packet[size - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH]);
     auto frame = new uvgrtp::frame::rtcp_sdes_packet;
     auto ret   = RTP_OK;
 
@@ -38,19 +37,8 @@ rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t *packet, size_t size)
     frame->header.length  = ntohs(*(uint16_t *)&packet[2]);
     frame->ssrc           = ntohl(*(uint32_t *)&packet[4]);
 
-    if (flags_ & RCE_SRTP) {
-        if ((ret = srtcp_->verify_auth_tag(packet, size)) != RTP_OK) {
-            LOG_ERROR("Failed to verify RTCP authentication tag!");
-            return RTP_AUTH_TAG_MISMATCH;
-        }
-
-        if (((srtpi >> 31) & 0x1) && !(flags_ & RCE_SRTP_NULL_CIPHER)) {
-            if (srtcp_->decrypt(frame->ssrc, srtpi & 0x7fffffff, packet, size) != RTP_OK) {
-                LOG_ERROR("Failed to decrypt RTCP Sender Report");
-                return ret;
-            }
-        }
-    }
+    if (srtcp_ && (ret = srtcp_->handle_rtcp_decryption(flags_, frame->ssrc, packet, size)) != RTP_OK)
+        return ret;
 
     /* Deallocate previous frame from the buffer if it exists, it's going to get overwritten */
     if (participants_[frame->ssrc]->sdes_frame) {
@@ -112,17 +100,8 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(std::vector<uvgrtp::frame::rtcp_sdes_
         ptr += item.length;
     }
 
-    /* Encrypt the packet if NULL cipher has not been enabled,
-     * calculate authentication tag for the packet and add SRTCP index at the end */
-    if (flags_ & RCE_SRTP) {
-        if (!(RCE_SRTP & RCE_SRTP_NULL_CIPHER)) {
-            srtcp_->encrypt(ssrc_, rtcp_pkt_sent_count_, &frame[8], frame_size - 8 - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH);
-            SET_FIELD_32(frame, frame_size - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH, (1 << 31) | rtcp_pkt_sent_count_);
-        } else  {
-            SET_FIELD_32(frame, frame_size - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH, (0 << 31) | rtcp_pkt_sent_count_);
-        }
-        srtcp_->add_auth_tag(frame, frame_size);
-    }
+    if (srtcp_ && (ret = srtcp_->handle_rtcp_encryption(flags_, rtcp_pkt_sent_count_, ssrc_, frame, frame_size)) != RTP_OK)
+        return ret;
 
     for (auto& p : participants_) {
         if ((ret = p.second->socket->sendto(p.second->address, frame, frame_size, 0)) != RTP_OK) {
