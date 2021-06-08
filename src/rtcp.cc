@@ -556,3 +556,19 @@ void uvgrtp::rtcp::read_rtcp_header(uint8_t* packet, uvgrtp::frame::rtcp_header&
 
     header.length = ntohs(*(uint16_t*)&packet[2]);
 }
+
+rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, size_t frame_size)
+{
+    rtp_error_t ret = RTP_OK;
+    for (auto& p : participants_) {
+        if ((ret = p.second->socket->sendto(p.second->address, frame, frame_size, 0)) != RTP_OK) {
+            LOG_ERROR("Sending rtcp packet with sendto() failed!");
+            delete[] frame;
+            break;
+        }
+
+        update_rtcp_bandwidth(frame_size);
+    }
+
+    return ret;
+}

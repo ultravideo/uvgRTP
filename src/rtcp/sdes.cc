@@ -97,17 +97,10 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(std::vector<uvgrtp::frame::rtcp_sdes_
     }
 
     if (srtcp_ && (ret = srtcp_->handle_rtcp_encryption(flags_, rtcp_pkt_sent_count_, ssrc_, frame, frame_size)) != RTP_OK)
+    {
+        delete[] frame;
         return ret;
+    } 
 
-    for (auto& p : participants_) {
-        if ((ret = p.second->socket->sendto(p.second->address, frame, frame_size, 0)) != RTP_OK) {
-            LOG_ERROR("sendto() failed!");
-            goto end;
-        }
-        update_rtcp_bandwidth(frame_size);
-    }
-
-end:
-    delete[] frame;
-    return ret;
+    return send_rtcp_packet_to_participants(frame, frame_size);
 }

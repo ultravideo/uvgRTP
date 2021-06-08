@@ -121,18 +121,10 @@ rtp_error_t uvgrtp::rtcp::generate_receiver_report()
     }
 
     if (srtcp_ && (ret = srtcp_->handle_rtcp_encryption(flags_, rtcp_pkt_sent_count_, ssrc_, frame, frame_size)) != RTP_OK)
+    {
+        delete[] frame;
         return ret;
-
-    for (auto& p : participants_) {
-        if ((ret = p.second->socket->sendto(p.second->address, (uint8_t *)frame, frame_size, 0)) != RTP_OK) {
-            LOG_ERROR("sendto() failed!");
-            delete[] frame;
-            return ret;
-        }
-
-        update_rtcp_bandwidth(frame_size);
     }
 
-    delete[] frame;
-    return RTP_OK;
+    return send_rtcp_packet_to_participants(frame, frame_size);
 }

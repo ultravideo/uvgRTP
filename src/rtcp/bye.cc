@@ -30,7 +30,6 @@ rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
     }
 
     size_t frame_size;
-    rtp_error_t ret;
     uint8_t *frame;
     int ptr = 4;
 
@@ -42,16 +41,5 @@ rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
     for (auto& ssrc : ssrcs)
         SET_NEXT_FIELD_32(frame, ptr, htonl(ssrc));
 
-    for (auto& p : participants_) {
-        if ((ret = p.second->socket->sendto(p.second->address, frame, frame_size, 0)) != RTP_OK) {
-            LOG_ERROR("sendto() failed!");
-            goto end;
-        }
-
-        update_rtcp_bandwidth(frame_size);
-    }
-
-end:
-    delete[] frame;
-    return ret;
+    return send_rtcp_packet_to_participants(frame, frame_size);
 }

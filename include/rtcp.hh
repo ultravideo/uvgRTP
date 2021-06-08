@@ -360,6 +360,9 @@ namespace uvgrtp {
             /* read the header values from rtcp packet */
             void read_rtcp_header(uint8_t* packet, uvgrtp::frame::rtcp_header& header, bool app);
 
+            /* Takes ownership of the frame */
+            rtp_error_t send_rtcp_packet_to_participants(uint8_t* frame, size_t frame_size);
+
             /* Pointer to RTP context from which clock rate etc. info is collected and which is
              * used to change SSRC if a collision is detected */
             uvgrtp::rtp *rtp_;
