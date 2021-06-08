@@ -351,17 +351,7 @@ rtp_error_t uvgrtp::rtcp::reset_rtcp_state(uint32_t ssrc)
     if (participants_.find(ssrc) != participants_.end())
         return RTP_SSRC_COLLISION;
 
-    our_stats.received_pkts  = 0;
-    our_stats.dropped_pkts   = 0;
-    our_stats.received_bytes = 0;
-    our_stats.sent_pkts      = 0;
-    our_stats.sent_bytes     = 0;
-    our_stats.jitter         = 0;
-    our_stats.transit        = 0;
-    our_stats.max_seq        = 0;
-    our_stats.base_seq       = 0;
-    our_stats.bad_seq        = 0;
-    our_stats.cycles         = 0;
+    zero_stats(&our_stats);
 
     return RTP_OK;
 }
