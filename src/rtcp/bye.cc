@@ -37,11 +37,7 @@ rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
     frame_size  = 4; /* rtcp header */
     frame_size += ssrcs.size() * sizeof(uint32_t);
 
-    frame = new uint8_t[frame_size];
-    memset(frame, 0, frame_size);
-
-    frame[0] = (2 << 6) | (0 << 5) | (ssrcs.size() & 0x1f);
-    frame[1] = uvgrtp::frame::RTCP_FT_BYE;
+    construct_rtcp_header(frame_size, frame, (ssrcs.size() & 0x1f), uvgrtp::frame::RTCP_FT_BYE, false);
 
     for (auto& ssrc : ssrcs)
         SET_NEXT_FIELD_32(frame, ptr, htonl(ssrc));

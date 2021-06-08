@@ -117,14 +117,7 @@ rtp_error_t uvgrtp::rtcp::generate_sender_report()
     if (flags_ & RCE_SRTP)
         frame_size += UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH;
 
-    frame = new uint8_t[frame_size];
-    memset(frame, 0, frame_size);
-
-    frame[0] = (2 << 6) | (0 << 5) | num_receivers_;
-    frame[1] = uvgrtp::frame::RTCP_FT_SR;
-
-    *(uint16_t *)&frame[2] = htons((u_short)frame_size);
-    *(uint32_t *)&frame[4] = htonl(ssrc_);
+    construct_rtcp_header(frame_size, frame, num_receivers_, uvgrtp::frame::RTCP_FT_SR, true);
 
     /* Sender information */
     ntp_ts = uvgrtp::clock::ntp::now();

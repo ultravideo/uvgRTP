@@ -5,6 +5,7 @@
 #include "debug.hh"
 #include "util.hh"
 #include "rtp.hh"
+#include "frame.hh"
 
 #ifndef _WIN32
 #include <sys/time.h>
@@ -521,4 +522,35 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
     }
 
     return ret;
+}
+
+rtp_error_t uvgrtp::rtcp::construct_rtcp_header(size_t packet_size, 
+    uint8_t*& frame,
+    uint16_t secondField, 
+    uvgrtp::frame::RTCP_FRAME_TYPE frame_type, 
+    bool add_local_ssrc
+)
+{
+    if (packet_size > UINT16_MAX)
+    {
+        LOG_ERROR("RTCP receiver report packet size too large!");
+        return RTP_GENERIC_ERROR;
+    }
+
+    frame = new uint8_t[packet_size];
+    memset(frame, 0, packet_size);
+
+    // header |V=2|P|    SC   |  PT  |             length            |
+    frame[0] = (2 << 6) | (0 << 5) | secondField;
+    frame[1] = frame_type;
+
+    // TODO: This should be size in 32-bit words - 1
+    *(uint16_t*)&frame[2] = htons((u_short)packet_size);
+
+    if (add_local_ssrc)
+    {
+        *(uint32_t*)&frame[4] = htonl(ssrc_);
+    }
+
+    return RTP_OK;
 }

@@ -109,23 +109,10 @@ rtp_error_t uvgrtp::rtcp::generate_receiver_report()
     frame_size += 4;                   /* our ssrc */
     frame_size += (size_t)num_receivers_ * 24; /* report blocks */
 
-    if (frame_size > UINT16_MAX)
-    {
-        LOG_ERROR("RTCP receiver report packet size too large!");
-        return RTP_GENERIC_ERROR;
-    }
-
     if (flags_ & RCE_SRTP)
         frame_size += UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH;
 
-    frame = new uint8_t[frame_size];
-    memset(frame, 0, frame_size);
-
-    frame[0] = (2 << 6) | (0 << 5) | num_receivers_;
-    frame[1] = uvgrtp::frame::RTCP_FT_RR;
-
-    *(uint16_t *)&frame[2] = htons((u_short)frame_size);
-    *(uint32_t *)&frame[4] = htonl(ssrc_);
+    construct_rtcp_header(frame_size, frame, num_receivers_, uvgrtp::frame::RTCP_FT_RR, true);
 
     LOG_DEBUG("Receiver Report from 0x%x has %zu blocks", ssrc_, num_receivers_);
 

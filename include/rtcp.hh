@@ -353,6 +353,10 @@ namespace uvgrtp {
              * must be set to zero manually */
             void zero_stats(uvgrtp::rtcp_statistics *stats);
 
+            /* Set the first four or eight bytes of an RTCP packet */
+            rtp_error_t construct_rtcp_header(size_t packet_size, uint8_t*& frame,
+                uint16_t secondField, uvgrtp::frame::RTCP_FRAME_TYPE frame_type, bool addLocalSSRC);
+
             /* Pointer to RTP context from which clock rate etc. info is collected and which is
              * used to change SSRC if a collision is detected */
             uvgrtp::rtp *rtp_;

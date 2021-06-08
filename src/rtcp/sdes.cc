@@ -103,15 +103,7 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(std::vector<uvgrtp::frame::rtcp_sdes_
     for (auto& item : items)
         frame_size += item.length;
 
-    frame = new uint8_t[frame_size];
-    memset(frame, 0, frame_size);
-
-    // header |V=2|P|    SC   |  PT=SDES=202  |             length            |
-    frame[0] = (2 << 6) | (0 << 5) | num_receivers_;
-    frame[1] = uvgrtp::frame::RTCP_FT_SDES;
-
-    *(uint16_t *)&frame[2] = htons((u_short)frame_size);
-    *(uint32_t *)&frame[4] = htonl(ssrc_);
+    construct_rtcp_header(frame_size, frame, num_receivers_, uvgrtp::frame::RTCP_FT_SDES, true);
 
     for (auto& item : items) {
         frame[ptr++] = item.type;
