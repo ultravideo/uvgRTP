@@ -422,7 +422,7 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
 
     /* First check if remote has already sent the message.
      * If so, they are the initiator and we're the responder */
-    while ((type = receiver_.recv_msg(socket_, 0, MSG_DONTWAIT)) != -RTP_INTERRUPTED) {
+    while ((type = receiver_.recv_msg(socket_, 0, MSG_DONTWAIT)) != RTP_INTERRUPTED) {
         if (type == ZRTP_FT_COMMIT) {
             commit.parse_msg(receiver_, session_);
             session_.role = RESPONDER;

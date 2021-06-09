@@ -53,7 +53,7 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(uvgrtp::socket *socket, int timeout, in
             return -ret;
 
         log_platform_error("blocked_recv() failed");
-        return -RTP_RECV_ERROR;
+        return RTP_RECV_ERROR;
     }
 #else
     size_t msec = timeout % 1000;
@@ -72,7 +72,7 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(uvgrtp::socket *socket, int timeout, in
             return -ret;
 
         log_platform_error("recv(2) failed");
-        return -RTP_RECV_ERROR;
+        return RTP_RECV_ERROR;
     }
 #endif
 
@@ -81,12 +81,12 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(uvgrtp::socket *socket, int timeout, in
 
     if (msg->header.version != 0 || msg->header.magic != ZRTP_HEADER_MAGIC) {
         LOG_DEBUG("Invalid header version or magic");
-        return -RTP_INVALID_VALUE;
+        return RTP_INVALID_VALUE;
     }
 
     if (msg->magic != ZRTP_MSG_MAGIC) {
         LOG_DEBUG("invalid ZRTP magic");
-        return -RTP_INVALID_VALUE;
+        return RTP_INVALID_VALUE;
     }
 
     switch (msg->msgblock) {
@@ -200,13 +200,13 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(uvgrtp::socket *socket, int timeout, in
     }
 
     LOG_WARN("Unknown message type received: 0x%lx", (int)msg->msgblock);
-    return -RTP_NOT_SUPPORTED;
+    return RTP_NOT_SUPPORTED;
 }
 
 ssize_t uvgrtp::zrtp_msg::receiver::get_msg(void *ptr, size_t len)
 {
     if (!ptr || !len)
-        return -RTP_INVALID_VALUE;
+        return RTP_INVALID_VALUE;
 
     size_t cpy_len = rlen_;
 
