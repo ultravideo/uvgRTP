@@ -2,7 +2,7 @@
 
 uvgRTP is an *Real-Time Transport Protocol (RTP)* library written in C++ with a focus on simple to use and high-efficiency media delivery over the internet. It features an intuitive and easy-to-use *Application Programming Interface (API)*, built-in support for transporting *Versitile Video Coding (VVC)*, *High Efficiency Video Coding (HEVC)*, *Advanced Video Coding (AVC)* encoded video and Opus encoded audio. uvgRTP also supports *End-to-End Encrypted (E2EE)* media delivery using the combination of *Secure RTP (SRTP)* and ZRTP. According to [our measurements](https://researchportal.tuni.fi/en/publications/open-source-rtp-library-for-high-speed-4k-hevc-video-streaming) uvgRTP is able to reach a goodput of 600 MB/s (4K at 700fps) for HEVC stream when measured in LAN. The CPU usage is relative to the goodput value, and therefore smaller streams have a very small CPU usage.
 
-uvgRTP is licensed under the permissive BSD 2-Clause License. For SRTP/ZRTP support, uvgRTP uses [Crypto++ library](https://www.cryptopp.com/). Currently uvgRTP is currently not under active development, but we will do our best to fix any issues and we warmly welcome any contributions to the project.
+uvgRTP is licensed under the permissive BSD 2-Clause License. For SRTP/ZRTP support, uvgRTP uses [Crypto++ library](https://www.cryptopp.com/).
 
 Currently supported specifications:
    * [RFC 3350: RTP: A Transport Protocol for Real-Time Applications](https://tools.ietf.org/html/rfc3550)
@@ -33,6 +33,10 @@ See [BUILDING.md](BUILDING.md) for instructions on how to build and use uvgRTP
 ## Documentation and examples
 
 See [documentation](docs/README.md) and [examples](docs/examples) to get a better understanding of uvgRTP
+
+## Contributing
+
+We warmly welcome any contributions to the project. If you are thinking about submitting a pull request, please read [CONTRIBUTING.md](CONTRIBUTING.md) before proceeding.
 
 ## Paper
 
