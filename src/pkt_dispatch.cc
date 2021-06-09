@@ -36,7 +36,7 @@ rtp_error_t uvgrtp::pkt_dispatcher::stop()
     active_ = false;
 
     while (!exit_mtx_.try_lock())
-        ;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
     exit_mtx_.unlock();
     return RTP_OK;
@@ -222,7 +222,7 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
     FD_ZERO(&read_fds);
 
     while (!this->active())
-        ;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
     exit_mtx_.lock();
 

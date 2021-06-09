@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.12)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -73,7 +73,7 @@ if (CRYPTOPP_PATH AND NOT DISABLE_CRYPTO)
 endif (CRYPTOPP_PATH AND NOT DISABLE_CRYPTO)
 
 if (UNIX)
-    set(COMPILER_FLAGS "-Wall -Wextra -Wuninitialized -Wshadow -O2 -g -march=native -DNDEBUG")
+    set(COMPILER_FLAGS "-Wall -Wextra -Wuninitialized -Wshadow -O2 -g -march=native -DNDEBUG -mno-avx512f")
     
     if (DISABLE_CRYPTO)
         string(APPEND COMPILER_FLAGS " -D__RTP_NO_CRYPTO__")
@@ -145,3 +145,7 @@ if (WIN32)
 endif (WIN32)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS}")
+
+if (UNIX)
+    add_subdirectory(tests/)
+endif(UNIX)
