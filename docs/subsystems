@@ -1,12 +1,12 @@
-common
-config
-crypto
+Names of submodules to be used in commits message prefix
+rtp
+zrtp
 rtcp
+srtp
+formats
+
+Other names that can be used as prefix
+config
 doc
 build
-formats/h264
-formats/h265
-formats/h266
-formats/h26x
-formats/media
-formats/rawvideo
+common
