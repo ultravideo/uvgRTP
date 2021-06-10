@@ -47,6 +47,8 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(uvgrtp::socket *socket, int timeout, in
     int nread       = 0;
     rlen_           = 0;
 
+    LOG_DEBUG("Receiving a ZRTP message");
+
 #ifdef _WIN32
     if ((ret = uvgrtp::poll::blocked_recv(socket, mem_, len_, timeout, &nread)) != RTP_OK) {
         if (ret == RTP_INTERRUPTED)

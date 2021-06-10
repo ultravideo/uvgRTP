@@ -382,7 +382,7 @@ rtp_error_t uvgrtp::frame_queue::flush_queue()
         return RTP_SEND_ERROR;
     }
 
-    LOG_DEBUG("full message took %zu chunks and %zu messages", active_->chunk_ptr, active_->hdr_ptr);
+    //LOG_DEBUG("full message took %zu chunks and %zu messages", active_->chunk_ptr, active_->hdr_ptr);
     return deinit_transaction();
 }
 
