@@ -46,6 +46,7 @@ add_library(uvgrtp STATIC
     src/zrtp/confirm.cc
     src/zrtp/confack.cc
     src/zrtp/error.cc
+    src/zrtp/zrtp_message.cc
     src/rtcp/app.cc
     src/rtcp/sdes.cc
     src/rtcp/bye.cc

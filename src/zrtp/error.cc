@@ -14,22 +14,13 @@
 
 #define ZRTP_ERROR "Error   "
 
-uvgrtp::zrtp_msg::error::error(int error_code)
+uvgrtp::zrtp_msg::error::error(int error_code):
+    zrtp_message()
 {
-    len_   = sizeof(zrtp_error);
-    frame_ = uvgrtp::frame::alloc_zrtp_frame(len_);
+    allocate_frame(sizeof(zrtp_error));
+    zrtp_error* msg = (zrtp_error*)frame_;
 
-    zrtp_error *msg = (zrtp_error *)frame_;
-
-    memset(msg, 0, sizeof(zrtp_error));
-
-    msg->msg_start.header.version = 0;
-    msg->msg_start.header.magic   = ZRTP_HEADER_MAGIC;
-
-    msg->msg_start.magic  = ZRTP_MSG_MAGIC;
-    msg->msg_start.length = 4;
-
-    memcpy(&msg->msg_start.msgblock, ZRTP_ERROR, 8);
+    set_zrtp_start_base(msg->msg_start, ZRTP_ERROR);
 
     msg->error = error_code;
 

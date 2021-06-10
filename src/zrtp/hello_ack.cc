@@ -14,20 +14,9 @@
 
 uvgrtp::zrtp_msg::hello_ack::hello_ack()
 {
-    len_   = sizeof(zrtp_hello_ack);
-    frame_ = uvgrtp::frame::alloc_zrtp_frame(len_);
-
+    allocate_frame(sizeof(zrtp_hello_ack));
     zrtp_hello_ack *msg = (zrtp_hello_ack *)frame_;
-
-    memset(msg, 0, sizeof(zrtp_hello_ack));
-
-    msg->msg_start.header.version = 0;
-    msg->msg_start.header.magic   = ZRTP_HEADER_MAGIC;
-
-    msg->msg_start.magic  = ZRTP_MSG_MAGIC;
-    msg->msg_start.length = 3;
-
-    memcpy(&msg->msg_start.msgblock, ZRTP_HELLO_ACK, 8);
+    set_zrtp_start_base(msg->msg_start, ZRTP_HELLO_ACK);
 
     msg->crc = uvgrtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
 }
@@ -48,7 +37,8 @@ rtp_error_t uvgrtp::zrtp_msg::hello_ack::send_msg(uvgrtp::socket *socket, sockad
     return ret;
 }
 
-rtp_error_t uvgrtp::zrtp_msg::hello_ack::parse_msg(uvgrtp::zrtp_msg::receiver& receiver)
+rtp_error_t uvgrtp::zrtp_msg::hello_ack::parse_msg(uvgrtp::zrtp_msg::receiver& receiver,
+    zrtp_session_t& session)
 {
     (void)receiver;
 

@@ -11,32 +11,20 @@
 
 #define ZRTP_COMMIT "Commit  "
 
-uvgrtp::zrtp_msg::commit::commit(zrtp_session_t& session)
+uvgrtp::zrtp_msg::commit::commit(zrtp_session_t& session):
+    zrtp_message()
 {
     /* temporary storage for the full hmac hash */
     uint8_t mac_full[32] = { 0 };
 
     LOG_DEBUG("Create ZRTP Commit message!");
 
-    frame_  = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_commit));
-    rframe_ = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_commit));
-    len_    = sizeof(zrtp_commit);
-    rlen_   = sizeof(zrtp_commit);
-
-    memset(frame_,  0, sizeof(zrtp_commit));
-    memset(rframe_, 0, sizeof(zrtp_commit));
+    allocate_frame(sizeof(zrtp_commit));
+    allocate_rframe(sizeof(zrtp_commit));
 
     zrtp_commit *msg = (zrtp_commit *)frame_;
+    set_zrtp_start(msg->msg_start, session, ZRTP_COMMIT);
 
-    msg->msg_start.header.version = 0;
-    msg->msg_start.header.magic   = ZRTP_HEADER_MAGIC;
-    msg->msg_start.header.ssrc    = session.ssrc;
-    msg->msg_start.header.seq     = session.seq++;
-
-    msg->msg_start.magic  = ZRTP_MSG_MAGIC;
-    msg->msg_start.length = (uint16_t)len_ - (uint16_t)sizeof(zrtp_header);
-
-    memcpy(&msg->msg_start.msgblock, ZRTP_COMMIT,                 8);
     memcpy(msg->zid,                 session.o_zid,              12); /* 96 bits */
     memcpy(msg->hash,                session.hash_ctx.o_hash[2], 32); /* 256 bits */
 

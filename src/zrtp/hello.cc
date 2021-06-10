@@ -18,7 +18,8 @@
 
 using namespace uvgrtp::zrtp_msg;
 
-uvgrtp::zrtp_msg::hello::hello(zrtp_session_t& session)
+uvgrtp::zrtp_msg::hello::hello(zrtp_session_t& session):
+    zrtp_message()
 {
     /* temporary storage for the full hmac hash */
     uint8_t mac_full[32];
@@ -28,26 +29,13 @@ uvgrtp::zrtp_msg::hello::hello(zrtp_session_t& session)
      *
      * We need to assume that remote supports everything and thus need to
      * allocate the maximum amount of memory for the message  */
-    len_  = sizeof(zrtp_hello);
-    rlen_ = sizeof(zrtp_hello) + 5 * 8;
 
-    frame_  = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_hello));
-    rframe_ = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_hello) + 5 * 8);
+    allocate_frame(sizeof(zrtp_hello));
+    allocate_rframe(sizeof(zrtp_hello) + 5 * 8);
 
-    memset(frame_,  0, sizeof(zrtp_hello));
-    memset(rframe_, 0, sizeof(zrtp_hello) + 5 * 8);
+    zrtp_hello* msg = (zrtp_hello*)frame_;
+    set_zrtp_start(msg->msg_start, session, ZRTP_HELLO);
 
-    zrtp_hello *msg = (zrtp_hello *)frame_;
-
-    msg->msg_start.header.version = 0;
-    msg->msg_start.header.magic   = ZRTP_HEADER_MAGIC;
-    msg->msg_start.header.ssrc    = session.ssrc;
-    msg->msg_start.header.seq     = session.seq++;
-
-    msg->msg_start.magic  = ZRTP_MSG_MAGIC;
-    msg->msg_start.length = (uint16_t)len_ - (uint16_t)sizeof(uvgrtp::frame::zrtp_frame);
-
-    memcpy(&msg->msg_start.msgblock, ZRTP_HELLO,                  8);
     memcpy(&msg->version,            ZRTP_VERSION,                4);
     memcpy(&msg->client,             ZRTP_CLIENT_ID,             16);
     memcpy(&msg->hash,               session.hash_ctx.o_hash[3], 32); /* 256 bits */
