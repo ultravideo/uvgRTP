@@ -79,16 +79,6 @@ uvgrtp::zrtp_msg::confirm::~confirm()
     (void)uvgrtp::frame::dealloc_frame(rframe_);
 }
 
-rtp_error_t uvgrtp::zrtp_msg::confirm::send_msg(uvgrtp::socket *socket, sockaddr_in& addr)
-{
-    rtp_error_t ret;
-
-    if ((ret = socket->sendto(addr, (uint8_t *)frame_, len_, 0, nullptr)) != RTP_OK)
-        log_platform_error("Failed to send ZRTP Hello message");
-
-    return ret;
-}
-
 rtp_error_t uvgrtp::zrtp_msg::confirm::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
     ssize_t len          = 0;

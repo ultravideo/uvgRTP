@@ -1,6 +1,8 @@
 #include "zrtp_message.hh"
 
 #include "frame.hh"
+#include "socket.hh"
+
 #include "debug.hh"
 
 uvgrtp::zrtp_msg::zrtp_message::zrtp_message():
@@ -14,6 +16,15 @@ uvgrtp::zrtp_msg::zrtp_message::zrtp_message():
 uvgrtp::zrtp_msg::zrtp_message::~zrtp_message()
 {}
 
+rtp_error_t uvgrtp::zrtp_msg::zrtp_message::send_msg(uvgrtp::socket *socket, sockaddr_in& addr)
+{
+    rtp_error_t ret;
+
+    if ((ret = socket->sendto(addr, (uint8_t *)frame_, len_, 0, nullptr)) != RTP_OK)
+        log_platform_error("Failed to send ZRTP message");
+
+    return ret;
+}
 
 void uvgrtp::zrtp_msg::zrtp_message::allocate_frame(size_t frame_size)
 {

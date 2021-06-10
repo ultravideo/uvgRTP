@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "defines.hh"
 #include "zrtp_message.hh"
 
@@ -47,9 +46,6 @@ namespace uvgrtp {
             public:
                 commit(zrtp_session_t& session);
                 ~commit();
-
-                /* TODO:  */
-                virtual rtp_error_t send_msg(uvgrtp::socket *socket, sockaddr_in& addr);
 
                 /* TODO:  */
                 virtual rtp_error_t parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session);

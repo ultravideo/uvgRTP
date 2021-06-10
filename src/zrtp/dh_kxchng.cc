@@ -103,16 +103,6 @@ uvgrtp::zrtp_msg::dh_key_exchange::~dh_key_exchange()
     (void)uvgrtp::frame::dealloc_frame(rframe_);
 }
 
-rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::send_msg(uvgrtp::socket *socket, sockaddr_in& addr)
-{
-    rtp_error_t ret;
-
-    if ((ret = socket->sendto(addr, (uint8_t *)frame_, len_, 0, nullptr)) != RTP_OK)
-        log_platform_error("Failed to send ZRTP Hello message");
-
-    return ret;
-}
-
 rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
     LOG_DEBUG("Parsing DHPart1/DHPart2 message...");

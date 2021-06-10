@@ -31,8 +31,6 @@ namespace uvgrtp {
                 hello_ack();
                 ~hello_ack();
 
-                virtual rtp_error_t send_msg(uvgrtp::socket *socket, sockaddr_in& addr);
-
                 virtual rtp_error_t parse_msg(uvgrtp::zrtp_msg::receiver& receiver,
                     zrtp_session_t& session);
         };
