@@ -17,8 +17,6 @@ uvgrtp::zrtp_msg::confack::confack(zrtp_session_t& session):
     LOG_DEBUG("Create ZRTP Conf2ACK message!");
 
     allocate_frame(sizeof(zrtp_confack));
-    allocate_rframe(sizeof(zrtp_confack));
-
     zrtp_confack* msg = (zrtp_confack*)frame_;
     set_zrtp_start(msg->msg_start, session, ZRTP_CONFACK);
 
@@ -27,17 +25,13 @@ uvgrtp::zrtp_msg::confack::confack(zrtp_session_t& session):
 }
 
 uvgrtp::zrtp_msg::confack::~confack()
-{
-    LOG_DEBUG("Freeing Conf2ACK message...");
-
-    (void)uvgrtp::frame::dealloc_frame(frame_);
-    (void)uvgrtp::frame::dealloc_frame(rframe_);
-}
+{}
 
 rtp_error_t uvgrtp::zrtp_msg::confack::parse_msg(uvgrtp::zrtp_msg::receiver& receiver,
     zrtp_session_t& session)
 {
     ssize_t len = 0;
+    allocate_rframe(sizeof(zrtp_confack));
 
     if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
         LOG_ERROR("Failed to get message from ZRTP receiver");

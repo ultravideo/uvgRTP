@@ -20,8 +20,6 @@ uvgrtp::zrtp_msg::commit::commit(zrtp_session_t& session):
     LOG_DEBUG("Create ZRTP Commit message!");
 
     allocate_frame(sizeof(zrtp_commit));
-    allocate_rframe(sizeof(zrtp_commit));
-
     zrtp_commit *msg = (zrtp_commit *)frame_;
     set_zrtp_start(msg->msg_start, session, ZRTP_COMMIT);
 
@@ -61,17 +59,13 @@ uvgrtp::zrtp_msg::commit::commit(zrtp_session_t& session):
 }
 
 uvgrtp::zrtp_msg::commit::~commit()
-{
-    LOG_DEBUG("Freeing Commit message...");
-
-    (void)uvgrtp::frame::dealloc_frame(frame_);
-    (void)uvgrtp::frame::dealloc_frame(rframe_);
-}
+{}
 
 
 rtp_error_t uvgrtp::zrtp_msg::commit::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
     ssize_t len = 0;
+    allocate_rframe(sizeof(zrtp_commit));
 
     if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
         LOG_ERROR("Failed to get message from ZRTP receiver");

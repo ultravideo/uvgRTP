@@ -20,8 +20,6 @@ uvgrtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part):
     LOG_DEBUG("Create ZRTP Confirm%d message!", part);
 
     allocate_frame(sizeof(zrtp_confirm));
-    allocate_rframe(sizeof(zrtp_confirm));
-
     zrtp_confirm* msg = (zrtp_confirm*)frame_;
 
     if (part == 1)
@@ -72,12 +70,7 @@ uvgrtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part):
 }
 
 uvgrtp::zrtp_msg::confirm::~confirm()
-{
-    LOG_DEBUG("Freeing ConfirmN message...");
-
-    (void)uvgrtp::frame::dealloc_frame(frame_);
-    (void)uvgrtp::frame::dealloc_frame(rframe_);
-}
+{}
 
 rtp_error_t uvgrtp::zrtp_msg::confirm::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
@@ -86,6 +79,7 @@ rtp_error_t uvgrtp::zrtp_msg::confirm::parse_msg(uvgrtp::zrtp_msg::receiver& rec
     uint64_t cmac        = 0;
     uint8_t mac_full[32] = { 0 };
 
+    allocate_rframe(sizeof(zrtp_confirm));
     if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
         LOG_ERROR("Failed to get message from ZRTP receiver");
         return RTP_INVALID_VALUE;

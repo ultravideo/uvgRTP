@@ -22,10 +22,7 @@ uvgrtp::zrtp_msg::hello_ack::hello_ack()
 }
 
 uvgrtp::zrtp_msg::hello_ack::~hello_ack()
-{
-    LOG_DEBUG("Freeing ZRTP Hello ACK message...");
-    (void)uvgrtp::frame::dealloc_frame(frame_);
-}
+{}
 
 rtp_error_t uvgrtp::zrtp_msg::hello_ack::parse_msg(uvgrtp::zrtp_msg::receiver& receiver,
     zrtp_session_t& session)

@@ -14,7 +14,15 @@ uvgrtp::zrtp_msg::zrtp_message::zrtp_message():
 
 
 uvgrtp::zrtp_msg::zrtp_message::~zrtp_message()
-{}
+{
+  LOG_DEBUG("Freeing zrtp message...");
+
+  if (frame_)
+    (void)uvgrtp::frame::dealloc_frame(frame_);
+
+  if (rframe_)
+    (void)uvgrtp::frame::dealloc_frame(rframe_);
+}
 
 rtp_error_t uvgrtp::zrtp_msg::zrtp_message::send_msg(uvgrtp::socket *socket, sockaddr_in& addr)
 {

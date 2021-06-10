@@ -19,19 +19,14 @@ uvgrtp::zrtp_msg::error::error(int error_code):
 {
     allocate_frame(sizeof(zrtp_error));
     zrtp_error* msg = (zrtp_error*)frame_;
-
     set_zrtp_start_base(msg->msg_start, ZRTP_ERROR);
 
     msg->error = error_code;
-
     msg->crc = uvgrtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
 }
 
 uvgrtp::zrtp_msg::error::~error()
-{
-    LOG_DEBUG("Freeing ZRTP Error message...");
-    (void)uvgrtp::frame::dealloc_frame(frame_);
-}
+{}
 
 rtp_error_t uvgrtp::zrtp_msg::error::parse_msg(uvgrtp::zrtp_msg::receiver& receiver,
                                                zrtp_session_t& session)

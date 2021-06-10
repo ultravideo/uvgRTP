@@ -28,8 +28,6 @@ uvgrtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int 
     LOG_DEBUG("Create ZRTP DHPart%d message", part);
 
     allocate_frame(sizeof(zrtp_dh));
-    allocate_rframe(sizeof(zrtp_dh));
-
     zrtp_dh* msg = (zrtp_dh*)frame_;
     set_zrtp_start(msg->msg_start, session, strs[part - 1][0]);
 
@@ -96,19 +94,14 @@ uvgrtp::zrtp_msg::dh_key_exchange::dh_key_exchange(struct zrtp_dh *dh):
 }
 
 uvgrtp::zrtp_msg::dh_key_exchange::~dh_key_exchange()
-{
-    LOG_DEBUG("Freeing DHPartN message...");
-
-    (void)uvgrtp::frame::dealloc_frame(frame_);
-    (void)uvgrtp::frame::dealloc_frame(rframe_);
-}
+{}
 
 rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
     LOG_DEBUG("Parsing DHPart1/DHPart2 message...");
 
     ssize_t len = 0;
-
+    allocate_rframe(sizeof(zrtp_dh));
     if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
         LOG_ERROR("Failed to get message from ZRTP receiver");
         return RTP_INVALID_VALUE;

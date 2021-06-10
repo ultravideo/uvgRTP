@@ -31,7 +31,6 @@ uvgrtp::zrtp_msg::hello::hello(zrtp_session_t& session):
      * allocate the maximum amount of memory for the message  */
 
     allocate_frame(sizeof(zrtp_hello));
-    allocate_rframe(sizeof(zrtp_hello) + 5 * 8);
 
     zrtp_hello* msg = (zrtp_hello*)frame_;
     set_zrtp_start(msg->msg_start, session, ZRTP_HELLO);
@@ -69,16 +68,12 @@ uvgrtp::zrtp_msg::hello::hello(zrtp_session_t& session):
 }
 
 uvgrtp::zrtp_msg::hello::~hello()
-{
-    LOG_DEBUG("Freeing ZRTP hello message...");
-    (void)uvgrtp::frame::dealloc_frame(frame_);
-    (void)uvgrtp::frame::dealloc_frame(rframe_);
-}
+{}
 
 rtp_error_t uvgrtp::zrtp_msg::hello::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
     ssize_t len = 0;
-
+    allocate_rframe(sizeof(zrtp_hello) + 5 * 8);
     if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
         LOG_ERROR("Failed to get message from ZRTP receiver");
         return RTP_INVALID_VALUE;
