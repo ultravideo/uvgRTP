@@ -17,6 +17,13 @@
 #include <cstring>
 #include <iostream>
 
+const uint16_t RTCP_HEADER_SIZE = 4;
+const uint16_t SSRC_CSRC_SIZE = 4;
+const uint16_t SENDER_INFO_SIZE = 20;
+const uint16_t REPORT_BLOCK_SIZE = 24;
+const uint16_t APP_NAME_SIZE = 4;
+
+const uint32_t MAX_SUPPORTED_PARTICIPANTS = 31;
 
 uvgrtp::rtcp::rtcp(uvgrtp::rtp *rtp, int flags):
     rtp_(rtp), flags_(flags), our_role_(RECEIVER),
@@ -194,7 +201,7 @@ rtp_error_t uvgrtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_por
 
 rtp_error_t uvgrtp::rtcp::add_participant(uint32_t ssrc)
 {
-    if (num_receivers_ == 31)
+    if (num_receivers_ == MAX_SUPPORTED_PARTICIPANTS)
     {
         LOG_ERROR("Maximum number of RTCP participants reached.");
         // TODO: Support more participants by sending the multiple messages at the same time
@@ -726,8 +733,9 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t size)
         delete   participants_[frame->ssrc]->app_frame;
     }
 
-    memcpy(frame->name, &packet[8], 4);
-    memcpy(frame->payload, &packet[12], frame->header.length - 12);
+    memcpy(frame->name, &packet[RTCP_HEADER_SIZE + SSRC_CSRC_SIZE], APP_NAME_SIZE);
+    memcpy(frame->payload, &packet[RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE],
+        frame->header.length - RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE);
 
     if (app_hook_)
         app_hook_(frame);
@@ -744,7 +752,7 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* packet, size_t 
 
     auto frame = new uvgrtp::frame::rtcp_receiver_report;
     read_rtcp_header(packet, frame->header, false);
-    frame->ssrc = ntohl(*(uint32_t*)&packet[4]);
+    frame->ssrc = ntohl(*(uint32_t*)&packet[RTCP_HEADER_SIZE]);
 
     auto ret = RTP_OK;
     if (srtcp_ && (ret = srtcp_->handle_rtcp_decryption(flags_, frame->ssrc, packet, size)) != RTP_OK)
@@ -772,13 +780,14 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* packet, size_t 
     for (int i = 0; i < frame->header.count; ++i) {
         uvgrtp::frame::rtcp_report_block report;
 
-        report.ssrc = ntohl(*(uint32_t*)&packet[(i * 24) + 8 + 0]);
-        report.fraction = (ntohl(*(uint32_t*)&packet[(i * 24) + 8 + 4])) >> 24;
-        report.lost = (ntohl(*(uint32_t*)&packet[(i * 24) + 8 + 4])) & 0xfffffd;
-        report.last_seq = ntohl(*(uint32_t*)&packet[(i * 24) + 8 + 8]);
-        report.jitter = ntohl(*(uint32_t*)&packet[(i * 24) + 8 + 12]);
-        report.lsr = ntohl(*(uint32_t*)&packet[(i * 24) + 8 + 16]);
-        report.dlsr = ntohl(*(uint32_t*)&packet[(i * 24) + 8 + 20]);
+        uint16_t report_section = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
+        report.ssrc =       ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 0]);
+        report.fraction =  (ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 4])) >> 24;
+        report.lost =      (ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 4])) & 0xfffffd;
+        report.last_seq =   ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 8]);
+        report.jitter =     ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 12]);
+        report.lsr =        ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 16]);
+        report.dlsr =       ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 20]);
 
         frame->report_blocks.push_back(report);
     }
@@ -813,11 +822,11 @@ rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t* packet, size_t si
     if (participants_[frame->ssrc]->sr_frame)
         delete participants_[frame->ssrc]->sr_frame;
 
-    frame->sender_info.ntp_msw = ntohl(*(uint32_t*)&packet[8]);
-    frame->sender_info.ntp_lsw = ntohl(*(uint32_t*)&packet[12]);
-    frame->sender_info.rtp_ts = ntohl(*(uint32_t*)&packet[16]);
-    frame->sender_info.pkt_cnt = ntohl(*(uint32_t*)&packet[20]);
-    frame->sender_info.byte_cnt = ntohl(*(uint32_t*)&packet[24]);
+    frame->sender_info.ntp_msw =    ntohl(*(uint32_t*)&packet[8]);
+    frame->sender_info.ntp_lsw =    ntohl(*(uint32_t*)&packet[12]);
+    frame->sender_info.rtp_ts =     ntohl(*(uint32_t*)&packet[16]);
+    frame->sender_info.pkt_cnt =    ntohl(*(uint32_t*)&packet[20]);
+    frame->sender_info.byte_cnt =   ntohl(*(uint32_t*)&packet[24]);
 
     participants_[frame->ssrc]->stats.sr_ts = uvgrtp::clock::hrc::now();
     participants_[frame->ssrc]->stats.lsr =
@@ -827,13 +836,14 @@ rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t* packet, size_t si
     for (int i = 0; i < frame->header.count; ++i) {
         uvgrtp::frame::rtcp_report_block report;
 
-        report.ssrc = ntohl(*(uint32_t*)&packet[(i * 24) + 28 + 0]);
-        report.fraction = (ntohl(*(uint32_t*)&packet[(i * 24) + 28 + 4])) >> 24;
-        report.lost = (ntohl(*(uint32_t*)&packet[(i * 24) + 28 + 4])) & 0xfffffd;
-        report.last_seq = ntohl(*(uint32_t*)&packet[(i * 24) + 28 + 8]);
-        report.jitter = ntohl(*(uint32_t*)&packet[(i * 24) + 28 + 12]);
-        report.lsr = ntohl(*(uint32_t*)&packet[(i * 24) + 28 + 16]);
-        report.dlsr = ntohl(*(uint32_t*)&packet[(i * 24) + 28 + 20]);
+        uint16_t report_section = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + SENDER_INFO_SIZE;
+        report.ssrc =       ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 0]);
+        report.fraction =  (ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 4])) >> 24;
+        report.lost =      (ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 4])) & 0xfffffd;
+        report.last_seq =   ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 8]);
+        report.jitter =     ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 12]);
+        report.lsr =        ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 16]);
+        report.dlsr =       ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 20]);
 
         frame->report_blocks.push_back(report);
     }
@@ -871,7 +881,7 @@ rtp_error_t uvgrtp::rtcp::construct_rtcp_header(size_t packet_size,
 
     if (add_local_ssrc)
     {
-        *(uint32_t*)&frame[4] = htonl(ssrc_);
+        *(uint32_t*)&frame[RTCP_HEADER_SIZE] = htonl(ssrc_);
     }
 
     return RTP_OK;
@@ -921,20 +931,22 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(std::vector<uvgrtp::frame::rtcp_sdes_
         return RTP_INVALID_VALUE;
     }
 
-    if (num_receivers_ > 31) {
+    if (num_receivers_ > MAX_SUPPORTED_PARTICIPANTS) {
         LOG_ERROR("Source count is larger than packet supports!");
 
         // TODO: Multiple SDES packets should be sent in this case
         return RTP_GENERIC_ERROR;
     }
 
-    int ptr = 8;
     uint8_t* frame = nullptr;
     rtp_error_t ret = RTP_OK;
     size_t frame_size = 0;
 
-    frame_size = 4 + 4;            /* rtcp header + ssrc */
+    // TODO: This does not seem correct. Each SDES item has its own SSRC/CSRC 
+    // and there is no one SSRC per packet. This also does not take into account the size of payload
+    frame_size = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
     frame_size += items.size() * 2; /* sdes item type + length */
+    int ptr = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
 
     for (auto& item : items)
         frame_size += item.length;
@@ -963,12 +975,9 @@ rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
         LOG_WARN("Source Count in RTCP BYE packet is 0");
     }
 
-    size_t frame_size;
-    uint8_t* frame;
-    int ptr = 4;
-
-    frame_size = 4; /* rtcp header */
-    frame_size += ssrcs.size() * sizeof(uint32_t);
+    size_t frame_size = RTCP_HEADER_SIZE + ssrcs.size() * SSRC_CSRC_SIZE;
+    uint8_t* frame = nullptr;
+    int ptr = RTCP_HEADER_SIZE;
 
     construct_rtcp_header(frame_size, frame, (ssrcs.size() & 0x1f), uvgrtp::frame::RTCP_FT_BYE, false);
 
@@ -981,19 +990,14 @@ rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
 rtp_error_t uvgrtp::rtcp::send_app_packet(char* name, uint8_t subtype,
     size_t payload_len, uint8_t* payload)
 {
-    size_t frame_size;
     rtp_error_t ret = RTP_OK;
-    uint8_t* frame;
-
-    frame_size = 4; /* rtcp header */
-    frame_size += 4; /* our ssrc */
-    frame_size += 4; /* name */
-    frame_size += payload_len;
+    uint8_t* frame = nullptr;
+    size_t frame_size = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE + payload_len;
 
     construct_rtcp_header(frame_size, frame, (subtype & 0x1f), uvgrtp::frame::RTCP_FT_APP, true);
 
-    memcpy(&frame[8], name, 4);
-    memcpy(&frame[12], payload, payload_len);
+    memcpy(&frame[RTCP_HEADER_SIZE + SSRC_CSRC_SIZE], name, APP_NAME_SIZE);
+    memcpy(&frame[RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE], payload, payload_len);
 
     if (srtcp_ && (ret = srtcp_->handle_rtcp_encryption(flags_, rtcp_pkt_sent_count_, ssrc_, frame, frame_size)) != RTP_OK)
     {
@@ -1011,14 +1015,11 @@ rtp_error_t uvgrtp::rtcp::generate_receiver_report()
         return RTP_NOT_READY;
     }
 
-    size_t frame_size = 0;
     rtp_error_t ret = RTP_OK;
     uint8_t* frame = nullptr;
-    int ptr = 8;
 
-    frame_size = 4;                   /* rtcp header */
-    frame_size += 4;                   /* our ssrc */
-    frame_size += (size_t)num_receivers_ * 24; /* report blocks */
+    size_t frame_size = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + (size_t)num_receivers_ * REPORT_BLOCK_SIZE;
+    int report_ptr = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
 
     if (flags_ & RCE_SRTP)
         frame_size += UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH;
@@ -1033,18 +1034,18 @@ rtp_error_t uvgrtp::rtcp::generate_receiver_report()
         // TODO: Shouldn't this be number of packets received no bytes?
         uint8_t frac = dropped ? p.second->stats.received_bytes / dropped : 0;
 
-        SET_NEXT_FIELD_32(frame, ptr, htonl(p.first)); /* ssrc */
-        SET_NEXT_FIELD_32(frame, ptr, htonl((frac << 24) | p.second->stats.dropped_pkts));
-        SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.max_seq));
-        SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.jitter));
-        SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.lsr));
+        SET_NEXT_FIELD_32(frame, report_ptr, htonl(p.first)); /* ssrc */
+        SET_NEXT_FIELD_32(frame, report_ptr, htonl((frac << 24) | p.second->stats.dropped_pkts));
+        SET_NEXT_FIELD_32(frame, report_ptr, htonl(p.second->stats.max_seq));
+        SET_NEXT_FIELD_32(frame, report_ptr, htonl(p.second->stats.jitter));
+        SET_NEXT_FIELD_32(frame, report_ptr, htonl(p.second->stats.lsr));
 
         /* calculate delay of last SR only if SR has been received at least once */
         if (p.second->stats.lsr) {
             uint64_t diff = uvgrtp::clock::hrc::diff_now(p.second->stats.sr_ts);
-            SET_NEXT_FIELD_32(frame, ptr, (uint32_t)htonl((u_long)uvgrtp::clock::ms_to_jiffies(diff)));
+            SET_NEXT_FIELD_32(frame, report_ptr, (uint32_t)htonl((u_long)uvgrtp::clock::ms_to_jiffies(diff)));
         }
-        ptr += p.second->stats.lsr ? 0 : 4;
+        report_ptr += p.second->stats.lsr ? 0 : 4;
     }
 
     if (srtcp_ && (ret = srtcp_->handle_rtcp_encryption(flags_, rtcp_pkt_sent_count_, ssrc_, frame, frame_size)) != RTP_OK)
@@ -1064,17 +1065,13 @@ rtp_error_t uvgrtp::rtcp::generate_sender_report()
         LOG_DEBUG("Session does not have any RTP senders!");
         return RTP_NOT_READY;
     }
+    
+    rtp_error_t ret = RTP_OK;
+    uint8_t* frame = nullptr;
+    int ptr = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
 
-    uint64_t ntp_ts, rtp_ts;
-    size_t frame_size;
-    rtp_error_t ret;
-    uint8_t* frame;
-    int ptr = 8;
-
-    frame_size = 4;                   /* rtcp header */
-    frame_size += 4;                   /* our ssrc */
-    frame_size += 20;                  /* sender info */
-    frame_size += num_receivers_ * 24; /* report blocks */
+    size_t frame_size = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + SENDER_INFO_SIZE;
+    frame_size += num_receivers_ * REPORT_BLOCK_SIZE; /* report blocks */
 
     if (flags_ & RCE_SRTP)
         frame_size += UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH;
@@ -1082,8 +1079,8 @@ rtp_error_t uvgrtp::rtcp::generate_sender_report()
     construct_rtcp_header(frame_size, frame, num_receivers_, uvgrtp::frame::RTCP_FT_SR, true);
 
     /* Sender information */
-    ntp_ts = uvgrtp::clock::ntp::now();
-    rtp_ts = rtp_ts_start_ + (uvgrtp::clock::ntp::diff(ntp_ts, clock_start_)) * clock_rate_ / 1000;
+    uint64_t ntp_ts = uvgrtp::clock::ntp::now();
+    uint64_t rtp_ts = rtp_ts_start_ + (uvgrtp::clock::ntp::diff(ntp_ts, clock_start_)) * clock_rate_ / 1000;
 
     SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts >> 32));
     SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts & 0xffffffff));
