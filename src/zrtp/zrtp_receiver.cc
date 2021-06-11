@@ -50,7 +50,7 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(uvgrtp::socket *socket, int timeout, in
 #ifdef _WIN32
     if ((ret = uvgrtp::poll::blocked_recv(socket, mem_, len_, timeout, &nread)) != RTP_OK) {
         if (ret == RTP_INTERRUPTED)
-            return -ret;
+            return ret;
 
         log_platform_error("blocked_recv() failed");
         return RTP_RECV_ERROR;
@@ -69,7 +69,7 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(uvgrtp::socket *socket, int timeout, in
 
     if ((ret = socket->recv(mem_, len_, flags, &nread)) != RTP_OK) {
         if (ret == RTP_INTERRUPTED)
-            return -ret;
+            return ret;
 
         log_platform_error("recv(2) failed");
         return RTP_RECV_ERROR;
