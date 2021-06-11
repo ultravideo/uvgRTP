@@ -176,8 +176,8 @@ rtp_error_t uvgrtp::rtcp::add_participant(uint32_t ssrc)
     }
     num_receivers_++;
 
-    participants_[ssrc]->r_frame    = nullptr;
-    participants_[ssrc]->s_frame    = nullptr;
+    participants_[ssrc]->rr_frame    = nullptr;
+    participants_[ssrc]->sr_frame    = nullptr;
     participants_[ssrc]->sdes_frame = nullptr;
     participants_[ssrc]->app_frame  = nullptr;
 

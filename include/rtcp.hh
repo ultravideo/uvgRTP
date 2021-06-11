@@ -67,8 +67,8 @@ namespace uvgrtp {
 
         /* Save the latest RTCP packets received from this participant
          * Users can query these packets using the SSRC of participant */
-        uvgrtp::frame::rtcp_sender_report   *s_frame = nullptr;
-        uvgrtp::frame::rtcp_receiver_report *r_frame = nullptr;
+        uvgrtp::frame::rtcp_sender_report   *sr_frame = nullptr;
+        uvgrtp::frame::rtcp_receiver_report *rr_frame = nullptr;
         uvgrtp::frame::rtcp_sdes_packet     *sdes_frame = nullptr;
         uvgrtp::frame::rtcp_app_packet      *app_frame = nullptr;
     };

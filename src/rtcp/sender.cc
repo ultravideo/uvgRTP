@@ -8,8 +8,8 @@ uvgrtp::frame::rtcp_sender_report *uvgrtp::rtcp::get_sender_packet(uint32_t ssrc
     if (participants_.find(ssrc) == participants_.end())
         return nullptr;
 
-    auto frame = participants_[ssrc]->s_frame;
-    participants_[ssrc]->s_frame = nullptr;
+    auto frame = participants_[ssrc]->sr_frame;
+    participants_[ssrc]->sr_frame = nullptr;
 
     return frame;
 }
@@ -42,8 +42,8 @@ rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t *packet, size_t si
     }
 
     /* Deallocate previous frame from the buffer if it exists, it's going to get overwritten */
-    if (participants_[frame->ssrc]->s_frame)
-        delete participants_[frame->ssrc]->s_frame;
+    if (participants_[frame->ssrc]->sr_frame)
+        delete participants_[frame->ssrc]->sr_frame;
 
     frame->sender_info.ntp_msw  = ntohl(*(uint32_t *)&packet[ 8]);
     frame->sender_info.ntp_lsw  = ntohl(*(uint32_t *)&packet[12]);
@@ -73,7 +73,7 @@ rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t *packet, size_t si
     if (sender_hook_)
         sender_hook_(frame);
     else
-        participants_[frame->ssrc]->s_frame = frame;
+        participants_[frame->ssrc]->sr_frame = frame;
 
     return RTP_OK;
 }
