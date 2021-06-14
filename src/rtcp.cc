@@ -788,20 +788,7 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* packet, size_t 
     if (participants_[frame->ssrc]->rr_frame)
         delete participants_[frame->ssrc]->rr_frame;
 
-    for (int i = 0; i < frame->header.count; ++i) {
-        uvgrtp::frame::rtcp_report_block report;
-
-        uint16_t report_section = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
-        report.ssrc =       ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 0]);
-        report.fraction =  (ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 4])) >> 24;
-        report.lost =      (ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 4])) & 0xfffffd;
-        report.last_seq =   ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 8]);
-        report.jitter =     ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 12]);
-        report.lsr =        ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 16]);
-        report.dlsr =       ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 20]);
-
-        frame->report_blocks.push_back(report);
-    }
+    read_reports(packet, size, frame->header.count, frame->report_blocks);
 
     if (receiver_hook_)
         receiver_hook_(frame);
@@ -845,20 +832,7 @@ rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t* packet, size_t si
         ((frame->sender_info.ntp_msw >> 16) & 0xffff) |
         ((frame->sender_info.ntp_lsw & 0xffff0000) >> 16);
 
-    for (int i = 0; i < frame->header.count; ++i) {
-        uvgrtp::frame::rtcp_report_block report;
-
-        uint16_t report_section = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + SENDER_INFO_SIZE;
-        report.ssrc =       ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 0]);
-        report.fraction =  (ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 4])) >> 24;
-        report.lost =      (ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 4])) & 0xfffffd;
-        report.last_seq =   ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 8]);
-        report.jitter =     ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 12]);
-        report.lsr =        ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 16]);
-        report.dlsr =       ntohl(*(uint32_t*)&packet[report_section + (i * REPORT_BLOCK_SIZE) + 20]);
-
-        frame->report_blocks.push_back(report);
-    }
+    read_reports(packet, size, frame->header.count, frame->report_blocks);
 
     if (sender_hook_)
         sender_hook_(frame);
@@ -912,6 +886,33 @@ void uvgrtp::rtcp::read_rtcp_header(uint8_t* packet, uvgrtp::frame::rtcp_header&
         header.count = packet[0] & 0x1f;
 
     header.length = ntohs(*(uint16_t*)&packet[2]);
+}
+
+void uvgrtp::rtcp::read_reports(uint8_t* packet, size_t size, uint8_t count, std::vector<uvgrtp::frame::rtcp_report_block>& reports)
+{
+    uint32_t report_section = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + SENDER_INFO_SIZE;
+
+    for (int i = 0; i < count; ++i) {
+        uint32_t report_position = report_section + (i * REPORT_BLOCK_SIZE);
+
+        if (size >= report_position + REPORT_BLOCK_SIZE)
+        {
+            uvgrtp::frame::rtcp_report_block report;
+            report.ssrc =       ntohl(*(uint32_t*)&packet[report_position + 0]);
+            report.fraction =  (ntohl(*(uint32_t*)&packet[report_position + 4])) >> 24;
+            report.lost =      (ntohl(*(int32_t*)&packet[report_position + 4])) & 0xfffffd;
+            report.last_seq =   ntohl(*(uint32_t*)&packet[report_position + 8]);
+            report.jitter =     ntohl(*(uint32_t*)&packet[report_position + 12]);
+            report.lsr =        ntohl(*(uint32_t*)&packet[report_position + 16]);
+            report.dlsr =       ntohl(*(uint32_t*)&packet[report_position + 20]);
+
+            reports.push_back(report);
+        }
+        else
+        {
+            LOG_DEBUG("Received rtcp packet is smaller than the indicated number of reports!");
+        }
+    }
 }
 
 rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, size_t frame_size)
