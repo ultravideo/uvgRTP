@@ -45,8 +45,11 @@ namespace uvgrtp {
 
                 virtual void construct_format_header(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
                     uvgrtp::buf_vec& buffers) = 0;
-                virtual rtp_error_t divide_data_to_fus(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
+                virtual rtp_error_t format_fu_division(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
                     uvgrtp::buf_vec& buffers) = 0;
+
+                rtp_error_t divide_frame_to_fus(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
+                    uvgrtp::buf_vec& buffers, uint8_t fu_headers[]);
 
                 /* Construct an aggregation packet.
                  * Default implementation does nothing. If aggregation_pkt is supported, the 

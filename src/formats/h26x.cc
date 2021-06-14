@@ -326,7 +326,7 @@ rtp_error_t uvgrtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len,
     uvgrtp::buf_vec buffers = fqueue_->get_buffer_vector();
 
     construct_format_header(data, data_left, data_pos, payload_size, buffers);
-    if ((ret = divide_data_to_fus(data, data_left, data_pos, payload_size, buffers)) != RTP_OK)
+    if ((ret = format_fu_division(data, data_left, data_pos, payload_size, buffers)) != RTP_OK)
         return ret;
 
     if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
@@ -366,3 +366,35 @@ rtp_error_t uvgrtp::formats::h26x::make_aggregation_pkt()
 
 void uvgrtp::formats::h26x::clear_aggregation_info()
 {}
+
+rtp_error_t uvgrtp::formats::h26x::divide_frame_to_fus(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
+    uvgrtp::buf_vec& buffers, uint8_t fu_headers[])
+{
+    rtp_error_t ret = RTP_OK;
+
+    while (data_left > payload_size) {
+        buffers.at(2).first = payload_size;
+        buffers.at(2).second = &data[data_pos];
+
+        if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
+            LOG_ERROR("Queueing the message failed!");
+            clear_aggregation_info();
+            fqueue_->deinit_transaction();
+            return ret;
+        }
+
+        data_pos += payload_size;
+        data_left -= payload_size;
+
+        /* from now on, use the FU header meant for middle fragments */
+        buffers.at(1).second = &fu_headers[1];
+    }
+
+    /* use the FU header meant for the last fragment */
+    buffers.at(1).second = &fu_headers[2];
+
+    buffers.at(2).first = data_left;
+    buffers.at(2).second = &data[data_pos];
+
+    return ret;
+}

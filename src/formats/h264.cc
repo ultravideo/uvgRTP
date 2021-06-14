@@ -163,35 +163,9 @@ void uvgrtp::formats::h264::construct_format_header(uint8_t* data, size_t& data_
     data_left -= uvgrtp::frame::HEADER_SIZE_H264_NAL;
 }
 
-rtp_error_t uvgrtp::formats::h264::divide_data_to_fus(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
+rtp_error_t uvgrtp::formats::h264::format_fu_division(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
     uvgrtp::buf_vec& buffers)
 {
-    rtp_error_t ret = RTP_OK;
     auto headers = (uvgrtp::formats::h264_headers*)fqueue_->get_media_headers();
-
-    while (data_left > payload_size) {
-        buffers.at(2).first = payload_size;
-        buffers.at(2).second = &data[data_pos];
-
-        if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
-            LOG_ERROR("Queueing the message failed!");
-            clear_aggregation_info();
-            fqueue_->deinit_transaction();
-            return ret;
-        }
-
-        data_pos += payload_size;
-        data_left -= payload_size;
-
-        /* from now on, use the FU header meant for middle fragments */
-        buffers.at(1).second = &headers->fu_headers[1];
-    }
-
-    /* use the FU header meant for the last fragment */
-    buffers.at(1).second = &headers->fu_headers[2];
-
-    buffers.at(2).first = data_left;
-    buffers.at(2).second = &data[data_pos];
-
-    return ret;
+    return divide_frame_to_fus(data, data_left, data_pos, payload_size, buffers, headers->fu_headers);
 }

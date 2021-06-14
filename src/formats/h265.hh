@@ -117,7 +117,7 @@ namespace uvgrtp {
                 virtual void construct_format_header(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
                     uvgrtp::buf_vec& buffers);
 
-                virtual rtp_error_t divide_data_to_fus(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
+                virtual rtp_error_t format_fu_division(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
                     uvgrtp::buf_vec& buffers);
 
             private:
