@@ -55,6 +55,7 @@ SOURCES += \
 	src/formats/h265_pkt_handler.cc \
 	src/formats/h266.cc \
 	src/formats/h266_pkt_handler.cc \
+	src/zrtp/zrtp_message.cc \
 	src/zrtp/zrtp_receiver.cc \
 	src/zrtp/hello.cc \
 	src/zrtp/hello_ack.cc \
@@ -63,12 +64,6 @@ SOURCES += \
 	src/zrtp/confirm.cc \
 	src/zrtp/confack.cc \
 	src/zrtp/error.cc \
-	src/rtcp/app.cc \
-	src/rtcp/sdes.cc \
-	src/rtcp/bye.cc \
-	src/rtcp/receiver.cc \
-	src/rtcp/sender.cc \
-	src/rtcp/rtcp_runner.cc \
 	src/srtp/base.cc \
 	src/srtp/srtp.cc \
 	src/srtp/srtcp.cc \
@@ -77,40 +72,41 @@ HEADERS += \
 	include/clock.hh \
 	include/crypto.hh \
 	include/debug.hh \
-	include/dispatch.hh \
 	include/frame.hh \
-	include/hostname.hh \
 	include/lib.hh \
 	include/media_stream.hh \
-	include/mingw_inet.hh \
-	include/multicast.hh \
-	include/pkt_dispatch.hh \
-	include/holepuncher.hh \
-	include/poll.hh \
-	include/queue.hh \
-	include/random.hh \
 	include/rtcp.hh \
-	include/rtp.hh \
 	include/runner.hh \
 	include/session.hh \
 	include/socket.hh \
 	include/util.hh \
-	include/zrtp.hh \
-	include/formats/media.hh \
-	include/formats/h26x.hh \
-	include/formats/h264.hh \
-	include/formats/h265.hh \
-	include/zrtp/zrtp_receiver.hh \
-	include/zrtp/hello.hh \
-	include/zrtp/hello_ack.hh \
-	include/zrtp/commit.hh \
-	include/zrtp/dh_kxchng.hh \
-	include/zrtp/confirm.hh \
-	include/zrtp/confack.hh \
-	include/zrtp/error.hh \
-	include/srtp/base.hh \
-	include/srtp/srtp.hh \
-	include/srtp/srtcp.hh \
+	src/dispatch.hh \
+	src/holepuncher.hh \
+	src/hostname.hh \
+	src/mingw_inet.hh \
+	src/multicast.hh \
+	src/pkt_dispatch.hh \
+	src/poll.hh \
+	src/queue.hh \
+	src/random.hh \
+	src/rtp.hh \
+	src/zrtp.hh \
+	src/formats/media.hh \
+	src/formats/h26x.hh \
+	src/formats/h264.hh \
+	src/formats/h265.hh \
+	src/zrtp/zrtp_receiver.hh \
+	src/zrtp/zrtp_message.hh \
+	src/zrtp/hello.hh \
+	src/zrtp/hello_ack.hh \
+	src/zrtp/commit.hh \
+	src/zrtp/dh_kxchng.hh \
+	src/zrtp/confirm.hh \
+	src/zrtp/confack.hh \
+	src/zrtp/error.hh \
+	src/srtp/base.hh \
+	src/srtp/srtp.hh \
+	src/srtp/srtcp.hh \
 
 
 unix {

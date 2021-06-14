@@ -13,7 +13,8 @@
 #define ZRTP_DH_PART1       "DHPart1 "
 #define ZRTP_DH_PART2       "DHPart2 "
 
-uvgrtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int part)
+uvgrtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int part):
+    zrtp_message()
 {
     const char *strs[2][2] = {
         {
@@ -26,27 +27,11 @@ uvgrtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int 
 
     LOG_DEBUG("Create ZRTP DHPart%d message", part);
 
-    frame_  = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_dh));
-    rframe_ = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_dh));
-    len_    = sizeof(zrtp_dh);
-    rlen_   = sizeof(zrtp_dh);
+    allocate_frame(sizeof(zrtp_dh));
+    zrtp_dh* msg = (zrtp_dh*)frame_;
+    set_zrtp_start(msg->msg_start, session, strs[part - 1][0]);
 
-    memset(frame_,  0, sizeof(zrtp_dh));
-    memset(rframe_, 0, sizeof(zrtp_dh));
-
-    zrtp_dh *msg = (zrtp_dh *)frame_;
-
-    msg->msg_start.header.version = 0;
-    msg->msg_start.header.unused  = 0;
-    msg->msg_start.header.magic   = ZRTP_HEADER_MAGIC;
-    msg->msg_start.header.ssrc    = session.ssrc;
-    msg->msg_start.header.seq     = session.seq++;
-
-    msg->msg_start.magic  = ZRTP_MSG_MAGIC;
-    msg->msg_start.length = (uint16_t)len_ - (uint16_t)sizeof(zrtp_header);
     msg->crc = 0;
-
-    memcpy(&msg->msg_start.msgblock, strs[part - 1][0],           8);
     memcpy(msg->hash,                session.hash_ctx.o_hash[1], 32);
 
     /* Calculate hashes for the secrets (as defined in Section 4.3.1)
@@ -102,35 +87,21 @@ uvgrtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int 
     memcpy(session.l_msg.dh.second, msg, len_);
 }
 
-uvgrtp::zrtp_msg::dh_key_exchange::dh_key_exchange(struct zrtp_dh *dh)
+uvgrtp::zrtp_msg::dh_key_exchange::dh_key_exchange(struct zrtp_dh *dh):
+    zrtp_message()
 {
     (void)dh;
 }
 
 uvgrtp::zrtp_msg::dh_key_exchange::~dh_key_exchange()
-{
-    LOG_DEBUG("Freeing DHPartN message...");
-
-    (void)uvgrtp::frame::dealloc_frame(frame_);
-    (void)uvgrtp::frame::dealloc_frame(rframe_);
-}
-
-rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::send_msg(uvgrtp::socket *socket, sockaddr_in& addr)
-{
-    rtp_error_t ret;
-
-    if ((ret = socket->sendto(addr, (uint8_t *)frame_, len_, 0, nullptr)) != RTP_OK)
-        log_platform_error("Failed to send ZRTP Hello message");
-
-    return ret;
-}
+{}
 
 rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
     LOG_DEBUG("Parsing DHPart1/DHPart2 message...");
 
     ssize_t len = 0;
-
+    allocate_rframe(sizeof(zrtp_dh));
     if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
         LOG_ERROR("Failed to get message from ZRTP receiver");
         return RTP_INVALID_VALUE;

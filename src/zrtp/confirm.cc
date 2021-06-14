@@ -11,34 +11,22 @@
 #define ZRTP_CONFRIM1 "Confirm1"
 #define ZRTP_CONFRIM2 "Confirm2"
 
-uvgrtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part)
+uvgrtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part):
+    zrtp_message()
 {
     /* temporary storage for the full hmac hash */
     uint8_t mac_full[32];
 
     LOG_DEBUG("Create ZRTP Confirm%d message!", part);
 
-    frame_  = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_confirm));
-    rframe_ = uvgrtp::frame::alloc_zrtp_frame(sizeof(zrtp_confirm));
+    allocate_frame(sizeof(zrtp_confirm));
+    zrtp_confirm* msg = (zrtp_confirm*)frame_;
 
-    len_    = sizeof(zrtp_confirm);
-    rlen_   = sizeof(zrtp_confirm);
-
-    memset(frame_,  0, sizeof(zrtp_confirm));
-    memset(rframe_, 0, sizeof(zrtp_confirm));
-
-    zrtp_confirm *msg = (zrtp_confirm *)frame_;
-
-    msg->msg_start.header.version = 0;
-    msg->msg_start.header.magic   = ZRTP_HEADER_MAGIC;
-    msg->msg_start.header.ssrc    = session.ssrc;
-    msg->msg_start.header.seq     = session.seq++;
-
-    msg->msg_start.magic  = ZRTP_MSG_MAGIC;
-    msg->msg_start.length = (uint16_t)len_ - (uint16_t)sizeof(zrtp_header);
-
-    /* Message Type Block and H0 */
-    memcpy(&msg->msg_start.msgblock, (part == 1) ? ZRTP_CONFRIM1 : ZRTP_CONFRIM2,  8);
+    if (part == 1)
+        set_zrtp_start(msg->msg_start, session, ZRTP_CONFRIM1);
+    else
+        set_zrtp_start(msg->msg_start, session, ZRTP_CONFRIM2);
+    
     memcpy(&msg->hash,               session.hash_ctx.o_hash[0],                  32); /* 256 bits */
 
     /* Generate random 128-bit nonce for CFB IV */
@@ -82,22 +70,7 @@ uvgrtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part)
 }
 
 uvgrtp::zrtp_msg::confirm::~confirm()
-{
-    LOG_DEBUG("Freeing ConfirmN message...");
-
-    (void)uvgrtp::frame::dealloc_frame(frame_);
-    (void)uvgrtp::frame::dealloc_frame(rframe_);
-}
-
-rtp_error_t uvgrtp::zrtp_msg::confirm::send_msg(uvgrtp::socket *socket, sockaddr_in& addr)
-{
-    rtp_error_t ret;
-
-    if ((ret = socket->sendto(addr, (uint8_t *)frame_, len_, 0, nullptr)) != RTP_OK)
-        log_platform_error("Failed to send ZRTP Hello message");
-
-    return ret;
-}
+{}
 
 rtp_error_t uvgrtp::zrtp_msg::confirm::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
@@ -106,6 +79,7 @@ rtp_error_t uvgrtp::zrtp_msg::confirm::parse_msg(uvgrtp::zrtp_msg::receiver& rec
     uint64_t cmac        = 0;
     uint8_t mac_full[32] = { 0 };
 
+    allocate_rframe(sizeof(zrtp_confirm));
     if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
         LOG_ERROR("Failed to get message from ZRTP receiver");
         return RTP_INVALID_VALUE;

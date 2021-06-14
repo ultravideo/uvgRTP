@@ -220,14 +220,17 @@ rtp_error_t uvgrtp::frame_queue::deinit_transaction(uint32_t key)
         switch (rtp_->get_payload()) {
             case RTP_FORMAT_H264:
                 delete (uvgrtp::formats::h264_headers *)transaction_it->second->media_headers;
+                transaction_it->second->media_headers = nullptr;
                 break;
 
             case RTP_FORMAT_H265:
                 delete (uvgrtp::formats::h265_headers *)transaction_it->second->media_headers;
+                transaction_it->second->media_headers = nullptr;
                 break;
 
             case RTP_FORMAT_H266:
                 delete (uvgrtp::formats::h266_headers *)transaction_it->second->media_headers;
+                transaction_it->second->media_headers = nullptr;
                 break;
 
             default:
@@ -382,7 +385,7 @@ rtp_error_t uvgrtp::frame_queue::flush_queue()
         return RTP_SEND_ERROR;
     }
 
-    LOG_DEBUG("full message took %zu chunks and %zu messages", active_->chunk_ptr, active_->hdr_ptr);
+    //LOG_DEBUG("full message took %zu chunks and %zu messages", active_->chunk_ptr, active_->hdr_ptr);
     return deinit_transaction();
 }
 

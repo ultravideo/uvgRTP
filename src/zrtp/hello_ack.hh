@@ -1,6 +1,7 @@
 #pragma once
 
 #include "defines.hh"
+#include "zrtp_message.hh"
 
 #include "util.hh"
 
@@ -25,18 +26,13 @@ namespace uvgrtp {
             uint32_t crc = 0;
         });
 
-        class hello_ack {
+        class hello_ack : public zrtp_message {
             public:
                 hello_ack();
                 ~hello_ack();
 
-                rtp_error_t send_msg(uvgrtp::socket *socket, sockaddr_in& addr);
-
-                rtp_error_t parse_msg(uvgrtp::zrtp_msg::receiver& receiver);
-
-            private:
-                uvgrtp::frame::zrtp_frame *frame_;
-                size_t len_;
+                virtual rtp_error_t parse_msg(uvgrtp::zrtp_msg::receiver& receiver,
+                    zrtp_session_t& session);
         };
 
     };

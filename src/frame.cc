@@ -66,7 +66,7 @@ rtp_error_t uvgrtp::frame::dealloc_frame(uvgrtp::frame::rtp_frame *frame)
     else if (frame->payload)
         delete[] frame->payload;
 
-    LOG_DEBUG("Deallocating frame, type %u", frame->type);
+    //LOG_DEBUG("Deallocating frame, type %u", frame->type);
 
     delete frame;
     return RTP_OK;

@@ -102,14 +102,24 @@ namespace uvgrtp {
                 h264_frame_info_t *get_h264_frame_info();
 
             protected:
-                rtp_error_t push_nal_unit(uint8_t *data, size_t data_len, bool more);
+                // get h264 nal type
+                virtual uint8_t get_nal_type(uint8_t* data);
 
-            private:
-                /* Construct an aggregation packet from data in "aggr_pkt_info_" */
-                rtp_error_t make_aggregation_pkt();
+                // the aggregation packet is not enabled
+                virtual rtp_error_t handle_small_packet(uint8_t* data, size_t data_len, bool more);
+                
+                /* Construct an aggregation packet from data in "aggr_pkt_info_" 
+                 * TODO: The code exists, but it is not used */
+                virtual rtp_error_t make_aggregation_pkt();
 
                 /* Clear aggregation buffers */
-                void clear_aggregation_info();
+                virtual void clear_aggregation_info();
+
+                // constructs h264 RTP header with correct values
+                virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t& data_left, 
+                    size_t& data_pos, size_t payload_size,  uvgrtp::buf_vec& buffers);
+
+            private:
 
                 h264_frame_info_t finfo_;
                 h264_aggregation_packet aggr_pkt_info_;

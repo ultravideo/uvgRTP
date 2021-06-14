@@ -46,12 +46,7 @@ add_library(uvgrtp STATIC
     src/zrtp/confirm.cc
     src/zrtp/confack.cc
     src/zrtp/error.cc
-    src/rtcp/app.cc
-    src/rtcp/sdes.cc
-    src/rtcp/bye.cc
-    src/rtcp/receiver.cc
-    src/rtcp/sender.cc
-    src/rtcp/rtcp_runner.cc
+    src/zrtp/zrtp_message.cc
     src/srtp/base.cc
     src/srtp/srtp.cc
     src/srtp/srtcp.cc
@@ -73,7 +68,7 @@ if (CRYPTOPP_PATH AND NOT DISABLE_CRYPTO)
 endif (CRYPTOPP_PATH AND NOT DISABLE_CRYPTO)
 
 if (UNIX)
-    set(COMPILER_FLAGS "-Wall -Wextra -Wuninitialized -Wshadow -O2 -g -march=native -DNDEBUG")
+    set(COMPILER_FLAGS "-Wall -Wextra -Wuninitialized -Wshadow -O2 -g -march=native")
     
     if (DISABLE_CRYPTO)
         string(APPEND COMPILER_FLAGS " -D__RTP_NO_CRYPTO__")
@@ -112,9 +107,9 @@ endif (UNIX)
 if (WIN32)
     if(MSVC)
 	    # /Zc:__cplusplus makes it so the correct c++ version is defined 
-        set(COMPILER_FLAGS "/O2 /DNDEBUG /Zc:__cplusplus")
+        set(COMPILER_FLAGS "/O2 /Zc:__cplusplus")
     else(MSVC)
-        set(COMPILER_FLAGS "-O2 -DNDEBUG")
+        set(COMPILER_FLAGS "-O2")
     endif(MSVC)
     SET(OUT_DIR ${CMAKE_BINARY_DIR}/Debug)
 
