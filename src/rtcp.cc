@@ -598,23 +598,34 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
 {
     (void)size;
 
-    int version  = (buffer[0] >> 6) & 0x3;
-    int padding  = (buffer[0] >> 5) & 0x1;
-    int pkt_type = buffer[1] & 0xff;
-
-    if (version != 0x2) {
-        LOG_ERROR("Invalid header version (%u)", version);
+    if (size < RTCP_HEADER_LENGTH)
+    {
+        LOG_ERROR("Didn't get enough data for an rtcp header");
         return RTP_INVALID_VALUE;
     }
 
-    if (padding) {
+    uvgrtp::frame::rtcp_header header;
+    read_rtcp_header(buffer, header);
+
+    if (size < header.length)
+    {
+        LOG_ERROR("Received partial rtcp packet. Not supported");
+        return RTP_NOT_SUPPORTED;
+    }
+
+    if (header.version != 0x2) {
+        LOG_ERROR("Invalid header version (%u)", header.version);
+        return RTP_INVALID_VALUE;
+    }
+
+    if (header.padding) {
         LOG_ERROR("Cannot handle padded packets!");
         return RTP_INVALID_VALUE;
     }
 
-    if (pkt_type > uvgrtp::frame::RTCP_FT_BYE ||
-        pkt_type < uvgrtp::frame::RTCP_FT_SR) {
-        LOG_ERROR("Invalid packet type (%u)!", pkt_type);
+    if (header.pkt_type > uvgrtp::frame::RTCP_FT_BYE ||
+        header.pkt_type < uvgrtp::frame::RTCP_FT_SR) {
+        LOG_ERROR("Invalid packet type (%u)!", header.pkt_type);
         return RTP_INVALID_VALUE;
     }
 
@@ -622,17 +633,17 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
 
     rtp_error_t ret = RTP_INVALID_VALUE;
 
-    switch (pkt_type) {
+    switch (header.pkt_type) {
         case uvgrtp::frame::RTCP_FT_SR:
-            ret = handle_sender_report_packet(buffer, size);
+            ret = handle_sender_report_packet(buffer, size, header);
             break;
 
         case uvgrtp::frame::RTCP_FT_RR:
-            ret = handle_receiver_report_packet(buffer, size);
+            ret = handle_receiver_report_packet(buffer, size, header);
             break;
 
         case uvgrtp::frame::RTCP_FT_SDES:
-            ret = handle_sdes_packet(buffer, size);
+            ret = handle_sdes_packet(buffer, size, header);
             break;
 
         case uvgrtp::frame::RTCP_FT_BYE:
@@ -640,24 +651,25 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
             break;
 
         case uvgrtp::frame::RTCP_FT_APP:
-            ret = handle_app_packet(buffer, size);
+            ret = handle_app_packet(buffer, size, header);
             break;
 
         default:
-            LOG_WARN("Unknown packet received, type %d", pkt_type);
+            LOG_WARN("Unknown packet received, type %d", header.pkt_type);
             break;
     }
 
     return ret;
 }
 
-rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t* packet, size_t size)
+rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t* packet, size_t size,
+    uvgrtp::frame::rtcp_header& header)
 {
     if (!packet || !size)
         return RTP_INVALID_VALUE;
 
     auto frame = new uvgrtp::frame::rtcp_sdes_packet;
-    read_rtcp_header(packet, frame->header, false);
+    frame->header = header;
     frame->ssrc = ntohl(*(uint32_t*)&packet[4]);
 
     auto ret = RTP_OK;
@@ -711,13 +723,14 @@ rtp_error_t uvgrtp::rtcp::handle_bye_packet(uint8_t* packet, size_t size)
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t size)
+rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t size,
+    uvgrtp::frame::rtcp_header& header)
 {
     if (!packet || !size)
         return RTP_INVALID_VALUE;
 
     auto frame = new uvgrtp::frame::rtcp_app_packet;
-    read_rtcp_header(packet, frame->header, true);
+    frame->header = header;
     frame->ssrc = ntohl(*(uint32_t*)&packet[4]);
 
     auto ret = RTP_OK;
@@ -742,13 +755,14 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t size)
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* packet, size_t size)
+rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* packet, size_t size, 
+    uvgrtp::frame::rtcp_header& header)
 {
     if (!packet || !size)
         return RTP_INVALID_VALUE;
 
     auto frame = new uvgrtp::frame::rtcp_receiver_report;
-    read_rtcp_header(packet, frame->header, false);
+    frame->header = header;
     frame->ssrc = ntohl(*(uint32_t*)&packet[RTCP_HEADER_SIZE]);
 
     auto ret = RTP_OK;
@@ -797,13 +811,14 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* packet, size_t 
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t* packet, size_t size)
+rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t* packet, size_t size,
+    uvgrtp::frame::rtcp_header& header)
 {
     if (!packet || !size)
         return RTP_INVALID_VALUE;
 
     auto frame = new uvgrtp::frame::rtcp_sender_report;
-    read_rtcp_header(packet, frame->header, false);
+    frame->header = header;
     frame->ssrc = ntohl(*(uint32_t*)&packet[4]);
 
     auto ret = RTP_OK;
@@ -884,11 +899,14 @@ rtp_error_t uvgrtp::rtcp::construct_rtcp_header(size_t packet_size,
     return RTP_OK;
 }
 
-void uvgrtp::rtcp::read_rtcp_header(uint8_t* packet, uvgrtp::frame::rtcp_header& header, bool app)
+void uvgrtp::rtcp::read_rtcp_header(uint8_t* packet, uvgrtp::frame::rtcp_header& header)
 {
     header.version = (packet[0] >> 6) & 0x3;
     header.padding = (packet[0] >> 5) & 0x1;
-    if (app)
+
+    header.pkt_type = packet[1] & 0xff;
+
+    if (header.pkt_type == uvgrtp::frame::RTCP_FT_APP)
         header.pkt_subtype = packet[0] & 0x1f;
     else
         header.count = packet[0] & 0x1f;

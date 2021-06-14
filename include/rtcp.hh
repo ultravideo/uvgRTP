@@ -95,20 +95,6 @@ namespace uvgrtp {
              * Return RTP_OK on success and RTP_ERROR on error */
             rtp_error_t generate_report();
 
-            /* Handle different kinds of incoming packets
-             *
-             * These routines will convert the fields of "frame" from network to host byte order
-             *
-             * Currently nothing's done with valid packets, at some point an API for
-             * querying these reports is implemented
-             *
-             * Return RTP_OK on success and RTP_ERROR on error */
-            rtp_error_t handle_sender_report_packet(uint8_t *frame, size_t size);
-            rtp_error_t handle_receiver_report_packet(uint8_t *frame, size_t size);
-            rtp_error_t handle_sdes_packet(uint8_t *frame, size_t size);
-            rtp_error_t handle_bye_packet(uint8_t *frame, size_t size);
-            rtp_error_t handle_app_packet(uint8_t *frame, size_t size);
-
             /* Handle incoming RTCP packet (first make sure it's a valid RTCP packet)
              * This function will call one of the above functions internally
              *
@@ -302,6 +288,20 @@ namespace uvgrtp {
             /// \endcond
 
         private:
+
+            /* Handle different kinds of incoming rtcp packets. The read header is passed to functions
+               which read rest of the frame type specific data.
+             * Return RTP_OK on success and RTP_ERROR on error */
+            rtp_error_t handle_sender_report_packet(uint8_t* frame, size_t size,
+                uvgrtp::frame::rtcp_header& header);
+            rtp_error_t handle_receiver_report_packet(uint8_t* frame, size_t size,
+                uvgrtp::frame::rtcp_header& header);
+            rtp_error_t handle_sdes_packet(uint8_t* frame, size_t size,
+                uvgrtp::frame::rtcp_header& header);
+            rtp_error_t handle_bye_packet(uint8_t* frame, size_t size);
+            rtp_error_t handle_app_packet(uint8_t* frame, size_t size,
+                uvgrtp::frame::rtcp_header& header);
+
             static void rtcp_runner(rtcp *rtcp);
 
             /* when we start the RTCP instance, we don't know what the SSRC of the remote is
@@ -351,7 +351,7 @@ namespace uvgrtp {
                 uint16_t secondField, uvgrtp::frame::RTCP_FRAME_TYPE frame_type, bool addLocalSSRC);
 
             /* read the header values from rtcp packet */
-            void read_rtcp_header(uint8_t* packet, uvgrtp::frame::rtcp_header& header, bool app);
+            void read_rtcp_header(uint8_t* packet, uvgrtp::frame::rtcp_header& header);
 
             /* Takes ownership of the frame */
             rtp_error_t send_rtcp_packet_to_participants(uint8_t* frame, size_t frame_size);
