@@ -74,6 +74,16 @@ static inline unsigned __find_h26x_start(uint32_t value)
     return 0;
 }
 
+uvgrtp::formats::h26x::h26x(uvgrtp::socket* socket, uvgrtp::rtp* rtp, int flags) :
+    media(socket, rtp, flags)
+{
+}
+
+uvgrtp::formats::h26x::~h26x()
+{
+    delete fqueue_;
+}
+
 /* NOTE: the area 0 - len (ie data[0] - data[len - 1]) must be addressable
  * Do not add offset to "data" ptr before passing it to find_h26x_start_code()! */
 ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
@@ -285,21 +295,52 @@ error:
 
 rtp_error_t uvgrtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len, bool more)
 {
-    (void)data, (void)data_len, (void)more;
+    if (data_len <= 3)
+        return RTP_INVALID_VALUE;
 
-    LOG_ERROR("Each H26x class must implement this function!");
+    rtp_error_t ret = RTP_OK;
 
-    return RTP_NOT_SUPPORTED;
-}
+    size_t payload_size = rtp_ctx_->get_payload_size();
 
-uvgrtp::formats::h26x::h26x(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags):
-    media(socket, rtp, flags)
-{
-}
+    if (data_len - 3 <= payload_size) {
+        if ((ret = handle_small_packet(data, data_len, more)) != RTP_OK)
+            return ret;
+    }
+    else {
+        /* If smaller NALUs were queued before this NALU,
+         * send them in an aggregation packet before proceeding with fragmentation */
+        (void)make_aggregation_pkt();
+    }
 
-uvgrtp::formats::h26x::~h26x()
-{
-    delete fqueue_;
+    size_t data_left = data_len;
+    size_t data_pos = 0;
+
+    /* The payload is larger than MTU (1500 bytes) so we must split it into smaller RTP frames
+     * Because we don't if the SCD is enabled and thus cannot make any assumptions about the life time
+     * of current stack, we need to store NAL and FU headers to the frame queue transaction.
+     *
+     * This can be done by asking a handle to current transaction's buffer vectors.
+     *
+     * During Connection initialization, the frame queue was given the payload format so the
+     * transaction also contains our media-specific headers [get_media_headers()]. */
+    uvgrtp::buf_vec buffers = fqueue_->get_buffer_vector();
+
+    construct_format_header(data, data_left, data_pos, payload_size, buffers);
+    if ((ret = divide_data_to_fus(data, data_left, data_pos, payload_size, buffers)) != RTP_OK)
+        return ret;
+
+    if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
+        LOG_ERROR("Failed to send HEVC frame!");
+        clear_aggregation_info();
+        fqueue_->deinit_transaction();
+        return ret;
+    }
+
+    if (more)
+        return RTP_NOT_READY;
+
+    clear_aggregation_info();
+    return fqueue_->flush_queue();
 }
 
 rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t *data, size_t data_len, int flags)
@@ -316,3 +357,12 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t *data, size_t data_l
 
     return push_h26x_frame(data, data_len, flags);
 }
+
+
+rtp_error_t uvgrtp::formats::h26x::make_aggregation_pkt()
+{
+    return RTP_OK;
+}
+
+void uvgrtp::formats::h26x::clear_aggregation_info()
+{}

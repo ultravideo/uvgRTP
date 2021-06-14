@@ -2,13 +2,12 @@
 
 #include "media.hh"
 #include "util.hh"
+#include "socket.hh"
 
 namespace uvgrtp {
 
     // forward definitions
-    class socket;
     class rtp;
-
 
     namespace formats {
 
@@ -40,8 +39,24 @@ namespace uvgrtp {
                 rtp_error_t push_h26x_frame(uint8_t *data, size_t data_len, int flags);
 
             protected:
-                /* Each H26x class overrides this function with their custom NAL pushing function */
-                virtual rtp_error_t push_nal_unit(uint8_t *data, size_t data_len, bool more);
+                virtual uint8_t get_nal_type(uint8_t* data) = 0;
+
+                virtual rtp_error_t handle_small_packet(uint8_t* data, size_t data_len, bool more) = 0;
+
+                virtual void construct_format_header(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
+                    uvgrtp::buf_vec& buffers) = 0;
+                virtual rtp_error_t divide_data_to_fus(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
+                    uvgrtp::buf_vec& buffers) = 0;
+
+                /* Construct an aggregation packet.
+                 * Default implementation does nothing. If aggregation_pkt is supported, the 
+                 * child class should change the behavior */
+                virtual rtp_error_t make_aggregation_pkt();
+                virtual void clear_aggregation_info();
+
+        private:
+            /* Each H26x class overrides this function with their custom NAL pushing function */
+            rtp_error_t push_nal_unit(uint8_t* data, size_t data_len, bool more);
         };
     };
 };
