@@ -341,13 +341,6 @@ namespace uvgrtp {
              * should be increased before calculating the new average */
             void update_rtcp_bandwidth(size_t pkt_size);
 
-            /* Functions for generating different kinds of reports.
-             * These functions will both generate the report and send it
-             *
-             * Return RTP_OK on success and RTP_ERROR on error */
-            rtp_error_t generate_sender_report();
-            rtp_error_t generate_receiver_report();
-
             /* Because struct statistics contains uvgRTP clock object we cannot
              * zero it out without compiler complaining about it so all the fields
              * must be set to zero manually */
