@@ -104,6 +104,7 @@ namespace uvgrtp {
                 h265_frame_info_t *get_h265_frame_info();
 
             protected:
+                // get H265 nal type
                 virtual uint8_t get_nal_type(uint8_t* data);
 
                 /* Construct an aggregation packet from data in "aggr_pkt_info_" */
@@ -112,11 +113,14 @@ namespace uvgrtp {
                 /* Clear aggregation buffers */
                 virtual void clear_aggregation_info();
 
+                // Constructs aggregate packets
                 virtual rtp_error_t handle_small_packet(uint8_t* data, size_t data_len, bool more);
 
+                // constructs h265 RTP header with correct values
                 virtual void construct_format_header(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
                     uvgrtp::buf_vec& buffers);
 
+                // uses the correct fu headers for fu division
                 virtual rtp_error_t format_fu_division(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
                     uvgrtp::buf_vec& buffers);
 

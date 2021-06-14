@@ -39,26 +39,33 @@ namespace uvgrtp {
                 rtp_error_t push_h26x_frame(uint8_t *data, size_t data_len, int flags);
 
             protected:
+                /* Gets the format specific nal type from data*/
                 virtual uint8_t get_nal_type(uint8_t* data) = 0;
 
+                /* Handles small packets. May support aggregate packets or not*/
                 virtual rtp_error_t handle_small_packet(uint8_t* data, size_t data_len, bool more) = 0;
 
+                // Constructs the format specific RTP header
                 virtual void construct_format_header(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
                     uvgrtp::buf_vec& buffers) = 0;
+
+                // Divides the packet to fus. The child class should use divide_frame_to_fus for its implementation. 
+                // Makes sure correct header values are used in dividing.
                 virtual rtp_error_t format_fu_division(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
                     uvgrtp::buf_vec& buffers) = 0;
 
+                // a helper function that handles the fu division.
                 rtp_error_t divide_frame_to_fus(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
                     uvgrtp::buf_vec& buffers, uint8_t fu_headers[]);
 
-                /* Construct an aggregation packet.
+                /* Construct/clear aggregation packets.
                  * Default implementation does nothing. If aggregation_pkt is supported, the 
                  * child class should change the behavior */
                 virtual rtp_error_t make_aggregation_pkt();
                 virtual void clear_aggregation_info();
 
         private:
-            /* Each H26x class overrides this function with their custom NAL pushing function */
+            // constructs and sends the RTP packets with format specific stuff
             rtp_error_t push_nal_unit(uint8_t* data, size_t data_len, bool more);
         };
     };

@@ -33,7 +33,8 @@ rtp_error_t uvgrtp::formats::h264::make_aggregation_pkt()
 {
     rtp_error_t ret = RTP_OK;
 
-    // TODO: This function has is not used, but the code exists for some reason
+    // TODO: This function is not used, but the code exists for some reason. 
+    // This return disables the code for now
     return ret;
 
     uint8_t nri = 0;
