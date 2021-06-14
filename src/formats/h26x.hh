@@ -45,24 +45,21 @@ namespace uvgrtp {
                 /* Handles small packets. May support aggregate packets or not*/
                 virtual rtp_error_t handle_small_packet(uint8_t* data, size_t data_len, bool more) = 0;
 
-                // Constructs the format specific RTP header
-                virtual void construct_format_header(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
-                    uvgrtp::buf_vec& buffers) = 0;
-
-                // Divides the packet to fus. The child class should use divide_frame_to_fus for its implementation. 
-                // Makes sure correct header values are used in dividing.
-                virtual rtp_error_t format_fu_division(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
-                    uvgrtp::buf_vec& buffers) = 0;
-
-                // a helper function that handles the fu division.
-                rtp_error_t divide_frame_to_fus(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
-                    uvgrtp::buf_vec& buffers, uint8_t fu_headers[]);
+                // constructs format specific RTP header with correct values
+                virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t& data_left,
+                    size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers) = 0;
 
                 /* Construct/clear aggregation packets.
                  * Default implementation does nothing. If aggregation_pkt is supported, the 
                  * child class should change the behavior */
                 virtual rtp_error_t make_aggregation_pkt();
                 virtual void clear_aggregation_info();
+
+                // a helper function that handles the fu division.
+                rtp_error_t divide_frame_to_fus(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
+                    uvgrtp::buf_vec& buffers, uint8_t fu_headers[]);
+
+                void initialize_fu_headers(uint8_t nal_type, uint8_t fu_headers[]);
 
         private:
             // constructs and sends the RTP packets with format specific stuff

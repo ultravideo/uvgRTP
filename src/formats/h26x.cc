@@ -325,8 +325,7 @@ rtp_error_t uvgrtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len,
      * transaction also contains our media-specific headers [get_media_headers()]. */
     uvgrtp::buf_vec buffers = fqueue_->get_buffer_vector();
 
-    construct_format_header(data, data_left, data_pos, payload_size, buffers);
-    if ((ret = format_fu_division(data, data_left, data_pos, payload_size, buffers)) != RTP_OK)
+    if ((ret = construct_format_header_divide_fus(data, data_left, data_pos, payload_size, buffers)) != RTP_OK)
         return ret;
 
     if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
@@ -397,4 +396,11 @@ rtp_error_t uvgrtp::formats::h26x::divide_frame_to_fus(uint8_t* data, size_t& da
     buffers.at(2).second = &data[data_pos];
 
     return ret;
+}
+
+void uvgrtp::formats::h26x::initialize_fu_headers(uint8_t nal_type, uint8_t fu_headers[])
+{
+    fu_headers[0] = (uint8_t)((1 << 7) | nal_type);
+    fu_headers[1] = nal_type;
+    fu_headers[2] = (uint8_t)((1 << 6) | nal_type);
 }

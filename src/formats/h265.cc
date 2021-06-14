@@ -141,18 +141,15 @@ rtp_error_t uvgrtp::formats::h265::handle_small_packet(uint8_t* data, size_t dat
     }
 }
 
-void uvgrtp::formats::h265::construct_format_header(uint8_t* data, size_t& data_left, size_t& data_pos, 
-    size_t payload_size, uvgrtp::buf_vec& buffers)
+rtp_error_t uvgrtp::formats::h265::construct_format_header_divide_fus(uint8_t* data, size_t& data_left,
+    size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers)
 {
-    uint8_t nal_type = get_nal_type(data);
     auto headers = (uvgrtp::formats::h265_headers*)fqueue_->get_media_headers();
 
     headers->nal_header[0] = H265_PKT_FRAG << 1; /* fragmentation unit */
     headers->nal_header[1] = 1;                  /* temporal id */
 
-    headers->fu_headers[0] = (uint8_t)((1 << 7) | nal_type);
-    headers->fu_headers[1] = nal_type;
-    headers->fu_headers[2] = (uint8_t)((1 << 6) | nal_type);
+    initialize_fu_headers(get_nal_type(data), headers->fu_headers);
 
     buffers.push_back(std::make_pair(sizeof(headers->nal_header), headers->nal_header));
     buffers.push_back(std::make_pair(sizeof(uint8_t), &headers->fu_headers[0]));
@@ -160,11 +157,6 @@ void uvgrtp::formats::h265::construct_format_header(uint8_t* data, size_t& data_
 
     data_pos = uvgrtp::frame::HEADER_SIZE_H265_NAL;
     data_left -= uvgrtp::frame::HEADER_SIZE_H265_NAL;
-}
 
-rtp_error_t uvgrtp::formats::h265::format_fu_division(uint8_t* data, size_t& data_left, 
-    size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers)
-{
-    auto headers = (uvgrtp::formats::h265_headers*)fqueue_->get_media_headers();
     return divide_frame_to_fus(data, data_left, data_pos, payload_size, buffers, headers->fu_headers);
 }

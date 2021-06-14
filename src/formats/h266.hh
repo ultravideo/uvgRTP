@@ -101,13 +101,9 @@ namespace uvgrtp {
                 // the aggregation packet is not enabled
                 virtual rtp_error_t handle_small_packet(uint8_t* data, size_t data_len, bool more);
 
-                // constructs h264 RTP header with correct values
-                virtual void construct_format_header(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
-                    uvgrtp::buf_vec& buffers);
-
-                // uses the correct fu headers for fu division
-                virtual rtp_error_t format_fu_division(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
-                    uvgrtp::buf_vec& buffers);
+                // constructs h266 RTP header with correct values
+                virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t& data_left, 
+                    size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers);
 
             private:
                 h266_frame_info_t finfo_;
