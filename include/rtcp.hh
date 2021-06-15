@@ -11,6 +11,8 @@
 #include <map>
 #include <thread>
 #include <vector>
+#include <functional>
+#include <memory>
 
 namespace uvgrtp {
 
@@ -239,6 +241,7 @@ namespace uvgrtp {
              * \retval RTP_INVALID_VALUE If hook is nullptr
              */
             rtp_error_t install_sender_hook(void (*hook)(uvgrtp::frame::rtcp_sender_report *));
+            rtp_error_t install_sender_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_handler);
 
             /**
              * \brief Install an RTCP Receiver Report hook
@@ -251,6 +254,7 @@ namespace uvgrtp {
              * \retval RTP_INVALID_VALUE If hook is nullptr
              */
             rtp_error_t install_receiver_hook(void (*hook)(uvgrtp::frame::rtcp_receiver_report *));
+            rtp_error_t install_receiver_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_handler);
 
             /**
              * \brief Install an RTCP SDES packet hook
@@ -263,6 +267,7 @@ namespace uvgrtp {
              * \retval RTP_INVALID_VALUE If hook is nullptr
              */
             rtp_error_t install_sdes_hook(void (*hook)(uvgrtp::frame::rtcp_sdes_packet *));
+            rtp_error_t install_sdes_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_handler);
 
             /**
              * \brief Install an RTCP APP packet hook
@@ -275,6 +280,7 @@ namespace uvgrtp {
              * \retval RTP_INVALID_VALUE If hook is nullptr
              */
             rtp_error_t install_app_hook(void (*hook)(uvgrtp::frame::rtcp_app_packet *));
+            rtp_error_t install_app_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
 
             /// \cond DO_NOT_DOCUMENT
             /* Update RTCP-related sender statistics */
@@ -437,6 +443,11 @@ namespace uvgrtp {
             void (*receiver_hook_)(uvgrtp::frame::rtcp_receiver_report *);
             void (*sdes_hook_)(uvgrtp::frame::rtcp_sdes_packet *);
             void (*app_hook_)(uvgrtp::frame::rtcp_app_packet *);
+
+            std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_hook_f_;
+            std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_hook_f_;
+            std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_hook_f_;
+            std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)> app_hook_f_;
     };
 };
 
