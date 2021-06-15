@@ -261,7 +261,7 @@ rtp_error_t uvgrtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_le
             return push_nal_unit(data + r_off, data_len, false);
         } else {
             if ((ret = fqueue_->enqueue_message(data + r_off, data_len - r_off)) != RTP_OK) {
-                LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
+                LOG_ERROR("Failed to enqueue Single h26x NAL Unit packet!");
                 return ret;
             }
 

@@ -118,7 +118,12 @@ rtp_error_t uvgrtp::pkt_dispatcher::install_aux_handler(
     if (packet_handlers_.find(key) == packet_handlers_.end())
         return RTP_INVALID_VALUE;
 
-    packet_handlers_[key].auxiliary.push_back({ arg, handler, getter });
+    auxiliary_handler aux;
+    aux.arg = arg;
+    aux.getter = getter;
+    aux.handler = handler;
+
+    packet_handlers_[key].auxiliary.push_back(aux);
     return RTP_OK;
 }
 

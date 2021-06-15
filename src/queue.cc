@@ -262,8 +262,17 @@ rtp_error_t uvgrtp::frame_queue::deinit_transaction()
 
 rtp_error_t uvgrtp::frame_queue::enqueue_message(uint8_t *message, size_t message_len, bool set_marker)
 {
-    if (!message || !message_len)
-        return RTP_INVALID_VALUE;
+    if (message == nullptr)
+    {
+      LOG_ERROR("Tried to enqueue nullptr");
+      return RTP_INVALID_VALUE;
+    }
+
+    if (message_len == 0)
+    {
+      LOG_ERROR("Tried to enqueue zero length message");
+      return RTP_INVALID_VALUE;
+    }
 
     /* Create buffer vector where the full packet is constructed
      * and which is then pushed to "active_"'s pkt_vec structure */
@@ -310,7 +319,10 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(uint8_t *message, size_t messag
 rtp_error_t uvgrtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, uint8_t *>>& buffers)
 {
     if (!buffers.size())
+    {
+        LOG_ERROR("Tried to enqueue an empty buffer");
         return RTP_INVALID_VALUE;
+    }
 
     /* Create buffer vector where the full packet is constructed
      * and which is then pushed to "active_"'s pkt_vec structure */

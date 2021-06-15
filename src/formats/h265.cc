@@ -41,7 +41,7 @@ rtp_error_t uvgrtp::formats::h265::make_aggregation_pkt()
     /* Only one buffer in the vector -> no need to create an aggregation packet */
     if (aggr_pkt_info_.nalus.size() == 1) {
         if ((ret = fqueue_->enqueue_message(aggr_pkt_info_.nalus)) != RTP_OK) {
-            LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
+            LOG_ERROR("Failed to enqueue Single h265 NAL Unit packet!");
             return ret;
         }
 
@@ -128,7 +128,7 @@ rtp_error_t uvgrtp::formats::h265::handle_small_packet(uint8_t* data, size_t dat
         rtp_error_t ret = RTP_OK;
         if (aggr_pkt_info_.nalus.empty()) {
             if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
-                LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
+                LOG_ERROR("Failed to enqueue Single h265 NAL Unit packet! Size: %lu", data_len);
                 return ret;
             }
         }
