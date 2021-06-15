@@ -1024,9 +1024,16 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
     if (our_role_ == SENDER)
     {
-        /* Sender infoormation */
+        if (clock_start_ == 0)
+        {
+          clock_start_ = uvgrtp::clock::ntp::now();
+        }
+
+        /* Sender information */
         uint64_t ntp_ts = uvgrtp::clock::ntp::now();
-        uint64_t rtp_ts = rtp_ts_start_ + (uvgrtp::clock::ntp::diff(ntp_ts, clock_start_)) * clock_rate_ / 1000;
+
+        // TODO: Shouldn't this be the NTP timestamp of previous RTP packet?
+        uint64_t rtp_ts = rtp_ts_start_ + (uvgrtp::clock::ntp::diff(clock_start_, ntp_ts)) * clock_rate_ / 1000;
 
         SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts >> 32));
         SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts & 0xffffffff));
