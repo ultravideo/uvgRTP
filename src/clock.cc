@@ -18,7 +18,7 @@ static inline uint32_t ntp_diff_ms(uint64_t t1, uint64_t t2)
 
     if (r > UINT32_MAX)
     {
-        LOG_ERROR("NTP difference is too large. Limiting value");
+        LOG_ERROR("NTP difference is too large: %llu. Limiting value", r);
         r = UINT32_MAX;
     }
 

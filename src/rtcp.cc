@@ -34,7 +34,11 @@ uvgrtp::rtcp::rtcp(uvgrtp::rtp *rtp, int flags):
     sender_hook_(nullptr),
     receiver_hook_(nullptr),
     sdes_hook_(nullptr),
-    app_hook_(nullptr)
+    app_hook_(nullptr),
+    sr_hook_f_(nullptr),
+    rr_hook_f_(nullptr),
+    sdes_hook_f_(nullptr),
+    app_hook_f_(nullptr)
 {
     ssrc_         = rtp->get_ssrc();
     clock_rate_   = rtp->get_clock_rate();
@@ -993,9 +997,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 {
     rtcp_pkt_sent_count_++;
 
-    LOG_DEBUG("Generating RTCP Sender Report");
-
-    if (!senders_) {
+    if (!senders_ && our_role_ == SENDER) {
         LOG_DEBUG("Session does not have any RTP senders!");
         return RTP_NOT_READY;
     }
@@ -1035,8 +1037,6 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
     // the report blocks for sender or receiver report. Both have same reports.
 
-    LOG_DEBUG("Report from 0x%x has %l32u blocks", ssrc_, num_receivers_);
-
     for (auto& p : participants_) {
         int dropped = p.second->stats.dropped_pkts;
         uint8_t frac = dropped ? p.second->stats.received_bytes / dropped : 0;
@@ -1057,6 +1057,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
     if (srtcp_ && (ret = srtcp_->handle_rtcp_encryption(flags_, rtcp_pkt_sent_count_, ssrc_, frame, frame_size)) != RTP_OK)
     {
+        LOG_DEBUG("Encryption failed. Not sending packet");
         delete[] frame;
         return ret;
     }
