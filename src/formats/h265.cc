@@ -119,7 +119,7 @@ rtp_error_t uvgrtp::formats::h265::frame_getter(void *arg, uvgrtp::frame::rtp_fr
 rtp_error_t uvgrtp::formats::h265::handle_small_packet(uint8_t* data, size_t data_len, bool more)
 {
     /* If there is more data coming in (possibly another small packet)
- * create entry to "aggr_pkt_info_" to construct an aggregation packet */
+     * create entry to "aggr_pkt_info_" to construct an aggregation packet */
     if (more) {
         aggr_pkt_info_.nalus.push_back(std::make_pair(data_len, data));
         return RTP_NOT_READY;
@@ -128,7 +128,7 @@ rtp_error_t uvgrtp::formats::h265::handle_small_packet(uint8_t* data, size_t dat
         rtp_error_t ret = RTP_OK;
         if (aggr_pkt_info_.nalus.empty()) {
             if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
-                LOG_ERROR("Failed to enqueue Single h265 NAL Unit packet! Size: %lu", data_len);
+                LOG_ERROR("Failed to enqueue Single h265 NAL Unit packet! Size: %zu", data_len);
                 return ret;
             }
         }
@@ -139,6 +139,8 @@ rtp_error_t uvgrtp::formats::h265::handle_small_packet(uint8_t* data, size_t dat
             return ret;
         }
     }
+
+    return RTP_OK;
 }
 
 rtp_error_t uvgrtp::formats::h265::construct_format_header_divide_fus(uint8_t* data, size_t& data_left,

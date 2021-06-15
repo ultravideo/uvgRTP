@@ -64,7 +64,7 @@ rtp_error_t uvgrtp::srtcp::handle_rtcp_decryption(int flags, uint32_t ssrc,
     return ret;
 }
 
-rtp_error_t uvgrtp::srtcp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len)
+rtp_error_t uvgrtp::srtcp::encrypt(uint32_t ssrc, uint64_t seq, uint8_t *buffer, size_t len)
 {
     if (use_null_cipher_)
         return RTP_OK;

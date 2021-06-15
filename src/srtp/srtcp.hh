@@ -26,7 +26,7 @@ namespace uvgrtp {
 
     private:
 
-        rtp_error_t encrypt(uint32_t ssrc, uint16_t seq, uint8_t* buffer, size_t len);
+        rtp_error_t encrypt(uint32_t ssrc, uint64_t seq, uint8_t* buffer, size_t len);
         rtp_error_t decrypt(uint32_t ssrc, uint32_t seq, uint8_t* buffer, size_t len);
 
         rtp_error_t add_auth_tag(uint8_t* buffer, size_t len);

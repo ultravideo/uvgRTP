@@ -983,7 +983,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
     // the report blocks for sender or receiver report. Both have same reports.
 
-    LOG_DEBUG("Report from 0x%x has %zu blocks", ssrc_, num_receivers_);
+    LOG_DEBUG("Report from 0x%x has %l32u blocks", ssrc_, num_receivers_);
 
     for (auto& p : participants_) {
         int dropped = p.second->stats.dropped_pkts;
