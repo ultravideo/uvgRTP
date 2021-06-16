@@ -23,7 +23,7 @@ using namespace mingw;
 #include <cassert>
 
 
-#define WSABUF_SIZE 32
+#define WSABUF_SIZE 256
 
 uvgrtp::socket::socket(int flags):
     socket_(-1),
