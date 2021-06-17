@@ -33,11 +33,6 @@ enum {
 
 namespace uvgrtp {
 
-
-
-    class zrtp;
-    class rtp;
-
     /* Vector of buffers that contain a full RTP frame */
     typedef std::vector<std::pair<size_t, uint8_t *>> buf_vec;
 
@@ -131,14 +126,7 @@ namespace uvgrtp {
             base_srtp();
             virtual ~base_srtp();
 
-            /* Setup Secure RTP/RTCP connection using ZRTP
-             *
-             * Return RTP_OK if SRTP setup was successful
-             * Return RTP_INVALID_VALUE if "zrtp" is nullptr
-             * Return RTP_MEMORY allocation failed */
-            rtp_error_t init_zrtp(int type, int flags, uvgrtp::zrtp *zrtp);
-
-            /* Setup Secure RTP/RTCP connection using user-managed keys
+            /* Setup Secure RTP/RTCP connection with master keys
              *
              * Length of the "key" must be either 128, 192, or 256 bits
              * Length of "salt" must be SALT_LENGTH (14 bytes, 112 bits)
@@ -146,7 +134,8 @@ namespace uvgrtp {
              * Return RTP_OK if SRTP setup was successful
              * Return RTP_INVALID_VALUE if "key" or "salt" is nullptr
              * Return RTP_MEMORY allocation failed */
-            rtp_error_t init_user(int type, int flags, uint8_t *key, uint8_t *salt);
+            rtp_error_t init(int type, int flags, uint8_t *local_key, uint8_t *remote_key,
+                             uint8_t *local_salt, uint8_t *remote_salt);
 
             /* Has RTP packet encryption been disabled? */
             bool use_null_cipher();
@@ -161,8 +150,8 @@ namespace uvgrtp {
              * Returns false if replay protection has not been enabled */
             bool is_replayed_packet(uint8_t *digest);
 
-            rtp_error_t set_master_keys(int flags, uint8_t* local_key, uint8_t* remote_key,
-                                 uint8_t* local_salt, uint8_t* remote_salt);
+            size_t get_key_size(int flags);
+
         protected:
 
             /* Create IV for the packet that is about to be encrypted
@@ -179,15 +168,14 @@ namespace uvgrtp {
             bool use_null_cipher_;
 
         private:
-            /* Internal init method that initialize the SRTP context using values in key_ctx_.master */
-            rtp_error_t init(int type, int flags, size_t key_size);
+            rtp_error_t set_master_keys(size_t key_size, uint8_t* local_key, uint8_t* remote_key,
+                                 uint8_t* local_salt, uint8_t* remote_salt);
 
             rtp_error_t derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t len);
 
             /* Allocate space for master/session encryption keys */
             rtp_error_t allocate_crypto_ctx(size_t key_size);
 
-            size_t get_key_size(int flags);
 
             /* By default RTP packet authentication is disabled but by
              * giving RCE_SRTP_AUTHENTICATE_RTP to create_stream() user can enable it.

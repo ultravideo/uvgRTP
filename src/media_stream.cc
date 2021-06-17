@@ -172,14 +172,47 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
 
 rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
 {
-    delete socket_;
-    delete rtcp_;
-    delete rtp_;
-    delete srtp_;
-    delete srtcp_;
-    delete pkt_dispatcher_;
-    delete holepuncher_;
-    delete media_;
+    if (socket_)
+    {
+        delete socket_;
+        socket_ = nullptr;
+    }
+    if (rtcp_)
+    {
+        delete rtcp_;
+        rtcp_ = nullptr;
+    }
+    if (rtp_)
+    {
+        delete rtp_;
+        rtp_ = nullptr;
+    }
+    if (srtp_)
+    {
+        delete srtp_;
+        srtp_ = nullptr;
+    }
+    if (srtcp_)
+    {
+        delete srtcp_;
+        srtcp_ = nullptr;
+    }
+    if (pkt_dispatcher_)
+    {
+        delete pkt_dispatcher_;
+        pkt_dispatcher_ = nullptr;
+    }
+    if (holepuncher_)
+    {
+        delete holepuncher_;
+        holepuncher_ = nullptr;
+    }
+    if (media_)
+    {
+        delete media_;
+        media_ = nullptr;
+    }
+
     return ret;
 }
 
@@ -237,18 +270,12 @@ rtp_error_t uvgrtp::media_stream::init(uvgrtp::zrtp *zrtp)
     }
 
     srtp_ = new uvgrtp::srtp();
-
-    if ((ret = srtp_->init_zrtp(SRTP, ctx_config_.flags, zrtp)) != RTP_OK) {
-        LOG_WARN("Failed to initialize SRTP for media stream!");
-        return free_resources(ret);
-    }
+    if ((ret = init_srtp_with_zrtp(ctx_config_.flags, SRTP, srtp_, zrtp)) != RTP_OK)
+      return free_resources(ret);
 
     srtcp_ = new uvgrtp::srtcp();
-
-    if ((ret = srtcp_->init_zrtp(SRTCP, ctx_config_.flags, zrtp)) != RTP_OK) {
-        LOG_ERROR("Failed to initialize SRTCP for media stream!");
-        return free_resources(ret);
-    }
+    if ((ret = init_srtp_with_zrtp(ctx_config_.flags, SRTCP, srtcp_, zrtp)) != RTP_OK)
+      return free_resources(ret);
 
     rtcp_ = new uvgrtp::rtcp(rtp_, srtcp_, ctx_config_.flags);
 
@@ -303,14 +330,15 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     srtp_ = new uvgrtp::srtp();
 
-    if ((ret = srtp_->init_user(SRTP, ctx_config_.flags, key, salt)) != RTP_OK) {
+    // why are they local and remote key/salt the same?
+    if ((ret = srtp_->init(SRTP, ctx_config_.flags, key, key, salt, salt)) != RTP_OK) {
         LOG_WARN("Failed to initialize SRTP for media stream!");
         return free_resources(ret);
     }
 
     srtcp_ = new uvgrtp::srtcp();
 
-    if ((ret = srtcp_->init_user(SRTCP, ctx_config_.flags, key, salt)) != RTP_OK) {
+    if ((ret = srtcp_->init(SRTCP, ctx_config_.flags, key, key, salt, salt)) != RTP_OK) {
         LOG_WARN("Failed to initialize SRTCP for media stream!");
         return free_resources(ret);
     }
@@ -571,4 +599,37 @@ uint32_t uvgrtp::media_stream::get_key()
 uvgrtp::rtcp *uvgrtp::media_stream::get_rtcp()
 {
     return rtcp_;
+}
+
+rtp_error_t uvgrtp::media_stream::init_srtp_with_zrtp(int flags, int type, uvgrtp::base_srtp* srtp,
+    uvgrtp::zrtp *zrtp)
+{
+    size_t key_size = srtp->get_key_size(flags);
+
+    uint8_t* local_key = new uint8_t[key_size];
+    uint8_t* remote_key = new uint8_t[key_size];
+    uint8_t local_salt[UVG_SALT_LENGTH];
+    uint8_t remote_salt[UVG_SALT_LENGTH];
+
+    rtp_error_t ret = zrtp->get_srtp_keys(
+        local_key,   key_size * 8,
+        remote_key,  key_size * 8,
+        local_salt,  UVG_SALT_LENGTH * 8,
+        remote_salt, UVG_SALT_LENGTH * 8
+     );
+
+    if (ret == RTP_OK)
+    {
+        ret = srtp->init(type, flags, local_key, remote_key,
+                        local_salt, remote_salt);
+    }
+    else
+    {
+        LOG_WARN("Failed to initialize SRTP for media stream!");
+    }
+
+    delete[] local_key;
+    delete[] remote_key;
+
+    return ret;
 }

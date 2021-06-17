@@ -1,7 +1,6 @@
 #include "base.hh"
 
 #include "crypto.hh"
-#include "../zrtp.hh"
 #include "debug.hh"
 
 #include <cstring>
@@ -101,12 +100,19 @@ bool uvgrtp::base_srtp::is_replayed_packet(uint8_t *digest)
     return false;
 }
 
-rtp_error_t uvgrtp::base_srtp::init(int type, int flags, size_t key_size)
+rtp_error_t uvgrtp::base_srtp::init(int type, int flags, uint8_t* local_key, uint8_t* remote_key,
+                                    uint8_t* local_salt, uint8_t* remote_salt)
 {
     srtp_ctx_->roc  = 0;
     srtp_ctx_->rts  = 0;
     srtp_ctx_->type = type;
     srtp_ctx_->hmac = HMAC_SHA1;
+
+    size_t key_size = get_key_size(flags);
+
+    rtp_error_t ret = RTP_OK;
+    if ((ret = set_master_keys(key_size, local_key, remote_key, local_salt, remote_salt)) != RTP_OK)
+        return ret;
 
     switch (key_size) {
         case AES128_KEY_SIZE:
@@ -201,7 +207,7 @@ rtp_error_t uvgrtp::base_srtp::init(int type, int flags, size_t key_size)
         UVG_SALT_LENGTH
     );
 
-    return RTP_OK;
+    return ret;
 }
 
 rtp_error_t uvgrtp::base_srtp::allocate_crypto_ctx(size_t key_size)
@@ -213,53 +219,6 @@ rtp_error_t uvgrtp::base_srtp::allocate_crypto_ctx(size_t key_size)
     srtp_ctx_->key_ctx.remote.enc_key = new uint8_t[key_size];
 
     return RTP_OK;
-}
-
-rtp_error_t uvgrtp::base_srtp::init_zrtp(int type, int flags, uvgrtp::zrtp *zrtp)
-{
-    if (!zrtp)
-        return RTP_INVALID_VALUE;
-
-    size_t key_size = get_key_size(flags);
-
-    uint8_t* local_key = new uint8_t[key_size];
-    uint8_t* remote_key = new uint8_t[key_size];
-    uint8_t local_salt[UVG_SALT_LENGTH];
-    uint8_t remote_salt[UVG_SALT_LENGTH];
-
-    /* ZRTP key derivation function expects the keys lengths to be given in bits */
-    rtp_error_t ret = zrtp->get_srtp_keys(
-        local_key,   key_size * 8,
-        remote_key,  key_size * 8,
-        local_salt,  UVG_SALT_LENGTH * 8,
-        remote_salt, UVG_SALT_LENGTH * 8
-    );
-
-    if (ret == RTP_OK)
-      ret = set_master_keys(flags, local_key, remote_key, local_salt, remote_salt);
-
-    delete[] local_key;
-    delete[] remote_key;
-
-    if (ret != RTP_OK) {
-        LOG_ERROR("Failed to derive keys for SRTP session!");
-        return ret;
-    }
-
-    return init(type, flags, key_size);
-}
-
-rtp_error_t uvgrtp::base_srtp::init_user(int type, int flags, uint8_t *key, uint8_t *salt)
-{
-    if (!key || !salt)
-        return RTP_INVALID_VALUE;
-
-    rtp_error_t ret = RTP_OK;
-    if ((ret = set_master_keys(flags, key, key, salt, salt)) != RTP_OK)
-        return ret;
-
-    size_t key_size = get_key_size(flags);
-    return init(type, flags, key_size);
 }
 
 size_t uvgrtp::base_srtp::get_key_size(int flags)
@@ -277,13 +236,11 @@ size_t uvgrtp::base_srtp::get_key_size(int flags)
     return key_size;
 }
 
-rtp_error_t uvgrtp::base_srtp::set_master_keys(int flags, uint8_t* local_key, uint8_t* remote_key,
+rtp_error_t uvgrtp::base_srtp::set_master_keys(size_t key_size, uint8_t* local_key, uint8_t* remote_key,
     uint8_t* local_salt, uint8_t* remote_salt)
 {
   if (!local_key || !remote_key || !local_salt || !remote_salt)
     return RTP_INVALID_VALUE;
-
-  size_t key_size = get_key_size(flags);
 
   rtp_error_t ret = RTP_OK;
   if ((ret = allocate_crypto_ctx(key_size)) != RTP_OK)

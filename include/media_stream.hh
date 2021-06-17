@@ -16,10 +16,13 @@ namespace uvgrtp {
 
     // forward declarations
     class rtp;
-    class zrtp;
     class rtcp;
+
+    class zrtp;
+    class base_srtp;
     class srtp;
     class srtcp;
+
     class pkt_dispatcher;
     class holepuncher;
     class socket;
@@ -306,6 +309,9 @@ namespace uvgrtp {
 
             /* free all allocated resources */
             rtp_error_t free_resources(rtp_error_t ret);
+
+            rtp_error_t init_srtp_with_zrtp(int flags, int type, uvgrtp::base_srtp* srtp,
+                                            uvgrtp::zrtp *zrtp);
 
             uint32_t key_;
 
