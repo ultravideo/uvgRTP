@@ -238,14 +238,14 @@ rtp_error_t uvgrtp::media_stream::init(uvgrtp::zrtp *zrtp)
 
     srtp_ = new uvgrtp::srtp();
 
-    if ((ret = srtp_->init_zrtp(SRTP, ctx_config_.flags, rtp_, zrtp)) != RTP_OK) {
+    if ((ret = srtp_->init_zrtp(SRTP, ctx_config_.flags, zrtp)) != RTP_OK) {
         LOG_WARN("Failed to initialize SRTP for media stream!");
         return free_resources(ret);
     }
 
     srtcp_ = new uvgrtp::srtcp();
 
-    if ((ret = srtcp_->init_zrtp(SRTCP, ctx_config_.flags, rtp_, zrtp)) != RTP_OK) {
+    if ((ret = srtcp_->init_zrtp(SRTCP, ctx_config_.flags, zrtp)) != RTP_OK) {
         LOG_ERROR("Failed to initialize SRTCP for media stream!");
         return free_resources(ret);
     }

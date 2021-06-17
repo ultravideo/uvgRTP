@@ -16,11 +16,19 @@ uvgrtp::base_srtp::base_srtp():
 
 uvgrtp::base_srtp::~base_srtp()
 {
-    delete[] srtp_ctx_->key_ctx.master.local_key;
-    delete[] srtp_ctx_->key_ctx.master.remote_key;
-    delete[] srtp_ctx_->key_ctx.local.enc_key;
-    delete[] srtp_ctx_->key_ctx.remote.enc_key;
-    delete srtp_ctx_;
+    if (srtp_ctx_)
+    {
+        if (srtp_ctx_->key_ctx.master.local_key)
+            delete[] srtp_ctx_->key_ctx.master.local_key;
+        if (srtp_ctx_->key_ctx.master.remote_key)
+            delete[] srtp_ctx_->key_ctx.master.remote_key;
+        if (srtp_ctx_->key_ctx.local.enc_key)
+            delete[] srtp_ctx_->key_ctx.local.enc_key;
+        if (srtp_ctx_->key_ctx.remote.enc_key)
+            delete[] srtp_ctx_->key_ctx.remote.enc_key;
+
+        delete srtp_ctx_;
+    }
 }
 
 bool uvgrtp::base_srtp::use_null_cipher()
@@ -199,31 +207,27 @@ rtp_error_t uvgrtp::base_srtp::init(int type, int flags, size_t key_size)
 rtp_error_t uvgrtp::base_srtp::allocate_crypto_ctx(size_t key_size)
 {
     srtp_ctx_->key_ctx.master.local_key = new uint8_t[key_size];
-
     srtp_ctx_->key_ctx.master.remote_key = new uint8_t[key_size];
-
     srtp_ctx_->key_ctx.local.enc_key = new uint8_t[key_size];
-
     srtp_ctx_->key_ctx.remote.enc_key = new uint8_t[key_size];
 
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::base_srtp::init_zrtp(int type, int flags, uvgrtp::rtp *rtp, uvgrtp::zrtp *zrtp)
+rtp_error_t uvgrtp::base_srtp::init_zrtp(int type, int flags, uvgrtp::zrtp *zrtp)
 {
-    (void)rtp;
-
     if (!zrtp)
         return RTP_INVALID_VALUE;
 
-    rtp_error_t ret = allocate_crypto_ctx(AES128_KEY_SIZE);
+    size_t key_size = get_key_size(flags);
+    rtp_error_t ret = allocate_crypto_ctx(key_size);
 
     /* ZRTP key derivation function expects the keys lengths to be given in bits */
     ret = zrtp->get_srtp_keys(
-        srtp_ctx_->key_ctx.master.local_key,   AES128_KEY_SIZE * 8,
-        srtp_ctx_->key_ctx.master.remote_key,  AES128_KEY_SIZE * 8,
-        srtp_ctx_->key_ctx.master.local_salt,  UVG_SALT_LENGTH     * 8,
-        srtp_ctx_->key_ctx.master.remote_salt, UVG_SALT_LENGTH     * 8
+        srtp_ctx_->key_ctx.master.local_key,   key_size * 8,
+        srtp_ctx_->key_ctx.master.remote_key,  key_size * 8,
+        srtp_ctx_->key_ctx.master.local_salt,  UVG_SALT_LENGTH * 8,
+        srtp_ctx_->key_ctx.master.remote_salt, UVG_SALT_LENGTH * 8
     );
 
     if (ret != RTP_OK) {
@@ -231,7 +235,7 @@ rtp_error_t uvgrtp::base_srtp::init_zrtp(int type, int flags, uvgrtp::rtp *rtp, 
         return ret;
     }
 
-    return init(type, flags, AES128_KEY_SIZE);
+    return init(type, flags, key_size);
 }
 
 rtp_error_t uvgrtp::base_srtp::init_user(int type, int flags, uint8_t *key, uint8_t *salt)
@@ -241,12 +245,7 @@ rtp_error_t uvgrtp::base_srtp::init_user(int type, int flags, uint8_t *key, uint
     if (!key || !salt)
         return RTP_INVALID_VALUE;
 
-    size_t key_size = AES128_KEY_SIZE;
-
-    if (flags & RCE_SRTP_KEYSIZE_192)
-        key_size = AES192_KEY_SIZE;
-    else if (flags & RCE_SRTP_KEYSIZE_256)
-        key_size = AES256_KEY_SIZE;
+    size_t key_size = get_key_size(flags);
 
     if ((ret = allocate_crypto_ctx(key_size)) != RTP_OK)
         return ret;
@@ -257,4 +256,19 @@ rtp_error_t uvgrtp::base_srtp::init_user(int type, int flags, uint8_t *key, uint
     memcpy(srtp_ctx_->key_ctx.master.remote_salt, salt, UVG_SALT_LENGTH);
 
     return init(type, flags, key_size);
+}
+
+size_t uvgrtp::base_srtp::get_key_size(int flags)
+{
+    size_t key_size = AES128_KEY_SIZE;
+
+    if (!(flags & RCE_SRTP_KMNGMNT_ZRTP))
+    {
+        if (flags & RCE_SRTP_KEYSIZE_192)
+            key_size = AES192_KEY_SIZE;
+        else if (flags & RCE_SRTP_KEYSIZE_256)
+            key_size = AES256_KEY_SIZE;
+    }
+
+    return key_size;
 }

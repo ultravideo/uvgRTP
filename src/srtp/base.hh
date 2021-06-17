@@ -136,7 +136,7 @@ namespace uvgrtp {
              * Return RTP_OK if SRTP setup was successful
              * Return RTP_INVALID_VALUE if "zrtp" is nullptr
              * Return RTP_MEMORY allocation failed */
-            rtp_error_t init_zrtp(int type, int flags, uvgrtp::rtp *rtp, uvgrtp::zrtp *zrtp);
+            rtp_error_t init_zrtp(int type, int flags, uvgrtp::zrtp *zrtp);
 
             /* Setup Secure RTP/RTCP connection using user-managed keys
              *
@@ -162,7 +162,6 @@ namespace uvgrtp {
             bool is_replayed_packet(uint8_t *digest);
 
         protected:
-            rtp_error_t derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t len);
 
             /* Create IV for the packet that is about to be encrypted
              *
@@ -170,28 +169,33 @@ namespace uvgrtp {
              * Return RTP_INVALID_VALUE if one of the parameters is invalid */
             rtp_error_t create_iv(uint8_t *out, uint32_t ssrc, uint64_t index, uint8_t *salt);
 
-            /* Internal init method that initialize the SRTP context using values in key_ctx_.master */
-            rtp_error_t init(int type, int flags, size_t key_size);
-
-            /* Allocate space for master/session encryption keys */
-            rtp_error_t allocate_crypto_ctx(size_t key_size);
-
             /* SRTP context containing all session information and keys */
             srtp_ctx_t *srtp_ctx_;
-
-            /* Map containing all authentication tags of received packets (separate for SRTP and SRTCP)
-             * Used to implement replay protection */
-            std::unordered_set<uint64_t> replay_list_;
 
             /* If NULL cipher is enabled, it means that RTP packets are not
              * encrypted but other security mechanisms described in RFC 3711 may be used */
             bool use_null_cipher_;
+
+        private:
+            /* Internal init method that initialize the SRTP context using values in key_ctx_.master */
+            rtp_error_t init(int type, int flags, size_t key_size);
+
+            rtp_error_t derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t len);
+
+            /* Allocate space for master/session encryption keys */
+            rtp_error_t allocate_crypto_ctx(size_t key_size);
+
+            size_t get_key_size(int flags);
 
             /* By default RTP packet authentication is disabled but by
              * giving RCE_SRTP_AUTHENTICATE_RTP to create_stream() user can enable it.
              *
              * The authentication tag will occupy the last 8 bytes of the RTP packet */
             bool authenticate_rtp_;
+
+            /* Map containing all authentication tags of received packets (separate for SRTP and SRTCP)
+             * Used to implement replay protection */
+            std::unordered_set<uint64_t> replay_list_;
     };
 };
 
