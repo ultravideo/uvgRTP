@@ -161,6 +161,8 @@ namespace uvgrtp {
              * Returns false if replay protection has not been enabled */
             bool is_replayed_packet(uint8_t *digest);
 
+            rtp_error_t set_master_keys(int flags, uint8_t* local_key, uint8_t* remote_key,
+                                 uint8_t* local_salt, uint8_t* remote_salt);
         protected:
 
             /* Create IV for the packet that is about to be encrypted
