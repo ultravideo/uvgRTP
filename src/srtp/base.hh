@@ -140,8 +140,6 @@ namespace uvgrtp {
             /* Has RTP packet encryption been disabled? */
             bool use_null_cipher();
 
-            /* Has RTP packet authentication been enabled? */
-            bool authenticate_rtp();
 
             /* Get reference to the SRTP context (including session keys) */
             srtp_ctx_t *get_ctx();
@@ -176,12 +174,6 @@ namespace uvgrtp {
             /* Allocate space for master/session encryption keys */
             rtp_error_t allocate_crypto_ctx(size_t key_size);
 
-
-            /* By default RTP packet authentication is disabled but by
-             * giving RCE_SRTP_AUTHENTICATE_RTP to create_stream() user can enable it.
-             *
-             * The authentication tag will occupy the last 8 bytes of the RTP packet */
-            bool authenticate_rtp_;
 
             /* Map containing all authentication tags of received packets (separate for SRTP and SRTCP)
              * Used to implement replay protection */

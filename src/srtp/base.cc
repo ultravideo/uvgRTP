@@ -8,10 +8,8 @@
 
 uvgrtp::base_srtp::base_srtp():
     srtp_ctx_(new uvgrtp::srtp_ctx_t),
-    use_null_cipher_(false),
-    authenticate_rtp_(false)
-{
-}
+    use_null_cipher_(false)
+{}
 
 uvgrtp::base_srtp::~base_srtp()
 {
@@ -33,11 +31,6 @@ uvgrtp::base_srtp::~base_srtp()
 bool uvgrtp::base_srtp::use_null_cipher()
 {
     return use_null_cipher_;
-}
-
-bool uvgrtp::base_srtp::authenticate_rtp()
-{
-    return authenticate_rtp_;
 }
 
 uvgrtp::srtp_ctx_t *uvgrtp::base_srtp::get_ctx()
@@ -142,9 +135,7 @@ rtp_error_t uvgrtp::base_srtp::init(int type, int flags, uint8_t* local_key, uin
     srtp_ctx_->s_l    = 0;
     srtp_ctx_->replay = nullptr;
 
-    use_null_cipher_  = !!(flags & RCE_SRTP_NULL_CIPHER);
-    authenticate_rtp_ = !!(flags & RCE_SRTP_AUTHENTICATE_RTP);
-
+    use_null_cipher_  = (flags & RCE_SRTP_NULL_CIPHER);
     srtp_ctx_->flags  = flags;
 
     int label_enc  = 0;

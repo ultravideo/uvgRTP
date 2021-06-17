@@ -11,13 +11,12 @@
 
 #define MAX_OFF 10000
 
-uvgrtp::srtp::srtp()
-{
-}
+uvgrtp::srtp::srtp(int flags):base_srtp(),
+      authenticate_rtp_(flags & RCE_SRTP_AUTHENTICATE_RTP)
+{}
 
 uvgrtp::srtp::~srtp()
-{
-}
+{}
 
 rtp_error_t uvgrtp::srtp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, size_t len)
 {
@@ -150,3 +149,9 @@ authenticate:
 
     return ret;
 }
+
+bool uvgrtp::srtp::authenticate_rtp()
+{
+    return authenticate_rtp_;
+}
+

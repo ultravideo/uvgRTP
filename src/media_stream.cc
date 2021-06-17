@@ -269,7 +269,7 @@ rtp_error_t uvgrtp::media_stream::init(uvgrtp::zrtp *zrtp)
         return free_resources(ret);
     }
 
-    srtp_ = new uvgrtp::srtp();
+    srtp_ = new uvgrtp::srtp(ctx_config_.flags);
     if ((ret = init_srtp_with_zrtp(ctx_config_.flags, SRTP, srtp_, zrtp)) != RTP_OK)
       return free_resources(ret);
 
@@ -328,7 +328,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     rtp_ = new uvgrtp::rtp(fmt_);
 
-    srtp_ = new uvgrtp::srtp();
+    srtp_ = new uvgrtp::srtp(ctx_config_.flags);
 
     // why are they local and remote key/salt the same?
     if ((ret = srtp_->init(SRTP, ctx_config_.flags, key, key, salt, salt)) != RTP_OK) {
