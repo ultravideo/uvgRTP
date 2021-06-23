@@ -17,28 +17,7 @@
 #include <sys/socket.h>
 #endif
 
-#define INVALID_SEQ           0x13371338
-#define INVALID_TS            0xffffffff
-
-#define RTP_HDR_SIZE  12
 #define NAL_HDR_SIZE   2
-
-enum FRAG_TYPES {
-    FT_INVALID = -2, /* invalid combination of S and E bits */
-    FT_NOT_FRAG = -1, /* frame doesn't contain h265 fragment */
-    FT_START = 1, /* frame contains a fragment with S bit set */
-    FT_MIDDLE = 2, /* frame is fragment but not S or E fragment */
-    FT_END = 3, /* frame contains a fragment with E bit set */
-    FT_AGGR = 4  /* aggregation packet */
-};
-
-enum NAL_TYPES {
-    NT_INTRA = 0x00,
-    NT_INTER = 0x01,
-    NT_OTHER = 0xff
-};
-
-
 
 static int __get_frag(uvgrtp::frame::rtp_frame* frame)
 {
@@ -46,32 +25,32 @@ static int __get_frag(uvgrtp::frame::rtp_frame* frame)
     bool last_frag = frame->payload[2] & 0x40;
 
     if ((frame->payload[0] >> 1) == uvgrtp::formats::H265_PKT_AGGR)
-        return FT_AGGR;
+        return uvgrtp::formats::FT_AGGR;
 
     if ((frame->payload[0] >> 1) != uvgrtp::formats::H265_PKT_FRAG)
-        return FT_NOT_FRAG;
+        return uvgrtp::formats::FT_NOT_FRAG;
 
     if (first_frag && last_frag)
-        return FT_INVALID;
+        return uvgrtp::formats::FT_INVALID;
 
     if (first_frag)
-        return FT_START;
+        return uvgrtp::formats::FT_START;
 
     if (last_frag)
-        return FT_END;
+        return uvgrtp::formats::FT_END;
 
-    return FT_MIDDLE;
+    return uvgrtp::formats::FT_MIDDLE;
 }
 
 static inline uint8_t __get_nal(uvgrtp::frame::rtp_frame* frame)
 {
     switch (frame->payload[2] & 0x3f) {
-    case 19: return NT_INTRA;
-    case 1:  return NT_INTER;
+    case 19: return uvgrtp::formats::NT_INTRA;
+    case 1:  return uvgrtp::formats::NT_INTER;
     default: break;
     }
 
-    return NT_OTHER;
+    return uvgrtp::formats::NT_OTHER;
 }
 
 static inline bool __frame_late(uvgrtp::formats::h265_info_t& hinfo, size_t max_delay)

@@ -19,8 +19,6 @@
 #include <cstring>
 #include <errno.h>
 
-#define INVALID_TS UINT64_MAX
-
 uvgrtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
     srtp_(nullptr),
     srtcp_(nullptr),

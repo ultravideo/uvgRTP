@@ -15,28 +15,8 @@
 #include <sys/socket.h>
 #endif
 
-
 #define RTP_FRAME_MAX_DELAY          100
-#define INVALID_SEQ           0x13371338
-#define INVALID_TS            0xffffffff
-
-#define RTP_HDR_SIZE  12
 #define NAL_HDR_SIZE   1
-
-enum FRAG_TYPES {
-    FT_INVALID = -2, /* invalid combination of S and E bits */
-    FT_NOT_FRAG = -1, /* frame doesn't contain HEVC fragment */
-    FT_START = 1, /* frame contains a fragment with S bit set */
-    FT_MIDDLE = 2, /* frame is fragment but not S or E fragment */
-    FT_END = 3, /* frame contains a fragment with E bit set */
-    FT_STAP_A = 4  /* Single-Time Aggregation Packet, Type A */
-};
-
-enum NAL_TYPES {
-    NT_INTRA = 0x00,
-    NT_INTER = 0x01,
-    NT_OTHER = 0xff
-};
 
 static int __get_frag(uvgrtp::frame::rtp_frame* frame)
 {
@@ -44,21 +24,21 @@ static int __get_frag(uvgrtp::frame::rtp_frame* frame)
     bool last_frag = frame->payload[1] & 0x40;
 
     if ((frame->payload[0] & 0x1f) == uvgrtp::formats::H264_PKT_AGGR)
-        return FT_STAP_A;
+        return uvgrtp::formats::FT_AGGR;
 
     if ((frame->payload[0] & 0x1f) != uvgrtp::formats::H264_PKT_FRAG)
-        return FT_NOT_FRAG;
+        return uvgrtp::formats::FT_NOT_FRAG;
 
     if (first_frag && last_frag)
-        return FT_INVALID;
+        return uvgrtp::formats::FT_INVALID;
 
     if (first_frag)
-        return FT_START;
+        return uvgrtp::formats::FT_START;
 
     if (last_frag)
-        return FT_END;
+        return uvgrtp::formats::FT_END;
 
-    return FT_MIDDLE;
+    return uvgrtp::formats::FT_MIDDLE;
 }
 
 static rtp_error_t __handle_stap_a(uvgrtp::formats::h264_frame_info_t* finfo, uvgrtp::frame::rtp_frame** out)
@@ -98,12 +78,12 @@ static rtp_error_t __handle_stap_a(uvgrtp::formats::h264_frame_info_t* finfo, uv
 static inline uint8_t __get_nal(uvgrtp::frame::rtp_frame* frame)
 {
     switch (frame->payload[1] & 0x1f) {
-    case 19: return NT_INTRA;
-    case 1:  return NT_INTER;
+    case 19: return uvgrtp::formats::NT_INTRA;
+    case 1:  return uvgrtp::formats::NT_INTER;
     default: break;
     }
 
-    return NT_OTHER;
+    return uvgrtp::formats::NT_OTHER;
 }
 
 static inline bool __frame_late(uvgrtp::formats::h264_info_t& hinfo)
@@ -307,7 +287,7 @@ rtp_error_t uvgrtp::formats::h264::packet_handler(void* arg, int flags, uvgrtp::
     int frag_type = __get_frag(frame);
     uint8_t nal_type = __get_nal(frame);
 
-    if (frag_type == FT_STAP_A)
+    if (frag_type == uvgrtp::formats::FT_AGGR)
         return __handle_stap_a(finfo, out);
 
     if (frag_type == FT_NOT_FRAG)

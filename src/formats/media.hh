@@ -19,6 +19,8 @@ namespace uvgrtp {
 
     namespace formats {
 
+        #define INVALID_TS            0xffffffff
+
         typedef struct media_info {
             uint32_t s_seq = 0;
             uint32_t e_seq = 0;

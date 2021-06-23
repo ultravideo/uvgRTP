@@ -4,12 +4,35 @@
 #include "util.hh"
 #include "socket.hh"
 
+
+
+
 namespace uvgrtp {
 
     // forward definitions
     class rtp;
 
     namespace formats {
+
+        #define INVALID_SEQ           0x13371338
+
+
+        #define RTP_HDR_SIZE  12
+
+        enum FRAG_TYPES {
+            FT_INVALID = -2, /* invalid combination of S and E bits */
+            FT_NOT_FRAG = -1, /* frame doesn't contain h265 fragment */
+            FT_START = 1, /* frame contains a fragment with S bit set */
+            FT_MIDDLE = 2, /* frame is fragment but not S or E fragment */
+            FT_END = 3, /* frame contains a fragment with E bit set */
+            FT_AGGR = 4  /* aggregation packet */
+        };
+
+        enum NAL_TYPES {
+            NT_INTRA = 0x00,
+            NT_INTER = 0x01,
+            NT_OTHER = 0xff
+        };
 
         class h26x : public media {
             public:
@@ -39,6 +62,7 @@ namespace uvgrtp {
                 rtp_error_t push_h26x_frame(uint8_t *data, size_t data_len, int flags);
 
             protected:
+
                 /* Gets the format specific nal type from data*/
                 virtual uint8_t get_nal_type(uint8_t* data) = 0;
 
