@@ -159,21 +159,8 @@ rtp_error_t uvgrtp::formats::h266::packet_handler(void* arg, int flags, uvgrtp::
     /*     return __handle_ap(finfo, out); */
 
     if (frag_type == FT_NOT_FRAG) {
-        if (flags & RCE_H26X_PREPEND_SC) {
-            uint8_t* pl = new uint8_t[(*out)->payload_len + 4];
 
-            pl[0] = 0;
-            pl[1] = 0;
-            pl[2] = 0;
-            pl[3] = 1;
-
-            std::memcpy(pl + 4, (*out)->payload, (*out)->payload_len);
-            delete[](*out)->payload;
-
-            (*out)->payload = pl;
-            (*out)->payload_len += 4;
-        }
-
+        prepend_start_code(flags, out);
         return RTP_PKT_READY;
     }
 

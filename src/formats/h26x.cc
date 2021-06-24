@@ -404,3 +404,21 @@ void uvgrtp::formats::h26x::initialize_fu_headers(uint8_t nal_type, uint8_t fu_h
     fu_headers[1] = nal_type;
     fu_headers[2] = (uint8_t)((1 << 6) | nal_type);
 }
+
+void uvgrtp::formats::h26x::prepend_start_code(int flags, uvgrtp::frame::rtp_frame** out)
+{
+    if (flags & RCE_H26X_PREPEND_SC) {
+        uint8_t* pl = new uint8_t[(*out)->payload_len + 4];
+
+        pl[0] = 0;
+        pl[1] = 0;
+        pl[2] = 0;
+        pl[3] = 1;
+
+        std::memcpy(pl + 4, (*out)->payload, (*out)->payload_len);
+        delete[](*out)->payload;
+
+        (*out)->payload = pl;
+        (*out)->payload_len += 4;
+    }
+}

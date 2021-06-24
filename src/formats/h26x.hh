@@ -21,7 +21,7 @@ namespace uvgrtp {
 
         enum FRAG_TYPES {
             FT_INVALID = -2, /* invalid combination of S and E bits */
-            FT_NOT_FRAG = -1, /* frame doesn't contain h265 fragment */
+            FT_NOT_FRAG = -1, /* frame doesn't contain fragment */
             FT_START = 1, /* frame contains a fragment with S bit set */
             FT_MIDDLE = 2, /* frame is fragment but not S or E fragment */
             FT_END = 3, /* frame contains a fragment with E bit set */
@@ -68,6 +68,8 @@ namespace uvgrtp {
 
                 /* Handles small packets. May support aggregate packets or not*/
                 virtual rtp_error_t handle_small_packet(uint8_t* data, size_t data_len, bool more) = 0;
+
+                static void prepend_start_code(int flags, uvgrtp::frame::rtp_frame** out);
 
                 // constructs format specific RTP header with correct values
                 virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t& data_left,

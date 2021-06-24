@@ -290,8 +290,10 @@ rtp_error_t uvgrtp::formats::h264::packet_handler(void* arg, int flags, uvgrtp::
     if (frag_type == uvgrtp::formats::FT_AGGR)
         return __handle_stap_a(finfo, out);
 
-    if (frag_type == FT_NOT_FRAG)
+    if (frag_type == FT_NOT_FRAG) {
+        prepend_start_code(flags, out);
         return RTP_PKT_READY;
+    }
 
     if (frag_type == FT_INVALID) {
         LOG_WARN("invalid frame received!");
