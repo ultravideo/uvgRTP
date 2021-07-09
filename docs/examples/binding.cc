@@ -1,24 +1,42 @@
 #include <uvgrtp/lib.hh>
 
-#define PAYLOAD_MAXLEN 256
+#include <iostream>
+
+constexpr uint16_t PAYLOAD_MAXLEN = 256;
+
+// The purpose of this example is to show
+
+// change these to reflect your local and remote addresses
+// in this example both remote and local are in local host
+constexpr char LOCAL_INTERFACE[] = "127.0.0.1";
+constexpr uint16_t LOCAL_PORT = 8888;
+
+constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
+constexpr uint16_t REMOTE_PORT = 8889;
+
+constexpr int SEND_PACKETS = 100;
+constexpr int PACKET_INTERVAL_MS = 1000/30;
 
 void hook(void *arg, uvgrtp::frame::rtp_frame *frame)
 {
+    std::cout << "Received frame: Payload size: " << frame->payload_len << std::endl;
     uvgrtp::frame::dealloc_frame(frame);
 }
 
 int main(void)
 {
+    std::cout << "Starting uvgRTP binding example" << std::endl;
+
     /* See sending.cc for more details */
     uvgrtp::context rtp_ctx;
 
-    /* Start session with remote at IP address 10.21.25.2
-     * and bind ourselves to interface pointed to by the IP address 10.21.25.200 */
-    uvgrtp::session *s1 = rtp_ctx.create_session("10.21.25.2", "10.21.25.200");
+    /* Start session with remote at IP address LOCAL_INTERFACE
+     * and bind ourselves to interface pointed to by the IP address REMOTE_ADDRESS */
+    uvgrtp::session *local_session = rtp_ctx.create_session(LOCAL_INTERFACE, REMOTE_ADDRESS);
 
     /* 8888 is source port or the port for the interface where data is received (ie. 10.21.25.200:8888)
      * 8889 is remote port or the port for the interface where the data is sent (ie. 10.21.25.2:8889) */
-    uvgrtp::media_stream *send = s1->create_stream(8888, 8889, RTP_FORMAT_H265, RTP_NO_FLAGS);
+    uvgrtp::media_stream *send = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, RTP_NO_FLAGS);
 
     /* Some NATs may close the hole created in the firewall if the stream is not bidirectional,
      * i.e., only one participant produces and the other consumes.
@@ -35,19 +53,40 @@ int main(void)
      * NOTE: this flag is only necessary if you're using the created media_stream object
      * as a unidirectional stream and you are noticing that after a while the packets are no longer
      * passing through the firewall */
-    uvgrtp::media_stream *recv = s1->create_stream(7777, 6666, RTP_FORMAT_H265, RCE_HOLEPUNCH_KEEPALIVE);
+    uvgrtp::session *remote_session = rtp_ctx.create_session(REMOTE_ADDRESS, LOCAL_INTERFACE);
+    uvgrtp::media_stream *recv = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT,
+                                                               RTP_FORMAT_H265, RCE_HOLEPUNCH_KEEPALIVE);
 
-    /* install receive hook for asynchronous reception */
-    recv->install_receive_hook(nullptr, hook);
-
-    while (true) {
-        std::unique_ptr<uint8_t[]> buffer = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);
-
-        if (send->push_frame(std::move(buffer), PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK)
-            fprintf(stderr, "failed to push hevc frame\n");
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(800));
+    if (recv)
+    {
+        /* install receive hook for asynchronous reception */
+        recv->install_receive_hook(nullptr, hook);
     }
 
-    rtp_ctx.destroy_session(s1);
+    if (send)
+    {
+        for (unsigned int i = 0; i < SEND_PACKETS; ++i)
+        {
+            std::unique_ptr<uint8_t[]> buffer = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);
+
+            std::cout << "Sending frame " << i << '/' << SEND_PACKETS << std::endl;
+            if (send->push_frame(std::move(buffer), PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK)
+            {
+                std::cerr << "Failed to send frame" << std::endl;
+            }
+
+            // TODO: This is not correct. We should include sending time in this
+            std::this_thread::sleep_for(std::chrono::milliseconds(PACKET_INTERVAL_MS));
+        }
+    }
+
+    if (send)
+        local_session->destroy_stream(send);
+    if (recv)
+        remote_session->destroy_stream(recv);
+
+    if (local_session)
+        rtp_ctx.destroy_session(local_session);
+    if (remote_session)
+        rtp_ctx.destroy_session(remote_session);
 }
