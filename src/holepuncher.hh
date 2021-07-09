@@ -1,7 +1,7 @@
 #pragma once
 
-#include "runner.hh"
-#include "util.hh"
+#include "uvgrtp/runner.hh"
+#include "uvgrtp/util.hh"
 
 #include <atomic>
 

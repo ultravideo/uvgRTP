@@ -96,7 +96,7 @@ if (UNIX)
         )
     # endif (NOT "${LIBRARY_PATHS}" STREQUAL "")
 
-    install(DIRECTORY include/ DESTINATION /usr/local/include/uvgrtp
+    install(DIRECTORY include/uvgrtp DESTINATION /usr/local/include/uvgrtp
             FILES_MATCHING PATTERN "*.hh"
     )
 endif (UNIX)
@@ -131,7 +131,7 @@ if (WIN32)
         )
     # endif (NOT "${LIBRARY_PATHS}" STREQUAL "")
 
-    install(DIRECTORY include/ DESTINATION ${PROJECT_BINARY_DIR}/include
+    install(DIRECTORY include/uvgrtp DESTINATION ${PROJECT_BINARY_DIR}/include/uvgrtp
             FILES_MATCHING PATTERN "*.hh"
     )
 endif (WIN32)

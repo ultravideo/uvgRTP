@@ -1,7 +1,7 @@
 #pragma once
 
-#include "clock.hh"
-#include "util.hh"
+#include "uvgrtp/clock.hh"
+#include "uvgrtp/util.hh"
 
 namespace uvgrtp {
 

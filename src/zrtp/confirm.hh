@@ -4,7 +4,7 @@
 #include "defines.hh"
 #include "zrtp_message.hh"
 
-#include "util.hh"
+#include "uvgrtp/util.hh"
 
 #ifndef _WIN32
 #include <netinet/in.h>

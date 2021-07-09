@@ -2,11 +2,10 @@
 
 #include "h26x.hh"
 
-#include "util.hh"
-
-#include "socket.hh"
-#include "clock.hh"
-#include "frame.hh"
+#include "uvgrtp/util.hh"
+#include "uvgrtp/socket.hh"
+#include "uvgrtp/clock.hh"
+#include "uvgrtp/frame.hh"
 
 #include <deque>
 

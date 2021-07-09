@@ -1,6 +1,6 @@
 #include "random.hh"
 
-#include "debug.hh"
+#include "uvgrtp/debug.hh"
 
 #ifdef _WIN32
 #include <winsock2.h>

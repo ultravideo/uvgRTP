@@ -1,9 +1,10 @@
-#include "lib.hh"
+#include "uvgrtp/lib.hh"
 
-#include "debug.hh"
 #include "hostname.hh"
 #include "random.hh"
-#include "session.hh"
+
+#include "uvgrtp/session.hh"
+#include "uvgrtp/debug.hh"
 
 #include <cstdlib>
 #include <cstring>

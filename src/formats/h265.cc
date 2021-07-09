@@ -3,7 +3,8 @@
 #include "../srtp/srtcp.hh"
 #include "../rtp.hh"
 #include "../queue.hh"
-#include "debug.hh"
+
+#include "uvgrtp/debug.hh"
 
 #include <cstdint>
 #include <cstring>

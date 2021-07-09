@@ -1,10 +1,11 @@
 #include "commit.hh"
 
 #include "../zrtp.hh"
-#include "crypto.hh"
-#include "debug.hh"
-#include "frame.hh"
-#include "socket.hh"
+
+#include "uvgrtp/crypto.hh"
+#include "uvgrtp/debug.hh"
+#include "uvgrtp/frame.hh"
+#include "uvgrtp/socket.hh"
 
 #include <cassert>
 #include <cstring>

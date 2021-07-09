@@ -1,8 +1,8 @@
 #include "poll.hh"
 
 #include "multicast.hh"
-#include "socket.hh"
-#include "debug.hh"
+#include "uvgrtp/socket.hh"
+#include "uvgrtp/debug.hh"
 
 #ifdef _WIN32
 #include <winsock2.h>

@@ -2,8 +2,9 @@
 
 #include "../rtp.hh"
 #include "../queue.hh"
-#include "frame.hh"
-#include "debug.hh"
+
+#include "uvgrtp/frame.hh"
+#include "uvgrtp/debug.hh"
 
 #include <cstdint>
 #include <cstring>

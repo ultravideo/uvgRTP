@@ -1,9 +1,9 @@
 #include "zrtp_message.hh"
 
-#include "frame.hh"
-#include "socket.hh"
+#include "uvgrtp/frame.hh"
+#include "uvgrtp/socket.hh"
 
-#include "debug.hh"
+#include "uvgrtp/debug.hh"
 
 #include <string>
 

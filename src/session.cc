@@ -1,9 +1,9 @@
-#include "session.hh"
+#include "uvgrtp/session.hh"
 
-#include "media_stream.hh"
+#include "uvgrtp/media_stream.hh"
 #include "zrtp.hh"
-#include "crypto.hh"
-#include "debug.hh"
+#include "uvgrtp/crypto.hh"
+#include "uvgrtp/debug.hh"
 
 
 uvgrtp::session::session(std::string addr):

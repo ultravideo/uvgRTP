@@ -1,9 +1,10 @@
 #include "srtp.hh"
 
 #include "base.hh"
-#include "crypto.hh"
-#include "debug.hh"
-#include "frame.hh"
+
+#include "uvgrtp/crypto.hh"
+#include "uvgrtp/debug.hh"
+#include "uvgrtp/frame.hh"
 
 #include <cstring>
 #include <iostream>

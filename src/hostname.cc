@@ -1,6 +1,6 @@
 #include "hostname.hh"
 
-#include "debug.hh"
+#include "uvgrtp/debug.hh"
 
 #ifdef _WIN32
 //#include <windows.h>

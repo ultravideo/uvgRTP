@@ -1,8 +1,8 @@
 #pragma once
 
 #include "media.hh"
-#include "util.hh"
-#include "socket.hh"
+#include "uvgrtp/util.hh"
+#include "uvgrtp/socket.hh"
 
 
 

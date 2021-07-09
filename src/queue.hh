@@ -1,9 +1,9 @@
 #pragma once
 
 
-#include "frame.hh"
-#include "socket.hh"
-#include "util.hh"
+#include "uvgrtp/frame.hh"
+#include "uvgrtp/socket.hh"
+#include "uvgrtp/util.hh"
 
 #include <atomic>
 #include <memory>

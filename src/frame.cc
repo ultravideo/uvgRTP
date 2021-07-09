@@ -1,7 +1,7 @@
-#include "frame.hh"
+#include "uvgrtp/frame.hh"
 
-#include "util.hh"
-#include "debug.hh"
+#include "uvgrtp/util.hh"
+#include "uvgrtp/debug.hh"
 
 #include <cstring>
 
