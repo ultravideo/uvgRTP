@@ -50,5 +50,4 @@ int main(void)
     }
 
     rtp_ctx.destroy_session(s1);
-    rtp_ctx.destroy_session(s2);
 }
