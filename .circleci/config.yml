@@ -24,4 +24,4 @@ jobs:
       - run:
           name: Build test application
           # ToDo: add -lcrypto++ 
-          command: 'mkdir include/uvgrtp && cp -rf include/*.hh include/uvgrtp/ && g++ -D__RTP_NO_CRYPTO__ docs/examples/configuration.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_configuration'
+          command: 'g++ -D__RTP_NO_CRYPTO__ docs/examples/configuration.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_configuration'
