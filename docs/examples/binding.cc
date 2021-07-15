@@ -28,7 +28,7 @@ constexpr uint16_t REMOTE_PORT = 8889;
 
 // Parameters of sent dummy frames
 constexpr uint16_t PAYLOAD_MAXLEN = 256;
-constexpr int SEND_PACKETS = 100;
+constexpr int SEND_TEST_PACKETS = 100;
 constexpr int PACKET_INTERVAL_MS = 1000/30;
 
 void hook(void *arg, uvgrtp::frame::rtp_frame *frame)
@@ -70,9 +70,9 @@ int main(void)
     if (send)
     {
         auto start = std::chrono::steady_clock::now();
-        for (unsigned int i = 0; i < SEND_PACKETS; ++i)
+        for (unsigned int i = 0; i < SEND_TEST_PACKETS; ++i)
         {
-            std::cout << "Sending frame " << i + 1 << '/' << SEND_PACKETS << std::endl;
+            std::cout << "Sending frame " << i + 1 << '/' << SEND_TEST_PACKETS << std::endl;
 
             std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);
             if (send->push_frame(std::move(dummy_frame), PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK)
