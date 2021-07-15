@@ -24,7 +24,7 @@ constexpr char LOCAL_INTERFACE[] = "127.0.0.1";
 constexpr uint16_t LOCAL_PORT = 8888;
 
 constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
-constexpr uint16_t REMOTE_PORT = 8889;
+constexpr uint16_t REMOTE_PORT = 8890;
 
 // Parameters of sent dummy frames
 constexpr uint16_t PAYLOAD_MAXLEN = 256;
@@ -33,7 +33,7 @@ constexpr int PACKET_INTERVAL_MS = 1000/30;
 
 void hook(void *arg, uvgrtp::frame::rtp_frame *frame)
 {
-    std::cout << "Received frame: Payload size: " << frame->payload_len << std::endl;
+    std::cout << "Received frame. Payload size: " << frame->payload_len << std::endl;
     uvgrtp::frame::dealloc_frame(frame);
 }
 

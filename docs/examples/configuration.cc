@@ -6,7 +6,7 @@ constexpr char LOCAL_ADDRESS[] = "127.0.0.1";
 constexpr uint16_t LOCAL_PORT = 8888;
 
 constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
-constexpr uint16_t REMOTE_PORT = 8889;
+constexpr uint16_t REMOTE_PORT = 8890;
 
 constexpr int BUFFER_SIZE_MB = 40 * 1000 * 1000;
 constexpr int PACKET_MAX_DELAY_MS = 150;
@@ -17,20 +17,13 @@ constexpr int SEND_TEST_PACKETS = 1000;
 
 void hook(void *arg, uvgrtp::frame::rtp_frame *frame)
 {
-    std::cout << "Received frame: Payload size: " << frame->payload_len << std::endl;
+    std::cout << "Received frame. Payload size: " << frame->payload_len << std::endl;
     uvgrtp::frame::dealloc_frame(frame);
 }
-
 
 int main(void)
 {
     std::cout << "Starting uvgRTP configuration example" << std::endl;
-
-    /* See sending.cc for more details */
-    uvgrtp::context ctx;
-
-    /* See sending.cc for more details */
-    uvgrtp::session *local_session = ctx.create_session(REMOTE_ADDRESS);
 
     /* Some of the functionality of uvgRTP can be enabled/disabled using RCE_* flags.
      *
@@ -40,13 +33,18 @@ int main(void)
         RCE_RTCP |                      /* enable RTCP */
         RCE_NO_SYSTEM_CALL_CLUSTERING;  /* disable system call clustering */
 
-    uvgrtp::media_stream *send = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, send_flags);
-
     /* Prepends a 4-byte HEVC start code (0x00000001) before each NAL unit.
      * This way the stream can be saved into a file and played by a media player */
     unsigned receive_flags =
+        RCE_RTCP |                      /* enable RTCP */
         RCE_NO_SYSTEM_CALL_CLUSTERING | /* disable system call clustering */
         RCE_H26X_PREPEND_SC;            /* prepend a start code before each NAL unit */
+
+    /* See sending.cc for more details */
+    uvgrtp::context ctx;
+
+    uvgrtp::session *local_session = ctx.create_session(REMOTE_ADDRESS);
+    uvgrtp::media_stream *send = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, send_flags);
 
     uvgrtp::session *remote_session = ctx.create_session(LOCAL_ADDRESS);
     uvgrtp::media_stream *receive = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_H265, receive_flags);
@@ -69,7 +67,6 @@ int main(void)
       std::cerr << "Failed to install receive hook!" << std::endl;
     }
 
-
     if (send)
     {
 
@@ -79,7 +76,6 @@ int main(void)
          * For example, here UDP receive buffer is increased to BUFFER_SIZE_MB
          * and frame delay is set PACKET_MAX_DELAY_MS to allow frames to arrive a little late */
         send->configure_ctx(RCC_UDP_SND_BUF_SIZE, BUFFER_SIZE_MB);
-
 
         for (int i = 0; i < SEND_TEST_PACKETS; ++i)
         {
