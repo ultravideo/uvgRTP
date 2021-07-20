@@ -78,3 +78,8 @@ std::string& uvgrtp::context::get_cname()
 {
     return cname_;
 }
+
+bool uvgrtp::context::crypto_enabled() const
+{
+    return uvgrtp::crypto::enabled();
+}

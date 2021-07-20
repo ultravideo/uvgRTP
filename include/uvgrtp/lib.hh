@@ -81,6 +81,8 @@ namespace uvgrtp {
             std::string& get_cname();
             /// \endcond
 
+            bool crypto_enabled() const;
+
         private:
             /* Generate CNAME for participant using host and login names */
             std::string generate_cname();
