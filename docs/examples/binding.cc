@@ -27,7 +27,7 @@ constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
 constexpr uint16_t REMOTE_PORT = 8890;
 
 // Parameters of sent dummy frames
-constexpr uint16_t PAYLOAD_MAXLEN = 256;
+constexpr uint16_t PAYLOAD_LEN = 256;
 constexpr int SEND_TEST_PACKETS = 100;
 constexpr int PACKET_INTERVAL_MS = 1000/30;
 
@@ -74,8 +74,8 @@ int main(void)
         {
             std::cout << "Sending frame " << i + 1 << '/' << SEND_TEST_PACKETS << std::endl;
 
-            std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);
-            if (send->push_frame(std::move(dummy_frame), PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK)
+            std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
+            if (send->push_frame(std::move(dummy_frame), PAYLOAD_LEN, RTP_NO_FLAGS) != RTP_OK)
             {
                 std::cerr << "Failed to send frame" << std::endl;
             }
@@ -86,7 +86,7 @@ int main(void)
             auto next_frame_time = (i + 1)*std::chrono::milliseconds(PACKET_INTERVAL_MS);
             if (next_frame_time > time_since_start)
             {
-              std::this_thread::sleep_for(next_frame_time - time_since_start);
+                std::this_thread::sleep_for(next_frame_time - time_since_start);
             }
         }
     }
@@ -104,4 +104,6 @@ int main(void)
         rtp_ctx.destroy_session(local_session);
     if (remote_session)
         rtp_ctx.destroy_session(remote_session);
+
+    return EXIT_SUCCESS;
 }

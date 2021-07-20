@@ -11,7 +11,7 @@ constexpr uint16_t REMOTE_PORT = 8890;
 constexpr int BUFFER_SIZE_MB = 40 * 1000 * 1000;
 constexpr int PACKET_MAX_DELAY_MS = 150;
 
-constexpr size_t PAYLOAD_MAXLEN = 4096;
+constexpr size_t PAYLOAD_LEN = 4096;
 constexpr int SEND_TEST_PACKETS = 1000;
 
 
@@ -79,11 +79,13 @@ int main(void)
 
         for (int i = 0; i < SEND_TEST_PACKETS; ++i)
         {
-            auto buffer = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);
+            auto buffer = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
 
             std::cout << "Sending frame " << i + 1 << '/' << SEND_TEST_PACKETS << std::endl;
-            if (send->push_frame(std::move(buffer), PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK)
+            if (send->push_frame(std::move(buffer), PAYLOAD_LEN, RTP_NO_FLAGS) != RTP_OK)
+            {
                 fprintf(stderr, "Failed to send RTP frame!");
+            }
         }
 
         local_session->destroy_stream(send);
@@ -91,7 +93,7 @@ int main(void)
 
     if (receive)
     {
-      remote_session->destroy_stream(receive);
+        remote_session->destroy_stream(receive);
     }
 
     if (local_session)
@@ -106,5 +108,5 @@ int main(void)
         ctx.destroy_session(remote_session);
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }

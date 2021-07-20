@@ -36,27 +36,27 @@ int main(void)
     uvgrtp::media_stream *hevc = sess->create_stream(LOCAL_PORT, REMOTE_PORT,
                                                      RTP_FORMAT_H265, flags);
 
-    uvgrtp::frame::rtp_frame *frame = nullptr;
-
-
-    std::cout << "Start receiving frames for " << RECEIVE_TIME_MS.count() << " ms" << std::endl;
-    auto start = std::chrono::steady_clock::now();
-
-    while (std::chrono::steady_clock::now() - start < RECEIVE_TIME_MS)
-    {
-      /* You can specify a timeout for the operation and if the a frame is not received
-       * within that time limit, pull_frame() returns a nullptr
-       *
-       * The parameter tells how long time a frame is waited in milliseconds */
-
-        frame = hevc->pull_frame(RECEIVER_WAIT_TIME_MS);
-        if (frame)
-            process_frame(frame);
-    }
-
     if (hevc)
     {
-        sess->destroy_stream(hevc);
+        uvgrtp::frame::rtp_frame *frame = nullptr;
+
+        std::cout << "Start receiving frames for " << RECEIVE_TIME_MS.count() << " ms" << std::endl;
+        auto start = std::chrono::steady_clock::now();
+
+        while (std::chrono::steady_clock::now() - start < RECEIVE_TIME_MS)
+        {
+            /* You can specify a timeout for the operation and if the a frame is not received
+             * within that time limit, pull_frame() returns a nullptr
+             *
+             * The parameter tells how long time a frame is waited in milliseconds */
+
+            frame = hevc->pull_frame(RECEIVER_WAIT_TIME_MS);
+            if (frame)
+                process_frame(frame);
+        }
+
+
+         sess->destroy_stream(hevc);
     }
 
     if (sess)
@@ -65,5 +65,5 @@ int main(void)
         ctx.destroy_session(sess);
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }

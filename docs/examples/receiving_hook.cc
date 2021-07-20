@@ -47,7 +47,8 @@ int main(void)
      * specfic object if the application needs to be called inside the hook
      *
      * If it's not needed, it should be set to nullptr */
-    hevc->install_receive_hook(nullptr, rtp_receive_hook);
+    if (hevc)
+        hevc->install_receive_hook(nullptr, rtp_receive_hook);
 
     std::cout << "Waiting incoming packets for " << RECEIVE_TIME_MS.count() << " ms" << std::endl;
 
@@ -64,5 +65,5 @@ int main(void)
         ctx.destroy_session(sess);
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }

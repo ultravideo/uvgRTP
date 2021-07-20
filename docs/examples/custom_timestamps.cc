@@ -25,7 +25,7 @@ constexpr uint16_t REMOTE_PORT = 8890;
 constexpr uint32_t VIDEO_CLOCK_RATE = 90000;
 constexpr uint32_t VIDEO_FRAME_RATE = 30;
 
-constexpr size_t PAYLOAD_MAXLEN = 100;
+constexpr size_t PAYLOAD_LEN = 100;
 constexpr int SEND_TEST_PACKETS = 50;
 
 
@@ -43,11 +43,15 @@ int main(void)
     /* See sending.cc for more details */
     uvgrtp::context ctx;
 
+    int flags = RCE_RTCP; // enable RTCP
+
     uvgrtp::session *local_session = ctx.create_session(REMOTE_ADDRESS);
-    uvgrtp::media_stream *send = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, RCE_RTCP);
+    uvgrtp::media_stream *send = local_session->create_stream(LOCAL_PORT, REMOTE_PORT,
+                                                              RTP_FORMAT_H265, flags);
 
     uvgrtp::session *remote_session = ctx.create_session(LOCAL_ADDRESS);
-    uvgrtp::media_stream *receive = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_H265, RCE_RTCP);
+    uvgrtp::media_stream *receive = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT,
+                                                                  RTP_FORMAT_H265, flags);
 
     if (receive)
     {
@@ -72,7 +76,7 @@ int main(void)
 
         for (int i = 0; i < SEND_TEST_PACKETS; ++i)
         {
-            auto buffer = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);
+            auto buffer = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
 
             // fake timestamp. This way the receiver can play the frames at a lower pace, even if
             // we generate them really fast.
@@ -83,7 +87,7 @@ int main(void)
 
             /* The timestamp is given as the third parameter and it should be advanced
              * in accordance with the media stream clock rate. For example, for HEVC, the clock rate is 90000. */
-            if (send->push_frame(std::move(buffer), PAYLOAD_MAXLEN, timestamp, RTP_NO_FLAGS) != RTP_OK)
+            if (send->push_frame(std::move(buffer), PAYLOAD_LEN, timestamp, RTP_NO_FLAGS) != RTP_OK)
                 fprintf(stderr, "Failed to send RTP frame!");
         }
 
@@ -94,7 +98,6 @@ int main(void)
     {
         remote_session->destroy_stream(receive);
     }
-
 
     if (local_session)
     {
@@ -108,5 +111,5 @@ int main(void)
         ctx.destroy_session(remote_session);
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }

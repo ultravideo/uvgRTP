@@ -8,7 +8,7 @@ constexpr uint16_t LOCAL_PORT = 8888;
 constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
 constexpr uint16_t REMOTE_PORT = 8890;
 
-constexpr uint16_t PAYLOAD_MAXLEN = 256;
+constexpr uint16_t PAYLOAD_LEN = 256;
 constexpr uint16_t FRAME_RATE = 30;
 constexpr int SEND_TEST_PACKETS = FRAME_RATE*60; // one minute
 constexpr int PACKET_INTERVAL_MS = 1000/FRAME_RATE;
@@ -106,17 +106,17 @@ int main(void)
     if (local_stream)
     {
         /* Send dummy data so there's some RTCP data to send */
-        uint8_t buffer[PAYLOAD_MAXLEN] = { 0 };
-        memset(buffer, 'a', PAYLOAD_MAXLEN);
+        uint8_t buffer[PAYLOAD_LEN] = { 0 };
+        memset(buffer, 'a', PAYLOAD_LEN);
 
         auto start = std::chrono::steady_clock::now();
 
         for (unsigned int i = 0; i < SEND_TEST_PACKETS; ++i)
         {
             std::cout << "Sending RTP frame " << (i + 1) << "/" << SEND_TEST_PACKETS
-                      << " Total data sent: " << (i + 1)*PAYLOAD_MAXLEN << std::endl;
+                      << " Total data sent: " << (i + 1)*PAYLOAD_LEN << std::endl;
 
-            local_stream->push_frame((uint8_t *)buffer, PAYLOAD_MAXLEN, RTP_NO_FLAGS);
+            local_stream->push_frame((uint8_t *)buffer, PAYLOAD_LEN, RTP_NO_FLAGS);
 
             // wait until it is time to send the next frame. Simulates a steady sending pace
             // and included only for demostration purposes since you can use uvgRTP to send
@@ -149,4 +149,6 @@ int main(void)
     {
         ctx.destroy_session(remote_session);
     }
+
+    return EXIT_SUCCESS;
 }
