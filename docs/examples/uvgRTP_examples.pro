@@ -68,13 +68,12 @@ selectSRTPUser {
   TARGET = SRTPUser
   SOURCES += \
     srtp_user.cc \
-}
 
-selectSRTPZRTP {
-  message("Building ZRTP + SRTP example.")
-  TARGET = Timestamp
-  SOURCES += \
-    custom_timestamps.cc \
+  win32-msvc{
+    LIBS += -lcryptlib
+  } else {
+    LIBS += -lcryptopp
+  }
 }
 
 selectZRTPMultistream {
@@ -82,6 +81,12 @@ selectZRTPMultistream {
   TARGET = ZRTPMultistream
   SOURCES += \
     zrtp_multistream.cc \
+
+  win32-msvc{
+    LIBS += -lcryptlib
+  } else {
+    LIBS += -lcryptopp
+  }
 }
 
 DISTFILES += \
@@ -95,18 +100,16 @@ LIBS += -luvgrtp
 
 win32-msvc{
   message("Detected MSVC compiler")
-  # find the libraries if uvgrtp has been built according to instructions
+  # find the libraries if uvgrtp has been built using CMake instructions
   CONFIG(debug, debug|release) {
-    LIBRARY_FOLDER = -L$$PWD/../../build/Debug
+    UVGRTP_LIB_FOLDER = -L$$PWD/../../build/Debug
   } else:CONFIG(release, debug|release) {
-    LIBRARY_FOLDER = -L$$PWD/../../build/Release
+    UVGRTP_LIB_FOLDER = -L$$PWD/../../build/Release
   }
 
   LIBS += -lws2_32
   LIBS += -ladvapi32
 
-  LIBS += $${LIBRARY_FOLDER}
-  message("Using library folder:" $${LIBRARY_FOLDER})
+  LIBS += $${UVGRTP_LIB_FOLDER}
+  message("Using the following folder for uvgRTP library:" $${UVGRTP_LIB_FOLDER})
 }
-
-
