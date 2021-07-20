@@ -1,15 +1,40 @@
 #include <uvgrtp/lib.hh>
 #include <climits>
 
-#define PAYLOAD_MAXLEN (0xffff - 0x1000)
+constexpr char LOCAL_INTERFACE[] = "127.0.0.1";
+constexpr uint16_t LOCAL_PORT = 8888;
+
+constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
+constexpr uint16_t REMOTE_PORT = 8890;
+
+constexpr uint32_t PAYLOAD_MAXLEN = (0xffff - 0x1000);
+
+constexpr int TEST_PACKETS = 100;
+
+void rtp_receive_hook(void *arg, uvgrtp::frame::rtp_frame *frame)
+{
+    std::cout << "Received RTP frame. Payload size: " << frame->payload_len << std::endl;
+
+    /* Now we own the frame. Here you could give the frame to the application
+     * if f.ex "arg" was some application-specific pointer
+     *
+     * arg->copy_frame(frame) or whatever
+     *
+     * When we're done with the frame, it must be deallocated manually */
+    (void)uvgrtp::frame::dealloc_frame(frame);
+}
+
 
 int main(void)
 {
+    std::cout << "Starting uvgRTP generic RTP payload sending example" << std::endl;
+
     /* See sending.cc for more details */
     uvgrtp::context ctx;
 
     /* See sending.cc for more details */
-    uvgrtp::session *sess = ctx.create_session("127.0.0.1");
+    uvgrtp::session *local_session = ctx.create_session(REMOTE_ADDRESS);
+    uvgrtp::session *remote_session = ctx.create_session(REMOTE_ADDRESS);
 
     /* To enable interoperability between RTP libraries, uvgRTP won't fragment generic frames by default.
      *
@@ -22,74 +47,43 @@ int main(void)
      * received, uvgRTP constructs one full RTP frame from the fragments and returns the frame to user.
      *
      * See sending.cc for more details about create_stream() */
-    uvgrtp::media_stream *send = sess->create_stream(8888, 8889, RTP_FORMAT_GENERIC, RCE_FRAGMENT_GENERIC);
-    uvgrtp::media_stream *recv = sess->create_stream(8889, 8888, RTP_FORMAT_GENERIC, RCE_FRAGMENT_GENERIC);
+    uvgrtp::media_stream *send = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, RCE_FRAGMENT_GENERIC);
+    uvgrtp::media_stream *recv = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, RCE_FRAGMENT_GENERIC);
 
-    /* Notice that PAYLOAD_MAXLEN > MTU (4096 > 1500).
+    if (recv)
+        recv->install_receive_hook(nullptr, rtp_receive_hook);
+
+    if (send)
+    {
+      /* Notice that PAYLOAD_MAXLEN > MTU (4096 > 1500).
      *
      * uvgRTP fragments all generic input frames that are larger than 1500 and in the receiving end,
      * it will reconstruct the full sent frame from fragments when all fragments have been received */
-    auto media = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);
+      auto media = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_MAXLEN]);
 
-    srand(time(NULL));
+      srand(time(NULL));
 
-    while (true) {
-        int size = (rand() % PAYLOAD_MAXLEN) + 1;
+      for (int i = 0; i < TEST_PACKETS; ++i)
+      {
+          int size = (rand() % PAYLOAD_MAXLEN) + 1;
 
-        for (int i = 0; i < size; ++i)
-            media[i] = (i + size) % CHAR_MAX;
+          for (int i = 0; i < size; ++i)
+          {
+              media[i] = (i + size) % CHAR_MAX;
+          }
 
-        if (send->push_frame(media.get(), size, RTP_NO_FLAGS) != RTP_OK) {
-            fprintf(stderr, "Failed to send frame!\n");
-            return -1;
-        }
+          std::cout << "Sending RTP frame " << i + 1 << '/' << TEST_PACKETS << ". Payload size: " << size << std::endl;
 
-        auto frame = recv->pull_frame();
-
-        if (memcmp(frame->payload, media.get(), size))
-            LOG_ERROR("frame is corrupted!");
-
-        fprintf(stderr, "received frame of size %u, rand %d\n", frame->payload_len, size);
-
-        uvgrtp::frame::dealloc_frame(frame);
+          if (send->push_frame(media.get(), size, RTP_NO_FLAGS) != RTP_OK) {
+              fprintf(stderr, "Failed to send frame!\n");
+              return -1;
+          }
+      }
     }
-
-#if 0
-    for (int i = 0; i < PAYLOAD_MAXLEN; ++i)
-        custom_media[i] = i % CHAR_MAX;
-
-    if (send->push_frame(std::move(custom_media), PAYLOAD_MAXLEN, RTP_NO_FLAGS) != RTP_OK) {
-        fprintf(stderr, "Failed to send frame!\n");
-        return -1;
-    }
-
-    auto frame = recv->pull_frame();
-
-    /* Verify that all packets were received without corruption */
-    for (int i = 0; i < PAYLOAD_MAXLEN; ++i) {
-        if (frame->payload[i] != (i % CHAR_MAX))
-            fprintf(stderr, "frame was corrupted during transfer!\n");
-    }
-
-    /* the frame must be destroyed manually */
-    (void)uvgrtp::frame::dealloc_frame(frame);
-
-    /* The input data size doesn't always have to be larger than MTU,
-     * i.e., you can still send small packets */
-    uint8_t data[5] = { 0x1, 0x5, 0xa, 0x77, 0xff };
-
-    send->push_frame(data, sizeof(data), 0);
-    frame = recv->pull_frame();
-
-    if (memcmp(data, frame->payload, 5))
-        fprintf(stderr, "frame was corrupted during transfer!\n");
-
-    /* the frame must be destroyed manually */
-    (void)uvgrtp::frame::dealloc_frame(frame);
-#endif
 
     /* Session must be destroyed manually */
-    ctx.destroy_session(sess);
+    ctx.destroy_session(local_session);
+    ctx.destroy_session(remote_session);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
