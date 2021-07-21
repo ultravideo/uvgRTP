@@ -20,13 +20,11 @@ constexpr auto AUDIO_FRAME_INTERVAL_MS = std::chrono::milliseconds(20);
 
 constexpr auto VIDEO_FRAME_INTERVAL_MS = std::chrono::milliseconds(1000/60); // 60 fps video
 
-void audio_receiver(uvgrtp::session* receiver_session, int flags, std::shared_ptr<std::mutex> print_mutex);
-void video_receiver(uvgrtp::session* receiver_session, int flags, std::shared_ptr<std::mutex> print_mutex);
-
-void audio_sender(uvgrtp::session* sender_session, int flags, std::shared_ptr<std::mutex> print_mutex);
-void video_sender(uvgrtp::session* sender_session, int flags, std::shared_ptr<std::mutex> print_mutex);
-
-
+void receive_function(uvgrtp::session* receiver_session, int flags, std::shared_ptr<std::mutex> print_mutex,
+                      RTP_FORMAT format, uint16_t receiver_port, uint16_t sender_port);
+void sender_function(uvgrtp::session* sender_session, int flags, std::shared_ptr<std::mutex> print_mutex,
+                     RTP_FORMAT format, uint16_t sender_port, uint16_t receiver_port, size_t payload_size,
+                     std::chrono::milliseconds frame_interval);
 
 int main(void)
 {
@@ -53,15 +51,24 @@ int main(void)
      * Because we're using ZRTP for SRTP key management,
      * the receiver and sender must communicate with each other
      * before the actual media communication starts */
-    std::thread a_receiver(audio_receiver, receiver_session, rce_flags, print_mutex);
-    std::thread v_receiver(video_receiver, receiver_session, rce_flags, print_mutex);
+
+    std::thread a_receiver(receive_function, receiver_session, rce_flags, print_mutex,
+                           RTP_FORMAT_OPUS, RECEIVER_AUDIO_PORT, SENDER_AUDIO_PORT);
+
+    std::thread v_receiver(receive_function, receiver_session, rce_flags, print_mutex,
+                           RTP_FORMAT_H266, RECEIVER_VIDEO_PORT, SENDER_VIDEO_PORT);
 
     /* See sending.cc for more details */
     uvgrtp::context sender_ctx;
     uvgrtp::session *sender_session = sender_ctx.create_session(RECEIVER_ADDRESS);
 
-    std::thread a_sender(audio_sender, sender_session, rce_flags, print_mutex);
-    std::thread v_sender(video_sender, sender_session, rce_flags, print_mutex);
+    std::thread a_sender(sender_function, sender_session, rce_flags, print_mutex,
+                         RTP_FORMAT_OPUS, SENDER_AUDIO_PORT, RECEIVER_AUDIO_PORT,
+                         AUDIO_PAYLOAD_SIZE, AUDIO_FRAME_INTERVAL_MS);
+
+    std::thread v_sender(sender_function, sender_session, rce_flags, print_mutex,
+                         RTP_FORMAT_H266, SENDER_VIDEO_PORT, RECEIVER_VIDEO_PORT,
+                         VIDEO_PAYLOAD_SIZE, VIDEO_FRAME_INTERVAL_MS);
 
     // wait until all threads have ended
 
@@ -93,95 +100,57 @@ int main(void)
     return EXIT_SUCCESS;
 }
 
-
-void audio_receiver(uvgrtp::session* receiver_session, int flags, std::shared_ptr<std::mutex> print_mutex)
+void receive_function(uvgrtp::session* receiver_session, int flags,
+                      std::shared_ptr<std::mutex> print_mutex,
+                      RTP_FORMAT format, uint16_t receiver_port, uint16_t sender_port)
 {
-  /* Keys created using Multistream mode */
-  uvgrtp::media_stream *receiver_audio_strm =
-      receiver_session->create_stream(RECEIVER_AUDIO_PORT, SENDER_AUDIO_PORT,
-                                      RTP_FORMAT_GENERIC, flags);
+    /* Keys created using Multistream mode */
+    uvgrtp::media_stream *receiver_stream =
+        receiver_session->create_stream(receiver_port, sender_port, format, flags);
 
-  if (receiver_audio_strm)
-  {
-      uvgrtp::frame::rtp_frame *frame = nullptr;
+    if (receiver_stream)
+    {
+        uvgrtp::frame::rtp_frame *frame = nullptr;
 
-      std::cout << "Start receiving audio frames for " << EXAMPLE_RUN_TIME_S.count()
-                << " seconds" << std::endl;
-      auto start = std::chrono::steady_clock::now();
+        std::cout << "Start receiving frames for " << EXAMPLE_RUN_TIME_S.count()
+                  << " seconds" << std::endl;
+        auto start = std::chrono::steady_clock::now();
 
-      while (std::chrono::steady_clock::now() - start < EXAMPLE_RUN_TIME_S)
-      {
-          /* You can specify a timeout for the operation and if the a frame is not received
-           * within that time limit, pull_frame() returns a nullptr
-           *
-           * The parameter tells how long time a frame is waited in milliseconds */
+        while (std::chrono::steady_clock::now() - start < EXAMPLE_RUN_TIME_S)
+        {
+            /* You can specify a timeout for the operation and if the a frame is not received
+             * within that time limit, pull_frame() returns a nullptr
+             *
+             * The parameter tells how long time a frame is waited in milliseconds */
 
-          frame = receiver_audio_strm->pull_frame(RECEIVER_WAIT_TIME_MS.count());
+            frame = receiver_stream->pull_frame(RECEIVER_WAIT_TIME_MS.count());
 
-          if (frame)
-          {
-              print_mutex->lock();
-              std::cout << "Received an audio frame. Payload size: " << frame->payload_len << std::endl;
-              print_mutex->unlock();
+            if (frame)
+            {
+                print_mutex->lock();
+                std::cout << "Received a frame. Payload size: " << frame->payload_len << std::endl;
+                print_mutex->unlock();
 
-              // Process audio frame here
+                // Process the frame here
 
-              (void)uvgrtp::frame::dealloc_frame(frame);
-          }
-      }
+                (void)uvgrtp::frame::dealloc_frame(frame);
+            }
+        }
 
-      receiver_session->destroy_stream(receiver_audio_strm);
-  }
+        receiver_session->destroy_stream(receiver_stream);
+    }
 }
 
-void video_receiver(uvgrtp::session* receiver_session, int flags, std::shared_ptr<std::mutex> print_mutex)
-{
-  /* Keys creates using Diffie-Hellman mode */
-  uvgrtp::media_stream *receiver_video_strm =
-      receiver_session->create_stream(RECEIVER_VIDEO_PORT, SENDER_VIDEO_PORT,
-                                      RTP_FORMAT_H266, flags);
-
-  if (receiver_video_strm)
-  {
-      uvgrtp::frame::rtp_frame *frame = nullptr;
-
-      std::cout << "Start receiving audio frames for " << EXAMPLE_RUN_TIME_S.count()
-                << " seconds" << std::endl;
-      auto start = std::chrono::steady_clock::now();
-
-      while (std::chrono::steady_clock::now() - start < EXAMPLE_RUN_TIME_S)
-      {
-          /* You can specify a timeout for the operation and if the a frame is not received
-           * within that time limit, pull_frame() returns a nullptr
-           *
-           * The parameter tells how long time a frame is waited in milliseconds */
-
-          frame = receiver_video_strm->pull_frame(RECEIVER_WAIT_TIME_MS.count());
-
-          if (frame)
-          {
-              print_mutex->lock();
-              std::cout << "Received a video frame. Payload size: " << frame->payload_len << std::endl;
-              print_mutex->unlock();
-
-              // Process video frame here
-
-              (void)uvgrtp::frame::dealloc_frame(frame);
-          }
-      }
-
-      receiver_session->destroy_stream(receiver_video_strm);
-  }
-}
-
-void audio_sender(uvgrtp::session* sender_session, int flags, std::shared_ptr<std::mutex> print_mutex)
+void sender_function(uvgrtp::session* sender_session, int flags, std::shared_ptr<std::mutex> print_mutex,
+                     RTP_FORMAT format, uint16_t sender_port, uint16_t receiver_port, size_t payload_size,
+                     std::chrono::milliseconds frame_interval)
 {
     /* The first call to create_stream() creates keys for the session using Diffie-Hellman
      * key exchange and all subsequent calls to create_stream() initialize keys for the
      * stream using Multistream mode */
-    uvgrtp::media_stream *sender_audio_strm = sender_session->create_stream(SENDER_AUDIO_PORT,
-                                                                            RECEIVER_AUDIO_PORT,
-                                                                            RTP_FORMAT_GENERIC, flags);
+    uvgrtp::media_stream *sender_audio_strm = sender_session->create_stream(sender_port,
+                                                                            receiver_port,
+                                                                            format, flags);
 
     if (sender_audio_strm)
     {
@@ -190,62 +159,24 @@ void audio_sender(uvgrtp::session* sender_session, int flags, std::shared_ptr<st
         for (int i = 0; std::chrono::steady_clock::now() < (start + EXAMPLE_RUN_TIME_S); ++i)
         {
             print_mutex->lock();
-            std::cout << "Sending audio frame" << std::endl;
+            std::cout << "Sending frame" << std::endl;
             print_mutex->unlock();
 
-            std::unique_ptr<uint8_t[]> dummy_audio_frame = std::unique_ptr<uint8_t[]>(new uint8_t[AUDIO_PAYLOAD_SIZE]);
+            std::unique_ptr<uint8_t[]> dummy_audio_frame = std::unique_ptr<uint8_t[]>(new uint8_t[payload_size]);
 
-            if (sender_audio_strm->push_frame(std::move(dummy_audio_frame), AUDIO_PAYLOAD_SIZE, RTP_NO_FLAGS) != RTP_OK)
+            if (sender_audio_strm->push_frame(std::move(dummy_audio_frame), payload_size, RTP_NO_FLAGS) != RTP_OK)
             {
-                std::cerr << "Failed to send audio frame" << std::endl;
+                std::cerr << "Failed to send frame" << std::endl;
             }
 
             // wait until it is time to send the next frame. Included only for
             // demostration purposes since you can use uvgRTP to send packets as fast as desired
             auto time_since_start = std::chrono::steady_clock::now() - start;
-            auto next_frame_time = (i + 1)*std::chrono::milliseconds(AUDIO_FRAME_INTERVAL_MS);
+            auto next_frame_time = (i + 1)*std::chrono::milliseconds(frame_interval);
             if (next_frame_time > time_since_start)
             {
                 std::this_thread::sleep_for(next_frame_time - time_since_start);
             }
         }
     }
-}
-
-void video_sender(uvgrtp::session* sender_session, int flags, std::shared_ptr<std::mutex> print_mutex)
-{
-  /* Initialize ZRTP and negotiate the keys used to encrypt the media */
-  uvgrtp::media_stream *sender_video_strm = sender_session->create_stream(SENDER_VIDEO_PORT,
-                                                                          RECEIVER_VIDEO_PORT,
-                                                                          RTP_FORMAT_H266, flags);
-
-  if (sender_video_strm)
-  {
-      auto start = std::chrono::steady_clock::now();
-
-      for (int i = 0; std::chrono::steady_clock::now() < (start + EXAMPLE_RUN_TIME_S); ++i)
-      {
-          print_mutex->lock();
-          std::cout << "Sending video frame" << std::endl;
-          print_mutex->unlock();
-
-          std::unique_ptr<uint8_t[]> dummy_audio_frame =
-              std::unique_ptr<uint8_t[]>(new uint8_t[VIDEO_PAYLOAD_SIZE]);
-
-          if (sender_video_strm->push_frame(std::move(dummy_audio_frame),
-                                            VIDEO_PAYLOAD_SIZE, RTP_NO_FLAGS) != RTP_OK)
-          {
-              std::cerr << "Failed to send video frame" << std::endl;
-          }
-
-          // wait until it is time to send the next frame. Included only for
-          // demostration purposes since you can use uvgRTP to send packets as fast as desired
-          auto time_since_start = std::chrono::steady_clock::now() - start;
-          auto next_frame_time = (i + 1)*std::chrono::milliseconds(VIDEO_FRAME_INTERVAL_MS);
-          if (next_frame_time > time_since_start)
-          {
-              std::this_thread::sleep_for(next_frame_time - time_since_start);
-          }
-      }
-  }
 }
