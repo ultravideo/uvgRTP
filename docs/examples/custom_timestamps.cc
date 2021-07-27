@@ -6,12 +6,13 @@
 /* This example demostrates the usage of custom timestamps. Often when
  * streaming multiple media, there are different lengths steps in in the
  * processing flow. Setting the timestamps manually instead of using uvgRTPs
- * internal timestamp system eliminates the timestamp offse
+ * internal timestamp system eliminates the timestamp offset.
  *
  * As a concrete example, audio encoding is usually faster than video encoding and
  * this can cause small offset between video and audio even before reaching uvgRTP.
- * THis can be mitigated by capturing the timestamp at the time of recording video/audio
- * and using that as the custom timestamp. */
+ * This can be mitigated by capturing the timestamp at the time of recording video/audio
+ * and using that as the custom timestamp. This is also how RFC 3550 (RTP) recommends
+ * going about this. */
 
 // set these as you want. Take care that the RTCP is set as RTP port +1
 constexpr char LOCAL_ADDRESS[] = "127.0.0.1";
@@ -20,31 +21,24 @@ constexpr uint16_t LOCAL_PORT = 8888;
 constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
 constexpr uint16_t REMOTE_PORT = 8890;
 
-
-// RTP clock usually increments 90000 in specifications
+// RTP clock for video increments 90000 in RTP payload format RFC
 constexpr uint32_t VIDEO_CLOCK_RATE = 90000;
 constexpr uint32_t VIDEO_FRAME_RATE = 30;
 
 constexpr size_t PAYLOAD_LEN = 100;
-constexpr int SEND_TEST_PACKETS = 50;
+constexpr int SEND_TEST_PACKETS = 500;
 
-
-
-void hook(void *arg, uvgrtp::frame::rtp_frame *frame)
-{
-    std::cout << "Received frame. Timestamp: " << frame->header.timestamp << std::endl;
-    uvgrtp::frame::dealloc_frame(frame);
-}
+void process_received_frame_hook(void *arg, uvgrtp::frame::rtp_frame *frame);
+void cleanup(uvgrtp::context& ctx, uvgrtp::session *local_session, uvgrtp::session *remote_session,
+             uvgrtp::media_stream *send, uvgrtp::media_stream *receive);
 
 int main(void)
 {
     std::cout << "Starting uvgRTP custom timestamp example" << std::endl;
 
-    /* See sending.cc for more details */
     uvgrtp::context ctx;
 
     int flags = RCE_RTCP; // enable RTCP
-
     uvgrtp::session *local_session = ctx.create_session(REMOTE_ADDRESS);
     uvgrtp::media_stream *send = local_session->create_stream(LOCAL_PORT, REMOTE_PORT,
                                                               RTP_FORMAT_H265, flags);
@@ -56,7 +50,11 @@ int main(void)
     if (receive)
     {
         /* install receive hook for asynchronous reception */
-        receive->install_receive_hook(nullptr, hook);
+        if (receive->install_receive_hook(nullptr, process_received_frame_hook) != RTP_OK)
+        {
+            cleanup(ctx, local_session, remote_session, send, receive);
+            return EXIT_FAILURE;
+        }
     }
 
     if (send)
@@ -88,28 +86,47 @@ int main(void)
             /* The timestamp is given as the third parameter and it should be advanced
              * in accordance with the media stream clock rate. For example, for HEVC, the clock rate is 90000. */
             if (send->push_frame(std::move(buffer), PAYLOAD_LEN, timestamp, RTP_NO_FLAGS) != RTP_OK)
-                fprintf(stderr, "Failed to send RTP frame!");
+            {
+                std::cerr << "Failed to send RTP frame!";
+                cleanup(ctx, local_session, remote_session, send, receive);
+                return EXIT_FAILURE;
+            }
         }
-
-        local_session->destroy_stream(send);
     }
 
-    if (receive)
-    {
-        remote_session->destroy_stream(receive);
-    }
-
-    if (local_session)
-    {
-        /* Session must be destroyed manually */
-        ctx.destroy_session(local_session);
-    }
-
-    if (remote_session)
-    {
-        /* Session must be destroyed manually */
-        ctx.destroy_session(remote_session);
-    }
-
+    cleanup(ctx, local_session, remote_session, send, receive);
     return EXIT_SUCCESS;
 }
+
+void process_received_frame_hook(void *arg, uvgrtp::frame::rtp_frame *frame)
+{
+    std::cout << "Received frame. Timestamp: " << frame->header.timestamp << std::endl;
+    uvgrtp::frame::dealloc_frame(frame);
+}
+
+void cleanup(uvgrtp::context &ctx, uvgrtp::session *local_session, uvgrtp::session *remote_session,
+             uvgrtp::media_stream *send, uvgrtp::media_stream *receive)
+{
+  if (send)
+  {
+      local_session->destroy_stream(send);
+  }
+
+  if (receive)
+  {
+      remote_session->destroy_stream(receive);
+  }
+
+  if (local_session)
+  {
+      // Session must be destroyed manually
+      ctx.destroy_session(local_session);
+  }
+
+  if (remote_session)
+  {
+      // Session must be destroyed manually
+      ctx.destroy_session(remote_session);
+  }
+}
+

@@ -3,7 +3,7 @@ CONFIG += console c++11
 CONFIG -= app_bundle
 CONFIG -= qt
 
-# define here which example you want to build. Remember to run qmake
+# define here which example you want to build. Remember to rerun qmake
 CONFIG += selectBinding
 
 selectBinding {
@@ -69,11 +69,6 @@ selectSRTPUser {
   SOURCES += \
     srtp_user.cc \
 
-  win32-msvc{
-    LIBS += -lcryptlib
-  } else {
-    LIBS += -lcryptopp
-  }
 }
 
 selectZRTPMultistream {
@@ -81,12 +76,6 @@ selectZRTPMultistream {
   TARGET = ZRTPMultistream
   SOURCES += \
     zrtp_multistream.cc \
-
-  win32-msvc{
-    LIBS += -lcryptlib
-  } else {
-    LIBS += -lcryptopp
-  }
 }
 
 DISTFILES += \
@@ -97,6 +86,15 @@ DISTFILES += \
 INCLUDEPATH    += ../../include
 
 LIBS += -luvgrtp
+
+# uvgRTP links agains Crypto++ if it is available and excluded.
+# You can safely remove its linking if you did not include Crypto++ in uvgRTP.
+# Please note that the SRTP and ZRTP examples need Crypto++ to succeed
+win32-msvc{
+  LIBS += -lcryptlib
+} else {
+  LIBS += -lcryptopp
+}
 
 win32-msvc{
   message("Detected MSVC compiler")

@@ -2,6 +2,22 @@
 #include <climits>
 #include <cstring>
 
+/* Zimmermann RTP (ZRTP) is a key management protocol for SRTP. Compared
+ * to most approaches, using ZRTP can facilitate end-to-end encryption
+ * of media traffic since the keys are exchanged peer-to-peer.
+ *
+ * Using ZRTP in uvgRTP requires only setting it on with RCE_SRTP_KMNGMNT_ZRTP
+ * flag. Then when creating the media streams, you will encounter a small additional
+ * wait until the ZRTP negotiation has been completed. ZRTP has to only be negotiatiated
+ * once per session, since the following media_streams can use the key context from
+ * the first media_stream.
+ *
+ * This example demonstrates usign the ZRTP to negotiate SRTP encryption context
+ * for multiple media_streams. There are two senders and two receivers representing
+ * video and audio streams.
+ */
+
+// Network parameters of this example
 constexpr char SENDER_ADDRESS[] = "127.0.0.1";
 constexpr uint16_t SENDER_VIDEO_PORT = 8888;
 constexpr uint16_t SENDER_AUDIO_PORT = 8890;
@@ -10,6 +26,7 @@ constexpr char RECEIVER_ADDRESS[] = "127.0.0.1";
 constexpr uint16_t RECEIVER_VIDEO_PORT = 7776;
 constexpr uint16_t RECEIVER_AUDIO_PORT = 7778;
 
+// demonstration parameters of this example
 constexpr int VIDEO_PAYLOAD_SIZE = 4000;
 constexpr int AUDIO_PAYLOAD_SIZE = 100;
 
@@ -25,19 +42,18 @@ void receive_function(uvgrtp::session* receiver_session, int flags, std::shared_
 void sender_function(uvgrtp::session* sender_session, int flags, std::shared_ptr<std::mutex> print_mutex,
                      RTP_FORMAT format, uint16_t sender_port, uint16_t receiver_port, size_t payload_size,
                      std::chrono::milliseconds frame_interval);
+void wait_until_next_frame(std::chrono::steady_clock::time_point& start, std::chrono::milliseconds interval, int frame_index);
 
 int main(void)
 {
     std::cout << "Starting uvgRTP SRTP together with ZRTP example" << std::endl;
 
-    /* Enable SRTP and use ZRTP to manage keys for both sender and receiver*/
-    unsigned rce_flags = RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP;
-
     uvgrtp::context receiver_ctx;
 
+    // check that Crypto++ has been compiled into uvgRTP, otherwise encryption wont work.
     if (!receiver_ctx.crypto_enabled())
     {
-        std::cerr << "Cannot run SRTP example if crypto is not included in uvgRTP!"
+        std::cerr << "Cannot run SRTP example if crypto++ is not included in uvgRTP!"
                   << std::endl;
         return EXIT_FAILURE;
     }
@@ -52,16 +68,20 @@ int main(void)
      * the receiver and sender must communicate with each other
      * before the actual media communication starts */
 
+    // Enable SRTP and use ZRTP to manage keys for both sender and receiver*/
+    unsigned rce_flags = RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP;
+
+    // start the receivers in a separate thread
     std::thread a_receiver(receive_function, receiver_session, rce_flags, print_mutex,
                            RTP_FORMAT_OPUS, RECEIVER_AUDIO_PORT, SENDER_AUDIO_PORT);
 
     std::thread v_receiver(receive_function, receiver_session, rce_flags, print_mutex,
                            RTP_FORMAT_H266, RECEIVER_VIDEO_PORT, SENDER_VIDEO_PORT);
 
-    /* See sending.cc for more details */
     uvgrtp::context sender_ctx;
     uvgrtp::session *sender_session = sender_ctx.create_session(RECEIVER_ADDRESS);
 
+    // start the senders in their own threads
     std::thread a_sender(sender_function, sender_session, rce_flags, print_mutex,
                          RTP_FORMAT_OPUS, SENDER_AUDIO_PORT, RECEIVER_AUDIO_PORT,
                          AUDIO_PAYLOAD_SIZE, AUDIO_FRAME_INTERVAL_MS);
@@ -71,7 +91,6 @@ int main(void)
                          VIDEO_PAYLOAD_SIZE, VIDEO_FRAME_INTERVAL_MS);
 
     // wait until all threads have ended
-
     if (a_receiver.joinable())
     {
         a_receiver.join();
@@ -171,12 +190,21 @@ void sender_function(uvgrtp::session* sender_session, int flags, std::shared_ptr
 
             // wait until it is time to send the next frame. Included only for
             // demostration purposes since you can use uvgRTP to send packets as fast as desired
-            auto time_since_start = std::chrono::steady_clock::now() - start;
-            auto next_frame_time = (i + 1)*std::chrono::milliseconds(frame_interval);
-            if (next_frame_time > time_since_start)
-            {
-                std::this_thread::sleep_for(next_frame_time - time_since_start);
-            }
+            wait_until_next_frame(start, frame_interval, i);
         }
     }
+}
+
+void wait_until_next_frame(std::chrono::steady_clock::time_point& start,
+                           std::chrono::milliseconds interval, int frame_index)
+{
+  // wait until it is time to send the next frame. Simulates a steady sending pace
+  // and included only for demostration purposes since you can use uvgRTP to send
+  // packets as fast as desired
+  auto time_since_start = std::chrono::steady_clock::now() - start;
+  auto next_frame_time = (frame_index + 1)*interval;
+  if (next_frame_time > time_since_start)
+  {
+      std::this_thread::sleep_for(next_frame_time - time_since_start);
+  }
 }

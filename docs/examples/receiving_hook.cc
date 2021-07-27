@@ -2,14 +2,71 @@
 
 #include <thread>
 
+/* There are two main ways of getting received RTP frames from uvgRTP.
+ * This example demonstrates the usage of hook function to receive RTP frames.
+ *
+ * The advantage of using a hook function is minimal CPU usage and delay between
+ * uvgRTP receiving the frame and application processing the frame. When using
+ * the hook method, the application must take care that it is not using the hook
+ * function for heavy processing since this may block RTP frame reception.
+ *
+ * Hook based frame reception is generally recommended for most serious applications,
+ * but there can be situations where polling method is better, especially if performance
+ * is not a huge concern or if there needs to be tight control when the frame is
+ * received by the application.
+ *
+ * This example only implements the receiving, but it can be used together with the
+ * sending example to test the functionality.
+ */
+
+// parameters for this test. You can change these to suit your network environment
 constexpr uint16_t LOCAL_PORT = 8890;
 
 constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
 constexpr uint16_t REMOTE_PORT = 8888;
 
-// This example runs for 10 seconds
-constexpr auto RECEIVE_TIME_MS = std::chrono::milliseconds(10000);
+// This example runs for 5 seconds
+constexpr auto RECEIVE_TIME_S = std::chrono::seconds(5);
 
+void rtp_receive_hook(void *arg, uvgrtp::frame::rtp_frame *frame);
+void cleanup(uvgrtp::context& ctx, uvgrtp::session *sess, uvgrtp::media_stream *receiver);
+
+int main(void)
+{
+    std::cout << "Starting uvgRTP RTP receive hook example" << std::endl;
+
+    uvgrtp::context ctx;
+    /* There remote address and port are needed if the .
+        uvgRTP API is */
+
+    uvgrtp::session *sess = ctx.create_session(REMOTE_ADDRESS);
+    int flags = RTP_NO_FLAGS;
+    uvgrtp::media_stream *receiver = sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, flags);
+
+    /* Receive hook can be installed and uvgRTP will call this hook when an RTP frame is received
+     *
+     * This is a non-blocking operation
+     *
+     * If necessary, receive hook can be given an argument and this argument is supplied to
+     * the receive hook every time the hook is called. This argument could a pointer to application-
+     * specfic object if the application needs to be called inside the hook
+     *
+     * If it's not needed, it should be set to nullptr */
+    if (!receiver || receiver->install_receive_hook(nullptr, rtp_receive_hook) != RTP_OK)
+    {
+        std::cerr << "Failed to install RTP reception hook";
+        cleanup(ctx, sess, receiver);
+        return EXIT_FAILURE;
+    }
+
+    std::cout << "Waiting incoming packets for " << RECEIVE_TIME_S.count() << " s" << std::endl;
+
+    std::this_thread::sleep_for(RECEIVE_TIME_S); // lets this example run for some time
+
+    cleanup(ctx, sess, receiver);
+
+    return EXIT_SUCCESS;
+}
 
 void rtp_receive_hook(void *arg, uvgrtp::frame::rtp_frame *frame)
 {
@@ -24,39 +81,11 @@ void rtp_receive_hook(void *arg, uvgrtp::frame::rtp_frame *frame)
     (void)uvgrtp::frame::dealloc_frame(frame);
 }
 
-int main(void)
+void cleanup(uvgrtp::context& ctx, uvgrtp::session *sess, uvgrtp::media_stream *receiver)
 {
-    std::cout << "Starting uvgRTP RTP receive hook example" << std::endl;
-
-    /* See sending.cc for more details */
-    uvgrtp::context ctx;
-
-    /* See sending.cc for more details */
-    uvgrtp::session *sess = ctx.create_session(REMOTE_ADDRESS);
-
-    /* See sending.cc for more details */
-    int flags = RTP_NO_FLAGS;
-    uvgrtp::media_stream *hevc = sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, flags);
-
-    /* Receive hook can be installed and uvgRTP will call this hook when an RTP frame is received
-     *
-     * This is a non-blocking operation
-     *
-     * If necessary, receive hook can be given an argument and this argument is supplied to
-     * the receive hook every time the hook is called. This argument could a pointer to application-
-     * specfic object if the application needs to be called inside the hook
-     *
-     * If it's not needed, it should be set to nullptr */
-    if (hevc)
-        hevc->install_receive_hook(nullptr, rtp_receive_hook);
-
-    std::cout << "Waiting incoming packets for " << RECEIVE_TIME_MS.count() << " ms" << std::endl;
-
-    std::this_thread::sleep_for(RECEIVE_TIME_MS);
-
-    if (hevc)
+    if (receiver)
     {
-        sess->destroy_stream(hevc);
+        sess->destroy_stream(receiver);
     }
 
     if (sess)
@@ -64,6 +93,4 @@ int main(void)
         /* Session must be destroyed manually */
         ctx.destroy_session(sess);
     }
-
-    return EXIT_SUCCESS;
 }
