@@ -26,7 +26,7 @@ constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
 constexpr uint16_t REMOTE_PORT = 8888;
 
 // This example runs for 5 seconds
-constexpr auto RECEIVE_TIME_S = std::chrono::seconds(5);
+constexpr auto RECEIVE_TIME_S = std::chrono::seconds(3);
 
 void rtp_receive_hook(void *arg, uvgrtp::frame::rtp_frame *frame);
 void cleanup(uvgrtp::context& ctx, uvgrtp::session *sess, uvgrtp::media_stream *receiver);

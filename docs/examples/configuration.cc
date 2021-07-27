@@ -93,7 +93,9 @@ int main(void)
         {
             auto buffer = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
 
-            std::cout << "Sending frame " << i + 1 << '/' << SEND_TEST_PACKETS << std::endl;
+            if ((i+1)%10  == 0 || i == 0) // print every 10 frames and first
+                std::cout << "Sending frame " << i + 1 << '/' << SEND_TEST_PACKETS << std::endl;
+
             if (send->push_frame(std::move(buffer), PAYLOAD_LEN, RTP_NO_FLAGS) != RTP_OK)
             {
                 std::cerr << "Failed to send RTP frame!" << std::endl;

@@ -26,7 +26,7 @@ constexpr int SALT_SIZE = 112;
 constexpr int SALT_SIZE_BYTES = SALT_SIZE/8;
 
 // demonstration parameters
-constexpr auto EXAMPLE_DURATION = std::chrono::seconds(10);
+constexpr auto EXAMPLE_DURATION = std::chrono::seconds(5);
 constexpr int FRAME_RATE = 30; // fps
 constexpr int SEND_TEST_PACKETS = (EXAMPLE_DURATION.count() - 1)*FRAME_RATE;
 constexpr int PACKET_INTERVAL_MS = 1000/FRAME_RATE;
@@ -91,7 +91,8 @@ int main(void)
         auto start = std::chrono::steady_clock::now();
         for (unsigned int i = 0; i < SEND_TEST_PACKETS; ++i)
         {
-            std::cout << "Sending frame " << i + 1 << '/' << SEND_TEST_PACKETS << std::endl;
+            if ((i+1)%10  == 0 || i == 0) // print every 10 frames and first
+                std::cout << "Sending frame # " << i + 1 << '/' << SEND_TEST_PACKETS << std::endl;
 
             if (send->push_frame((uint8_t *)message, msg_len, RTP_NO_FLAGS) != RTP_OK)
             {

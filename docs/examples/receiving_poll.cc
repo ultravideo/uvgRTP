@@ -26,7 +26,7 @@ constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
 constexpr uint16_t REMOTE_PORT = 8888;
 
 // How long this example will run
-constexpr auto RECEIVE_TIME_MS = std::chrono::milliseconds(10000);
+constexpr auto RECEIVE_TIME_MS = std::chrono::milliseconds(3000);
 constexpr int RECEIVER_WAIT_TIME_MS = 100;
 
 void process_frame(uvgrtp::frame::rtp_frame *frame);

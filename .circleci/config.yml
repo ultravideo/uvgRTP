@@ -9,6 +9,7 @@ jobs:
   build:
     docker:
       - image: cimg/base:2021.04
+    resource_class: small
     steps:
       - checkout
       - run:
@@ -22,7 +23,7 @@ jobs:
           command: 'cmake -H. -Bbuild'
       - run:
           name: Build the uvgRTP library
-          command: 'cmake --build build -j'
+          command: 'cmake --build build'
       - run:
           name: Build binding example
           command: 'g++ -D__RTP_NO_CRYPTO__ docs/examples/binding.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_binding'
@@ -79,7 +80,7 @@ jobs:
           command: 'cmake -H. -Bbuild_c'
       - run:
           name: Build the uvgRTP library with Crypto++ enabled
-          command: 'cmake --build build_c -j'
+          command: 'cmake --build build_c'
       - run:
           name: Build user managed SRTP key example
           command: 'g++ docs/examples/srtp_user.cc -Iinclude/ build_c/libuvgrtp.a -lpthread -lcryptopp -o example_srtp'

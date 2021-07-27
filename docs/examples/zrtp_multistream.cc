@@ -30,7 +30,7 @@ constexpr uint16_t RECEIVER_AUDIO_PORT = 7778;
 constexpr int VIDEO_PAYLOAD_SIZE = 4000;
 constexpr int AUDIO_PAYLOAD_SIZE = 100;
 
-constexpr auto EXAMPLE_RUN_TIME_S = std::chrono::seconds(10);
+constexpr auto EXAMPLE_RUN_TIME_S = std::chrono::seconds(5);
 constexpr auto RECEIVER_WAIT_TIME_MS = std::chrono::milliseconds(50);
 
 constexpr auto AUDIO_FRAME_INTERVAL_MS = std::chrono::milliseconds(20);
@@ -177,9 +177,11 @@ void sender_function(uvgrtp::session* sender_session, int flags, std::shared_ptr
 
         for (int i = 0; std::chrono::steady_clock::now() < (start + EXAMPLE_RUN_TIME_S); ++i)
         {
+            /*
             print_mutex->lock();
             std::cout << "Sending frame" << std::endl;
             print_mutex->unlock();
+            */
 
             std::unique_ptr<uint8_t[]> dummy_audio_frame = std::unique_ptr<uint8_t[]>(new uint8_t[payload_size]);
 

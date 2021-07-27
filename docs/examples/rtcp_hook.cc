@@ -19,7 +19,8 @@ constexpr uint16_t REMOTE_PORT = 8890;
 
 constexpr uint16_t PAYLOAD_LEN = 256;
 constexpr uint16_t FRAME_RATE = 30;
-constexpr int SEND_TEST_PACKETS = FRAME_RATE*60; // one minute
+constexpr uint32_t EXAMPLE_RUN_TIME_S = 30;
+constexpr int SEND_TEST_PACKETS = FRAME_RATE*EXAMPLE_RUN_TIME_S;
 constexpr int PACKET_INTERVAL_MS = 1000/FRAME_RATE;
 
 /* uvgRTP calls this hook when it receives an RTCP Report
@@ -85,8 +86,11 @@ int main(void)
 
         for (unsigned int i = 0; i < SEND_TEST_PACKETS; ++i)
         {
-            std::cout << "Sending RTP frame " << (i + 1) << "/" << SEND_TEST_PACKETS
-                      << " Total data sent: " << (i + 1)*PAYLOAD_LEN << std::endl;
+            if ((i+1)%10  == 0 || i == 0) // print every 10 frames and first
+            {
+                std::cout << "Sending RTP frame " << (i + 1) << "/" << SEND_TEST_PACKETS
+                          << " Total data sent: " << (i + 1)*PAYLOAD_LEN << std::endl;
+            }
 
             local_stream->push_frame((uint8_t *)buffer, PAYLOAD_LEN, RTP_NO_FLAGS);
 

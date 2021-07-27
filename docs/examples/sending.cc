@@ -53,7 +53,9 @@ int main(void)
         for (int i = 0; i < AMOUNT_OF_TEST_PACKETS; ++i)
         {
             std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
-            std::cout << "Sending frame " << i + 1 << '/' << AMOUNT_OF_TEST_PACKETS << std::endl;
+
+            if ((i+1)%10  == 0 || i == 0) // print every 10 frames and first
+                std::cout << "Sending frame " << i + 1 << '/' << AMOUNT_OF_TEST_PACKETS << std::endl;
 
             if (hevc->push_frame(std::move(dummy_frame), PAYLOAD_LEN, RTP_NO_FLAGS) != RTP_OK)
             {
