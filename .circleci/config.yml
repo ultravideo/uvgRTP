@@ -47,4 +47,18 @@ jobs:
       - run:
           name: Build generic example
           command: 'g++ -D__RTP_NO_CRYPTO__ docs/examples/sending_generic.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_generic'
-          # ToDo: add -lcrypto++ for SRTP and ZRTP examples
+      - run:
+          name: Install Crypto++
+          command: 'sudo apt-get install -y libcrypto++-dev'
+      - run:
+          name: Create build files for crypto++ build
+          command: 'cmake -H. -Bbuild_c'
+      - run:
+          name: Build the uvgRTP library with Crypto++ enabled
+          command: 'cmake --build build_c -j'
+      - run:
+          name: Build user managed SRTP key example
+          command: 'g++ docs/examples/srtp_user.cc -Iinclude/ build_c/libuvgrtp.a -lpthread -lcryptopp -o example_srtp'
+      - run:
+          name: Build ZRTP + SRTP multistream example
+          command: 'g++ docs/examples/zrtp_multistream.cc -Iinclude/ build_c/libuvgrtp.a -lpthread -lcryptopp -o example_zrtp'
