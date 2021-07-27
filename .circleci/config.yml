@@ -1,6 +1,8 @@
 # Simple CircleCI configuration for building uvgRTP
 # ToDo: add tests
 
+
+
 version: 2.1
 
 jobs:
@@ -22,6 +24,27 @@ jobs:
           name: Build the uvgRTP library
           command: 'cmake --build build -j'
       - run:
-          name: Build test application
-          # ToDo: add -lcrypto++ 
+          name: Build binding example
+          command: 'g++ -D__RTP_NO_CRYPTO__ docs/examples/binding.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_binding'
+      - run:
+          name: Build configuration example
           command: 'g++ -D__RTP_NO_CRYPTO__ docs/examples/configuration.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_configuration'
+      - run:
+          name: Build timestamp example
+          command: 'g++ -D__RTP_NO_CRYPTO__ docs/examples/custom_timestamps.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_timestamp'
+      - run:
+          name: Build hook receiving example
+          command: 'g++ -D__RTP_NO_CRYPTO__ docs/examples/receiving_hook.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_hook'
+      - run:
+          name: Build poll receiving example
+          command: 'g++ -D__RTP_NO_CRYPTO__ docs/examples/receiving_poll.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_poll'
+      - run:
+          name: Build RTCP example
+          command: 'g++ -D__RTP_NO_CRYPTO__ docs/examples/rtcp_hook.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_rtcp'
+      - run:
+          name: Build sending example
+          command: 'g++ -D__RTP_NO_CRYPTO__ docs/examples/sending.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_sending'
+      - run:
+          name: Build generic example
+          command: 'g++ -D__RTP_NO_CRYPTO__ docs/examples/sending_generic.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_generic'
+          # ToDo: add -lcrypto++ for SRTP and ZRTP examples
