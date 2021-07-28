@@ -4,7 +4,6 @@
 #include "util.hh"
 #include "socket.hh"
 #include "frame.hh"
-#include "runner.hh"
 
 
 #include <bitset>
@@ -24,13 +23,6 @@ namespace uvgrtp {
         RECEIVER,
         SENDER
     };
-
-    /* TODO: explain these constants */
-    const uint32_t RTP_SEQ_MOD    = 1 << 16;
-    const uint32_t MIN_SEQUENTIAL = 2;
-    const uint32_t MAX_DROPOUT    = 3000;
-    const uint32_t MAX_MISORDER   = 100;
-    const uint32_t MIN_TIMEOUT    = 5000;
 
     struct rtcp_statistics {
         /* receiver stats */
@@ -76,7 +68,7 @@ namespace uvgrtp {
     };
     /// \endcond
 
-    class rtcp : public runner {
+    class rtcp {
         public:
             /// \cond DO_NOT_DOCUMENT
             rtcp(uvgrtp::rtp *rtp, int flags);
@@ -448,6 +440,15 @@ namespace uvgrtp {
             std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_hook_f_;
             std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_hook_f_;
             std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)> app_hook_f_;
+
+            std::unique_ptr<std::thread> report_generator_;
+
+            bool is_active() const
+            {
+                return active_;
+            }
+
+            bool active_;
     };
 };
 

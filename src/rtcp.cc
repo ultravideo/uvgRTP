@@ -23,6 +23,13 @@ const uint16_t SENDER_INFO_SIZE = 20;
 const uint16_t REPORT_BLOCK_SIZE = 24;
 const uint16_t APP_NAME_SIZE = 4;
 
+/* TODO: explain these constants */
+const uint32_t RTP_SEQ_MOD    = 1 << 16;
+const uint32_t MIN_SEQUENTIAL = 2;
+const uint32_t MAX_DROPOUT    = 3000;
+const uint32_t MAX_MISORDER   = 100;
+const uint32_t MIN_TIMEOUT_MS    = 5000;
+
 const uint32_t MAX_SUPPORTED_PARTICIPANTS = 31;
 
 uvgrtp::rtcp::rtcp(uvgrtp::rtp *rtp, int flags):
@@ -45,7 +52,9 @@ uvgrtp::rtcp::rtcp(uvgrtp::rtp *rtp, int flags):
 
     clock_start_  = 0;
     rtp_ts_start_ = 0;
-    runner_       = nullptr;
+
+    report_generator_   = nullptr;
+
     srtcp_        = nullptr;
 
     zero_stats(&our_stats);
@@ -63,43 +72,42 @@ uvgrtp::rtcp::~rtcp()
 
 rtp_error_t uvgrtp::rtcp::start()
 {
-    if (sockets_.empty()) {
+    if (sockets_.empty())
+    {
         LOG_ERROR("Cannot start RTCP Runner because no connections have been initialized");
         return RTP_INVALID_VALUE;
     }
     active_ = true;
 
-    runner_ = new std::thread(rtcp_runner, this);
-    runner_->detach();
+    report_generator_.reset(new std::thread(rtcp_runner, this));
 
     return RTP_OK;
 }
 
 rtp_error_t uvgrtp::rtcp::stop()
 {
-    if (!runner_)
-        goto free_mem;
+    active_ = false; // bool variables are thread safe to set and read
+
+    if (report_generator_ && report_generator_->joinable())
+    {
+        report_generator_->join();
+    }
 
     /* when the member count is less than 50,
      * we can just send the BYE message and destroy the session */
-    if (members_ < 50) {
-        active_ = false;
-        goto end;
+    if (members_ >= 50)
+    {
+        tp_       = tc_;
+        members_  = 1;
+        pmembers_ = 1;
+        initial_  = true;
+        we_sent_  = false;
+        senders_  = 0;
     }
 
-    tp_       = tc_;
-    members_  = 1;
-    pmembers_ = 1;
-    initial_  = true;
-    we_sent_  = false;
-    senders_  = 0;
-    active_   = false;
-
-end:
     /* Send BYE packet with our SSRC to all participants */
     return uvgrtp::rtcp::send_bye_packet({ ssrc_ });
 
-free_mem:
     /* free all receiver statistic structs */
     for (auto& participant : participants_) {
         delete participant.second->socket;
@@ -113,33 +121,42 @@ void uvgrtp::rtcp::rtcp_runner(uvgrtp::rtcp* rtcp)
 {
     LOG_INFO("RTCP instance created!");
 
-    uvgrtp::clock::hrc::hrc_t start, end;
-    int nread, diff, timeout = MIN_TIMEOUT;
+    int interval = MIN_TIMEOUT_MS;
+
     uint8_t buffer[MAX_PACKET];
-    rtp_error_t ret;
 
-    while (rtcp->active()) {
-        start = uvgrtp::clock::hrc::now();
-        ret = uvgrtp::poll::poll(rtcp->get_sockets(), buffer, MAX_PACKET, timeout, &nread);
+    uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
 
-        if (ret == RTP_OK && nread > 0) {
-            (void)rtcp->handle_incoming_packet(buffer, (size_t)nread);
-        }
-        else if (ret == RTP_INTERRUPTED) {
-            /* do nothing */
-        }
-        else {
-            LOG_ERROR("recvfrom failed, %d", ret);
-        }
+    for (int i = 0; rtcp->is_active(); ++i)
+    {
+        long int diff_ms = (start + std::chrono::milliseconds(i*interval) - uvgrtp::clock::hrc::now()).count();
 
-        diff = (int)uvgrtp::clock::hrc::diff_now(start);
-
-        if (diff >= MIN_TIMEOUT) {
-            if ((ret = rtcp->generate_report()) != RTP_OK && ret != RTP_NOT_READY) {
+        if (diff_ms <= 0)
+        {
+            rtp_error_t ret = RTP_OK;
+            if ((ret = rtcp->generate_report()) != RTP_OK && ret != RTP_NOT_READY)
+            {
                 LOG_ERROR("Failed to send RTCP status report!");
             }
+        }
+        else if (diff_ms > 5) // busy loopt the last 5 ms for sending just so we don't miss it
+        {
+            // Receive RTCP reports until time to send report
+            int nread = 0;
+            rtp_error_t ret = uvgrtp::poll::poll(rtcp->get_sockets(), buffer, MAX_PACKET, diff_ms, &nread);
 
-            timeout = MIN_TIMEOUT;
+            if (ret == RTP_OK && nread > 0)
+            {
+                (void)rtcp->handle_incoming_packet(buffer, (size_t)nread);
+            }
+            else if (ret == RTP_INTERRUPTED)
+            {
+                /* do nothing */
+            }
+            else
+            {
+                LOG_ERROR("recvfrom failed, %d", ret);
+            }
         }
     }
 }
@@ -1032,8 +1049,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         /* Sender information */
         uint64_t ntp_ts = uvgrtp::clock::ntp::now();
 
-        // TODO: Shouldn't this be the NTP timestamp of previous RTP packet?
-        uint64_t rtp_ts = rtp_ts_start_ + (uvgrtp::clock::ntp::diff(clock_start_, ntp_ts)) * clock_rate_ / 1000;
+        uint64_t rtp_ts = rtp_ts_start_ + (uvgrtp::clock::ntp::diff(clock_start_, ntp_ts)) * float(clock_rate_ / 1000);
 
         SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts >> 32));
         SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts & 0xffffffff));
