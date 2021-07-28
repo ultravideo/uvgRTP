@@ -41,10 +41,10 @@ namespace uvgrtp {
              * \return RTP session object
              *
              * \retval uvgrtp::session      On success
-             * \retval nullptr               If "addr" is empty
+             * \retval nullptr               If "remote_addr" is empty
              * \retval nullptr               If memory allocation failed
              */
-            uvgrtp::session *create_session(std::string addr);
+            uvgrtp::session *create_session(std::string remote_addr);
 
             /**
              * \brief Create a new RTP session
