@@ -1143,12 +1143,6 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 {
     rtcp_pkt_sent_count_++;
 
-    if (!senders_ && our_role_ == SENDER)
-    {
-        LOG_DEBUG("Session does not have any RTP senders!");
-        return RTP_NOT_READY;
-    }
-
     rtp_error_t ret = RTP_OK;
     uint8_t* frame = nullptr;
     int ptr = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
