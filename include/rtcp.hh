@@ -29,6 +29,7 @@ namespace uvgrtp {
         uint32_t received_pkts = 0;  /* Number of packets received */
         uint32_t dropped_pkts = 0;   /* Number of dropped RTP packets */
         uint32_t received_bytes = 0; /* Number of bytes received excluding RTP Header */
+        bool received_rtp_packet = false; // since last report
 
         /* sender stats */
         uint32_t sent_pkts = 0;      /* Number of sent RTP packets */
@@ -36,6 +37,7 @@ namespace uvgrtp {
 
         uint32_t jitter = 0;         /* TODO: */
         uint32_t transit = 0;        /* TODO: */
+        bool sent_rtp_packet = false; // since last report
 
         /* Receiver clock related stuff */
         uint64_t initial_ntp = 0;    /* Wallclock reading when the first RTP packet was received */

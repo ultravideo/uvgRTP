@@ -126,6 +126,9 @@ void uvgrtp::rtcp::rtcp_runner(uvgrtp::rtcp* rtcp)
 
     int interval = MIN_TIMEOUT_MS;
 
+    // RFC 3550 says to wait half interval before sending first report
+    std::this_thread::sleep_for(std::chrono::milliseconds(interval/2));
+
     uint8_t buffer[MAX_PACKET];
 
     uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
@@ -257,8 +260,8 @@ rtp_error_t uvgrtp::rtcp::add_participant(uint32_t ssrc)
 
     participants_[ssrc]->rr_frame    = nullptr;
     participants_[ssrc]->sr_frame    = nullptr;
-    participants_[ssrc]->sdes_frame = nullptr;
-    participants_[ssrc]->app_frame  = nullptr;
+    participants_[ssrc]->sdes_frame  = nullptr;
+    participants_[ssrc]->app_frame   = nullptr;
 
     return RTP_OK;
 }
@@ -441,11 +444,15 @@ void uvgrtp::rtcp::zero_stats(uvgrtp::rtcp_statistics *stats)
     stats->dropped_pkts   = 0;
     stats->received_bytes = 0;
 
+    stats->received_rtp_packet = false;
+
     stats->sent_pkts  = 0;
     stats->sent_bytes = 0;
 
     stats->jitter  = 0;
     stats->transit = 0;
+
+    stats->sent_rtp_packet = false;
 
     stats->initial_ntp = 0;
     stats->initial_rtp = 0;
@@ -456,6 +463,8 @@ void uvgrtp::rtcp::zero_stats(uvgrtp::rtcp_statistics *stats)
     stats->base_seq = 0;
     stats->bad_seq  = 0;
     stats->cycles   = 0;
+
+
 }
 
 bool uvgrtp::rtcp::is_participant(uint32_t ssrc)
@@ -486,6 +495,7 @@ void uvgrtp::rtcp::sender_update_stats(uvgrtp::frame::rtp_frame *frame)
     our_stats.sent_pkts  += 1;
     our_stats.sent_bytes += (uint32_t)frame->payload_len;
     our_stats.max_seq     = frame->header.seq;
+    our_stats.sent_rtp_packet = true;
 }
 
 rtp_error_t uvgrtp::rtcp::init_new_participant(uvgrtp::frame::rtp_frame *frame)
@@ -520,8 +530,6 @@ rtp_error_t uvgrtp::rtcp::init_new_participant(uvgrtp::frame::rtp_frame *frame)
 
 rtp_error_t uvgrtp::rtcp::update_sender_stats(size_t pkt_size)
 {
-    // TODO: Timeout the sender role somehow. We should revert back to receiver
-    // if we don't send for a while
     if (our_role_ == RECEIVER)
     {
         our_role_ = SENDER;
@@ -534,6 +542,7 @@ rtp_error_t uvgrtp::rtcp::update_sender_stats(size_t pkt_size)
 
     our_stats.sent_pkts  += 1;
     our_stats.sent_bytes += (uint32_t)pkt_size;
+    our_stats.sent_rtp_packet = true;
 
     return RTP_OK;
 }
@@ -642,6 +651,8 @@ bool uvgrtp::rtcp::collision_detected(uint32_t ssrc, sockaddr_in& src_addr)
 void uvgrtp::rtcp::update_session_statistics(uvgrtp::frame::rtp_frame *frame)
 {
     auto p = participants_[frame->header.ssrc];
+
+    p->stats.received_rtp_packet = true;
 
     p->stats.received_pkts  += 1;
     p->stats.received_bytes += (uint32_t)frame->payload_len;
@@ -1147,24 +1158,32 @@ rtp_error_t uvgrtp::rtcp::generate_report()
     uint8_t* frame = nullptr;
     int ptr = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
 
-    size_t frame_size = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + (size_t)num_receivers_ * REPORT_BLOCK_SIZE;
+    size_t frame_size = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
+
+    uint16_t reports = 0;
+    for (auto& p : participants_)
+    {
+        if (p.second->stats.received_rtp_packet)
+        {
+            ++reports;
+        }
+    }
+
+    frame_size += REPORT_BLOCK_SIZE*reports;
 
     if (flags_ & RCE_SRTP)
     {
         frame_size += UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH;
     }
 
-    if (our_role_ == SENDER)
+    if (our_role_ == SENDER && our_stats.sent_rtp_packet)
     {
+        LOG_DEBUG("Generating RTCP Sender report");
         // sender reports have sender information in addition compared to receiver reports
         frame_size += SENDER_INFO_SIZE;
-        construct_rtcp_header(frame_size, frame, num_receivers_, uvgrtp::frame::RTCP_FT_SR, true);
-    } else { // RECEIVER
-        construct_rtcp_header(frame_size, frame, num_receivers_, uvgrtp::frame::RTCP_FT_RR, true);
-    }
+        construct_rtcp_header(frame_size, frame, reports, uvgrtp::frame::RTCP_FT_SR, true);
 
-    if (our_role_ == SENDER)
-    {
+        // add sender info to packet
         if (clock_start_ == 0)
         {
           clock_start_ = uvgrtp::clock::ntp::now();
@@ -1173,35 +1192,51 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         /* Sender information */
         uint64_t ntp_ts = uvgrtp::clock::ntp::now();
 
-        uint64_t rtp_ts = rtp_ts_start_ + (uvgrtp::clock::ntp::diff(clock_start_, ntp_ts)) * float(clock_rate_ / 1000);
+        uint64_t rtp_ts = rtp_ts_start_ + (uvgrtp::clock::ntp::diff(clock_start_, ntp_ts))
+            * float(clock_rate_ / 1000);
 
         SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts >> 32));
         SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts & 0xffffffff));
         SET_NEXT_FIELD_32(frame, ptr, htonl((u_long)rtp_ts));
         SET_NEXT_FIELD_32(frame, ptr, htonl(our_stats.sent_pkts));
         SET_NEXT_FIELD_32(frame, ptr, htonl(our_stats.sent_bytes));
+
+        our_stats.sent_rtp_packet = false;
+
+    } else { // RECEIVER
+        LOG_DEBUG("Generating RTCP Receiver report");
+        construct_rtcp_header(frame_size, frame, reports, uvgrtp::frame::RTCP_FT_RR, true);
     }
 
     // the report blocks for sender or receiver report. Both have same reports.
 
+    // TODO: Only include reports from sources which we
+    // have received RTP packets since last report.
     for (auto& p : participants_)
     {
-        int dropped = p.second->stats.dropped_pkts;
-        uint8_t frac = dropped ? p.second->stats.received_bytes / dropped : 0;
-
-        SET_NEXT_FIELD_32(frame, ptr, htonl(p.first)); /* ssrc */
-        SET_NEXT_FIELD_32(frame, ptr, htonl((frac << 24) | p.second->stats.dropped_pkts));
-        SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.max_seq));
-        SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.jitter));
-        SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.lsr));
-
-        /* calculate delay of last SR only if SR has been received at least once */
-        if (p.second->stats.lsr)
+        // only add report blocks if we have received data from them
+        if (p.second->stats.received_rtp_packet)
         {
-            uint64_t diff = (u_long)uvgrtp::clock::hrc::diff_now(p.second->stats.sr_ts);
-            SET_NEXT_FIELD_32(frame, ptr, (uint32_t)htonl((u_long)uvgrtp::clock::ms_to_jiffies(diff)));
+            int dropped = p.second->stats.dropped_pkts;
+            uint8_t frac = dropped ? p.second->stats.received_bytes / dropped : 0;
+
+            SET_NEXT_FIELD_32(frame, ptr, htonl(p.first)); /* ssrc */
+            SET_NEXT_FIELD_32(frame, ptr, htonl((frac << 24) | p.second->stats.dropped_pkts));
+            SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.max_seq));
+            SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.jitter));
+            SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.lsr));
+
+            /* calculate delay of last SR only if SR has been received at least once */
+            if (p.second->stats.lsr)
+            {
+              uint64_t diff = (u_long)uvgrtp::clock::hrc::diff_now(p.second->stats.sr_ts);
+              SET_NEXT_FIELD_32(frame, ptr, (uint32_t)htonl((u_long)uvgrtp::clock::ms_to_jiffies(diff)));
+            }
+            ptr += p.second->stats.lsr ? 0 : 4;
+
+            // we only send reports if there is something to report since last report
+            p.second->stats.received_rtp_packet = false;
         }
-        ptr += p.second->stats.lsr ? 0 : 4;
     }
 
     if (srtcp_ && (ret = srtcp_->handle_rtcp_encryption(flags_, rtcp_pkt_sent_count_, ssrc_, frame, frame_size)) != RTP_OK)
