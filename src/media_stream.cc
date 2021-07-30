@@ -56,7 +56,10 @@ uvgrtp::media_stream::media_stream(
 
 uvgrtp::media_stream::~media_stream()
 {
-    pkt_dispatcher_->stop();
+    if (pkt_dispatcher_)
+    {
+        pkt_dispatcher_->stop();
+    }
 
     // TODO: I would take a close look at what happens when pull_frame is called
     // and media stream is destroyed. Note that this is the only way to stop pull
