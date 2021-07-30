@@ -350,7 +350,7 @@ namespace uvgrtp {
 
             /* read the header values from rtcp packet */
             void read_rtcp_header(uint8_t* packet, uvgrtp::frame::rtcp_header& header);
-            void read_reports(uint8_t* packet, size_t size, uint8_t count, 
+            void read_reports(uint8_t* packet, size_t size, uint8_t count, bool has_sender_block,
                 std::vector<uvgrtp::frame::rtcp_report_block>& reports);
 
             /* Takes ownership of the frame */

@@ -972,7 +972,7 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* packet, size_t 
         delete participants_[frame->ssrc]->rr_frame;
     }
 
-    read_reports(packet, size, frame->header.count, frame->report_blocks);
+    read_reports(packet, size, frame->header.count, false, frame->report_blocks);
 
     if (receiver_hook_)
     {
@@ -1028,7 +1028,7 @@ rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t* packet, size_t si
         ((frame->sender_info.ntp_msw >> 16) & 0xffff) |
         ((frame->sender_info.ntp_lsw & 0xffff0000) >> 16);
 
-    read_reports(packet, size, frame->header.count, frame->report_blocks);
+    read_reports(packet, size, frame->header.count, true, frame->report_blocks);
 
     if (sender_hook_)
     {
@@ -1090,9 +1090,15 @@ void uvgrtp::rtcp::read_rtcp_header(uint8_t* packet, uvgrtp::frame::rtcp_header&
     header.length = ntohs(*(uint16_t*)&packet[2]);
 }
 
-void uvgrtp::rtcp::read_reports(uint8_t* packet, size_t size, uint8_t count, std::vector<uvgrtp::frame::rtcp_report_block>& reports)
+void uvgrtp::rtcp::read_reports(uint8_t* packet, size_t size, uint8_t count, bool has_sender_block,
+                                std::vector<uvgrtp::frame::rtcp_report_block>& reports)
 {
-    uint32_t report_section = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + SENDER_INFO_SIZE;
+    uint32_t report_section = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
+
+    if (has_sender_block)
+    {
+        report_section += SENDER_INFO_SIZE;
+    }
 
     for (int i = 0; i < count; ++i)
     {
@@ -1129,8 +1135,7 @@ rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, size_
 
         update_rtcp_bandwidth(frame_size);
     }
-
-    delete[] frame;
+    // TODO: Should the frame be deleted?
     return ret;
 }
 
