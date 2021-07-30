@@ -130,13 +130,15 @@ void uvgrtp::rtcp::rtcp_runner(uvgrtp::rtcp* rtcp)
 
     uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
 
-    for (int i = 0; rtcp->is_active(); ++i)
+    int i = 0;
+    while (rtcp->is_active())
     {
-        long int diff_ms = (start + std::chrono::milliseconds(i*interval) -
-                            uvgrtp::clock::hrc::now()).count();
+        auto time_since_start = uvgrtp::clock::hrc::diff_now(start);
+        long int diff_ms = i*interval - time_since_start;
 
         if (diff_ms <= 0)
         {
+            ++i;
             rtp_error_t ret = RTP_OK;
             if ((ret = rtcp->generate_report()) != RTP_OK && ret != RTP_NOT_READY)
             {
