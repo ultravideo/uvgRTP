@@ -108,7 +108,7 @@ int main(void)
 
 void receiver_hook(uvgrtp::frame::rtcp_receiver_report *frame)
 {
-    LOG_INFO("Received an RTCP Receiver Report");
+    std::cout << "RTCP receiver report! ----------"       << std::endl;
 
     for (auto& block : frame->report_blocks)
     {
@@ -118,7 +118,8 @@ void receiver_hook(uvgrtp::frame::rtcp_receiver_report *frame)
         std::cout << "last_seq: "   << block.last_seq << std::endl;
         std::cout << "jitter: "     << block.jitter   << std::endl;
         std::cout << "lsr: "        << block.lsr      << std::endl;
-        std::cout << "dlsr (ms): "  << uvgrtp::clock::jiffies_to_ms(block.dlsr) << std::endl;
+        std::cout << "dlsr (ms): "  << uvgrtp::clock::jiffies_to_ms(block.dlsr)
+                  << std::endl << std::endl;
     }
 
     /* RTCP frames can be deallocated using delete */
@@ -127,15 +128,13 @@ void receiver_hook(uvgrtp::frame::rtcp_receiver_report *frame)
 
 void sender_hook(uvgrtp::frame::rtcp_sender_report *frame)
 {
-    LOG_INFO("Received an RTCP Sender Report, Sender Info");
-
+    std::cout << "RTCP sender report! ----------"       << std::endl;
     std::cout << "NTP msw: "        << frame->sender_info.ntp_msw   << std::endl;
     std::cout << "NTP lsw: "        << frame->sender_info.ntp_lsw   << std::endl;
     std::cout << "RTP timestamp: "  << frame->sender_info.rtp_ts    << std::endl;
     std::cout << "packet count: "   << frame->sender_info.pkt_cnt   << std::endl;
     std::cout << "byte count: "     << frame->sender_info.byte_cnt  << std::endl;
 
-    LOG_INFO("Received an RTCP Sender Report, Report blocks");
     for (auto& block : frame->report_blocks)
     {
         std::cout << "ssrc: "       << block.ssrc     << std::endl;
@@ -144,7 +143,8 @@ void sender_hook(uvgrtp::frame::rtcp_sender_report *frame)
         std::cout << "last_seq: "   << block.last_seq << std::endl;
         std::cout << "jitter: "     << block.jitter   << std::endl;
         std::cout << "lsr: "        << block.lsr      << std::endl;
-        std::cout << "dlsr (ms): "  << uvgrtp::clock::jiffies_to_ms(block.dlsr) << std::endl;
+        std::cout << "dlsr (ms): "  << uvgrtp::clock::jiffies_to_ms(block.dlsr)
+                  << std::endl << std::endl;
     }
 
     /* RTCP frames can be deallocated using delete */
