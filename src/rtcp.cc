@@ -438,7 +438,16 @@ void uvgrtp::rtcp::update_rtcp_bandwidth(size_t pkt_size)
     avg_rtcp_pkt_pize_  = rtcp_byte_count_ / rtcp_pkt_count_;
 }
 
-void uvgrtp::rtcp::zero_stats(uvgrtp::rtcp_statistics *stats)
+
+void uvgrtp::rtcp::zero_stats(uvgrtp::sender_statistics *stats)
+{
+    stats->sent_pkts  = 0;
+    stats->sent_bytes = 0;
+
+    stats->sent_rtp_packet = false;
+}
+
+void uvgrtp::rtcp::zero_stats(uvgrtp::receiver_statistics *stats)
 {
     stats->received_pkts  = 0;
     stats->dropped_pkts   = 0;
@@ -446,13 +455,8 @@ void uvgrtp::rtcp::zero_stats(uvgrtp::rtcp_statistics *stats)
 
     stats->received_rtp_packet = false;
 
-    stats->sent_pkts  = 0;
-    stats->sent_bytes = 0;
-
     stats->jitter  = 0;
     stats->transit = 0;
-
-    stats->sent_rtp_packet = false;
 
     stats->initial_ntp = 0;
     stats->initial_rtp = 0;
@@ -463,8 +467,6 @@ void uvgrtp::rtcp::zero_stats(uvgrtp::rtcp_statistics *stats)
     stats->base_seq = 0;
     stats->bad_seq  = 0;
     stats->cycles   = 0;
-
-
 }
 
 bool uvgrtp::rtcp::is_participant(uint32_t ssrc)
@@ -494,7 +496,6 @@ void uvgrtp::rtcp::sender_update_stats(uvgrtp::frame::rtp_frame *frame)
 
     our_stats.sent_pkts  += 1;
     our_stats.sent_bytes += (uint32_t)frame->payload_len;
-    our_stats.max_seq     = frame->header.seq;
     our_stats.sent_rtp_packet = true;
 }
 

@@ -24,20 +24,23 @@ namespace uvgrtp {
         SENDER
     };
 
-    struct rtcp_statistics {
+    struct sender_statistics {
+        /* sender stats */
+        uint32_t sent_pkts = 0;      /* Number of sent RTP packets */
+        uint32_t sent_bytes = 0;     /* Number of sent bytes excluding RTP Header */
+        bool sent_rtp_packet = false; // since last report
+    };
+
+    struct receiver_statistics {
         /* receiver stats */
         uint32_t received_pkts = 0;  /* Number of packets received */
         uint32_t dropped_pkts = 0;   /* Number of dropped RTP packets */
         uint32_t received_bytes = 0; /* Number of bytes received excluding RTP Header */
         bool received_rtp_packet = false; // since last report
 
-        /* sender stats */
-        uint32_t sent_pkts = 0;      /* Number of sent RTP packets */
-        uint32_t sent_bytes = 0;     /* Number of sent bytes excluding RTP Header */
-
         uint32_t jitter = 0;         /* TODO: */
         uint32_t transit = 0;        /* TODO: */
-        bool sent_rtp_packet = false; // since last report
+
 
         /* Receiver clock related stuff */
         uint64_t initial_ntp = 0;    /* Wallclock reading when the first RTP packet was received */
@@ -56,7 +59,7 @@ namespace uvgrtp {
     struct rtcp_participant {
         uvgrtp::socket *socket = nullptr; /* socket associated with this participant */
         sockaddr_in address;         /* address of the participant */
-        struct rtcp_statistics stats; /* RTCP session statistics of the participant */
+        struct receiver_statistics stats; /* RTCP session statistics of the participant */
 
         uint32_t probation = 0;           /* has the participant been fully accepted to the session */
         int role = 0;                /* is the participant a sender or a receiver */
@@ -344,7 +347,9 @@ namespace uvgrtp {
             /* Because struct statistics contains uvgRTP clock object we cannot
              * zero it out without compiler complaining about it so all the fields
              * must be set to zero manually */
-            void zero_stats(uvgrtp::rtcp_statistics *stats);
+            void zero_stats(uvgrtp::sender_statistics *stats);
+
+            void zero_stats(uvgrtp::receiver_statistics *stats);
 
             /* Set the first four or eight bytes of an RTCP packet */
             rtp_error_t construct_rtcp_header(size_t packet_size, uint8_t*& frame,
@@ -421,7 +426,7 @@ namespace uvgrtp {
             uint8_t num_receivers_; // maximum is 32 (5 bits)
 
             /* statistics for RTCP Sender and Receiver Reports */
-            struct rtcp_statistics our_stats;
+            struct sender_statistics our_stats;
 
             /* If we expect frames from remote but haven't received anything from remote yet,
              * the participant resides in this vector until he's moved to participants_ */
