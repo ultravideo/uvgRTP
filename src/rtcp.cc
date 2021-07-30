@@ -70,6 +70,10 @@ uvgrtp::rtcp::rtcp(uvgrtp::rtp *rtp, uvgrtp::srtcp *srtcp, int flags):
 
 uvgrtp::rtcp::~rtcp()
 {
+    if (active_)
+    {
+        stop();
+    }
 }
 
 rtp_error_t uvgrtp::rtcp::start()
