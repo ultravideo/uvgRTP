@@ -58,6 +58,10 @@ uvgrtp::media_stream::~media_stream()
 {
     pkt_dispatcher_->stop();
 
+    // TODO: I would take a close look at what happens when pull_frame is called
+    // and media stream is destroyed. Note that this is the only way to stop pull
+    // frame without waiting
+
     if (ctx_config_.flags & RCE_RTCP)
         rtcp_->stop();
 

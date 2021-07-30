@@ -86,7 +86,7 @@ rtp_error_t uvgrtp::socket::bind(short family, unsigned host, short port)
 #else
         fprintf(stderr, "%s\n", strerror(errno));
 #endif
-        LOG_ERROR("Biding to port %u failed!", port);
+        LOG_ERROR("Binding to port %u failed!", port);
         return RTP_BIND_ERROR;
     }
 
