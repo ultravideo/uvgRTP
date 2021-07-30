@@ -59,8 +59,8 @@ void uvgrtp::rtp::set_payload(rtp_format_t fmt)
             break;
 
         default:
-            LOG_WARN("Unknown RTP format, setting clock rate to 10000");
-            clock_rate_ = 10000;
+            LOG_WARN("Unknown RTP format, setting clock rate to 8000");
+            clock_rate_ = 8000;
             break;
     }
 }
