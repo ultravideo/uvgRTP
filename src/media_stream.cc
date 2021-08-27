@@ -65,7 +65,7 @@ uvgrtp::media_stream::~media_stream()
     // and media stream is destroyed. Note that this is the only way to stop pull
     // frame without waiting
 
-    if (ctx_config_.flags & RCE_RTCP)
+    if ((ctx_config_.flags & RCE_RTCP) && rtcp_)
         rtcp_->stop();
 
     if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE)
@@ -177,11 +177,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
 
 rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
 {
-    if (socket_)
-    {
-        delete socket_;
-        socket_ = nullptr;
-    }
+
     if (rtcp_)
     {
         delete rtcp_;
@@ -216,6 +212,12 @@ rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
     {
         delete media_;
         media_ = nullptr;
+    }
+
+    if (socket_)
+    {
+        delete socket_;
+        socket_ = nullptr;
     }
 
     return ret;

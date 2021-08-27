@@ -47,7 +47,8 @@ uvgrtp::rtcp::rtcp(uvgrtp::rtp *rtp, int flags):
     sr_hook_f_(nullptr),
     rr_hook_f_(nullptr),
     sdes_hook_f_(nullptr),
-    app_hook_f_(nullptr)
+    app_hook_f_(nullptr),
+    active_(false)
 {
     ssrc_         = rtp->get_ssrc();
     clock_rate_   = rtp->get_clock_rate();
@@ -92,7 +93,21 @@ rtp_error_t uvgrtp::rtcp::start()
 
 rtp_error_t uvgrtp::rtcp::stop()
 {
-    active_ = false; // bool variables are thread safe to set and read
+    // TODO: Make thread safe
+    if (!active_)
+    {
+        /* free all receiver statistic structs */
+        for (auto& participant : participants_)
+        {
+            delete participant.second->socket;
+            delete participant.second;
+        }
+
+        participants_.clear();
+        return RTP_OK;
+    }
+
+    active_ = false;
 
     if (report_generator_ && report_generator_->joinable())
     {
@@ -113,15 +128,6 @@ rtp_error_t uvgrtp::rtcp::stop()
 
     /* Send BYE packet with our SSRC to all participants */
     return uvgrtp::rtcp::send_bye_packet({ ssrc_ });
-
-    /* free all receiver statistic structs */
-    for (auto& participant : participants_)
-    {
-        delete participant.second->socket;
-        delete participant.second;
-    }
-
-    return RTP_OK;
 }
 
 void uvgrtp::rtcp::rtcp_runner(uvgrtp::rtcp* rtcp)
