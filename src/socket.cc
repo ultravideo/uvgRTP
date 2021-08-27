@@ -33,7 +33,7 @@ uvgrtp::socket::socket(int flags):
 
 uvgrtp::socket::~socket()
 {
-#ifdef __linux__
+#ifndef _WIN32
     close(socket_);
 #else
     closesocket(socket_);
@@ -153,7 +153,7 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf
 {
     int nsend = 0;
 
-#ifdef __linux__
+#ifndef _WIN32
     if ((nsend = ::sendto(socket_, buf, buf_len, flags, (const struct sockaddr *)&addr, sizeof(addr_))) == -1) {
         LOG_ERROR("Failed to send data: %s", strerror(errno));
 
@@ -210,7 +210,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
     int flags, int *bytes_sent
 )
 {
-#ifdef __linux__
+#ifndef _WIN32
     int sent_bytes = 0;
 
     for (size_t i = 0; i < buffers.size(); ++i) {
@@ -332,7 +332,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
     int flags, int *bytes_sent
 )
 {
-#ifdef __linux__
+#ifndef _WIN32
     int sent_bytes = 0;
     struct mmsghdr *hptr, *headers;
 
@@ -493,7 +493,7 @@ rtp_error_t uvgrtp::socket::__recv(uint8_t *buf, size_t buf_len, int flags, int 
         return RTP_INVALID_VALUE;
     }
 
-#ifdef __linux__
+#ifndef _WIN32
     int32_t ret = ::recv(socket_, buf, buf_len, flags);
 
     if (ret == -1) {
@@ -553,7 +553,7 @@ rtp_error_t uvgrtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags, 
     if (sender)
         len_ptr = &len;
 
-#ifdef __linux__
+#ifndef _WIN32
     int32_t ret = ::recvfrom(socket_, buf, buf_len, flags, (struct sockaddr *)sender, len_ptr);
 
     if (ret == -1) {

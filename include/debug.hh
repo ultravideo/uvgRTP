@@ -75,7 +75,7 @@ static inline void win_get_last_error(void)
 
 static inline void log_platform_error(const char *aux)
 {
-#ifdef __linux__
+#ifndef _WIN32
         if (aux) {
             LOG_ERROR("%s: %s %d\n", aux, strerror(errno), errno);
         } else {

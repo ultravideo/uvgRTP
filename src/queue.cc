@@ -53,7 +53,7 @@ rtp_error_t uvgrtp::frame_queue::init_transaction()
         active_      = new transaction_t;
         active_->key = uvgrtp::random::generate_32();
 
-#ifdef __linux__
+#ifndef _WIN32
         active_->headers     = new struct mmsghdr[max_mcount_];
         active_->chunks      = new struct iovec[max_ccount_];
 #else

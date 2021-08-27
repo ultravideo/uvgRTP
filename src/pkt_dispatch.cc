@@ -6,7 +6,7 @@
 #include "random.hh"
 #include "util.hh"
 
-#ifdef __linux__
+#ifndef _WIN32
 #include <errno.h>
 #else
 #define MSG_DONTWAIT 0

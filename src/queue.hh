@@ -53,7 +53,7 @@ namespace uvgrtp {
         uvgrtp::frame::rtp_header rtp_common;
         uvgrtp::frame::rtp_header *rtp_headers = nullptr;
 
-#ifdef __linux__
+#ifndef _WIN32
         struct mmsghdr *headers = nullptr;
         struct iovec   *chunks = nullptr;
 #else

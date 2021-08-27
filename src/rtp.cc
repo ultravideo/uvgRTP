@@ -4,7 +4,7 @@
 #include "debug.hh"
 #include "random.hh"
 
-#ifdef __linux__
+#ifndef _WIN32
 #include <arpa/inet.h>
 #include <unistd.h>
 #endif

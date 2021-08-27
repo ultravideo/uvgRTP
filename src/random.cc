@@ -31,10 +31,10 @@ rtp_error_t uvgrtp::random::init()
 
 int uvgrtp::random::generate(void *buf, size_t n)
 {
-#ifdef __linux__
+#ifndef _WIN32
 #ifdef HAVE_GETRANDOM
     return getrandom(buf, n, 0);
-#else // HAVE_GETRANDOM
+#else
 
     // Replace with the syscall
     int read = syscall(SYS_getrandom, buf, n, 0);
@@ -52,7 +52,7 @@ int uvgrtp::random::generate(void *buf, size_t n)
 
     return read;
 #endif // HAVE_GETRANDOM
-#else // __linux__
+#else
 
     if (n > UINT32_MAX)
     {

@@ -63,7 +63,7 @@ rtp_error_t uvgrtp::poll::poll(std::vector<uvgrtp::socket>& sockets, uint8_t *bu
         return RTP_INVALID_VALUE;
     }
 
-#ifdef __linux__
+#ifndef _WIN32
     struct pollfd fds[uvgrtp::MULTICAST_MAX_PEERS];
     int ret;
 
