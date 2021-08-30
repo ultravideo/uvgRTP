@@ -1,6 +1,6 @@
-#include "uvgrtp_version.h"
+#include "version.h"
 #include <gtest/gtest.h>
 
 TEST(DefaultTest, ctor) {
-  EXPECT_STREQ("2.1.0", uvgrtp::get_uvgrtp_version().c_str());
+  EXPECT_STREQ("2.0.1", uvgrtp::get_version().c_str());
 }
