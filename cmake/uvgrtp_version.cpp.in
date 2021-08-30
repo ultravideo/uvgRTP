@@ -1,0 +1,16 @@
+#include "uvgrtp_version.h"
+
+#include <cstdint>
+#include <string>
+
+namespace uvgrtp {
+std::string get_uvgrtp_version() { return "@uvgrtp_VERSION@"; }
+
+uint16_t get_uvgrtp_version_major() { return @uvgrtp_VERSION_MAJOR@; }
+
+uint16_t get_uvgrtp_version_minor() { return @uvgrtp_VERSION_MINOR@; }
+
+uint16_t get_uvgrtp_version_patch() { return @uvgrtp_VERSION_PATCH@; }
+
+std::string get_git_hash() {return "@uvgrtp_GIT_HASH@";}
+} // namespace uvgrtp
