@@ -1,4 +1,4 @@
-#include "version.h"
+#include "lib.hh"
 #include <gtest/gtest.h>
 
 TEST(DefaultTest, ctor) {
