@@ -3,10 +3,10 @@
 
 
 // parameters for this test. You can change these to suit your network environment
-constexpr uint16_t LOCAL_PORT = 8890;
+constexpr uint16_t LOCAL_PORT = 9100;
 
 constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
-constexpr uint16_t REMOTE_PORT = 8888;
+constexpr uint16_t REMOTE_PORT = 9102;
 
 void rtp_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 void cleanup(uvgrtp::context& ctx, uvgrtp::session* sess, uvgrtp::media_stream* ms);
@@ -18,37 +18,57 @@ void process_rtp_frame(uvgrtp::frame::rtp_frame* frame);
 
 TEST(RTPTests, rtp_hook) 
 {
+    std::cout << "Starting RTP hook unit test" << std::endl;
     uvgrtp::context ctx;
     uvgrtp::session* sess = ctx.create_session(REMOTE_ADDRESS);
-    EXPECT_NE(nullptr, sess);
+    
+    uvgrtp::media_stream* receiver = nullptr;
 
     int flags = RTP_NO_FLAGS;
-    uvgrtp::media_stream* receiver = sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, flags);
-    EXPECT_NE(nullptr, receiver);
-    EXPECT_EQ(RTP_OK, receiver->install_receive_hook(nullptr, rtp_receive_hook));
+    if (sess)
+    {
+        receiver = sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, flags);
+    }
+    
+    if (receiver)
+    {
+        std::cout << "Installing hook" << std::endl;
+        EXPECT_EQ(RTP_OK, receiver->install_receive_hook(nullptr, rtp_receive_hook));
+    }
 
-    std::this_thread::sleep_for(std::chrono::seconds(1)); // lets this example run for some time
+    EXPECT_NE(nullptr, sess);
+    EXPECT_NE(nullptr, receiver);
 
     cleanup(ctx, sess, receiver);
 }
 
 TEST(RTPTests, rtp_poll)
 {
+    std::cout << "Starting RTP poll unit test" << std::endl;
+
     uvgrtp::context ctx;
     uvgrtp::session* sess = ctx.create_session(REMOTE_ADDRESS);
-    EXPECT_NE(nullptr, sess);
+    uvgrtp::media_stream* receiver = nullptr;
 
     int flags = RCE_NO_FLAGS;
-    uvgrtp::media_stream* receiver = sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, flags);
-    EXPECT_NE(nullptr, receiver);
-
+    if (sess)
+    {
+        receiver = sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, flags);
+    }
+    
     uvgrtp::frame::rtp_frame* frame = nullptr;
 
     auto start = std::chrono::steady_clock::now();
     rtp_errno = RTP_OK;
 
+    EXPECT_NE(nullptr, sess);
+    EXPECT_NE(nullptr, receiver);
+
+    std::cout << "Start pulling data" << std::endl;
+
     while (std::chrono::steady_clock::now() - start < std::chrono::seconds(1))
     {
+        
         frame = receiver->pull_frame(3);
 
         EXPECT_EQ(RTP_OK, rtp_errno);
@@ -57,8 +77,9 @@ TEST(RTPTests, rtp_poll)
             process_rtp_frame(frame);
     }
 
+    std::cout << "Finished pulling data" << std::endl;
+
     sess->destroy_stream(receiver);
-    
 
     cleanup(ctx, sess, receiver);
 }

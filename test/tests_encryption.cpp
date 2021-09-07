@@ -4,10 +4,10 @@
 
 // network parameters of example
 constexpr char SENDER_ADDRESS[] = "127.0.0.1";
-constexpr uint16_t LOCAL_PORT = 8888;
+constexpr uint16_t LOCAL_PORT = 9000;
 
 constexpr char RECEIVER_ADDRESS[] = "127.0.0.1";
-constexpr uint16_t REMOTE_PORT = 8890;
+constexpr uint16_t REMOTE_PORT = 9002;
 
 constexpr auto EXAMPLE_DURATION = std::chrono::seconds(1);
 
@@ -25,7 +25,8 @@ void receive_func(uint8_t key[KEY_SIZE_BYTES], uint8_t salt[SALT_SIZE_BYTES]);
 std::unique_ptr<std::thread> user_initialization(uvgrtp::context& ctx, Key_length sha,
     uvgrtp::session* sender_session, uvgrtp::media_stream* send);
 
-TEST(EncryptionTests, no_send_user) {
+TEST(EncryptionTests, no_send_user)
+{
     uvgrtp::context ctx;
 
     uvgrtp::session* sender_session = nullptr; 
@@ -76,10 +77,15 @@ std::unique_ptr<std::thread> user_initialization(uvgrtp::context& ctx, Key_lengt
     unsigned flags = RCE_SRTP | RCE_SRTP_KMNGMNT_USER | RCE_SRTP_KEYSIZE_256;
 
     sender_session = ctx.create_session(RECEIVER_ADDRESS);
-    send = sender_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
+
+    if (sender_session)
+    {
+        send = sender_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
+    }
 
     EXPECT_NE(nullptr, sender_session);
     EXPECT_NE(nullptr, send);
+
     if (send)
         send->add_srtp_ctx(key, salt); // add user context
 
@@ -91,7 +97,6 @@ void receive_func(uint8_t key[KEY_SIZE_BYTES], uint8_t salt[SALT_SIZE_BYTES])
     /* See sending.cc for more details */
     uvgrtp::context ctx;
     uvgrtp::session* receiver_session = ctx.create_session(SENDER_ADDRESS);
-    EXPECT_NE(nullptr, receiver_session);
 
     /* Enable SRTP and let user manage keys */
     unsigned flags = RCE_SRTP | RCE_SRTP_KMNGMNT_USER;
@@ -99,8 +104,14 @@ void receive_func(uint8_t key[KEY_SIZE_BYTES], uint8_t salt[SALT_SIZE_BYTES])
     flags |= RCE_SRTP_KEYSIZE_256;
 
     /* See sending.cc for more details about create_stream() */
-    uvgrtp::media_stream* recv = receiver_session->create_stream(REMOTE_PORT, LOCAL_PORT,
-        RTP_FORMAT_GENERIC, flags);
+    uvgrtp::media_stream* recv = nullptr;
+        
+    if (receiver_session)
+    {
+        recv = receiver_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
+    }
+
+    EXPECT_NE(nullptr, receiver_session);
     EXPECT_NE(nullptr, recv);
 
     if (recv)
@@ -124,8 +135,15 @@ void receive_func(uint8_t key[KEY_SIZE_BYTES], uint8_t salt[SALT_SIZE_BYTES])
         }
     }
 
-    receiver_session->destroy_stream(recv);
-    ctx.destroy_session(receiver_session);
+    if (recv)
+    {
+        receiver_session->destroy_stream(recv);
+    }
+
+    if (receiver_session)
+    {
+        ctx.destroy_session(receiver_session);
+    }
 }
 
 void process_frame(uvgrtp::frame::rtp_frame* frame)

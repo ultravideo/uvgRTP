@@ -2,10 +2,10 @@
 #include <gtest/gtest.h>
 
 constexpr char LOCAL_INTERFACE[] = "127.0.0.1";
-constexpr uint16_t LOCAL_PORT = 8888;
+constexpr uint16_t LOCAL_PORT = 9200;
 
 constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
-constexpr uint16_t REMOTE_PORT = 8890;
+constexpr uint16_t REMOTE_PORT = 9202;
 
 constexpr uint16_t PAYLOAD_LEN = 256;
 constexpr uint16_t FRAME_RATE = 30;
@@ -23,25 +23,31 @@ void cleanup(uvgrtp::context& ctx, uvgrtp::session* local_session, uvgrtp::sessi
 
 
 TEST(RTCPTests, rtcp) {
-    std::cout << "Starting uvgRTP RTCP hook example" << std::endl;
+    std::cout << "Starting uvgRTP RTCP unit tests" << std::endl;
 
     // Creation of RTP stream. See sending example for more details
     uvgrtp::context ctx;
     uvgrtp::session* local_session = ctx.create_session(REMOTE_ADDRESS);
-    EXPECT_NE(nullptr, local_session);
-    
     uvgrtp::session* remote_session = ctx.create_session(LOCAL_INTERFACE);
-    EXPECT_NE(nullptr, remote_session);
 
     int flags = RCE_RTCP;
-    uvgrtp::media_stream* local_stream = local_session->create_stream(LOCAL_PORT, REMOTE_PORT,
-        RTP_FORMAT_GENERIC, flags);
+
+    uvgrtp::media_stream* local_stream = nullptr;
+    if (local_session)
+    {
+        local_stream = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
+    }
+
+    uvgrtp::media_stream* remote_stream = nullptr;
+    if (remote_session)
+    {
+        remote_stream = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
+    }
+
+    EXPECT_NE(nullptr, local_session);
+    EXPECT_NE(nullptr, remote_session);
     EXPECT_NE(nullptr, local_stream);
-
-    uvgrtp::media_stream* remote_stream = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT,
-        RTP_FORMAT_GENERIC, flags);
     EXPECT_NE(nullptr, remote_stream);
-
 
     if (local_stream)
     {
