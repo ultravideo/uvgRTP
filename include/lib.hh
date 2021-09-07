@@ -9,7 +9,7 @@
 #include "debug.hh"         // debug prints
 #include "frame.hh"         // frame related functions
 #include "util.hh"          // types
-#include "version.hh"
+#include "version.hh"       // version
 
 #include <map>
 #include <string>

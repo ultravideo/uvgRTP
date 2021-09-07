@@ -10,3 +10,4 @@ config
 doc
 build
 common
+tests

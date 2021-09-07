@@ -7,7 +7,10 @@ add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME}
         PRIVATE
             main.cpp
-            TestGTest.cpp
+            tests_encryption.cpp
+            tests_rtcp.cpp
+            tests_rtp.cpp
+            tests_version.cpp
         )
 target_link_libraries(${PROJECT_NAME}
         PRIVATE
