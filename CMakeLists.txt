@@ -63,6 +63,13 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/srtp/srtcp.cc
         )
 
+source_group(src/srtp src/srtp/.*)
+source_group(src/formats src/formats/.*)
+source_group(src/zrtp src/zrtp/.*)
+
+source_group(src src/.*)
+source_group(include include/.*)
+
 # Including header files so VisualStudio will list them correctly
 target_sources(${PROJECT_NAME} PRIVATE
         src/random.hh
@@ -76,6 +83,30 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/rtp.hh
         src/zrtp.hh
         src/queue.hh
+
+        src/formats/h26x.hh
+        src/formats/h264.hh
+        src/formats/h265.hh
+        src/formats/h266.hh
+        src/formats/media.hh
+
+        src/srtp/base.hh
+        src/srtp/srtcp.hh
+        src/srtp/srtp.hh
+
+        src/zrtp/zrtp_receiver.hh
+        src/zrtp/hello.hh
+        src/zrtp/hello_ack.hh
+        src/zrtp/commit.hh
+        src/zrtp/dh_kxchng.hh
+        src/zrtp/confirm.hh
+        src/zrtp/confack.hh
+        src/zrtp/error.hh
+        src/zrtp/zrtp_message.hh
+        src/srtp/base.hh
+        src/srtp/srtp.hh
+        src/srtp/srtcp.hh
+
         include/util.hh
         include/clock.hh
         include/crypto.hh
