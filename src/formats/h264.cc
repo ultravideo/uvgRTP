@@ -15,7 +15,6 @@
 #include <sys/socket.h>
 #endif
 
-#define RTP_FRAME_MAX_DELAY          100
 #define NAL_HDR_SIZE   1
 
 static int __get_frag(uvgrtp::frame::rtp_frame* frame)
@@ -41,7 +40,7 @@ static int __get_frag(uvgrtp::frame::rtp_frame* frame)
     return uvgrtp::formats::FT_MIDDLE;
 }
 
-static rtp_error_t __handle_stap_a(uvgrtp::formats::h264_frame_info_t* finfo, uvgrtp::frame::rtp_frame** out)
+static rtp_error_t __handle_stap_a(uvgrtp::formats::h26x_frame_info_t* finfo, uvgrtp::frame::rtp_frame** out)
 {
     uvgrtp::buf_vec nalus;
 
@@ -85,21 +84,6 @@ static inline uint8_t __get_nal(uvgrtp::frame::rtp_frame* frame)
 
     return uvgrtp::formats::NT_OTHER;
 }
-
-static void __drop_frame(uvgrtp::formats::h264_frame_info_t* finfo, uint32_t ts)
-{
-    uint16_t s_seq = finfo->frames.at(ts).s_seq;
-    uint16_t e_seq = finfo->frames.at(ts).e_seq;
-
-    LOG_INFO("Dropping frame %u, %u - %u", ts, s_seq, e_seq);
-
-    for (auto& fragment : finfo->frames.at(ts).fragments)
-        (void)uvgrtp::frame::dealloc_frame(fragment.second);
-
-    finfo->frames.erase(ts);
-}
-
-
 
 uvgrtp::formats::h264::h264(uvgrtp::socket* socket, uvgrtp::rtp* rtp, int flags) :
     h26x(socket, rtp, flags)
@@ -180,7 +164,6 @@ rtp_error_t uvgrtp::formats::h264::make_aggregation_pkt()
     return ret;
 }
 
-
 uint8_t uvgrtp::formats::h264::get_nal_type(uint8_t* data)
 {
     return data[0] & 0x1f;
@@ -212,25 +195,6 @@ rtp_error_t uvgrtp::formats::h264::handle_small_packet(uint8_t* data, size_t dat
     /* } */
 }
 
-
-uvgrtp::formats::h264_frame_info_t *uvgrtp::formats::h264::get_h264_frame_info()
-{
-    return &finfo_;
-}
-
-rtp_error_t uvgrtp::formats::h264::frame_getter(void *arg, uvgrtp::frame::rtp_frame **frame)
-{
-    auto finfo = (uvgrtp::formats::h264_frame_info_t *)arg;
-
-    if (finfo->queued.size()) {
-        *frame = finfo->queued.front();
-        finfo->queued.pop_front();
-        return RTP_PKT_READY;
-    }
-
-    return RTP_NOT_FOUND;
-}
-
 rtp_error_t uvgrtp::formats::h264::construct_format_header_divide_fus(uint8_t* data, size_t& data_left,
     size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers)
 {
@@ -250,12 +214,11 @@ rtp_error_t uvgrtp::formats::h264::construct_format_header_divide_fus(uint8_t* d
     return divide_frame_to_fus(data, data_left, data_pos, payload_size, buffers, headers->fu_headers);
 }
 
-
 rtp_error_t uvgrtp::formats::h264::packet_handler(void* arg, int flags, uvgrtp::frame::rtp_frame** out)
 {
     uvgrtp::frame::rtp_frame* frame;
     bool enable_idelay = !(flags & RCE_NO_H26X_INTRA_DELAY);
-    auto finfo = (uvgrtp::formats::h264_frame_info_t*)arg;
+    auto finfo = (uvgrtp::formats::h26x_frame_info_t*)arg;
 
     /* Use "intra" to keep track of intra frames
      *
@@ -309,7 +272,7 @@ rtp_error_t uvgrtp::formats::h264::packet_handler(void* arg, int flags, uvgrtp::
         /* drop old intra if a new one is received */
         if (nal_type == NT_INTRA) {
             if (intra != INVALID_TS && enable_idelay) {
-                __drop_frame(finfo, intra);
+                drop_frame(finfo, intra);
                 finfo->dropped.insert(intra);
             }
             intra = c_ts;
@@ -388,7 +351,7 @@ rtp_error_t uvgrtp::formats::h264::packet_handler(void* arg, int flags, uvgrtp::
 
             /* intra is still in progress, do not return the inter */
             if (nal_type == NT_INTER && intra != INVALID_TS && enable_idelay) {
-                __drop_frame(finfo, c_ts);
+                drop_frame(finfo, c_ts);
                 finfo->dropped.insert(c_ts);
                 return RTP_OK;
             }
@@ -422,9 +385,9 @@ rtp_error_t uvgrtp::formats::h264::packet_handler(void* arg, int flags, uvgrtp::
         }
     }
 
-    if (is_frame_late(finfo->frames.at(c_ts), RTP_FRAME_MAX_DELAY)) {
+    if (is_frame_late(finfo->frames.at(c_ts), finfo->rtp_ctx->get_pkt_max_delay())) {
         if (nal_type != NT_INTRA || (nal_type == NT_INTRA && !enable_idelay)) {
-            __drop_frame(finfo, c_ts);
+            drop_frame(finfo, c_ts);
             finfo->dropped.insert(c_ts);
         }
     }

@@ -35,14 +35,6 @@ namespace uvgrtp {
             uint8_t fu_headers[3 * uvgrtp::frame::HEADER_SIZE_H266_FU];
         };
 
-
-        typedef struct {
-            std::deque<uvgrtp::frame::rtp_frame *> queued;
-            std::unordered_map<uint32_t, h26x_info_t> frames;
-            std::unordered_set<uint32_t> dropped;
-            uvgrtp::rtp *rtp_ctx;
-        } h266_frame_info_t;
-
         class h266 : public h26x {
             public:
                 h266(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags);
@@ -67,9 +59,6 @@ namespace uvgrtp {
                  * Return RTP_GENERIC_ERROR if the packet was corrupted in some way */
                 static rtp_error_t packet_handler(void *arg, int flags, frame::rtp_frame **frame);
 
-                /* Return pointer to the internal frame info structure which is relayed to packet handler */
-                h266_frame_info_t *get_h266_frame_info();
-
             protected:
                 // get h264 nal type
                 virtual uint8_t get_nal_type(uint8_t* data);
@@ -80,9 +69,6 @@ namespace uvgrtp {
                 // constructs h266 RTP header with correct values
                 virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t& data_left, 
                     size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers);
-
-            private:
-                h266_frame_info_t finfo_;
         };
     };
 };

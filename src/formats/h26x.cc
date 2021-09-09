@@ -75,13 +75,19 @@ static inline unsigned __find_h26x_start(uint32_t value)
 }
 
 uvgrtp::formats::h26x::h26x(uvgrtp::socket* socket, uvgrtp::rtp* rtp, int flags) :
-    media(socket, rtp, flags)
+    media(socket, rtp, flags), finfo_{}
 {
+    finfo_.rtp_ctx = rtp;
 }
 
 uvgrtp::formats::h26x::~h26x()
 {
     delete fqueue_;
+}
+
+uvgrtp::formats::h26x_frame_info_t* uvgrtp::formats::h26x::get_h26x_frame_info()
+{
+    return &finfo_;
 }
 
 /* NOTE: the area 0 - len (ie data[0] - data[len - 1]) must be addressable
@@ -242,6 +248,19 @@ end:
 
     data[rpos] = lb;
     return -1;
+}
+
+rtp_error_t uvgrtp::formats::h26x::frame_getter(void* arg, uvgrtp::frame::rtp_frame** frame)
+{
+    auto finfo = (uvgrtp::formats::h26x_frame_info_t*)arg;
+
+    if (finfo->queued.size()) {
+        *frame = finfo->queued.front();
+        finfo->queued.pop_front();
+        return RTP_PKT_READY;
+    }
+
+    return RTP_NOT_FOUND;
 }
 
 rtp_error_t uvgrtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_len, int flags)
@@ -426,4 +445,17 @@ void uvgrtp::formats::h26x::prepend_start_code(int flags, uvgrtp::frame::rtp_fra
 static inline bool is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay)
 {
     return (uvgrtp::clock::hrc::diff_now(hinfo.sframe_time) >= max_delay);
+}
+
+static void drop_frame(uvgrtp::formats::h26x_frame_info_t* finfo, uint32_t ts)
+{
+    uint16_t s_seq = finfo->frames.at(ts).s_seq;
+    uint16_t e_seq = finfo->frames.at(ts).e_seq;
+
+    LOG_INFO("Dropping frame %u, %u - %u", ts, s_seq, e_seq);
+
+    for (auto& fragment : finfo->frames.at(ts).fragments)
+        (void)uvgrtp::frame::dealloc_frame(fragment.second);
+
+    finfo->frames.erase(ts);
 }

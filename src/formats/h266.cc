@@ -51,22 +51,8 @@ static inline uint8_t __get_nal(uvgrtp::frame::rtp_frame* frame)
     return uvgrtp::formats::NT_OTHER;
 }
 
-static void __drop_frame(uvgrtp::formats::h266_frame_info_t* finfo, uint32_t ts)
-{
-    uint16_t s_seq = finfo->frames.at(ts).s_seq;
-    uint16_t e_seq = finfo->frames.at(ts).e_seq;
-
-    LOG_INFO("Dropping frame %u, %u - %u", ts, s_seq, e_seq);
-
-    for (auto& fragment : finfo->frames.at(ts).fragments)
-        (void)uvgrtp::frame::dealloc_frame(fragment.second);
-
-    finfo->frames.erase(ts);
-}
-
-
 uvgrtp::formats::h266::h266(uvgrtp::socket* socket, uvgrtp::rtp* rtp, int flags) :
-    h26x(socket, rtp, flags), finfo_{}
+    h26x(socket, rtp, flags)
 {
     finfo_.rtp_ctx = rtp;
 }
@@ -78,11 +64,6 @@ uvgrtp::formats::h266::~h266()
 uint8_t uvgrtp::formats::h266::get_nal_type(uint8_t* data)
 {
     return (data[1] >> 3) & 0x1f;
-}
-
-uvgrtp::formats::h266_frame_info_t *uvgrtp::formats::h266::get_h266_frame_info()
-{
-    return &finfo_;
 }
 
 rtp_error_t uvgrtp::formats::h266::handle_small_packet(uint8_t* data, size_t data_len, bool more)
@@ -123,7 +104,7 @@ rtp_error_t uvgrtp::formats::h266::packet_handler(void* arg, int flags, uvgrtp::
 {
     uvgrtp::frame::rtp_frame* frame;
     bool enable_idelay = !(flags & RCE_NO_H26X_INTRA_DELAY);
-    auto finfo = (uvgrtp::formats::h266_frame_info_t*)arg;
+    auto finfo = (uvgrtp::formats::h26x_frame_info_t*)arg;
 
     /* Use "intra" to keep track of intra frames
      *
@@ -178,7 +159,7 @@ rtp_error_t uvgrtp::formats::h266::packet_handler(void* arg, int flags, uvgrtp::
         /* drop old intra if a new one is received */
         if (nal_type == NT_INTRA) {
             if (intra != INVALID_TS && enable_idelay) {
-                __drop_frame(finfo, intra);
+                drop_frame(finfo, intra);
                 finfo->dropped.insert(intra);
             }
             intra = c_ts;
@@ -257,7 +238,7 @@ rtp_error_t uvgrtp::formats::h266::packet_handler(void* arg, int flags, uvgrtp::
 
             /* intra is still in progress, do not return the inter */
             if (nal_type == NT_INTER && intra != INVALID_TS && enable_idelay) {
-                __drop_frame(finfo, c_ts);
+                drop_frame(finfo, c_ts);
                 finfo->dropped.insert(c_ts);
                 return RTP_OK;
             }
@@ -310,7 +291,7 @@ rtp_error_t uvgrtp::formats::h266::packet_handler(void* arg, int flags, uvgrtp::
 
     if (is_frame_late(finfo->frames.at(c_ts), finfo->rtp_ctx->get_pkt_max_delay())) {
         if (nal_type != NT_INTRA || (nal_type == NT_INTRA && !enable_idelay)) {
-            __drop_frame(finfo, c_ts);
+            drop_frame(finfo, c_ts);
             finfo->dropped.insert(c_ts);
         }
     }

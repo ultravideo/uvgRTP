@@ -5,6 +5,7 @@
 #include "socket.hh"
 #include "clock.hh"
 
+#include <deque>
 
 namespace uvgrtp {
 
@@ -55,6 +56,13 @@ namespace uvgrtp {
             std::vector<uvgrtp::frame::rtp_frame*> temporary;
         } h26x_info_t;
 
+        typedef struct {
+            std::deque<uvgrtp::frame::rtp_frame*> queued;
+            std::unordered_map<uint32_t, h26x_info_t> frames;
+            std::unordered_set<uint32_t> dropped;
+            uvgrtp::rtp* rtp_ctx;
+        } h26x_frame_info_t;
+
         class h26x : public media {
             public:
                 h26x(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags);
@@ -81,6 +89,18 @@ namespace uvgrtp {
                  * Return RTP_OK on success
                  * Return RTP_INVALID_VALUE if one the parameters is invalid */
                 rtp_error_t push_h26x_frame(uint8_t *data, size_t data_len, int flags);
+
+                /* Return pointer to the internal frame info structure which is relayed to packet handler */
+                h26x_frame_info_t* get_h26x_frame_info();
+
+                /* If the packet handler must return more than one frame, it can install a frame getter
+                 * that is called by the auxiliary handler caller if packet_handler() returns RTP_MULTIPLE_PKTS_READY
+                 *
+                 * "arg" is the same that is passed to packet_handler
+                 *
+                 * Return RTP_PKT_READY if "frame" contains a frame that can be returned to user
+                 * Return RTP_NOT_FOUND if there are no more frames */
+                static rtp_error_t frame_getter(void* arg, frame::rtp_frame** frame);
 
             protected:
 
@@ -109,6 +129,10 @@ namespace uvgrtp {
                 void initialize_fu_headers(uint8_t nal_type, uint8_t fu_headers[]);
 
                 static bool is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay);
+
+                static void drop_frame(uvgrtp::formats::h26x_frame_info_t* finfo, uint32_t ts);
+
+                h26x_frame_info_t finfo_;
 
         private:
             // constructs and sends the RTP packets with format specific stuff

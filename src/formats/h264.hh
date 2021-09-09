@@ -34,13 +34,6 @@ namespace uvgrtp {
             uint8_t fu_headers[3 * uvgrtp::frame::HEADER_SIZE_H264_FU];
         };
 
-
-        typedef struct {
-            std::deque<uvgrtp::frame::rtp_frame *> queued;
-            std::unordered_map<uint32_t, h26x_info_t> frames;
-            std::unordered_set<uint32_t> dropped;
-        } h264_frame_info_t;
-
         class h264 : public h26x {
             public:
                 h264(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags);
@@ -65,18 +58,6 @@ namespace uvgrtp {
                  * Return RTP_GENERIC_ERROR if the packet was corrupted in some way */
                 static rtp_error_t packet_handler(void *arg, int flags, frame::rtp_frame **frame);
 
-                /* If the packet handler must return more than one frame, it can install a frame getter
-                 * that is called by the auxiliary handler caller if packet_handler() returns RTP_MULTIPLE_PKTS_READY
-                 *
-                 * "arg" is the same that is passed to packet_handler
-                 *
-                 * Return RTP_PKT_READY if "frame" contains a frame that can be returned to user
-                 * Return RTP_NOT_FOUND if there are no more frames */
-                static rtp_error_t frame_getter(void *arg, frame::rtp_frame **frame);
-
-                /* Return pointer to the internal frame info structure which is relayed to packet handler */
-                h264_frame_info_t *get_h264_frame_info();
-
             protected:
                 // get h264 nal type
                 virtual uint8_t get_nal_type(uint8_t* data);
@@ -96,8 +77,6 @@ namespace uvgrtp {
                     size_t& data_pos, size_t payload_size,  uvgrtp::buf_vec& buffers);
 
             private:
-
-                h264_frame_info_t finfo_;
                 h264_aggregation_packet aggr_pkt_info_;
         };
     };

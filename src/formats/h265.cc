@@ -53,20 +53,7 @@ static inline uint8_t __get_nal(uvgrtp::frame::rtp_frame* frame)
     return uvgrtp::formats::NT_OTHER;
 }
 
-static void __drop_frame(uvgrtp::formats::h265_frame_info_t* finfo, uint32_t ts)
-{
-    uint16_t s_seq = finfo->frames.at(ts).s_seq;
-    uint16_t e_seq = finfo->frames.at(ts).e_seq;
-
-    LOG_INFO("Dropping frame %u, %u - %u", ts, s_seq, e_seq);
-
-    for (auto& fragment : finfo->frames.at(ts).fragments)
-        (void)uvgrtp::frame::dealloc_frame(fragment.second);
-
-    finfo->frames.erase(ts);
-}
-
-static rtp_error_t __handle_ap(uvgrtp::formats::h265_frame_info_t* finfo, uvgrtp::frame::rtp_frame** out)
+static rtp_error_t __handle_ap(uvgrtp::formats::h26x_frame_info_t* finfo, uvgrtp::frame::rtp_frame** out)
 {
     uvgrtp::buf_vec nalus;
 
@@ -103,10 +90,8 @@ static rtp_error_t __handle_ap(uvgrtp::formats::h265_frame_info_t* finfo, uvgrtp
 
 
 uvgrtp::formats::h265::h265(uvgrtp::socket* socket, uvgrtp::rtp* rtp, int flags) :
-    h26x(socket, rtp, flags), finfo_{}
-{
-    finfo_.rtp_ctx = rtp;
-}
+    h26x(socket, rtp, flags)
+{}
 
 uvgrtp::formats::h265::~h265()
 {}
@@ -184,24 +169,6 @@ uint8_t uvgrtp::formats::h265::get_nal_type(uint8_t* data)
     return (data[0] >> 1) & 0x3f;
 }
 
-uvgrtp::formats::h265_frame_info_t *uvgrtp::formats::h265::get_h265_frame_info()
-{
-    return &finfo_;
-}
-
-rtp_error_t uvgrtp::formats::h265::frame_getter(void *arg, uvgrtp::frame::rtp_frame **frame)
-{
-    auto finfo = (uvgrtp::formats::h265_frame_info_t *)arg;
-
-    if (finfo->queued.size()) {
-        *frame = finfo->queued.front();
-        finfo->queued.pop_front();
-        return RTP_PKT_READY;
-    }
-
-    return RTP_NOT_FOUND;
-}
-
 rtp_error_t uvgrtp::formats::h265::handle_small_packet(uint8_t* data, size_t data_len, bool more)
 {
     /* If there is more data coming in (possibly another small packet)
@@ -253,7 +220,7 @@ rtp_error_t uvgrtp::formats::h265::packet_handler(void* arg, int flags, uvgrtp::
 {
     uvgrtp::frame::rtp_frame* frame;
     bool enable_idelay = !(flags & RCE_NO_H26X_INTRA_DELAY);
-    auto finfo = (uvgrtp::formats::h265_frame_info_t*)arg;
+    auto finfo = (uvgrtp::formats::h26x_frame_info_t*)arg;
 
     /* Use "intra" to keep track of intra frames
      *
@@ -307,7 +274,7 @@ rtp_error_t uvgrtp::formats::h265::packet_handler(void* arg, int flags, uvgrtp::
         /* drop old intra if a new one is received */
         if (nal_type == NT_INTRA) {
             if (intra != INVALID_TS && enable_idelay) {
-                __drop_frame(finfo, intra);
+                drop_frame(finfo, intra);
                 finfo->dropped.insert(intra);
             }
             intra = c_ts;
@@ -386,7 +353,7 @@ rtp_error_t uvgrtp::formats::h265::packet_handler(void* arg, int flags, uvgrtp::
 
             /* intra is still in progress, do not return the inter */
             if (nal_type == NT_INTER && intra != INVALID_TS && enable_idelay) {
-                __drop_frame(finfo, c_ts);
+                drop_frame(finfo, c_ts);
                 finfo->dropped.insert(c_ts);
                 return RTP_OK;
             }
@@ -439,7 +406,7 @@ rtp_error_t uvgrtp::formats::h265::packet_handler(void* arg, int flags, uvgrtp::
 
     if (is_frame_late(finfo->frames.at(c_ts), finfo->rtp_ctx->get_pkt_max_delay())) {
         if (nal_type != NT_INTRA || (nal_type == NT_INTRA && !enable_idelay)) {
-            __drop_frame(finfo, c_ts);
+            drop_frame(finfo, c_ts);
             finfo->dropped.insert(c_ts);
         }
     }

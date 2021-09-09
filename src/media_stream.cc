@@ -128,7 +128,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
 
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
-                dynamic_cast<uvgrtp::formats::h264 *>(media_)->get_h264_frame_info(),
+                dynamic_cast<uvgrtp::formats::h264 *>(media_)->get_h26x_frame_info(),
                 dynamic_cast<uvgrtp::formats::h264 *>(media_)->packet_handler,
                 dynamic_cast<uvgrtp::formats::h264 *>(media_)->frame_getter
             );
@@ -139,7 +139,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
 
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
-                dynamic_cast<uvgrtp::formats::h265 *>(media_)->get_h265_frame_info(),
+                dynamic_cast<uvgrtp::formats::h265 *>(media_)->get_h26x_frame_info(),
                 dynamic_cast<uvgrtp::formats::h265 *>(media_)->packet_handler,
                 dynamic_cast<uvgrtp::formats::h265 *>(media_)->frame_getter
             );
@@ -150,7 +150,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
 
             pkt_dispatcher_->install_aux_handler(
                 rtp_handler_key_,
-                dynamic_cast<uvgrtp::formats::h266 *>(media_)->get_h266_frame_info(),
+                dynamic_cast<uvgrtp::formats::h266 *>(media_)->get_h26x_frame_info(),
                 dynamic_cast<uvgrtp::formats::h266 *>(media_)->packet_handler,
                 nullptr
             );
