@@ -47,7 +47,7 @@ static rtp_error_t __handle_stap_a(uvgrtp::formats::h26x_frame_info_t* finfo, uv
     size_t size = 0;
     auto* frame = *out;
 
-    for (size_t i = uvgrtp::frame::HEADER_SIZE_H264_FU; i < frame->payload_len; ) {
+    for (size_t i = uvgrtp::frame::HEADER_SIZE_H264_NAL; i < frame->payload_len; ) {
         nalus.push_back(
             std::make_pair(
                 ntohs(*(uint16_t*)&frame->payload[i]),
