@@ -459,3 +459,37 @@ static void drop_frame(uvgrtp::formats::h26x_frame_info_t* finfo, uint32_t ts)
 
     finfo->frames.erase(ts);
 }
+
+static rtp_error_t handle_aggregate_packet(uvgrtp::formats::h26x_frame_info_t* finfo, uvgrtp::frame::rtp_frame** out,
+    uint8_t nal_header_size)
+{
+    uvgrtp::buf_vec nalus;
+
+    size_t size = 0;
+    auto* frame = *out;
+
+    for (size_t i = nal_header_size; i < frame->payload_len; i += ntohs(*(uint16_t*)&frame->payload[i]) + sizeof(uint16_t)) {
+        nalus.push_back(
+            std::make_pair(
+                ntohs(*(uint16_t*)&frame->payload[i]),
+                &frame->payload[i] + sizeof(uint16_t)
+            )
+        );
+
+        size += ntohs(*(uint16_t*)&frame->payload[i]);
+    }
+
+    for (size_t i = 0; i < nalus.size(); ++i) {
+        auto retframe = uvgrtp::frame::alloc_rtp_frame(nalus[i].first);
+
+        std::memcpy(
+            retframe->payload,
+            nalus[i].second,
+            nalus[i].first
+        );
+
+        finfo->queued.push_back(retframe);
+    }
+
+    return RTP_MULTIPLE_PKTS_READY;
+}

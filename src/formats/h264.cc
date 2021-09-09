@@ -40,40 +40,6 @@ static int __get_frag(uvgrtp::frame::rtp_frame* frame)
     return uvgrtp::formats::FT_MIDDLE;
 }
 
-static rtp_error_t __handle_stap_a(uvgrtp::formats::h26x_frame_info_t* finfo, uvgrtp::frame::rtp_frame** out)
-{
-    uvgrtp::buf_vec nalus;
-
-    size_t size = 0;
-    auto* frame = *out;
-
-    for (size_t i = uvgrtp::frame::HEADER_SIZE_H264_NAL; i < frame->payload_len; ) {
-        nalus.push_back(
-            std::make_pair(
-                ntohs(*(uint16_t*)&frame->payload[i]),
-                &frame->payload[i] + sizeof(uint16_t)
-            )
-        );
-
-        size += ntohs(*(uint16_t*)&frame->payload[i]);
-        i += ntohs(*(uint16_t*)&frame->payload[i]) + sizeof(uint16_t);
-    }
-
-    for (size_t i = 0; i < nalus.size(); ++i) {
-        auto retframe = uvgrtp::frame::alloc_rtp_frame(nalus[i].first);
-
-        std::memcpy(
-            retframe->payload,
-            nalus[i].second,
-            nalus[i].first
-        );
-
-        finfo->queued.push_back(retframe);
-    }
-
-    return RTP_MULTIPLE_PKTS_READY;
-}
-
 static inline uint8_t __get_nal(uvgrtp::frame::rtp_frame* frame)
 {
     switch (frame->payload[1] & 0x1f) {
@@ -246,7 +212,7 @@ rtp_error_t uvgrtp::formats::h264::packet_handler(void* arg, int flags, uvgrtp::
     uint8_t nal_type = __get_nal(frame);
 
     if (frag_type == uvgrtp::formats::FT_AGGR)
-        return __handle_stap_a(finfo, out);
+        return handle_aggregate_packet(finfo, out, uvgrtp::frame::HEADER_SIZE_H264_NAL);
 
     if (frag_type == FT_NOT_FRAG) {
         prepend_start_code(flags, out);

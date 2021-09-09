@@ -132,7 +132,7 @@ rtp_error_t uvgrtp::formats::h266::packet_handler(void* arg, int flags, uvgrtp::
     uint8_t nal_type = __get_nal(frame);
 
     /* if (frag_type == FT_AGGR) */
-    /*     return __handle_ap(finfo, out); */
+    /*     return handle_aggregate_packet(finfo, out, uvgrtp::frame::HEADER_SIZE_H266_NAL); */
 
     if (frag_type == FT_NOT_FRAG) {
 
