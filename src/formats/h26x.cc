@@ -422,3 +422,8 @@ void uvgrtp::formats::h26x::prepend_start_code(int flags, uvgrtp::frame::rtp_fra
         (*out)->payload_len += 4;
     }
 }
+
+static inline bool is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay)
+{
+    return (uvgrtp::clock::hrc::diff_now(hinfo.sframe_time) >= max_delay);
+}

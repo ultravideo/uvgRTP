@@ -3,8 +3,7 @@
 #include "media.hh"
 #include "util.hh"
 #include "socket.hh"
-
-
+#include "clock.hh"
 
 
 namespace uvgrtp {
@@ -15,8 +14,6 @@ namespace uvgrtp {
     namespace formats {
 
         #define INVALID_SEQ           0x13371338
-
-
         #define RTP_HDR_SIZE  12
 
         enum FRAG_TYPES {
@@ -33,6 +30,30 @@ namespace uvgrtp {
             NT_INTER = 0x01,
             NT_OTHER = 0xff
         };
+
+        typedef struct h26x_info {
+            /* clock reading when the first fragment is received */
+            uvgrtp::clock::hrc::hrc_t sframe_time;
+
+            /* sequence number of the frame with s-bit */
+            uint32_t s_seq = 0;
+
+            /* sequence number of the frame with e-bit */
+            uint32_t e_seq = 0;
+
+            /* how many fragments have been received */
+            size_t pkts_received = 0;
+
+            /* total size of all fragments */
+            size_t total_size = 0;
+
+            /* map of frame's fragments,
+             * allows out-of-order insertion and loop-through in order */
+            std::map<uint32_t, uvgrtp::frame::rtp_frame*> fragments;
+
+            /* storage for fragments that require relocation */
+            std::vector<uvgrtp::frame::rtp_frame*> temporary;
+        } h26x_info_t;
 
         class h26x : public media {
             public:
@@ -86,6 +107,8 @@ namespace uvgrtp {
                     uvgrtp::buf_vec& buffers, uint8_t fu_headers[]);
 
                 void initialize_fu_headers(uint8_t nal_type, uint8_t fu_headers[]);
+
+                static bool is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay);
 
         private:
             // constructs and sends the RTP packets with format specific stuff

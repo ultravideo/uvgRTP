@@ -51,11 +51,6 @@ static inline uint8_t __get_nal(uvgrtp::frame::rtp_frame* frame)
     return uvgrtp::formats::NT_OTHER;
 }
 
-static inline bool __frame_late(uvgrtp::formats::h266_info_t& hinfo, size_t max_delay)
-{
-    return (uvgrtp::clock::hrc::diff_now(hinfo.sframe_time) >= max_delay);
-}
-
 static void __drop_frame(uvgrtp::formats::h266_frame_info_t* finfo, uint32_t ts)
 {
     uint16_t s_seq = finfo->frames.at(ts).s_seq;
@@ -313,7 +308,7 @@ rtp_error_t uvgrtp::formats::h266::packet_handler(void* arg, int flags, uvgrtp::
         }
     }
 
-    if (__frame_late(finfo->frames.at(c_ts), finfo->rtp_ctx->get_pkt_max_delay())) {
+    if (is_frame_late(finfo->frames.at(c_ts), finfo->rtp_ctx->get_pkt_max_delay())) {
         if (nal_type != NT_INTRA || (nal_type == NT_INTRA && !enable_idelay)) {
             __drop_frame(finfo, c_ts);
             finfo->dropped.insert(c_ts);

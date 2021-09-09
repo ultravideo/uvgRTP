@@ -1,7 +1,6 @@
 #pragma once
 
 #include "h26x.hh"
-#include "clock.hh"
 #include "util.hh"
 #include "frame.hh"
 #include "socket.hh"
@@ -36,33 +35,9 @@ namespace uvgrtp {
             uint8_t fu_headers[3 * uvgrtp::frame::HEADER_SIZE_H265_FU];
         };
 
-        typedef struct h265_info {
-            /* clock reading when the first fragment is received */
-            uvgrtp::clock::hrc::hrc_t sframe_time;
-
-            /* sequence number of the frame with s-bit */
-            uint32_t s_seq = 0;
-
-            /* sequence number of the frame with e-bit */
-            uint32_t e_seq = 0;
-
-            /* how many fragments have been received */
-            size_t pkts_received = 0;
-
-            /* total size of all fragments */
-            size_t total_size = 0;
-
-            /* map of frame's fragments,
-             * allows out-of-order insertion and loop-through in order */
-            std::map<uint32_t, uvgrtp::frame::rtp_frame *> fragments;
-
-            /* storage for fragments that require relocation */
-            std::vector<uvgrtp::frame::rtp_frame *> temporary;
-        } h265_info_t;
-
         typedef struct {
             std::deque<uvgrtp::frame::rtp_frame *> queued;
-            std::unordered_map<uint32_t, h265_info_t> frames;
+            std::unordered_map<uint32_t, h26x_info_t> frames;
             std::unordered_set<uint32_t> dropped;
             uvgrtp::rtp *rtp_ctx; // cannot be initialized because struct unnamed
         } h265_frame_info_t;
