@@ -132,8 +132,8 @@ namespace uvgrtp {
 
                 static void drop_frame(uvgrtp::formats::h26x_frame_info_t* finfo, uint32_t ts);
 
-                static rtp_error_t handle_aggregate_packet(uvgrtp::formats::h26x_frame_info_t* finfo, uvgrtp::frame::rtp_frame** out, 
-                    uint8_t nal_header_size);
+                static rtp_error_t handle_aggregation_packet(uvgrtp::formats::h26x_frame_info_t* finfo, 
+                    uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size);
 
                 h26x_frame_info_t finfo_;
 

@@ -212,7 +212,7 @@ rtp_error_t uvgrtp::formats::h265::packet_handler(void* arg, int flags, uvgrtp::
     uint8_t nal_type = __get_nal(frame);
 
     if (frag_type == FT_AGGR)
-        return handle_aggregate_packet(finfo, out, uvgrtp::frame::HEADER_SIZE_H265_NAL);
+        return handle_aggregation_packet(finfo, out, uvgrtp::frame::HEADER_SIZE_H265_NAL);
 
     if (frag_type == FT_NOT_FRAG) {
         prepend_start_code(flags, out);

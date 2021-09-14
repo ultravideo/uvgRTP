@@ -442,12 +442,12 @@ void uvgrtp::formats::h26x::prepend_start_code(int flags, uvgrtp::frame::rtp_fra
     }
 }
 
-static inline bool is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay)
+bool uvgrtp::formats::h26x::is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay)
 {
     return (uvgrtp::clock::hrc::diff_now(hinfo.sframe_time) >= max_delay);
 }
 
-static void drop_frame(uvgrtp::formats::h26x_frame_info_t* finfo, uint32_t ts)
+void uvgrtp::formats::h26x::drop_frame(uvgrtp::formats::h26x_frame_info_t* finfo, uint32_t ts)
 {
     uint16_t s_seq = finfo->frames.at(ts).s_seq;
     uint16_t e_seq = finfo->frames.at(ts).e_seq;
@@ -460,8 +460,8 @@ static void drop_frame(uvgrtp::formats::h26x_frame_info_t* finfo, uint32_t ts)
     finfo->frames.erase(ts);
 }
 
-static rtp_error_t handle_aggregate_packet(uvgrtp::formats::h26x_frame_info_t* finfo, uvgrtp::frame::rtp_frame** out,
-    uint8_t nal_header_size)
+rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::formats::h26x_frame_info_t* finfo, 
+    uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size)
 {
     uvgrtp::buf_vec nalus;
 
