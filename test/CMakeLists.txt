@@ -8,6 +8,7 @@ target_sources(${PROJECT_NAME}
         PRIVATE
             main.cpp
             tests_encryption.cpp
+            tests_formats.cpp
             tests_rtcp.cpp
             tests_rtp.cpp
             tests_version.cpp

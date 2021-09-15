@@ -18,7 +18,7 @@ void process_rtp_frame(uvgrtp::frame::rtp_frame* frame);
 
 TEST(RTPTests, rtp_hook) 
 {
-    std::cout << "Starting RTP hook unit test" << std::endl;
+    std::cout << "Starting RTP hook test" << std::endl;
     uvgrtp::context ctx;
     uvgrtp::session* sess = ctx.create_session(REMOTE_ADDRESS);
     
@@ -44,7 +44,7 @@ TEST(RTPTests, rtp_hook)
 
 TEST(RTPTests, rtp_poll)
 {
-    std::cout << "Starting RTP poll unit test" << std::endl;
+    std::cout << "Starting RTP poll test" << std::endl;
 
     uvgrtp::context ctx;
     uvgrtp::session* sess = ctx.create_session(REMOTE_ADDRESS);
@@ -68,7 +68,16 @@ TEST(RTPTests, rtp_poll)
 
     while (std::chrono::steady_clock::now() - start < std::chrono::seconds(1))
     {
-        
+        frame = receiver->pull_frame(0);
+
+        EXPECT_EQ(RTP_OK, rtp_errno);
+
+        if (frame)
+            process_rtp_frame(frame);
+    }
+
+    while (std::chrono::steady_clock::now() - start < std::chrono::seconds(1))
+    {
         frame = receiver->pull_frame(3);
 
         EXPECT_EQ(RTP_OK, rtp_errno);
@@ -77,14 +86,19 @@ TEST(RTPTests, rtp_poll)
             process_rtp_frame(frame);
     }
 
+    frame = receiver->pull_frame(200);
+
+    EXPECT_EQ(RTP_OK, rtp_errno);
+
+    if (frame)
+        process_rtp_frame(frame);
+
     std::cout << "Finished pulling data" << std::endl;
 
     sess->destroy_stream(receiver);
 
     cleanup(ctx, sess, receiver);
 }
-
-
 
 void rtp_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
 {

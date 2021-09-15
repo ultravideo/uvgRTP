@@ -23,7 +23,7 @@ void cleanup(uvgrtp::context& ctx, uvgrtp::session* local_session, uvgrtp::sessi
 
 
 TEST(RTCPTests, rtcp) {
-    std::cout << "Starting uvgRTP RTCP unit tests" << std::endl;
+    std::cout << "Starting uvgRTP RTCP tests" << std::endl;
 
     // Creation of RTP stream. See sending example for more details
     uvgrtp::context ctx;
