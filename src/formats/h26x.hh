@@ -90,9 +90,6 @@ namespace uvgrtp {
                  * Return RTP_INVALID_VALUE if one the parameters is invalid */
                 rtp_error_t push_h26x_frame(uint8_t *data, size_t data_len, int flags);
 
-                /* Return pointer to the internal frame info structure which is relayed to packet handler */
-                h26x_frame_info_t* get_h26x_frame_info();
-
                 /* If the packet handler must return more than one frame, it can install a frame getter
                  * that is called by the auxiliary handler caller if packet_handler() returns RTP_MULTIPLE_PKTS_READY
                  *
@@ -100,12 +97,28 @@ namespace uvgrtp {
                  *
                  * Return RTP_PKT_READY if "frame" contains a frame that can be returned to user
                  * Return RTP_NOT_FOUND if there are no more frames */
-                static rtp_error_t frame_getter(void* arg, frame::rtp_frame** frame);
+                rtp_error_t frame_getter(frame::rtp_frame** frame);
+
+                /* Packet handler for RTP frames that transport HEVC bitstream
+                 *
+                 * If "frame" is not a fragmentation unit, packet handler checks
+                 * if "frame" is SPS/VPS/PPS packet and if so, returns the packet
+                 * to user immediately.
+                 *
+                 * If "frame" is a fragmentation unit, packet handler checks if
+                 * it has received all fragments of a complete HEVC NAL unit and if
+                 * so, it merges all fragments into a complete NAL unit and returns
+                 * the NAL unit to user. If the NAL unit is not complete, packet
+                 * handler holds onto the frame and waits for other fragments to arrive.
+                 *
+                 * Return RTP_OK if the packet was successfully handled
+                 * Return RTP_PKT_READY if "frame" contains an RTP that can be returned to user
+                 * Return RTP_PKT_NOT_HANDLED if the packet is not handled by this handler
+                 * Return RTP_PKT_MODIFIED if the packet was modified but should be forwarded to other handlers
+                 * Return RTP_GENERIC_ERROR if the packet was corrupted in some way */
+                rtp_error_t packet_handler(int flags, frame::rtp_frame** frame);
 
             protected:
-
-                /* Gets the format specific nal type from data*/
-                virtual uint8_t get_nal_type(uint8_t* data) = 0;
 
                 /* Handles small packets. May support aggregate packets or not*/
                 virtual rtp_error_t handle_small_packet(uint8_t* data, size_t data_len, bool more) = 0;
@@ -128,12 +141,21 @@ namespace uvgrtp {
 
                 void initialize_fu_headers(uint8_t nal_type, uint8_t fu_headers[]);
 
-                static bool is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay);
+                bool is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay);
 
-                static void drop_frame(uvgrtp::formats::h26x_frame_info_t* finfo, uint32_t ts);
+                void drop_frame(uint32_t ts);
 
-                static rtp_error_t handle_aggregation_packet(uvgrtp::formats::h26x_frame_info_t* finfo, 
-                    uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size);
+                rtp_error_t handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size);
+
+                /* Gets the format specific nal type from data*/
+                virtual uint8_t get_nal_type(uint8_t* data) const = 0;
+
+                virtual uint8_t get_nal_header_size() const = 0;
+                virtual uint8_t get_fu_header_size() const = 0;
+                virtual int get_fragment_type(uvgrtp::frame::rtp_frame* frame) const = 0;
+                virtual uvgrtp::formats::NAL_TYPES get_nal_type(uvgrtp::frame::rtp_frame* frame) const = 0;
+
+                virtual void copy_nal_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload);
 
                 h26x_frame_info_t finfo_;
 

@@ -85,11 +85,6 @@ uvgrtp::formats::h26x::~h26x()
     delete fqueue_;
 }
 
-uvgrtp::formats::h26x_frame_info_t* uvgrtp::formats::h26x::get_h26x_frame_info()
-{
-    return &finfo_;
-}
-
 /* NOTE: the area 0 - len (ie data[0] - data[len - 1]) must be addressable
  * Do not add offset to "data" ptr before passing it to find_h26x_start_code()! */
 ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
@@ -250,13 +245,11 @@ end:
     return -1;
 }
 
-rtp_error_t uvgrtp::formats::h26x::frame_getter(void* arg, uvgrtp::frame::rtp_frame** frame)
+rtp_error_t uvgrtp::formats::h26x::frame_getter(uvgrtp::frame::rtp_frame** frame)
 {
-    auto finfo = (uvgrtp::formats::h26x_frame_info_t*)arg;
-
-    if (finfo->queued.size()) {
-        *frame = finfo->queued.front();
-        finfo->queued.pop_front();
+    if (finfo_.queued.size()) {
+        *frame = finfo_.queued.front();
+        finfo_.queued.pop_front();
         return RTP_PKT_READY;
     }
 
@@ -447,21 +440,20 @@ bool uvgrtp::formats::h26x::is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, s
     return (uvgrtp::clock::hrc::diff_now(hinfo.sframe_time) >= max_delay);
 }
 
-void uvgrtp::formats::h26x::drop_frame(uvgrtp::formats::h26x_frame_info_t* finfo, uint32_t ts)
+void uvgrtp::formats::h26x::drop_frame(uint32_t ts)
 {
-    uint16_t s_seq = finfo->frames.at(ts).s_seq;
-    uint16_t e_seq = finfo->frames.at(ts).e_seq;
+    uint16_t s_seq = finfo_.frames.at(ts).s_seq;
+    uint16_t e_seq = finfo_.frames.at(ts).e_seq;
 
     LOG_INFO("Dropping frame %u, %u - %u", ts, s_seq, e_seq);
 
-    for (auto& fragment : finfo->frames.at(ts).fragments)
+    for (auto& fragment : finfo_.frames.at(ts).fragments)
         (void)uvgrtp::frame::dealloc_frame(fragment.second);
 
-    finfo->frames.erase(ts);
+    finfo_.frames.erase(ts);
 }
 
-rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::formats::h26x_frame_info_t* finfo, 
-    uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size)
+rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size)
 {
     uvgrtp::buf_vec nalus;
 
@@ -488,8 +480,209 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::formats::h2
             nalus[i].first
         );
 
-        finfo->queued.push_back(retframe);
+        finfo_.queued.push_back(retframe);
     }
 
     return RTP_MULTIPLE_PKTS_READY;
+}
+
+rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_frame** out)
+{
+    uvgrtp::frame::rtp_frame* frame;
+    bool enable_idelay = !(flags & RCE_NO_H26X_INTRA_DELAY);
+
+    /* Use "intra" to keep track of intra frames
+     *
+     * If uvgRTP is in the process of receiving fragments of an incomplete intra frame,
+     * "intra" shall be the timestamp value of that intra frame.
+     * This means that when we're receiving packets out of order and an inter frame is complete
+     * while "intra" contains value other than INVALID_TS, we drop the inter frame and wait for
+     * the intra frame to complete.
+     *
+     * If "intra" contains INVALID_TS and all packets of an inter frame have been received,
+     * the inter frame is returned to user.  If intra contains a value other than INVALID_TS
+     * (meaning an intra frame is in progress) and a new intra frame is received, the old intra frame
+     * pointed to by "intra" and new intra frame shall take the place of active intra frame */
+    uint32_t intra = INVALID_TS;
+
+    const size_t format_header_size = get_nal_header_size() + get_fu_header_size();
+
+    frame = *out;
+
+    uint32_t c_ts = frame->header.timestamp;
+    uint32_t c_seq = frame->header.seq;
+    int frag_type = get_fragment_type(frame);
+    uint8_t nal_type = get_nal_type(frame);
+
+    if (frag_type == FT_AGGR)
+        return handle_aggregation_packet(out, get_nal_header_size());
+
+    if (frag_type == FT_NOT_FRAG) {
+        prepend_start_code(flags, out);
+        return RTP_PKT_READY;
+    }
+
+    if (frag_type == FT_INVALID) {
+        LOG_WARN("invalid frame received!");
+        (void)uvgrtp::frame::dealloc_frame(*out);
+        *out = nullptr;
+        return RTP_GENERIC_ERROR;
+    }
+
+    /* initialize new frame */
+    if (finfo_.frames.find(c_ts) == finfo_.frames.end()) {
+
+        /* make sure we haven't discarded the frame "c_ts" before */
+        if (finfo_.dropped.find(c_ts) != finfo_.dropped.end()) {
+            LOG_WARN("packet belonging to a dropped frame was received!");
+            return RTP_GENERIC_ERROR;
+        }
+
+        /* drop old intra if a new one is received */
+        if (nal_type == NT_INTRA) {
+            if (intra != INVALID_TS && enable_idelay) {
+                drop_frame(intra);
+                finfo_.dropped.insert(intra);
+            }
+            intra = c_ts;
+        }
+
+        finfo_.frames[c_ts].s_seq = INVALID_SEQ;
+        finfo_.frames[c_ts].e_seq = INVALID_SEQ;
+
+        if (frag_type == FT_START) finfo_.frames[c_ts].s_seq = c_seq;
+        if (frag_type == FT_END)   finfo_.frames[c_ts].e_seq = c_seq;
+
+        finfo_.frames[c_ts].sframe_time = uvgrtp::clock::hrc::now();
+        finfo_.frames[c_ts].total_size = frame->payload_len - format_header_size;
+        finfo_.frames[c_ts].pkts_received = 1;
+
+        finfo_.frames[c_ts].fragments[c_seq] = frame;
+        return RTP_OK;
+    }
+
+    finfo_.frames[c_ts].pkts_received += 1;
+    finfo_.frames[c_ts].total_size += (frame->payload_len - format_header_size);
+
+    if (frag_type == FT_START) {
+        finfo_.frames[c_ts].s_seq = c_seq;
+        finfo_.frames[c_ts].fragments[c_seq] = frame;
+
+        for (auto& fragment : finfo_.frames[c_ts].temporary) {
+            uint16_t fseq = fragment->header.seq;
+            uint32_t seq = (c_seq > fseq) ? 0x10000 + fseq : fseq;
+
+            finfo_.frames[c_ts].fragments[seq] = fragment;
+        }
+        finfo_.frames[c_ts].temporary.clear();
+    }
+
+    if (frag_type == FT_END)
+        finfo_.frames[c_ts].e_seq = c_seq;
+
+    /* Out-of-order nature poses an interesting problem when reconstructing the frame:
+     * how to store the fragments such that we mustn't shuffle them around when frame reconstruction takes place?
+     *
+     * std::map is an option but the overflow of 16-bit sequence number counter makes that a little harder because
+     * if the first few fragments of a frame are near 65535, the rest of the fragments are going to have sequence
+     * numbers less than that and thus our frame reconstruction breaks.
+     *
+     * This can be solved by checking if current fragment's sequence is less than start fragment's sequence number
+     * (overflow has occurred) and correcting the current sequence by adding 0x10000 to its value so it appears
+     * in order with other fragments */
+    if (frag_type != FT_START) {
+        if (finfo_.frames[c_ts].s_seq != INVALID_SEQ) {
+            /* overflow has occurred, adjust the sequence number of current
+             * fragment so it appears in order with other fragments of the frame
+             *
+             * Note: if the frame is huge (~94 MB), this will not work but it's not a realistic scenario */
+            finfo_.frames[c_ts].fragments[((finfo_.frames[c_ts].s_seq > c_seq) ? 0x10000 + c_seq : c_seq)] = frame;
+        }
+        else {
+            /* position for the fragment cannot be calculated so move the fragment to a temporary storage */
+            finfo_.frames[c_ts].temporary.push_back(frame);
+        }
+    }
+
+    if (finfo_.frames[c_ts].s_seq != INVALID_SEQ && finfo_.frames[c_ts].e_seq != INVALID_SEQ) {
+        size_t received = 0;
+        size_t fptr = 0;
+        size_t s_seq = finfo_.frames[c_ts].s_seq;
+        size_t e_seq = finfo_.frames[c_ts].e_seq;
+
+        if (s_seq > e_seq)
+            received = 0xffff - s_seq + e_seq + 2;
+        else
+            received = e_seq - s_seq + 1;
+
+        /* we've received every fragment and the frame can be reconstructed */
+        if (received == finfo_.frames[c_ts].pkts_received) {
+
+            /* intra is still in progress, do not return the inter */
+            if (nal_type == NT_INTER && intra != INVALID_TS && enable_idelay) {
+                drop_frame(c_ts);
+                finfo_.dropped.insert(c_ts);
+                return RTP_OK;
+            }
+
+            uvgrtp::frame::rtp_frame* complete = uvgrtp::frame::alloc_rtp_frame();
+
+            complete->payload_len =
+                finfo_.frames[c_ts].total_size
+                + get_nal_header_size() +
+                +((flags & RCE_H26X_PREPEND_SC) ? 4 : 0);
+
+            complete->payload = new uint8_t[complete->payload_len];
+
+            if (flags & RCE_H26X_PREPEND_SC) {
+                complete->payload[0] = 0;
+                complete->payload[1] = 0;
+                complete->payload[2] = 0;
+                complete->payload[3] = 1;
+                fptr += 4;
+            }
+
+            std::memcpy(&complete->header, &(*out)->header, RTP_HDR_SIZE); // RTP header
+
+            copy_nal_header(fptr, frame->payload, complete->payload); // NAL header
+            fptr += get_nal_header_size();
+
+            for (auto& fragment : finfo_.frames.at(c_ts).fragments) {
+                std::memcpy(
+                    &complete->payload[fptr],
+                    &fragment.second->payload[format_header_size],
+                    fragment.second->payload_len - format_header_size
+                );
+                fptr += fragment.second->payload_len - format_header_size;
+                (void)uvgrtp::frame::dealloc_frame(fragment.second);
+            }
+
+
+            if (nal_type == NT_INTRA)
+                intra = INVALID_TS;
+
+            *out = complete;
+            finfo_.frames.erase(c_ts);
+            return RTP_PKT_READY;
+        }
+    }
+
+    if (is_frame_late(finfo_.frames.at(c_ts), finfo_.rtp_ctx->get_pkt_max_delay())) {
+        if (nal_type != NT_INTRA || (nal_type == NT_INTRA && !enable_idelay)) {
+            drop_frame(c_ts);
+            finfo_.dropped.insert(c_ts);
+        }
+    }
+
+    return RTP_OK;
+}
+
+void uvgrtp::formats::h26x::copy_nal_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload)
+{
+    uint8_t nal_header[2] = {
+        (uint8_t)((frame_payload[0] & 0x81) | ((frame_payload[2] & 0x3f) << 1)),
+        (uint8_t)frame_payload[1]
+    };
+
+    std::memcpy(&complete_payload[fptr], nal_header, get_nal_header_size());
 }

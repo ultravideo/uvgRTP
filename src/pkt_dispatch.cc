@@ -127,6 +127,21 @@ rtp_error_t uvgrtp::pkt_dispatcher::install_aux_handler(
     return RTP_OK;
 }
 
+rtp_error_t uvgrtp::pkt_dispatcher::install_aux_handler_cpp(uint32_t key,
+    std::function<rtp_error_t(int, uvgrtp::frame::rtp_frame**)> handler,
+    std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter)
+{
+    if (!handler)
+        return RTP_INVALID_VALUE;
+
+    if (packet_handlers_.find(key) == packet_handlers_.end())
+        return RTP_INVALID_VALUE;
+
+    auxiliary_handler_cpp ahc = {handler, getter};
+    packet_handlers_[key].auxiliary_cpp.push_back(ahc);
+    return RTP_OK;
+}
+
 void uvgrtp::pkt_dispatcher::return_frame(uvgrtp::frame::rtp_frame *frame)
 {
     if (recv_hook_) {
@@ -172,6 +187,51 @@ void uvgrtp::pkt_dispatcher::call_aux_handlers(uint32_t key, int flags, uvgrtp::
             default:
                 LOG_ERROR("Unknown error code from packet handler: %d", ret);
                 break;
+        }
+    }
+
+    for (auto& aux : packet_handlers_[key].auxiliary_cpp) {
+        switch ((ret = aux.handler(flags, frame))) {
+            
+        case RTP_OK: /* packet was handled successfully */
+        {
+            break;
+        }
+        case RTP_MULTIPLE_PKTS_READY:
+        {
+            while (aux.getter(frame) == RTP_PKT_READY)
+                this->return_frame(*frame);
+
+            break;
+        }
+        case RTP_PKT_READY:
+        {
+            this->return_frame(*frame);
+            break;
+        }
+
+            /* packet was not handled or only partially handled by the handler
+             * proceed to the next handler */
+        case RTP_PKT_NOT_HANDLED:
+        {
+            continue;
+        }
+        case RTP_PKT_MODIFIED:
+        {
+            continue;
+        }
+
+        case RTP_GENERIC_ERROR:
+        {
+            LOG_DEBUG("Received a corrupted packet!");
+            break;
+        }
+
+        default:
+        {
+            LOG_ERROR("Unknown error code from packet handler: %d", ret);
+            break;
+        }
         }
     }
 }
@@ -226,12 +286,12 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
 
     FD_ZERO(&read_fds);
 
-    while (!this->active())
+    while (!active())
         ;
 
     exit_mtx_.lock();
 
-    while (this->active()) {
+    while (active()) {
         /* reset state before each call */
         t_val.tv_sec  = 0;
         t_val.tv_usec = 1500;

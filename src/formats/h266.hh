@@ -40,35 +40,20 @@ namespace uvgrtp {
                 h266(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags);
                 ~h266();
 
-                /* Packet handler for RTP frames that transport HEVC bitstream
-                 *
-                 * If "frame" is not a fragmentation unit, packet handler checks
-                 * if "frame" is SPS/VPS/PPS packet and if so, returns the packet
-                 * to user immediately.
-                 *
-                 * If "frame" is a fragmentation unit, packet handler checks if
-                 * it has received all fragments of a complete HEVC NAL unit and if
-                 * so, it merges all fragments into a complete NAL unit and returns
-                 * the NAL unit to user. If the NAL unit is not complete, packet
-                 * handler holds onto the frame and waits for other fragments to arrive.
-                 *
-                 * Return RTP_OK if the packet was successfully handled
-                 * Return RTP_PKT_READY if "frame" contains an RTP that can be returned to user
-                 * Return RTP_PKT_NOT_HANDLED if the packet is not handled by this handler
-                 * Return RTP_PKT_MODIFIED if the packet was modified but should be forwarded to other handlers
-                 * Return RTP_GENERIC_ERROR if the packet was corrupted in some way */
-                static rtp_error_t packet_handler(void *arg, int flags, frame::rtp_frame **frame);
-
             protected:
-                // get h264 nal type
-                virtual uint8_t get_nal_type(uint8_t* data);
-
                 // the aggregation packet is not enabled
                 virtual rtp_error_t handle_small_packet(uint8_t* data, size_t data_len, bool more);
 
                 // constructs h266 RTP header with correct values
                 virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t& data_left, 
                     size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers);
+
+                virtual uint8_t get_nal_type(uint8_t* data) const;
+
+                virtual uint8_t get_nal_header_size() const;
+                virtual uint8_t get_fu_header_size() const;
+                virtual int get_fragment_type(uvgrtp::frame::rtp_frame* frame) const;
+                virtual uvgrtp::formats::NAL_TYPES get_nal_type(uvgrtp::frame::rtp_frame* frame) const;
         };
     };
 };

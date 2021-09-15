@@ -124,38 +124,44 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
 {
     switch (fmt_) {
         case RTP_FORMAT_H264:
-            media_ = new uvgrtp::formats::h264(socket_, rtp_, ctx_config_.flags);
+        {
+            uvgrtp::formats::h264* format_264 = new uvgrtp::formats::h264(socket_, rtp_, ctx_config_.flags);
 
-            pkt_dispatcher_->install_aux_handler(
+            pkt_dispatcher_->install_aux_handler_cpp(
                 rtp_handler_key_,
-                dynamic_cast<uvgrtp::formats::h264 *>(media_)->get_h26x_frame_info(),
-                dynamic_cast<uvgrtp::formats::h264 *>(media_)->packet_handler,
-                dynamic_cast<uvgrtp::formats::h264 *>(media_)->frame_getter
-            );
-            return RTP_OK;
+                std::bind(&uvgrtp::formats::h264::packet_handler, format_264, std::placeholders::_1, std::placeholders::_2),
+                std::bind(&uvgrtp::formats::h264::frame_getter, format_264, std::placeholders::_1));
+            media_ = format_264;
 
+            return RTP_OK;
+            break;
+        }
         case RTP_FORMAT_H265:
-            media_ = new uvgrtp::formats::h265(socket_, rtp_, ctx_config_.flags);
+        {
+            uvgrtp::formats::h265* format_265 = new uvgrtp::formats::h265(socket_, rtp_, ctx_config_.flags);
 
-            pkt_dispatcher_->install_aux_handler(
+            pkt_dispatcher_->install_aux_handler_cpp(
                 rtp_handler_key_,
-                dynamic_cast<uvgrtp::formats::h265 *>(media_)->get_h26x_frame_info(),
-                dynamic_cast<uvgrtp::formats::h265 *>(media_)->packet_handler,
-                dynamic_cast<uvgrtp::formats::h265 *>(media_)->frame_getter
-            );
-            return RTP_OK;
+                std::bind(&uvgrtp::formats::h265::packet_handler, format_265, std::placeholders::_1, std::placeholders::_2),
+                std::bind(&uvgrtp::formats::h265::frame_getter, format_265, std::placeholders::_1));
+            media_ = format_265;
 
+            return RTP_OK;
+            break;
+        }
         case RTP_FORMAT_H266:
-            media_ = new uvgrtp::formats::h266(socket_, rtp_, ctx_config_.flags);
+        {
+            uvgrtp::formats::h266* format_266 = new uvgrtp::formats::h266(socket_, rtp_, ctx_config_.flags);
 
-            pkt_dispatcher_->install_aux_handler(
+            pkt_dispatcher_->install_aux_handler_cpp(
                 rtp_handler_key_,
-                dynamic_cast<uvgrtp::formats::h266 *>(media_)->get_h26x_frame_info(),
-                dynamic_cast<uvgrtp::formats::h266 *>(media_)->packet_handler,
-                nullptr
-            );
-            return RTP_OK;
+                std::bind(&uvgrtp::formats::h266::packet_handler, format_266, std::placeholders::_1, std::placeholders::_2),
+                std::bind(&uvgrtp::formats::h266::frame_getter, format_266, std::placeholders::_1));
+            media_ = format_266;
 
+            return RTP_OK;
+            break;
+        }
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
             media_ = new uvgrtp::formats::media(socket_, rtp_, ctx_config_.flags);

@@ -7,6 +7,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 namespace uvgrtp {
 
@@ -26,9 +27,15 @@ namespace uvgrtp {
         frame_getter getter = nullptr;
     };
 
+    struct auxiliary_handler_cpp {
+        std::function<rtp_error_t(int, uvgrtp::frame::rtp_frame** out)> handler;
+        std::function<rtp_error_t(uvgrtp::frame::rtp_frame** out)> getter;
+    };
+
     struct packet_handlers {
         packet_handler primary = nullptr;
         std::vector<auxiliary_handler> auxiliary;
+        std::vector<auxiliary_handler_cpp> auxiliary_cpp;
     };
 
     class pkt_dispatcher : public runner {
@@ -63,6 +70,10 @@ namespace uvgrtp {
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "handler" is nullptr or if "key" is not valid */
             rtp_error_t install_aux_handler(uint32_t key, void *arg, packet_handler_aux handler, frame_getter getter);
+
+            rtp_error_t install_aux_handler_cpp(uint32_t key, 
+                std::function<rtp_error_t(int, uvgrtp::frame::rtp_frame**)> handler,
+                std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter);
 
             /* Install receive hook for the RTP packet dispatcher
              *
