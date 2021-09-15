@@ -136,7 +136,7 @@ namespace uvgrtp {
 
                 bool is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay);
 
-                void drop_frame(uint32_t ts);
+                uint32_t drop_frame(uint32_t ts);
 
                 rtp_error_t handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size);
 
@@ -154,10 +154,14 @@ namespace uvgrtp {
             // constructs and sends the RTP packets with format specific stuff
             rtp_error_t push_nal_unit(uint8_t* data, size_t data_len, bool more);
 
+            void garbage_collect_lost_frames();
+
             std::deque<uvgrtp::frame::rtp_frame*> queued_;
             std::unordered_map<uint32_t, h26x_info_t> frames_;
             std::unordered_set<uint32_t> dropped_;
             uvgrtp::rtp* rtp_ctx_;
+
+            uvgrtp::clock::hrc::hrc_t last_garbage_collection_;
         };
     };
 };

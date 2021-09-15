@@ -34,6 +34,9 @@
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
+constexpr int GARBAGE_COLLECTION_INTERVAL_MS = 100;
+constexpr int LOST_FRAME_TIMEOUT_MS = 500;
+
 static inline unsigned __find_h26x_start(uint32_t value)
 {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -79,7 +82,8 @@ uvgrtp::formats::h26x::h26x(uvgrtp::socket* socket, uvgrtp::rtp* rtp, int flags)
     queued_(), 
     frames_(), 
     dropped_(), 
-    rtp_ctx_(rtp)
+    rtp_ctx_(rtp),
+    last_garbage_collection_(uvgrtp::clock::hrc::now())
 {}
 
 uvgrtp::formats::h26x::~h26x()
@@ -442,17 +446,41 @@ bool uvgrtp::formats::h26x::is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, s
     return (uvgrtp::clock::hrc::diff_now(hinfo.sframe_time) >= max_delay);
 }
 
-void uvgrtp::formats::h26x::drop_frame(uint32_t ts)
+uint32_t uvgrtp::formats::h26x::drop_frame(uint32_t ts)
 {
     uint16_t s_seq = frames_.at(ts).s_seq;
     uint16_t e_seq = frames_.at(ts).e_seq;
 
     LOG_INFO("Dropping frame %u, %u - %u", ts, s_seq, e_seq);
 
-    for (auto& fragment : frames_.at(ts).fragments)
-        (void)uvgrtp::frame::dealloc_frame(fragment.second);
+    if (frames_.find(ts) == frames_.end())
+    {
+        LOG_ERROR("Tried to drop a non-existing frame");
+        return 0;
+    }
 
+    uint32_t total_cleaned = 0;
+
+    // clean fragments
+    for (auto& fragment : frames_[ts].fragments) {
+        total_cleaned += fragment.second->payload_len + sizeof(uvgrtp::frame::rtp_frame);
+        (void)uvgrtp::frame::dealloc_frame(fragment.second);
+    }
+    frames_[ts].fragments.clear();
+
+    // clean fragments that have no place
+    for (auto& temporary : frames_[ts].temporary) {
+        total_cleaned += temporary->payload_len + sizeof(uvgrtp::frame::rtp_frame);;
+        (void)uvgrtp::frame::dealloc_frame(temporary);
+    }
+
+    // lastly, remove the frame structure from map
+    frames_[ts].temporary.clear();
     frames_.erase(ts);
+
+    dropped_.insert(ts);
+
+    return total_cleaned;
 }
 
 rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size)
@@ -544,7 +572,6 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         if (nal_type == NT_INTRA) {
             if (intra != INVALID_TS && enable_idelay) {
                 drop_frame(intra);
-                dropped_.insert(intra);
             }
             intra = c_ts;
         }
@@ -623,7 +650,6 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
             /* intra is still in progress, do not return the inter */
             if (nal_type == NT_INTER && intra != INVALID_TS && enable_idelay) {
                 drop_frame(c_ts);
-                dropped_.insert(c_ts);
                 return RTP_OK;
             }
 
@@ -672,9 +698,10 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     if (is_frame_late(frames_.at(c_ts), rtp_ctx_->get_pkt_max_delay())) {
         if (nal_type != NT_INTRA || (nal_type == NT_INTRA && !enable_idelay)) {
             drop_frame(c_ts);
-            dropped_.insert(c_ts);
         }
     }
+
+    garbage_collect_lost_frames();
 
     return RTP_OK;
 }
@@ -687,4 +714,31 @@ void uvgrtp::formats::h26x::copy_nal_header(size_t fptr, uint8_t* frame_payload,
     };
 
     std::memcpy(&complete_payload[fptr], nal_header, get_nal_header_size());
+}
+
+void uvgrtp::formats::h26x::garbage_collect_lost_frames()
+{
+    if (uvgrtp::clock::hrc::diff_now(last_garbage_collection_) >= GARBAGE_COLLECTION_INTERVAL_MS) {
+        uint32_t total_cleaned = 0;
+        std::vector<uint32_t> to_remove;
+
+        // first find all frames that have been waiting for too long
+        for (auto& gc_frame : frames_) {
+            if (uvgrtp::clock::hrc::diff_now(gc_frame.second.sframe_time) > LOST_FRAME_TIMEOUT_MS) {
+                to_remove.push_back(gc_frame.first);
+            }
+        }
+
+        // remove old frames
+        for (auto& old_frame : to_remove) {
+
+            total_cleaned += drop_frame(old_frame);
+        }
+
+        if (total_cleaned > 0) {
+            LOG_INFO("Garbage collection cleaned %d bytes!", total_cleaned);
+        }
+
+        last_garbage_collection_ = uvgrtp::clock::hrc::now();
+    }
 }
