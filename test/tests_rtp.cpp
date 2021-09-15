@@ -15,6 +15,52 @@ void process_rtp_frame(uvgrtp::frame::rtp_frame* frame);
 // TODO: 1) Test only sending, 2) test sending with different configuration, 3) test receiving with different configurations, and 
 // 4) test sending and receiving within same test while checking frame size
 
+TEST(RTPTests, send_too_much)
+{
+    std::cout << "Starting RTP send too much test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(REMOTE_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    int flags = RTP_NO_FLAGS;
+    if (sess)
+    {
+        sender = sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, flags);
+        receiver = sess->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_H265, flags);
+    }
+
+    if (receiver)
+    {
+        std::cout << "Installing hook" << std::endl;
+        EXPECT_EQ(RTP_OK, receiver->install_receive_hook(nullptr, rtp_receive_hook));
+    }
+
+    if (sender)
+    {
+        std::cout << "Starting to send data" << std::endl;
+        for (unsigned int i = 0; i < 10000; ++i)
+        {
+            const int frame_size = 200000;
+            std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[frame_size]);
+
+            if (sender->push_frame(std::move(dummy_frame), frame_size, RTP_NO_FLAGS) != RTP_OK)
+            {
+                std::cout << "Failed to send RTP frame!" << std::endl;
+            }
+        }
+
+        EXPECT_NE(nullptr, sender);
+        sess->destroy_stream(sender);
+        sender = 0;
+    }
+
+    EXPECT_NE(nullptr, sess);
+    EXPECT_NE(nullptr, receiver);
+
+    cleanup(ctx, sess, receiver);
+}
 
 TEST(RTPTests, rtp_hook) 
 {
