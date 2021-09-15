@@ -22,9 +22,7 @@
 
 uvgrtp::formats::h266::h266(uvgrtp::socket* socket, uvgrtp::rtp* rtp, int flags) :
     h26x(socket, rtp, flags)
-{
-    finfo_.rtp_ctx = rtp;
-}
+{}
 
 uvgrtp::formats::h266::~h266()
 {

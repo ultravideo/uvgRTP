@@ -56,13 +56,6 @@ namespace uvgrtp {
             std::vector<uvgrtp::frame::rtp_frame*> temporary;
         } h26x_info_t;
 
-        typedef struct {
-            std::deque<uvgrtp::frame::rtp_frame*> queued;
-            std::unordered_map<uint32_t, h26x_info_t> frames;
-            std::unordered_set<uint32_t> dropped;
-            uvgrtp::rtp* rtp_ctx;
-        } h26x_frame_info_t;
-
         class h26x : public media {
             public:
                 h26x(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags);
@@ -157,11 +150,14 @@ namespace uvgrtp {
 
                 virtual void copy_nal_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload);
 
-                h26x_frame_info_t finfo_;
-
         private:
             // constructs and sends the RTP packets with format specific stuff
             rtp_error_t push_nal_unit(uint8_t* data, size_t data_len, bool more);
+
+            std::deque<uvgrtp::frame::rtp_frame*> queued_;
+            std::unordered_map<uint32_t, h26x_info_t> frames_;
+            std::unordered_set<uint32_t> dropped_;
+            uvgrtp::rtp* rtp_ctx_;
         };
     };
 };

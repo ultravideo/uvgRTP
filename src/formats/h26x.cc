@@ -75,10 +75,12 @@ static inline unsigned __find_h26x_start(uint32_t value)
 }
 
 uvgrtp::formats::h26x::h26x(uvgrtp::socket* socket, uvgrtp::rtp* rtp, int flags) :
-    media(socket, rtp, flags), finfo_{}
-{
-    finfo_.rtp_ctx = rtp;
-}
+    media(socket, rtp, flags), 
+    queued_(), 
+    frames_(), 
+    dropped_(), 
+    rtp_ctx_(rtp)
+{}
 
 uvgrtp::formats::h26x::~h26x()
 {
@@ -247,9 +249,9 @@ end:
 
 rtp_error_t uvgrtp::formats::h26x::frame_getter(uvgrtp::frame::rtp_frame** frame)
 {
-    if (finfo_.queued.size()) {
-        *frame = finfo_.queued.front();
-        finfo_.queued.pop_front();
+    if (queued_.size()) {
+        *frame = queued_.front();
+        queued_.pop_front();
         return RTP_PKT_READY;
     }
 
@@ -442,15 +444,15 @@ bool uvgrtp::formats::h26x::is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, s
 
 void uvgrtp::formats::h26x::drop_frame(uint32_t ts)
 {
-    uint16_t s_seq = finfo_.frames.at(ts).s_seq;
-    uint16_t e_seq = finfo_.frames.at(ts).e_seq;
+    uint16_t s_seq = frames_.at(ts).s_seq;
+    uint16_t e_seq = frames_.at(ts).e_seq;
 
     LOG_INFO("Dropping frame %u, %u - %u", ts, s_seq, e_seq);
 
-    for (auto& fragment : finfo_.frames.at(ts).fragments)
+    for (auto& fragment : frames_.at(ts).fragments)
         (void)uvgrtp::frame::dealloc_frame(fragment.second);
 
-    finfo_.frames.erase(ts);
+    frames_.erase(ts);
 }
 
 rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size)
@@ -480,7 +482,7 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_
             nalus[i].first
         );
 
-        finfo_.queued.push_back(retframe);
+        queued_.push_back(retframe);
     }
 
     return RTP_MULTIPLE_PKTS_READY;
@@ -530,10 +532,10 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     }
 
     /* initialize new frame */
-    if (finfo_.frames.find(c_ts) == finfo_.frames.end()) {
+    if (frames_.find(c_ts) == frames_.end()) {
 
         /* make sure we haven't discarded the frame "c_ts" before */
-        if (finfo_.dropped.find(c_ts) != finfo_.dropped.end()) {
+        if (dropped_.find(c_ts) != dropped_.end()) {
             LOG_WARN("packet belonging to a dropped frame was received!");
             return RTP_GENERIC_ERROR;
         }
@@ -542,43 +544,43 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         if (nal_type == NT_INTRA) {
             if (intra != INVALID_TS && enable_idelay) {
                 drop_frame(intra);
-                finfo_.dropped.insert(intra);
+                dropped_.insert(intra);
             }
             intra = c_ts;
         }
 
-        finfo_.frames[c_ts].s_seq = INVALID_SEQ;
-        finfo_.frames[c_ts].e_seq = INVALID_SEQ;
+        frames_[c_ts].s_seq = INVALID_SEQ;
+        frames_[c_ts].e_seq = INVALID_SEQ;
 
-        if (frag_type == FT_START) finfo_.frames[c_ts].s_seq = c_seq;
-        if (frag_type == FT_END)   finfo_.frames[c_ts].e_seq = c_seq;
+        if (frag_type == FT_START) frames_[c_ts].s_seq = c_seq;
+        if (frag_type == FT_END)   frames_[c_ts].e_seq = c_seq;
 
-        finfo_.frames[c_ts].sframe_time = uvgrtp::clock::hrc::now();
-        finfo_.frames[c_ts].total_size = frame->payload_len - format_header_size;
-        finfo_.frames[c_ts].pkts_received = 1;
+        frames_[c_ts].sframe_time = uvgrtp::clock::hrc::now();
+        frames_[c_ts].total_size = frame->payload_len - format_header_size;
+        frames_[c_ts].pkts_received = 1;
 
-        finfo_.frames[c_ts].fragments[c_seq] = frame;
+        frames_[c_ts].fragments[c_seq] = frame;
         return RTP_OK;
     }
 
-    finfo_.frames[c_ts].pkts_received += 1;
-    finfo_.frames[c_ts].total_size += (frame->payload_len - format_header_size);
+    frames_[c_ts].pkts_received += 1;
+    frames_[c_ts].total_size += (frame->payload_len - format_header_size);
 
     if (frag_type == FT_START) {
-        finfo_.frames[c_ts].s_seq = c_seq;
-        finfo_.frames[c_ts].fragments[c_seq] = frame;
+        frames_[c_ts].s_seq = c_seq;
+        frames_[c_ts].fragments[c_seq] = frame;
 
-        for (auto& fragment : finfo_.frames[c_ts].temporary) {
+        for (auto& fragment : frames_[c_ts].temporary) {
             uint16_t fseq = fragment->header.seq;
             uint32_t seq = (c_seq > fseq) ? 0x10000 + fseq : fseq;
 
-            finfo_.frames[c_ts].fragments[seq] = fragment;
+            frames_[c_ts].fragments[seq] = fragment;
         }
-        finfo_.frames[c_ts].temporary.clear();
+        frames_[c_ts].temporary.clear();
     }
 
     if (frag_type == FT_END)
-        finfo_.frames[c_ts].e_seq = c_seq;
+        frames_[c_ts].e_seq = c_seq;
 
     /* Out-of-order nature poses an interesting problem when reconstructing the frame:
      * how to store the fragments such that we mustn't shuffle them around when frame reconstruction takes place?
@@ -591,24 +593,24 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
      * (overflow has occurred) and correcting the current sequence by adding 0x10000 to its value so it appears
      * in order with other fragments */
     if (frag_type != FT_START) {
-        if (finfo_.frames[c_ts].s_seq != INVALID_SEQ) {
+        if (frames_[c_ts].s_seq != INVALID_SEQ) {
             /* overflow has occurred, adjust the sequence number of current
              * fragment so it appears in order with other fragments of the frame
              *
              * Note: if the frame is huge (~94 MB), this will not work but it's not a realistic scenario */
-            finfo_.frames[c_ts].fragments[((finfo_.frames[c_ts].s_seq > c_seq) ? 0x10000 + c_seq : c_seq)] = frame;
+            frames_[c_ts].fragments[((frames_[c_ts].s_seq > c_seq) ? 0x10000 + c_seq : c_seq)] = frame;
         }
         else {
             /* position for the fragment cannot be calculated so move the fragment to a temporary storage */
-            finfo_.frames[c_ts].temporary.push_back(frame);
+            frames_[c_ts].temporary.push_back(frame);
         }
     }
 
-    if (finfo_.frames[c_ts].s_seq != INVALID_SEQ && finfo_.frames[c_ts].e_seq != INVALID_SEQ) {
+    if (frames_[c_ts].s_seq != INVALID_SEQ && frames_[c_ts].e_seq != INVALID_SEQ) {
         size_t received = 0;
         size_t fptr = 0;
-        size_t s_seq = finfo_.frames[c_ts].s_seq;
-        size_t e_seq = finfo_.frames[c_ts].e_seq;
+        size_t s_seq = frames_[c_ts].s_seq;
+        size_t e_seq = frames_[c_ts].e_seq;
 
         if (s_seq > e_seq)
             received = 0xffff - s_seq + e_seq + 2;
@@ -616,19 +618,19 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
             received = e_seq - s_seq + 1;
 
         /* we've received every fragment and the frame can be reconstructed */
-        if (received == finfo_.frames[c_ts].pkts_received) {
+        if (received == frames_[c_ts].pkts_received) {
 
             /* intra is still in progress, do not return the inter */
             if (nal_type == NT_INTER && intra != INVALID_TS && enable_idelay) {
                 drop_frame(c_ts);
-                finfo_.dropped.insert(c_ts);
+                dropped_.insert(c_ts);
                 return RTP_OK;
             }
 
             uvgrtp::frame::rtp_frame* complete = uvgrtp::frame::alloc_rtp_frame();
 
             complete->payload_len =
-                finfo_.frames[c_ts].total_size
+                frames_[c_ts].total_size
                 + get_nal_header_size() +
                 +((flags & RCE_H26X_PREPEND_SC) ? 4 : 0);
 
@@ -647,7 +649,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
             copy_nal_header(fptr, frame->payload, complete->payload); // NAL header
             fptr += get_nal_header_size();
 
-            for (auto& fragment : finfo_.frames.at(c_ts).fragments) {
+            for (auto& fragment : frames_.at(c_ts).fragments) {
                 std::memcpy(
                     &complete->payload[fptr],
                     &fragment.second->payload[format_header_size],
@@ -662,15 +664,15 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
                 intra = INVALID_TS;
 
             *out = complete;
-            finfo_.frames.erase(c_ts);
+            frames_.erase(c_ts);
             return RTP_PKT_READY;
         }
     }
 
-    if (is_frame_late(finfo_.frames.at(c_ts), finfo_.rtp_ctx->get_pkt_max_delay())) {
+    if (is_frame_late(frames_.at(c_ts), rtp_ctx_->get_pkt_max_delay())) {
         if (nal_type != NT_INTRA || (nal_type == NT_INTRA && !enable_idelay)) {
             drop_frame(c_ts);
-            finfo_.dropped.insert(c_ts);
+            dropped_.insert(c_ts);
         }
     }
 
