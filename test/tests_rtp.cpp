@@ -3,14 +3,29 @@
 
 
 // parameters for this test. You can change these to suit your network environment
-constexpr uint16_t LOCAL_PORT = 9100;
+constexpr uint16_t LOCAL_PORT = 9300;
 
 constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
-constexpr uint16_t REMOTE_PORT = 9102;
+constexpr uint16_t REMOTE_PORT = 9302;
 
 void rtp_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 void cleanup(uvgrtp::context& ctx, uvgrtp::session* sess, uvgrtp::media_stream* ms);
 void process_rtp_frame(uvgrtp::frame::rtp_frame* frame);
+
+void test_wait(int time_ms, uvgrtp::media_stream* receiver)
+{
+    uvgrtp::frame::rtp_frame* frame = nullptr;
+    auto start = std::chrono::high_resolution_clock::now();
+    frame = receiver->pull_frame(time_ms);
+    int actual_difference = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
+
+    EXPECT_EQ(RTP_OK, rtp_errno);
+    EXPECT_GE(actual_difference, time_ms);
+    EXPECT_LE(actual_difference, time_ms + time_ms/10); // allow max 10% excess
+
+    if (frame)
+        process_rtp_frame(frame);
+}
 
 // TODO: 1) Test only sending, 2) test sending with different configuration, 3) test receiving with different configurations, and 
 // 4) test sending and receiving within same test while checking frame size
@@ -132,9 +147,9 @@ TEST(RTPTests, rtp_poll)
             process_rtp_frame(frame);
     }
 
-    frame = receiver->pull_frame(200);
-
-    EXPECT_EQ(RTP_OK, rtp_errno);
+    test_wait(10, receiver);
+    test_wait(100, receiver);
+    test_wait(500, receiver);
 
     if (frame)
         process_rtp_frame(frame);
