@@ -19,11 +19,11 @@ Open the generated solution. Add the location of compiled Crypto++ library to ``
 ## Current test suites
 
 Currently, the automated tests consist of the following test suites:
-- [Encryption tests](test/tests_encryption.cpp)
-- [Format tests](test/tests_formats.cpp)
-- [RTCP tests](test/tests_rtcp.cpp )
-- [RTP tests](test/tests_rtp.cpp)
-- [Version tests](test/tests_version.cpp)
+- [Encryption tests](tests_encryption.cpp)
+- [Format tests](tests_formats.cpp)
+- [RTCP tests](tests_rtcp.cpp )
+- [RTP tests](tests_rtp.cpp)
+- [Version tests](tests_version.cpp)
 
 The tests should be coded in such a way to make the tests themselves as resilient as possible to problems while also validating that the uvgRTP output is correct. In other words, it is more helpful if a check is false than if the test suite crashes.
 
