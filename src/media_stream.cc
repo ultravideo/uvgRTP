@@ -461,7 +461,7 @@ uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame()
     return pkt_dispatcher_->pull_frame();
 }
 
-uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame(size_t timeout)
+uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame(size_t timeout_ms)
 {
     if (!initialized_) {
         LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
@@ -469,7 +469,7 @@ uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame(size_t timeout)
         return nullptr;
     }
 
-    return pkt_dispatcher_->pull_frame(timeout);
+    return pkt_dispatcher_->pull_frame(timeout_ms);
 }
 
 rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *))

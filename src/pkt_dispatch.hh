@@ -100,7 +100,7 @@ namespace uvgrtp {
              * Return pointer to RTP frame on success
              * Return nullptr if operation timed out or an error occurred */
             uvgrtp::frame::rtp_frame *pull_frame();
-            uvgrtp::frame::rtp_frame *pull_frame(size_t ms);
+            uvgrtp::frame::rtp_frame *pull_frame(size_t timeout_ms);
 
         private:
             /* RTP packet dispatcher thread */

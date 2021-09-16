@@ -21,7 +21,7 @@ void test_wait(int time_ms, uvgrtp::media_stream* receiver)
 
     EXPECT_EQ(RTP_OK, rtp_errno);
     EXPECT_GE(actual_difference, time_ms);
-    EXPECT_LE(actual_difference, time_ms + time_ms/10); // allow max 10% excess
+    EXPECT_LE(actual_difference, time_ms + 50); // allow max 50 ms extra
 
     if (frame)
         process_rtp_frame(frame);

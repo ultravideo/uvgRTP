@@ -6,6 +6,8 @@
 #include "random.hh"
 #include "util.hh"
 
+#include <chrono>
+
 #ifndef _WIN32
 #include <errno.h>
 #else
@@ -78,11 +80,15 @@ uvgrtp::frame::rtp_frame *uvgrtp::pkt_dispatcher::pull_frame()
     return frame;
 }
 
-uvgrtp::frame::rtp_frame *uvgrtp::pkt_dispatcher::pull_frame(size_t timeout)
+uvgrtp::frame::rtp_frame *uvgrtp::pkt_dispatcher::pull_frame(size_t timeout_ms)
 {
-    while (frames_.empty() && !runner_should_stop_ && timeout) {
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+    while (frames_.empty() && 
+        !runner_should_stop_ && 
+        timeout_ms > std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_time).count())
+    {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        --timeout;
     }
 
     if (runner_should_stop_ || frames_.empty())

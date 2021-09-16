@@ -207,7 +207,7 @@ namespace uvgrtp {
             /**
              * \brief Poll a frame for a specified time from the media stream object
              *
-             * \param timeout How long is a frame waited, in milliseconds
+             * \param timeout_ms How long is a frame waited, in milliseconds
              *
              * \return RTP frame
              *
@@ -215,7 +215,7 @@ namespace uvgrtp {
              * \retval nullptr If a frame was not received within the specified time limit
              * \retval nullptr If an unrecoverable error happened
              */
-            uvgrtp::frame::rtp_frame *pull_frame(size_t timeout);
+            uvgrtp::frame::rtp_frame *pull_frame(size_t timeout_ms);
 
             /**
              * \brief Asynchronous way of getting frames
