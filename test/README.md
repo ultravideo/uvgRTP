@@ -2,11 +2,11 @@
 
 Testing uvgRTP is meant for the developers of uvgRTP. After each major change, it is recommended to run the automated tests. New automated tests can be a great help in validating the functionality of new features as well as helping detect bugs caused by later changes.
 
-These tests are not meant to be readable examples. For that you might want to check out [examples](docs/examples/).
+These tests are not meant to be readable examples. For that you might want to check out [examples](../docs/examples/).
 
 ## Building the automated tests
 
-uvgRTP uses GoogleTest framework for automated testing. The automated tests are run separately after the build process. First [build](BUILDING.md) uvgRTP normally. Running the CMake will create a new folder called ```test``` under the ```build``` folder.
+uvgRTP uses GoogleTest framework for automated testing. The automated tests are run separately after the build process. First, [build](../BUILDING.md) uvgRTP normally. Running the CMake will create a new folder called ```test``` under the ```build``` folder.
 
 ### GCC (Linux)
 
@@ -29,6 +29,6 @@ The tests should be coded in such a way to make the tests themselves as resilien
 
 ## Creating new tests
 
-New tests can be created by adding a new function in one of the existing files or creating a new file. Each file should only contain tests from a single test suite and all tests of one test suite should be located in a single file. New files have to also be added to the local [CMakeLists.txt](test/CMakeLists.txt) file.
+New tests can be created by adding a new function in one of the existing files or creating a new file. Each file should only contain tests from a single test suite and all tests of one test suite should be located in a single file. New files have to also be added to the local [CMakeLists.txt](CMakeLists.txt) file.
 
 You can read about GoogleTest framework [here](https://google.github.io/googletest/).
