@@ -1,7 +1,5 @@
 #pragma once
 
-#include "runner.hh"
-
 #include "util.hh"
 
 #include <mutex>
@@ -38,7 +36,7 @@ namespace uvgrtp {
         std::vector<auxiliary_handler_cpp> auxiliary_cpp;
     };
 
-    class pkt_dispatcher : public runner {
+    class pkt_dispatcher{
         public:
             pkt_dispatcher();
             ~pkt_dispatcher();
@@ -121,10 +119,12 @@ namespace uvgrtp {
              * and they can be retrieved using pull_frame() */
             std::vector<uvgrtp::frame::rtp_frame *> frames_;
             std::mutex frames_mtx_;
-            std::mutex exit_mtx_;
 
             void *recv_hook_arg_;
             void (*recv_hook_)(void *arg, uvgrtp::frame::rtp_frame *frame);
+
+            bool runner_should_stop_;
+            std::unique_ptr<std::thread> runner_;
     };
 }
 

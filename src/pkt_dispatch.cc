@@ -16,7 +16,9 @@
 
 uvgrtp::pkt_dispatcher::pkt_dispatcher():
     recv_hook_arg_(nullptr),
-    recv_hook_(nullptr)
+    recv_hook_(nullptr),
+    runner_(nullptr),
+    runner_should_stop_(true)
 {
 }
 
@@ -26,19 +28,21 @@ uvgrtp::pkt_dispatcher::~pkt_dispatcher()
 
 rtp_error_t uvgrtp::pkt_dispatcher::start(uvgrtp::socket *socket, int flags)
 {
-    runner_ = new std::thread(&uvgrtp::pkt_dispatcher::runner, this, socket, flags);
-    runner_->detach();
-    return uvgrtp::runner::start();
+    runner_should_stop_ = false;
+    runner_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::pkt_dispatcher::runner, this, socket, flags));
+
+    return RTP_ERROR::RTP_OK;
 }
 
 rtp_error_t uvgrtp::pkt_dispatcher::stop()
 {
-    active_ = false;
+    runner_should_stop_ = true;
 
-    while (!exit_mtx_.try_lock())
-        ;
+    if (runner_ != nullptr && runner_->joinable())
+    {
+        runner_->join();
+    }
 
-    exit_mtx_.unlock();
     return RTP_OK;
 }
 
@@ -58,10 +62,12 @@ rtp_error_t uvgrtp::pkt_dispatcher::install_receive_hook(
 
 uvgrtp::frame::rtp_frame *uvgrtp::pkt_dispatcher::pull_frame()
 {
-    while (frames_.empty() && this->active())
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    while (frames_.empty() && !runner_should_stop_)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
 
-    if (!this->active())
+    if (runner_should_stop_)
         return nullptr;
 
     frames_mtx_.lock();
@@ -74,12 +80,12 @@ uvgrtp::frame::rtp_frame *uvgrtp::pkt_dispatcher::pull_frame()
 
 uvgrtp::frame::rtp_frame *uvgrtp::pkt_dispatcher::pull_frame(size_t timeout)
 {
-    while (frames_.empty() && this->active() && timeout) {
+    while (frames_.empty() && !runner_should_stop_ && timeout) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         --timeout;
     }
 
-    if (!this->active() || frames_.empty())
+    if (runner_should_stop_ || frames_.empty())
         return nullptr;
 
     frames_mtx_.lock();
@@ -273,26 +279,17 @@ void uvgrtp::pkt_dispatcher::call_aux_handlers(uint32_t key, int flags, uvgrtp::
  * If a handler receives a non-null "out", it can safely ignore "packet" and operate just on
  * the "out" parameter because at that point it already contains all needed information. */
 void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
-{
-    int nread;
-    fd_set read_fds;
-    rtp_error_t ret;
-    struct timeval t_val;
-    uvgrtp::frame::rtp_frame *frame;
-    
+{   
     // stack size isn't enough for this so we allocate temporary memory for it from heap
     const size_t recv_buffer_len = 0xffff - IPV4_HDR_SIZE - UDP_HDR_SIZE;
     uint8_t* recv_buffer = new uint8_t[recv_buffer_len];
 
+    fd_set read_fds;
     FD_ZERO(&read_fds);
 
-    while (!active())
-        ;
-
-    exit_mtx_.lock();
-
-    while (active()) {
+    while (!runner_should_stop_) {
         /* reset state before each call */
+        struct timeval t_val;
         t_val.tv_sec  = 0;
         t_val.tv_usec = 1500;
         FD_SET(socket->get_raw_socket(), &read_fds);
@@ -304,7 +301,10 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
             break;
         }
 
+        rtp_error_t ret = RTP_OK;
         do {
+            int nread = 0;
+            
             if ((ret = socket->recvfrom(recv_buffer, recv_buffer_len, MSG_DONTWAIT, &nread)) == RTP_INTERRUPTED)
                 break;
 
@@ -314,6 +314,7 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
             }
 
             for (auto& handler : packet_handlers_) {
+                uvgrtp::frame::rtp_frame* frame = nullptr;
                 switch ((ret = (*handler.second.primary)(nread, recv_buffer, flags, &frame))) {
                     /* packet was handled successfully */
                     case RTP_OK:
@@ -340,8 +341,5 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
             }
         } while (ret == RTP_OK);
     }
-    exit_mtx_.unlock();
-
     delete[] recv_buffer;
-
 }
