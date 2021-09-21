@@ -12,6 +12,18 @@ CONFIG  += staticlib c++11
 
 DEFINES += UVGRTP_LIBRARY
 
+VERSION_MAJOR = 2
+VERSION_MINOR = 0
+VERSION_PATCH = 1
+
+DEFINES += "uvgrtp_VERSION_MAJOR=$$VERSION_MAJOR"\
+       "uvgrtp_VERSION_MINOR=$$VERSION_MINOR"\
+       "uvgrtp_VERSION_PATCH=$$VERSION_PATCH"
+
+VERSION = $${VERSION_MAJOR}.$${VERSION_MINOR}.$${VERSION_PATCH}
+
+DEFINES += uvgrtp_VERSION=\\\"$${VERSION}\\\"
+
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which has been marked as deprecated (the exact warnings
 # depend on your compiler). Please consult the documentation of the
@@ -46,6 +58,7 @@ SOURCES += \
 	src/session.cc \
 	src/socket.cc \
 	src/holepuncher.cc \
+	src/version_qt.cpp \
 	src/zrtp.cc \
 	src/formats/media.cc \
 	src/formats/h26x.cc \
@@ -77,6 +90,7 @@ HEADERS += \
 	include/session.hh \
 	include/socket.hh \
 	include/util.hh \
+	include/version.hh \
 	src/dispatch.hh \
 	src/holepuncher.hh \
 	src/hostname.hh \
