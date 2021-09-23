@@ -150,21 +150,23 @@ endif()
 
 if (UNIX)
 
-    # Find pkg-config installed in the system
+    # Try finding if pkg-config installed in the system
     find_package(PkgConfig REQUIRED)
     if(PkgConfig_FOUND)
         # Check PKG_CONFIG_PATH, if not defined, use /usr/local/lib/pkgconfig
         if(NOT DEFINED ENV{PKG_CONFIG_PATH})
-            set( PKG_CONFIG_PATH "/usr/local/lib/pkgconfig")
-            message("PKG_CONFIG_PATH is not found. Set it with ${PKG_CONFIG_PATH}")
+            set(PKG_CONFIG_PATH "/usr/local/lib/pkgconfig")
+            message("PKG_CONFIG_PATH is not set. Setting it to ${PKG_CONFIG_PATH}")
         endif(NOT DEFINED ENV{PKG_CONFIG_PATH})
 
         # Find crypto++
         pkg_search_module(CRYPTOPP libcrypto++)
 
         # Generate and install .pc file
-        configure_file("uvgrtp.pc.in" "uvgrtp.pc" @ONLY)
+        configure_file("cmake/uvgrtp.pc.in" "uvgrtp.pc" @ONLY)
         install(FILES ${CMAKE_CURRENT_BINARY_DIR}/uvgrtp.pc DESTINATION ${PKG_CONFIG_PATH}/)
+    else()
+        message("pkg-config not found. Not generating pc file")
     endif(PkgConfig_FOUND)
 
     # Check the getrandom() function exists
