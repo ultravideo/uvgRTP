@@ -12,7 +12,10 @@ benchmarks/*/results
 benchmarks/*/*data
 benchmarks/*/*receiver
 benchmarks/*/*sender
+build/*
 *.prof
+*.user
 tags
 *a.out
 docs/latex
+/cmake-build*/

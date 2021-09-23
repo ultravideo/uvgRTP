@@ -1,0 +1,13 @@
+Names of submodules to be used in commits message prefix
+rtp
+zrtp
+rtcp
+srtp
+formats
+
+Other names that can be used as prefix
+config
+doc
+build
+common
+tests

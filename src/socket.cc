@@ -1,3 +1,8 @@
+#include "socket.hh"
+
+#include "debug.hh"
+#include "util.hh"
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <Ws2tcpip.h>
@@ -17,9 +22,8 @@ using namespace mingw;
 #include <cstring>
 #include <cassert>
 
-#include "debug.hh"
-#include "socket.hh"
-#include "util.hh"
+
+#define WSABUF_SIZE 256
 
 uvgrtp::socket::socket(int flags):
     socket_(-1),
@@ -29,7 +33,7 @@ uvgrtp::socket::socket(int flags):
 
 uvgrtp::socket::~socket()
 {
-#ifdef __linux__
+#ifndef _WIN32
     close(socket_);
 #else
     closesocket(socket_);
@@ -82,7 +86,7 @@ rtp_error_t uvgrtp::socket::bind(short family, unsigned host, short port)
 #else
         fprintf(stderr, "%s\n", strerror(errno));
 #endif
-        LOG_ERROR("Biding to port %u failed!", port);
+        LOG_ERROR("Binding to port %u failed!", port);
         return RTP_BIND_ERROR;
     }
 
@@ -149,7 +153,7 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf
 {
     int nsend = 0;
 
-#ifdef __linux__
+#ifndef _WIN32
     if ((nsend = ::sendto(socket_, buf, buf_len, flags, (const struct sockaddr *)&addr, sizeof(addr_))) == -1) {
         LOG_ERROR("Failed to send data: %s", strerror(errno));
 
@@ -158,11 +162,11 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf
         return RTP_SEND_ERROR;
     }
 #else
-    DWORD sent_bytes;
+    DWORD sent_bytes = 0;
     WSABUF data_buf;
 
     data_buf.buf = (char *)buf;
-    data_buf.len = buf_len;
+    data_buf.len = (ULONG)buf_len;
 
     if (WSASendTo(socket_, &data_buf, 1, &sent_bytes, flags, (const struct sockaddr *)&addr, sizeof(addr_), nullptr, nullptr) == -1) {
         win_get_last_error();
@@ -206,7 +210,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
     int flags, int *bytes_sent
 )
 {
-#ifdef __linux__
+#ifndef _WIN32
     int sent_bytes = 0;
 
     for (size_t i = 0; i < buffers.size(); ++i) {
@@ -233,15 +237,23 @@ rtp_error_t uvgrtp::socket::__sendtov(
     return RTP_OK;
 
 #else
-    DWORD sent_bytes;
+    DWORD sent_bytes = 0;
+
+    // DWORD corresponds to uint16 on most platforms
+    if (buffers.size() > UINT16_MAX)
+    {
+        LOG_ERROR("Trying to send too large buffer");
+        return RTP_INVALID_VALUE;
+    }
 
     /* create WSABUFs from input buffers and send them at once */
     for (size_t i = 0; i < buffers.size(); ++i) {
-        buffers_[i].len = buffers.at(i).first;
+        buffers_[i].len = (ULONG)buffers.at(i).first;
         buffers_[i].buf = (char *)buffers.at(i).second;
     }
 
-    if (WSASendTo(socket_, buffers_, buffers.size(), &sent_bytes, flags, (SOCKADDR *)&addr, sizeof(addr_), nullptr, nullptr) == -1) {
+    if (WSASendTo(socket_, buffers_, (DWORD)buffers.size(), &sent_bytes, flags, 
+                  (SOCKADDR *)&addr, sizeof(addr_), nullptr, nullptr) == -1) {
         win_get_last_error();
 
         set_bytes(bytes_sent, -1);
@@ -320,14 +332,11 @@ rtp_error_t uvgrtp::socket::__sendtov(
     int flags, int *bytes_sent
 )
 {
-#ifdef __linux__
+#ifndef _WIN32
     int sent_bytes = 0;
     struct mmsghdr *hptr, *headers;
 
-    if (!(hptr = headers = new struct mmsghdr[buffers.size()])) {
-        LOG_ERROR("Failed to allocate space for struct mmsghdr!");
-        return RTP_MEMORY_ERROR;
-    }
+    hptr = headers = new struct mmsghdr[buffers.size()];
 
     for (size_t i = 0; i < buffers.size(); ++i) {
         headers[i].msg_hdr.msg_iov        = new struct iovec[buffers[i].size()];
@@ -371,13 +380,18 @@ rtp_error_t uvgrtp::socket::__sendtov(
 
 #else
     INT ret;
-    DWORD sent_bytes;
-    WSABUF wsa_bufs[16];
+    DWORD sent_bytes = 0;
+    WSABUF wsa_bufs[WSABUF_SIZE];
+
+    if (buffers.size() > WSABUF_SIZE) {
+        LOG_ERROR("Input vector to __sendtov() has more than %u elements!", WSABUF_SIZE);
+        return RTP_GENERIC_ERROR;
+    }
 
     for (auto& buffer : buffers) {
         /* create WSABUFs from input buffer and send them at once */
         for (size_t i = 0; i < buffer.size(); ++i) {
-            wsa_bufs[i].len = buffer.at(i).first;
+            wsa_bufs[i].len = (ULONG)buffer.at(i).first;
             wsa_bufs[i].buf = (char *)buffer.at(i).second;
         }
 
@@ -385,7 +399,7 @@ send_:
         ret = WSASendTo(
             socket_,
             wsa_bufs,
-            buffer.size(),
+            (DWORD)buffer.size(),
             &sent_bytes,
             flags,
             (SOCKADDR *)&addr,
@@ -479,7 +493,7 @@ rtp_error_t uvgrtp::socket::__recv(uint8_t *buf, size_t buf_len, int flags, int 
         return RTP_INVALID_VALUE;
     }
 
-#ifdef __linux__
+#ifndef _WIN32
     int32_t ret = ::recv(socket_, buf, buf_len, flags);
 
     if (ret == -1) {
@@ -539,7 +553,7 @@ rtp_error_t uvgrtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags, 
     if (sender)
         len_ptr = &len;
 
-#ifdef __linux__
+#ifndef _WIN32
     int32_t ret = ::recvfrom(socket_, buf, buf_len, flags, (struct sockaddr *)sender, len_ptr);
 
     if (ret == -1) {

@@ -1,18 +1,22 @@
 #pragma once
 
+#include "clock.hh"
+#include "util.hh"
+#include "socket.hh"
+#include "frame.hh"
+
+
 #include <bitset>
 #include <map>
 #include <thread>
 #include <vector>
-
-#include "clock.hh"
-#include "frame.hh"
-#include "runner.hh"
-#include "socket.hh"
-#include "srtp/srtcp.hh"
-#include "util.hh"
+#include <functional>
+#include <memory>
 
 namespace uvgrtp {
+
+    class rtp;
+    class srtcp;
 
     /// \cond DO_NOT_DOCUMENT
     enum RTCP_ROLE {
@@ -20,58 +24,56 @@ namespace uvgrtp {
         SENDER
     };
 
-    /* TODO: explain these constants */
-    const int RTP_SEQ_MOD    = 1 << 16;
-    const int MIN_SEQUENTIAL = 2;
-    const int MAX_DROPOUT    = 3000;
-    const int MAX_MISORDER   = 100;
-    const int MIN_TIMEOUT    = 5000;
-
-    struct rtcp_statistics {
-        /* receiver stats */
-        uint32_t received_pkts;  /* Number of packets received */
-        uint32_t dropped_pkts;   /* Number of dropped RTP packets */
-        uint32_t received_bytes; /* Number of bytes received excluding RTP Header */
-
+    struct sender_statistics {
         /* sender stats */
-        uint32_t sent_pkts;   /* Number of sent RTP packets */
-        uint32_t sent_bytes;  /* Number of sent bytes excluding RTP Header */
+        uint32_t sent_pkts = 0;      /* Number of sent RTP packets */
+        uint32_t sent_bytes = 0;     /* Number of sent bytes excluding RTP Header */
+        bool sent_rtp_packet = false; // since last report
+    };
 
-        uint32_t jitter;      /* TODO: */
-        uint32_t transit;     /* TODO: */
+    struct receiver_statistics {
+        /* receiver stats */
+        uint32_t received_pkts = 0;  /* Number of packets received */
+        uint32_t dropped_pkts = 0;   /* Number of dropped RTP packets */
+        uint32_t received_bytes = 0; /* Number of bytes received excluding RTP Header */
+        bool received_rtp_packet = false; // since last report
+
+        uint32_t jitter = 0;         /* TODO: */
+        uint32_t transit = 0;        /* TODO: */
+
 
         /* Receiver clock related stuff */
-        uint64_t initial_ntp; /* Wallclock reading when the first RTP packet was received */
-        uint32_t initial_rtp; /* RTP timestamp of the first RTP packet received */
-        uint32_t clock_rate;  /* Rate of the clock (used for jitter calculations) */
+        uint64_t initial_ntp = 0;    /* Wallclock reading when the first RTP packet was received */
+        uint32_t initial_rtp = 0;    /* RTP timestamp of the first RTP packet received */
+        uint32_t clock_rate = 0;     /* Rate of the clock (used for jitter calculations) */
 
-        uint32_t lsr;                     /* Middle 32 bits of the 64-bit NTP timestamp of previous SR */
+        uint32_t lsr = 0;                /* Middle 32 bits of the 64-bit NTP timestamp of previous SR */
         uvgrtp::clock::hrc::hrc_t sr_ts; /* When the last SR was received (used to calculate delay) */
 
-        uint16_t max_seq;  /* Highest sequence number received */
-        uint16_t base_seq; /* First sequence number received */
-        uint16_t bad_seq;  /* TODO:  */
-        uint16_t cycles;   /* Number of sequence cycles */
+        uint16_t max_seq = 0;        /* Highest sequence number received */
+        uint32_t base_seq = 0;       /* First sequence number received */
+        uint32_t bad_seq = 0;        /* TODO:  */
+        uint32_t cycles = 0;         /* Number of sequence cycles */
     };
 
     struct rtcp_participant {
-        uvgrtp::socket *socket; /* socket associated with this participant */
-        sockaddr_in address;     /* address of the participant */
-        struct rtcp_statistics stats; /* RTCP session statistics of the participant */
+        uvgrtp::socket *socket = nullptr; /* socket associated with this participant */
+        sockaddr_in address;         /* address of the participant */
+        struct receiver_statistics stats; /* RTCP session statistics of the participant */
 
-        int probation;           /* has the participant been fully accepted to the session */
-        int role;                /* is the participant a sender or a receiver */
+        uint32_t probation = 0;           /* has the participant been fully accepted to the session */
+        int role = 0;                /* is the participant a sender or a receiver */
 
         /* Save the latest RTCP packets received from this participant
          * Users can query these packets using the SSRC of participant */
-        uvgrtp::frame::rtcp_sender_report   *s_frame;
-        uvgrtp::frame::rtcp_receiver_report *r_frame;
-        uvgrtp::frame::rtcp_sdes_packet     *sdes_frame;
-        uvgrtp::frame::rtcp_app_packet      *app_frame;
+        uvgrtp::frame::rtcp_sender_report   *sr_frame = nullptr;
+        uvgrtp::frame::rtcp_receiver_report *rr_frame = nullptr;
+        uvgrtp::frame::rtcp_sdes_packet     *sdes_frame = nullptr;
+        uvgrtp::frame::rtcp_app_packet      *app_frame = nullptr;
     };
     /// \endcond
 
-    class rtcp : public runner {
+    class rtcp {
         public:
             /// \cond DO_NOT_DOCUMENT
             rtcp(uvgrtp::rtp *rtp, int flags);
@@ -92,20 +94,6 @@ namespace uvgrtp {
              * Return RTP_OK on success and RTP_ERROR on error */
             rtp_error_t generate_report();
 
-            /* Handle different kinds of incoming packets
-             *
-             * These routines will convert the fields of "frame" from network to host byte order
-             *
-             * Currently nothing's done with valid packets, at some point an API for
-             * querying these reports is implemented
-             *
-             * Return RTP_OK on success and RTP_ERROR on error */
-            rtp_error_t handle_sender_report_packet(uint8_t *frame, size_t size);
-            rtp_error_t handle_receiver_report_packet(uint8_t *frame, size_t size);
-            rtp_error_t handle_sdes_packet(uint8_t *frame, size_t size);
-            rtp_error_t handle_bye_packet(uint8_t *frame, size_t size);
-            rtp_error_t handle_app_packet(uint8_t *frame, size_t size);
-
             /* Handle incoming RTCP packet (first make sure it's a valid RTCP packet)
              * This function will call one of the above functions internally
              *
@@ -120,8 +108,46 @@ namespace uvgrtp {
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "frame" is in some way invalid
              * Return RTP_SEND_ERROR if sending "frame" did not succeed (see socket.hh for details) */
+
+            /**
+             * \brief Send an RTCP SDES packet
+             *
+             * \param items Vector of SDES items
+             *
+             * \retval RTP_OK On success
+             * \retval RTP_MEMORY_ERROR If allocation fails
+             * \retval RTP_GENERIC_ERROR If sending fails
+             */
             rtp_error_t send_sdes_packet(std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
+
+            /**
+             * \brief Send an RTCP APP packet
+             *
+             * \param name Name of the APP item, e.g., EMAIL or PHONE
+             * \param subtype Subtype of the APP item
+             * \param payload_len Length of the payload
+             * \param payload Payload
+             *
+             * \retval RTP_OK On success
+             * \retval RTP_MEMORY_ERROR If allocation fails
+             * \retval RTP_GENERIC_ERROR If sending fails
+             */
             rtp_error_t send_app_packet(char *name, uint8_t subtype, size_t payload_len, uint8_t *payload);
+
+            /**
+             * \brief Send an RTCP BYE packet
+             *
+             * \details In case the quitting participant is a mixer and is serving multiple
+             * paricipants, the input vector contains the SSRCs of all those participants. If the
+             * participant is a regular member of the session, the vector only contains the SSRC
+             * of the participant.
+             *
+             * \param ssrcs Vector of SSRCs of those participants who are quitting
+             *
+             * \retval RTP_OK On success
+             * \retval RTP_MEMORY_ERROR If allocation fails
+             * \retval RTP_GENERIC_ERROR If sending fails
+             */
             rtp_error_t send_bye_packet(std::vector<uint32_t> ssrcs);
 
             /// \cond DO_NOT_DOCUMENT
@@ -200,10 +226,58 @@ namespace uvgrtp {
             /* Alternate way to get RTCP packets is to install a hook for them. So instead of
              * polling an RTCP packet, user can install a function that is called when
              * a specific RTCP packet is received. */
+
+            /**
+             * \brief Install an RTCP Sender Report hook
+             *
+             * \details This function is called when an RTCP Sender Report is received
+             *
+             * \param hook Function pointer to the hook
+             *
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If hook is nullptr
+             */
             rtp_error_t install_sender_hook(void (*hook)(uvgrtp::frame::rtcp_sender_report *));
+            rtp_error_t install_sender_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_handler);
+
+            /**
+             * \brief Install an RTCP Receiver Report hook
+             *
+             * \details This function is called when an RTCP Receiver Report is received
+             *
+             * \param hook Function pointer to the hook
+             *
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If hook is nullptr
+             */
             rtp_error_t install_receiver_hook(void (*hook)(uvgrtp::frame::rtcp_receiver_report *));
+            rtp_error_t install_receiver_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_handler);
+
+            /**
+             * \brief Install an RTCP SDES packet hook
+             *
+             * \details This function is called when an RTCP SDES packet is received
+             *
+             * \param hook Function pointer to the hook
+             *
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If hook is nullptr
+             */
             rtp_error_t install_sdes_hook(void (*hook)(uvgrtp::frame::rtcp_sdes_packet *));
+            rtp_error_t install_sdes_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_handler);
+
+            /**
+             * \brief Install an RTCP APP packet hook
+             *
+             * \details This function is called when an RTCP APP packet is received
+             *
+             * \param hook Function pointer to the hook
+             *
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If hook is nullptr
+             */
             rtp_error_t install_app_hook(void (*hook)(uvgrtp::frame::rtcp_app_packet *));
+            rtp_error_t install_app_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
 
             /// \cond DO_NOT_DOCUMENT
             /* Update RTCP-related sender statistics */
@@ -217,6 +291,20 @@ namespace uvgrtp {
             /// \endcond
 
         private:
+
+            /* Handle different kinds of incoming rtcp packets. The read header is passed to functions
+               which read rest of the frame type specific data.
+             * Return RTP_OK on success and RTP_ERROR on error */
+            rtp_error_t handle_sender_report_packet(uint8_t* frame, size_t size,
+                uvgrtp::frame::rtcp_header& header);
+            rtp_error_t handle_receiver_report_packet(uint8_t* frame, size_t size,
+                uvgrtp::frame::rtcp_header& header);
+            rtp_error_t handle_sdes_packet(uint8_t* frame, size_t size,
+                uvgrtp::frame::rtcp_header& header);
+            rtp_error_t handle_bye_packet(uint8_t* frame, size_t size);
+            rtp_error_t handle_app_packet(uint8_t* frame, size_t size,
+                uvgrtp::frame::rtcp_header& header);
+
             static void rtcp_runner(rtcp *rtcp);
 
             /* when we start the RTCP instance, we don't know what the SSRC of the remote is
@@ -256,17 +344,24 @@ namespace uvgrtp {
              * should be increased before calculating the new average */
             void update_rtcp_bandwidth(size_t pkt_size);
 
-            /* Functions for generating different kinds of reports.
-             * These functions will both generate the report and send it
-             *
-             * Return RTP_OK on success and RTP_ERROR on error */
-            rtp_error_t generate_sender_report();
-            rtp_error_t generate_receiver_report();
-
             /* Because struct statistics contains uvgRTP clock object we cannot
              * zero it out without compiler complaining about it so all the fields
              * must be set to zero manually */
-            void zero_stats(uvgrtp::rtcp_statistics *stats);
+            void zero_stats(uvgrtp::sender_statistics *stats);
+
+            void zero_stats(uvgrtp::receiver_statistics *stats);
+
+            /* Set the first four or eight bytes of an RTCP packet */
+            rtp_error_t construct_rtcp_header(size_t packet_size, uint8_t*& frame,
+                uint16_t secondField, uvgrtp::frame::RTCP_FRAME_TYPE frame_type, bool addLocalSSRC);
+
+            /* read the header values from rtcp packet */
+            void read_rtcp_header(uint8_t* packet, uvgrtp::frame::rtcp_header& header);
+            void read_reports(uint8_t* packet, size_t size, uint8_t count, bool has_sender_block,
+                std::vector<uvgrtp::frame::rtcp_report_block>& reports);
+
+            /* Takes ownership of the frame */
+            rtp_error_t send_rtcp_packet_to_participants(uint8_t* frame, size_t frame_size);
 
             /* Pointer to RTP context from which clock rate etc. info is collected and which is
              * used to change SSRC if a collision is detected */
@@ -310,7 +405,7 @@ namespace uvgrtp {
             size_t rtcp_byte_count_;
 
             /* Number of RTCP packets sent */
-            size_t rtcp_pkt_sent_count_;
+            uint32_t rtcp_pkt_sent_count_;
 
             /* Flag that is true if the application has not yet sent an RTCP packet. */
             bool initial_;
@@ -328,10 +423,10 @@ namespace uvgrtp {
             uint32_t rtp_ts_start_;
 
             std::map<uint32_t, rtcp_participant *> participants_;
-            size_t num_receivers_;
+            uint8_t num_receivers_; // maximum is 32 (5 bits)
 
             /* statistics for RTCP Sender and Receiver Reports */
-            struct rtcp_statistics our_stats;
+            struct sender_statistics our_stats;
 
             /* If we expect frames from remote but haven't received anything from remote yet,
              * the participant resides in this vector until he's moved to participants_ */
@@ -347,6 +442,20 @@ namespace uvgrtp {
             void (*receiver_hook_)(uvgrtp::frame::rtcp_receiver_report *);
             void (*sdes_hook_)(uvgrtp::frame::rtcp_sdes_packet *);
             void (*app_hook_)(uvgrtp::frame::rtcp_app_packet *);
+
+            std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_hook_f_;
+            std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_hook_f_;
+            std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_hook_f_;
+            std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)> app_hook_f_;
+
+            std::unique_ptr<std::thread> report_generator_;
+
+            bool is_active() const
+            {
+                return active_;
+            }
+
+            bool active_;
     };
 };
 

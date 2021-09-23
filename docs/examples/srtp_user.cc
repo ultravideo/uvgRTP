@@ -20,6 +20,13 @@ void thread_func(void)
     /* Enable SRTP and let user manage keys */
     unsigned flags = RCE_SRTP | RCE_SRTP_KMNGMNT_USER;
 
+    /* With user-managed keys, you have the option to use 192- and 256-bit keys.
+     *
+     * If 192- or 256-bit key size is specified in the flags, add_srtp_ctx() expects
+     * the key paramter to be 24 or 32 bytes long, respectively. */
+    if (0)
+        flags |= RCE_SRTP_KEYSIZE_192;
+
     /* See sending.cc for more details about create_stream() */
     uvgrtp::media_stream *recv = sess->create_stream(8889, 8888, RTP_FORMAT_GENERIC, flags);
 

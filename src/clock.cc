@@ -1,24 +1,28 @@
-#ifdef _WIN32
-#include <winsock2.h>
-#include <windows.h>
-#else
-#include <sys/time.h>
-#endif
-
 #include "clock.hh"
+
+#include "debug.hh"
+
 #include <stdio.h>
 
 static const uint64_t EPOCH = 2208988800ULL;
 static const uint64_t NTP_SCALE_FRAC = 4294967296ULL;
 
-static inline uint32_t ntp_diff_ms(uint64_t t1, uint64_t t2)
+static inline uint32_t ntp_diff_ms(uint64_t older, uint64_t newer)
 {
-    uint32_t s1  = (t1 >> 32) & 0xffffffff;
-    uint32_t s2  = (t2 >> 32) & 0xffffffff;
-    uint64_t us1 = ((t1 & 0xffffffff) * 1000000UL) / NTP_SCALE_FRAC;
-    uint64_t us2 = ((t2 & 0xffffffff) * 1000000UL) / NTP_SCALE_FRAC;
+    uint32_t s1  = (older >> 32) & 0xffffffff;
+    uint32_t s2  = (newer >> 32) & 0xffffffff;
+    uint64_t us1 = ((older & 0xffffffff) * 1000000UL) / NTP_SCALE_FRAC;
+    uint64_t us2 = ((newer & 0xffffffff) * 1000000UL) / NTP_SCALE_FRAC;
 
-    return (((s1 - s2) * 1000000) + ((us1 - us2))) / 1000;
+    uint64_t r = (((uint64_t)(s2 - s1) * 1000000) + ((us2 - us1))) / 1000;
+
+    if (r > UINT32_MAX)
+    {
+        LOG_ERROR("NTP difference is too large: %llu. Limiting value", r);
+        r = UINT32_MAX;
+    }
+
+    return (uint32_t)r;
 }
 
 uint64_t uvgrtp::clock::ntp::now()
@@ -30,10 +34,8 @@ uint64_t uvgrtp::clock::ntp::now()
     gettimeofday(&tv, NULL);
 #endif
 
-    uint64_t tv_ntp, tv_usecs;
-
-    tv_ntp = tv.tv_sec + EPOCH;
-    tv_usecs = (float)(NTP_SCALE_FRAC * tv.tv_usec) / (float)1000000UL;
+    uint64_t tv_ntp = tv.tv_sec + EPOCH;
+    uint64_t tv_usecs = (uint64_t)((float)(NTP_SCALE_FRAC * tv.tv_usec) / 1000000.f);
 
     return (tv_ntp << 32) | tv_usecs;
 }
@@ -47,7 +49,7 @@ uint64_t uvgrtp::clock::ntp::diff_now(uint64_t then)
 {
     uint64_t now = uvgrtp::clock::ntp::now();
 
-    return ntp_diff_ms(now, then);
+    return ntp_diff_ms(then, now);
 }
 
 uvgrtp::clock::hrc::hrc_t uvgrtp::clock::hrc::now()

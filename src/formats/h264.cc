@@ -1,18 +1,80 @@
-#ifdef _WIN32
-#else
-#include <sys/socket.h>
-#endif
+#include "h264.hh"
+
+#include "../queue.hh"
+#include "../rtp.hh"
+#include "debug.hh"
 
 #include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <unordered_map>
 #include <queue>
+#include <map>
 
-#include "debug.hh"
-#include "queue.hh"
+#ifndef _WIN32
+#include <sys/socket.h>
+#endif
 
-#include "formats/h264.hh"
+uvgrtp::formats::h264::h264(uvgrtp::socket* socket, uvgrtp::rtp* rtp, int flags) :
+    h26x(socket, rtp, flags)
+{
+}
+
+uvgrtp::formats::h264::~h264()
+{
+}
+
+uint8_t uvgrtp::formats::h264::get_nal_header_size() const
+{
+    return uvgrtp::frame::HEADER_SIZE_H264_NAL;
+}
+
+uint8_t uvgrtp::formats::h264::get_fu_header_size() const
+{
+    return uvgrtp::frame::HEADER_SIZE_H264_FU;
+}
+
+int uvgrtp::formats::h264::get_fragment_type(uvgrtp::frame::rtp_frame* frame) const
+{
+    bool first_frag = frame->payload[1] & 0x80;
+    bool last_frag = frame->payload[1] & 0x40;
+
+    if ((frame->payload[0] & 0x1f) == uvgrtp::formats::H264_PKT_AGGR)
+        return uvgrtp::formats::FT_AGGR;
+
+    if ((frame->payload[0] & 0x1f) != uvgrtp::formats::H264_PKT_FRAG)
+        return uvgrtp::formats::FT_NOT_FRAG;
+
+    if (first_frag && last_frag)
+        return uvgrtp::formats::FT_INVALID;
+
+    if (first_frag)
+        return uvgrtp::formats::FT_START;
+
+    if (last_frag)
+        return uvgrtp::formats::FT_END;
+
+    return uvgrtp::formats::FT_MIDDLE;
+}
+
+uvgrtp::formats::NAL_TYPES uvgrtp::formats::h264::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
+{
+    switch (frame->payload[1] & 0x1f) {
+    case 19: return uvgrtp::formats::NT_INTRA;
+    case 1:  return uvgrtp::formats::NT_INTER;
+    default: break;
+    }
+
+    return uvgrtp::formats::NT_OTHER;
+}
+
+
+uint8_t uvgrtp::formats::h264::get_nal_type(uint8_t* data) const
+{
+    return data[0] & 0x1f;
+}
+
+
 
 void uvgrtp::formats::h264::clear_aggregation_info()
 {
@@ -22,7 +84,12 @@ void uvgrtp::formats::h264::clear_aggregation_info()
 
 rtp_error_t uvgrtp::formats::h264::make_aggregation_pkt()
 {
-    rtp_error_t ret;
+    rtp_error_t ret = RTP_OK;
+
+    // TODO: This function is not used, but the code exists for some reason. 
+    // This return disables the code for now
+    return ret;
+
     uint8_t nri = 0;
 
     if (aggr_pkt_info_.nalus.empty())
@@ -57,11 +124,19 @@ rtp_error_t uvgrtp::formats::h264::make_aggregation_pkt()
     );
 
     for (auto& nalu: aggr_pkt_info_.nalus) {
-        auto pkt_size = nalu.first;
-        nalu.first    = htons(nalu.first);
 
-        aggr_pkt_info_.aggr_pkt.push_back(std::make_pair(sizeof(uint16_t), (uint8_t *)&nalu.first));
-        aggr_pkt_info_.aggr_pkt.push_back(std::make_pair(pkt_size, nalu.second));
+        if (nalu.first <= UINT16_MAX)
+        {
+            auto pkt_size = nalu.first;
+            nalu.first = htons((u_short)nalu.first);
+
+            aggr_pkt_info_.aggr_pkt.push_back(std::make_pair(sizeof(uint16_t), (uint8_t*)&nalu.first));
+            aggr_pkt_info_.aggr_pkt.push_back(std::make_pair(pkt_size, nalu.second));
+        }
+        else
+        {
+            LOG_ERROR("NAL unit is too large");
+        }
     }
 
     if ((ret = fqueue_->enqueue_message(aggr_pkt_info_.aggr_pkt)) != RTP_OK) {
@@ -71,124 +146,52 @@ rtp_error_t uvgrtp::formats::h264::make_aggregation_pkt()
     return ret;
 }
 
-rtp_error_t uvgrtp::formats::h264::push_nal_unit(uint8_t *data, size_t data_len, bool more)
+rtp_error_t uvgrtp::formats::h264::handle_small_packet(uint8_t* data, size_t data_len, bool more)
 {
-    if (data_len <= 3)
-        return RTP_INVALID_VALUE;
-
-    uint8_t nal_type    = data[0] & 0x1f;
-    rtp_error_t ret     = RTP_OK;
-    size_t data_left    = data_len;
-    size_t data_pos     = 0;
-    size_t payload_size = rtp_ctx_->get_payload_size();
-
-    if (data_len - 3 <= payload_size) {
-        /* If there is more data coming in (possibly another small packet)
-         * create entry to "aggr_pkt_info_" to construct an aggregation packet */
-        if (more) {
-            aggr_pkt_info_.nalus.push_back(std::make_pair(data_len, data));
-            return RTP_NOT_READY;
-        } else {
-            if (aggr_pkt_info_.nalus.empty()) {
-                if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
-                    LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
-                    return ret;
-                }
-                return fqueue_->flush_queue();
-            } else {
-                (void)make_aggregation_pkt();
-                ret = fqueue_->flush_queue();
-                clear_aggregation_info();
-                return ret;
-            }
-        }
-    } else {
-        /* If smaller NALUs were queued before this NALU,
-         * send them in an aggregation packet before proceeding with fragmentation */
-        (void)make_aggregation_pkt();
-    }
-
-    /* The payload is larger than MTU (1500 bytes) so we must split it into smaller RTP frames
-     * Because we don't if the SCD is enabled and thus cannot make any assumptions about the life time
-     * of current stack, we need to store NAL and FU headers to the frame queue transaction.
-     *
-     * This can be done by asking a handle to current transaction's buffer vectors.
-     *
-     * During Connection initialization, the frame queue was given AVC as the payload format so the
-     * transaction also contains our media-specific headers */
-    auto buffers = fqueue_->get_buffer_vector();
-    auto headers = (uvgrtp::formats::h264_headers *)fqueue_->get_media_headers();
-
-    headers->fu_indicator[0] = (data[0] & 0xe0) | H264_PKT_FRAG;
-
-    headers->fu_headers[0] = (uint8_t)((1 << 7) | nal_type);
-    headers->fu_headers[1] = nal_type;
-    headers->fu_headers[2] = (uint8_t)((1 << 6) | nal_type);
-
-    buffers.push_back(std::make_pair(sizeof(headers->fu_indicator), headers->fu_indicator));
-    buffers.push_back(std::make_pair(sizeof(uint8_t),               &headers->fu_headers[0]));
-    buffers.push_back(std::make_pair(payload_size,                  nullptr));
-
-    data_pos   = uvgrtp::frame::HEADER_SIZE_H264_NAL;
-    data_left -= uvgrtp::frame::HEADER_SIZE_H264_NAL;
-
-    while (data_left > payload_size) {
-        buffers.at(2).first  = payload_size;
-        buffers.at(2).second = &data[data_pos];
-
-        if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
-            LOG_ERROR("Queueing the message failed!");
-            fqueue_->deinit_transaction();
-            return ret;
-        }
-
-        data_pos  += payload_size;
-        data_left -= payload_size;
-
-        /* from now on, use the FU header meant for middle fragments */
-        buffers.at(1).second = &headers->fu_headers[1];
-    }
-
-    /* use the FU header meant for the last fragment */
-    buffers.at(1).second = &headers->fu_headers[2];
-
-    buffers.at(2).first  = data_left;
-    buffers.at(2).second = &data[data_pos];
-
-    if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
-        LOG_ERROR("Failed to send AVC frame!");
-        fqueue_->deinit_transaction();
+    rtp_error_t ret = RTP_OK;
+    /* If there is more data coming in (possibly another small packet)
+     * create entry to "aggr_pkt_info_" to construct an aggregation packet */
+     /* if (more) { */
+     /*     aggr_pkt_info_.nalus.push_back(std::make_pair(data_len, data)); */
+     /*     return RTP_NOT_READY; */
+     /* } else { */
+     /*     if (aggr_pkt_info_.nalus.empty()) { */
+    if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
+        LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
         return ret;
     }
 
     if (more)
         return RTP_NOT_READY;
     return fqueue_->flush_queue();
+    /* } else { */
+    /*     (void)make_aggregation_pkt(); */
+    /*     ret = fqueue_->flush_queue(); */
+    /*     clear_aggregation_info(); */
+    /*     return ret; */
+    /* } */
 }
 
-uvgrtp::formats::h264::h264(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags):
-    h26x(socket, rtp, flags)
+rtp_error_t uvgrtp::formats::h264::construct_format_header_divide_fus(uint8_t* data, size_t& data_left,
+    size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers)
 {
+    auto headers = (uvgrtp::formats::h264_headers*)fqueue_->get_media_headers();
+
+    headers->fu_indicator[0] = (data[0] & 0xe0) | H264_PKT_FRAG;
+
+    initialize_fu_headers(get_nal_type(data), headers->fu_headers);
+
+    buffers.push_back(std::make_pair(sizeof(headers->fu_indicator), headers->fu_indicator));
+    buffers.push_back(std::make_pair(sizeof(uint8_t), &headers->fu_headers[0]));
+    buffers.push_back(std::make_pair(payload_size, nullptr));
+
+    data_pos = uvgrtp::frame::HEADER_SIZE_H264_NAL;
+    data_left -= uvgrtp::frame::HEADER_SIZE_H264_NAL;
+
+    return divide_frame_to_fus(data, data_left, data_pos, payload_size, buffers, headers->fu_headers);
 }
 
-uvgrtp::formats::h264::~h264()
+void uvgrtp::formats::h264::copy_nal_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload)
 {
-}
-
-uvgrtp::formats::h264_frame_info_t *uvgrtp::formats::h264::get_h264_frame_info()
-{
-    return &finfo_;
-}
-
-rtp_error_t uvgrtp::formats::h264::frame_getter(void *arg, uvgrtp::frame::rtp_frame **frame)
-{
-    auto finfo = (uvgrtp::formats::h264_frame_info_t *)arg;
-
-    if (finfo->queued.size()) {
-        *frame = finfo->queued.front();
-        finfo->queued.pop_front();
-        return RTP_PKT_READY;
-    }
-
-    return RTP_NOT_FOUND;
+    complete_payload[fptr] = (frame_payload[0] & 0xe0) | (frame_payload[1] & 0x1f);
 }

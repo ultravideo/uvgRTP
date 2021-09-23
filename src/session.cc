@@ -1,5 +1,10 @@
-#include "debug.hh"
 #include "session.hh"
+
+#include "media_stream.hh"
+#include "zrtp.hh"
+#include "crypto.hh"
+#include "debug.hh"
+
 
 uvgrtp::session::session(std::string addr):
 #ifdef __RTP_CRYPTO__
@@ -45,13 +50,6 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
     else
         stream = new uvgrtp::media_stream(addr_, laddr_, r_port, s_port, fmt, flags);
 
-    if (!stream) {
-        LOG_ERROR("Failed to create media stream for %s:%d -> %s:%d",
-            (laddr_ == "") ? "0.0.0.0" : laddr_.c_str(), s_port, addr_.c_str(), r_port
-        );
-        return nullptr;
-    }
-
     if (flags & RCE_SRTP) {
         if (!uvgrtp::crypto::enabled()) {
             LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
@@ -64,11 +62,13 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
 
         if (flags & RCE_SRTP_KMNGMNT_ZRTP) {
 
+            if (flags & (RCE_SRTP_KEYSIZE_192 | RCE_SRTP_KEYSIZE_256)) {
+                LOG_ERROR("Only 128-bit keys are supported with ZRTP");
+                return nullptr;
+            }
+
             if (!zrtp_) {
-                if (!(zrtp_ = new uvgrtp::zrtp())) {
-                    rtp_errno = RTP_MEMORY_ERROR;
-                    return nullptr;
-                }
+                zrtp_ = new uvgrtp::zrtp();
             }
 
             if (stream->init(zrtp_) != RTP_OK) {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "util.hh"
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <mswsock.h>
@@ -13,7 +15,6 @@
 #include <vector>
 #include <string>
 
-#include "util.hh"
 
 namespace uvgrtp {
 
@@ -32,8 +33,8 @@ namespace uvgrtp {
     typedef rtp_error_t (*packet_handler_vec)(void *, buf_vec&);
 
     struct socket_packet_handler {
-        void *arg;
-        packet_handler_vec handler;
+        void *arg = nullptr;
+        packet_handler_vec handler = nullptr;
     };
 
     class socket {

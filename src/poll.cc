@@ -1,3 +1,9 @@
+#include "poll.hh"
+
+#include "multicast.hh"
+#include "socket.hh"
+#include "debug.hh"
+
 #ifdef _WIN32
 #include <winsock2.h>
 #else
@@ -7,9 +13,8 @@
 
 #include <cstring>
 
-#include "debug.hh"
-#include "multicast.hh"
-#include "poll.hh"
+
+
 
 rtp_error_t uvgrtp::poll::blocked_recv(uvgrtp::socket *socket, uint8_t *buf, size_t buf_len, int timeout, int *bytes_read)
 {
@@ -58,7 +63,7 @@ rtp_error_t uvgrtp::poll::poll(std::vector<uvgrtp::socket>& sockets, uint8_t *bu
         return RTP_INVALID_VALUE;
     }
 
-#ifdef __linux__
+#ifndef _WIN32
     struct pollfd fds[uvgrtp::MULTICAST_MAX_PEERS];
     int ret;
 

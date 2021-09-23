@@ -81,32 +81,296 @@ Inheritance diagram for uvgrtp::rtcp:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:aa7499b5ea9797a7a55727c3699dc7df6"><td class="memItemLeft" align="right" valign="top"><a id="aa7499b5ea9797a7a55727c3699dc7df6"></a>
-rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>send_sdes_packet</b> (std::vector&lt; uvgrtp::frame::rtcp_sdes_item &gt; &amp;items)</td></tr>
+<tr class="memitem:aa7499b5ea9797a7a55727c3699dc7df6"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1rtcp.html#aa7499b5ea9797a7a55727c3699dc7df6">send_sdes_packet</a> (std::vector&lt; uvgrtp::frame::rtcp_sdes_item &gt; &amp;items)</td></tr>
+<tr class="memdesc:aa7499b5ea9797a7a55727c3699dc7df6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send an RTCP SDES packet.  <a href="classuvgrtp_1_1rtcp.html#aa7499b5ea9797a7a55727c3699dc7df6">More...</a><br /></td></tr>
 <tr class="separator:aa7499b5ea9797a7a55727c3699dc7df6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad70c9ccdde9075e45a453f00591a522b"><td class="memItemLeft" align="right" valign="top"><a id="ad70c9ccdde9075e45a453f00591a522b"></a>
-rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>send_app_packet</b> (char *name, uint8_t subtype, size_t payload_len, uint8_t *payload)</td></tr>
+<tr class="memitem:ad70c9ccdde9075e45a453f00591a522b"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1rtcp.html#ad70c9ccdde9075e45a453f00591a522b">send_app_packet</a> (char *name, uint8_t subtype, size_t payload_len, uint8_t *payload)</td></tr>
+<tr class="memdesc:ad70c9ccdde9075e45a453f00591a522b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send an RTCP APP packet.  <a href="classuvgrtp_1_1rtcp.html#ad70c9ccdde9075e45a453f00591a522b">More...</a><br /></td></tr>
 <tr class="separator:ad70c9ccdde9075e45a453f00591a522b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2b831698320212e382e3d565e62d31c4"><td class="memItemLeft" align="right" valign="top"><a id="a2b831698320212e382e3d565e62d31c4"></a>
-rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>send_bye_packet</b> (std::vector&lt; uint32_t &gt; ssrcs)</td></tr>
+<tr class="memitem:a2b831698320212e382e3d565e62d31c4"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1rtcp.html#a2b831698320212e382e3d565e62d31c4">send_bye_packet</a> (std::vector&lt; uint32_t &gt; ssrcs)</td></tr>
+<tr class="memdesc:a2b831698320212e382e3d565e62d31c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send an RTCP BYE packet.  <a href="classuvgrtp_1_1rtcp.html#a2b831698320212e382e3d565e62d31c4">More...</a><br /></td></tr>
 <tr class="separator:a2b831698320212e382e3d565e62d31c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5d0d06f9b4b7779d96d8d60938627316"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1rtcp.html#a5d0d06f9b4b7779d96d8d60938627316">set_ts_info</a> (uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start)</td></tr>
 <tr class="memdesc:a5d0d06f9b4b7779d96d8d60938627316"><td class="mdescLeft">&#160;</td><td class="mdescRight">Provide timestamping information for RTCP.  <a href="classuvgrtp_1_1rtcp.html#a5d0d06f9b4b7779d96d8d60938627316">More...</a><br /></td></tr>
 <tr class="separator:a5d0d06f9b4b7779d96d8d60938627316"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4a262a814ffa3093ac6829c90b0b3fd1"><td class="memItemLeft" align="right" valign="top"><a id="a4a262a814ffa3093ac6829c90b0b3fd1"></a>
-rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>install_sender_hook</b> (void(*hook)(uvgrtp::frame::rtcp_sender_report *))</td></tr>
+<tr class="memitem:a4a262a814ffa3093ac6829c90b0b3fd1"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1rtcp.html#a4a262a814ffa3093ac6829c90b0b3fd1">install_sender_hook</a> (void(*hook)(uvgrtp::frame::rtcp_sender_report *))</td></tr>
+<tr class="memdesc:a4a262a814ffa3093ac6829c90b0b3fd1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Install an RTCP Sender Report hook.  <a href="classuvgrtp_1_1rtcp.html#a4a262a814ffa3093ac6829c90b0b3fd1">More...</a><br /></td></tr>
 <tr class="separator:a4a262a814ffa3093ac6829c90b0b3fd1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a04c887fe95173d55294f57d639a1f602"><td class="memItemLeft" align="right" valign="top"><a id="a04c887fe95173d55294f57d639a1f602"></a>
-rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>install_receiver_hook</b> (void(*hook)(uvgrtp::frame::rtcp_receiver_report *))</td></tr>
+<tr class="memitem:a04c887fe95173d55294f57d639a1f602"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1rtcp.html#a04c887fe95173d55294f57d639a1f602">install_receiver_hook</a> (void(*hook)(uvgrtp::frame::rtcp_receiver_report *))</td></tr>
+<tr class="memdesc:a04c887fe95173d55294f57d639a1f602"><td class="mdescLeft">&#160;</td><td class="mdescRight">Install an RTCP Receiver Report hook.  <a href="classuvgrtp_1_1rtcp.html#a04c887fe95173d55294f57d639a1f602">More...</a><br /></td></tr>
 <tr class="separator:a04c887fe95173d55294f57d639a1f602"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad694a3a869b1c28309e1f2db6d7c2e50"><td class="memItemLeft" align="right" valign="top"><a id="ad694a3a869b1c28309e1f2db6d7c2e50"></a>
-rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>install_sdes_hook</b> (void(*hook)(uvgrtp::frame::rtcp_sdes_packet *))</td></tr>
+<tr class="memitem:ad694a3a869b1c28309e1f2db6d7c2e50"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1rtcp.html#ad694a3a869b1c28309e1f2db6d7c2e50">install_sdes_hook</a> (void(*hook)(uvgrtp::frame::rtcp_sdes_packet *))</td></tr>
+<tr class="memdesc:ad694a3a869b1c28309e1f2db6d7c2e50"><td class="mdescLeft">&#160;</td><td class="mdescRight">Install an RTCP SDES packet hook.  <a href="classuvgrtp_1_1rtcp.html#ad694a3a869b1c28309e1f2db6d7c2e50">More...</a><br /></td></tr>
 <tr class="separator:ad694a3a869b1c28309e1f2db6d7c2e50"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a977c99cfaa1442553ab12d4c140bbb0f"><td class="memItemLeft" align="right" valign="top"><a id="a977c99cfaa1442553ab12d4c140bbb0f"></a>
-rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>install_app_hook</b> (void(*hook)(uvgrtp::frame::rtcp_app_packet *))</td></tr>
+<tr class="memitem:a977c99cfaa1442553ab12d4c140bbb0f"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1rtcp.html#a977c99cfaa1442553ab12d4c140bbb0f">install_app_hook</a> (void(*hook)(uvgrtp::frame::rtcp_app_packet *))</td></tr>
+<tr class="memdesc:a977c99cfaa1442553ab12d4c140bbb0f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Install an RTCP APP packet hook.  <a href="classuvgrtp_1_1rtcp.html#a977c99cfaa1442553ab12d4c140bbb0f">More...</a><br /></td></tr>
 <tr class="separator:a977c99cfaa1442553ab12d4c140bbb0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a id="a977c99cfaa1442553ab12d4c140bbb0f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a977c99cfaa1442553ab12d4c140bbb0f">&#9670;&nbsp;</a></span>install_app_hook()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">rtp_error_t uvgrtp::rtcp::install_app_hook </td>
+          <td>(</td>
+          <td class="paramtype">void(*)(uvgrtp::frame::rtcp_app_packet *)&#160;</td>
+          <td class="paramname"><em>hook</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Install an RTCP APP packet hook. </p>
+<p>This function is called when an RTCP APP packet is received</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">hook</td><td>Function pointer to the hook</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">RTP_OK</td><td>on success </td></tr>
+    <tr><td class="paramname">RTP_INVALID_VALUE</td><td>If hook is nullptr </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a04c887fe95173d55294f57d639a1f602"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a04c887fe95173d55294f57d639a1f602">&#9670;&nbsp;</a></span>install_receiver_hook()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">rtp_error_t uvgrtp::rtcp::install_receiver_hook </td>
+          <td>(</td>
+          <td class="paramtype">void(*)(uvgrtp::frame::rtcp_receiver_report *)&#160;</td>
+          <td class="paramname"><em>hook</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Install an RTCP Receiver Report hook. </p>
+<p>This function is called when an RTCP Receiver Report is received</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">hook</td><td>Function pointer to the hook</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">RTP_OK</td><td>on success </td></tr>
+    <tr><td class="paramname">RTP_INVALID_VALUE</td><td>If hook is nullptr </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ad694a3a869b1c28309e1f2db6d7c2e50"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad694a3a869b1c28309e1f2db6d7c2e50">&#9670;&nbsp;</a></span>install_sdes_hook()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">rtp_error_t uvgrtp::rtcp::install_sdes_hook </td>
+          <td>(</td>
+          <td class="paramtype">void(*)(uvgrtp::frame::rtcp_sdes_packet *)&#160;</td>
+          <td class="paramname"><em>hook</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Install an RTCP SDES packet hook. </p>
+<p>This function is called when an RTCP SDES packet is received</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">hook</td><td>Function pointer to the hook</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">RTP_OK</td><td>on success </td></tr>
+    <tr><td class="paramname">RTP_INVALID_VALUE</td><td>If hook is nullptr </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a4a262a814ffa3093ac6829c90b0b3fd1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4a262a814ffa3093ac6829c90b0b3fd1">&#9670;&nbsp;</a></span>install_sender_hook()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">rtp_error_t uvgrtp::rtcp::install_sender_hook </td>
+          <td>(</td>
+          <td class="paramtype">void(*)(uvgrtp::frame::rtcp_sender_report *)&#160;</td>
+          <td class="paramname"><em>hook</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Install an RTCP Sender Report hook. </p>
+<p>This function is called when an RTCP Sender Report is received</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">hook</td><td>Function pointer to the hook</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">RTP_OK</td><td>on success </td></tr>
+    <tr><td class="paramname">RTP_INVALID_VALUE</td><td>If hook is nullptr </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ad70c9ccdde9075e45a453f00591a522b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad70c9ccdde9075e45a453f00591a522b">&#9670;&nbsp;</a></span>send_app_packet()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">rtp_error_t uvgrtp::rtcp::send_app_packet </td>
+          <td>(</td>
+          <td class="paramtype">char *&#160;</td>
+          <td class="paramname"><em>name</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t&#160;</td>
+          <td class="paramname"><em>subtype</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>payload_len</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t *&#160;</td>
+          <td class="paramname"><em>payload</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Send an RTCP APP packet. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">name</td><td>Name of the APP item, e.g., EMAIL or PHONE </td></tr>
+    <tr><td class="paramname">subtype</td><td>Subtype of the APP item </td></tr>
+    <tr><td class="paramname">payload_len</td><td>Length of the payload </td></tr>
+    <tr><td class="paramname">payload</td><td>Payload</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">RTP_OK</td><td>On success </td></tr>
+    <tr><td class="paramname">RTP_MEMORY_ERROR</td><td>If allocation fails </td></tr>
+    <tr><td class="paramname">RTP_GENERIC_ERROR</td><td>If sending fails </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a2b831698320212e382e3d565e62d31c4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2b831698320212e382e3d565e62d31c4">&#9670;&nbsp;</a></span>send_bye_packet()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">rtp_error_t uvgrtp::rtcp::send_bye_packet </td>
+          <td>(</td>
+          <td class="paramtype">std::vector&lt; uint32_t &gt;&#160;</td>
+          <td class="paramname"><em>ssrcs</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Send an RTCP BYE packet. </p>
+<p>In case the quitting participant is a mixer and is serving multiple paricipants, the input vector contains the SSRCs of all those participants. If the participant is a regular member of the session, the vector only contains the SSRC of the participant.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">ssrcs</td><td>Vector of SSRCs of those participants who are quitting</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">RTP_OK</td><td>On success </td></tr>
+    <tr><td class="paramname">RTP_MEMORY_ERROR</td><td>If allocation fails </td></tr>
+    <tr><td class="paramname">RTP_GENERIC_ERROR</td><td>If sending fails </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="aa7499b5ea9797a7a55727c3699dc7df6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa7499b5ea9797a7a55727c3699dc7df6">&#9670;&nbsp;</a></span>send_sdes_packet()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">rtp_error_t uvgrtp::rtcp::send_sdes_packet </td>
+          <td>(</td>
+          <td class="paramtype">std::vector&lt; uvgrtp::frame::rtcp_sdes_item &gt; &amp;&#160;</td>
+          <td class="paramname"><em>items</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Send an RTCP SDES packet. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">items</td><td>Vector of SDES items</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">RTP_OK</td><td>On success </td></tr>
+    <tr><td class="paramname">RTP_MEMORY_ERROR</td><td>If allocation fails </td></tr>
+    <tr><td class="paramname">RTP_GENERIC_ERROR</td><td>If sending fails </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="a5d0d06f9b4b7779d96d8d60938627316"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a5d0d06f9b4b7779d96d8d60938627316">&#9670;&nbsp;</a></span>set_ts_info()</h2>
 

@@ -1,13 +1,16 @@
 #pragma once
 
+#include "util.hh"
+
 #include <mutex>
 #include <string>
 #include <vector>
-
-#include "media_stream.hh"
-#include "zrtp.hh"
+#include <unordered_map>
 
 namespace uvgrtp {
+
+    class media_stream;
+    class zrtp;
 
     class session {
         public:

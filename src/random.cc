@@ -1,16 +1,23 @@
+#include "random.hh"
+
+#include "debug.hh"
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
 #include <wincrypt.h>
-#else
+#else // non _WIN32
+#ifdef HAVE_GETRANDOM
 #include <sys/random.h>
-#endif
+#else // HAVE_GETRANDOM
+#include <unistd.h>
+#include <sys/syscall.h>
+#endif // HAVE_GETRANDOM
+#endif // _WIN32
+
 
 #include <cstdlib>
 #include <ctime>
-
-#include "debug.hh"
-#include "random.hh"
 
 rtp_error_t uvgrtp::random::init()
 {
@@ -24,12 +31,38 @@ rtp_error_t uvgrtp::random::init()
 
 int uvgrtp::random::generate(void *buf, size_t n)
 {
-#ifdef __linux__
+#ifndef _WIN32
+#ifdef HAVE_GETRANDOM
     return getrandom(buf, n, 0);
 #else
+
+    // Replace with the syscall
+    int read = syscall(SYS_getrandom, buf, n, 0);
+
+    // On error, return the same value as getrandom()
+    if (read == -EINTR || read == -ERESTART) {
+        errno = EINTR;
+        read = -1;
+    }
+
+    if (read < -1) {
+        errno = -read;
+        read = -1;
+    }
+
+    return read;
+#endif // HAVE_GETRANDOM
+#else
+
+    if (n > UINT32_MAX)
+    {
+        LOG_WARN("Tried to generate too large random number");
+        n = UINT32_MAX;
+    }
+
     HCRYPTPROV hCryptProv;
     if (CryptAcquireContext(&hCryptProv, NULL, NULL, PROV_RSA_FULL, 0) == TRUE) {
-        bool res = CryptGenRandom(hCryptProv, n, (BYTE *)buf);
+        bool res = CryptGenRandom(hCryptProv, (DWORD)n, (BYTE *)buf);
 
         CryptReleaseContext(hCryptProv, 0);
 

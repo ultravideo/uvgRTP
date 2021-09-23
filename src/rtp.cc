@@ -1,14 +1,17 @@
-#ifdef __linux__
+#include "rtp.hh"
+
+#include "frame.hh"
+#include "debug.hh"
+#include "random.hh"
+
+#ifndef _WIN32
 #include <arpa/inet.h>
 #include <unistd.h>
 #endif
 
 #include <chrono>
 
-#include "clock.hh"
-#include "debug.hh"
-#include "random.hh"
-#include "rtp.hh"
+
 
 #define INVALID_TS UINT64_MAX
 
@@ -56,8 +59,8 @@ void uvgrtp::rtp::set_payload(rtp_format_t fmt)
             break;
 
         default:
-            LOG_WARN("Unknown RTP format, setting clock rate to 10000");
-            clock_rate_ = 10000;
+            LOG_WARN("Unknown RTP format, setting clock rate to 8000");
+            clock_rate_ = 8000;
             break;
     }
 }
@@ -104,15 +107,13 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer)
     *(uint32_t *)&buffer[8] = htonl(ssrc_);
 
     if (timestamp_ == INVALID_TS) {
-        *(uint32_t *)&buffer[4] = htonl(
-            ts_
-            + uvgrtp::clock::ntp::diff_now(wc_start_)
-            * clock_rate_
-            / 1000
+        *(uint32_t *)&buffer[4] = htonl((u_long)(
+            ts_ + 
+            uvgrtp::clock::ntp::diff_now(wc_start_) * clock_rate_ / 1000)
         );
 
     } else {
-        *(uint32_t *)&buffer[4] = htonl(timestamp_);
+        *(uint32_t *)&buffer[4] = htonl((u_long)timestamp_);
     }
 }
 

@@ -1,11 +1,13 @@
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
+#include "lib.hh"
 
 #include "debug.hh"
 #include "hostname.hh"
-#include "lib.hh"
 #include "random.hh"
+#include "session.hh"
+
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
 
 thread_local rtp_error_t rtp_errno;
 
@@ -31,12 +33,12 @@ uvgrtp::context::~context()
 #endif
 }
 
-uvgrtp::session *uvgrtp::context::create_session(std::string address)
+uvgrtp::session *uvgrtp::context::create_session(std::string remote_addr)
 {
-    if (address == "")
+    if (remote_addr == "")
         return nullptr;
 
-    return new uvgrtp::session(address);
+    return new uvgrtp::session(remote_addr);
 }
 
 uvgrtp::session *uvgrtp::context::create_session(std::string remote_addr, std::string local_addr)

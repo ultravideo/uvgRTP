@@ -1,19 +1,39 @@
 #pragma once
 
-#include <unordered_map>
-#include <memory>
-
-#include "holepuncher.hh"
-#include "pkt_dispatch.hh"
-#include "rtcp.hh"
-#include "socket.hh"
-#include "srtp/srtcp.hh"
-#include "srtp/srtp.hh"
 #include "util.hh"
 
-#include "formats/media.hh"
+#include <unordered_map>
+#include <memory>
+#include <string>
+
+
+#ifndef _WIN32
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
 
 namespace uvgrtp {
+
+    // forward declarations
+    class rtp;
+    class rtcp;
+
+    class zrtp;
+    class base_srtp;
+    class srtp;
+    class srtcp;
+
+    class pkt_dispatcher;
+    class holepuncher;
+    class socket;
+
+    namespace frame {
+        struct rtp_frame;
+    };
+
+    namespace formats {
+        class media;
+    };
 
     class media_stream {
         public:
@@ -50,17 +70,11 @@ namespace uvgrtp {
              * \details For user-managed SRTP session, the media stream is not started
              * until SRTP key has been added and all calls to push_frame() will fail
              *
-             * Currently uvgRTP only supports key length of 16 bytes (128 bits)
-             * and salt length of 14 bytes (112 bits).
-             *
-             * If the key or salt is longer, it is implicitly truncated to correct length
-             * and if the key or salt is shorter, a memory violation may occur
-             *
              * Notice that if user-managed SRTP has been enabled during media stream creation,
              * this function must be called before anything else. All calls to other functions
              * will fail with ::RTP_NOT_INITIALIZED until the SRTP context has been specified
              *
-             * \param key 128-bit long key
+             * \param key SRTP master key, default is 128-bit long
              * \param salt 112-bit long salt
              *
              * \return RTP error code
@@ -193,7 +207,7 @@ namespace uvgrtp {
             /**
              * \brief Poll a frame for a specified time from the media stream object
              *
-             * \param timeout How long is a frame waited, in milliseconds
+             * \param timeout_ms How long is a frame waited, in milliseconds
              *
              * \return RTP frame
              *
@@ -201,7 +215,7 @@ namespace uvgrtp {
              * \retval nullptr If a frame was not received within the specified time limit
              * \retval nullptr If an unrecoverable error happened
              */
-            uvgrtp::frame::rtp_frame *pull_frame(size_t timeout);
+            uvgrtp::frame::rtp_frame *pull_frame(size_t timeout_ms);
 
             /**
              * \brief Asynchronous way of getting frames
@@ -295,6 +309,9 @@ namespace uvgrtp {
 
             /* free all allocated resources */
             rtp_error_t free_resources(rtp_error_t ret);
+
+            rtp_error_t init_srtp_with_zrtp(int flags, int type, uvgrtp::base_srtp* srtp,
+                                            uvgrtp::zrtp *zrtp);
 
             uint32_t key_;
 

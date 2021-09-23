@@ -1,7 +1,18 @@
 #pragma once
 
+// these includes are here for easier usage of this library
+#include "media_stream.hh"  // media streamer class
+#include "session.hh"       // session class
+#include "rtcp.hh"          // RTCP
+#include "clock.hh"         // time related functions
+#include "crypto.hh"        // check if crypto is enabled
+#include "debug.hh"         // debug prints
+#include "frame.hh"         // frame related functions
+#include "util.hh"          // types
+#include "version.hh"       // version
+
 #include <map>
-#include "session.hh"
+#include <string>
 
 namespace uvgrtp {
 
@@ -31,10 +42,10 @@ namespace uvgrtp {
              * \return RTP session object
              *
              * \retval uvgrtp::session      On success
-             * \retval nullptr               If "addr" is empty
+             * \retval nullptr               If "remote_addr" is empty
              * \retval nullptr               If memory allocation failed
              */
-            uvgrtp::session *create_session(std::string addr);
+            uvgrtp::session *create_session(std::string remote_addr);
 
             /**
              * \brief Create a new RTP session

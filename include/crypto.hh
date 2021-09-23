@@ -1,5 +1,6 @@
 #pragma once
 
+#if __cplusplus >= 201703L || _MSC_VER >= 1911
 #if __has_include(<cryptopp/aes.h>) && \
     __has_include(<cryptopp/base32.h>) && \
     __has_include(<cryptopp/cryptlib.h>) && \
@@ -24,6 +25,24 @@
 #include <cryptopp/crc.h>
 
 #endif
+#else // __cplusplus < 201703L
+#ifndef __RTP_NO_CRYPTO__
+#define __RTP_CRYPTO__
+
+#include <cryptopp/aes.h>
+#include <cryptopp/base32.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/dh.h>
+#include <cryptopp/hmac.h>
+#include <cryptopp/modes.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/crc.h>
+
+#endif
+#endif // __cplusplus
+
+#include <iostream>
 
 namespace uvgrtp {
 

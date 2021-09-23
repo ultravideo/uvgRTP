@@ -1,17 +1,14 @@
+#include "frame.hh"
+
+#include "util.hh"
+#include "debug.hh"
+
 #include <cstring>
 
-#include "debug.hh"
-#include "frame.hh"
-#include "util.hh"
 
 uvgrtp::frame::rtp_frame *uvgrtp::frame::alloc_rtp_frame()
 {
     uvgrtp::frame::rtp_frame *frame = new uvgrtp::frame::rtp_frame;
-
-    if (!frame) {
-        rtp_errno = RTP_MEMORY_ERROR;
-        return nullptr;
-    }
 
     std::memset(&frame->header, 0, sizeof(uvgrtp::frame::rtp_header));
     std::memset(frame,          0, sizeof(uvgrtp::frame::rtp_frame));
@@ -69,7 +66,7 @@ rtp_error_t uvgrtp::frame::dealloc_frame(uvgrtp::frame::rtp_frame *frame)
     else if (frame->payload)
         delete[] frame->payload;
 
-    LOG_DEBUG("Deallocating frame, type %u", frame->type);
+    //LOG_DEBUG("Deallocating frame, type %u", frame->type);
 
     delete frame;
     return RTP_OK;

@@ -1,3 +1,14 @@
+#include "queue.hh"
+
+#include "formats/h264.hh"
+#include "formats/h265.hh"
+#include "formats/h266.hh"
+
+#include "rtp.hh"
+#include "srtp/base.hh"
+#include "debug.hh"
+#include "random.hh"
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
@@ -8,13 +19,6 @@
 #include <cstring>
 #endif
 
-#include "debug.hh"
-#include "queue.hh"
-#include "random.hh"
-
-#include "formats/h264.hh"
-#include "formats/h265.hh"
-#include "formats/h266.hh"
 
 uvgrtp::frame_queue::frame_queue(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags):
     rtp_(rtp), socket_(socket), flags_(flags)
@@ -49,7 +53,7 @@ rtp_error_t uvgrtp::frame_queue::init_transaction()
         active_      = new transaction_t;
         active_->key = uvgrtp::random::generate_32();
 
-#ifdef __linux__
+#ifndef _WIN32
         active_->headers     = new struct mmsghdr[max_mcount_];
         active_->chunks      = new struct iovec[max_ccount_];
 #else
@@ -216,14 +220,17 @@ rtp_error_t uvgrtp::frame_queue::deinit_transaction(uint32_t key)
         switch (rtp_->get_payload()) {
             case RTP_FORMAT_H264:
                 delete (uvgrtp::formats::h264_headers *)transaction_it->second->media_headers;
+                transaction_it->second->media_headers = nullptr;
                 break;
 
             case RTP_FORMAT_H265:
                 delete (uvgrtp::formats::h265_headers *)transaction_it->second->media_headers;
+                transaction_it->second->media_headers = nullptr;
                 break;
 
             case RTP_FORMAT_H266:
                 delete (uvgrtp::formats::h266_headers *)transaction_it->second->media_headers;
+                transaction_it->second->media_headers = nullptr;
                 break;
 
             default:
@@ -255,8 +262,17 @@ rtp_error_t uvgrtp::frame_queue::deinit_transaction()
 
 rtp_error_t uvgrtp::frame_queue::enqueue_message(uint8_t *message, size_t message_len, bool set_marker)
 {
-    if (!message || !message_len)
-        return RTP_INVALID_VALUE;
+    if (message == nullptr)
+    {
+      LOG_ERROR("Tried to enqueue nullptr");
+      return RTP_INVALID_VALUE;
+    }
+
+    if (message_len == 0)
+    {
+      LOG_ERROR("Tried to enqueue zero length message");
+      return RTP_INVALID_VALUE;
+    }
 
     /* Create buffer vector where the full packet is constructed
      * and which is then pushed to "active_"'s pkt_vec structure */
@@ -283,7 +299,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(uint8_t *message, size_t messag
 
     if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
         tmp.push_back({
-            AUTH_TAG_LENGTH,
+            UVG_AUTH_TAG_LENGTH,
             (uint8_t *)&active_->rtp_auth_tags[10 * active_->rtpauth_ptr++]
         });
     }
@@ -303,7 +319,10 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(uint8_t *message, size_t messag
 rtp_error_t uvgrtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, uint8_t *>>& buffers)
 {
     if (!buffers.size())
+    {
+        LOG_ERROR("Tried to enqueue an empty buffer");
         return RTP_INVALID_VALUE;
+    }
 
     /* Create buffer vector where the full packet is constructed
      * and which is then pushed to "active_"'s pkt_vec structure */
@@ -328,10 +347,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, u
         for (auto& buffer : buffers)
             total += buffer.first;
 
-        if (!(mem = ptr = new uint8_t[total])) {
-            LOG_ERROR("Failed to allocate memory for copy block!");
-            return RTP_MEMORY_ERROR;
-        }
+        mem = ptr = new uint8_t[total];
 
         for (auto& buffer : buffers) {
             memcpy(ptr, buffer.second, buffer.first);
@@ -347,7 +363,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, u
 
     if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
         tmp.push_back({
-            AUTH_TAG_LENGTH,
+            UVG_AUTH_TAG_LENGTH,
             (uint8_t *)&active_->rtp_auth_tags[10 * active_->rtpauth_ptr++]
         });
     }
@@ -381,7 +397,7 @@ rtp_error_t uvgrtp::frame_queue::flush_queue()
         return RTP_SEND_ERROR;
     }
 
-    LOG_DEBUG("full message took %zu chunks and %zu messages", active_->chunk_ptr, active_->hdr_ptr);
+    //LOG_DEBUG("full message took %zu chunks and %zu messages", active_->chunk_ptr, active_->hdr_ptr);
     return deinit_transaction();
 }
 

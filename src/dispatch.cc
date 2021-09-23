@@ -1,6 +1,9 @@
-#include "debug.hh"
 #include "dispatch.hh"
+
+#include "queue.hh"
 #include "socket.hh"
+#include "debug.hh"
+
 
 #ifndef _WIN32
 uvgrtp::dispatcher::dispatcher(uvgrtp::socket *socket):
@@ -14,9 +17,7 @@ uvgrtp::dispatcher::~dispatcher()
 
 rtp_error_t uvgrtp::dispatcher::start()
 {
-    if ((runner_ = new std::thread(dispatch_runner, this, socket_)) == nullptr)
-        return RTP_MEMORY_ERROR;
-
+    runner_ = new std::thread(dispatch_runner, this, socket_);
     runner_->detach();
 
     return uvgrtp::runner::start();

@@ -20,7 +20,7 @@ The public API for uvgRTP is very short. Functions not listed in the public API 
 by an application using uvgRTP as they are for internal usage only. All of the features are provided
 as either built-in or they are enabled/modified through context configuration that is specified below.
 
-Read the documentation for uvgRTP's public API [here](https://ultravideo.github.com/uvgRTP/html/index.html)
+Read the documentation for uvgRTP's public API [here](https://ultravideo.github.io/uvgRTP/html/index.html)
 
 ## Supported media formats
 
@@ -46,7 +46,7 @@ session->create_stream(..., RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP_NULL_CIP
 | RCE_SRTP | Enable SRTP, must be coupled with either RCE_SRTP_KMNGMNT_ZRTP or RCE_SRTP_KMNGMNT_USER |
 | RCE_SRTP_KMNGMNT_ZRTP | Use ZRTP to manage keys (see section SRTP for more details) |
 | RCE_SRTP_KMNGMNT_USER | Let user manage keys (see section SRTP for more details) |
-| RCE_NO_H26X_INTRA_DELAY | placeholder |
+| RCE_NO_H26X_INTRA_DELAY | When uvgRTP is receiving H26X stream, as an attempt to improve QoS, it will set frame delay for intra frames to be the same as intra period.  What this means is that if the regular timer expires for frame (100 ms) and the frame type is intra, uvgRTP will not drop the frame but will continue receiving packets in hopes that all the packets of the intra frame will be received and the frame can be returned to user. During this period, when the intra frame is deemed to be late and incomplete, uvgRTP will drop all inter frames until a) all the packets of late intra frame are received or b) a new intra frame is received This behaviour should reduce the number of gray screens during video decoding but might cause the video stream to freeze for a while which is subjectively lesser of two evils This behavior can be disabled with `RCE_NO_H26X_INTRA_DELAY` If this flag is given, uvgRTP treats all frame types equally and drops all frames that are late |
 | RCE_FRAGMENT_GENERIC | Fragment generic media frames into RTP packets of 1500 bytes (size is configurable, see RCC_MTU_SIZE) |
 | RCE_SRTP_INPLACE_ENCRYPTION | Perform ciphering directly on the input frame. Saves a memory copy but makes the input frame unusable for the application |
 | RCE_NO_SYSTEM_CALL_CLUSTERING | Disable System Call Clustering, see the publication for more details |

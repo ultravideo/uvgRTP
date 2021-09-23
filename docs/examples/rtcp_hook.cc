@@ -9,15 +9,26 @@ void receiver_hook(uvgrtp::frame::rtcp_receiver_report *frame)
 {
     LOG_INFO("Received an RTCP Receiver Report");
 
+    for (auto& block : frame->report_blocks) {
+        fprintf(stderr, "ssrc:      %x\n", block.ssrc);
+        fprintf(stderr, "fraction:  %u\n", block.fraction);
+        fprintf(stderr, "lost:      %d\n", block.lost);
+        fprintf(stderr, "last_seq:  %u\n", block.last_seq);
+        fprintf(stderr, "jitter:    %u\n", block.jitter);
+        fprintf(stderr, "lsr:       %u\n", block.lsr);
+        fprintf(stderr, "dlsr (ms): %u\n", uvgrtp::clock::jiffies_to_ms(block.dlsr));
+    }
+
     /* RTCP frames can be deallocated using delete */
     delete frame;
 }
 
 int main(void)
 {
-    /* See rtp/sending.cc for more information about session initialization */
+    /* See sending.cc for more details */
     uvgrtp::context ctx;
 
+    /* See sending.cc for more details */
     uvgrtp::session *sess = ctx.create_session("127.0.0.1");
 
     /* For s1, RTCP runner is using port 7778 and for s2 port 8889 */

@@ -21,7 +21,7 @@ typedef SSIZE_T ssize_t;
 #endif
 
 /* https://stackoverflow.com/questions/1537964/visual-c-equivalent-of-gccs-attribute-packed  */
-#if defined(__MINGW32__) || defined(__MINGW64__) || defined(__linux__)
+#if defined(__MINGW32__) || defined(__MINGW64__) || defined(__GNUC__) || defined(__linux__)
 #define PACK(__Declaration__) __Declaration__ __attribute__((__packed__))
 #else
 #define PACK(__Declaration__) __pragma(pack(push, 1)) __Declaration__ __pragma(pack(pop))
@@ -220,7 +220,13 @@ enum RTP_CTX_ENABLE_FLAGS {
      * in the firewall open */
     RCE_HOLEPUNCH_KEEPALIVE       = 1 << 14,
 
-    RCE_LAST                      = 1 << 15,
+    /** Use 192-bit keys with SRTP */
+    RCE_SRTP_KEYSIZE_192          = 1 << 15,
+
+    /** Use 256-bit keys with SRTP */
+    RCE_SRTP_KEYSIZE_256          = 1 << 16,
+
+    RCE_LAST                      = 1 << 17,
 };
 
 /**
@@ -283,7 +289,7 @@ enum NOTIFY_REASON {
 
 /* see src/util.hh for more information */
 typedef struct rtp_ctx_conf {
-    int flags;
+    int flags = 0;
     ssize_t ctx_values[RCC_LAST];
 } rtp_ctx_conf_t;
 
