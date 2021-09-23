@@ -137,6 +137,7 @@ target_include_directories(${PROJECT_NAME}
         PUBLIC $<INSTALL_INTERFACE:include>
         )
 
+
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /Zc:__cplusplus)
 else()
@@ -148,6 +149,24 @@ if (DISABLE_CRYPTO)
 endif()
 
 if (UNIX)
+
+    # Find pkg-config installed in the system
+    find_package(PkgConfig REQUIRED)
+    if(PkgConfig_FOUND)
+        # Check PKG_CONFIG_PATH, if not defined, use /usr/local/lib/pkgconfig
+        if(NOT DEFINED ENV{PKG_CONFIG_PATH})
+            set( PKG_CONFIG_PATH "/usr/local/lib/pkgconfig")
+            message("PKG_CONFIG_PATH is not found. Set it with ${PKG_CONFIG_PATH}")
+        endif(NOT DEFINED ENV{PKG_CONFIG_PATH})
+
+        # Find crypto++
+        pkg_search_module(CRYPTOPP libcrypto++)
+
+        # Generate and install .pc file
+        configure_file("uvgrtp.pc.in" "uvgrtp.pc" @ONLY)
+        install(FILES ${CMAKE_CURRENT_BINARY_DIR}/uvgrtp.pc DESTINATION ${PKG_CONFIG_PATH}/)
+    endif(PkgConfig_FOUND)
+
     # Check the getrandom() function exists
     include(CheckCXXSymbolExists)
     check_cxx_symbol_exists(getrandom sys/random.h HAVE_GETRANDOM)
