@@ -6,9 +6,9 @@ As an alternative to CMake, uvgRTP also includes a Qt project file (uvgRTP.pro) 
 
 ## Dependencies
 
-uvgRTP uses [Crypto++](https://www.cryptopp.com/) for SRTP/ZRTP support. With compilers that support c++17, uvgRTP uses [*__has_include*](https://en.cppreference.com/w/cpp/preprocessor/include) to detect if Crypto++ is present in the file system. Thus, SRTP/ZRTP functionality is automatically disabled if crypto++ is not found in the system.
+uvgRTP has one optional dependency in [Crypto++](https://www.cryptopp.com/).
 
-It is also possible to use uvgRTP without Crypto++. If you have Crypto++ available but would like to disable SRTP/ZRTP anyway, you may compile uvgRTP with `-DDISABLE_CRYPTO=1`. See the instructions below for more details.
+uvgRTP uses Crypto++ for the SRTP/ZRTP support. With compilers that support C++17, uvgRTP uses [*__has_include*](https://en.cppreference.com/w/cpp/preprocessor/include) to detect if Crypto++ is present in the file system. Thus, SRTP/ZRTP functionality is automatically disabled if crypto++ is not found in the system. If you use compiler that doesn't support __has_include, or if you have Crypto++ available but would like to disable SRTP/ZRTP anyway, you may compile uvgRTP with `-DDISABLE_CRYPTO=1`. See the instructions below for more details.
 
 ## Building uvgRTP
 
