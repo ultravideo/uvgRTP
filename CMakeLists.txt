@@ -22,6 +22,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
         SOVERSION ${PROJECT_VERSION_MAJOR}
         VERSION ${LIBRARY_VERSION}
         )
+set(UVGRTP_CXX_FLAGS "")
+set(UVGRTP_LINKER_FLAGS "")
 
 target_sources(${PROJECT_NAME} PRIVATE
         src/clock.cc
@@ -145,6 +147,7 @@ else()
 endif()
 
 if (DISABLE_CRYPTO)
+    list(APPEND UVGRTP_CXX_FLAGS "-D__RTP_NO_CRYPTO__")
     target_compile_definitions(${PROJECT_NAME} PRIVATE __RTP_NO_CRYPTO__)
 endif()
 
@@ -153,6 +156,7 @@ if (UNIX)
     # Try finding if pkg-config installed in the system
     find_package(PkgConfig REQUIRED)
     if(PkgConfig_FOUND)
+        list(APPEND UVGRTP_LINKER_FLAGS "-luvgrtp" "-lpthread")
         # Check PKG_CONFIG_PATH, if not defined, use /usr/local/lib/pkgconfig
         if(NOT DEFINED ENV{PKG_CONFIG_PATH})
             set(PKG_CONFIG_PATH "/usr/local/lib/pkgconfig")
@@ -160,9 +164,20 @@ if (UNIX)
         endif(NOT DEFINED ENV{PKG_CONFIG_PATH})
 
         # Find crypto++
-        pkg_search_module(CRYPTOPP libcrypto++)
+        if(NOT DISABLE_CRYPTO)
+            pkg_search_module(CRYPTOPP libcrypto++)
+            if(CRYPTOPP_FOUND)
+              list(APPEND UVGRTP_CXX_FLAGS ${CRYPTOPP_CFLAGS_OTHER})
+              list(APPEND UVGRTP_LINKER_FLAGS ${CRYPTOPP_LDFLAGS})
+            else()
+              message("libcrypto++ not found. Encryption will be disabled")
+              list(APPEND UVGRTP_CXX_FLAGS "-D__RTP_NO_CRYPTO__")
+            endif()
+        endif()
 
         # Generate and install .pc file
+        string(REPLACE ";" " " UVGRTP_CXX_FLAGS "${UVGRTP_CXX_FLAGS}")
+        string(REPLACE ";" " " UVGRTP_LINKER_FLAGS "${UVGRTP_LINKER_FLAGS}")
         configure_file("cmake/uvgrtp.pc.in" "uvgrtp.pc" @ONLY)
         install(FILES ${CMAKE_CURRENT_BINARY_DIR}/uvgrtp.pc DESTINATION ${PKG_CONFIG_PATH}/)
     else()

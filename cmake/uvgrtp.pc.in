@@ -7,6 +7,6 @@ Description: @uvgrtp_DESCR@
 URL: @uvgrtp_URL@
 Version: @PROJECT_VERSION@
 CFlags: -I${includedir} @CRYPTOPP_INCLUDE_DIRS@
-Libs: -L${libdir} -luvgrtp -lpthread @CRYPTOPP_LDFLAGS@
+Libs: -L${libdir} @UVGRTP_LINKER_FLAGS@ @UVGRTP_CXX_FLAGS@
 Requires:
 
