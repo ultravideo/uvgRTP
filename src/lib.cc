@@ -4,6 +4,7 @@
 #include "hostname.hh"
 #include "random.hh"
 #include "session.hh"
+#include "version.hh"
 
 #include <cstdlib>
 #include <cstring>
@@ -13,6 +14,8 @@ thread_local rtp_error_t rtp_errno;
 
 uvgrtp::context::context()
 {
+    LOG_INFO("uvgRTP version: %s", uvgrtp::get_version().c_str());
+
     cname_  = uvgrtp::context::generate_cname();
 
 #ifdef _WIN32

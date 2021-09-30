@@ -74,3 +74,12 @@ Or if you are not using Crypto++:
 ```
 g++ main.cc -luvgrtp -lpthread
 ```
+
+## Release commit (for devs)
+
+The release commit can be specified in CMake. This slightly changes how the version is printed. This feature is mostly useful for distributing release versions. Use the following command:
+
+```
+cmake -DRELEASE_COMMIT=1 ..
+```
+
