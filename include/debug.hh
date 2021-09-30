@@ -52,7 +52,7 @@ static inline void win_get_last_error(void)
 #define LOG_LEVEL_DEBUG "DEBUG"
 
 #define uvgrtp_debug(level, fmt, ...) \
-	fprintf(stderr, "[RTPLIB][%s][%s::%s] " fmt "\n", level, \
+    fprintf(stderr, "[uvgRTP][%s][%s::%s] " fmt "\n", level, \
             "", __func__, ##__VA_ARGS__)
 
 #ifndef NDEBUG
