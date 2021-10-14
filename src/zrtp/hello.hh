@@ -32,16 +32,25 @@ namespace uvgrtp {
             uint32_t hash[8];
             uint32_t zid[3];
 
-            uint8_t zero:1;
-            uint8_t s:1;
-            uint8_t m:1;
-            uint8_t p:1;
-            uint8_t unused = 0;
-            uint8_t hc:4;
-            uint8_t cc:4;
-            uint8_t ac:4;
-            uint8_t kc:4;
-            uint8_t sc:4;
+            uint32_t zero:1;
+            uint32_t s:1;
+            uint32_t m:1;
+            uint32_t p:1;
+            uint32_t unused:8;
+            uint32_t hc:4;
+            uint32_t cc:4;
+            uint32_t ac:4;
+            uint32_t kc:4;
+            uint32_t sc:4;
+
+            
+            /* The following fields could be here if they were not 0:
+            *  hash algorithms
+            *  cipher algorithms
+            *  auth tag types
+            *  Key Agreement Types
+            *  SAS Types
+            */
 
             uint64_t mac = 0;
             uint32_t crc = 0;
