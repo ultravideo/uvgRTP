@@ -321,8 +321,11 @@ rtp_error_t uvgrtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len,
     size_t payload_size = rtp_ctx_->get_payload_size();
 
     if (data_len - 3 <= payload_size) {
+        /* If the small packet is handled we either wait for more small packets or
+         * we already sent the data, so always return from this function after entering this branch */
         if ((ret = handle_small_packet(data, data_len, more)) != RTP_OK)
             return ret;
+        return RTP_OK;
     }
     else {
         /* If smaller NALUs were queued before this NALU,
