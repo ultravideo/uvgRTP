@@ -57,8 +57,10 @@ rtp_error_t uvgrtp::frame::dealloc_frame(uvgrtp::frame::rtp_frame *frame)
     if (frame->csrc)
         delete[] frame->csrc;
 
-    if (frame->ext)
+    if (frame->ext) {
+        delete[] frame->ext->data;
         delete frame->ext;
+    }
 
     if (frame->probation)
         delete[] frame->probation;

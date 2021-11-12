@@ -217,10 +217,11 @@ rtp_error_t uvgrtp::rtp::packet_handler(ssize_t size, void *packet, int flags, u
         LOG_DEBUG("Frame contains extension information");
         (*out)->ext = new uvgrtp::frame::ext_header;
 
-        (*out)->ext->type  = ntohs(*(uint16_t *)&ptr[0]);
-        (*out)->ext->len   = ntohs(*(uint32_t *)&ptr[1]);
-        (*out)->ext->data  = (uint8_t *)memdup(ptr + 2 * sizeof(uint16_t), (*out)->ext->len);
-        ptr               += 2 * sizeof(uint16_t) + (*out)->ext->len;
+        (*out)->ext->type    = ntohs(*(uint16_t *)&ptr[0]);
+        (*out)->ext->len     = ntohs(*(uint16_t *)&ptr[2]) * sizeof(uint32_t);
+        (*out)->ext->data    = (uint8_t *)memdup(ptr + 2 * sizeof(uint16_t), (*out)->ext->len);
+        (*out)->payload_len -= 2 * sizeof(uint16_t) + (*out)->ext->len;
+        ptr                 += 2 * sizeof(uint16_t) + (*out)->ext->len;
     }
 
     /* If padding is set to 1, the last byte of the payload indicates
