@@ -37,8 +37,9 @@
 constexpr int GARBAGE_COLLECTION_INTERVAL_MS = 100;
 constexpr int LOST_FRAME_TIMEOUT_MS = 500;
 
-static inline unsigned __find_h26x_start(uint32_t value)
+static inline unsigned __find_h26x_start(uint32_t value,bool& additional_byte)
 {
+    additional_byte = false;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     uint16_t u = (value >> 16) & 0xffff;
     uint16_t l = (value >>  0) & 0xffff;
@@ -71,6 +72,7 @@ static inline unsigned __find_h26x_start(uint32_t value)
             return 5;
     } else if (t4 && t3) {
         /* 0xXX000001 */
+        additional_byte = true;
         return 4;
     }
 
@@ -182,7 +184,8 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
 
 
         {
-            if ((ret = start_len = __find_h26x_start(value)) > 0) {
+            bool additional_byte =  false;
+            if ((ret = start_len = __find_h26x_start(value,additional_byte)) > 0) {
                 if (ret == 5) {
                     ret = 3;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -191,7 +194,7 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
                     start_len = (((prev >>  0) & 0xff) == 0) ? 4 : 3;
 #endif
                 }
-
+                if (additional_byte) start_len--;
                 data[rpos] = lb;
                 return pos + ret;
             }
