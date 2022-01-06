@@ -245,8 +245,8 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
         }
 end:
         prev_z = cur_z;
-        pos += 4;
-        ptr += 4;
+        pos += 1;
+        ptr += 1;
         prev = value;
     }
 
