@@ -108,6 +108,9 @@ namespace uvgrtp {
             /* RTP packet dispatcher thread */
             void runner(uvgrtp::socket *socket, int flags);
 
+            /* RTP packet dispatcher thread */
+            rtp_error_t process_packet(int nread, int flags);
+
             /* Return a processed RTP frame to user either through frame queue or receive hook */
             void return_frame(uvgrtp::frame::rtp_frame *frame);
 

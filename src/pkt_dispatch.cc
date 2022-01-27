@@ -294,8 +294,6 @@ void uvgrtp::pkt_dispatcher::call_aux_handlers(uint32_t key, int flags, uvgrtp::
  * the "out" parameter because at that point it already contains all needed information. */
 void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
 {
-
-
     while (!should_stop_) {
 
 #ifdef _WIN32
@@ -334,34 +332,7 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
                     break;
                 }
 
-                size_t buffer_size = RECV_BUFFER_SIZE;
-
-                for (auto& handler : packet_handlers_) {
-                    uvgrtp::frame::rtp_frame* frame = nullptr;
-                    switch ((ret = (*handler.second.primary)(nread, &buffer_size, flags, &frame))) {
-                        /* packet was handled successfully */
-                        case RTP_OK:
-                            break;
-
-                        /* packet was not handled by this primary handlers, proceed to the next one */
-                        case RTP_PKT_NOT_HANDLED:
-                            continue;
-
-                        /* packet was handled by the primary handler
-                         * and should be dispatched to the auxiliary handler(s) */
-                        case RTP_PKT_MODIFIED:
-                            this->call_aux_handlers(handler.first, flags, &frame);
-                            break;
-
-                        case RTP_GENERIC_ERROR:
-                            LOG_DEBUG("Received a corrupted packet!");
-                            break;
-
-                        default:
-                            LOG_ERROR("Unknown error code from packet handler: %d", ret);
-                            break;
-                    }
-                }
+                ret = process_packet(nread, flags);
             }
         }
 
@@ -370,5 +341,38 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
             delete pfds;
         }
     }
-    
+}
+
+rtp_error_t uvgrtp::pkt_dispatcher::process_packet(int nread, int flags)
+{
+    rtp_error_t ret = RTP_OK;
+    size_t buffer_size = RECV_BUFFER_SIZE;
+    for (auto& handler : packet_handlers_) {
+        uvgrtp::frame::rtp_frame* frame = nullptr;
+        switch ((ret = (*handler.second.primary)(nread, &buffer_size, flags, &frame))) {
+            /* packet was handled successfully */
+        case RTP_OK:
+            break;
+
+            /* packet was not handled by this primary handlers, proceed to the next one */
+        case RTP_PKT_NOT_HANDLED:
+            continue;
+
+            /* packet was handled by the primary handler
+             * and should be dispatched to the auxiliary handler(s) */
+        case RTP_PKT_MODIFIED:
+            this->call_aux_handlers(handler.first, flags, &frame);
+            break;
+
+        case RTP_GENERIC_ERROR:
+            LOG_DEBUG("Received a corrupted packet!");
+            break;
+
+        default:
+            LOG_ERROR("Unknown error code from packet handler: %d", ret);
+            break;
+        }
+    }
+
+    return ret;
 }
