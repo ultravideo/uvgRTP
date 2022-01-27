@@ -125,8 +125,11 @@ namespace uvgrtp {
             void *recv_hook_arg_;
             void (*recv_hook_)(void *arg, uvgrtp::frame::rtp_frame *frame);
 
-            bool runner_should_stop_;
-            std::unique_ptr<std::thread> runner_;
+            bool should_stop_;
+
+            std::unique_ptr<std::thread> receiver_;
+
+            uint8_t* recv_buffer_;
     };
 }
 
