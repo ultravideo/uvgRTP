@@ -298,27 +298,28 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
 
 #ifdef _WIN32
         LPWSAPOLLFD pfds = new pollfd();
+#else
+        pollfd* pfds = new pollfd();
+#endif
+
         int read_fds = socket->get_raw_socket();
         pfds->fd = read_fds;
         pfds->events = POLLIN;
+
+#ifdef _WIN32
         if (WSAPoll(pfds, 1, 0) < 0) {
+#else
+        if (poll(pfds, 1, 0) < 0) {
+#endif
             LOG_ERROR("poll(2) failed");
+            if (pfds)
+            {
+                delete pfds;
+            }
             break;
         }
 
         if (pfds->revents & POLLIN) {
-#else
-        pollfd pfds;
-        int read_fds = socket->get_raw_socket();
-        pfds.fd = read_fds;
-        pfds.events = POLLIN;
-        if (poll(pfds, 1, 0) < 0) {
-            LOG_ERROR("poll(2) failed");
-            break;
-        }
-
-        if (pfds.revents & POLLIN) {
-#endif
             rtp_error_t ret = RTP_OK;
             while (ret == RTP_OK) 
             {
