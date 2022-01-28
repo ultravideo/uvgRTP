@@ -132,7 +132,11 @@ namespace uvgrtp {
 
             std::unique_ptr<std::thread> receiver_;
 
-            uint8_t* recv_buffer_;
+            uint8_t* ring_buffer_;
+
+            int current_ring_read_location_;
+            int last_ring_write_location_;
+
     };
 }
 

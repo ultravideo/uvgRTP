@@ -20,19 +20,25 @@
 // stack size isn't enough for this so we allocate temporary memory for it from heap
 constexpr size_t RECV_BUFFER_SIZE = 0xffff - IPV4_HDR_SIZE - UDP_HDR_SIZE;
 
+constexpr int RING_BUFFER_SIZE = 10;
+
+// TODO: Implement a ring buffer and test if that is enough to solve this problem
+
 uvgrtp::pkt_dispatcher::pkt_dispatcher() :
     recv_hook_arg_(nullptr),
     recv_hook_(nullptr),
     should_stop_(true),
     receiver_(nullptr),
-    recv_buffer_(new uint8_t[RECV_BUFFER_SIZE])
+    ring_buffer_(new uint8_t[RECV_BUFFER_SIZE* RING_BUFFER_SIZE]),
+    current_ring_read_location_(-1), // invalid
+    last_ring_write_location_(0)
 {}
 
 uvgrtp::pkt_dispatcher::~pkt_dispatcher()
 {
-    if (recv_buffer_ != nullptr)
+    if (ring_buffer_ != nullptr)
     {
-        delete[] recv_buffer_;
+        delete[] ring_buffer_;
     }
 }
 
@@ -324,9 +330,15 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
             while (ret == RTP_OK) 
             {
                 int nread = 0;
+
+                int next_write_location = (last_ring_write_location_ + 1) % RING_BUFFER_SIZE;
             
-                if ((ret = socket->recvfrom(recv_buffer_, RECV_BUFFER_SIZE, MSG_DONTWAIT, &nread)) == RTP_INTERRUPTED)
+                if ((ret = socket->recvfrom(ring_buffer_ + next_write_location* RECV_BUFFER_SIZE, 
+                        RECV_BUFFER_SIZE, MSG_DONTWAIT, &nread)) == RTP_INTERRUPTED)
                     break;
+
+                current_ring_read_location_ = next_write_location;
+                last_ring_write_location_ = next_write_location;
 
                 if (ret != RTP_OK) {
                     LOG_ERROR("recvfrom(2) failed! Packet dispatcher cannot continue %d!", ret);
@@ -346,11 +358,16 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
 
 rtp_error_t uvgrtp::pkt_dispatcher::process_packet(int nread, int flags)
 {
+    if (current_ring_read_location_ < 0)
+    {
+        return RTP_INVALID_VALUE;
+    }
+
     rtp_error_t ret = RTP_OK;
-    size_t buffer_size = RECV_BUFFER_SIZE;
     for (auto& handler : packet_handlers_) {
         uvgrtp::frame::rtp_frame* frame = nullptr;
-        switch ((ret = (*handler.second.primary)(nread, &buffer_size, flags, &frame))) {
+
+        switch ((ret = (*handler.second.primary)(nread, ring_buffer_ + current_ring_read_location_ * RECV_BUFFER_SIZE, flags, &frame))) {
             /* packet was handled successfully */
         case RTP_OK:
             break;
