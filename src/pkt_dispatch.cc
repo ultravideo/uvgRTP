@@ -29,17 +29,25 @@ uvgrtp::pkt_dispatcher::pkt_dispatcher() :
     recv_hook_(nullptr),
     should_stop_(true),
     receiver_(nullptr),
-    ring_buffer_(new uint8_t[RECV_BUFFER_SIZE* RING_BUFFER_SIZE]),
+    ring_buffer_(),
     current_ring_read_location_(-1), // invalid
     last_ring_write_location_(0)
-{}
+{
+    for (int i = 0; i < RING_BUFFER_SIZE; ++i)
+    {
+        ring_buffer_.push_back({ new uint8_t[RECV_BUFFER_SIZE] , 0});
+    }
+}
 
 uvgrtp::pkt_dispatcher::~pkt_dispatcher()
 {
-    if (ring_buffer_ != nullptr)
+    for (int i = 0; i < ring_buffer_.size(); ++i)
     {
-        delete[] ring_buffer_;
+        delete[] ring_buffer_.at(i).data;
     }
+    ring_buffer_.clear();
+
+    // TODO: Delete frames?
 }
 
 rtp_error_t uvgrtp::pkt_dispatcher::start(uvgrtp::socket *socket, int flags)
@@ -329,12 +337,10 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
             rtp_error_t ret = RTP_OK;
             while (ret == RTP_OK) 
             {
-                int nread = 0;
-
                 int next_write_location = (last_ring_write_location_ + 1) % RING_BUFFER_SIZE;
             
-                if ((ret = socket->recvfrom(ring_buffer_ + next_write_location* RECV_BUFFER_SIZE, 
-                        RECV_BUFFER_SIZE, MSG_DONTWAIT, &nread)) == RTP_INTERRUPTED)
+                if ((ret = socket->recvfrom(ring_buffer_[next_write_location].data,
+                        RECV_BUFFER_SIZE, MSG_DONTWAIT, &ring_buffer_[next_write_location].read)) == RTP_INTERRUPTED)
                     break;
 
                 current_ring_read_location_ = next_write_location;
@@ -345,7 +351,7 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
                     break;
                 }
 
-                ret = process_packet(nread, flags);
+                ret = process_packet(current_ring_read_location_, flags);
             }
         }
 
@@ -356,7 +362,7 @@ void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
     }
 }
 
-rtp_error_t uvgrtp::pkt_dispatcher::process_packet(int nread, int flags)
+rtp_error_t uvgrtp::pkt_dispatcher::process_packet(int buffer_location, int flags)
 {
     if (current_ring_read_location_ < 0)
     {
@@ -367,7 +373,8 @@ rtp_error_t uvgrtp::pkt_dispatcher::process_packet(int nread, int flags)
     for (auto& handler : packet_handlers_) {
         uvgrtp::frame::rtp_frame* frame = nullptr;
 
-        switch ((ret = (*handler.second.primary)(nread, ring_buffer_ + current_ring_read_location_ * RECV_BUFFER_SIZE, flags, &frame))) {
+        switch ((ret = (*handler.second.primary)(ring_buffer_[buffer_location].read,
+            ring_buffer_[buffer_location].data, flags, &frame))) {
             /* packet was handled successfully */
         case RTP_OK:
             break;

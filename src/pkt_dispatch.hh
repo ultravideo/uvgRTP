@@ -109,7 +109,7 @@ namespace uvgrtp {
             void runner(uvgrtp::socket *socket, int flags);
 
             /* RTP packet dispatcher thread */
-            rtp_error_t process_packet(int nread, int flags);
+            rtp_error_t process_packet(int buffer_location, int flags);
 
             /* Return a processed RTP frame to user either through frame queue or receive hook */
             void return_frame(uvgrtp::frame::rtp_frame *frame);
@@ -132,7 +132,13 @@ namespace uvgrtp {
 
             std::unique_ptr<std::thread> receiver_;
 
-            uint8_t* ring_buffer_;
+            struct Buffer
+            {
+                uint8_t* data;
+                int read;
+            };
+
+            std::vector<Buffer> ring_buffer_;
 
             int current_ring_read_location_;
             int last_ring_write_location_;
