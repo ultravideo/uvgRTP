@@ -8,6 +8,7 @@
 #include <functional>
 #include <memory>
 #include <thread>
+#include <condition_variable>
 
 namespace uvgrtp {
 
@@ -105,11 +106,11 @@ namespace uvgrtp {
             uvgrtp::frame::rtp_frame *pull_frame(size_t timeout_ms);
 
         private:
-            /* RTP packet dispatcher thread */
-            void runner(uvgrtp::socket *socket, int flags);
+            /* RTP packet receiver thread */
+            void receiver(uvgrtp::socket *socket, int flags);
 
             /* RTP packet dispatcher thread */
-            rtp_error_t process_packet(int buffer_location, int flags);
+            void process_packet(int flags);
 
             /* Return a processed RTP frame to user either through frame queue or receive hook */
             void return_frame(uvgrtp::frame::rtp_frame *frame);
@@ -119,6 +120,8 @@ namespace uvgrtp {
 
             /* Primary handlers for the socket */
             std::unordered_map<uint32_t, packet_handlers> packet_handlers_;
+
+            inline int next_buffer_location(int current_location);
 
             /* If receive hook has not been installed, frames are pushed to "frames_"
              * and they can be retrieved using pull_frame() */
@@ -131,6 +134,7 @@ namespace uvgrtp {
             bool should_stop_;
 
             std::unique_ptr<std::thread> receiver_;
+            std::unique_ptr<std::thread> processor_;
 
             struct Buffer
             {
@@ -140,8 +144,15 @@ namespace uvgrtp {
 
             std::vector<Buffer> ring_buffer_;
 
-            int current_ring_read_location_;
-            int last_ring_write_location_;
+            int ring_read_index_;
+            int last_ring_write_index_;
+
+            /* This mutex guards the ring buffer indexes, not the buffer itself.
+             */
+            std::mutex ring_mtx_;
+            std::mutex wait_mtx_;
+
+            std::condition_variable process_cond_;
 
     };
 }
