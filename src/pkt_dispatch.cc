@@ -375,13 +375,11 @@ void uvgrtp::pkt_dispatcher::receiver(uvgrtp::socket *socket, int flags)
                 int next_write_index = next_buffer_location(last_ring_write_index_);
 
                 // wait if the process/read hasn't freed any spots on the ring buffer
-                ring_mtx_.lock();
                 if (next_write_index == ring_read_index_)
                 {
                     LOG_WARN("Reception processing too slow, dropping oldest packet!");
                     ++ring_read_index_;
                 }
-                ring_mtx_.unlock();
 
                 // get potential packet (there should be because of poll())
                 if ((ret = socket->recvfrom(ring_buffer_[next_write_index].data,
@@ -393,10 +391,8 @@ void uvgrtp::pkt_dispatcher::receiver(uvgrtp::socket *socket, int flags)
                     break;
                 }
 
-                ring_mtx_.lock();
                 // finally we update the ring buffer so processing (reading) knows that there is a new frame
                 last_ring_write_index_ = next_write_index;
-                ring_mtx_.unlock();
 
                 // start processing the frame by waking processing thread
                 process_cond_.notify_one();
@@ -425,14 +421,11 @@ void uvgrtp::pkt_dispatcher::process_packet(int flags)
             break;
         }
 
-        ring_mtx_.lock();
-
         // process all available reads in one go
         while (next_buffer_location(ring_read_index_) != last_ring_write_index_)
         {
             // first update the read location
             ring_read_index_ = next_buffer_location(ring_read_index_);
-            ring_mtx_.unlock();
 
             rtp_error_t ret = RTP_OK;
 
@@ -467,11 +460,7 @@ void uvgrtp::pkt_dispatcher::process_packet(int flags)
                     break;
                 }
             }
-
-            ring_mtx_.lock();
         }
-
-        ring_mtx_.unlock();
     }
 }
 

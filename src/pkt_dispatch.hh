@@ -9,6 +9,7 @@
 #include <memory>
 #include <thread>
 #include <condition_variable>
+#include <atomic>
 
 namespace uvgrtp {
 
@@ -144,12 +145,10 @@ namespace uvgrtp {
 
             std::vector<Buffer> ring_buffer_;
 
-            int ring_read_index_;
-            int last_ring_write_index_;
+            // these uphold the ring buffer details in a thread safe manner
+            std::atomic<int> ring_read_index_;
+            std::atomic<int> last_ring_write_index_;
 
-            /* This mutex guards the ring buffer indexes, not the buffer itself.
-             */
-            std::mutex ring_mtx_;
             std::mutex wait_mtx_;
 
             std::condition_variable process_cond_;
