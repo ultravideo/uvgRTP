@@ -83,22 +83,21 @@ rtp_error_t uvgrtp::pkt_dispatcher::start(uvgrtp::socket *socket, int flags)
     processor_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::pkt_dispatcher::process_packet, this, flags));
     receiver_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::pkt_dispatcher::receiver, this, socket, flags));
 
-#ifndef WIN32
+    // set receiver thread priority to maximum priority
+    LOG_DEBUG("Trying to set receiver thread realtime priority");
 
-    // set receiver to maximum priority
+#ifndef WIN32
     struct sched_param params;
     params.sched_priority = sched_get_priority_max(SCHED_FIFO);
-
-    LOG_DEBUG("Trying to set receiver thread realtime prio");
-
     pthread_setschedparam(receiver_->native_handle(), SCHED_FIFO, &params);
+    params.sched_priority = sched_get_priority_max(SCHED_FIFO) - 1;
+    pthread_setschedparam(processor_->native_handle(), SCHED_FIFO, &params);
 #else
 
+    SetThreadPriority(receiver_->native_handle(), REALTIME_PRIORITY_CLASS);
+    SetThreadPriority(processor_->native_handle(), ABOVE_NORMAL_PRIORITY_CLASS);
 
-
-#endif // !WIN32
-
-
+#endif
 
     return RTP_ERROR::RTP_OK;
 }
