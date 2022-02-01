@@ -365,12 +365,12 @@ void uvgrtp::pkt_dispatcher::receiver(uvgrtp::socket *socket, int flags)
 
         if (pfds->revents & POLLIN) {
 
-            // we write as mane frames as socket has to the buffer
+            // we write as many packets as socket has in the buffer
             rtp_error_t ret = RTP_OK;
             while (ret == RTP_OK && !should_stop_)
             {
                 // get the potential next write. Poll makes sure we already have data in the buffer, but
-                // to make sure processing doesn't start reading incomplete frames, we update index 
+                // to make sure processing doesn't start reading incomplete/old packets, we update index 
                 // after we have the data
                 int next_write_index = next_buffer_location(last_ring_write_index_);
 
@@ -393,10 +393,10 @@ void uvgrtp::pkt_dispatcher::receiver(uvgrtp::socket *socket, int flags)
 
                 // finally we update the ring buffer so processing (reading) knows that there is a new frame
                 last_ring_write_index_ = next_write_index;
-
-                // start processing the frame by waking processing thread
-                process_cond_.notify_one();
             }
+
+            // start processing the packets by waking the processing thread
+            process_cond_.notify_one();
         }
 
         if (pfds)
