@@ -183,5 +183,6 @@ void cleanup(uvgrtp::context& ctx, uvgrtp::session* sess, uvgrtp::media_stream* 
 void process_rtp_frame(uvgrtp::frame::rtp_frame* frame)
 {
     EXPECT_NE(0, frame->payload_len);
+    EXPECT_EQ(2, frame->header.version);
     (void)uvgrtp::frame::dealloc_frame(frame);
 }

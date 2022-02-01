@@ -8,6 +8,8 @@
 #include <functional>
 #include <memory>
 #include <thread>
+#include <condition_variable>
+#include <atomic>
 
 namespace uvgrtp {
 
@@ -104,9 +106,15 @@ namespace uvgrtp {
             uvgrtp::frame::rtp_frame *pull_frame();
             uvgrtp::frame::rtp_frame *pull_frame(size_t timeout_ms);
 
+            void set_mtu_size(ssize_t& value);
+            void set_buffer_size(ssize_t& value);
+
         private:
+            /* RTP packet receiver thread */
+            void receiver(uvgrtp::socket *socket, int flags);
+
             /* RTP packet dispatcher thread */
-            void runner(uvgrtp::socket *socket, int flags);
+            void process_packet(int flags);
 
             /* Return a processed RTP frame to user either through frame queue or receive hook */
             void return_frame(uvgrtp::frame::rtp_frame *frame);
@@ -117,6 +125,11 @@ namespace uvgrtp {
             /* Primary handlers for the socket */
             std::unordered_map<uint32_t, packet_handlers> packet_handlers_;
 
+            inline int next_buffer_location(int current_location);
+
+            void create_ring_buffer();
+            void destroy_ring_buffer();
+
             /* If receive hook has not been installed, frames are pushed to "frames_"
              * and they can be retrieved using pull_frame() */
             std::vector<uvgrtp::frame::rtp_frame *> frames_;
@@ -125,8 +138,29 @@ namespace uvgrtp {
             void *recv_hook_arg_;
             void (*recv_hook_)(void *arg, uvgrtp::frame::rtp_frame *frame);
 
-            bool runner_should_stop_;
-            std::unique_ptr<std::thread> runner_;
+            bool should_stop_;
+
+            std::unique_ptr<std::thread> receiver_;
+            std::unique_ptr<std::thread> processor_;
+
+            struct Buffer
+            {
+                uint8_t* data;
+                int read;
+            };
+
+            std::vector<Buffer> ring_buffer_;
+
+            // these uphold the ring buffer details in a thread safe manner
+            std::atomic<int> ring_read_index_;
+            std::atomic<int> last_ring_write_index_;
+
+            std::mutex wait_mtx_;
+
+            std::condition_variable process_cond_;
+
+            ssize_t mtu_size_;
+            ssize_t buffer_size_kbytes_;
     };
 }
 

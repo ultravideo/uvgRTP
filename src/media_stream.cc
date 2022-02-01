@@ -553,6 +553,8 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int flag, ssize_t value)
             if (value <= 0)
                 return RTP_INVALID_VALUE;
 
+            pkt_dispatcher_->set_buffer_size(value);
+
             int buf_size = (int)value;
             if ((ret = socket_->setsockopt(SOL_SOCKET, SO_RCVBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
                 return ret;
@@ -594,6 +596,8 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int flag, ssize_t value)
             }
 
             rtp_->set_payload_size(value - hdr);
+            pkt_dispatcher_->set_mtu_size(value);
+
         }
         break;
 

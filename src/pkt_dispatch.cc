@@ -10,39 +10,111 @@
 
 #ifndef _WIN32
 #include <errno.h>
+#include <poll.h>
+#include <pthread.h>
 #else
 #define MSG_DONTWAIT 0
 #endif
 
 #include <cstring>
 
-uvgrtp::pkt_dispatcher::pkt_dispatcher():
+
+constexpr size_t DEFAULT_MTU_SIZE = 1458;
+constexpr size_t DEFAULT_BUFFER_SIZE = 4194304;
+
+
+uvgrtp::pkt_dispatcher::pkt_dispatcher() :
     recv_hook_arg_(nullptr),
     recv_hook_(nullptr),
-    runner_(nullptr),
-    runner_should_stop_(true)
+    should_stop_(true),
+    receiver_(nullptr),
+    ring_buffer_(),
+    ring_read_index_(-1), // invalid first index that will increase to a valid one
+    last_ring_write_index_(0),
+    mtu_size_(DEFAULT_MTU_SIZE),
+    buffer_size_kbytes_(DEFAULT_BUFFER_SIZE)
 {
+    create_ring_buffer();
 }
 
 uvgrtp::pkt_dispatcher::~pkt_dispatcher()
 {
+    destroy_ring_buffer();
+
+    // TODO: Delete frames?
+}
+
+void uvgrtp::pkt_dispatcher::create_ring_buffer()
+{
+    destroy_ring_buffer();
+    size_t elements = buffer_size_kbytes_ / mtu_size_;
+
+    for (int i = 0; i < elements; ++i)
+    {
+        ring_buffer_.push_back({ new uint8_t[mtu_size_] , 0 });
+    }
+}
+
+void uvgrtp::pkt_dispatcher::destroy_ring_buffer()
+{
+    for (int i = 0; i < ring_buffer_.size(); ++i)
+    {
+        delete[] ring_buffer_.at(i).data;
+    }
+    ring_buffer_.clear();
+}
+
+void uvgrtp::pkt_dispatcher::set_mtu_size(ssize_t& value)
+{
+    mtu_size_ = value;
+    create_ring_buffer();
+}
+
+
+void uvgrtp::pkt_dispatcher::set_buffer_size(ssize_t& value)
+{
+    buffer_size_kbytes_ = value;
+    create_ring_buffer();
 }
 
 rtp_error_t uvgrtp::pkt_dispatcher::start(uvgrtp::socket *socket, int flags)
 {
-    runner_should_stop_ = false;
-    runner_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::pkt_dispatcher::runner, this, socket, flags));
+    should_stop_ = false;
+    processor_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::pkt_dispatcher::process_packet, this, flags));
+    receiver_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::pkt_dispatcher::receiver, this, socket, flags));
+
+    // set receiver thread priority to maximum priority
+    LOG_DEBUG("Trying to set receiver thread realtime priority");
+
+#ifndef WIN32
+    struct sched_param params;
+    params.sched_priority = sched_get_priority_max(SCHED_FIFO);
+    pthread_setschedparam(receiver_->native_handle(), SCHED_FIFO, &params);
+    params.sched_priority = sched_get_priority_max(SCHED_FIFO) - 1;
+    pthread_setschedparam(processor_->native_handle(), SCHED_FIFO, &params);
+#else
+
+    SetThreadPriority(receiver_->native_handle(), REALTIME_PRIORITY_CLASS);
+    SetThreadPriority(processor_->native_handle(), ABOVE_NORMAL_PRIORITY_CLASS);
+
+#endif
 
     return RTP_ERROR::RTP_OK;
 }
 
 rtp_error_t uvgrtp::pkt_dispatcher::stop()
 {
-    runner_should_stop_ = true;
+    should_stop_ = true;
+    process_cond_.notify_all();
 
-    if (runner_ != nullptr && runner_->joinable())
+    if (receiver_ != nullptr && receiver_->joinable())
     {
-        runner_->join();
+        receiver_->join();
+    }
+
+    if (processor_ != nullptr && processor_->joinable())
+    {
+        processor_->join();
     }
 
     return RTP_OK;
@@ -64,12 +136,12 @@ rtp_error_t uvgrtp::pkt_dispatcher::install_receive_hook(
 
 uvgrtp::frame::rtp_frame *uvgrtp::pkt_dispatcher::pull_frame()
 {
-    while (frames_.empty() && !runner_should_stop_)
+    while (frames_.empty() && !should_stop_)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 
-    if (runner_should_stop_)
+    if (should_stop_)
         return nullptr;
 
     frames_mtx_.lock();
@@ -85,13 +157,13 @@ uvgrtp::frame::rtp_frame *uvgrtp::pkt_dispatcher::pull_frame(size_t timeout_ms)
     auto start_time = std::chrono::high_resolution_clock::now();
 
     while (frames_.empty() && 
-        !runner_should_stop_ && 
+        !should_stop_ &&
         timeout_ms > std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_time).count())
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    if (runner_should_stop_ || frames_.empty())
+    if (receiver_ || frames_.empty())
         return nullptr;
 
     frames_mtx_.lock();
@@ -284,68 +356,142 @@ void uvgrtp::pkt_dispatcher::call_aux_handlers(uint32_t key, int flags, uvgrtp::
  *
  * If a handler receives a non-null "out", it can safely ignore "packet" and operate just on
  * the "out" parameter because at that point it already contains all needed information. */
-void uvgrtp::pkt_dispatcher::runner(uvgrtp::socket *socket, int flags)
-{   
-    // stack size isn't enough for this so we allocate temporary memory for it from heap
-    const size_t recv_buffer_len = 0xffff - IPV4_HDR_SIZE - UDP_HDR_SIZE;
-    uint8_t* recv_buffer = new uint8_t[recv_buffer_len];
+void uvgrtp::pkt_dispatcher::receiver(uvgrtp::socket *socket, int flags)
+{
+    LOG_DEBUG("Start reception loop");
 
-    fd_set read_fds;
-    FD_ZERO(&read_fds);
+    while (!should_stop_) {
 
-    while (!runner_should_stop_) {
-        /* reset state before each call */
-        struct timeval t_val;
-        t_val.tv_sec  = 0;
-        t_val.tv_usec = 1500;
-        FD_SET(socket->get_raw_socket(), &read_fds);
+        // First we wait using poll until there is data in the socket
 
-        int sret = ::select((int)socket->get_raw_socket() + 1, &read_fds, nullptr, nullptr, &t_val);
+#ifdef _WIN32
+        LPWSAPOLLFD pfds = new pollfd();
+#else
+        pollfd* pfds = new pollfd();
+#endif
 
-        if (sret < 0) {
-            log_platform_error("select(2) failed");
+        int read_fds = socket->get_raw_socket();
+        pfds->fd = read_fds;
+        pfds->events = POLLIN;
+
+        // exits after this time if no data has been received to check whether we should exit
+        int timeout_ms = 100; 
+
+#ifdef _WIN32
+        if (WSAPoll(pfds, 1, timeout_ms) < 0) {
+#else
+        if (poll(pfds, 1, timeout_ms) < 0) {
+#endif
+            LOG_ERROR("poll(2) failed");
+            if (pfds)
+            {
+                delete pfds;
+            }
             break;
         }
 
-        rtp_error_t ret = RTP_OK;
-        do {
-            int nread = 0;
-            
-            if ((ret = socket->recvfrom(recv_buffer, recv_buffer_len, MSG_DONTWAIT, &nread)) == RTP_INTERRUPTED)
-                break;
+        if (pfds->revents & POLLIN) {
 
-            if (ret != RTP_OK) {
-                LOG_ERROR("recvfrom(2) failed! Packet dispatcher cannot continue %d!", ret);
-                break;
+            // we write as many packets as socket has in the buffer
+            rtp_error_t ret = RTP_OK;
+            while (ret == RTP_OK && !should_stop_)
+            {
+                // get the potential next write. Poll makes sure we already have data in the buffer, but
+                // to make sure processing doesn't start reading incomplete/old packets, we update index 
+                // after we have the data
+                int next_write_index = next_buffer_location(last_ring_write_index_);
+
+                // wait if the process/read hasn't freed any spots on the ring buffer
+                if (next_write_index == ring_read_index_)
+                {
+                    LOG_WARN("Reception processing too slow, dropping oldest packet!");
+                    ++ring_read_index_;
+                }
+
+                // get potential packet (there should be because of poll())
+                if ((ret = socket->recvfrom(ring_buffer_[next_write_index].data,
+                        mtu_size_, MSG_DONTWAIT, &ring_buffer_[next_write_index].read)) == RTP_INTERRUPTED)
+                    break;
+
+                if (ret != RTP_OK) {
+                    LOG_ERROR("recvfrom(2) failed! Packet dispatcher cannot continue %d!", ret);
+                    break;
+                }
+
+                // finally we update the ring buffer so processing (reading) knows that there is a new frame
+                last_ring_write_index_ = next_write_index;
             }
 
+            // start processing the packets by waking the processing thread
+            process_cond_.notify_one();
+        }
+
+        if (pfds)
+        {
+            delete pfds;
+        }
+    }
+}
+
+void uvgrtp::pkt_dispatcher::process_packet(int flags)
+{
+    LOG_DEBUG("Start processing loop");
+    std::unique_lock<std::mutex> lk(wait_mtx_);
+
+    while (!should_stop_)
+    {
+        // go to sleep waiting for something to process
+        process_cond_.wait(lk); 
+
+        if (should_stop_)
+        {
+            break;
+        }
+
+        // process all available reads in one go
+        while (next_buffer_location(ring_read_index_) != last_ring_write_index_)
+        {
+            // first update the read location
+            ring_read_index_ = next_buffer_location(ring_read_index_);
+
+            rtp_error_t ret = RTP_OK;
+
+            // process the ring buffer location through all the handlers
             for (auto& handler : packet_handlers_) {
                 uvgrtp::frame::rtp_frame* frame = nullptr;
-                switch ((ret = (*handler.second.primary)(nread, recv_buffer, flags, &frame))) {
+
+                // Here we don't lock ring mutex because the chaging is only done above. 
+                // NOTE: If there is a need for multiple processing threads, the read should be guarded
+                switch ((ret = (*handler.second.primary)(ring_buffer_[ring_read_index_].read,
+                    ring_buffer_[ring_read_index_].data, flags, &frame))) {
                     /* packet was handled successfully */
-                    case RTP_OK:
-                        break;
+                case RTP_OK:
+                    break;
 
                     /* packet was not handled by this primary handlers, proceed to the next one */
-                    case RTP_PKT_NOT_HANDLED:
-                        continue;
+                case RTP_PKT_NOT_HANDLED:
+                    continue;
 
                     /* packet was handled by the primary handler
                      * and should be dispatched to the auxiliary handler(s) */
-                    case RTP_PKT_MODIFIED:
-                        this->call_aux_handlers(handler.first, flags, &frame);
-                        break;
+                case RTP_PKT_MODIFIED:
+                    this->call_aux_handlers(handler.first, flags, &frame);
+                    break;
 
-                    case RTP_GENERIC_ERROR:
-                        LOG_DEBUG("Received a corrupted packet!");
-                        break;
+                case RTP_GENERIC_ERROR:
+                    LOG_DEBUG("Received a corrupted packet!");
+                    break;
 
-                    default:
-                        LOG_ERROR("Unknown error code from packet handler: %d", ret);
-                        break;
+                default:
+                    LOG_ERROR("Unknown error code from packet handler: %d", ret);
+                    break;
                 }
             }
-        } while (ret == RTP_OK);
+        }
     }
-    delete[] recv_buffer;
+}
+
+int uvgrtp::pkt_dispatcher::next_buffer_location(int current_location)
+{
+    return (current_location + 1) % ring_buffer_.size();
 }
