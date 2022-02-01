@@ -11,6 +11,7 @@
 #ifndef _WIN32
 #include <errno.h>
 #include <poll.h>
+#include <pthread.h>
 #else
 #define MSG_DONTWAIT 0
 #endif
@@ -53,6 +54,23 @@ rtp_error_t uvgrtp::pkt_dispatcher::start(uvgrtp::socket *socket, int flags)
     should_stop_ = false;
     processor_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::pkt_dispatcher::process_packet, this, flags));
     receiver_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::pkt_dispatcher::receiver, this, socket, flags));
+
+#ifndef WIN32
+
+    // set receiver to maximum priority
+    struct sched_param params;
+    params.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+    LOG_DEBUG("Trying to set receiver thread realtime prio");
+
+    pthread_setschedparam(receiver_->native_handle(), SCHED_FIFO, &params);
+#else
+
+
+
+#endif // !WIN32
+
+
 
     return RTP_ERROR::RTP_OK;
 }
