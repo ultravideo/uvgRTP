@@ -106,6 +106,9 @@ namespace uvgrtp {
             uvgrtp::frame::rtp_frame *pull_frame();
             uvgrtp::frame::rtp_frame *pull_frame(size_t timeout_ms);
 
+            void set_mtu_size(ssize_t& value);
+            void set_buffer_size(ssize_t& value);
+
         private:
             /* RTP packet receiver thread */
             void receiver(uvgrtp::socket *socket, int flags);
@@ -123,6 +126,9 @@ namespace uvgrtp {
             std::unordered_map<uint32_t, packet_handlers> packet_handlers_;
 
             inline int next_buffer_location(int current_location);
+
+            void create_ring_buffer();
+            void destroy_ring_buffer();
 
             /* If receive hook has not been installed, frames are pushed to "frames_"
              * and they can be retrieved using pull_frame() */
@@ -153,6 +159,8 @@ namespace uvgrtp {
 
             std::condition_variable process_cond_;
 
+            ssize_t mtu_size_;
+            ssize_t buffer_size_kbytes_;
     };
 }
 

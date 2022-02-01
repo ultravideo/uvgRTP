@@ -18,10 +18,10 @@
 
 #include <cstring>
 
-// stack size isn't enough for this so we allocate temporary memory for it from heap
-constexpr size_t RECV_BUFFER_SIZE = 0xffff - IPV4_HDR_SIZE - UDP_HDR_SIZE;
 
-constexpr int RING_BUFFER_SIZE = 1500;
+constexpr size_t DEFAULT_MTU_SIZE = 1458;
+constexpr size_t DEFAULT_BUFFER_SIZE = 4194304;
+
 
 uvgrtp::pkt_dispatcher::pkt_dispatcher() :
     recv_hook_arg_(nullptr),
@@ -30,23 +30,51 @@ uvgrtp::pkt_dispatcher::pkt_dispatcher() :
     receiver_(nullptr),
     ring_buffer_(),
     ring_read_index_(-1), // invalid first index that will increase to a valid one
-    last_ring_write_index_(0)
+    last_ring_write_index_(0),
+    mtu_size_(DEFAULT_MTU_SIZE),
+    buffer_size_kbytes_(DEFAULT_BUFFER_SIZE)
 {
-    for (int i = 0; i < RING_BUFFER_SIZE; ++i)
-    {
-        ring_buffer_.push_back({ new uint8_t[RECV_BUFFER_SIZE] , 0});
-    }
+    create_ring_buffer();
 }
 
 uvgrtp::pkt_dispatcher::~pkt_dispatcher()
+{
+    destroy_ring_buffer();
+
+    // TODO: Delete frames?
+}
+
+void uvgrtp::pkt_dispatcher::create_ring_buffer()
+{
+    destroy_ring_buffer();
+    size_t elements = buffer_size_kbytes_ / mtu_size_;
+
+    for (int i = 0; i < elements; ++i)
+    {
+        ring_buffer_.push_back({ new uint8_t[mtu_size_] , 0 });
+    }
+}
+
+void uvgrtp::pkt_dispatcher::destroy_ring_buffer()
 {
     for (int i = 0; i < ring_buffer_.size(); ++i)
     {
         delete[] ring_buffer_.at(i).data;
     }
     ring_buffer_.clear();
+}
 
-    // TODO: Delete frames?
+void uvgrtp::pkt_dispatcher::set_mtu_size(ssize_t& value)
+{
+    mtu_size_ = value;
+    create_ring_buffer();
+}
+
+
+void uvgrtp::pkt_dispatcher::set_buffer_size(ssize_t& value)
+{
+    buffer_size_kbytes_ = value;
+    create_ring_buffer();
 }
 
 rtp_error_t uvgrtp::pkt_dispatcher::start(uvgrtp::socket *socket, int flags)
@@ -383,7 +411,7 @@ void uvgrtp::pkt_dispatcher::receiver(uvgrtp::socket *socket, int flags)
 
                 // get potential packet (there should be because of poll())
                 if ((ret = socket->recvfrom(ring_buffer_[next_write_index].data,
-                        RECV_BUFFER_SIZE, MSG_DONTWAIT, &ring_buffer_[next_write_index].read)) == RTP_INTERRUPTED)
+                        mtu_size_, MSG_DONTWAIT, &ring_buffer_[next_write_index].read)) == RTP_INTERRUPTED)
                     break;
 
                 if (ret != RTP_OK) {
@@ -466,5 +494,5 @@ void uvgrtp::pkt_dispatcher::process_packet(int flags)
 
 int uvgrtp::pkt_dispatcher::next_buffer_location(int current_location)
 {
-    return (current_location + 1) % RING_BUFFER_SIZE;
+    return (current_location + 1) % ring_buffer_.size();
 }
