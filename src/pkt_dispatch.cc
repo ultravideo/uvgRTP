@@ -351,24 +351,23 @@ void uvgrtp::pkt_dispatcher::receiver(uvgrtp::socket *socket, int flags)
             rtp_error_t ret = RTP_OK;
             while (ret == RTP_OK && !should_stop_)
             {
+                // get the potential next write. Poll makes sure we already have data in the buffer, but
+                // to make sure processing doesn't start reading incomplete frames, we update index 
+                // after we have the data
+                int next_write_index = next_buffer_location(last_ring_write_index_);
+
                 // wait if the process/read hasn't freed any spots on the ring buffer
                 ring_mtx_.lock();
-                while (next_buffer_location(last_ring_write_index_) == ring_read_index_)
+                if (next_write_index == ring_read_index_)
                 {
-                    ring_mtx_.unlock();
-                    LOG_WARN("Reception ring buffer processes too slowly!");
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                    ring_mtx_.lock();
+                    LOG_WARN("Reception processing too slow, dropping oldest packet!");
+                    ++ring_read_index_;
                 }
                 ring_mtx_.unlock();
 
-                // get the potential next write. Poll makes sure we already have data in the buffer, but
-                // just so read doesn't start reading incomplete frames, we update location only after we have the data
-                int next_write_location = next_buffer_location(last_ring_write_index_);
-
                 // get potential packet (there should be because of poll())
-                if ((ret = socket->recvfrom(ring_buffer_[next_write_location].data,
-                        RECV_BUFFER_SIZE, MSG_DONTWAIT, &ring_buffer_[next_write_location].read)) == RTP_INTERRUPTED)
+                if ((ret = socket->recvfrom(ring_buffer_[next_write_index].data,
+                        RECV_BUFFER_SIZE, MSG_DONTWAIT, &ring_buffer_[next_write_index].read)) == RTP_INTERRUPTED)
                     break;
 
                 if (ret != RTP_OK) {
@@ -378,7 +377,7 @@ void uvgrtp::pkt_dispatcher::receiver(uvgrtp::socket *socket, int flags)
 
                 ring_mtx_.lock();
                 // finally we update the ring buffer so processing (reading) knows that there is a new frame
-                last_ring_write_index_ = next_write_location;
+                last_ring_write_index_ = next_write_index;
                 ring_mtx_.unlock();
 
                 // start processing the frame by waking processing thread
