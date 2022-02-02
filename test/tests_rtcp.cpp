@@ -77,7 +77,38 @@ TEST(RTCPTests, rtcp) {
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
 }
 
+TEST(RTCP_double_bind_test, rtcp) {
+    // Here we test if there are errors when double binding RTCP into the same port
 
+    std::cout << "Starting uvgRTP RTCP double bind tests" << std::endl;
+
+    // Creation of RTP stream. See sending example for more details
+    uvgrtp::context ctx;
+    uvgrtp::session* local_session = ctx.create_session(REMOTE_ADDRESS);
+    uvgrtp::session* remote_session = ctx.create_session(LOCAL_INTERFACE);
+
+    int flags = RCE_RTCP;
+
+    uvgrtp::media_stream* local_stream = nullptr;
+    if (local_session)
+    {
+        local_stream = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
+    }
+
+    uvgrtp::media_stream* remote_stream = nullptr;
+    if (remote_session)
+    {
+        // this is invalid since the ports are the same
+        remote_stream = remote_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
+    }
+
+    EXPECT_NE(nullptr, local_session);
+    EXPECT_NE(nullptr, remote_session);
+    EXPECT_NE(nullptr, local_stream);
+    EXPECT_EQ(nullptr, remote_stream);
+
+    cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
+}
 
 void receiver_hook(uvgrtp::frame::rtcp_receiver_report* frame)
 {
