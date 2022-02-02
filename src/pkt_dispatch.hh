@@ -106,7 +106,6 @@ namespace uvgrtp {
             uvgrtp::frame::rtp_frame *pull_frame();
             uvgrtp::frame::rtp_frame *pull_frame(size_t timeout_ms);
 
-            void set_mtu_size(ssize_t& value);
             void set_buffer_size(ssize_t& value);
 
         private:
@@ -156,10 +155,10 @@ namespace uvgrtp {
             std::atomic<int> last_ring_write_index_;
 
             std::mutex wait_mtx_;
+            std::mutex ring_mutex_;
 
             std::condition_variable process_cond_;
 
-            ssize_t mtu_size_;
             ssize_t buffer_size_kbytes_;
     };
 }
