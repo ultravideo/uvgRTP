@@ -355,13 +355,15 @@ void uvgrtp::pkt_dispatcher::receiver(uvgrtp::socket *socket, int flags)
                 // incomplete/old packets, we only update the index after buffer has the data
                 int next_write_index = next_buffer_location(last_ring_write_index_);
 
-                // wait if the process/read hasn't freed any spots on the ring buffer
+                // create new buffer spaces if the process/read hasn't freed any spots on the ring buffer
                 if (next_write_index == ring_read_index_)
                 {
-                    LOG_DEBUG("Reception buffer ran out, doubling the buffer size ...");
+                    LOG_DEBUG("Reception buffer ran out, increasing the buffer size ...");
 
-                    // double the size every time we run out
-                    int increase = ring_buffer_.size();
+                    // increase the buffer size by 25%
+                    int increase = ring_buffer_.size()/4;
+                    if (increase == 0) // just so there is some increase
+                        ++increase;
 
                     ring_mutex_.lock();
                     for (unsigned int i = 0; i < increase; ++i)
