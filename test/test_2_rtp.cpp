@@ -64,6 +64,11 @@ TEST(RTPTests, send_too_much)
             {
                 std::cout << "Failed to send RTP frame!" << std::endl;
             }
+
+            if (i % 1000 == 999)
+            {
+                std::cout << "Sent " << (i + 1) * 100 / 10000 << " % of data" << std::endl;
+            }
         }
 
         EXPECT_NE(nullptr, sender);

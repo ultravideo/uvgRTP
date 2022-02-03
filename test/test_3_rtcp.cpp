@@ -70,6 +70,11 @@ TEST(RTCPTests, rtcp) {
         {
             EXPECT_EQ(RTP_OK, local_stream->push_frame((uint8_t*)buffer, PAYLOAD_LEN, RTP_NO_FLAGS));
 
+            if (i % (SEND_TEST_PACKETS/10) == SEND_TEST_PACKETS/10 - 1)
+            {
+                std::cout << "Sent " << (i + 1) * 100 / SEND_TEST_PACKETS << " % of data" << std::endl;
+            }
+
             wait_until_next_frame(start, i);
         }
     }
@@ -127,12 +132,20 @@ TEST(RTCP_reopen_receiver, rtcp) {
 
             wait_until_next_frame(start, i);
 
+            if (i % (SEND_TEST_PACKETS/10) == SEND_TEST_PACKETS/10 - 1)
+            {
+                std::cout << "Sent " << (i + 1) * 100 / SEND_TEST_PACKETS << " % of data" << std::endl;
+            }
+
+
             if (i == SEND_TEST_PACKETS/2)
             {
                 if (remote_stream)
                 {
+                    std::cout << "Closing and reopening receiver for testing purposes" << std::endl;
                     remote_session->destroy_stream(remote_stream);
                     remote_stream = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
+                    EXPECT_NE(nullptr, remote_stream);
                 }
             }
         }
