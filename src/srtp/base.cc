@@ -41,7 +41,7 @@ uvgrtp::srtp_ctx_t *uvgrtp::base_srtp::get_ctx()
 rtp_error_t uvgrtp::base_srtp::derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t out_len)
 {
     uint8_t input[UVG_IV_LENGTH]    = { 0 };
-    uint8_t ks[AES128_KEY_SIZE] = { 0 };
+    uint8_t ks[AES256_KEY_SIZE] = { 0 };
 
     memcpy(input, salt, UVG_SALT_LENGTH);
     memset(out, 0, out_len);
