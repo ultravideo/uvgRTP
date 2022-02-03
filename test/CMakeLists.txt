@@ -7,11 +7,11 @@ add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME}
         PRIVATE
             main.cpp
-            tests_encryption.cpp
-            tests_formats.cpp
-            tests_rtcp.cpp
-            tests_rtp.cpp
-            tests_version.cpp
+            test_1_version.cpp
+            test_2_rtp.cpp
+            test_3_rtcp.cpp
+            test_4_formats.cpp
+            test_5_srtp_zrtp.cpp
         )
 
 if(MSVC)

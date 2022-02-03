@@ -77,6 +77,70 @@ TEST(RTCPTests, rtcp) {
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
 }
 
+TEST(RTCP_reopen_receiver, rtcp) {
+    std::cout << "Starting uvgRTP RTCP tests" << std::endl;
+
+    // Creation of RTP stream. See sending example for more details
+    uvgrtp::context ctx;
+    uvgrtp::session* local_session = ctx.create_session(REMOTE_ADDRESS);
+    uvgrtp::session* remote_session = ctx.create_session(LOCAL_INTERFACE);
+
+    int flags = RCE_RTCP;
+
+    uvgrtp::media_stream* local_stream = nullptr;
+    if (local_session)
+    {
+        local_stream = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
+    }
+
+    uvgrtp::media_stream* remote_stream = nullptr;
+    if (remote_session)
+    {
+        remote_stream = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
+    }
+
+    EXPECT_NE(nullptr, local_session);
+    EXPECT_NE(nullptr, remote_session);
+    EXPECT_NE(nullptr, local_stream);
+    EXPECT_NE(nullptr, remote_stream);
+
+    if (local_stream)
+    {
+        EXPECT_EQ(RTP_OK, local_stream->get_rtcp()->install_receiver_hook(receiver_hook));
+    }
+
+    if (remote_stream)
+    {
+        EXPECT_EQ(RTP_OK, remote_stream->get_rtcp()->install_sender_hook(sender_hook));
+    }
+
+    if (local_stream)
+    {
+        uint8_t buffer[PAYLOAD_LEN] = { 0 };
+        memset(buffer, 'a', PAYLOAD_LEN);
+
+        std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+
+        for (unsigned int i = 0; i < SEND_TEST_PACKETS; ++i)
+        {
+            EXPECT_EQ(RTP_OK, local_stream->push_frame((uint8_t*)buffer, PAYLOAD_LEN, RTP_NO_FLAGS));
+
+            wait_until_next_frame(start, i);
+
+            if (i == SEND_TEST_PACKETS/2)
+            {
+                if (remote_stream)
+                {
+                    remote_session->destroy_stream(remote_stream);
+                    remote_stream = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
+                }
+            }
+        }
+    }
+
+    cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
+}
+
 TEST(RTCP_double_bind_test, rtcp) {
     // Here we test if there are errors when double binding RTCP into the same port
 
