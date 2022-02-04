@@ -60,7 +60,7 @@ namespace uvgrtp {
              * TODO document all error codes!
              *
              * Other error return codes are defined in {conn,writer,reader,srtp}.hh */
-            rtp_error_t init(uvgrtp::zrtp *zrtp);
+            rtp_error_t init(std::shared_ptr<uvgrtp::zrtp> zrtp);
             /// \endcond
 
             /**
@@ -311,7 +311,7 @@ namespace uvgrtp {
             rtp_error_t free_resources(rtp_error_t ret);
 
             rtp_error_t init_srtp_with_zrtp(int flags, int type, uvgrtp::base_srtp* srtp,
-                                            uvgrtp::zrtp *zrtp);
+                                            std::shared_ptr<uvgrtp::zrtp> zrtp);
 
             uint32_t key_;
 

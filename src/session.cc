@@ -8,7 +8,7 @@
 
 uvgrtp::session::session(std::string addr):
 #ifdef __RTP_CRYPTO__
-    zrtp_(nullptr),
+    zrtp_(new uvgrtp::zrtp()),
 #endif
     addr_(addr),
     laddr_("")
@@ -27,10 +27,6 @@ uvgrtp::session::~session()
         (void)destroy_stream(i.second);
     }
     streams_.clear();
-
-#ifdef __RTP_CRYPTO__
-    delete zrtp_;
-#endif
 }
 
 uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp_format_t fmt, int flags)
@@ -68,7 +64,7 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
             }
 
             if (!zrtp_) {
-                zrtp_ = new uvgrtp::zrtp();
+                zrtp_ = std::shared_ptr<uvgrtp::zrtp> (new uvgrtp::zrtp());
             }
 
             if (stream->init(zrtp_) != RTP_OK) {

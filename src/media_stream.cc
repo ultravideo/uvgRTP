@@ -264,7 +264,7 @@ rtp_error_t uvgrtp::media_stream::init()
     return pkt_dispatcher_->start(socket_, ctx_config_.flags);
 }
 
-rtp_error_t uvgrtp::media_stream::init(uvgrtp::zrtp *zrtp)
+rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
 {
     rtp_error_t ret;
 
@@ -618,7 +618,7 @@ uvgrtp::rtcp *uvgrtp::media_stream::get_rtcp()
 }
 
 rtp_error_t uvgrtp::media_stream::init_srtp_with_zrtp(int flags, int type, uvgrtp::base_srtp* srtp,
-    uvgrtp::zrtp *zrtp)
+    std::shared_ptr<uvgrtp::zrtp> zrtp)
 {
     size_t key_size = srtp->get_key_size(flags);
 
