@@ -155,7 +155,7 @@ uvgrtp::frame::rtp_frame *uvgrtp::pkt_dispatcher::pull_frame(size_t timeout_ms)
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    if (receiver_ || frames_.empty())
+    if (should_stop_ || frames_.empty())
         return nullptr;
 
     frames_mtx_.lock();
