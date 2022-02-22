@@ -4,8 +4,6 @@ uvgRTP is an *Real-Time Transport Protocol (RTP)* library written in C++ with a 
 
 uvgRTP is licensed under the permissive BSD 2-Clause License. This cross-platform library can be run on both Linux and Windows operating systems. Mac OS is currently not supported, but contributions are welcome to help with this. For SRTP/ZRTP support, uvgRTP uses [Crypto++ library](https://www.cryptopp.com/). 
 
-uvgRTP is still in its beginning stages, meaning that new bugs are still being found and fixed. You can follow the progress on bug fixes [here](https://github.com/ultravideo/uvgRTP/issues?q=is%3Aissue+is%3Aopen+label%3Abug).
-
 Currently supported specifications:
    * [RFC 3350: RTP: A Transport Protocol for Real-Time Applications](https://tools.ietf.org/html/rfc3550)
    * [RFC 7798: RTP Payload Format for High Efficiency Video Coding (HEVC)](https://tools.ietf.org/html/rfc7798)
@@ -40,8 +38,22 @@ See [documentation](docs/README.md) and [examples](docs/examples) to get a bette
 
 We warmly welcome any contributions to the project. If you are thinking about submitting a pull request, please read [CONTRIBUTING.md](CONTRIBUTING.md) before proceeding.
 
-## Paper
+## Test framework
 
-If you use uvgRTP in your research, please cite the following [paper](https://researchportal.tuni.fi/en/publications/open-source-rtp-library-for-high-speed-4k-hevc-video-streaming):
+We also have an easy to use performance test framework for benchmarking uvgRTP against FFmpeg and Live555 on Linux OS. The framework can be found [here](https://github.com/ultravideo/rtp-benchmarks).
 
-```A. Altonen, J. Räsänen, J. Laitinen, M. Viitanen, and J. Vanne, “Open-Source RTP Library for High-Speed 4K HEVC Video Streaming”, in Proc. IEEE Int. Workshop on Multimedia Signal Processing, Tampere, Finland, Sept. 2020.```
+## Papers
+
+If you use uvgRTP in your research, please cite one of the following papers based on your topic. Cite the first one if you are unsure.
+
+[Open-Source RTP Library for High-Speed 4K HEVC Video Streaming](https://researchportal.tuni.fi/en/publications/open-source-rtp-library-for-high-speed-4k-hevc-video-streaming)
+
+```A. Altonen, J. Räsänen, J. Laitinen, M. Viitanen, and J. Vanne, “Open-source RTP library for high-speed 4K HEVC video streaming,” in Proc. IEEE Int. Workshop on Multimedia Signal Processing, Tampere, Finland, Sept. 2020.```
+
+[UVGRTP 2.0: Open-Source RTP Library For Real-Time VVC/HEVC Streaming](https://researchportal.tuni.fi/en/publications/uvgrtp-20-open-source-rtp-library-for-real-time-vvchevc-streaming)
+
+```A. Altonen, J. Räsänen, A. Mercat, and J. Vanne, “uvgRTP 2.0: open-source RTP library for real-time VVC/HEVC streaming,” in Proc. IEEE Int. Conf. Multimedia Expo, Shenzhen, China, July 2021.```
+
+[Open-source RTP Library for End-to-End Encrypted Real-Time Video Streaming Applications](https://researchportal.tuni.fi/en/publications/open-source-rtp-library-for-end-to-end-encrypted-real-time-video-)
+
+```J. Räsänen, A. Altonen, A. Mercat, and J. Vanne, “Open-source RTP library for end-to-end encrypted real-time video streaming applications,” in Proc. IEEE Int. Symp. Multimedia, Naples, Italy, Nov.-Dec. 2021.```
