@@ -1,7 +1,7 @@
-#include "socket.hh"
+#include "uvgrtp/socket.hh"
 
-#include "debug.hh"
-#include "util.hh"
+#include "uvgrtp/debug.hh"
+#include "uvgrtp/util.hh"
 
 #ifdef _WIN32
 #include <winsock2.h>

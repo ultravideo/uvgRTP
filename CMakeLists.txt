@@ -109,17 +109,17 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/srtp/srtp.hh
         src/srtp/srtcp.hh
 
-        include/util.hh
-        include/clock.hh
-        include/crypto.hh
-        include/debug.hh
-        include/frame.hh
-        include/lib.hh
-        include/media_stream.hh
-        include/rtcp.hh
-        include/runner.hh
-        include/session.hh
-        include/socket.hh
+        include/uvgrtp/util.hh
+        include/uvgrtp/clock.hh
+        include/uvgrtp/crypto.hh
+        include/uvgrtp/debug.hh
+        include/uvgrtp/frame.hh
+        include/uvgrtp/lib.hh
+        include/uvgrtp/media_stream.hh
+        include/uvgrtp/rtcp.hh
+        include/uvgrtp/runner.hh
+        include/uvgrtp/session.hh
+        include/uvgrtp/socket.hh
         )
 
 if(WIN32)
@@ -212,7 +212,7 @@ install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_version EXPORT ${PROJECT_NAME}Ta
             COMPONENT ${PROJECT_NAME}_Runtime)
 
 #Copy all header files to the <prefix>/include/uvgrtp directory
-file(GLOB DEPLOY_FILES_AND_DIRS "${CMAKE_SOURCE_DIR}/include/*")
+file(GLOB DEPLOY_FILES_AND_DIRS "${CMAKE_SOURCE_DIR}/include/uvgrtp/*")
 install(FILES ${DEPLOY_FILES_AND_DIRS}
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/
         COMPONENT ${PROJECT_NAME}_Develop)

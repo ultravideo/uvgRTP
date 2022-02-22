@@ -79,17 +79,17 @@ SOURCES += \
 	src/srtp/srtcp.cc \
 
 HEADERS += \
-	include/clock.hh \
-	include/crypto.hh \
-	include/debug.hh \
-	include/frame.hh \
-	include/lib.hh \
-	include/media_stream.hh \
-	include/rtcp.hh \
-	include/runner.hh \
-	include/session.hh \
-	include/socket.hh \
-	include/util.hh \
+	include/uvgrtp/clock.hh \
+	include/uvgrtp/crypto.hh \
+	include/uvgrtp/debug.hh \
+	include/uvgrtp/frame.hh \
+	include/uvgrtp/lib.hh \
+	include/uvgrtp/media_stream.hh \
+	include/uvgrtp/rtcp.hh \
+	include/uvgrtp/runner.hh \
+	include/uvgrtp/session.hh \
+	include/uvgrtp/socket.hh \
+	include/uvgrtp/util.hh \
 	include/version.hh \
 	src/dispatch.hh \
 	src/holepuncher.hh \

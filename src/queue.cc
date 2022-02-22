@@ -6,8 +6,10 @@
 
 #include "rtp.hh"
 #include "srtp/base.hh"
-#include "debug.hh"
+
 #include "random.hh"
+
+#include "uvgrtp/debug.hh"
 
 #ifdef _WIN32
 #include <winsock2.h>

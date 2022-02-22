@@ -1,9 +1,10 @@
 #pragma once
 
 #include "defines.hh"
-#include "util.hh"
 #include "../zrtp.hh"
-#include "frame.hh"
+
+#include "uvgrtp/frame.hh"
+#include "uvgrtp/util.hh"
 
 
 namespace uvgrtp {

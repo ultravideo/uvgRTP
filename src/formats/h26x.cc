@@ -2,8 +2,9 @@
 
 #include "../rtp.hh"
 #include "../queue.hh"
-#include "socket.hh"
-#include "debug.hh"
+
+#include "uvgrtp/socket.hh"
+#include "uvgrtp/debug.hh"
 
 
 #include <cstdint>

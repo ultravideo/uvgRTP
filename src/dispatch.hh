@@ -1,8 +1,8 @@
 #pragma once
 
-#include "runner.hh"
+#include "uvgrtp/runner.hh"
 
-#include "util.hh"
+#include "uvgrtp/util.hh"
 
 #include <condition_variable>
 #include <queue>

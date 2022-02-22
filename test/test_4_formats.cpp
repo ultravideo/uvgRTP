@@ -1,4 +1,4 @@
-#include "lib.hh"
+#include "uvgrtp/lib.hh"
 #include <gtest/gtest.h>
 
 constexpr uint16_t SEND_PORT = 9100;

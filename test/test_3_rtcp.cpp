@@ -1,4 +1,4 @@
-#include "lib.hh"
+#include "uvgrtp/lib.hh"
 #include <gtest/gtest.h>
 
 constexpr char LOCAL_INTERFACE[] = "127.0.0.1";

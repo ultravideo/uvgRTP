@@ -6,11 +6,14 @@
 #include "zrtp/dh_kxchng.hh"
 #include "zrtp/hello.hh"
 #include "zrtp/hello_ack.hh"
-#include "socket.hh"
 
-#include "debug.hh"
-#include "crypto.hh"
 #include "random.hh"
+
+#include "uvgrtp/socket.hh"
+#include "uvgrtp/debug.hh"
+#include "uvgrtp/crypto.hh"
+
+
 
 #include <cstring>
 #include <thread>

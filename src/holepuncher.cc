@@ -1,8 +1,8 @@
 #include "holepuncher.hh"
 
-#include "clock.hh"
-#include "socket.hh"
-#include "debug.hh"
+#include "uvgrtp/clock.hh"
+#include "uvgrtp/socket.hh"
+#include "uvgrtp/debug.hh"
 
 
 #define THRESHOLD 2000

@@ -1,8 +1,9 @@
 #include "rtp.hh"
 
-#include "frame.hh"
-#include "debug.hh"
 #include "random.hh"
+
+#include "uvgrtp/frame.hh"
+#include "uvgrtp/debug.hh"
 
 #ifndef _WIN32
 #include <arpa/inet.h>

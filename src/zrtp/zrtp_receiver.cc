@@ -8,11 +8,13 @@
 #include "hello.hh"
 #include "hello_ack.hh"
 
-#include "socket.hh"
-#include "crypto.hh"
 #include "../poll.hh"
-#include "debug.hh"
-#include "util.hh"
+
+#include "uvgrtp/socket.hh"
+#include "uvgrtp/crypto.hh"
+
+#include "uvgrtp/debug.hh"
+#include "uvgrtp/util.hh"
 
 #ifdef _WIN32
 #include <winsock2.h>

@@ -1,4 +1,4 @@
-#include "version.hh"
+#include "uvgrtp/version.hh"
 
 #include <cstdint>
 #include <string>

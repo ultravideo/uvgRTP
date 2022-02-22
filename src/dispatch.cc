@@ -1,8 +1,8 @@
 #include "dispatch.hh"
 
 #include "queue.hh"
-#include "socket.hh"
-#include "debug.hh"
+#include "uvgrtp/socket.hh"
+#include "uvgrtp/debug.hh"
 
 
 #ifndef _WIN32

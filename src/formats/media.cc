@@ -1,9 +1,10 @@
 #include "media.hh"
 
 #include "../rtp.hh"
-#include "socket.hh"
 #include "../queue.hh"
-#include "debug.hh"
+
+#include "uvgrtp/socket.hh"
+#include "uvgrtp/debug.hh"
 
 #include <map>
 #include <unordered_map>

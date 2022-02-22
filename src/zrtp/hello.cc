@@ -3,12 +3,11 @@
 #include "zrtp_receiver.hh"
 
 #include "../zrtp.hh"
-#include "crypto.hh"
-#include "frame.hh"
-#include "socket.hh"
-#include "debug.hh"
 
-
+#include "uvgrtp/crypto.hh"
+#include "uvgrtp/frame.hh"
+#include "uvgrtp/socket.hh"
+#include "uvgrtp/debug.hh"
 
 #include <cstring>
 

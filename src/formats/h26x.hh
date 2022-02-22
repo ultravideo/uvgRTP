@@ -1,9 +1,9 @@
 #pragma once
 
 #include "media.hh"
-#include "util.hh"
-#include "socket.hh"
-#include "clock.hh"
+#include "uvgrtp/util.hh"
+#include "uvgrtp/socket.hh"
+#include "uvgrtp/clock.hh"
 
 #include <deque>
 
