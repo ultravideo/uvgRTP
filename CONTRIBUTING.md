@@ -17,7 +17,7 @@ When issuing a pull request (PR) to uvgRTP. Please consider the following aspect
 - Make sure you don't have merge commits in your PR, the PR will be merged automatically when accepted. If your PR gets outdated, rebase the branch instead.
 - If you are requested to change the PR, avoid adding new commits unless the changes are large enough. It is tempting to add changes in new commits, but PRs with multiple redundant commits will not be accepted. Use `git squash` or `git commit --amend` to change the commits and then force push to your fork.
 
-### Commit format, please remember to add subsystem to commit format!
+### Commit format (optional)
 
 uvgRTP follows a specific commit format. The commit header begins with a prefix. List of current usd prefixes can be found in [here](docs/subsystems). The "common:"-prefix is used for modules not found in the list and for changes that affect more than one module. Try to limit line length of commit message to 72 character for better readability in different environments.
 
