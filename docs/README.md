@@ -31,7 +31,7 @@ Currently uvgRTP has a built-in support for the following media formats:
 * Opus
 
 uvgRTP also features a generic media frame API that can be used to fragment and send any media format,
-see [this example code](examples/sending_generic.cc) for more details. Fragmentation of generic media formats is a uvgRTP exclusive feature and does not work with other RTP libraries so please use it only if you are using uvgRTP for both sending and receiving.
+see [this example code](../examples/sending_generic.cc) for more details. Fragmentation of generic media formats is a uvgRTP exclusive feature and does not work with other RTP libraries so please use it only if you are using uvgRTP for both sending and receiving.
 
 ## Context configuration
 
@@ -83,7 +83,7 @@ whereas for user-managed keys the calling application must provide an encryption
 
 uvgRTP supports Diffie-Hellman and Multistream modes of ZRTP. The mode selection is done transparently
 and the only thing an application must do is to provide `RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP` flag combination
-to `create_stream()`. See [ZRTP Multistream example](examples/zrtp_multistream.cc) for more details.
+to `create_stream()`. See [ZRTP Multistream example](../examples/zrtp_multistream.cc) for more details.
 
 ### User-managed SRTP
 
@@ -91,4 +91,4 @@ The second way of handling key-management of SRTP is to do it yourself. uvgRTP s
 and and 112-bit salts which must be given to the `uvgrtp::media_stream` object using `add_srtp_ctx()` right after
 `create_stream()` has been called. All calls that try to modify or use the stream
 (other than `add_srtp_ctx()`) will fail with `RTP_NOT_INITIALIZED`.
-See [this example code](examples/srtp_user.cc) for more details.
+See [this example code](../examples/srtp_user.cc) for more details.
