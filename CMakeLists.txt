@@ -101,6 +101,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/zrtp/hello_ack.hh
         src/zrtp/commit.hh
         src/zrtp/dh_kxchng.hh
+        src/zrtp/defines.hh
         src/zrtp/confirm.hh
         src/zrtp/confack.hh
         src/zrtp/error.hh
