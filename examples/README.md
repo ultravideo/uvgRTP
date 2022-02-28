@@ -19,7 +19,7 @@ uvgrtp::context ctx;
 ```
 ### Create session
 
-Next, you will use the context object to create session objects. Session object contains all the different media streams you are sending/receiving to/from single IP address. There are two options fort creating this, Specify only remote address (currently this also binds to ANY with each media_stream):
+Next, you will use the context object to create session objects. Session object contains all the different media streams you are sending/receiving to/from single IP address. Broadcast addresses should also work. There are two options fort creating this, Specify only remote address (currently this also binds to ANY with each media_stream):
 
 ```
 uvgrtp::session *sess = ctx.create_session("10.10.10.1");
