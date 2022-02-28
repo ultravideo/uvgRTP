@@ -31,7 +31,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/dispatch.cc
         src/frame.cc
         src/hostname.cc
-        src/lib.cc
+        src/context.cc
         src/media_stream.cc
         src/mingw_inet.cc
         src/multicast.cc
@@ -112,6 +112,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 
         include/uvgrtp/util.hh
         include/uvgrtp/clock.hh
+        include/uvgrtp/context.hh
         include/uvgrtp/crypto.hh
         include/uvgrtp/debug.hh
         include/uvgrtp/frame.hh
