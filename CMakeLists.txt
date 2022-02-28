@@ -142,7 +142,7 @@ target_include_directories(${PROJECT_NAME}
 
 
 if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /Zc:__cplusplus)
+    target_compile_options(${PROJECT_NAME} PRIVATE /Zc:__cplusplus /W4)
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic #[[-Werror]])
 endif()
