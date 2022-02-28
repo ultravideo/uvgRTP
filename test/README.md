@@ -2,7 +2,7 @@
 
 Testing uvgRTP is meant for the developers of uvgRTP. After each major change, it is recommended to run the automated tests. New automated tests can be a great help in validating the functionality of new features as well as helping detect bugs caused by later changes.
 
-These tests are not meant to be readable examples. For that you might want to check out [examples](../docs/examples/).
+These tests are not meant to be readable examples. For that you might want to check out [examples](../examples/).
 
 ## Building the automated tests
 
