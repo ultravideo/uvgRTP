@@ -55,7 +55,7 @@ namespace uvgrtp {
                 virtual int get_fragment_type(uvgrtp::frame::rtp_frame* frame) const;
                 virtual uvgrtp::formats::NAL_TYPES get_nal_type(uvgrtp::frame::rtp_frame* frame) const;
         };
-    };
-};
+    }
+}
 
 namespace uvg_rtp = uvgrtp;

@@ -84,6 +84,6 @@ namespace uvgrtp {
 
             uvgrtp::socket *socket_;
     };
-};
+}
 
 namespace uvg_rtp = uvgrtp;

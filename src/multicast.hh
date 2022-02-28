@@ -7,7 +7,7 @@ namespace uvgrtp {
 
     namespace frame {
         struct rtp_frame;
-    };
+    }
 
     const int MULTICAST_MAX_PEERS = 64;
 
@@ -32,6 +32,6 @@ namespace uvgrtp {
                 rtp_format_t fmt, uint32_t timestamp
            );
     };
-};
+}
 
 namespace uvg_rtp = uvgrtp;

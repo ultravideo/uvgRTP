@@ -71,7 +71,7 @@ namespace uvgrtp {
             private:
                 h264_aggregation_packet aggr_pkt_info_;
         };
-    };
-};
+    }
+}
 
 namespace uvg_rtp = uvgrtp;

@@ -220,6 +220,6 @@ namespace uvgrtp {
             /* RTP context flags */
             int flags_;
     };
-};
+}
 
 namespace uvg_rtp = uvgrtp;

@@ -19,6 +19,6 @@ namespace uvgrtp {
             bool active_;
             std::thread *runner_;
     };
-};
+}
 
 namespace uvg_rtp = uvgrtp;

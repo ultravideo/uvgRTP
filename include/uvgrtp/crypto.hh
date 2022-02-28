@@ -80,7 +80,7 @@ namespace uvgrtp {
                     CryptoPP::HMAC<CryptoPP::SHA256> hmac_;
 #endif
             };
-        };
+        }
 
         class sha256 {
             public:
@@ -142,7 +142,7 @@ namespace uvgrtp {
                     CryptoPP::CTR_Mode<CryptoPP::AES>::Decryption dec_;
 #endif
             };
-        };
+        }
 
         /* diffie-hellman key derivation, 3072-bits */
         class dh {
@@ -186,16 +186,16 @@ namespace uvgrtp {
 
         namespace random {
             void generate_random(uint8_t *out, size_t len);
-        };
+        }
 
         namespace crc32 {
             void get_crc32(uint8_t *input, size_t len, uint32_t *output);
             bool verify_crc32(uint8_t *input, size_t len, uint32_t old_crc);
             uint32_t calculate_crc32(uint8_t *input, size_t len);
-        };
+        }
 
         bool enabled();
-    };
-};
+    }
+}
 
 namespace uvg_rtp = uvgrtp;

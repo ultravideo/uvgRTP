@@ -45,7 +45,7 @@ namespace uvgrtp {
              * \return Difference of the timestamps in milliseconds
              */
             uint64_t diff_now(uint64_t then);
-        };
+        }
 
         /// \cond DO_NOT_DOCUMENT
         /* high-resolution clock */
@@ -61,7 +61,7 @@ namespace uvgrtp {
             uint64_t diff_now(hrc_t then);
 
             uint64_t diff_now_us(hrc_t& then);
-        };
+        }
 
         uint64_t ms_to_jiffies(uint64_t ms);
         uint64_t jiffies_to_ms(uint64_t jiffies);
@@ -70,7 +70,7 @@ namespace uvgrtp {
         int gettimeofday(struct timeval *tp, struct timezone *tzp);
 #endif
         /// \endcond
-    };
-};
+    }
+}
 
 namespace uvg_rtp = uvgrtp;

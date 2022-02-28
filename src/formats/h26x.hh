@@ -163,7 +163,7 @@ namespace uvgrtp {
 
             uvgrtp::clock::hrc::hrc_t last_garbage_collection_;
         };
-    };
-};
+    }
+}
 
 namespace uvg_rtp = uvgrtp;

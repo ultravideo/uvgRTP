@@ -179,6 +179,6 @@ namespace uvgrtp {
              * Used to implement replay protection */
             std::unordered_set<uint64_t> replay_list_;
     };
-};
+}
 
 namespace uvg_rtp = uvgrtp;

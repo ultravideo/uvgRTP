@@ -164,6 +164,6 @@ namespace uvgrtp {
             struct iovec   chunks_[MAX_BUFFER_COUNT];
 #endif
     };
-};
+}
 
 namespace uvg_rtp = uvgrtp;

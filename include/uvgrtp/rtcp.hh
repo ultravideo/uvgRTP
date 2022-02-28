@@ -457,6 +457,6 @@ namespace uvgrtp {
 
             bool active_;
     };
-};
+}
 
 namespace uvg_rtp = uvgrtp;

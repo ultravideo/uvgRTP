@@ -20,7 +20,7 @@ namespace uvgrtp {
 
         /* TODO:  */
         rtp_error_t blocked_recv(uvgrtp::socket *socket, uint8_t *buf, size_t buf_len, int timeout, int *bytes_read);
-    };
-};
+    }
+}
 
 namespace uvg_rtp = uvgrtp;

@@ -199,7 +199,7 @@ namespace uvgrtp {
          * Return RTP_OK on successs
          * Return RTP_INVALID_VALUE if "frame" is nullptr */
         rtp_error_t dealloc_frame(uvgrtp::frame::zrtp_frame *frame);
-    };
-};
+    }
+}
 
 namespace uvg_rtp = uvgrtp;

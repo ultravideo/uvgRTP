@@ -130,7 +130,7 @@ namespace uvgrtp {
             ZRTP_ERR_PROTOCOL_TIMEOUT    = 0xB0,  /* Protocol timeout error */
             ZRTP_ERR_GOCLEAR_NOT_ALLOWED = 0x100, /* Goclear received but not supported */
         };
-    };
-};
+    }
+}
 
 namespace uvg_rtp = uvgrtp;

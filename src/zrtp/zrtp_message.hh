@@ -37,8 +37,8 @@ namespace uvgrtp {
             size_t len_;
             size_t rlen_;
         };
-    };
-};
+    }
+}
 
 
 namespace uvg_rtp = uvgrtp;

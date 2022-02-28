@@ -91,6 +91,6 @@ namespace uvgrtp {
             /* CNAME is the same for all connections */
             std::string cname_;
         };
-};
+}
 
 namespace uvg_rtp = uvgrtp;

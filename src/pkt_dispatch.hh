@@ -15,7 +15,7 @@ namespace uvgrtp {
 
     namespace frame {
         struct rtp_frame;
-    };
+    }
 
     class socket;
 

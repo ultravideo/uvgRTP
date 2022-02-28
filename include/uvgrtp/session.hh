@@ -87,6 +87,6 @@ namespace uvgrtp {
 
             std::mutex session_mtx_;
     };
-};
+}
 
 namespace uvg_rtp = uvgrtp;

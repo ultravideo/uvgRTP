@@ -14,7 +14,7 @@ namespace uvgrtp {
         int generate(void *buf, size_t n);
         uint32_t generate_32();
         uint64_t generate_64();
-    };
-};
+    }
+}
 
 namespace uvg_rtp = uvgrtp;

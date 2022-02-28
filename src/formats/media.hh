@@ -15,7 +15,7 @@ namespace uvgrtp {
 
     namespace frame {
         struct rtp_frame;
-    };
+    }
 
     namespace formats {
 
@@ -73,7 +73,7 @@ namespace uvgrtp {
             private:
                 media_frame_info_t minfo_;
         };
-    };
-};
+    }
+}
 
 namespace uvg_rtp = uvgrtp;

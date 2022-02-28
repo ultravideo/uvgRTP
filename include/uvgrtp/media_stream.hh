@@ -29,11 +29,11 @@ namespace uvgrtp {
 
     namespace frame {
         struct rtp_frame;
-    };
+    }
 
     namespace formats {
         class media;
-    };
+    }
 
     class media_stream {
         public:
@@ -351,6 +351,6 @@ namespace uvgrtp {
             /* Thread that keeps the holepunched connection open for unidirectional streams */
             uvgrtp::holepuncher *holepuncher_;
     };
-};
+}
 
 namespace uvg_rtp = uvgrtp;

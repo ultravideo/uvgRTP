@@ -8,7 +8,7 @@ namespace uvgrtp {
     namespace frame
     {
         struct rtp_frame;
-    };
+    }
 
     class rtp {
         public:
@@ -68,6 +68,6 @@ namespace uvgrtp {
              * Default value is 100ms */
             size_t delay_;
     };
-};
+}
 
 namespace uvg_rtp = uvgrtp;

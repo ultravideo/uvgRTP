@@ -18,7 +18,7 @@ namespace uvgrtp {
 
     namespace frame {
         struct zrtp_frame;
-    };
+    }
 
     namespace zrtp_msg {
 
@@ -64,7 +64,7 @@ namespace uvgrtp {
                 /* TODO:  */
                 virtual rtp_error_t parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session);
         };
-    };
-};
+    }
+}
 
 namespace uvg_rtp = uvgrtp;

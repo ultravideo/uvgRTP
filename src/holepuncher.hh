@@ -33,6 +33,6 @@ namespace uvgrtp {
             uvgrtp::socket *socket_;
             std::atomic<uint64_t> last_dgram_sent_;
     };
-};
+}
 
 namespace uvg_rtp = uvgrtp;

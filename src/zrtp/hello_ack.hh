@@ -15,7 +15,7 @@ namespace uvgrtp {
 
     namespace frame {
         struct zrtp_frame;
-    };
+    }
 
     namespace zrtp_msg {
 
@@ -35,7 +35,7 @@ namespace uvgrtp {
                     zrtp_session_t& session);
         };
 
-    };
-};
+    }
+}
 
 namespace uvg_rtp = uvgrtp;

@@ -21,24 +21,24 @@ namespace uvgrtp {
 
     namespace frame {
         struct rtp_frame;
-    };
+    }
 
     namespace crypto
     {
         namespace hmac {
             class sha256;
-        };
+        }
 
         class sha256;
         class dh;
-    };
+    }
 
     namespace zrtp_msg {
         struct zrtp_hello_ack;
         struct zrtp_commit;
         struct zrtp_hello;
         struct zrtp_dh;
-    };
+    }
 
     enum ZRTP_ROLE {
         INITIATOR,
@@ -318,6 +318,6 @@ namespace uvgrtp {
 
             std::mutex zrtp_mtx_;
     };
-};
+}
 
 namespace uvg_rtp = uvgrtp;

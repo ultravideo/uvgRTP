@@ -6,7 +6,7 @@ namespace uvgrtp {
 
     namespace frame {
         struct rtp_frame;
-    };
+    }
 
     class srtp : public base_srtp {
         public:
@@ -33,6 +33,6 @@ namespace uvgrtp {
             bool authenticate_rtp_;
 
     };
-};
+}
 
 namespace uvg_rtp = uvgrtp;

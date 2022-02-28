@@ -32,6 +32,6 @@ namespace uvgrtp {
         rtp_error_t add_auth_tag(uint8_t* buffer, size_t len);
         rtp_error_t verify_auth_tag(uint8_t* buffer, size_t len);
     };
-};
+}
 
 namespace uvg_rtp = uvgrtp;
