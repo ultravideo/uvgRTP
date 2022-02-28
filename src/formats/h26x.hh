@@ -4,6 +4,7 @@
 #include "uvgrtp/util.hh"
 #include "uvgrtp/socket.hh"
 #include "uvgrtp/clock.hh"
+#include "uvgrtp/frame.hh"
 
 #include <deque>
 
@@ -116,6 +117,8 @@ namespace uvgrtp {
                 /* Handles small packets. May support aggregate packets or not*/
                 virtual rtp_error_t handle_small_packet(uint8_t* data, size_t data_len, bool more) = 0;
 
+                uvgrtp::frame::rtp_frame* allocate_rtp_frame_with_startcode(int flags, 
+                    uvgrtp::frame::rtp_header& header, size_t payload_size_without_startcode, size_t& fptr);
                 static void prepend_start_code(int flags, uvgrtp::frame::rtp_frame** out);
 
                 // constructs format specific RTP header with correct values
@@ -138,7 +141,7 @@ namespace uvgrtp {
 
                 uint32_t drop_frame(uint32_t ts);
 
-                rtp_error_t handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size);
+                rtp_error_t handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size, int flags);
 
                 /* Gets the format specific nal type from data*/
                 virtual uint8_t get_nal_type(uint8_t* data) const = 0;
