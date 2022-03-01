@@ -246,8 +246,8 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
         }
 end:
         prev_z = cur_z;
-        pos += 1;
-        ptr += 1;
+        pos += get_start_code_range();
+        ptr += get_start_code_range();
         prev = value;
     }
 
@@ -430,21 +430,20 @@ void uvgrtp::formats::h26x::initialize_fu_headers(uint8_t nal_type, uint8_t fu_h
     fu_headers[2] = (uint8_t)((1 << 6) | nal_type);
 }
 
-uvgrtp::frame::rtp_frame* uvgrtp::formats::h26x::allocate_rtp_frame_with_startcode(int flags,
+uvgrtp::frame::rtp_frame* uvgrtp::formats::h26x::allocate_rtp_frame_with_startcode(bool add_start_code,
     uvgrtp::frame::rtp_header& header, size_t payload_size_without_startcode, size_t& fptr)
 {
     uvgrtp::frame::rtp_frame* complete = uvgrtp::frame::alloc_rtp_frame();
 
     complete->payload_len = payload_size_without_startcode;
 
-    if (flags & RCE_H26X_PREPEND_SC)
-    {
+    if (add_start_code) {
         complete->payload_len += 4;
     } 
     
     complete->payload = new uint8_t[complete->payload_len];
 
-    if (flags & RCE_H26X_PREPEND_SC) {
+    if (add_start_code) {
         complete->payload[0] = 0;
         complete->payload[1] = 0;
         complete->payload[2] = 0;
@@ -691,8 +690,8 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
             }
 
             size_t fptr = 0;
-            uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode(flags, (*out)->header, 
-                frames_[c_ts].total_size + get_nal_header_size(), fptr);
+            uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode((flags & RCE_H26X_PREPEND_SC), 
+                (*out)->header,  frames_[c_ts].total_size + get_nal_header_size(), fptr);
 
             copy_nal_header(fptr, frame->payload, complete->payload); // NAL header
             fptr += get_nal_header_size();
@@ -748,7 +747,7 @@ void uvgrtp::formats::h26x::garbage_collect_lost_frames()
         // first find all frames that have been waiting for too long
         for (auto& gc_frame : frames_) {
             if (uvgrtp::clock::hrc::diff_now(gc_frame.second.sframe_time) > LOST_FRAME_TIMEOUT_MS) {
-                LOG_WARN("Found and old frame that has not been completed");
+                LOG_WARN("Found an old frame that has not been completed");
                 to_remove.push_back(gc_frame.first);
             }
         }

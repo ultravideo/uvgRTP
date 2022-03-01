@@ -35,6 +35,11 @@ uint8_t uvgrtp::formats::h264::get_fu_header_size() const
     return uvgrtp::frame::HEADER_SIZE_H264_FU;
 }
 
+uint8_t uvgrtp::formats::h264::get_start_code_range() const
+{
+    return 1; // H264 can have three byte start codes and therefore we must scan one byte at a time
+}
+
 int uvgrtp::formats::h264::get_fragment_type(uvgrtp::frame::rtp_frame* frame) const
 {
     bool first_frag = frame->payload[1] & 0x80;

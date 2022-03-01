@@ -39,6 +39,11 @@ uint8_t uvgrtp::formats::h266::get_fu_header_size() const
     return uvgrtp::frame::HEADER_SIZE_H266_FU;
 }
 
+uint8_t uvgrtp::formats::h266::get_start_code_range() const
+{
+    return 4;
+}
+
 uint8_t uvgrtp::formats::h266::get_nal_type(uint8_t* data) const
 {
     return (data[1] >> 3) & 0x1f;

@@ -37,6 +37,11 @@ uint8_t uvgrtp::formats::h265::get_fu_header_size() const
     return uvgrtp::frame::HEADER_SIZE_H265_FU;
 }
 
+uint8_t uvgrtp::formats::h265::get_start_code_range() const
+{
+    return 4;
+}
+
 int uvgrtp::formats::h265::get_fragment_type(uvgrtp::frame::rtp_frame* frame) const
 {
     bool first_frag = frame->payload[2] & 0x80;

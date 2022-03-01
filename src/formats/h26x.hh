@@ -117,7 +117,7 @@ namespace uvgrtp {
                 /* Handles small packets. May support aggregate packets or not*/
                 virtual rtp_error_t handle_small_packet(uint8_t* data, size_t data_len, bool more) = 0;
 
-                uvgrtp::frame::rtp_frame* allocate_rtp_frame_with_startcode(int flags, 
+                uvgrtp::frame::rtp_frame* allocate_rtp_frame_with_startcode(bool add_start_code,
                     uvgrtp::frame::rtp_header& header, size_t payload_size_without_startcode, size_t& fptr);
                 static void prepend_start_code(int flags, uvgrtp::frame::rtp_frame** out);
 
@@ -148,6 +148,7 @@ namespace uvgrtp {
 
                 virtual uint8_t get_nal_header_size() const = 0;
                 virtual uint8_t get_fu_header_size() const = 0;
+                virtual uint8_t get_start_code_range() const = 0;
                 virtual int get_fragment_type(uvgrtp::frame::rtp_frame* frame) const = 0;
                 virtual uvgrtp::formats::NAL_TYPES get_nal_type(uvgrtp::frame::rtp_frame* frame) const = 0;
 
