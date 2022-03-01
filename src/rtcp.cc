@@ -1150,13 +1150,20 @@ rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, size_
     rtp_error_t ret = RTP_OK;
     for (auto& p : participants_)
     {
-        if ((ret = p.second->socket->sendto(p.second->address, frame, frame_size, 0)) != RTP_OK)
+        if (p.second->socket != nullptr)
         {
-            LOG_ERROR("Sending rtcp packet with sendto() failed!");
-            break;
-        }
+            if ((ret = p.second->socket->sendto(p.second->address, frame, frame_size, 0)) != RTP_OK)
+            {
+                LOG_ERROR("Sending rtcp packet with sendto() failed!");
+                break;
+            }
 
-        update_rtcp_bandwidth(frame_size);
+            update_rtcp_bandwidth(frame_size);
+        }
+        else
+        {
+            LOG_ERROR("Tried to send RTCP packet when socket does not exist!");
+        }
     }
     // TODO: Should the frame be deleted?
     return ret;
