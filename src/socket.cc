@@ -341,7 +341,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
 {
 #ifndef _WIN32
     int sent_bytes = 0;
-    struct mmsghdr *headers = new struct mmsghdr[buffers.size()]tr;
+    struct mmsghdr *headers = new struct mmsghdr[buffers.size()];
     struct mmsghdr *hptr = headers;
 
     for (size_t i = 0; i < buffers.size(); ++i) {
