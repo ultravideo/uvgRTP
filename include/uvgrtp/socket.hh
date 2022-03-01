@@ -157,6 +157,11 @@ namespace uvgrtp {
             /* __sendtov() calls these handlers in order before sending the packet */
             std::vector<socket_packet_handler> vec_handlers_;
 
+#ifndef NDEBUG
+            uint64_t sent_packets_ = 0;
+            uint64_t received_packets_ = 0;
+#endif // !NDEBUG
+
 #ifdef _WIN32
             WSABUF buffers_[MAX_BUFFER_COUNT];
 #else

@@ -485,7 +485,7 @@ uint32_t uvgrtp::formats::h26x::drop_frame(uint32_t ts)
     uint16_t s_seq = frames_.at(ts).s_seq;
     uint16_t e_seq = frames_.at(ts).e_seq;
 
-    LOG_INFO("Dropping frame %u, %u - %u", ts, s_seq, e_seq);
+    LOG_INFO("Dropping frame. Ts: %u, Seq: %u - %u", ts, s_seq, e_seq);
 
     if (frames_.find(ts) == frames_.end())
     {
@@ -607,6 +607,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         /* drop old intra if a new one is received */
         if (nal_type == NT_INTRA) {
             if (intra != INVALID_TS && enable_idelay) {
+                LOG_WARN("Dropping old h26x intra since new one has arrived");
                 drop_frame(intra);
             }
             intra = c_ts;
@@ -684,6 +685,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
 
             /* intra is still in progress, do not return the inter */
             if (nal_type == NT_INTER && intra != INVALID_TS && enable_idelay) {
+                LOG_WARN("Got h26x Inter frame while intra is still in progress");
                 drop_frame(c_ts);
                 return RTP_OK;
             }
@@ -717,6 +719,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
 
     if (is_frame_late(frames_.at(c_ts), rtp_ctx_->get_pkt_max_delay())) {
         if (nal_type != NT_INTRA || (nal_type == NT_INTRA && !enable_idelay)) {
+            LOG_WARN("Received a packet that is too late!");
             drop_frame(c_ts);
         }
     }
@@ -745,6 +748,7 @@ void uvgrtp::formats::h26x::garbage_collect_lost_frames()
         // first find all frames that have been waiting for too long
         for (auto& gc_frame : frames_) {
             if (uvgrtp::clock::hrc::diff_now(gc_frame.second.sframe_time) > LOST_FRAME_TIMEOUT_MS) {
+                LOG_WARN("Found and old frame that has not been completed");
                 to_remove.push_back(gc_frame.first);
             }
         }
