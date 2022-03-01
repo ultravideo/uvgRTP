@@ -40,7 +40,7 @@ To send/receive actual media, a media_stream object has to be created. The first
 uvgrtp::media_stream *strm = sess->create_stream(8888, 8888, RTP_FORMAT_GENERIC, RTP_NO_FLAGS);
 ```
 
-The encryption can be enabled here bug specifying `RCE_SRTP| RCE_SRTP_KMNGMNT_ZRTP` or `RCE_SRTP | RCE_SRTP_KMNGMNT_USER` in the last parameter. The `RCE_SRTP_KMNGMNT_USER` requires calling `add_srtp_ctx(key, salt)` for the created media_stream after creation. These flags start with prefix `RCE_` and the explanations can be found in [docs folder](../docs). Other useful flags include `RCE_RTCP` for enabling RTCP and `RCE_H26X_PREPEND_SC` for prepending start codes which are needed for playback of the stream (currently there is a bug in this: #96).
+The encryption can be enabled here bug specifying `RCE_SRTP| RCE_SRTP_KMNGMNT_ZRTP` or `RCE_SRTP | RCE_SRTP_KMNGMNT_USER` in the last parameter. The `RCE_SRTP_KMNGMNT_USER` requires calling `add_srtp_ctx(key, salt)` for the created media_stream after creation. These flags start with prefix `RCE_` and the explanations can be found in [docs folder](../docs). Other useful flags include `RCE_RTCP` for enabling RTCP and `RCE_H26X_PREPEND_SC` for prepending start codes which are needed for decoding of an H26x stream.
 
 ### Configure media_stream (optional)
 
