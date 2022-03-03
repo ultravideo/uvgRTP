@@ -36,7 +36,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/multicast.cc
         src/reception_flow.cc
         src/poll.cc
-        src/queue.cc
+        src/frame_queue.cc
         src/random.cc
         src/rtcp.cc
         src/rtp.cc
@@ -82,7 +82,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/poll.hh
         src/rtp.hh
         src/zrtp.hh
-        src/queue.hh
+        src/frame_queue.hh
 
         src/formats/h26x.hh
         src/formats/h264.hh

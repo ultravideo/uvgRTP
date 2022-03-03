@@ -1,4 +1,4 @@
-#include "queue.hh"
+#include "frame_queue.hh"
 
 #include "formats/h264.hh"
 #include "formats/h265.hh"

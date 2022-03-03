@@ -1,6 +1,6 @@
 #include "h264.hh"
 
-#include "../queue.hh"
+#include "../frame_queue.hh"
 #include "../rtp.hh"
 
 #include "uvgrtp/debug.hh"

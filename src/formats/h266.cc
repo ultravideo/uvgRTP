@@ -1,7 +1,7 @@
 #include "h266.hh"
 
 #include "../rtp.hh"
-#include "../queue.hh"
+#include "../frame_queue.hh"
 
 #include "uvgrtp/frame.hh"
 #include "uvgrtp/debug.hh"
