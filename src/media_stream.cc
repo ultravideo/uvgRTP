@@ -66,10 +66,14 @@ uvgrtp::media_stream::~media_stream()
     // frame without waiting
 
     if ((ctx_config_.flags & RCE_RTCP) && rtcp_)
+    {
         rtcp_->stop();
+    }
 
-    if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE)
+    if ((ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE) && holepuncher_)
+    {
         holepuncher_->stop();
+    }
 
     (void)free_resources(RTP_OK);
 }
@@ -205,7 +209,6 @@ rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
     }
     if (holepuncher_)
     {
-        delete holepuncher_;
         holepuncher_ = nullptr;
     }
     if (media_)
@@ -335,7 +338,7 @@ rtp_error_t uvgrtp::media_stream::start_components()
         return free_resources(RTP_MEMORY_ERROR);
 
     if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE) {
-        holepuncher_ = new uvgrtp::holepuncher(socket_);
+        holepuncher_ = std::unique_ptr<uvgrtp::holepuncher> (new uvgrtp::holepuncher(socket_));
         holepuncher_->start();
     }
 

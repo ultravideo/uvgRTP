@@ -349,7 +349,7 @@ namespace uvgrtp {
             std::unique_ptr<uvgrtp::formats::media> media_;
 
             /* Thread that keeps the holepunched connection open for unidirectional streams */
-            uvgrtp::holepuncher *holepuncher_;
+            std::unique_ptr<uvgrtp::holepuncher> holepuncher_;
     };
 }
 
