@@ -131,7 +131,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
                 rtp_handler_key_,
                 std::bind(&uvgrtp::formats::h264::packet_handler, format_264, std::placeholders::_1, std::placeholders::_2),
                 std::bind(&uvgrtp::formats::h264::frame_getter, format_264, std::placeholders::_1));
-            media_ = format_264;
+            media_.reset(format_264);
 
             return RTP_OK;
             break;
@@ -144,7 +144,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
                 rtp_handler_key_,
                 std::bind(&uvgrtp::formats::h265::packet_handler, format_265, std::placeholders::_1, std::placeholders::_2),
                 std::bind(&uvgrtp::formats::h265::frame_getter, format_265, std::placeholders::_1));
-            media_ = format_265;
+            media_.reset(format_265);
 
             return RTP_OK;
             break;
@@ -157,14 +157,14 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
                 rtp_handler_key_,
                 std::bind(&uvgrtp::formats::h266::packet_handler, format_266, std::placeholders::_1, std::placeholders::_2),
                 std::bind(&uvgrtp::formats::h266::frame_getter, format_266, std::placeholders::_1));
-            media_ = format_266;
+            media_.reset(format_266);
 
             return RTP_OK;
             break;
         }
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
-            media_ = new uvgrtp::formats::media(socket_, rtp_, ctx_config_.flags);
+            media_ = std::unique_ptr<uvgrtp::formats::media> (new uvgrtp::formats::media(socket_, rtp_, ctx_config_.flags));
 
             reception_flow_->install_aux_handler(
                 rtp_handler_key_,
@@ -210,7 +210,6 @@ rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
     }
     if (media_)
     {
-        delete media_;
         media_ = nullptr;
     }
 

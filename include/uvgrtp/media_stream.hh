@@ -346,7 +346,7 @@ namespace uvgrtp {
             std::unique_ptr<uvgrtp::reception_flow> reception_flow_;
 
             /* Media object associated with this media stream. */
-            uvgrtp::formats::media *media_;
+            std::unique_ptr<uvgrtp::formats::media> media_;
 
             /* Thread that keeps the holepunched connection open for unidirectional streams */
             uvgrtp::holepuncher *holepuncher_;
