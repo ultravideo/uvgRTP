@@ -9,7 +9,7 @@ constexpr uint16_t REMOTE_PORT = 9202;
 
 constexpr uint16_t PAYLOAD_LEN = 256;
 constexpr uint16_t FRAME_RATE = 30;
-constexpr uint32_t EXAMPLE_RUN_TIME_S = 15;
+constexpr uint32_t EXAMPLE_RUN_TIME_S = 11;
 constexpr int SEND_TEST_PACKETS = FRAME_RATE * EXAMPLE_RUN_TIME_S;
 constexpr int PACKET_INTERVAL_MS = 1000 / FRAME_RATE;
 

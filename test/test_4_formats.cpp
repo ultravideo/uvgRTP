@@ -180,8 +180,10 @@ void cleanup_formats(uvgrtp::context& ctx, uvgrtp::session* sess, uvgrtp::media_
 
 void process_format_frame(uvgrtp::frame::rtp_frame* frame)
 {
-    std::cout << "Receiving frame with seq: " << frame->header.seq << std::endl;
+    std::cout << "Receiving frame with seq: " << frame->header.seq 
+        << " and timestamp: " << frame->header.timestamp <<  std::endl;
 
+    EXPECT_EQ(frame->header.version, 2);
     EXPECT_EQ(PAYLOAD_LEN, frame->payload_len);
     (void)uvgrtp::frame::dealloc_frame(frame);
 }

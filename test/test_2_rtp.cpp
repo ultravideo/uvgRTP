@@ -87,7 +87,8 @@ TEST(RTPTests, send_too_much)
     if (sender)
     {
         std::cout << "Starting to send data" << std::endl;
-        for (unsigned int i = 0; i < 10000; ++i)
+        int packets = 4000;
+        for (unsigned int i = 0; i < packets; ++i)
         {
             const int frame_size = 200000;
             std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[frame_size]);
@@ -97,9 +98,9 @@ TEST(RTPTests, send_too_much)
                 std::cout << "Failed to send RTP frame!" << std::endl;
             }
 
-            if (i % 1000 == 999)
+            if (i % (packets/10) == packets/10 - 1)
             {
-                std::cout << "Sent " << (i + 1) * 100 / 10000 << " % of data" << std::endl;
+                std::cout << "Sent " << (i + 1) * 100 / packets << " % of data" << std::endl;
             }
         }
 
