@@ -83,7 +83,7 @@ DISTFILES += \
 
 
 # uvgrtp include folder
-INCLUDEPATH    += ../../include
+INCLUDEPATH    += ../include
 
 LIBS += -luvgrtp
 
@@ -100,9 +100,9 @@ win32-msvc{
   message("Detected MSVC compiler")
   # find the libraries if uvgrtp has been built using CMake instructions
   CONFIG(debug, debug|release) {
-    UVGRTP_LIB_FOLDER = -L$$PWD/../../build/Debug
+    UVGRTP_LIB_FOLDER = -L$$PWD/../build/Debug
   } else:CONFIG(release, debug|release) {
-    UVGRTP_LIB_FOLDER = -L$$PWD/../../build/Release
+    UVGRTP_LIB_FOLDER = -L$$PWD/../build/Release
   }
 
   LIBS += -lws2_32

@@ -147,7 +147,7 @@ void receive_function(uvgrtp::session* receiver_session, int flags,
             if (frame)
             {
                 print_mutex->lock();
-                std::cout << "Received a frame. Payload size: " << frame->payload_len << std::endl;
+                std::cout << "Received a frame. Sequence number: " << frame->header.seq << std::endl;
                 print_mutex->unlock();
 
                 // Process the frame here
