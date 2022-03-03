@@ -20,7 +20,7 @@
 
 
 
-uvgrtp::formats::h265::h265(uvgrtp::socket* socket, uvgrtp::rtp* rtp, int flags) :
+uvgrtp::formats::h265::h265(uvgrtp::socket* socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags) :
     h26x(socket, rtp, flags)
 {}
 

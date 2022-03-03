@@ -7,6 +7,7 @@
 #include "uvgrtp/frame.hh"
 
 #include <deque>
+#include <memory>
 
 namespace uvgrtp {
 
@@ -59,7 +60,7 @@ namespace uvgrtp {
 
         class h26x : public media {
             public:
-                h26x(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags);
+                h26x(uvgrtp::socket *socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags);
                 virtual ~h26x();
 
                 /* Find H26x start code from "data"
@@ -163,7 +164,7 @@ namespace uvgrtp {
             std::deque<uvgrtp::frame::rtp_frame*> queued_;
             std::unordered_map<uint32_t, h26x_info_t> frames_;
             std::unordered_set<uint32_t> dropped_;
-            uvgrtp::rtp* rtp_ctx_;
+            std::shared_ptr<uvgrtp::rtp> rtp_ctx_;
 
             uvgrtp::clock::hrc::hrc_t last_garbage_collection_;
         };

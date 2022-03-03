@@ -183,7 +183,6 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
 
 rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
 {
-
     if (rtcp_)
     {
         delete rtcp_;
@@ -191,7 +190,6 @@ rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
     }
     if (rtp_)
     {
-        delete rtp_;
         rtp_ = nullptr;
     }
     if (srtp_)
@@ -238,7 +236,7 @@ rtp_error_t uvgrtp::media_stream::init()
 
     reception_flow_ = new uvgrtp::reception_flow();
 
-    rtp_ = new uvgrtp::rtp(fmt_);
+    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
 
     rtcp_ = new uvgrtp::rtcp(rtp_, ctx_config_.flags);
 
@@ -275,7 +273,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
 
     reception_flow_ = new uvgrtp::reception_flow();
 
-    rtp_ = new uvgrtp::rtp(fmt_);
+    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
 
     if ((ret = zrtp->init(rtp_->get_ssrc(), socket_, addr_out_)) != RTP_OK) {
         LOG_WARN("Failed to initialize ZRTP for media stream!");
@@ -339,7 +337,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     reception_flow_ = new uvgrtp::reception_flow();
 
-    rtp_ = new uvgrtp::rtp(fmt_);
+    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
 
     srtp_ = new uvgrtp::srtp(ctx_config_.flags);
 

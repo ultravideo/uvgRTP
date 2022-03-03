@@ -8,6 +8,7 @@
 #include "uvgrtp/socket.hh"
 
 #include <deque>
+#include <memory>
 
 namespace uvgrtp {
 
@@ -38,7 +39,7 @@ namespace uvgrtp {
 
         class h264 : public h26x {
             public:
-                h264(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags);
+                h264(uvgrtp::socket *socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags);
                 ~h264();
 
             protected:

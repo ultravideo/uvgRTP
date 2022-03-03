@@ -13,7 +13,7 @@
 
 #define INVALID_SEQ 0xffffffff
 
-uvgrtp::formats::media::media(uvgrtp::socket *socket, uvgrtp::rtp *rtp_ctx, int flags):
+uvgrtp::formats::media::media(uvgrtp::socket *socket, std::shared_ptr<uvgrtp::rtp> rtp_ctx, int flags):
     socket_(socket), rtp_ctx_(rtp_ctx), flags_(flags), minfo_{}
 {
     fqueue_ = new uvgrtp::frame_queue(socket, rtp_ctx, flags);
@@ -21,6 +21,8 @@ uvgrtp::formats::media::media(uvgrtp::socket *socket, uvgrtp::rtp *rtp_ctx, int 
 
 uvgrtp::formats::media::~media()
 {
+    delete fqueue_;
+    fqueue_ = nullptr;
 }
 
 rtp_error_t uvgrtp::formats::media::push_frame(uint8_t *data, size_t data_len, int flags)

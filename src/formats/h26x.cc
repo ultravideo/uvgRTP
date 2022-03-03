@@ -80,7 +80,7 @@ static inline unsigned __find_h26x_start(uint32_t value,bool& additional_byte)
     return 0;
 }
 
-uvgrtp::formats::h26x::h26x(uvgrtp::socket* socket, uvgrtp::rtp* rtp, int flags) :
+uvgrtp::formats::h26x::h26x(uvgrtp::socket* socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags) :
     media(socket, rtp, flags), 
     queued_(), 
     frames_(), 
@@ -90,9 +90,7 @@ uvgrtp::formats::h26x::h26x(uvgrtp::socket* socket, uvgrtp::rtp* rtp, int flags)
 {}
 
 uvgrtp::formats::h26x::~h26x()
-{
-    delete fqueue_;
-}
+{}
 
 /* NOTE: the area 0 - len (ie data[0] - data[len - 1]) must be addressable
  * Do not add offset to "data" ptr before passing it to find_h26x_start_code()! */
@@ -341,7 +339,8 @@ rtp_error_t uvgrtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len,
     size_t data_pos = 0;
 
     /* The payload is larger than MTU (1500 bytes) so we must split it into 
-     * smaller RTP frames, because we cannot make any assumptions about the life time of current stack, we need to store NAL and FU headers to the frame queue transaction.
+     * smaller RTP frames, because we cannot make any assumptions about the 
+     * life time of current stack, we need to store NAL and FU headers to the frame queue transaction.
      *
      * This can be done by asking a handle to current transaction's buffer vectors.
      *

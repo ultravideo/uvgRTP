@@ -76,8 +76,8 @@ namespace uvgrtp {
     class rtcp {
         public:
             /// \cond DO_NOT_DOCUMENT
-            rtcp(uvgrtp::rtp *rtp, int flags);
-            rtcp(uvgrtp::rtp *rtp, uvgrtp::srtcp *srtcp, int flags);
+            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, int flags);
+            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, uvgrtp::srtcp *srtcp, int flags);
             ~rtcp();
 
             /* start the RTCP runner thread
@@ -365,7 +365,7 @@ namespace uvgrtp {
 
             /* Pointer to RTP context from which clock rate etc. info is collected and which is
              * used to change SSRC if a collision is detected */
-            uvgrtp::rtp *rtp_;
+            std::shared_ptr<uvgrtp::rtp> rtp_;
 
             /* Secure RTCP context */
             uvgrtp::srtcp *srtcp_;

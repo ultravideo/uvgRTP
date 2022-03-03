@@ -343,6 +343,7 @@ void uvgrtp::reception_flow::receiver(uvgrtp::socket *socket, int flags)
             if (pfds)
             {
                 delete pfds;
+                pfds = nullptr;
             }
             break;
         }
@@ -400,6 +401,7 @@ void uvgrtp::reception_flow::receiver(uvgrtp::socket *socket, int flags)
         if (pfds)
         {
             delete pfds;
+            pfds = nullptr;
         }
     }
 }

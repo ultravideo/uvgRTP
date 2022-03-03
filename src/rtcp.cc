@@ -35,7 +35,7 @@ constexpr int ESTIMATED_MAX_RECEPTION_TIME_MS = 10;
 
 const uint32_t MAX_SUPPORTED_PARTICIPANTS = 31;
 
-uvgrtp::rtcp::rtcp(uvgrtp::rtp *rtp, int flags):
+uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, int flags):
     rtp_(rtp), flags_(flags), our_role_(RECEIVER),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
@@ -64,7 +64,7 @@ uvgrtp::rtcp::rtcp(uvgrtp::rtp *rtp, int flags):
     zero_stats(&our_stats);
 }
 
-uvgrtp::rtcp::rtcp(uvgrtp::rtp *rtp, uvgrtp::srtcp *srtcp, int flags):
+uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, uvgrtp::srtcp *srtcp, int flags):
     rtcp(rtp, flags)
 {
     srtcp_ = srtcp;
@@ -709,6 +709,8 @@ rtp_error_t uvgrtp::rtcp::recv_packet_handler(void *arg, int flags, frame::rtp_f
 {
     (void)flags;
 
+    // The validity of the header has been checked by previous handlers
+
     uvgrtp::frame::rtp_frame *frame = *out;
     uvgrtp::rtcp *rtcp              = (uvgrtp::rtcp *)arg;
 
@@ -993,6 +995,7 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* packet, size_t 
     if (participants_[frame->ssrc]->rr_frame)
     {
         delete participants_[frame->ssrc]->rr_frame;
+        participants_[frame->ssrc]->rr_frame = nullptr;
     }
 
     read_reports(packet, size, frame->header.count, false, frame->report_blocks);

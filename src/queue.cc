@@ -22,7 +22,7 @@
 #endif
 
 
-uvgrtp::frame_queue::frame_queue(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int flags):
+uvgrtp::frame_queue::frame_queue(uvgrtp::socket *socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags):
     rtp_(rtp), socket_(socket), flags_(flags)
 {
     active_     = nullptr;

@@ -36,7 +36,7 @@ namespace uvgrtp {
 
         class media {
             public:
-                media(uvgrtp::socket *socket, uvgrtp::rtp *rtp_ctx, int flags);
+                media(uvgrtp::socket *socket, std::shared_ptr<uvgrtp::rtp> rtp_ctx, int flags);
                 virtual ~media();
 
                 /* These two functions are called by media_stream which is self is called by the application.
@@ -66,7 +66,7 @@ namespace uvgrtp {
                 virtual rtp_error_t push_media_frame(uint8_t *data, size_t data_len, int flags);
 
                 uvgrtp::socket *socket_;
-                uvgrtp::rtp *rtp_ctx_;
+                std::shared_ptr<uvgrtp::rtp> rtp_ctx_;
                 int flags_;
                 uvgrtp::frame_queue *fqueue_;
 
