@@ -64,7 +64,7 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, int flags):
     zero_stats(&our_stats);
 }
 
-uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, uvgrtp::srtcp *srtcp, int flags):
+uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<uvgrtp::srtcp> srtcp, int flags):
     rtcp(rtp, flags)
 {
     srtcp_ = srtcp;

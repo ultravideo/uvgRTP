@@ -308,15 +308,15 @@ namespace uvgrtp {
             /* free all allocated resources */
             rtp_error_t free_resources(rtp_error_t ret);
 
-            rtp_error_t init_srtp_with_zrtp(int flags, int type, uvgrtp::base_srtp* srtp,
+            rtp_error_t init_srtp_with_zrtp(int flags, int type, std::shared_ptr<uvgrtp::base_srtp> srtp,
                                             std::shared_ptr<uvgrtp::zrtp> zrtp);
 
             uint32_t key_;
 
-            uvgrtp::srtp   *srtp_;
-            uvgrtp::srtcp  *srtcp_;
+            std::shared_ptr<uvgrtp::srtp>   srtp_;
+            std::shared_ptr<uvgrtp::srtcp>  srtcp_;
             std::shared_ptr<uvgrtp::socket> socket_;
-            std::shared_ptr<uvgrtp::rtp> rtp_;
+            std::shared_ptr<uvgrtp::rtp>    rtp_;
             uvgrtp::rtcp   *rtcp_;
 
             sockaddr_in addr_out_;

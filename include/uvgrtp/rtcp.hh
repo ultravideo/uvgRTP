@@ -77,7 +77,7 @@ namespace uvgrtp {
         public:
             /// \cond DO_NOT_DOCUMENT
             rtcp(std::shared_ptr<uvgrtp::rtp> rtp, int flags);
-            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, uvgrtp::srtcp *srtcp, int flags);
+            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<uvgrtp::srtcp> srtcp, int flags);
             ~rtcp();
 
             /* start the RTCP runner thread
@@ -368,7 +368,7 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::rtp> rtp_;
 
             /* Secure RTCP context */
-            uvgrtp::srtcp *srtcp_;
+            std::shared_ptr<uvgrtp::srtcp> srtcp_;
 
             /* RTP context flags */
             int flags_;

@@ -194,12 +194,10 @@ rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
     }
     if (srtp_)
     {
-        delete srtp_;
         srtp_ = nullptr;
     }
     if (srtcp_)
     {
-        delete srtcp_;
         srtcp_ = nullptr;
     }
     if (reception_flow_)
@@ -279,24 +277,24 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
         return free_resources(ret);
     }
 
-    srtp_ = new uvgrtp::srtp(ctx_config_.flags);
+    srtp_ = std::shared_ptr<uvgrtp::srtp>(new uvgrtp::srtp(ctx_config_.flags));
     if ((ret = init_srtp_with_zrtp(ctx_config_.flags, SRTP, srtp_, zrtp)) != RTP_OK)
       return free_resources(ret);
 
-    srtcp_ = new uvgrtp::srtcp();
+    srtcp_ = std::shared_ptr<uvgrtp::srtcp> (new uvgrtp::srtcp());
     if ((ret = init_srtp_with_zrtp(ctx_config_.flags, SRTCP, srtcp_, zrtp)) != RTP_OK)
       return free_resources(ret);
 
     rtcp_ = new uvgrtp::rtcp(rtp_, srtcp_, ctx_config_.flags);
 
     socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
-    socket_->install_handler(srtp_, srtp_->send_packet_handler);
+    socket_->install_handler(srtp_.get(), srtp_->send_packet_handler);
 
     rtp_handler_key_  = reception_flow_->install_handler(rtp_->packet_handler);
     zrtp_handler_key_ = reception_flow_->install_handler(zrtp->packet_handler);
 
     reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler, nullptr);
-    reception_flow_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler, nullptr);
+    reception_flow_->install_aux_handler(rtp_handler_key_, srtp_.get(), srtp_->recv_packet_handler, nullptr);
 
     if (create_media(fmt_) != RTP_OK)
         return free_resources(RTP_MEMORY_ERROR);
@@ -338,7 +336,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
 
-    srtp_ = new uvgrtp::srtp(ctx_config_.flags);
+    srtp_ = std::shared_ptr<uvgrtp::srtp> (new uvgrtp::srtp(ctx_config_.flags));
 
     // why are they local and remote key/salt the same?
     if ((ret = srtp_->init(SRTP, ctx_config_.flags, key, key, salt, salt)) != RTP_OK) {
@@ -346,7 +344,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         return free_resources(ret);
     }
 
-    srtcp_ = new uvgrtp::srtcp();
+    srtcp_ = std::shared_ptr<uvgrtp::srtcp> (new uvgrtp::srtcp());
 
     if ((ret = srtcp_->init(SRTCP, ctx_config_.flags, key, key, salt, salt)) != RTP_OK) {
         LOG_WARN("Failed to initialize SRTCP for media stream!");
@@ -356,12 +354,12 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     rtcp_ = new uvgrtp::rtcp(rtp_, srtcp_, ctx_config_.flags);
 
     socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
-    socket_->install_handler(srtp_, srtp_->send_packet_handler);
+    socket_->install_handler(srtp_.get(), srtp_->send_packet_handler);
 
     rtp_handler_key_ = reception_flow_->install_handler(rtp_->packet_handler);
 
     reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler, nullptr);
-    reception_flow_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler, nullptr);
+    reception_flow_->install_aux_handler(rtp_handler_key_, srtp_.get(), srtp_->recv_packet_handler, nullptr);
 
     if (create_media(fmt_) != RTP_OK)
         return free_resources(RTP_MEMORY_ERROR);
@@ -614,7 +612,7 @@ uvgrtp::rtcp *uvgrtp::media_stream::get_rtcp()
     return rtcp_;
 }
 
-rtp_error_t uvgrtp::media_stream::init_srtp_with_zrtp(int flags, int type, uvgrtp::base_srtp* srtp,
+rtp_error_t uvgrtp::media_stream::init_srtp_with_zrtp(int flags, int type, std::shared_ptr<uvgrtp::base_srtp> srtp,
     std::shared_ptr<uvgrtp::zrtp> zrtp)
 {
     size_t key_size = srtp->get_key_size(flags);
