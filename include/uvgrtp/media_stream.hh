@@ -317,7 +317,7 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::srtcp>  srtcp_;
             std::shared_ptr<uvgrtp::socket> socket_;
             std::shared_ptr<uvgrtp::rtp>    rtp_;
-            uvgrtp::rtcp   *rtcp_;
+            std::shared_ptr<uvgrtp::rtcp>   rtcp_;
 
             sockaddr_in addr_out_;
             std::string addr_;
