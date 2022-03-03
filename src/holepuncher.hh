@@ -4,6 +4,7 @@
 #include "uvgrtp/util.hh"
 
 #include <atomic>
+#include <memory>
 
 namespace uvgrtp {
 
@@ -11,7 +12,7 @@ namespace uvgrtp {
 
     class holepuncher : public runner {
         public:
-            holepuncher(uvgrtp::socket *socket);
+            holepuncher(std::shared_ptr<uvgrtp::socket> socket);
             ~holepuncher();
 
             /* Create new thread object and start the holepuncher
@@ -30,7 +31,7 @@ namespace uvgrtp {
         private:
             void keepalive();
 
-            uvgrtp::socket *socket_;
+            std::shared_ptr<uvgrtp::socket> socket_;
             std::atomic<uint64_t> last_dgram_sent_;
     };
 }

@@ -7,7 +7,7 @@
 
 #define THRESHOLD 2000
 
-uvgrtp::holepuncher::holepuncher(uvgrtp::socket *socket):
+uvgrtp::holepuncher::holepuncher(std::shared_ptr<uvgrtp::socket> socket):
     socket_(socket),
     last_dgram_sent_(0)
 {

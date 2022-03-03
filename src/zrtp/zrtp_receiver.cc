@@ -43,7 +43,7 @@ uvgrtp::zrtp_msg::receiver::~receiver()
     delete[] mem_;
 }
 
-int uvgrtp::zrtp_msg::receiver::recv_msg(uvgrtp::socket *socket, int timeout, int flags)
+int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket, int timeout, int flags)
 {
     rtp_error_t ret = RTP_GENERIC_ERROR;
     int nread       = 0;

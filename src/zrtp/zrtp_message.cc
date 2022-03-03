@@ -26,7 +26,7 @@ uvgrtp::zrtp_msg::zrtp_message::~zrtp_message()
     (void)uvgrtp::frame::dealloc_frame(rframe_);
 }
 
-rtp_error_t uvgrtp::zrtp_msg::zrtp_message::send_msg(uvgrtp::socket *socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp_msg::zrtp_message::send_msg(std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr)
 {
     rtp_error_t ret;
 

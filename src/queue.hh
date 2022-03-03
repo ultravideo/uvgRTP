@@ -93,7 +93,7 @@ namespace uvgrtp {
 
     class frame_queue {
         public:
-            frame_queue(uvgrtp::socket *socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags);
+            frame_queue(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags);
             ~frame_queue();
 
             rtp_error_t init_transaction();
@@ -196,7 +196,7 @@ namespace uvgrtp {
             ssize_t max_ccount_; /* number of chunks per message */
 
             std::shared_ptr<uvgrtp::rtp> rtp_;
-            uvgrtp::socket *socket_;
+            std::shared_ptr<uvgrtp::socket> socket_;
 
             /* RTP context flags */
             int flags_;

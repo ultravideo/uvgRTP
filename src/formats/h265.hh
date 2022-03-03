@@ -40,7 +40,7 @@ namespace uvgrtp {
 
         class h265 : public h26x {
             public:
-                h265(uvgrtp::socket *socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags);
+                h265(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags);
                 ~h265();
 
             protected:

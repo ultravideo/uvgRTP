@@ -38,7 +38,7 @@ namespace uvgrtp {
 
         class h266 : public h26x {
             public:
-                h266(uvgrtp::socket *socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags);
+                h266(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags);
                 ~h266();
 
             protected:

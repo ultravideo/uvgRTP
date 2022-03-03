@@ -100,7 +100,7 @@ rtp_error_t uvgrtp::rtcp::stop()
         /* free all receiver statistic structs */
         for (auto& participant : participants_)
         {
-            delete participant.second->socket;
+            participant.second->socket = nullptr;
             delete participant.second;
         }
 
@@ -194,7 +194,7 @@ rtp_error_t uvgrtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_por
 
     zero_stats(&p->stats);
 
-    p->socket = new uvgrtp::socket(0);
+    p->socket = std::shared_ptr<uvgrtp::socket> (new uvgrtp::socket(0));
 
     if ((ret = p->socket->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
     {
@@ -768,7 +768,7 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
     uvgrtp::frame::rtcp_header header;
     read_rtcp_header(buffer, header);
 
-    if (size < header.length)
+    if (size < header.length) // TODO: This length in header is not supposed to be bytes, but 32-bit words - 1
     {
         LOG_ERROR("Received partial rtcp packet. Not supported");
         return RTP_NOT_SUPPORTED;
@@ -897,7 +897,7 @@ rtp_error_t uvgrtp::rtcp::handle_bye_packet(uint8_t* packet, size_t size)
             continue;
         }
 
-        delete participants_[ssrc]->socket;
+        participants_[ssrc]->socket = nullptr;
         delete participants_[ssrc];
         participants_.erase(ssrc);
     }
@@ -1198,6 +1198,8 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         frame_size += UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH;
     }
 
+    // see https://datatracker.ietf.org/doc/html/rfc3550#section-6.4.1
+
     if (our_role_ == SENDER && our_stats.sent_rtp_packet)
     {
         LOG_DEBUG("Generating RTCP Sender report");
@@ -1240,7 +1242,9 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         if (p.second->stats.received_rtp_packet)
         {
             int dropped = p.second->stats.dropped_pkts;
-            uint8_t frac = dropped ? p.second->stats.received_bytes / dropped : 0;
+            // TODO: This should be the number of packets lost compared to number of packets expected (see fraction lost in RFC 3550)
+            // see https://datatracker.ietf.org/doc/html/rfc3550#appendix-A.3
+            uint8_t frac = dropped ? p.second->stats.received_bytes / dropped : 0; 
 
             SET_NEXT_FIELD_32(frame, ptr, htonl(p.first)); /* ssrc */
             SET_NEXT_FIELD_32(frame, ptr, htonl((frac << 24) | p.second->stats.dropped_pkts));

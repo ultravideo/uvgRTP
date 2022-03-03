@@ -14,7 +14,7 @@
 
 #include <mutex>
 #include <vector>
-
+#include <memory>
 
 
 namespace uvgrtp {
@@ -186,7 +186,7 @@ namespace uvgrtp {
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init(uint32_t ssrc, uvgrtp::socket *socket, sockaddr_in& addr);
+            rtp_error_t init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr);
 
             /* Get SRTP keys for the session that was just initialized
              *
@@ -219,13 +219,13 @@ namespace uvgrtp {
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init_dhm(uint32_t ssrc, uvgrtp::socket *socket, sockaddr_in& addr);
+            rtp_error_t init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr);
 
             /* Initialize ZRTP session between us and remote using Multistream mode
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init_msm(uint32_t ssrc, uvgrtp::socket *socket, sockaddr_in& addr);
+            rtp_error_t init_msm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr);
 
             /* Generate zid for this ZRTP instance. ZID is a unique, 96-bit long ID */
             void generate_zid();
@@ -300,7 +300,7 @@ namespace uvgrtp {
             rtp_error_t initiator_finalize_session();
 
             uint32_t ssrc_;
-            uvgrtp::socket *socket_;
+            std::shared_ptr<uvgrtp::socket> socket_;
             sockaddr_in addr_;
 
             /* Has the ZRTP connection been initialized using DH */

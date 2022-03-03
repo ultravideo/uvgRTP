@@ -60,7 +60,7 @@ namespace uvgrtp {
 
         class h26x : public media {
             public:
-                h26x(uvgrtp::socket *socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags);
+                h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags);
                 virtual ~h26x();
 
                 /* Find H26x start code from "data"

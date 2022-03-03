@@ -57,12 +57,12 @@ namespace uvgrtp {
     };
 
     struct rtcp_participant {
-        uvgrtp::socket *socket = nullptr; /* socket associated with this participant */
-        sockaddr_in address;         /* address of the participant */
-        struct receiver_statistics stats; /* RTCP session statistics of the participant */
+        std::shared_ptr<uvgrtp::socket> socket = nullptr; /* socket associated with this participant */
+        sockaddr_in address;                              /* address of the participant */
+        struct receiver_statistics stats;                 /* RTCP session statistics of the participant */
 
-        uint32_t probation = 0;           /* has the participant been fully accepted to the session */
-        int role = 0;                /* is the participant a sender or a receiver */
+        uint32_t probation = 0;                           /* has the participant been fully accepted to the session */
+        int role = 0;                                     /* is the participant a sender or a receiver */
 
         /* Save the latest RTCP packets received from this participant
          * Users can query these packets using the SSRC of participant */

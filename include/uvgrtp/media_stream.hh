@@ -315,7 +315,7 @@ namespace uvgrtp {
 
             uvgrtp::srtp   *srtp_;
             uvgrtp::srtcp  *srtcp_;
-            uvgrtp::socket *socket_;
+            std::shared_ptr<uvgrtp::socket> socket_;
             std::shared_ptr<uvgrtp::rtp> rtp_;
             uvgrtp::rtcp   *rtcp_;
 

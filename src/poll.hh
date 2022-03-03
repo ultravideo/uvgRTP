@@ -3,6 +3,7 @@
 #include "uvgrtp/util.hh"
 
 #include <vector>
+#include <memory>
 
 namespace uvgrtp {
     class socket;
@@ -19,7 +20,7 @@ namespace uvgrtp {
         rtp_error_t poll(std::vector<uvgrtp::socket>& sockets, uint8_t *buf, size_t buf_len, int timeout, int *bytes_read);
 
         /* TODO:  */
-        rtp_error_t blocked_recv(uvgrtp::socket *socket, uint8_t *buf, size_t buf_len, int timeout, int *bytes_read);
+        rtp_error_t blocked_recv(std::shared_ptr<uvgrtp::socket> socket, uint8_t *buf, size_t buf_len, int timeout, int *bytes_read);
     }
 }
 

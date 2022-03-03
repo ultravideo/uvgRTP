@@ -70,7 +70,7 @@ void uvgrtp::reception_flow::set_buffer_size(ssize_t& value)
     create_ring_buffer();
 }
 
-rtp_error_t uvgrtp::reception_flow::start(uvgrtp::socket *socket, int flags)
+rtp_error_t uvgrtp::reception_flow::start(std::shared_ptr<uvgrtp::socket> socket, int flags)
 {
     should_stop_ = false;
     processor_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::reception_flow::process_packet, this, flags));
@@ -313,7 +313,7 @@ void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int flags, uvgrtp::
     }
 }
 
-void uvgrtp::reception_flow::receiver(uvgrtp::socket *socket, int flags)
+void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, int flags)
 {
     LOG_DEBUG("Start reception loop");
 

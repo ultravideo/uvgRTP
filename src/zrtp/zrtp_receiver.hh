@@ -6,6 +6,8 @@
 #include <netinet/in.h>
 #endif
 
+#include <memory>
+
 namespace uvgrtp {
 
     class socket;
@@ -25,7 +27,7 @@ namespace uvgrtp {
                  * Return -EPROTONOSUPPORT if message contains incompatible version number
                  * Return -ENOPNOTSUPP if message type is not supported
                  * Return -errno for any other error */
-                int recv_msg(uvgrtp::socket *socket, int timeout, int flags);
+                int recv_msg(std::shared_ptr<uvgrtp::socket> socket, int timeout, int flags);
 
                 /* TODO:  */
                 ssize_t get_msg(void *ptr, size_t len);

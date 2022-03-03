@@ -78,7 +78,7 @@ rtp_error_t uvgrtp::media_stream::init_connection()
 {
     rtp_error_t ret = RTP_OK;
 
-    socket_ = new uvgrtp::socket(ctx_config_.flags);
+    socket_ = std::shared_ptr<uvgrtp::socket> (new uvgrtp::socket(ctx_config_.flags));
 
     if ((ret = socket_->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
         return ret;
@@ -220,7 +220,6 @@ rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
 
     if (socket_)
     {
-        delete socket_;
         socket_ = nullptr;
     }
 

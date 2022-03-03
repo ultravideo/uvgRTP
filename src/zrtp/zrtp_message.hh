@@ -6,6 +6,7 @@
 #include "uvgrtp/frame.hh"
 #include "uvgrtp/util.hh"
 
+#include <memory>
 
 namespace uvgrtp {
 
@@ -16,7 +17,7 @@ namespace uvgrtp {
             zrtp_message();
             ~zrtp_message();
 
-            rtp_error_t send_msg(uvgrtp::socket* socket, sockaddr_in& addr);
+            rtp_error_t send_msg(std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr);
 
             /* TODO: description */
             virtual rtp_error_t parse_msg(uvgrtp::zrtp_msg::receiver& receiver,

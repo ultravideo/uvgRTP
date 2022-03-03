@@ -617,7 +617,7 @@ rtp_error_t uvgrtp::zrtp::initiator_finalize_session()
     return RTP_TIMEOUT;
 }
 
-rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, uvgrtp::socket *socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr)
 {
     std::lock_guard<std::mutex> lock(zrtp_mtx_);
 
@@ -626,7 +626,7 @@ rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, uvgrtp::socket *socket, sockaddr_i
     return init_msm(ssrc, socket, addr);
 }
 
-rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, uvgrtp::socket *socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr)
 {
     rtp_error_t ret = RTP_OK;
 
@@ -723,7 +723,7 @@ rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, uvgrtp::socket *socket, sockad
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::zrtp::init_msm(uint32_t ssrc, uvgrtp::socket *socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp::init_msm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr)
 {
     rtp_error_t ret;
 

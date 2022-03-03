@@ -16,7 +16,7 @@
 
 
 
-rtp_error_t uvgrtp::poll::blocked_recv(uvgrtp::socket *socket, uint8_t *buf, size_t buf_len, int timeout, int *bytes_read)
+rtp_error_t uvgrtp::poll::blocked_recv(std::shared_ptr<uvgrtp::socket> socket, uint8_t *buf, size_t buf_len, int timeout, int *bytes_read)
 {
     if (!buf|| !buf_len)
         return RTP_INVALID_VALUE;

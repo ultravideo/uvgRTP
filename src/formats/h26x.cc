@@ -80,7 +80,7 @@ static inline unsigned __find_h26x_start(uint32_t value,bool& additional_byte)
     return 0;
 }
 
-uvgrtp::formats::h26x::h26x(uvgrtp::socket* socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags) :
+uvgrtp::formats::h26x::h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags) :
     media(socket, rtp, flags), 
     queued_(), 
     frames_(), 
