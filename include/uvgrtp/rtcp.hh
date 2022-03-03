@@ -363,6 +363,9 @@ namespace uvgrtp {
             /* Takes ownership of the frame */
             rtp_error_t send_rtcp_packet_to_participants(uint8_t* frame, size_t frame_size);
 
+
+            void free_participant(rtcp_participant* participant);
+
             /* Pointer to RTP context from which clock rate etc. info is collected and which is
              * used to change SSRC if a collision is detected */
             std::shared_ptr<uvgrtp::rtp> rtp_;

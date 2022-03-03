@@ -40,8 +40,19 @@ uvgrtp::reception_flow::reception_flow() :
 uvgrtp::reception_flow::~reception_flow()
 {
     destroy_ring_buffer();
+    clear_frames();
+}
 
-    // TODO: Delete frames?
+void uvgrtp::reception_flow::clear_frames()
+{
+    frames_mtx_.lock();
+    for (auto& frame : frames_)
+    {
+        delete[] frame;
+    }
+
+    frames_.clear();
+    frames_mtx_.unlock();
 }
 
 void uvgrtp::reception_flow::create_ring_buffer()
@@ -109,6 +120,8 @@ rtp_error_t uvgrtp::reception_flow::stop()
     {
         processor_->join();
     }
+
+    clear_frames();
 
     return RTP_OK;
 }

@@ -90,7 +90,14 @@ uvgrtp::formats::h26x::h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_
 {}
 
 uvgrtp::formats::h26x::~h26x()
-{}
+{
+    for (auto& frame : queued_)
+    {
+        delete[] frame;
+    }
+
+    queued_.clear();
+}
 
 /* NOTE: the area 0 - len (ie data[0] - data[len - 1]) must be addressable
  * Do not add offset to "data" ptr before passing it to find_h26x_start_code()! */

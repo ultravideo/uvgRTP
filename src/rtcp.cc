@@ -78,6 +78,30 @@ uvgrtp::rtcp::~rtcp()
     }
 }
 
+void uvgrtp::rtcp::free_participant(rtcp_participant* participant)
+{
+    participant->socket = nullptr;
+
+    if (participant->sr_frame)
+    {
+        delete participant->sr_frame;
+    }
+    if (participant->rr_frame)
+    {
+        delete participant->rr_frame;
+    }
+    if (participant->sdes_frame)
+    {
+        delete participant->sdes_frame;
+    }
+    if (participant->app_frame)
+    {
+        delete participant->app_frame;
+    }
+
+    delete participant;
+}
+
 rtp_error_t uvgrtp::rtcp::start()
 {
     if (sockets_.empty())
@@ -94,17 +118,22 @@ rtp_error_t uvgrtp::rtcp::start()
 
 rtp_error_t uvgrtp::rtcp::stop()
 {
-    // TODO: Make thread safe
+    // TODO: Make thread safe. I think this kind of works, but not in a flexible way
     if (!active_)
     {
         /* free all receiver statistic structs */
         for (auto& participant : participants_)
         {
-            participant.second->socket = nullptr;
-            delete participant.second;
+            free_participant(participant.second);
         }
-
         participants_.clear();
+
+        for (auto& participant : initial_participants_)
+        {
+            free_participant(participant);
+        }
+        initial_participants_.clear();
+
         return RTP_OK;
     }
 
@@ -253,7 +282,7 @@ rtp_error_t uvgrtp::rtcp::add_participant(uint32_t ssrc)
     if (num_receivers_ == MAX_SUPPORTED_PARTICIPANTS)
     {
         LOG_ERROR("Maximum number of RTCP participants reached.");
-        // TODO: Support more participants by sending the multiple messages at the same time
+        // TODO: Support more participants by sending multiple messages at the same time
         return RTP_GENERIC_ERROR;
     }
 
@@ -1168,7 +1197,8 @@ rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, size_
             LOG_ERROR("Tried to send RTCP packet when socket does not exist!");
         }
     }
-    // TODO: Should the frame be deleted?
+    delete[] frame;
+
     return ret;
 }
 

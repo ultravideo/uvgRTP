@@ -215,7 +215,6 @@ rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
     {
         media_ = nullptr;
     }
-
     if (socket_)
     {
         socket_ = nullptr;

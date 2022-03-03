@@ -57,9 +57,9 @@ namespace uvgrtp {
      * If it's unclear as to which handler should be called, the packet is dispatched to all relevant
      * handlers and a handler then returns RTP_OK/RTP_PKT_NOT_HANDLED based on whether the packet was handled.
      *
-     * For example, if runner detects an incoming ZRTP packet, that packet is immediately dispatched to the
+     * For example, if receiver detects an incoming ZRTP packet, that packet is immediately dispatched to the
      * installed ZRTP handler if ZRTP has been enabled.
-     * Likewise, if RTP packet authentication has been enabled, runner validates the packet before passing
+     * Likewise, if RTP packet authentication has been enabled, processor validates the packet before passing
      * it onto any other layer so all future work on the packet is not done in vain due to invalid data
      *
      * One piece of design choice that complicates the design of packet dispatcher a little is that the order
@@ -167,6 +167,8 @@ namespace uvgrtp {
 
             void create_ring_buffer();
             void destroy_ring_buffer();
+
+            void clear_frames();
 
             /* If receive hook has not been installed, frames are pushed to "frames_"
              * and they can be retrieved using pull_frame() */

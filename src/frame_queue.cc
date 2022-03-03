@@ -34,13 +34,28 @@ uvgrtp::frame_queue::frame_queue(std::shared_ptr<uvgrtp::socket> socket, std::sh
 
 uvgrtp::frame_queue::~frame_queue()
 {
+    transaction_mtx_.lock();
     for (auto& i : free_) {
         (void)destroy_transaction(i);
     }
     free_.clear();
 
+    /*
+    * 
+    * TODO: Deleting this crashes at exit
+    for (auto& i : queued_) {
+        (void)destroy_transaction(i.second);
+    }
+    queued_.clear();
+    */
+
     if (active_)
+    {
         (void)destroy_transaction(active_);
+        active_ = nullptr;
+    }
+
+    transaction_mtx_.unlock();
 }
 
 rtp_error_t uvgrtp::frame_queue::init_transaction()
@@ -144,34 +159,47 @@ rtp_error_t uvgrtp::frame_queue::destroy_transaction(uvgrtp::transaction_t *t)
     if (!t)
         return RTP_INVALID_VALUE;
 
-    delete[] t->headers;
-    delete[] t->chunks;
-    delete[] t->rtp_headers;
-    delete[] t->rtp_auth_tags;
+    if (t->headers)
+        delete[] t->headers;
 
-    t->headers     = nullptr;
-    t->chunks      = nullptr;
-    t->rtp_headers = nullptr;
+    if (t->chunks)
+        delete[] t->chunks;
 
-    switch (rtp_->get_payload()) {
-        case RTP_FORMAT_H264:
-            delete (uvgrtp::formats::h264_headers *)t->media_headers;
-            t->media_headers = nullptr;
-            break;
+    if (t->rtp_headers)
+        delete[] t->rtp_headers;
 
-        case RTP_FORMAT_H265:
-            delete (uvgrtp::formats::h265_headers *)t->media_headers;
-            t->media_headers = nullptr;
-            break;
+    if (t->rtp_auth_tags)
+        delete[] t->rtp_auth_tags;
 
-        case RTP_FORMAT_H266:
-            delete (uvgrtp::formats::h266_headers *)t->media_headers;
-            t->media_headers = nullptr;
-            break;
+    t->headers       = nullptr;
+    t->chunks        = nullptr;
+    t->rtp_headers   = nullptr;
+    t->rtp_auth_tags = nullptr;
 
-        default:
-            break;
+    if (t->media_headers)
+    {
+        switch (rtp_->get_payload()) {
+            case RTP_FORMAT_H264:
+                delete (uvgrtp::formats::h264_headers*)t->media_headers;
+                t->media_headers = nullptr;
+                break;
+
+            case RTP_FORMAT_H265:
+                delete (uvgrtp::formats::h265_headers*)t->media_headers;
+                t->media_headers = nullptr;
+                break;
+
+            case RTP_FORMAT_H266:
+                delete (uvgrtp::formats::h266_headers*)t->media_headers;
+                t->media_headers = nullptr;
+                break;
+
+            default:
+                break;
+        }
     }
+
+
     delete t;
     t = nullptr;
 
