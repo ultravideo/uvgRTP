@@ -201,7 +201,6 @@ rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
     }
     if (reception_flow_)
     {
-        delete reception_flow_;
         reception_flow_ = nullptr;
     }
     if (holepuncher_)
@@ -230,7 +229,7 @@ rtp_error_t uvgrtp::media_stream::init()
         return free_resources(RTP_GENERIC_ERROR);
     }
 
-    reception_flow_ = new uvgrtp::reception_flow();
+    reception_flow_ = std::unique_ptr<uvgrtp::reception_flow> (new uvgrtp::reception_flow());
 
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
     rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, ctx_config_.flags));
@@ -252,7 +251,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
         return RTP_GENERIC_ERROR;
     }
 
-    reception_flow_ = new uvgrtp::reception_flow();
+    reception_flow_ = std::unique_ptr<uvgrtp::reception_flow> (new uvgrtp::reception_flow());
 
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
 
@@ -299,7 +298,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     if ((flags_ & srtp_flags) != srtp_flags)
         return free_resources(RTP_NOT_SUPPORTED);
 
-    reception_flow_ = new uvgrtp::reception_flow();
+    reception_flow_ = std::unique_ptr<uvgrtp::reception_flow> (new uvgrtp::reception_flow());
 
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
 
