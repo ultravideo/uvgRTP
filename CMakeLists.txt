@@ -34,7 +34,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/media_stream.cc
         src/mingw_inet.cc
         src/multicast.cc
-        src/pkt_dispatch.cc
+        src/reception_flow.cc
         src/poll.cc
         src/queue.cc
         src/random.cc
@@ -78,7 +78,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/hostname.hh
         src/mingw_inet.hh
         src/multicast.hh
-        src/pkt_dispatch.hh
+        src/reception_flow.hh
         src/poll.hh
         src/rtp.hh
         src/zrtp.hh

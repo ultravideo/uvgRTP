@@ -30,8 +30,9 @@ namespace uvgrtp {
     } active_t;
 
     typedef struct transaction {
-        /* Each transaction has a unique key which is used by the SCD (if enabled)
-         * when moving the transactions betwen "queued_" and "free_" */
+
+        /* Each transaction has a unique key  when moving the transactions 
+         * between "queued_" and "free_" */
         uint32_t key = 0;
 
         /* To provide true scatter/gather I/O, each transaction has a buf_vec
@@ -77,20 +78,10 @@ namespace uvgrtp {
         /* Address of receiver, used by sendmmsg(2) */
         sockaddr_in out_addr;
 
-        /* Used by the system call dispatcher for transaction deinitialization */
         uvgrtp::frame_queue *fqueue = nullptr;
 
-        /* If SCD is used, it's absolutely essential to initialize transaction
-         * by giving the data pointer to frame queue
-         *
-         * When the SCD has processed the transaction,
-         * it will be destroyed freeing the "data_smart" automatically.
-         *
-         * If "data_raw" is set instead, the SCD checks if a deallocation callback is provided
-         * and if so, it will deallocate the memory using the callback
-         *
-         * If callback is not provided, SCD will check if "flags" field contains the flag "RTP_COPY"
-         * which means that uvgRTP has a made a copy of the original chunk and it can be safely freed */
+        /* The flag "RTP_COPY" means that uvgRTP has a made a copy of the original chunk 
+         * and it can be safely freed */
         std::unique_ptr<uint8_t[]> data_smart;
         uint8_t *data_raw = nullptr;
 
@@ -157,11 +148,6 @@ namespace uvgrtp {
 
             /* Each media may allocate extra buffers for the transaction struct if need be
              *
-             * These headers must be stored in the transaction structure (instead of into
-             * caller's stack) because if system call dispatcher is used, the transaction is
-             * not committed immediately but rather given to SCD. This means that when SCD
-             * starts working on the transaction, the buffers that were on the caller's stack
-             * are now invalid and the transaction will fail/garbage will be sent
              *
              * Return pointer to media headers if they're set
              * Return nullptr if they're not set */

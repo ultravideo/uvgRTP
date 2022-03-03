@@ -205,7 +205,7 @@ namespace uvgrtp {
             );
 
             /* ZRTP packet handler is used after ZRTP state initialization has finished
-             * and media exchange has started. RTP packet dispatcher gives the packet
+             * and media exchange has started. RTP reception flow gives the packet
              * to "zrtp_handler" which then checks whether the packet is a ZRTP packet
              * or not and processes it accordingly.
              *

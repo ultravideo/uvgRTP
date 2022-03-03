@@ -340,9 +340,8 @@ rtp_error_t uvgrtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len,
     size_t data_left = data_len;
     size_t data_pos = 0;
 
-    /* The payload is larger than MTU (1500 bytes) so we must split it into smaller RTP frames
-     * Because we don't if the SCD is enabled and thus cannot make any assumptions about the life time
-     * of current stack, we need to store NAL and FU headers to the frame queue transaction.
+    /* The payload is larger than MTU (1500 bytes) so we must split it into 
+     * smaller RTP frames, because we cannot make any assumptions about the life time of current stack, we need to store NAL and FU headers to the frame queue transaction.
      *
      * This can be done by asking a handle to current transaction's buffer vectors.
      *

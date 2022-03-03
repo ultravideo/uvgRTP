@@ -118,7 +118,7 @@ typedef enum RTP_FLAGS {
 enum RTP_CTX_ENABLE_FLAGS {
     RCE_NO_FLAGS                  = 0 << 0,
 
-    /* Enable system call dispatcher (HEVC only) */
+    /* Obsolete */
     RCE_SYSTEM_CALL_DISPATCHER    = 1 << 2,
 
     /** Use SRTP for this connection */

@@ -23,7 +23,7 @@ namespace uvgrtp {
     class srtp;
     class srtcp;
 
-    class pkt_dispatcher;
+    class reception_flow;
     class holepuncher;
     class socket;
 
@@ -238,9 +238,7 @@ namespace uvgrtp {
             rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *));
 
             /// \cond DO_NOT_DOCUMENT
-            /* If system call dispatcher is enabled and calling application has special requirements
-             * for the deallocation of a frame, it may install a deallocation hook which is called
-             * when SCD has processed the frame
+            /* 
              *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "hook" is nullptr */
@@ -329,7 +327,7 @@ namespace uvgrtp {
             rtp_format_t fmt_;
             int flags_;
 
-            /* Media context config (SCD etc.) */
+            /* Media context config */
             rtp_ctx_conf_t ctx_config_;
 
             /* Media config f.ex. for Opus */
@@ -338,12 +336,12 @@ namespace uvgrtp {
             /* Has the media stream been initialized */
             bool initialized_;
 
-            /* Primary handler keys for the RTP packet dispatcher */
+            /* Primary handler keys for the RTP reception flow */
             uint32_t rtp_handler_key_;
             uint32_t zrtp_handler_key_;
 
-            /* RTP packet dispatcher for the receiver */
-            uvgrtp::pkt_dispatcher *pkt_dispatcher_;
+            /* RTP packet reception flow */
+            uvgrtp::reception_flow *reception_flow_;
 
             /* Media object associated with this media stream. */
             uvgrtp::formats::media *media_;

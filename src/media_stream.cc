@@ -9,7 +9,7 @@
 #include "zrtp.hh"
 
 #include "holepuncher.hh"
-#include "pkt_dispatch.hh"
+#include "reception_flow.hh"
 #include "uvgrtp/rtcp.hh"
 #include "uvgrtp/socket.hh"
 #include "srtp/srtcp.hh"
@@ -29,7 +29,7 @@ uvgrtp::media_stream::media_stream(std::string addr, int src_port, int dst_port,
     media_config_(nullptr),
     initialized_(false),
     rtp_handler_key_(0),
-    pkt_dispatcher_(nullptr),
+    reception_flow_(nullptr),
     media_(nullptr),
     holepuncher_(nullptr)
 {
@@ -56,9 +56,9 @@ uvgrtp::media_stream::media_stream(
 
 uvgrtp::media_stream::~media_stream()
 {
-    if (pkt_dispatcher_)
+    if (reception_flow_)
     {
-        pkt_dispatcher_->stop();
+        reception_flow_->stop();
     }
 
     // TODO: I would take a close look at what happens when pull_frame is called
@@ -127,7 +127,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         {
             uvgrtp::formats::h264* format_264 = new uvgrtp::formats::h264(socket_, rtp_, ctx_config_.flags);
 
-            pkt_dispatcher_->install_aux_handler_cpp(
+            reception_flow_->install_aux_handler_cpp(
                 rtp_handler_key_,
                 std::bind(&uvgrtp::formats::h264::packet_handler, format_264, std::placeholders::_1, std::placeholders::_2),
                 std::bind(&uvgrtp::formats::h264::frame_getter, format_264, std::placeholders::_1));
@@ -140,7 +140,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         {
             uvgrtp::formats::h265* format_265 = new uvgrtp::formats::h265(socket_, rtp_, ctx_config_.flags);
 
-            pkt_dispatcher_->install_aux_handler_cpp(
+            reception_flow_->install_aux_handler_cpp(
                 rtp_handler_key_,
                 std::bind(&uvgrtp::formats::h265::packet_handler, format_265, std::placeholders::_1, std::placeholders::_2),
                 std::bind(&uvgrtp::formats::h265::frame_getter, format_265, std::placeholders::_1));
@@ -153,7 +153,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         {
             uvgrtp::formats::h266* format_266 = new uvgrtp::formats::h266(socket_, rtp_, ctx_config_.flags);
 
-            pkt_dispatcher_->install_aux_handler_cpp(
+            reception_flow_->install_aux_handler_cpp(
                 rtp_handler_key_,
                 std::bind(&uvgrtp::formats::h266::packet_handler, format_266, std::placeholders::_1, std::placeholders::_2),
                 std::bind(&uvgrtp::formats::h266::frame_getter, format_266, std::placeholders::_1));
@@ -166,7 +166,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         case RTP_FORMAT_GENERIC:
             media_ = new uvgrtp::formats::media(socket_, rtp_, ctx_config_.flags);
 
-            pkt_dispatcher_->install_aux_handler(
+            reception_flow_->install_aux_handler(
                 rtp_handler_key_,
                 media_->get_media_frame_info(),
                 media_->packet_handler,
@@ -204,10 +204,10 @@ rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
         delete srtcp_;
         srtcp_ = nullptr;
     }
-    if (pkt_dispatcher_)
+    if (reception_flow_)
     {
-        delete pkt_dispatcher_;
-        pkt_dispatcher_ = nullptr;
+        delete reception_flow_;
+        reception_flow_ = nullptr;
     }
     if (holepuncher_)
     {
@@ -236,7 +236,7 @@ rtp_error_t uvgrtp::media_stream::init()
         return free_resources(RTP_GENERIC_ERROR);
     }
 
-    pkt_dispatcher_ = new uvgrtp::pkt_dispatcher();
+    reception_flow_ = new uvgrtp::reception_flow();
 
     rtp_ = new uvgrtp::rtp(fmt_);
 
@@ -244,8 +244,8 @@ rtp_error_t uvgrtp::media_stream::init()
 
     socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
 
-    rtp_handler_key_ = pkt_dispatcher_->install_handler(rtp_->packet_handler);
-    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler, nullptr);
+    rtp_handler_key_ = reception_flow_->install_handler(rtp_->packet_handler);
+    reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler, nullptr);
 
     if (create_media(fmt_) != RTP_OK)
         return free_resources(RTP_MEMORY_ERROR);
@@ -261,7 +261,7 @@ rtp_error_t uvgrtp::media_stream::init()
     }
 
     initialized_ = true;
-    return pkt_dispatcher_->start(socket_, ctx_config_.flags);
+    return reception_flow_->start(socket_, ctx_config_.flags);
 }
 
 rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
@@ -273,7 +273,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
         return RTP_GENERIC_ERROR;
     }
 
-    pkt_dispatcher_ = new uvgrtp::pkt_dispatcher();
+    reception_flow_ = new uvgrtp::reception_flow();
 
     rtp_ = new uvgrtp::rtp(fmt_);
 
@@ -295,11 +295,11 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
     socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
     socket_->install_handler(srtp_, srtp_->send_packet_handler);
 
-    rtp_handler_key_  = pkt_dispatcher_->install_handler(rtp_->packet_handler);
-    zrtp_handler_key_ = pkt_dispatcher_->install_handler(zrtp->packet_handler);
+    rtp_handler_key_  = reception_flow_->install_handler(rtp_->packet_handler);
+    zrtp_handler_key_ = reception_flow_->install_handler(zrtp->packet_handler);
 
-    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler, nullptr);
-    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler, nullptr);
+    reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler, nullptr);
+    reception_flow_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler, nullptr);
 
     if (create_media(fmt_) != RTP_OK)
         return free_resources(RTP_MEMORY_ERROR);
@@ -318,7 +318,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
         rtp_->set_payload_size(MAX_PAYLOAD - UVG_AUTH_TAG_LENGTH);
 
     initialized_ = true;
-    return pkt_dispatcher_->start(socket_, ctx_config_.flags);
+    return reception_flow_->start(socket_, ctx_config_.flags);
 }
 
 rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
@@ -337,7 +337,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     if ((flags_ & srtp_flags) != srtp_flags)
         return free_resources(RTP_NOT_SUPPORTED);
 
-    pkt_dispatcher_ = new uvgrtp::pkt_dispatcher();
+    reception_flow_ = new uvgrtp::reception_flow();
 
     rtp_ = new uvgrtp::rtp(fmt_);
 
@@ -361,10 +361,10 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     socket_->install_handler(rtcp_, rtcp_->send_packet_handler_vec);
     socket_->install_handler(srtp_, srtp_->send_packet_handler);
 
-    rtp_handler_key_ = pkt_dispatcher_->install_handler(rtp_->packet_handler);
+    rtp_handler_key_ = reception_flow_->install_handler(rtp_->packet_handler);
 
-    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler, nullptr);
-    pkt_dispatcher_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler, nullptr);
+    reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_, rtcp_->recv_packet_handler, nullptr);
+    reception_flow_->install_aux_handler(rtp_handler_key_, srtp_, srtp_->recv_packet_handler, nullptr);
 
     if (create_media(fmt_) != RTP_OK)
         return free_resources(RTP_MEMORY_ERROR);
@@ -383,7 +383,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         rtp_->set_payload_size(MAX_PAYLOAD - UVG_AUTH_TAG_LENGTH);
 
     initialized_ = true;
-    return pkt_dispatcher_->start(socket_, ctx_config_.flags);
+    return reception_flow_->start(socket_, ctx_config_.flags);
 }
 
 rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int flags)
@@ -458,7 +458,7 @@ uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame()
         return nullptr;
     }
 
-    return pkt_dispatcher_->pull_frame();
+    return reception_flow_->pull_frame();
 }
 
 uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame(size_t timeout_ms)
@@ -469,7 +469,7 @@ uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame(size_t timeout_ms)
         return nullptr;
     }
 
-    return pkt_dispatcher_->pull_frame(timeout_ms);
+    return reception_flow_->pull_frame(timeout_ms);
 }
 
 rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *))
@@ -482,7 +482,7 @@ rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(v
     if (!hook)
         return RTP_INVALID_VALUE;
 
-    pkt_dispatcher_->install_receive_hook(arg, hook);
+    reception_flow_->install_receive_hook(arg, hook);
 
     return RTP_OK;
 }
@@ -553,7 +553,7 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int flag, ssize_t value)
             if (value <= 0)
                 return RTP_INVALID_VALUE;
 
-            pkt_dispatcher_->set_buffer_size(value);
+            reception_flow_->set_buffer_size(value);
 
             int buf_size = (int)value;
             if ((ret = socket_->setsockopt(SOL_SOCKET, SO_RCVBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)

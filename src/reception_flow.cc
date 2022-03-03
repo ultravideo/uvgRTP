@@ -1,4 +1,4 @@
-#include "pkt_dispatch.hh"
+#include "reception_flow.hh"
 
 #include "random.hh"
 
@@ -24,7 +24,7 @@ constexpr size_t RECV_BUFFER_SIZE = 0xffff - IPV4_HDR_SIZE - UDP_HDR_SIZE;
 constexpr size_t DEFAULT_INITIAL_BUFFER_SIZE = 4194304;
 
 
-uvgrtp::pkt_dispatcher::pkt_dispatcher() :
+uvgrtp::reception_flow::reception_flow() :
     recv_hook_arg_(nullptr),
     recv_hook_(nullptr),
     should_stop_(true),
@@ -37,14 +37,14 @@ uvgrtp::pkt_dispatcher::pkt_dispatcher() :
     create_ring_buffer();
 }
 
-uvgrtp::pkt_dispatcher::~pkt_dispatcher()
+uvgrtp::reception_flow::~reception_flow()
 {
     destroy_ring_buffer();
 
     // TODO: Delete frames?
 }
 
-void uvgrtp::pkt_dispatcher::create_ring_buffer()
+void uvgrtp::reception_flow::create_ring_buffer()
 {
     destroy_ring_buffer();
     size_t elements = buffer_size_kbytes_ / RECV_BUFFER_SIZE;
@@ -55,7 +55,7 @@ void uvgrtp::pkt_dispatcher::create_ring_buffer()
     }
 }
 
-void uvgrtp::pkt_dispatcher::destroy_ring_buffer()
+void uvgrtp::reception_flow::destroy_ring_buffer()
 {
     for (int i = 0; i < ring_buffer_.size(); ++i)
     {
@@ -64,17 +64,17 @@ void uvgrtp::pkt_dispatcher::destroy_ring_buffer()
     ring_buffer_.clear();
 }
 
-void uvgrtp::pkt_dispatcher::set_buffer_size(ssize_t& value)
+void uvgrtp::reception_flow::set_buffer_size(ssize_t& value)
 {
     buffer_size_kbytes_ = value;
     create_ring_buffer();
 }
 
-rtp_error_t uvgrtp::pkt_dispatcher::start(uvgrtp::socket *socket, int flags)
+rtp_error_t uvgrtp::reception_flow::start(uvgrtp::socket *socket, int flags)
 {
     should_stop_ = false;
-    processor_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::pkt_dispatcher::process_packet, this, flags));
-    receiver_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::pkt_dispatcher::receiver, this, socket, flags));
+    processor_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::reception_flow::process_packet, this, flags));
+    receiver_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::reception_flow::receiver, this, socket, flags));
 
     // set receiver thread priority to maximum priority
     LOG_DEBUG("Trying to set receiver thread realtime priority");
@@ -95,7 +95,7 @@ rtp_error_t uvgrtp::pkt_dispatcher::start(uvgrtp::socket *socket, int flags)
     return RTP_ERROR::RTP_OK;
 }
 
-rtp_error_t uvgrtp::pkt_dispatcher::stop()
+rtp_error_t uvgrtp::reception_flow::stop()
 {
     should_stop_ = true;
     process_cond_.notify_all();
@@ -113,7 +113,7 @@ rtp_error_t uvgrtp::pkt_dispatcher::stop()
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::pkt_dispatcher::install_receive_hook(
+rtp_error_t uvgrtp::reception_flow::install_receive_hook(
     void *arg,
     void (*hook)(void *, uvgrtp::frame::rtp_frame *)
 )
@@ -127,7 +127,7 @@ rtp_error_t uvgrtp::pkt_dispatcher::install_receive_hook(
     return RTP_OK;
 }
 
-uvgrtp::frame::rtp_frame *uvgrtp::pkt_dispatcher::pull_frame()
+uvgrtp::frame::rtp_frame *uvgrtp::reception_flow::pull_frame()
 {
     while (frames_.empty() && !should_stop_)
     {
@@ -145,7 +145,7 @@ uvgrtp::frame::rtp_frame *uvgrtp::pkt_dispatcher::pull_frame()
     return frame;
 }
 
-uvgrtp::frame::rtp_frame *uvgrtp::pkt_dispatcher::pull_frame(size_t timeout_ms)
+uvgrtp::frame::rtp_frame *uvgrtp::reception_flow::pull_frame(size_t timeout_ms)
 {
     auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -167,7 +167,7 @@ uvgrtp::frame::rtp_frame *uvgrtp::pkt_dispatcher::pull_frame(size_t timeout_ms)
     return frame;
 }
 
-uint32_t uvgrtp::pkt_dispatcher::install_handler(uvgrtp::packet_handler handler)
+uint32_t uvgrtp::reception_flow::install_handler(uvgrtp::packet_handler handler)
 {
     uint32_t key;
 
@@ -182,7 +182,7 @@ uint32_t uvgrtp::pkt_dispatcher::install_handler(uvgrtp::packet_handler handler)
     return key;
 }
 
-rtp_error_t uvgrtp::pkt_dispatcher::install_aux_handler(
+rtp_error_t uvgrtp::reception_flow::install_aux_handler(
     uint32_t key,
     void *arg,
     uvgrtp::packet_handler_aux handler,
@@ -204,7 +204,7 @@ rtp_error_t uvgrtp::pkt_dispatcher::install_aux_handler(
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::pkt_dispatcher::install_aux_handler_cpp(uint32_t key,
+rtp_error_t uvgrtp::reception_flow::install_aux_handler_cpp(uint32_t key,
     std::function<rtp_error_t(int, uvgrtp::frame::rtp_frame**)> handler,
     std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter)
 {
@@ -219,7 +219,7 @@ rtp_error_t uvgrtp::pkt_dispatcher::install_aux_handler_cpp(uint32_t key,
     return RTP_OK;
 }
 
-void uvgrtp::pkt_dispatcher::return_frame(uvgrtp::frame::rtp_frame *frame)
+void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
 {
     if (recv_hook_) {
         recv_hook_(recv_hook_arg_, frame);
@@ -230,7 +230,7 @@ void uvgrtp::pkt_dispatcher::return_frame(uvgrtp::frame::rtp_frame *frame)
     }
 }
 
-void uvgrtp::pkt_dispatcher::call_aux_handlers(uint32_t key, int flags, uvgrtp::frame::rtp_frame **frame)
+void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int flags, uvgrtp::frame::rtp_frame **frame)
 {
     rtp_error_t ret;
 
@@ -313,7 +313,7 @@ void uvgrtp::pkt_dispatcher::call_aux_handlers(uint32_t key, int flags, uvgrtp::
     }
 }
 
-void uvgrtp::pkt_dispatcher::receiver(uvgrtp::socket *socket, int flags)
+void uvgrtp::reception_flow::receiver(uvgrtp::socket *socket, int flags)
 {
     LOG_DEBUG("Start reception loop");
 
@@ -384,7 +384,7 @@ void uvgrtp::pkt_dispatcher::receiver(uvgrtp::socket *socket, int flags)
                     break;
                 }
                 else if (ret != RTP_OK) {
-                    LOG_ERROR("recvfrom(2) failed! Packet dispatcher cannot continue %d!", ret);
+                    LOG_ERROR("recvfrom(2) failed! Reception flow cannot continue %d!", ret);
                     should_stop_ = true;
                     break;
                 }
@@ -404,42 +404,7 @@ void uvgrtp::pkt_dispatcher::receiver(uvgrtp::socket *socket, int flags)
     }
 }
 
-/* The point of packet dispatcher is to provide isolation between different layers
- * of uvgRTP. For example, HEVC handler should not concern itself with RTP packet validation
- * because that should be a global operation done for all packets. Neither should Opus handler
- * take SRTP-provided authentication tag into account when it is performing operations on
- * the packet and ZRTP packets should not be relayed from media handler
- * to ZRTP handler et cetera.
- *
- * This can be achieved by having a global UDP packet handler for any packet type that validates
- * all common stuff it can and then dispatches the validated packet to the correct layer using
- * one of the installed handlers.
- *
- * If it's unclear as to which handler should be called, the packet is dispatched to all relevant
- * handlers and a handler then returns RTP_OK/RTP_PKT_NOT_HANDLED based on whether the packet was handled.
- *
- * For example, if runner detects an incoming ZRTP packet, that packet is immediately dispatched to the
- * installed ZRTP handler if ZRTP has been enabled.
- * Likewise, if RTP packet authentication has been enabled, runner validates the packet before passing
- * it onto any other layer so all future work on the packet is not done in vain due to invalid data
- *
- * One piece of design choice that complicates the design of packet dispatcher a little is that the order
- * of handlers is important. First handler must be ZRTP and then follows SRTP, RTP and finally media handlers.
- * This requirement gives packet handler a clean and generic interface while giving a possibility to modify
- * the packet in each of the called handlers if needed. For example SRTP handler verifies RTP authentication
- * tag and decrypts the packet and RTP handler verifies the fields of the RTP packet and processes it into
- * a more easily modifiable format for the media handler.
- *
- * If packet is modified by the handler but the frame is not ready to be returned to user,
- * handler returns RTP_PKT_MODIFIED to indicate that it has modified the input buffer and that
- * the packet should be passed onto other handlers.
- *
- * When packet is ready to be returned to user, "out" parameter of packet handler is set to point to
- * the allocated frame that can be returned and return value of the packet handler is RTP_PKT_READY.
- *
- * If a handler receives a non-null "out", it can safely ignore "packet" and operate just on
- * the "out" parameter because at that point it already contains all needed information. */
-void uvgrtp::pkt_dispatcher::process_packet(int flags)
+void uvgrtp::reception_flow::process_packet(int flags)
 {
     LOG_DEBUG("Start processing loop");
     std::unique_lock<std::mutex> lk(wait_mtx_);
@@ -501,7 +466,7 @@ void uvgrtp::pkt_dispatcher::process_packet(int flags)
     }
 }
 
-int uvgrtp::pkt_dispatcher::next_buffer_location(int current_location)
+int uvgrtp::reception_flow::next_buffer_location(int current_location)
 {
     return (current_location + 1) % ring_buffer_.size();
 }

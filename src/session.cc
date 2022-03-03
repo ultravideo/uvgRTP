@@ -36,7 +36,7 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
     uvgrtp::media_stream *stream = nullptr;
 
     if (flags & RCE_SYSTEM_CALL_DISPATCHER) {
-        LOG_ERROR("SCD is not supported!");
+        LOG_ERROR("SCD is no longer supported!");
         rtp_errno = RTP_NOT_SUPPORTED;
         return nullptr;
     }
