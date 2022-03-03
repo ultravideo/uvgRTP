@@ -233,7 +233,6 @@ rtp_error_t uvgrtp::media_stream::init()
     reception_flow_ = new uvgrtp::reception_flow();
 
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
-
     rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, ctx_config_.flags));
 
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
@@ -241,21 +240,7 @@ rtp_error_t uvgrtp::media_stream::init()
     rtp_handler_key_ = reception_flow_->install_handler(rtp_->packet_handler);
     reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_.get(), rtcp_->recv_packet_handler, nullptr);
 
-    if (create_media(fmt_) != RTP_OK)
-        return free_resources(RTP_MEMORY_ERROR);
-
-    if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE) {
-        holepuncher_ = new uvgrtp::holepuncher(socket_);
-        holepuncher_->start();
-    }
-
-    if (ctx_config_.flags & RCE_RTCP) {
-        rtcp_->add_participant(addr_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
-        rtcp_->start();
-    }
-
-    initialized_ = true;
-    return reception_flow_->start(socket_, ctx_config_.flags);
+    return start_components();
 }
 
 rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
@@ -295,24 +280,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
     reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_.get(), rtcp_->recv_packet_handler, nullptr);
     reception_flow_->install_aux_handler(rtp_handler_key_, srtp_.get(), srtp_->recv_packet_handler, nullptr);
 
-    if (create_media(fmt_) != RTP_OK)
-        return free_resources(RTP_MEMORY_ERROR);
-
-    if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE) {
-        holepuncher_ = new uvgrtp::holepuncher(socket_);
-        holepuncher_->start();
-    }
-
-    if (ctx_config_.flags & RCE_RTCP) {
-        rtcp_->add_participant(addr_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
-        rtcp_->start();
-    }
-
-    if (ctx_config_.flags & RCE_SRTP_AUTHENTICATE_RTP)
-        rtp_->set_payload_size(MAX_PAYLOAD - UVG_AUTH_TAG_LENGTH);
-
-    initialized_ = true;
-    return reception_flow_->start(socket_, ctx_config_.flags);
+    return start_components();
 }
 
 rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
@@ -360,6 +328,11 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_.get(), rtcp_->recv_packet_handler, nullptr);
     reception_flow_->install_aux_handler(rtp_handler_key_, srtp_.get(), srtp_->recv_packet_handler, nullptr);
 
+    return start_components();
+}
+
+rtp_error_t uvgrtp::media_stream::start_components()
+{
     if (create_media(fmt_) != RTP_OK)
         return free_resources(RTP_MEMORY_ERROR);
 

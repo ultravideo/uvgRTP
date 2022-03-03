@@ -311,6 +311,8 @@ namespace uvgrtp {
             rtp_error_t init_srtp_with_zrtp(int flags, int type, std::shared_ptr<uvgrtp::base_srtp> srtp,
                                             std::shared_ptr<uvgrtp::zrtp> zrtp);
 
+            rtp_error_t start_components();
+
             uint32_t key_;
 
             std::shared_ptr<uvgrtp::srtp>   srtp_;
