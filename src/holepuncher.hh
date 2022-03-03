@@ -1,16 +1,16 @@
 #pragma once
 
-#include "uvgrtp/runner.hh"
 #include "uvgrtp/util.hh"
 
 #include <atomic>
 #include <memory>
+#include <thread>
 
 namespace uvgrtp {
 
     class socket;
 
-    class holepuncher : public runner {
+    class holepuncher {
         public:
             holepuncher(std::shared_ptr<uvgrtp::socket> socket);
             ~holepuncher();
@@ -33,6 +33,9 @@ namespace uvgrtp {
 
             std::shared_ptr<uvgrtp::socket> socket_;
             std::atomic<uint64_t> last_dgram_sent_;
+
+            bool active_;
+            std::unique_ptr<std::thread> runner_;
     };
 }
 

@@ -15,18 +15,30 @@ uvgrtp::holepuncher::holepuncher(std::shared_ptr<uvgrtp::socket> socket):
 
 uvgrtp::holepuncher::~holepuncher()
 {
+    active_ = false;
+
+    if (runner_ != nullptr)
+    {
+        if (runner_->joinable())
+        {
+            runner_->join();
+        }
+        runner_ = nullptr;
+    }
 }
 
 rtp_error_t uvgrtp::holepuncher::start()
 {
-    runner_ = new std::thread(&uvgrtp::holepuncher::keepalive, this);
+    runner_ = std::unique_ptr<std::thread> (new std::thread(&uvgrtp::holepuncher::keepalive, this));
     runner_->detach();
-    return uvgrtp::runner::start();
+    active_ = true;
+    return RTP_OK;
 }
 
 rtp_error_t uvgrtp::holepuncher::stop()
 {
-    return uvgrtp::runner::stop(); 
+    active_ = false;
+    return RTP_OK;
 }
 
 void uvgrtp::holepuncher::notify()
@@ -36,7 +48,7 @@ void uvgrtp::holepuncher::notify()
 
 void uvgrtp::holepuncher::keepalive()
 {
-    while (active()) {
+    while (active_) {
         if (uvgrtp::clock::ntp::diff_now(last_dgram_sent_) < THRESHOLD) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             continue;

@@ -40,7 +40,6 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/random.cc
         src/rtcp.cc
         src/rtp.cc
-        src/runner.cc
         src/session.cc
         src/socket.cc
         src/zrtp.cc
@@ -117,7 +116,6 @@ target_sources(${PROJECT_NAME} PRIVATE
         include/uvgrtp/lib.hh
         include/uvgrtp/media_stream.hh
         include/uvgrtp/rtcp.hh
-        include/uvgrtp/runner.hh
         include/uvgrtp/session.hh
         include/uvgrtp/socket.hh
         )
