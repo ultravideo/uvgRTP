@@ -28,7 +28,6 @@ set(UVGRTP_LINKER_FLAGS "")
 target_sources(${PROJECT_NAME} PRIVATE
         src/clock.cc
         src/crypto.cc
-        src/dispatch.cc
         src/frame.cc
         src/hostname.cc
         src/context.cc
@@ -75,7 +74,6 @@ source_group(include include/.*)
 # Including header files so VisualStudio will list them correctly
 target_sources(${PROJECT_NAME} PRIVATE
         src/random.hh
-        src/dispatch.hh
         src/holepuncher.hh
         src/hostname.hh
         src/mingw_inet.hh

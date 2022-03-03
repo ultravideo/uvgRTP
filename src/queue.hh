@@ -20,8 +20,6 @@ const int MAX_QUEUED_MSGS =  10;
 const int MAX_CHUNK_COUNT =   4;
 
 namespace uvgrtp {
-
-    class dispatcher;
     class frame_queue;
     class rtp;
 
@@ -203,9 +201,6 @@ namespace uvgrtp {
             std::unordered_map<uint32_t, transaction_t *> queued_;
 
             transaction_t *active_;
-
-            /* Set to nullptr if this frame queue doesn't use dispatcher */
-            uvgrtp::dispatcher *dispatcher_;
 
             /* Deallocation hook is stored here and copied to transaction upon initialization */
             void (*dealloc_hook_)(void *);

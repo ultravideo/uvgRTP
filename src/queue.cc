@@ -26,7 +26,6 @@ uvgrtp::frame_queue::frame_queue(uvgrtp::socket *socket, uvgrtp::rtp *rtp, int f
     rtp_(rtp), socket_(socket), flags_(flags)
 {
     active_     = nullptr;
-    dispatcher_ = nullptr;
 
     max_queued_ = MAX_QUEUED_MSGS;
     max_mcount_ = MAX_MSG_COUNT;
