@@ -68,7 +68,7 @@ namespace uvgrtp {
                 std::shared_ptr<uvgrtp::socket> socket_;
                 std::shared_ptr<uvgrtp::rtp> rtp_ctx_;
                 int flags_;
-                uvgrtp::frame_queue *fqueue_;
+                std::unique_ptr<uvgrtp::frame_queue> fqueue_;
 
             private:
                 media_frame_info_t minfo_;

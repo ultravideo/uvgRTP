@@ -14,14 +14,11 @@
 #define INVALID_SEQ 0xffffffff
 
 uvgrtp::formats::media::media(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp_ctx, int flags):
-    socket_(socket), rtp_ctx_(rtp_ctx), flags_(flags), minfo_{}
-{
-    fqueue_ = new uvgrtp::frame_queue(socket, rtp_ctx, flags);
-}
+    socket_(socket), rtp_ctx_(rtp_ctx), flags_(flags), fqueue_(new uvgrtp::frame_queue(socket, rtp_ctx, flags)), minfo_()
+{}
 
 uvgrtp::formats::media::~media()
 {
-    delete fqueue_;
     fqueue_ = nullptr;
 }
 
