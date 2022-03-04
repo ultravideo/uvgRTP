@@ -1,5 +1,4 @@
-#include "uvgrtp/lib.hh"
-#include <gtest/gtest.h>
+#include "test_common.hh"
 
 
 // network parameters of example
@@ -35,29 +34,15 @@ TEST(EncryptionTests, no_send_user)
 
     receiver = user_initialization(ctx, SRTP_256, sender_session, send);
 
-    // All media is now encrypted/decrypted automatically
-    char* message = (char*)"Hello, world!";
-    size_t msg_len = strlen(message);
-
-    if (send)
-    {
-        auto start = std::chrono::steady_clock::now();
-        for (unsigned int i = 0; i < 10; ++i)
-        {
-            EXPECT_EQ(RTP_OK, send->push_frame((uint8_t*)message, msg_len, RTP_NO_FLAGS));
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
-    }
-
-    sender_session->destroy_stream(send);
+    send_packets(sender_session, send, 10, strlen((char*)"Hello, world!"), 10);
+    cleanup_ms(sender_session, send);
 
     if (receiver && receiver->joinable())
     {
         receiver->join();
     }
 
-    if (sender_session)
-        ctx.destroy_session(sender_session);
+    cleanup_sess(ctx, sender_session);
 }
 
 std::unique_ptr<std::thread> user_initialization(uvgrtp::context& ctx, Key_length sha, 
@@ -111,9 +96,6 @@ void receive_func(uint8_t key[KEY_SIZE_BYTES], uint8_t salt[SALT_SIZE_BYTES])
         recv = receiver_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
     }
 
-    EXPECT_NE(nullptr, receiver_session);
-    EXPECT_NE(nullptr, recv);
-
     if (recv)
     { 
         recv->add_srtp_ctx(key, salt);
@@ -135,15 +117,8 @@ void receive_func(uint8_t key[KEY_SIZE_BYTES], uint8_t salt[SALT_SIZE_BYTES])
         }
     }
 
-    if (recv)
-    {
-        receiver_session->destroy_stream(recv);
-    }
-
-    if (receiver_session)
-    {
-        ctx.destroy_session(receiver_session);
-    }
+    cleanup_ms(receiver_session, recv);
+    cleanup_sess(ctx, receiver_session);
 }
 
 void process_frame(uvgrtp::frame::rtp_frame* frame)

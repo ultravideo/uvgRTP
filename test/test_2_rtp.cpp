@@ -1,6 +1,8 @@
-#include "uvgrtp/lib.hh"
-#include <gtest/gtest.h>
+#include "test_common.hh"
 
+
+// TODO: 1) Test only sending, 2) test sending with different configuration, 3) test receiving with different configurations, and 
+// 4) test sending and receiving within same test while checking frame size
 
 // parameters for this test. You can change these to suit your network environment
 constexpr uint16_t LOCAL_PORT = 9300;
@@ -9,7 +11,6 @@ constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
 constexpr uint16_t REMOTE_PORT = 9302;
 
 void rtp_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
-void cleanup(uvgrtp::context& ctx, uvgrtp::session* sess, uvgrtp::media_stream* ms);
 void process_rtp_frame(uvgrtp::frame::rtp_frame* frame);
 
 void test_wait(int time_ms, uvgrtp::media_stream* receiver)
@@ -17,7 +18,8 @@ void test_wait(int time_ms, uvgrtp::media_stream* receiver)
     uvgrtp::frame::rtp_frame* frame = nullptr;
     auto start = std::chrono::high_resolution_clock::now();
     frame = receiver->pull_frame(time_ms);
-    int actual_difference = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
+    int actual_difference = 
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
 
     EXPECT_EQ(RTP_OK, rtp_errno);
     EXPECT_GE(actual_difference, time_ms);
@@ -25,91 +27,6 @@ void test_wait(int time_ms, uvgrtp::media_stream* receiver)
 
     if (frame)
         process_rtp_frame(frame);
-}
-
-
-class Test_receiver
-{
-public:
-    Test_receiver(int expectedPackets):
-        receivedPackets_(0),
-        expectedPackets_(expectedPackets)
-    {}
-
-    void receive()
-    {
-        ++receivedPackets_;
-    }
-
-    bool gotAll()
-    {
-        return receivedPackets_ == expectedPackets_;
-    }
-
-private:
-
-    int receivedPackets_;
-    int expectedPackets_;
-};
-
-// TODO: 1) Test only sending, 2) test sending with different configuration, 3) test receiving with different configurations, and 
-// 4) test sending and receiving within same test while checking frame size
-
-TEST(RTPTests, send_too_much)
-{
-    // Tests sending large amounts of data to make sure nothing breaks because of it
-
-    // TODO: Everything should actually be received even in this case but it probably isn't at the moment
-    std::cout << "Starting RTP send too much test" << std::endl;
-    uvgrtp::context ctx;
-    uvgrtp::session* sess = ctx.create_session(REMOTE_ADDRESS);
-
-    uvgrtp::media_stream* sender = nullptr;
-    uvgrtp::media_stream* receiver = nullptr;
-
-    int flags = RTP_NO_FLAGS;
-
-    EXPECT_NE(nullptr, sess);
-    if (sess)
-    {
-        sender = sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, flags);
-        receiver = sess->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_H265, flags);
-    }
-
-    EXPECT_NE(nullptr, receiver);
-    if (receiver)
-    {
-        std::cout << "Installing hook" << std::endl;
-        EXPECT_EQ(RTP_OK, receiver->install_receive_hook(nullptr, rtp_receive_hook));
-    }
-
-    EXPECT_NE(nullptr, sender);
-    if (sender)
-    {
-        std::cout << "Starting to send data" << std::endl;
-        int packets = 4000;
-        for (unsigned int i = 0; i < packets; ++i)
-        {
-            const int frame_size = 200000;
-            std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[frame_size]);
-
-            if (sender->push_frame(std::move(dummy_frame), frame_size, RTP_NO_FLAGS) != RTP_OK)
-            {
-                std::cout << "Failed to send RTP frame!" << std::endl;
-            }
-
-            if (i % (packets/10) == packets/10 - 1)
-            {
-                std::cout << "Sent " << (i + 1) * 100 / packets << " % of data" << std::endl;
-            }
-        }
-
-
-        sess->destroy_stream(sender);
-        sender = nullptr;
-    }
-
-    cleanup(ctx, sess, receiver);
 }
 
 TEST(RTPTests, rtp_hook) 
@@ -127,16 +44,10 @@ TEST(RTPTests, rtp_hook)
         receiver = sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, flags);
     }
     
-    if (receiver)
-    {
-        std::cout << "Installing hook" << std::endl;
-        EXPECT_EQ(RTP_OK, receiver->install_receive_hook(nullptr, rtp_receive_hook));
-    }
+    add_hook(receiver, rtp_receive_hook);
 
-    EXPECT_NE(nullptr, sess);
-    EXPECT_NE(nullptr, receiver);
-
-    cleanup(ctx, sess, receiver);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
 }
 
 TEST(RTPTests, rtp_poll)
@@ -148,7 +59,7 @@ TEST(RTPTests, rtp_poll)
     uvgrtp::media_stream* sender = nullptr;
     uvgrtp::media_stream* receiver = nullptr;
 
-    int flags = RTP_NO_FLAGS;
+    int flags = RCE_NO_FLAGS;
 
     EXPECT_NE(nullptr, sess);
     if (sess)
@@ -164,19 +75,8 @@ TEST(RTPTests, rtp_poll)
     EXPECT_NE(nullptr, sender);
     if (sender)
     {
-        // TODO: This could be prettier by using functions
         const int frame_size = 1500;
-
-        std::cout << "Sending " << test_packets << " test packets" << std::endl;
-        for (unsigned int i = 0; i < test_packets; ++i)
-        {
-            std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[frame_size]);
-
-            if (sender->push_frame(std::move(dummy_frame), frame_size, RTP_NO_FLAGS) != RTP_OK)
-            {
-                std::cout << "Failed to send RTP frame!" << std::endl;
-            }
-        }
+        send_packets(sess, sender, test_packets, frame_size, 0);
 
         uvgrtp::frame::rtp_frame* received_frame = nullptr;
 
@@ -204,17 +104,7 @@ TEST(RTPTests, rtp_poll)
         EXPECT_EQ(received_packets_no_timeout, test_packets);
         int received_packets_timout = 0;
 
-        std::cout << "Sending " << test_packets << " test packets" << std::endl;
-
-        for (unsigned int i = 0; i < test_packets; ++i)
-        {
-            std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[frame_size]);
-
-            if (sender->push_frame(std::move(dummy_frame), frame_size, RTP_NO_FLAGS) != RTP_OK)
-            {
-                std::cout << "Failed to send RTP frame!" << std::endl;
-            }
-        }
+        send_packets(sess, sender, test_packets, frame_size, 0);
 
         std::cout << "Start pulling data with 3 ms timout" << std::endl;
 
@@ -241,17 +131,44 @@ TEST(RTPTests, rtp_poll)
 
         if (received_frame)
             process_rtp_frame(received_frame);
-
-
-        sess->destroy_stream(sender);
-        sender = nullptr;
     }
-
-
 
     std::cout << "Finished pulling data" << std::endl;
 
-    cleanup(ctx, sess, receiver);
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
+}
+
+
+
+TEST(RTPTests, send_too_much)
+{
+    // Tests sending large amounts of data to make sure nothing breaks because of it
+
+    // TODO: Everything should actually be received even in this case but it probably isn't at the moment
+    std::cout << "Starting RTP send too much test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(REMOTE_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    int flags = RTP_NO_FLAGS;
+
+    EXPECT_NE(nullptr, sess);
+    if (sess)
+    {
+        sender = sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, flags);
+        receiver = sess->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_H265, flags);
+    }
+
+    add_hook(receiver, rtp_receive_hook);
+    send_packets(sess, sender, 4000, 10000, 0);
+
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
 }
 
 void rtp_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
@@ -263,19 +180,6 @@ void rtp_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
     }
 
     process_rtp_frame(frame);
-}
-
-void cleanup(uvgrtp::context& ctx, uvgrtp::session* sess, uvgrtp::media_stream* ms)
-{
-    if (ms)
-    {
-        sess->destroy_stream(ms);
-    }
-
-    if (sess)
-    {
-        ctx.destroy_session(sess);
-    }
 }
 
 

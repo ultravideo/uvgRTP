@@ -1,5 +1,4 @@
-#include "uvgrtp/lib.hh"
-#include <gtest/gtest.h>
+#include "test_common.hh"
 
 constexpr uint16_t SEND_PORT = 9100;
 constexpr char LOCAL_ADDRESS[] = "127.0.0.1";
@@ -10,7 +9,6 @@ constexpr size_t PAYLOAD_LEN = 100;
 
 
 void format_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
-void cleanup_formats(uvgrtp::context& ctx, uvgrtp::session* sess, uvgrtp::media_stream* ms);
 void process_format_frame(uvgrtp::frame::rtp_frame* frame);
 
 
@@ -32,36 +30,12 @@ TEST(FormatTests, h264)
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H264, flags);
     }
 
-    if (receiver)
-    {
-        std::cout << "Installing hook" << std::endl;
-        EXPECT_EQ(RTP_OK, receiver->install_receive_hook(nullptr, format_receive_hook));
-    }
+    add_hook(receiver, format_receive_hook);
+    send_packets(sess, sender, AMOUNT_OF_TEST_PACKETS, PAYLOAD_LEN, 0);
 
-    if (sender)
-    {
-        for (int i = 0; i < AMOUNT_OF_TEST_PACKETS; ++i)
-        {
-            std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
-
-            if ((i + 1) % 10 == 0 || i == 0) // print every 10 frames and first
-                std::cout << "Sending frame " << i + 1 << '/' << AMOUNT_OF_TEST_PACKETS << std::endl;
-
-            if (sender->push_frame(std::move(dummy_frame), PAYLOAD_LEN, RTP_NO_FLAGS) != RTP_OK)
-            {
-                std::cout << "Failed to send RTP frame!" << std::endl;
-            }
-        }
-
-        EXPECT_NE(nullptr, sender);
-        sess->destroy_stream(sender);
-        sender = nullptr;
-    }
-
-    EXPECT_NE(nullptr, sess);
-    EXPECT_NE(nullptr, receiver);
-
-    cleanup_formats(ctx, sess, receiver);
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
 }
 
 TEST(FormatTests, h265)
@@ -80,36 +54,12 @@ TEST(FormatTests, h265)
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, flags);
     }
 
-    if (receiver)
-    {
-        std::cout << "Installing hook" << std::endl;
-        EXPECT_EQ(RTP_OK, receiver->install_receive_hook(nullptr, format_receive_hook));
-    }
+    add_hook(receiver, format_receive_hook);
+    send_packets(sess, sender, AMOUNT_OF_TEST_PACKETS, PAYLOAD_LEN, 0);
 
-    if (sender)
-    {
-        for (int i = 0; i < AMOUNT_OF_TEST_PACKETS; ++i)
-        {
-            std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
-
-            if ((i + 1) % 10 == 0 || i == 0) // print every 10 frames and first
-                std::cout << "Sending frame " << i + 1 << '/' << AMOUNT_OF_TEST_PACKETS << std::endl;
-
-            if (sender->push_frame(std::move(dummy_frame), PAYLOAD_LEN, RTP_NO_FLAGS) != RTP_OK)
-            {
-                std::cout << "Failed to send RTP frame!" << std::endl;
-            }
-        }
-
-        EXPECT_NE(nullptr, sender);
-        sess->destroy_stream(sender);
-        sender = nullptr;
-    }
-
-    EXPECT_NE(nullptr, sess);
-    EXPECT_NE(nullptr, receiver);
-
-    cleanup_formats(ctx, sess, receiver);
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
 }
 
 TEST(FormatTests, h266)
@@ -128,54 +78,17 @@ TEST(FormatTests, h266)
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H266, flags);
     }
 
-    if (receiver)
-    {
-        std::cout << "Installing hook" << std::endl;
-        EXPECT_EQ(RTP_OK, receiver->install_receive_hook(nullptr, format_receive_hook));
-    }
+    add_hook(receiver, format_receive_hook);
+    send_packets(sess, sender, AMOUNT_OF_TEST_PACKETS, PAYLOAD_LEN, 0);
 
-    if (sender)
-    {
-        for (int i = 0; i < AMOUNT_OF_TEST_PACKETS; ++i)
-        {
-            std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
-
-            if ((i + 1) % 10 == 0 || i == 0) // print every 10 frames and first
-                std::cout << "Sending frame " << i + 1 << '/' << AMOUNT_OF_TEST_PACKETS << std::endl;
-
-            if (sender->push_frame(std::move(dummy_frame), PAYLOAD_LEN, RTP_NO_FLAGS) != RTP_OK)
-            {
-                std::cout << "Failed to send RTP frame!" << std::endl;
-            }
-        }
-
-        EXPECT_NE(nullptr, sender);
-        sess->destroy_stream(sender);
-        sender = nullptr;
-    }
-
-    EXPECT_NE(nullptr, sess);
-    EXPECT_NE(nullptr, receiver);
-
-    cleanup_formats(ctx, sess, receiver);
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
 }
 
 void format_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
 {
     process_format_frame(frame);
-}
-
-void cleanup_formats(uvgrtp::context& ctx, uvgrtp::session* sess, uvgrtp::media_stream* ms)
-{
-    if (ms)
-    {
-        sess->destroy_stream(ms);
-    }
-
-    if (sess)
-    {
-        ctx.destroy_session(sess);
-    }
 }
 
 void process_format_frame(uvgrtp::frame::rtp_frame* frame)

@@ -12,6 +12,7 @@ target_sources(${PROJECT_NAME}
             test_3_rtcp.cpp
             test_4_formats.cpp
             test_5_srtp_zrtp.cpp
+            test_common.hh
         )
 
 if(MSVC)
