@@ -360,7 +360,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int
         return RTP_NOT_INITIALIZED;
     }
 
-    if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE)
+    if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE && holepuncher_)
         holepuncher_->notify();
 
     return media_->push_frame(data, data_len, flags);
@@ -373,7 +373,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
         return RTP_NOT_INITIALIZED;
     }
 
-    if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE)
+    if (ctx_config_.flags & RCE_HOLEPUNCH_KEEPALIVE && holepuncher_)
         holepuncher_->notify();
 
     return media_->push_frame(std::move(data), data_len, flags);
