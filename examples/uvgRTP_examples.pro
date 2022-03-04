@@ -49,7 +49,7 @@ selectRTCPhook {
     rtcp_hook.cc \
 }
 
-configSending {
+selectSending {
   message("Building sending example.")
   TARGET = Sending
   SOURCES += \
