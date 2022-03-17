@@ -33,7 +33,6 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/context.cc
         src/media_stream.cc
         src/mingw_inet.cc
-        src/multicast.cc
         src/reception_flow.cc
         src/poll.cc
         src/frame_queue.cc
@@ -76,7 +75,6 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/holepuncher.hh
         src/hostname.hh
         src/mingw_inet.hh
-        src/multicast.hh
         src/reception_flow.hh
         src/poll.hh
         src/rtp.hh

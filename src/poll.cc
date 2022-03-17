@@ -1,6 +1,5 @@
 #include "poll.hh"
 
-#include "multicast.hh"
 #include "uvgrtp/socket.hh"
 #include "uvgrtp/debug.hh"
 
@@ -13,7 +12,7 @@
 
 #include <cstring>
 
-
+const int MULTICAST_MAX_PEERS = 64;
 
 
 rtp_error_t uvgrtp::poll::blocked_recv(std::shared_ptr<uvgrtp::socket> socket, uint8_t *buf, size_t buf_len, int timeout, int *bytes_read)
@@ -58,13 +57,13 @@ rtp_error_t uvgrtp::poll::poll(std::vector<uvgrtp::socket>& sockets, uint8_t *bu
     if (buf == nullptr || buf_len == 0)
         return RTP_INVALID_VALUE;
 
-    if (sockets.size() >= uvgrtp::MULTICAST_MAX_PEERS) {
+    if (sockets.size() >= MULTICAST_MAX_PEERS) {
         LOG_ERROR("Too many participants!");
         return RTP_INVALID_VALUE;
     }
 
 #ifndef _WIN32
-    struct pollfd fds[uvgrtp::MULTICAST_MAX_PEERS];
+    struct pollfd fds[MULTICAST_MAX_PEERS];
     int ret;
 
     for (size_t i = 0; i < sockets.size(); ++i) {
