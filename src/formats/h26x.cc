@@ -529,14 +529,16 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_
     auto* frame = *out;
 
     for (size_t i = nal_header_size; i < frame->payload_len; i += ntohs(*(uint16_t*)&frame->payload[i]) + sizeof(uint16_t)) {
-        nalus.push_back(
-            std::make_pair(
-                ntohs(*(uint16_t*)&frame->payload[i]),
-                &frame->payload[i] + sizeof(uint16_t)
-            )
-        );
 
-        size += ntohs(*(uint16_t*)&frame->payload[i]);
+        uint16_t packet_size = ntohs(*(uint16_t*)&frame->payload[i]);
+        size += packet_size;
+
+        if (size <= (*out)->payload_len) {
+            nalus.push_back(std::make_pair(packet_size, &frame->payload[i] + sizeof(uint16_t)));
+        }
+        else {
+            LOG_ERROR("The received aggregation packet claims to be larger than packet!");
+        }
     }
 
     for (size_t i = 0; i < nalus.size(); ++i) {

@@ -164,7 +164,9 @@ TEST(RTPTests, send_too_much)
     }
 
     add_hook(receiver, rtp_receive_hook);
-    send_packets(sess, sender, 4000, 10000, 0);
+    send_packets(sess, sender, 2000, 20000, 0);
+
+    send_packets(sess, sender, 10000, 1000, 0);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
