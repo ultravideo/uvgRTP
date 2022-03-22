@@ -29,6 +29,32 @@ void test_wait(int time_ms, uvgrtp::media_stream* receiver)
         process_rtp_frame(frame);
 }
 
+TEST(RTPTests, rtp_send_test)
+{
+    // Tests installing a hook to uvgRTP
+    std::cout << "Starting RTP hook test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(REMOTE_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+
+    int flags = RTP_NO_FLAGS;
+    if (sess)
+    {
+        sender = sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, flags);
+    }
+
+    send_packets(sess, sender, 10, 1000, 33);
+    send_packets(sess, sender, 10, 1458, 33);
+    send_packets(sess, sender, 10, 1459, 33);
+    send_packets(sess, sender, 10, 1501, 33);
+    send_packets(sess, sender, 10, 15000, 33);
+    send_packets(sess, sender, 10, 150000, 33);
+
+    cleanup_ms(sess, sender);
+    cleanup_sess(ctx, sess);
+}
+
 TEST(RTPTests, rtp_hook) 
 {
     // Tests installing a hook to uvgRTP
@@ -164,9 +190,12 @@ TEST(RTPTests, send_too_much)
     }
 
     add_hook(receiver, rtp_receive_hook);
-    send_packets(sess, sender, 2000, 20000, 0);
 
+    // send lost of small packets
     send_packets(sess, sender, 10000, 1000, 0);
+
+    // send lots of large packets
+    send_packets(sess, sender, 2000, 20000, 0);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);

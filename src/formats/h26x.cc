@@ -281,9 +281,12 @@ rtp_error_t uvgrtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_le
     rtp_error_t ret     = RTP_GENERIC_ERROR;
     size_t payload_size = rtp_ctx_->get_payload_size();
 
+    // Single NAL unit (RFC 6184 section 5.6)
     if (data_len < payload_size || flags & RTP_SLICE) {
         r_off = (offset < 0) ? 0 : offset;
 
+        // TODO: I have a hunch that the payload is missing payload header with single NAL unit or that 
+        // it is processed incorrectly at receiving end
         if (data_len > payload_size) {
             return push_nal_unit(data + r_off, data_len, false);
         } else {
@@ -296,6 +299,7 @@ rtp_error_t uvgrtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_le
         }
     }
 
+    // push the first NAL units of frame
     while (offset != -1) {
         offset = find_h26x_start_code(data, data_len, offset, start_len);
 
@@ -312,6 +316,7 @@ rtp_error_t uvgrtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_le
     if (prev_offset == -1)
         prev_offset = 0;
 
+    // push last NAL unit
     if ((ret = push_nal_unit(&data[prev_offset], data_len - prev_offset, false)) == RTP_OK)
         return RTP_OK;
 
