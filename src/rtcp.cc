@@ -631,7 +631,7 @@ rtp_error_t uvgrtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
            p->stats.max_seq = seq;
        }
 
-       return RTP_GENERIC_ERROR;
+       return RTP_NOT_READY;
     } else if (udelta < MAX_DROPOUT) {
        /* in order, with permissible gap */
        if (seq < p->stats.max_seq)
@@ -749,14 +749,20 @@ rtp_error_t uvgrtp::rtcp::recv_packet_handler(void *arg, int flags, frame::rtp_f
      *
      * Otherwise update and monitor the received sequence numbers to determine whether something
      * has gone awry with the sender's sequence number calculations/delivery of packets */
+    rtp_error_t ret = RTP_OK;
     if (!rtcp->is_participant(frame->header.ssrc))
     {
         if ((rtcp->init_new_participant(frame)) != RTP_OK)
         {
             return RTP_GENERIC_ERROR;
         }
-    } else if (rtcp->update_participant_seq(frame->header.ssrc, frame->header.seq) != RTP_OK) {
-        return RTP_GENERIC_ERROR;
+    } else if ((ret = rtcp->update_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK) {
+        if (ret == RTP_NOT_READY) {
+            return RTP_OK;
+        }
+        else {
+            return RTP_GENERIC_ERROR;
+        }
     }
 
     /* Finally update the jitter/transit/received/dropped bytes/pkts statistics */
