@@ -34,7 +34,7 @@ TEST(EncryptionTests, no_send_user)
 
     receiver = user_initialization(ctx, SRTP_256, sender_session, send);
 
-    send_packets(sender_session, send, 10, strlen((char*)"Hello, world!"), 10);
+    send_packets(sender_session, send, 10, strlen((char*)"Hello, world!"), 10, true, false);
     cleanup_ms(sender_session, send);
 
     if (receiver && receiver->joinable())

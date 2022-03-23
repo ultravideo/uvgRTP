@@ -51,7 +51,7 @@ TEST(RTCPTests, rtcp) {
         EXPECT_EQ(RTP_OK, remote_stream->get_rtcp()->install_sender_hook(sender_hook));
     }
 
-    send_packets(local_session, local_stream, SEND_TEST_PACKETS, PAYLOAD_LEN, PACKET_INTERVAL_MS);
+    send_packets(local_session, local_stream, SEND_TEST_PACKETS, PAYLOAD_LEN, PACKET_INTERVAL_MS, true, false);
 
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
 }
@@ -92,7 +92,7 @@ TEST(RTCP_reopen_receiver, rtcp) {
 
     if (local_stream)
     {
-        send_packets(local_session, local_stream, SEND_TEST_PACKETS/2, PAYLOAD_LEN, PACKET_INTERVAL_MS);
+        send_packets(local_session, local_stream, SEND_TEST_PACKETS/2, PAYLOAD_LEN, PACKET_INTERVAL_MS, true, false);
 
         if (remote_stream)
         {
@@ -102,7 +102,7 @@ TEST(RTCP_reopen_receiver, rtcp) {
             EXPECT_NE(nullptr, remote_stream);
         }
 
-        send_packets(local_session, local_stream, SEND_TEST_PACKETS / 2, PAYLOAD_LEN, PACKET_INTERVAL_MS);
+        send_packets(local_session, local_stream, SEND_TEST_PACKETS / 2, PAYLOAD_LEN, PACKET_INTERVAL_MS, true, false);
     }
 
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);

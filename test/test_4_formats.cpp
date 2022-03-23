@@ -23,15 +23,14 @@ TEST(FormatTests, h264)
     uvgrtp::media_stream* sender = nullptr;
     uvgrtp::media_stream* receiver = nullptr;
 
-    int flags = RTP_NO_FLAGS;
     if (sess)
     {
-        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H264, flags);
-        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H264, flags);
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H264, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H264, RCE_H26X_PREPEND_SC);
     }
 
-    add_hook(receiver, format_receive_hook);
-    send_packets(sess, sender, AMOUNT_OF_TEST_PACKETS, PAYLOAD_LEN, 0);
+    add_hook(nullptr, receiver, format_receive_hook);
+    send_packets(sess, sender, AMOUNT_OF_TEST_PACKETS, PAYLOAD_LEN, 0, true, false);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -47,15 +46,14 @@ TEST(FormatTests, h265)
     uvgrtp::media_stream* sender = nullptr;
     uvgrtp::media_stream* receiver = nullptr;
 
-    int flags = RTP_NO_FLAGS;
     if (sess)
     {
-        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, flags);
-        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, flags);
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_H26X_PREPEND_SC);
     }
 
-    add_hook(receiver, format_receive_hook);
-    send_packets(sess, sender, AMOUNT_OF_TEST_PACKETS, PAYLOAD_LEN, 0);
+    add_hook(nullptr, receiver, format_receive_hook);
+    send_packets(sess, sender, AMOUNT_OF_TEST_PACKETS, PAYLOAD_LEN, 0, true, false);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -71,15 +69,14 @@ TEST(FormatTests, h266)
     uvgrtp::media_stream* sender = nullptr;
     uvgrtp::media_stream* receiver = nullptr;
 
-    int flags = RTP_NO_FLAGS;
     if (sess)
     {
-        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H266, flags);
-        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H266, flags);
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H266, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H266, RCE_H26X_PREPEND_SC);
     }
 
-    add_hook(receiver, format_receive_hook);
-    send_packets(sess, sender, AMOUNT_OF_TEST_PACKETS, PAYLOAD_LEN, 0);
+    add_hook(nullptr, receiver, format_receive_hook);
+    send_packets(sess, sender, AMOUNT_OF_TEST_PACKETS, PAYLOAD_LEN, 0, true, false);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -93,8 +90,8 @@ void format_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
 
 void process_format_frame(uvgrtp::frame::rtp_frame* frame)
 {
-    std::cout << "Receiving frame with seq: " << frame->header.seq 
-        << " and timestamp: " << frame->header.timestamp <<  std::endl;
+    //std::cout << "Receiving frame with seq: " << frame->header.seq 
+    //    << " and timestamp: " << frame->header.timestamp <<  std::endl;
 
     EXPECT_EQ(frame->header.version, 2);
     EXPECT_EQ(PAYLOAD_LEN, frame->payload_len);

@@ -3,12 +3,14 @@
 #include <gtest/gtest.h>
 #include "uvgrtp/lib.hh"
 
+class Test_receiver;
+
 void wait_until_next_frame(std::chrono::steady_clock::time_point& start, 
     int frame_index, int packet_interval_ms);
 
 inline void send_packets(uvgrtp::session* sess, uvgrtp::media_stream* sender,
-    int packets, size_t size, int packet_interval_ms);
-inline void add_hook(uvgrtp::media_stream* receiver, void (*hook)(void*, uvgrtp::frame::rtp_frame*));
+    int packets, size_t size, int packet_interval_ms, bool add_start_code, bool print_progress);
+inline void add_hook(Test_receiver* tester, uvgrtp::media_stream* receiver, void (*hook)(void*, uvgrtp::frame::rtp_frame*));
 
 inline void cleanup_sess(uvgrtp::context& ctx, uvgrtp::session* sess);
 inline void cleanup_ms(uvgrtp::session* sess, uvgrtp::media_stream* ms);
@@ -26,9 +28,9 @@ public:
         ++receivedPackets_;
     }
 
-    bool gotAll()
+    void gotAll()
     {
-        return receivedPackets_ == expectedPackets_;
+        EXPECT_EQ(receivedPackets_, expectedPackets_);
     }
 
 private:
@@ -38,7 +40,7 @@ private:
 };
 
 inline void send_packets(uvgrtp::session* sess, uvgrtp::media_stream* sender, 
-    int packets, size_t size, int packet_interval_ms)
+    int packets, size_t size, int packet_interval_ms, bool add_start_code, bool print_progress)
 {
     EXPECT_NE(nullptr, sess);
     EXPECT_NE(nullptr, sender);
@@ -50,14 +52,24 @@ inline void send_packets(uvgrtp::session* sess, uvgrtp::media_stream* sender,
         for (unsigned int i = 0; i < packets; ++i)
         {
             std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
-            memset(dummy_frame.get(), 'a', size);
+            if (add_start_code && size > 8)
+            {
+                memset(dummy_frame.get(),     0, 3);
+                memset(dummy_frame.get() + 3, 1, 1);
+
+                memset(dummy_frame.get() + 4, 1, 19); // Intra frame
+            }
+            else
+            {
+                memset(dummy_frame.get(), 'a', size);
+            }
 
             if (sender->push_frame(std::move(dummy_frame), size, RTP_NO_FLAGS) != RTP_OK)
             {
                 std::cout << "Failed to send test packet!" << std::endl;
             }
 
-            if (i % (packets / 10) == packets / 10 - 1)
+            if (i % (packets / 10) == packets / 10 - 1 && print_progress)
             {
                 std::cout << "Sent " << (i + 1) * 100 / packets << " % of data" << std::endl;
             }
@@ -104,13 +116,13 @@ inline void cleanup_ms(uvgrtp::session* sess, uvgrtp::media_stream* ms)
 }
 
 
-inline void add_hook(uvgrtp::media_stream* receiver, 
+inline void add_hook(Test_receiver* tester, uvgrtp::media_stream* receiver,
     void (*hook)(void*, uvgrtp::frame::rtp_frame*))
 {
     EXPECT_NE(nullptr, receiver);
     if (receiver)
     {
         std::cout << "Installing hook" << std::endl;
-        EXPECT_EQ(RTP_OK, receiver->install_receive_hook(nullptr, hook));
+        EXPECT_EQ(RTP_OK, receiver->install_receive_hook(tester, hook));
     }
 }
