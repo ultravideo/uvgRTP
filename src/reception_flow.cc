@@ -31,7 +31,7 @@ uvgrtp::reception_flow::reception_flow() :
     receiver_(nullptr),
     ring_buffer_(),
     ring_read_index_(-1), // invalid first index that will increase to a valid one
-    last_ring_write_index_(0),
+    last_ring_write_index_(-1),
     buffer_size_kbytes_(DEFAULT_INITIAL_BUFFER_SIZE)
 {
     create_ring_buffer();
@@ -84,12 +84,12 @@ void uvgrtp::reception_flow::set_buffer_size(ssize_t& value)
 rtp_error_t uvgrtp::reception_flow::start(std::shared_ptr<uvgrtp::socket> socket, int flags)
 {
     should_stop_ = false;
+
+    LOG_DEBUG("Creating receiving threads and setting priorities");
     processor_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::reception_flow::process_packet, this, flags));
     receiver_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::reception_flow::receiver, this, socket, flags));
 
-    // set receiver thread priority to maximum priority
-    LOG_DEBUG("Trying to set receiver thread realtime priority");
-
+    // set receiver thread priority to maximum
 #ifndef WIN32
     struct sched_param params;
     params.sched_priority = sched_get_priority_max(SCHED_FIFO);
@@ -328,8 +328,6 @@ void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int flags, uvgrtp::
 
 void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, int flags)
 {
-    LOG_DEBUG("Start reception loop");
-
     while (!should_stop_) {
 
         // First we wait using poll until there is data in the socket
@@ -421,7 +419,6 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, in
 
 void uvgrtp::reception_flow::process_packet(int flags)
 {
-    LOG_DEBUG("Start processing loop");
     std::unique_lock<std::mutex> lk(wait_mtx_);
 
     while (!should_stop_)
@@ -437,7 +434,7 @@ void uvgrtp::reception_flow::process_packet(int flags)
         ring_mutex_.lock();
 
         // process all available reads in one go
-        while (next_buffer_location(ring_read_index_) != last_ring_write_index_)
+        while (ring_read_index_ != last_ring_write_index_)
         {
             // first update the read location
             ring_read_index_ = next_buffer_location(ring_read_index_);
