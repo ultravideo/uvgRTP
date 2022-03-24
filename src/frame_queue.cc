@@ -291,15 +291,9 @@ rtp_error_t uvgrtp::frame_queue::deinit_transaction()
 
 rtp_error_t uvgrtp::frame_queue::enqueue_message(uint8_t *message, size_t message_len, bool set_marker)
 {
-    if (message == nullptr)
+    if (message == nullptr || message_len == 0)
     {
-      LOG_ERROR("Tried to enqueue nullptr");
-      return RTP_INVALID_VALUE;
-    }
-
-    if (message_len == 0)
-    {
-      LOG_ERROR("Tried to enqueue zero length message");
+      LOG_ERROR("Tried to enqueue invalid message");
       return RTP_INVALID_VALUE;
     }
 
@@ -308,7 +302,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(uint8_t *message, size_t messag
     uvgrtp::buf_vec tmp;
 
     /* update the RTP header at "rtpheaders_ptr_" */
-    uvgrtp::frame_queue::update_rtp_header();
+    update_rtp_header();
 
     if (set_marker)
         ((uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr])[1] |= (1 << 7);
@@ -326,17 +320,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(uint8_t *message, size_t messag
 
     tmp.push_back({ message_len, message });
 
-    if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
-        tmp.push_back({
-            UVG_AUTH_TAG_LENGTH,
-            (uint8_t *)&active_->rtp_auth_tags[10 * active_->rtpauth_ptr++]
-        });
-    }
-
-    active_->packets.push_back(tmp);
-    rtp_->inc_sequence();
-    rtp_->inc_sent_pkts();
-
+    enqueue_finalize(tmp);
     return RTP_OK;
 }
 
@@ -358,7 +342,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, u
     uvgrtp::buf_vec tmp;
 
     /* update the RTP header at "rtpheaders_ptr_" */
-    uvgrtp::frame_queue::update_rtp_header();
+    update_rtp_header();
 
     /* Push RTP header first and then push all payload buffers */
     tmp.push_back({
@@ -390,17 +374,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(std::vector<std::pair<size_t, u
             tmp.push_back({ buffer.first, buffer.second });
     }
 
-    if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
-        tmp.push_back({
-            UVG_AUTH_TAG_LENGTH,
-            (uint8_t *)&active_->rtp_auth_tags[10 * active_->rtpauth_ptr++]
-        });
-    }
-
-    active_->packets.push_back(tmp);
-    rtp_->inc_sequence();
-    rtp_->inc_sent_pkts();
-
+    enqueue_finalize(tmp);
     return RTP_OK;
 }
 
@@ -462,4 +436,19 @@ void uvgrtp::frame_queue::install_dealloc_hook(void (*dealloc_hook)(void *))
         return;
 
     dealloc_hook_ = dealloc_hook;
+}
+
+
+void uvgrtp::frame_queue::enqueue_finalize(uvgrtp::buf_vec& tmp)
+{
+    if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
+        tmp.push_back({
+            UVG_AUTH_TAG_LENGTH,
+            (uint8_t*)&active_->rtp_auth_tags[10 * active_->rtpauth_ptr++]
+            });
+    }
+
+    active_->packets.push_back(tmp);
+    rtp_->inc_sequence();
+    rtp_->inc_sent_pkts();
 }

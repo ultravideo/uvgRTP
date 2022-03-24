@@ -177,6 +177,9 @@ namespace uvgrtp {
             void install_dealloc_hook(void (*dealloc_hook)(void *));
 
         private:
+
+            void enqueue_finalize(uvgrtp::buf_vec& tmp);
+
             /* Both the application and SCD access "free_" and "queued_" structures so the
              * access must be protected by a mutex
              *
