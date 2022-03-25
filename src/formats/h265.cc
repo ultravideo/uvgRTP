@@ -20,7 +20,8 @@
 
 
 
-uvgrtp::formats::h265::h265(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags) :
+uvgrtp::formats::h265::h265(std::shared_ptr<uvgrtp::socket> socket, 
+    std::shared_ptr<uvgrtp::rtp> rtp, int flags) :
     h26x(socket, rtp, flags)
 {}
 
@@ -41,6 +42,12 @@ uint8_t uvgrtp::formats::h265::get_start_code_range() const
 {
     return 4;
 }
+
+uint8_t uvgrtp::formats::h265::get_nal_type(uint8_t* data) const
+{
+    return (data[0] >> 1) & 0x3f;
+}
+
 
 int uvgrtp::formats::h265::get_fragment_type(uvgrtp::frame::rtp_frame* frame) const
 {
@@ -144,10 +151,6 @@ rtp_error_t uvgrtp::formats::h265::make_aggregation_pkt()
     return ret;
 }
 
-uint8_t uvgrtp::formats::h265::get_nal_type(uint8_t* data) const
-{
-    return (data[0] >> 1) & 0x3f;
-}
 
 rtp_error_t uvgrtp::formats::h265::handle_small_packet(uint8_t* data, size_t data_len, bool more)
 {

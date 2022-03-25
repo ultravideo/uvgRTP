@@ -489,7 +489,17 @@ uint32_t uvgrtp::formats::h26x::drop_frame(uint32_t ts)
     uint16_t s_seq = frames_.at(ts).s_seq;
     uint16_t e_seq = frames_.at(ts).e_seq;
 
-    LOG_INFO("Dropping frame. Ts: %u, Seq: %u - %u", ts, s_seq, e_seq);
+    if (s_seq == INVALID_SEQ)
+    {
+        s_seq = 0;
+    }
+    if (e_seq == INVALID_SEQ)
+    {
+        e_seq = 0;
+    }
+
+    LOG_INFO("Dropping frame. Ts: %lu, Seq: %u - %u, expected/received: %li/%li", 
+        ts, s_seq, e_seq, calculate_expected_fus(ts), frames_[ts].pkts_received);
 
     if (frames_.find(ts) == frames_.end())
     {
