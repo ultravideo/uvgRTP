@@ -271,6 +271,71 @@ rtp_error_t uvgrtp::formats::h26x::frame_getter(uvgrtp::frame::rtp_frame** frame
     return RTP_NOT_FOUND;
 }
 
+rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_len, int flags)
+{
+    rtp_error_t ret = RTP_GENERIC_ERROR;
+
+    if (!data || !data_len)
+        return RTP_INVALID_VALUE;
+
+    if ((ret = fqueue_->init_transaction(data)) != RTP_OK) {
+        LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
+        return ret;
+    }
+
+    /* find first start code */
+    uint8_t start_len = 0;
+    ssize_t offset = find_h26x_start_code(data, data_len, 0, start_len);
+    ssize_t prev_offset = offset;
+    size_t r_off = (offset < 0) ? 0 : offset;
+    size_t payload_size = rtp_ctx_->get_payload_size();
+
+    if (flags & RTP_SLICE) // TODO: Check that slices work correctly and I think they should be smaller than payload_size
+    {
+        return push_nal_unit(data + r_off, data_len, false);
+    }
+    else if (data_len <= payload_size) // Single NAL unit
+    {
+        // TODO: I have a hunch that the payload is missing payload header with single NAL unit
+
+        // TODO: Perform more start code lookups in case this is a very small Intra frame
+
+        if ((ret = fqueue_->enqueue_message(data + r_off, data_len - r_off)) != RTP_OK) {
+            LOG_ERROR("Failed to enqueue Single h26x NAL Unit packet!");
+            return ret;
+        }
+
+        return fqueue_->flush_queue();
+    }
+
+    // push the first NAL units of frame
+    while (offset != -1) {
+        offset = find_h26x_start_code(data, data_len, offset, start_len);
+
+        if (offset != -1) {
+            ret = push_nal_unit(&data[prev_offset], offset - prev_offset - start_len, true);
+
+            if (ret != RTP_NOT_READY)
+            {
+                fqueue_->deinit_transaction();
+                return ret;
+            }
+
+            prev_offset = offset;
+        }
+    }
+
+    if (prev_offset == -1)
+        prev_offset = 0;
+
+    // push last NAL unit
+    if ((ret = push_nal_unit(&data[prev_offset], data_len - prev_offset, false)) == RTP_OK)
+        return RTP_OK;
+
+    fqueue_->deinit_transaction();
+    return ret;
+}
+
 rtp_error_t uvgrtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len, bool more)
 {
     if (data_len == 0)
@@ -280,12 +345,13 @@ rtp_error_t uvgrtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len,
 
     size_t payload_size = rtp_ctx_->get_payload_size();
 
-    if (data_len <= payload_size) {
+    // TODO: There is a clear bug somewhere in here!
+
+
+    if (data_len < payload_size) {
         /* If the small packet is handled we either wait for more small packets or
          * we already sent the data, so always return from this function after entering this branch */
-        if ((ret = handle_small_packet(data, data_len, more)) != RTP_OK)
-            return ret;
-        return RTP_OK;
+        return handle_small_packet(data, data_len, more);
     }
     else {
         /* If smaller NALUs were queued before this NALU,
@@ -322,71 +388,6 @@ rtp_error_t uvgrtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len,
     clear_aggregation_info();
     return fqueue_->flush_queue();
 }
-
-rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t *data, size_t data_len, int flags)
-{
-    rtp_error_t ret = RTP_GENERIC_ERROR;
-
-    if (!data || !data_len)
-        return RTP_INVALID_VALUE;
-
-    if ((ret = fqueue_->init_transaction(data)) != RTP_OK) {
-        LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
-        return ret;
-    }
-
-    /* find first start code */
-    uint8_t start_len = 0;
-    ssize_t offset = find_h26x_start_code(data, data_len, 0, start_len);
-    ssize_t prev_offset = offset;
-    size_t r_off = 0;
-    size_t payload_size = rtp_ctx_->get_payload_size();
-
-    // Single NAL unit
-    if (data_len <= payload_size || flags & RTP_SLICE) {
-        r_off = (offset < 0) ? 0 : offset;
-
-        // TODO: I have a hunch that the payload is missing payload header with single NAL unit or that 
-        // it is processed incorrectly at receiving end
-        if (data_len > payload_size) {
-            return push_nal_unit(data + r_off, data_len, false);
-        }
-        else {
-            if ((ret = fqueue_->enqueue_message(data + r_off, data_len - r_off)) != RTP_OK) {
-                LOG_ERROR("Failed to enqueue Single h26x NAL Unit packet!");
-                return ret;
-            }
-
-            return fqueue_->flush_queue();
-        }
-    }
-
-    // push the first NAL units of frame
-    while (offset != -1) {
-        offset = find_h26x_start_code(data, data_len, offset, start_len);
-
-        if (offset != -1) {
-            ret = push_nal_unit(&data[prev_offset], offset - prev_offset - start_len, true);
-
-            if (ret != RTP_NOT_READY)
-                goto error;
-
-            prev_offset = offset;
-        }
-    }
-
-    if (prev_offset == -1)
-        prev_offset = 0;
-
-    // push last NAL unit
-    if ((ret = push_nal_unit(&data[prev_offset], data_len - prev_offset, false)) == RTP_OK)
-        return RTP_OK;
-
-error:
-    fqueue_->deinit_transaction();
-    return ret;
-}
-
 
 rtp_error_t uvgrtp::formats::h26x::make_aggregation_pkt()
 {
