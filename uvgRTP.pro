@@ -41,20 +41,17 @@ INCLUDEPATH    += include
 SOURCES += \
 	src/clock.cc \
 	src/crypto.cc \
-	src/dispatch.cc \
 	src/frame.cc \
 	src/hostname.cc \
-	src/lib.cc \
+	src/context.cc \
 	src/media_stream.cc \
 	src/mingw_inet.cc \
-	src/multicast.cc \
-	src/pkt_dispatch.cc \
+	src/reception_flow.cc \
 	src/poll.cc \
-	src/queue.cc \
+	src/frame_queue.cc \
 	src/random.cc \
 	src/rtcp.cc \
 	src/rtp.cc \
-	src/runner.cc \
 	src/session.cc \
 	src/socket.cc \
 	src/holepuncher.cc \
@@ -84,21 +81,19 @@ HEADERS += \
 	include/uvgrtp/debug.hh \
 	include/uvgrtp/frame.hh \
 	include/uvgrtp/lib.hh \
+	include/uvgrtp/context.hh \
 	include/uvgrtp/media_stream.hh \
 	include/uvgrtp/rtcp.hh \
-	include/uvgrtp/runner.hh \
 	include/uvgrtp/session.hh \
 	include/uvgrtp/socket.hh \
 	include/uvgrtp/util.hh \
 	include/version.hh \
-	src/dispatch.hh \
 	src/holepuncher.hh \
 	src/hostname.hh \
 	src/mingw_inet.hh \
-	src/multicast.hh \
-	src/pkt_dispatch.hh \
+	src/reception_flow.hh \
 	src/poll.hh \
-	src/queue.hh \
+	src/frame_queue.hh \
 	src/random.hh \
 	src/rtp.hh \
 	src/zrtp.hh \
