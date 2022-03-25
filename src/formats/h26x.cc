@@ -281,7 +281,7 @@ rtp_error_t uvgrtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_le
     rtp_error_t ret     = RTP_GENERIC_ERROR;
     size_t payload_size = rtp_ctx_->get_payload_size();
 
-    // Single NAL unit (RFC 6184 section 5.6)
+    // Single NAL unit
     if (data_len < payload_size || flags & RTP_SLICE) {
         r_off = (offset < 0) ? 0 : offset;
 
@@ -289,7 +289,8 @@ rtp_error_t uvgrtp::formats::h26x::push_h26x_frame(uint8_t *data, size_t data_le
         // it is processed incorrectly at receiving end
         if (data_len > payload_size) {
             return push_nal_unit(data + r_off, data_len, false);
-        } else {
+        } 
+        else {
             if ((ret = fqueue_->enqueue_message(data + r_off, data_len - r_off)) != RTP_OK) {
                 LOG_ERROR("Failed to enqueue Single h26x NAL Unit packet!");
                 return ret;
@@ -583,30 +584,36 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     uint32_t intra = INVALID_TS;
 
     const size_t format_header_size = get_nal_header_size() + get_fu_header_size();
-
     frame = *out;
 
-    uint32_t c_ts = frame->header.timestamp;
-    uint32_t c_seq = frame->header.seq;
     int frag_type = get_fragment_type(frame);
-    uint8_t nal_type = get_nal_type(frame);
 
-    if (frag_type == FT_AGGR)
+    
+    if (frag_type == FT_AGGR) {
+        // handle aggregate packets (packets with multiple NAL units in them)
         return handle_aggregation_packet(out, get_nal_header_size(), flags);
-
-    if (frag_type == FT_NOT_FRAG) {
+    }
+    else if (frag_type == FT_NOT_FRAG) {
+        // handle single NAL unit packet by doing nothing (TODO: should remove the duplicate NAL header probably)
         prepend_start_code(flags, out);
         return RTP_PKT_READY;
     }
-
-    if (frag_type == FT_INVALID) {
+    else if (frag_type == FT_INVALID) {
+        // something is wrong
         LOG_WARN("invalid frame received!");
         (void)uvgrtp::frame::dealloc_frame(*out);
         *out = nullptr;
         return RTP_GENERIC_ERROR;
     }
 
-    /* initialize new frame */
+    // rest of the function deals with fragmented frames
+
+    uint32_t c_ts = frame->header.timestamp;
+    uint32_t c_seq = frame->header.seq;
+    
+    uint8_t nal_type = get_nal_type(frame);
+
+    /* initialize new frame if this is the first packet with this timestamp */
     if (frames_.find(c_ts) == frames_.end()) {
 
         /* make sure we haven't discarded the frame "c_ts" before */
@@ -624,18 +631,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
             intra = c_ts;
         }
 
-        frames_[c_ts].s_seq = INVALID_SEQ;
-        frames_[c_ts].e_seq = INVALID_SEQ;
-
-        if (frag_type == FT_START) frames_[c_ts].s_seq = c_seq;
-        if (frag_type == FT_END)   frames_[c_ts].e_seq = c_seq;
-
-        frames_[c_ts].sframe_time = uvgrtp::clock::hrc::now();
-        frames_[c_ts].total_size = frame->payload_len - format_header_size;
-        frames_[c_ts].pkts_received = 1;
-
-        frames_[c_ts].fragments[c_seq] = frame;
-        return RTP_OK;
+        initialize_new_fragmented_frame(c_ts);
     }
 
     frames_[c_ts].pkts_received += 1;
@@ -681,15 +677,9 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         }
     }
 
+    // have the first and last fragment arrived so we can possible start reconstructing the frame?
     if (frames_[c_ts].s_seq != INVALID_SEQ && frames_[c_ts].e_seq != INVALID_SEQ) {
-        size_t received = 0;
-        size_t s_seq = frames_[c_ts].s_seq;
-        size_t e_seq = frames_[c_ts].e_seq;
-
-        if (s_seq > e_seq)
-            received = 0xffff - s_seq + e_seq + 2;
-        else
-            received = e_seq - s_seq + 1;
+        size_t received = calculate_expected_fus(c_ts);
 
         /* we've received every fragment and the frame can be reconstructed */
         if (received == frames_[c_ts].pkts_received) {
@@ -776,4 +766,32 @@ void uvgrtp::formats::h26x::garbage_collect_lost_frames()
 
         last_garbage_collection_ = uvgrtp::clock::hrc::now();
     }
+}
+
+void uvgrtp::formats::h26x::initialize_new_fragmented_frame(uint32_t ts)
+{
+    frames_[ts].s_seq = INVALID_SEQ;
+    frames_[ts].e_seq = INVALID_SEQ;
+
+    frames_[ts].sframe_time = uvgrtp::clock::hrc::now();
+    frames_[ts].total_size = 0;
+    frames_[ts].pkts_received = 0;
+}
+
+size_t uvgrtp::formats::h26x::calculate_expected_fus(uint32_t ts)
+{
+    if (frames_[ts].s_seq == INVALID_SEQ || frames_[ts].e_seq == INVALID_SEQ)
+    {
+        return 0;
+    }
+    size_t s_seq = frames_[ts].s_seq;
+    size_t e_seq = frames_[ts].e_seq;
+    size_t expected = 0;
+
+    if (s_seq > e_seq)
+        expected = 0xffff - s_seq + e_seq + 2;
+    else
+        expected = e_seq - s_seq + 1;
+
+    return expected;
 }

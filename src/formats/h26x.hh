@@ -156,6 +156,10 @@ namespace uvgrtp {
                 virtual void copy_nal_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload);
 
         private:
+
+            inline size_t calculate_expected_fus(uint32_t ts);
+            inline void initialize_new_fragmented_frame(uint32_t ts);
+
             // constructs and sends the RTP packets with format specific stuff
             rtp_error_t push_nal_unit(uint8_t* data, size_t data_len, bool more);
 
