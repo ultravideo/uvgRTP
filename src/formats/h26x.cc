@@ -531,14 +531,16 @@ uint32_t uvgrtp::formats::h26x::drop_frame(uint32_t ts)
     return total_cleaned;
 }
 
-rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size, int flags)
+rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, 
+    uint8_t nal_header_size, int flags)
 {
     uvgrtp::buf_vec nalus;
 
     size_t size = 0;
     auto* frame = *out;
 
-    for (size_t i = nal_header_size; i < frame->payload_len; i += ntohs(*(uint16_t*)&frame->payload[i]) + sizeof(uint16_t)) {
+    for (size_t i = nal_header_size; i < frame->payload_len; 
+        i += ntohs(*(uint16_t*)&frame->payload[i]) + sizeof(uint16_t)) {
 
         uint16_t packet_size = ntohs(*(uint16_t*)&frame->payload[i]);
         size += packet_size;
@@ -548,6 +550,7 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_
         }
         else {
             LOG_ERROR("The received aggregation packet claims to be larger than packet!");
+            return RTP_GENERIC_ERROR;
         }
     }
 
