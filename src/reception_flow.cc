@@ -389,10 +389,16 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, in
 
                 rtp_error_t ret = RTP_OK;
                 // get the potential packet
-                if ((ret = socket->recvfrom(ring_buffer_[next_write_index].data, RECV_BUFFER_SIZE,
-                    MSG_DONTWAIT, &ring_buffer_[next_write_index].read)) == RTP_INTERRUPTED || 
-                    ring_buffer_[next_write_index].read == 0)
+                ret = socket->recvfrom(ring_buffer_[next_write_index].data, RECV_BUFFER_SIZE,
+                    MSG_DONTWAIT, &ring_buffer_[next_write_index].read);
+
+                if (ret == RTP_INTERRUPTED)
                 {
+                    break;
+                }
+                else if (ring_buffer_[next_write_index].read == 0)
+                {
+                    LOG_WARN("Failed to read anything from socket");
                     break;
                 }
                 else if (ret != RTP_OK) {
