@@ -7,11 +7,6 @@ constexpr uint16_t RECEIVE_PORT = 9102;
 constexpr int AMOUNT_OF_TEST_PACKETS = 100;
 constexpr size_t PAYLOAD_LEN = 100;
 
-
-void format_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
-void process_format_frame(uvgrtp::frame::rtp_frame* frame);
-
-
 // TODO: Use real files
 
 TEST(FormatTests, h264)
@@ -29,8 +24,18 @@ TEST(FormatTests, h264)
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H264, RCE_H26X_PREPEND_SC);
     }
 
-    add_hook(nullptr, receiver, format_receive_hook);
-    send_packets(sess, sender, AMOUNT_OF_TEST_PACKETS, PAYLOAD_LEN, 0, true, false);
+    // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
+    test_packet_size(1443, sess, sender, receiver);
+    test_packet_size(1444, sess, sender, receiver);
+    test_packet_size(1445, sess, sender, receiver);
+    test_packet_size(1446, sess, sender, receiver);
+    test_packet_size(1447, sess, sender, receiver);
+    test_packet_size(1448, sess, sender, receiver);
+    test_packet_size(1449, sess, sender, receiver);
+    test_packet_size(1450, sess, sender, receiver);
+    test_packet_size(1501, sess, sender, receiver);
+    test_packet_size(15000, sess, sender, receiver);
+    test_packet_size(150000, sess, sender, receiver);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -52,8 +57,18 @@ TEST(FormatTests, h265)
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_H26X_PREPEND_SC);
     }
 
-    add_hook(nullptr, receiver, format_receive_hook);
-    send_packets(sess, sender, AMOUNT_OF_TEST_PACKETS, PAYLOAD_LEN, 0, true, false);
+    // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
+    test_packet_size(1443, sess, sender, receiver);
+    test_packet_size(1444, sess, sender, receiver);
+    test_packet_size(1445, sess, sender, receiver);
+    test_packet_size(1446, sess, sender, receiver);
+    test_packet_size(1447, sess, sender, receiver);
+    test_packet_size(1448, sess, sender, receiver);
+    test_packet_size(1449, sess, sender, receiver);
+    test_packet_size(1450, sess, sender, receiver);
+    test_packet_size(1501, sess, sender, receiver);
+    test_packet_size(15000, sess, sender, receiver);
+    test_packet_size(150000, sess, sender, receiver);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -75,25 +90,20 @@ TEST(FormatTests, h266)
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H266, RCE_H26X_PREPEND_SC);
     }
 
-    add_hook(nullptr, receiver, format_receive_hook);
-    send_packets(sess, sender, AMOUNT_OF_TEST_PACKETS, PAYLOAD_LEN, 0, true, false);
+    // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
+    test_packet_size(1443, sess, sender, receiver);
+    test_packet_size(1444, sess, sender, receiver);
+    test_packet_size(1445, sess, sender, receiver);
+    test_packet_size(1446, sess, sender, receiver);
+    test_packet_size(1447, sess, sender, receiver);
+    test_packet_size(1448, sess, sender, receiver);
+    test_packet_size(1449, sess, sender, receiver);
+    test_packet_size(1450, sess, sender, receiver);
+    test_packet_size(1501, sess, sender, receiver);
+    test_packet_size(15000, sess, sender, receiver);
+    test_packet_size(150000, sess, sender, receiver);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
     cleanup_sess(ctx, sess);
-}
-
-void format_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
-{
-    process_format_frame(frame);
-}
-
-void process_format_frame(uvgrtp::frame::rtp_frame* frame)
-{
-    //std::cout << "Receiving frame with seq: " << frame->header.seq 
-    //    << " and timestamp: " << frame->header.timestamp <<  std::endl;
-
-    EXPECT_EQ(frame->header.version, 2);
-    EXPECT_EQ(PAYLOAD_LEN, frame->payload_len);
-    (void)uvgrtp::frame::dealloc_frame(frame);
 }

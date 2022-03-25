@@ -17,7 +17,6 @@ constexpr int KEY_SIZE_BYTES = KEY_SIZE / 8;
 constexpr int SALT_SIZE = 112;
 constexpr int SALT_SIZE_BYTES = SALT_SIZE / 8;
 
-void process_frame(uvgrtp::frame::rtp_frame* frame);
 void receive_func(uint8_t key[KEY_SIZE_BYTES], uint8_t salt[SALT_SIZE_BYTES]);
 
 
@@ -112,20 +111,11 @@ void receive_func(uint8_t key[KEY_SIZE_BYTES], uint8_t salt[SALT_SIZE_BYTES])
             frame = recv->pull_frame(10);
             if (frame)
             {
-                process_frame(frame);
+                process_rtp_frame(frame);
             }
         }
     }
 
     cleanup_ms(receiver_session, recv);
     cleanup_sess(ctx, receiver_session);
-}
-
-void process_frame(uvgrtp::frame::rtp_frame* frame)
-{
-    std::string payload = std::string((char*)frame->payload, frame->payload_len);
-    EXPECT_NE(0, frame->payload_len);
-
-
-    (void)uvgrtp::frame::dealloc_frame(frame);
 }

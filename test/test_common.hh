@@ -12,8 +12,13 @@ inline void send_packets(uvgrtp::session* sess, uvgrtp::media_stream* sender,
     int packets, size_t size, int packet_interval_ms, bool add_start_code, bool print_progress);
 inline void add_hook(Test_receiver* tester, uvgrtp::media_stream* receiver, void (*hook)(void*, uvgrtp::frame::rtp_frame*));
 
+inline void test_packet_size(size_t size, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver);
+
 inline void cleanup_sess(uvgrtp::context& ctx, uvgrtp::session* sess);
 inline void cleanup_ms(uvgrtp::session* sess, uvgrtp::media_stream* ms);
+
+inline void process_rtp_frame(uvgrtp::frame::rtp_frame* frame);
+inline void rtp_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 
 class Test_receiver
 {
@@ -116,6 +121,36 @@ inline void cleanup_ms(uvgrtp::session* sess, uvgrtp::media_stream* ms)
 }
 
 
+inline void test_packet_size(size_t size, uvgrtp::session* sess, uvgrtp::media_stream* sender, 
+    uvgrtp::media_stream* receiver)
+{
+    EXPECT_NE(nullptr, sess);
+    EXPECT_NE(nullptr, sender);
+    EXPECT_NE(nullptr, receiver);
+
+    if (sess && sender && receiver)
+    {
+        int packets = 10;
+
+        Test_receiver* tester = new Test_receiver(packets);
+
+        add_hook(tester, receiver, rtp_receive_hook);
+        send_packets(sess, sender, packets, size, 10, true, false);
+
+        if (size > 20000)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(150));
+        }
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+
+        tester->gotAll();
+        delete tester;
+    }
+}
+
 inline void add_hook(Test_receiver* tester, uvgrtp::media_stream* receiver,
     void (*hook)(void*, uvgrtp::frame::rtp_frame*))
 {
@@ -125,4 +160,23 @@ inline void add_hook(Test_receiver* tester, uvgrtp::media_stream* receiver,
         std::cout << "Installing hook" << std::endl;
         EXPECT_EQ(RTP_OK, receiver->install_receive_hook(tester, hook));
     }
+}
+
+inline void rtp_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
+{
+    if (arg != nullptr)
+    {
+        Test_receiver* tester = (Test_receiver*)arg;
+        tester->receive();
+    }
+
+    process_rtp_frame(frame);
+}
+
+
+inline void process_rtp_frame(uvgrtp::frame::rtp_frame* frame)
+{
+    EXPECT_NE(0, frame->payload_len);
+    EXPECT_EQ(2, frame->header.version);
+    (void)uvgrtp::frame::dealloc_frame(frame);
 }
