@@ -273,7 +273,7 @@ rtp_error_t uvgrtp::formats::h26x::frame_getter(uvgrtp::frame::rtp_frame** frame
 
 rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_len, int flags)
 {
-    rtp_error_t ret = RTP_GENERIC_ERROR;
+    rtp_error_t ret = RTP_OK;
 
     if (!data || !data_len)
         return RTP_INVALID_VALUE;
@@ -283,56 +283,46 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
         return ret;
     }
 
-    /* find first start code */
-    uint8_t start_len = 0;
-    ssize_t offset = find_h26x_start_code(data, data_len, 0, start_len);
-    ssize_t prev_offset = offset;
-    size_t r_off = (offset < 0) ? 0 : offset;
-    size_t payload_size = rtp_ctx_->get_payload_size();
+    // find all the locations of NAL units using Start Code Lookup (SCL)
+    std::vector<nal_info> nals;
+    scl(data, data_len, nals);
 
-    if (flags & RTP_SLICE) // TODO: Check that slices work correctly and I think they should be smaller than payload_size
+    // push NAL units
+    if (nals.empty())
     {
-        return push_nal_unit(data + r_off, data_len, false);
+        LOG_ERROR("Did not find any NAL units in frame.");
+        return RTP_INVALID_VALUE;
     }
-    else if (data_len <= payload_size) // Single NAL unit
+    else if (data_len <= rtp_ctx_->get_payload_size()) // Single NAL unit
     {
         // TODO: I have a hunch that the payload is missing payload header with single NAL unit
 
         // TODO: Perform more start code lookups in case this is a very small Intra frame
 
-        if ((ret = fqueue_->enqueue_message(data + r_off, data_len - r_off)) != RTP_OK) {
+        if ((ret = fqueue_->enqueue_message(data + nals.at(0).prefix_len, data_len - nals.at(0).prefix_len)) != RTP_OK) {
             LOG_ERROR("Failed to enqueue Single h26x NAL Unit packet!");
+            fqueue_->deinit_transaction();
             return ret;
         }
 
         return fqueue_->flush_queue();
     }
+    else // larger than payload size so it needs to be divided
+    {
+        // push NAL units
+        for (ssize_t i = 0; i < nals.size(); ++i)
+        {
+            bool more = (i != nals.size() - 1);
+            ret = push_nal_unit(&data[nals[i].offset], nals[i].size, more);
 
-    // push the first NAL units of frame
-    while (offset != -1) {
-        offset = find_h26x_start_code(data, data_len, offset, start_len);
-
-        if (offset != -1) {
-            ret = push_nal_unit(&data[prev_offset], offset - prev_offset - start_len, true);
-
-            if (ret != RTP_NOT_READY)
+            if (ret != RTP_OK && (ret != RTP_NOT_READY && !more))
             {
                 fqueue_->deinit_transaction();
                 return ret;
             }
-
-            prev_offset = offset;
         }
     }
 
-    if (prev_offset == -1)
-        prev_offset = 0;
-
-    // push last NAL unit
-    if ((ret = push_nal_unit(&data[prev_offset], data_len - prev_offset, false)) == RTP_OK)
-        return RTP_OK;
-
-    fqueue_->deinit_transaction();
     return ret;
 }
 
@@ -402,8 +392,8 @@ rtp_error_t uvgrtp::formats::h26x::make_aggregation_pkt()
 void uvgrtp::formats::h26x::clear_aggregation_info()
 {}
 
-rtp_error_t uvgrtp::formats::h26x::divide_frame_to_fus(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
-    uvgrtp::buf_vec& buffers, uint8_t fu_headers[])
+rtp_error_t uvgrtp::formats::h26x::divide_frame_to_fus(uint8_t* data, size_t& data_left, 
+    size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers, uint8_t fu_headers[])
 {
     rtp_error_t ret = RTP_OK;
 
@@ -807,4 +797,36 @@ size_t uvgrtp::formats::h26x::calculate_expected_fus(uint32_t ts)
         expected = e_seq - s_seq + 1;
 
     return expected;
+}
+
+void uvgrtp::formats::h26x::scl(uint8_t* data, size_t data_len, std::vector<nal_info>& nals)
+{
+    uint8_t start_len = 0;
+    ssize_t offset = find_h26x_start_code(data, data_len, 0, start_len);
+
+    while (offset != -1) {
+        nal_info nal;
+        nal.offset = offset;
+        nal.prefix_len = start_len;
+        nal.size = 0; // set after all NALs have been found
+
+        nals.push_back(nal);
+        offset = find_h26x_start_code(data, data_len, offset, start_len);
+    }
+
+    // calculate the sizes of NAL units
+    for (ssize_t i = 0; i < nals.size(); ++i)
+    {
+        if (nals.size() > i + 1)
+        {
+            // take the difference of next NAL unit location and current one, 
+            // minus size of start code prefix of next NAL unit
+            nals.at(i).size = nals[i + 1].offset - nals[i].offset - nals[i + 1].prefix_len;
+        }
+        else
+        {
+            // last NAL unit, the length is offset to end
+            nals.at(i).size = data_len - nals[i].offset;
+        }
+    }
 }

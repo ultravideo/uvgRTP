@@ -58,6 +58,13 @@ namespace uvgrtp {
             std::vector<uvgrtp::frame::rtp_frame*> temporary;
         } h26x_info_t;
 
+        struct nal_info
+        {
+            ssize_t offset = 0;
+            ssize_t prefix_len = 0;
+            ssize_t size = 0;
+        };
+
         class h26x : public media {
             public:
                 h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags);
@@ -151,6 +158,8 @@ namespace uvgrtp {
 
             inline size_t calculate_expected_fus(uint32_t ts);
             inline void initialize_new_fragmented_frame(uint32_t ts);
+
+            void scl(uint8_t* data, size_t data_len, std::vector<nal_info>& nals);
 
             // constructs and sends the RTP packets with format specific stuff
             rtp_error_t push_nal_unit(uint8_t* data, size_t data_len, bool more);
