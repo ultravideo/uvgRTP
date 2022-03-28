@@ -370,12 +370,17 @@ rtp_error_t uvgrtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len,
      *
      * During Connection initialization, the frame queue was given the payload format so the
      * transaction also contains our media-specific headers [get_media_headers()]. */
-    uvgrtp::buf_vec buffers = fqueue_->get_buffer_vector();
+    uvgrtp::buf_vec* buffers = fqueue_->get_buffer_vector();
 
-    if ((ret = construct_format_header_divide_fus(data, data_left, data_pos, payload_size, buffers)) != RTP_OK)
+    if (!buffers)
+    {
+        return RTP_GENERIC_ERROR;
+    }
+
+    if ((ret = construct_format_header_divide_fus(data, data_left, data_pos, payload_size, *buffers)) != RTP_OK)
         return ret;
 
-    if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
+    if ((ret = fqueue_->enqueue_message(*buffers)) != RTP_OK) {
         LOG_ERROR("Failed to send HEVC frame!");
         clear_aggregation_info();
         fqueue_->deinit_transaction();

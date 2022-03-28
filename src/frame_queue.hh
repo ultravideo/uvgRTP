@@ -144,7 +144,7 @@ namespace uvgrtp {
              * caller's stack).
              *
              * buf_vec is the place to store these extra headers (see src/formats/hevc.cc) */
-            uvgrtp::buf_vec& get_buffer_vector();
+            uvgrtp::buf_vec* get_buffer_vector();
 
             /* Each media may allocate extra buffers for the transaction struct if need be
              *

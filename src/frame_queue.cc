@@ -410,9 +410,15 @@ void uvgrtp::frame_queue::update_rtp_header()
     rtp_->update_sequence((uint8_t *)(&active_->rtp_headers[active_->rtphdr_ptr]));
 }
 
-uvgrtp::buf_vec& uvgrtp::frame_queue::get_buffer_vector()
+uvgrtp::buf_vec* uvgrtp::frame_queue::get_buffer_vector()
 {
-    return active_->buffers;
+    if (!active_)
+    {
+        LOG_ERROR("No active transaction");
+        return nullptr;
+    }
+  
+    return &active_->buffers;
 }
 
 void *uvgrtp::frame_queue::get_media_headers()
