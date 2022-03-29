@@ -45,13 +45,13 @@ namespace uvgrtp {
 
             protected:
                 /* Construct an aggregation packet from data in "aggr_pkt_info_" */
-                virtual rtp_error_t make_aggregation_pkt();
+                virtual rtp_error_t finalize_aggregation_pkt();
 
                 /* Clear aggregation buffers */
                 virtual void clear_aggregation_info();
 
                 // Constructs aggregate packets
-                virtual rtp_error_t handle_small_packet(uint8_t* data, size_t data_len, bool more);
+                virtual rtp_error_t add_aggregate_packet(uint8_t* data, size_t data_len);
 
                 // constructs h265 RTP header with correct values
                 virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t& data_left, 

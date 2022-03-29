@@ -74,13 +74,10 @@ uvgrtp::formats::NAL_TYPES uvgrtp::formats::h264::get_nal_type(uvgrtp::frame::rt
     return uvgrtp::formats::NT_OTHER;
 }
 
-
 uint8_t uvgrtp::formats::h264::get_nal_type(uint8_t* data) const
 {
     return data[0] & 0x1f;
 }
-
-
 
 void uvgrtp::formats::h264::clear_aggregation_info()
 {
@@ -88,28 +85,13 @@ void uvgrtp::formats::h264::clear_aggregation_info()
     aggr_pkt_info_.aggr_pkt.clear();
 }
 
-rtp_error_t uvgrtp::formats::h264::make_aggregation_pkt()
+rtp_error_t uvgrtp::formats::h264::finalize_aggregation_pkt()
 {
     rtp_error_t ret = RTP_OK;
-
-    // TODO: This function is not used, but the code exists for some reason. 
-    // This return disables the code for now
-    return ret;
-
     uint8_t nri = 0;
 
-    if (aggr_pkt_info_.nalus.empty())
+    if (aggr_pkt_info_.nalus.size() <= 1)
         return RTP_INVALID_VALUE;
-
-    /* Only one buffer in the vector -> no need to create an aggregation packet */
-    if (aggr_pkt_info_.nalus.size() == 1) {
-        if ((ret = fqueue_->enqueue_message(aggr_pkt_info_.nalus)) != RTP_OK) {
-            LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
-            return ret;
-        }
-
-        return fqueue_->flush_queue();
-    }
 
     /* find maximum NRI from given NALUs,
      * it is going to be the NRI value of theSTAP-A header */
@@ -150,32 +132,6 @@ rtp_error_t uvgrtp::formats::h264::make_aggregation_pkt()
     }
 
     return ret;
-}
-
-rtp_error_t uvgrtp::formats::h264::handle_small_packet(uint8_t* data, size_t data_len, bool more)
-{
-    rtp_error_t ret = RTP_OK;
-    /* If there is more data coming in (possibly another small packet)
-     * create entry to "aggr_pkt_info_" to construct an aggregation packet */
-     /* if (more) { */
-     /*     aggr_pkt_info_.nalus.push_back(std::make_pair(data_len, data)); */
-     /*     return RTP_NOT_READY; */
-     /* } else { */
-     /*     if (aggr_pkt_info_.nalus.empty()) { */
-    if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
-        LOG_ERROR("Failed to enqueue Single NAL Unit packet!");
-        return ret;
-    }
-
-    if (more)
-        return RTP_NOT_READY;
-    return fqueue_->flush_queue();
-    /* } else { */
-    /*     (void)make_aggregation_pkt(); */
-    /*     ret = fqueue_->flush_queue(); */
-    /*     clear_aggregation_info(); */
-    /*     return ret; */
-    /* } */
 }
 
 rtp_error_t uvgrtp::formats::h264::construct_format_header_divide_fus(uint8_t* data, size_t& data_left,

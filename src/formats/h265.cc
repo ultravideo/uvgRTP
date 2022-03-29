@@ -48,7 +48,6 @@ uint8_t uvgrtp::formats::h265::get_nal_type(uint8_t* data) const
     return (data[0] >> 1) & 0x3f;
 }
 
-
 int uvgrtp::formats::h265::get_fragment_type(uvgrtp::frame::rtp_frame* frame) const
 {
     bool first_frag = frame->payload[2] & 0x80;
@@ -89,22 +88,12 @@ void uvgrtp::formats::h265::clear_aggregation_info()
     aggr_pkt_info_.aggr_pkt.clear();
 }
 
-rtp_error_t uvgrtp::formats::h265::make_aggregation_pkt()
+rtp_error_t uvgrtp::formats::h265::finalize_aggregation_pkt()
 {
-    rtp_error_t ret;
+    rtp_error_t ret = RTP_OK;
 
-    if (aggr_pkt_info_.nalus.empty())
+    if (aggr_pkt_info_.nalus.size() <= 1)
         return RTP_INVALID_VALUE;
-
-    /* Only one buffer in the vector -> no need to create an aggregation packet */
-    if (aggr_pkt_info_.nalus.size() == 1) {
-        if ((ret = fqueue_->enqueue_message(aggr_pkt_info_.nalus)) != RTP_OK) {
-            LOG_ERROR("Failed to enqueue Single h265 NAL Unit packet!");
-            return ret;
-        }
-
-        return fqueue_->flush_queue();
-    }
 
     /* create header for the packet and craft the aggregation packet
      * according to the format defined in RFC 7798 */
@@ -151,31 +140,11 @@ rtp_error_t uvgrtp::formats::h265::make_aggregation_pkt()
     return ret;
 }
 
-
-rtp_error_t uvgrtp::formats::h265::handle_small_packet(uint8_t* data, size_t data_len, bool more)
+rtp_error_t uvgrtp::formats::h265::add_aggregate_packet(uint8_t* data, size_t data_len)
 {
     /* If there is more data coming in (possibly another small packet)
      * create entry to "aggr_pkt_info_" to construct an aggregation packet */
-    if (more) {
-        aggr_pkt_info_.nalus.push_back(std::make_pair(data_len, data));
-        return RTP_NOT_READY;
-    }
-    else {
-        rtp_error_t ret = RTP_OK;
-        if (aggr_pkt_info_.nalus.empty()) {
-            if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
-                LOG_ERROR("Failed to enqueue Single h265 NAL Unit packet! Size: %zu", data_len);
-                return ret;
-            }
-        }
-        else {
-            (void)make_aggregation_pkt();
-            ret = fqueue_->flush_queue();
-            clear_aggregation_info();
-            return ret;
-        }
-    }
-
+    aggr_pkt_info_.nalus.push_back(std::make_pair(data_len, data));
     return RTP_OK;
 }
 

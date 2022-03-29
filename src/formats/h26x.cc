@@ -285,72 +285,72 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
 
     // find all the locations of NAL units using Start Code Lookup (SCL)
     std::vector<nal_info> nals;
-    scl(data, data_len, nals);
+    bool should_aggregate = false;
+    scl(data, data_len, rtp_ctx_->get_payload_size(), nals, should_aggregate);
 
-    // push NAL units
     if (nals.empty())
     {
-        LOG_ERROR("Did not find any NAL units in frame.");
+        LOG_ERROR("Did not find any NAL units in frame. Cannot send.");
         return RTP_INVALID_VALUE;
     }
-    else if (data_len <= rtp_ctx_->get_payload_size()) // Single NAL unit
+
+    if (should_aggregate) // an aggregate packet is possible
     {
-        // TODO: I have a hunch that the payload is missing payload header with single NAL unit
+        // use aggregation function that also may just send the packets as Single NAL units 
+        // if aggregates have not been implemented
 
-        // TODO: Perform more start code lookups in case this is a very small Intra frame
+        for (auto& nal : nals)
+        {
+            if (nal.aggregate)
+            {
+                if ((ret = add_aggregate_packet(data + nal.offset, nal.size)) != RTP_OK)
+                {
+                    fqueue_->deinit_transaction();
+                    return ret;
+                }
+            }
+        }
 
-        if ((ret = fqueue_->enqueue_message(data + nals.at(0).prefix_len, data_len - nals.at(0).prefix_len)) != RTP_OK) {
-            LOG_ERROR("Failed to enqueue Single h26x NAL Unit packet!");
+        (void)finalize_aggregation_pkt();
+    }
+
+    if (data_len <= rtp_ctx_->get_payload_size() && !should_aggregate) // Single NAL unit, non-aggretable
+    {
+        if ((ret = single_nal_unit(data + nals.at(0).prefix_len, data_len - nals.at(0).prefix_len)) != RTP_OK)
+        {
             fqueue_->deinit_transaction();
             return ret;
         }
-
-        return fqueue_->flush_queue();
     }
-    else // larger than payload size so it needs to be divided
+    else // send all NAL units requiring FU division (single NAL unit is an alternative to this)
     {
         // push NAL units
-        for (ssize_t i = 0; i < nals.size(); ++i)
+        for (auto& nal : nals)
         {
-            bool more = (i != nals.size() - 1);
-            ret = push_nal_unit(&data[nals[i].offset], nals[i].size, more);
-
-            if (ret != RTP_OK && (ret != RTP_NOT_READY && !more))
+            if (!nal.aggregate)
             {
-                fqueue_->deinit_transaction();
-                return ret;
+                ret = fu_division(&data[nal.offset], nal.size);
+
+                if (ret != RTP_OK)
+                {
+                    fqueue_->deinit_transaction();
+                    return ret;
+                }
             }
         }
     }
 
+    // actually send the packets
+    ret = fqueue_->flush_queue();
+    clear_aggregation_info();
+
     return ret;
 }
 
-rtp_error_t uvgrtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len, bool more)
+rtp_error_t uvgrtp::formats::h26x::fu_division(uint8_t *data, size_t data_len)
 {
     if (data_len == 0)
         return RTP_INVALID_VALUE;
-
-    rtp_error_t ret = RTP_OK;
-
-    size_t payload_size = rtp_ctx_->get_payload_size();
-
-    // TODO: There is a clear bug somewhere in here!
-
-
-    if (data_len < payload_size) {
-        /* If the small packet is handled we either wait for more small packets or
-         * we already sent the data, so always return from this function after entering this branch */
-        return handle_small_packet(data, data_len, more);
-    }
-    else {
-        /* If smaller NALUs were queued before this NALU,
-         * send them in an aggregation packet before proceeding with fragmentation */
-        (void)make_aggregation_pkt();
-    }
-
-    size_t data_left = data_len;
-    size_t data_pos = 0;
 
     /* The payload is larger than MTU (1500 bytes) so we must split it into 
      * smaller RTP frames, because we cannot make any assumptions about the 
@@ -367,30 +367,45 @@ rtp_error_t uvgrtp::formats::h26x::push_nal_unit(uint8_t *data, size_t data_len,
         return RTP_GENERIC_ERROR;
     }
 
-    if ((ret = construct_format_header_divide_fus(data, data_left, data_pos, payload_size, *buffers)) != RTP_OK)
+    rtp_error_t ret = RTP_OK;
+    size_t data_pos = 0;
+    if ((ret = construct_format_header_divide_fus(data, data_len, data_pos, rtp_ctx_->get_payload_size(), *buffers)) != RTP_OK)
         return ret;
 
     if ((ret = fqueue_->enqueue_message(*buffers)) != RTP_OK) {
-        LOG_ERROR("Failed to send HEVC frame!");
-        clear_aggregation_info();
-        fqueue_->deinit_transaction();
+        LOG_ERROR("Failed to send divided H26x frame!");
         return ret;
     }
 
-    if (more)
-        return RTP_NOT_READY;
-
-    clear_aggregation_info();
-    return fqueue_->flush_queue();
+    return ret;
 }
 
-rtp_error_t uvgrtp::formats::h26x::make_aggregation_pkt()
+rtp_error_t uvgrtp::formats::h26x::add_aggregate_packet(uint8_t* data, size_t data_len)
+{
+    // the default implementation is to just use single NAL units and don't do the aggregate packet
+    return single_nal_unit(data, data_len);
+}
+
+rtp_error_t uvgrtp::formats::h26x::finalize_aggregation_pkt()
 {
     return RTP_OK;
 }
 
 void uvgrtp::formats::h26x::clear_aggregation_info()
 {}
+
+rtp_error_t uvgrtp::formats::h26x::single_nal_unit(uint8_t* data, size_t data_len)
+{
+    // TODO: I have a hunch that the payload is missing payload header with single NAL unit
+
+
+    rtp_error_t ret = RTP_OK;
+    if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
+        LOG_ERROR("Failed to enqueue single h26x NAL Unit packet!");
+    }
+
+    return ret;
+}
 
 rtp_error_t uvgrtp::formats::h26x::divide_frame_to_fus(uint8_t* data, size_t& data_left, 
     size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers, uint8_t fu_headers[])
@@ -799,20 +814,27 @@ size_t uvgrtp::formats::h26x::calculate_expected_fus(uint32_t ts)
     return expected;
 }
 
-void uvgrtp::formats::h26x::scl(uint8_t* data, size_t data_len, std::vector<nal_info>& nals)
+void uvgrtp::formats::h26x::scl(uint8_t* data, size_t data_len, size_t packet_size, 
+    std::vector<nal_info>& nals, bool& can_be_aggregated)
 {
     uint8_t start_len = 0;
     ssize_t offset = find_h26x_start_code(data, data_len, 0, start_len);
+
 
     while (offset != -1) {
         nal_info nal;
         nal.offset = offset;
         nal.prefix_len = start_len;
         nal.size = 0; // set after all NALs have been found
+        nal.aggregate = false; // determined with size calculations
+
 
         nals.push_back(nal);
         offset = find_h26x_start_code(data, data_len, offset, start_len);
     }
+
+    size_t aggregate_size = 0;
+    int aggregatable_packets = 0;
 
     // calculate the sizes of NAL units
     for (ssize_t i = 0; i < nals.size(); ++i)
@@ -828,5 +850,14 @@ void uvgrtp::formats::h26x::scl(uint8_t* data, size_t data_len, std::vector<nal_
             // last NAL unit, the length is offset to end
             nals.at(i).size = data_len - nals[i].offset;
         }
+
+        if (aggregate_size + nals.at(i).size <= packet_size)
+        {
+            aggregate_size += nals.at(i).size;
+            nals.at(i).aggregate = true;
+            ++aggregatable_packets;
+        }
     }
+
+    can_be_aggregated = (aggregatable_packets >= 2);
 }

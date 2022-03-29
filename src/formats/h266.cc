@@ -80,20 +80,6 @@ uvgrtp::formats::NAL_TYPES uvgrtp::formats::h266::get_nal_type(uvgrtp::frame::rt
     return uvgrtp::formats::NT_OTHER;
 }
 
-rtp_error_t uvgrtp::formats::h266::handle_small_packet(uint8_t* data, size_t data_len, bool more)
-{
-    rtp_error_t ret = RTP_OK;
-
-    if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
-        LOG_ERROR("enqeueu failed for small packet");
-        return ret;
-    }
-
-    if (more)
-        return RTP_NOT_READY;
-    return fqueue_->flush_queue();
-}
-
 rtp_error_t uvgrtp::formats::h266::construct_format_header_divide_fus(uint8_t* data, size_t& data_left,
     size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers)
 {

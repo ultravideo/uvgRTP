@@ -43,13 +43,10 @@ namespace uvgrtp {
                 ~h264();
 
             protected:
-
-                // the aggregation packet is not enabled
-                virtual rtp_error_t handle_small_packet(uint8_t* data, size_t data_len, bool more);
                 
                 /* Construct an aggregation packet from data in "aggr_pkt_info_" 
                  * TODO: The code exists, but it is not used */
-                virtual rtp_error_t make_aggregation_pkt();
+                virtual rtp_error_t finalize_aggregation_pkt();
 
                 /* Clear aggregation buffers */
                 virtual void clear_aggregation_info();

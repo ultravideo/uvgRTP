@@ -42,8 +42,6 @@ namespace uvgrtp {
                 ~h266();
 
             protected:
-                // the aggregation packet is not enabled
-                virtual rtp_error_t handle_small_packet(uint8_t* data, size_t data_len, bool more);
 
                 // constructs h266 RTP header with correct values
                 virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t& data_left, 

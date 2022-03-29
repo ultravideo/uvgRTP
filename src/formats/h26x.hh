@@ -63,6 +63,7 @@ namespace uvgrtp {
             ssize_t offset = 0;
             ssize_t prefix_len = 0;
             ssize_t size = 0;
+            bool aggregate = false;
         };
 
         class h26x : public media {
@@ -115,31 +116,24 @@ namespace uvgrtp {
             protected:
 
                 /* Handles small packets. May support aggregate packets or not*/
-                virtual rtp_error_t handle_small_packet(uint8_t* data, size_t data_len, bool more) = 0;
+                /* Construct/clear aggregation packets.
+                 * Default implementation does nothing. If aggregation_pkt is supported, the
+                 * child class should change the behavior */
+                virtual rtp_error_t add_aggregate_packet(uint8_t* data, size_t data_len);
+                virtual rtp_error_t finalize_aggregation_pkt();
+                virtual void clear_aggregation_info();
 
-                uvgrtp::frame::rtp_frame* allocate_rtp_frame_with_startcode(bool add_start_code,
-                    uvgrtp::frame::rtp_header& header, size_t payload_size_without_startcode, size_t& fptr);
-                static void prepend_start_code(int flags, uvgrtp::frame::rtp_frame** out);
+                rtp_error_t single_nal_unit(uint8_t* data, size_t data_len);
 
                 // constructs format specific RTP header with correct values
                 virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t& data_left,
                     size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers) = 0;
-
-                /* Construct/clear aggregation packets.
-                 * Default implementation does nothing. If aggregation_pkt is supported, the 
-                 * child class should change the behavior */
-                virtual rtp_error_t make_aggregation_pkt();
-                virtual void clear_aggregation_info();
 
                 // a helper function that handles the fu division.
                 rtp_error_t divide_frame_to_fus(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
                     uvgrtp::buf_vec& buffers, uint8_t fu_headers[]);
 
                 void initialize_fu_headers(uint8_t nal_type, uint8_t fu_headers[]);
-
-                bool is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay);
-
-                uint32_t drop_frame(uint32_t ts);
 
                 rtp_error_t handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size, int flags);
 
@@ -156,13 +150,24 @@ namespace uvgrtp {
 
         private:
 
+            uvgrtp::frame::rtp_frame* allocate_rtp_frame_with_startcode(bool add_start_code,
+                uvgrtp::frame::rtp_header& header, size_t payload_size_without_startcode, size_t& fptr);
+
+            static void prepend_start_code(int flags, uvgrtp::frame::rtp_frame** out);
+
+            bool is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay);
+            uint32_t drop_frame(uint32_t ts);
+
             inline size_t calculate_expected_fus(uint32_t ts);
             inline void initialize_new_fragmented_frame(uint32_t ts);
 
-            void scl(uint8_t* data, size_t data_len, std::vector<nal_info>& nals);
+            void scl(uint8_t* data, size_t data_len, size_t packet_size, 
+                std::vector<nal_info>& nals, bool& can_be_aggregated);
 
             // constructs and sends the RTP packets with format specific stuff
-            rtp_error_t push_nal_unit(uint8_t* data, size_t data_len, bool more);
+            rtp_error_t fu_division(uint8_t* data, size_t data_len);
+
+
 
             void garbage_collect_lost_frames();
 
