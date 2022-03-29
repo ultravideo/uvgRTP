@@ -130,15 +130,6 @@ uint32_t uvgrtp::rtp::get_clock_rate(void)
 
 void uvgrtp::rtp::set_payload_size(size_t payload_size)
 {
-    switch (fmt_) {
-        case RTP_FORMAT_H264:
-        case RTP_FORMAT_H265:
-        case RTP_FORMAT_H266:
-            if (payload_size > 3)
-                payload_size -= 3;
-            break;
-    }
-
     payload_size_ = payload_size;
 }
 

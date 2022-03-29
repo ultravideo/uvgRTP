@@ -283,10 +283,17 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
         return ret;
     }
 
+    size_t payload_size = rtp_ctx_->get_payload_size() - get_payload_header_size() - get_fu_header_size();
+
+    if (payload_size <= 0)
+    {
+        return RTP_INVALID_VALUE;
+    }
+
     // find all the locations of NAL units using Start Code Lookup (SCL)
     std::vector<nal_info> nals;
     bool should_aggregate = false;
-    scl(data, data_len, rtp_ctx_->get_payload_size(), nals, should_aggregate);
+    scl(data, data_len, payload_size, nals, should_aggregate);
 
     if (nals.empty())
     {
@@ -314,7 +321,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
         (void)finalize_aggregation_pkt();
     }
 
-    if (data_len <= rtp_ctx_->get_payload_size() && !should_aggregate) // Single NAL unit, non-aggretable
+    if (data_len <= payload_size && !should_aggregate) // Single NAL unit, non-aggretable
     {
         if ((ret = single_nal_unit(data + nals.at(0).prefix_len, data_len - nals.at(0).prefix_len)) != RTP_OK)
         {
@@ -329,7 +336,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
         {
             if (!nal.aggregate || !should_aggregate)
             {
-                ret = fu_division(&data[nal.offset], nal.size);
+                ret = fu_division(&data[nal.offset], nal.size, payload_size);
 
                 if (ret != RTP_OK)
                 {
@@ -347,9 +354,9 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
     return ret;
 }
 
-rtp_error_t uvgrtp::formats::h26x::fu_division(uint8_t *data, size_t data_len)
+rtp_error_t uvgrtp::formats::h26x::fu_division(uint8_t *data, size_t data_len, size_t payload_size)
 {
-    if (data_len == 0 || data_len < rtp_ctx_->get_payload_size())
+    if (data_len == 0 || data_len <= payload_size)
         return RTP_INVALID_VALUE;
 
     /* The payload is larger than MTU (1500 bytes) so we must split it into 
@@ -368,7 +375,7 @@ rtp_error_t uvgrtp::formats::h26x::fu_division(uint8_t *data, size_t data_len)
     }
 
     rtp_error_t ret = RTP_OK;
-    if ((ret = construct_format_header_divide_fus(data, data_len, rtp_ctx_->get_payload_size(), *buffers)) != RTP_OK)
+    if ((ret = construct_format_header_divide_fus(data, data_len, payload_size, *buffers)) != RTP_OK)
         return ret;
 
     if ((ret = fqueue_->enqueue_message(*buffers)) != RTP_OK) {
@@ -542,14 +549,14 @@ uint32_t uvgrtp::formats::h26x::drop_frame(uint32_t ts)
 }
 
 rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, 
-    uint8_t nal_header_size, int flags)
+    uint8_t payload_header_size, int flags)
 {
     uvgrtp::buf_vec nalus;
 
     size_t size = 0;
     auto* frame = *out;
 
-    for (size_t i = nal_header_size; i < frame->payload_len; 
+    for (size_t i = payload_header_size; i < frame->payload_len; 
         i += ntohs(*(uint16_t*)&frame->payload[i]) + sizeof(uint16_t)) {
 
         uint16_t packet_size = ntohs(*(uint16_t*)&frame->payload[i]);
@@ -600,7 +607,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
      * pointed to by "intra" and new intra frame shall take the place of active intra frame */
     uint32_t intra = INVALID_TS;
 
-    const size_t format_header_size = get_nal_header_size() + get_fu_header_size();
+    const size_t format_header_size = get_payload_header_size() + get_fu_header_size();
     frame = *out;
 
     int frag_type = get_fragment_type(frame);
@@ -608,7 +615,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     
     if (frag_type == FT_AGGR) {
         // handle aggregate packets (packets with multiple NAL units in them)
-        return handle_aggregation_packet(out, get_nal_header_size(), flags);
+        return handle_aggregation_packet(out, get_payload_header_size(), flags);
     }
     else if (frag_type == FT_NOT_FRAG) {
         // handle single NAL unit packet by doing nothing (TODO: should remove the duplicate NAL header probably)

@@ -165,7 +165,7 @@ namespace uvgrtp {
                 std::vector<nal_info>& nals, bool& can_be_aggregated);
 
             // constructs and sends the RTP packets with format specific stuff
-            rtp_error_t fu_division(uint8_t* data, size_t data_len);
+            rtp_error_t fu_division(uint8_t* data, size_t data_len, size_t payload_size);
 
 
 
