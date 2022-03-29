@@ -23,13 +23,13 @@ namespace uvgrtp {
         };
 
         struct h265_aggregation_packet {
-            uint8_t nal_header[uvgrtp::frame::HEADER_SIZE_H265_NAL];
+            uint8_t payload_header[uvgrtp::frame::HEADER_SIZE_H265_PAYLOAD];
             uvgrtp::buf_vec nalus;  /* discrete NAL units */
             uvgrtp::buf_vec aggr_pkt; /* crafted aggregation packet */
         };
 
         struct h265_headers {
-            uint8_t nal_header[uvgrtp::frame::HEADER_SIZE_H265_NAL];
+            uint8_t payload_header[uvgrtp::frame::HEADER_SIZE_H265_PAYLOAD];
 
             /* there are three types of Fragmentation Unit headers:
              *  - header for the first fragment
@@ -55,12 +55,12 @@ namespace uvgrtp {
 
                 // constructs h265 RTP header with correct values
                 virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t& data_left, 
-                    size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers);
+                    size_t payload_size, uvgrtp::buf_vec& buffers);
 
                 /* Gets the format specific nal type from data*/
                 virtual uint8_t get_nal_type(uint8_t* data) const;
 
-                virtual uint8_t get_nal_header_size() const;
+                virtual uint8_t get_payload_header_size() const;
                 virtual uint8_t get_fu_header_size() const;
                 virtual uint8_t get_start_code_range() const;
                 virtual int get_fragment_type(uvgrtp::frame::rtp_frame* frame) const;

@@ -127,7 +127,7 @@ namespace uvgrtp {
 
                 // constructs format specific RTP header with correct values
                 virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t& data_left,
-                    size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers) = 0;
+                    size_t payload_size, uvgrtp::buf_vec& buffers) = 0;
 
                 // a helper function that handles the fu division.
                 rtp_error_t divide_frame_to_fus(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
@@ -140,13 +140,13 @@ namespace uvgrtp {
                 /* Gets the format specific nal type from data*/
                 virtual uint8_t get_nal_type(uint8_t* data) const = 0;
 
-                virtual uint8_t get_nal_header_size() const = 0;
+                virtual uint8_t get_payload_header_size() const = 0;
                 virtual uint8_t get_fu_header_size() const = 0;
                 virtual uint8_t get_start_code_range() const = 0;
                 virtual int get_fragment_type(uvgrtp::frame::rtp_frame* frame) const = 0;
                 virtual uvgrtp::formats::NAL_TYPES get_nal_type(uvgrtp::frame::rtp_frame* frame) const = 0;
 
-                virtual void copy_nal_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload);
+                virtual void copy_payload_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload);
 
         private:
 

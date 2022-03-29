@@ -25,9 +25,9 @@ uvgrtp::formats::h264::~h264()
 {
 }
 
-uint8_t uvgrtp::formats::h264::get_nal_header_size() const
+uint8_t uvgrtp::formats::h264::get_payload_header_size() const
 {
-    return uvgrtp::frame::HEADER_SIZE_H264_NAL;
+    return uvgrtp::frame::HEADER_SIZE_H264_INDICATOR;
 }
 
 uint8_t uvgrtp::formats::h264::get_fu_header_size() const
@@ -135,7 +135,7 @@ rtp_error_t uvgrtp::formats::h264::finalize_aggregation_pkt()
 }
 
 rtp_error_t uvgrtp::formats::h264::construct_format_header_divide_fus(uint8_t* data, size_t& data_left,
-    size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers)
+    size_t payload_size, uvgrtp::buf_vec& buffers)
 {
     auto headers = (uvgrtp::formats::h264_headers*)fqueue_->get_media_headers();
 
@@ -147,13 +147,13 @@ rtp_error_t uvgrtp::formats::h264::construct_format_header_divide_fus(uint8_t* d
     buffers.push_back(std::make_pair(sizeof(uint8_t), &headers->fu_headers[0]));
     buffers.push_back(std::make_pair(payload_size, nullptr));
 
-    data_pos = uvgrtp::frame::HEADER_SIZE_H264_NAL;
-    data_left -= uvgrtp::frame::HEADER_SIZE_H264_NAL;
+    size_t data_pos = uvgrtp::frame::HEADER_SIZE_H264_INDICATOR;
+    data_left -= uvgrtp::frame::HEADER_SIZE_H264_INDICATOR;
 
     return divide_frame_to_fus(data, data_left, data_pos, payload_size, buffers, headers->fu_headers);
 }
 
-void uvgrtp::formats::h264::copy_nal_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload)
+void uvgrtp::formats::h264::copy_payload_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload)
 {
     complete_payload[fptr] = (frame_payload[0] & 0xe0) | (frame_payload[1] & 0x1f);
 }

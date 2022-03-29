@@ -327,7 +327,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
         // push NAL units
         for (auto& nal : nals)
         {
-            if (!nal.aggregate)
+            if (!nal.aggregate || !should_aggregate)
             {
                 ret = fu_division(&data[nal.offset], nal.size);
 
@@ -349,7 +349,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
 
 rtp_error_t uvgrtp::formats::h26x::fu_division(uint8_t *data, size_t data_len)
 {
-    if (data_len == 0)
+    if (data_len == 0 || data_len < rtp_ctx_->get_payload_size())
         return RTP_INVALID_VALUE;
 
     /* The payload is larger than MTU (1500 bytes) so we must split it into 
@@ -368,8 +368,7 @@ rtp_error_t uvgrtp::formats::h26x::fu_division(uint8_t *data, size_t data_len)
     }
 
     rtp_error_t ret = RTP_OK;
-    size_t data_pos = 0;
-    if ((ret = construct_format_header_divide_fus(data, data_len, data_pos, rtp_ctx_->get_payload_size(), *buffers)) != RTP_OK)
+    if ((ret = construct_format_header_divide_fus(data, data_len, rtp_ctx_->get_payload_size(), *buffers)) != RTP_OK)
         return ret;
 
     if ((ret = fqueue_->enqueue_message(*buffers)) != RTP_OK) {
@@ -711,10 +710,10 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
 
             size_t fptr = 0;
             uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode((flags & RCE_H26X_PREPEND_SC), 
-                (*out)->header,  frames_[c_ts].total_size + get_nal_header_size(), fptr);
+                (*out)->header,  frames_[c_ts].total_size + get_payload_header_size(), fptr);
 
-            copy_nal_header(fptr, frame->payload, complete->payload); // NAL header
-            fptr += get_nal_header_size();
+            copy_payload_header(fptr, frame->payload, complete->payload); // NAL header
+            fptr += get_payload_header_size();
 
             for (auto& fragment : frames_.at(c_ts).fragments) {
                 std::memcpy(
@@ -748,14 +747,14 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     return RTP_OK;
 }
 
-void uvgrtp::formats::h26x::copy_nal_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload)
+void uvgrtp::formats::h26x::copy_payload_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload)
 {
-    uint8_t nal_header[2] = {
+    uint8_t payload_header[2] = {
         (uint8_t)((frame_payload[0] & 0x81) | ((frame_payload[2] & 0x3f) << 1)),
         (uint8_t)frame_payload[1]
     };
 
-    std::memcpy(&complete_payload[fptr], nal_header, get_nal_header_size());
+    std::memcpy(&complete_payload[fptr], payload_header, get_payload_header_size());
 }
 
 void uvgrtp::formats::h26x::garbage_collect_lost_frames()

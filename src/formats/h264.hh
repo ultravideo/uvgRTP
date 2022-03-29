@@ -22,13 +22,13 @@ namespace uvgrtp {
         };
 
         struct h264_aggregation_packet {
-            uint8_t fu_indicator[uvgrtp::frame::HEADER_SIZE_H264_FU];
+            uint8_t fu_indicator[uvgrtp::frame::HEADER_SIZE_H264_INDICATOR];
             uvgrtp::buf_vec nalus;  /* discrete NAL units */
             uvgrtp::buf_vec aggr_pkt; /* crafted aggregation packet */
         };
 
         struct h264_headers {
-            uint8_t fu_indicator[uvgrtp::frame::HEADER_SIZE_H264_FU];
+            uint8_t fu_indicator[uvgrtp::frame::HEADER_SIZE_H264_INDICATOR];
 
             /* there are three types of Fragmentation Unit headers:
              *  - header for the first fragment
@@ -53,19 +53,19 @@ namespace uvgrtp {
 
                 // constructs h264 RTP header with correct values
                 virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t& data_left, 
-                    size_t& data_pos, size_t payload_size,  uvgrtp::buf_vec& buffers);
+                    size_t payload_size, uvgrtp::buf_vec& buffers);
 
                 // get h264 nal type
                 virtual uint8_t get_nal_type(uint8_t* data) const;
 
-                virtual uint8_t get_nal_header_size() const;
+                virtual uint8_t get_payload_header_size() const;
                 virtual uint8_t get_fu_header_size() const;
                 virtual uint8_t get_start_code_range() const;
 
                 virtual int get_fragment_type(uvgrtp::frame::rtp_frame* frame) const;
                 virtual uvgrtp::formats::NAL_TYPES get_nal_type(uvgrtp::frame::rtp_frame* frame) const;
 
-                virtual void copy_nal_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload);
+                virtual void copy_payload_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload);
 
             private:
                 h264_aggregation_packet aggr_pkt_info_;
