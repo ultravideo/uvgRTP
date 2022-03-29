@@ -54,7 +54,7 @@ namespace uvgrtp {
                 virtual rtp_error_t add_aggregate_packet(uint8_t* data, size_t data_len);
 
                 // constructs h265 RTP header with correct values
-                virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t& data_left, 
+                virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t data_len,
                     size_t payload_size, uvgrtp::buf_vec& buffers);
 
                 /* Gets the format specific nal type from data*/

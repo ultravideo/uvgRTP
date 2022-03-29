@@ -148,7 +148,7 @@ rtp_error_t uvgrtp::formats::h265::add_aggregate_packet(uint8_t* data, size_t da
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::formats::h265::construct_format_header_divide_fus(uint8_t* data, size_t& data_left,
+rtp_error_t uvgrtp::formats::h265::construct_format_header_divide_fus(uint8_t* data, size_t data_len,
     size_t payload_size, uvgrtp::buf_vec& buffers)
 {
     auto headers = (uvgrtp::formats::h265_headers*)fqueue_->get_media_headers();
@@ -163,7 +163,7 @@ rtp_error_t uvgrtp::formats::h265::construct_format_header_divide_fus(uint8_t* d
     buffers.push_back(std::make_pair(payload_size, nullptr));
 
     size_t data_pos = uvgrtp::frame::HEADER_SIZE_H265_PAYLOAD;
-    data_left -= uvgrtp::frame::HEADER_SIZE_H265_PAYLOAD;
+    data_len += uvgrtp::frame::HEADER_SIZE_H265_PAYLOAD;
 
-    return divide_frame_to_fus(data, data_left, data_pos, payload_size, buffers, headers->fu_headers);
+    return divide_frame_to_fus(data, data_len, data_pos, payload_size, buffers, headers->fu_headers);
 }

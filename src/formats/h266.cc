@@ -80,7 +80,7 @@ uvgrtp::formats::NAL_TYPES uvgrtp::formats::h266::get_nal_type(uvgrtp::frame::rt
     return uvgrtp::formats::NT_OTHER;
 }
 
-rtp_error_t uvgrtp::formats::h266::construct_format_header_divide_fus(uint8_t* data, size_t& data_left,
+rtp_error_t uvgrtp::formats::h266::construct_format_header_divide_fus(uint8_t* data, size_t data_len,
     size_t payload_size, uvgrtp::buf_vec& buffers)
 {
     auto headers = (uvgrtp::formats::h266_headers*)fqueue_->get_media_headers();
@@ -95,7 +95,7 @@ rtp_error_t uvgrtp::formats::h266::construct_format_header_divide_fus(uint8_t* d
     buffers.push_back(std::make_pair(payload_size, nullptr));
 
     size_t data_pos = uvgrtp::frame::HEADER_SIZE_H266_PAYLOAD;
-    data_left -= uvgrtp::frame::HEADER_SIZE_H266_PAYLOAD;
+    data_len += uvgrtp::frame::HEADER_SIZE_H266_PAYLOAD;
 
-    return divide_frame_to_fus(data, data_left, data_pos, payload_size, buffers, headers->fu_headers);
+    return divide_frame_to_fus(data, data_len, data_pos, payload_size, buffers, headers->fu_headers);
 }
