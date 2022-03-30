@@ -321,7 +321,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
         (void)finalize_aggregation_pkt();
     }
 
-    if (data_len <= payload_size && !should_aggregate) // Single NAL unit, non-aggretable
+    if (nals.size() == 1 && nals[0].size <= payload_size && !should_aggregate) // Single NAL unit, non-aggretable
     {
         if ((ret = single_nal_unit(data + nals.at(0).prefix_len, data_len - nals.at(0).prefix_len)) != RTP_OK)
         {
@@ -357,7 +357,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
 rtp_error_t uvgrtp::formats::h26x::fu_division(uint8_t *data, size_t data_len, size_t payload_size)
 {
     if (data_len == 0 || data_len <= payload_size)
-        return RTP_INVALID_VALUE;
+        return RTP_GENERIC_ERROR; // a bug, should be caught earlier
 
     /* The payload is larger than MTU (1500 bytes) so we must split it into 
      * smaller RTP frames, because we cannot make any assumptions about the 
@@ -416,9 +416,22 @@ rtp_error_t uvgrtp::formats::h26x::single_nal_unit(uint8_t* data, size_t data_le
 rtp_error_t uvgrtp::formats::h26x::divide_frame_to_fus(uint8_t* data, size_t& data_left, 
     size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers, uint8_t fu_headers[])
 {
+    if (data_left <= payload_size)
+    {
+        LOG_ERROR("Cannot use FU division for packets smaller than payload size");
+        return RTP_GENERIC_ERROR;
+    }
+
     rtp_error_t ret = RTP_OK;
 
+    // This seems to work by always using the headers in first and second index of buffer 
+    // (and modifying those) and replacing the payload in third, then sending all
+
+    // the headers for first fragment are already in buffers.at(0)
+
     while (data_left > payload_size) {
+
+        // set the payload for this fragment
         buffers.at(2).first = payload_size;
         buffers.at(2).second = &data[data_pos];
 
@@ -432,13 +445,12 @@ rtp_error_t uvgrtp::formats::h26x::divide_frame_to_fus(uint8_t* data, size_t& da
         data_pos += payload_size;
         data_left -= payload_size;
 
-        /* from now on, use the FU header meant for middle fragments */
-        buffers.at(1).second = &fu_headers[1];
+        buffers.at(1).second = &fu_headers[1]; // middle fragment header
     }
 
-    /* use the FU header meant for the last fragment */
-    buffers.at(1).second = &fu_headers[2];
+    buffers.at(1).second = &fu_headers[2]; // last fragment header
 
+    // set payload for the last fragment
     buffers.at(2).first = data_left;
     buffers.at(2).second = &data[data_pos];
 

@@ -148,7 +148,7 @@ rtp_error_t uvgrtp::formats::h264::construct_format_header_divide_fus(uint8_t* d
     buffers.push_back(std::make_pair(payload_size, nullptr));
 
     size_t data_pos = uvgrtp::frame::HEADER_SIZE_H264_INDICATOR;
-    data_len += uvgrtp::frame::HEADER_SIZE_H264_INDICATOR;
+    data_len -= uvgrtp::frame::HEADER_SIZE_H264_INDICATOR;
 
     return divide_frame_to_fus(data, data_len, data_pos, payload_size, buffers, headers->fu_headers);
 }

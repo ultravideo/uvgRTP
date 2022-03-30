@@ -158,12 +158,13 @@ rtp_error_t uvgrtp::formats::h265::construct_format_header_divide_fus(uint8_t* d
 
     initialize_fu_headers(get_nal_type(data), headers->fu_headers);
 
+    // the default structure of one fragment
     buffers.push_back(std::make_pair(sizeof(headers->payload_header), headers->payload_header));
-    buffers.push_back(std::make_pair(sizeof(uint8_t), &headers->fu_headers[0]));
+    buffers.push_back(std::make_pair(sizeof(uint8_t), &headers->fu_headers[0])); // first fragment
     buffers.push_back(std::make_pair(payload_size, nullptr));
 
     size_t data_pos = uvgrtp::frame::HEADER_SIZE_H265_PAYLOAD;
-    data_len += uvgrtp::frame::HEADER_SIZE_H265_PAYLOAD;
+    data_len -= uvgrtp::frame::HEADER_SIZE_H265_PAYLOAD;
 
     return divide_frame_to_fus(data, data_len, data_pos, payload_size, buffers, headers->fu_headers);
 }
