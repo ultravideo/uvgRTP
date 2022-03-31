@@ -70,8 +70,13 @@ int main(void)
         {
             std::cout << "Sending frame " << i + 1 << '/' << AMOUNT_OF_PACKETS << std::endl;
 
+            // uvgRTP mandates the existance of NAL units so we fake some
             std::unique_ptr<uint8_t[]> dummy_frame =
                 std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
+            memset(dummy_frame.get(), 'a', PAYLOAD_LEN); // payload
+            memset(dummy_frame.get(),     0, 3);
+            memset(dummy_frame.get() + 3, 1, 1);
+            memset(dummy_frame.get() + 4, 1, (19 << 1)); // Intra frame NAL type
 
             if (send->push_frame(std::move(dummy_frame), PAYLOAD_LEN, RTP_NO_FLAGS) != RTP_OK)
             {

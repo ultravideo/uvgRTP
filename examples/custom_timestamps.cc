@@ -75,6 +75,11 @@ int main(void)
         for (int i = 0; i < SEND_TEST_PACKETS; ++i)
         {
             auto buffer = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
+            memset(buffer.get(), 'a', PAYLOAD_LEN);
+
+            memset(buffer.get(),     0, 3); // start code prefix
+            memset(buffer.get() + 3, 1, 1);
+            memset(buffer.get() + 4, 1, (19 << 1)); // Intra frame
 
             // fake timestamp. This way the receiver can play the frames at a lower pace, even if
             // we generate them really fast.

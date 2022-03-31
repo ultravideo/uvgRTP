@@ -183,9 +183,17 @@ void sender_function(uvgrtp::session* sender_session, int flags, std::shared_ptr
             print_mutex->unlock();
             */
 
-            std::unique_ptr<uint8_t[]> dummy_audio_frame = std::unique_ptr<uint8_t[]>(new uint8_t[payload_size]);
+            std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[payload_size]);
 
-            if (sender_audio_strm->push_frame(std::move(dummy_audio_frame), payload_size, RTP_NO_FLAGS) != RTP_OK)
+            if (format == RTP_FORMAT_H265 && payload_size >= 5)
+            {
+              memset(dummy_frame.get(), 'a', payload_size); // data
+              memset(dummy_frame.get(),     0, 3);
+              memset(dummy_frame.get() + 3, 1, 1);
+              memset(dummy_frame.get() + 4, 1, (19 << 1)); // Intra frame NAL type
+            }
+
+            if (sender_audio_strm->push_frame(std::move(dummy_frame), payload_size, RTP_NO_FLAGS) != RTP_OK)
             {
                 std::cerr << "Failed to send frame" << std::endl;
             }

@@ -82,6 +82,10 @@ int main(void)
         uint8_t buffer[PAYLOAD_LEN] = { 0 };
         memset(buffer, 'a', PAYLOAD_LEN);
 
+        memset(buffer,     0, 3);
+        memset(buffer + 3, 1, 1);
+        memset(buffer + 4, 1, (19 << 1)); // Intra frame
+
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 
         for (unsigned int i = 0; i < SEND_TEST_PACKETS; ++i)
