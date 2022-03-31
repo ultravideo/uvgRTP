@@ -159,7 +159,6 @@ inline void add_hook(Test_receiver* tester, uvgrtp::media_stream* receiver,
     EXPECT_NE(nullptr, receiver);
     if (receiver)
     {
-        std::cout << "Installing hook" << std::endl;
         EXPECT_EQ(RTP_OK, receiver->install_receive_hook(tester, hook));
     }
 }

@@ -39,8 +39,17 @@ TEST(FormatTests, h264)
     test_packet_size(1454, sess, sender, receiver);
     test_packet_size(1455, sess, sender, receiver);
     test_packet_size(1501, sess, sender, receiver);
-    test_packet_size(15000, sess, sender, receiver);
-    test_packet_size(150000, sess, sender, receiver);
+
+    test_packet_size(1446 * 2 - 1, sess, sender, receiver);
+    test_packet_size(1446 * 2, sess, sender, receiver);
+    test_packet_size(1446 * 2 + 1, sess, sender, receiver);
+
+    test_packet_size(5000, sess, sender, receiver);
+    test_packet_size(7500, sess, sender, receiver);
+    test_packet_size(10000, sess, sender, receiver);
+    test_packet_size(25000, sess, sender, receiver);
+    test_packet_size(50000, sess, sender, receiver);
+    test_packet_size(100000, sess, sender, receiver);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -77,8 +86,17 @@ TEST(FormatTests, h265)
     test_packet_size(1454, sess, sender, receiver);
     test_packet_size(1455, sess, sender, receiver);
     test_packet_size(1501, sess, sender, receiver);
-    test_packet_size(15000, sess, sender, receiver);
-    test_packet_size(150000, sess, sender, receiver);
+
+    test_packet_size(1446 * 2 - 1, sess, sender, receiver);
+    test_packet_size(1446 * 2, sess, sender, receiver);
+    test_packet_size(1446 * 2 + 1, sess, sender, receiver);
+
+    test_packet_size(5000, sess, sender, receiver);
+    test_packet_size(7500, sess, sender, receiver);
+    test_packet_size(10000, sess, sender, receiver);
+    test_packet_size(25000, sess, sender, receiver);
+    test_packet_size(50000, sess, sender, receiver);
+    test_packet_size(100000, sess, sender, receiver);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -115,8 +133,17 @@ TEST(FormatTests, h266)
     test_packet_size(1454, sess, sender, receiver);
     test_packet_size(1455, sess, sender, receiver);
     test_packet_size(1501, sess, sender, receiver);
-    test_packet_size(15000, sess, sender, receiver);
-    test_packet_size(150000, sess, sender, receiver);
+
+    test_packet_size(1446 * 2 - 1, sess, sender, receiver);
+    test_packet_size(1446 * 2, sess, sender, receiver);
+    test_packet_size(1446 * 2 + 1, sess, sender, receiver);
+
+    test_packet_size(5000, sess, sender, receiver);
+    test_packet_size(7500, sess, sender, receiver);
+    test_packet_size(10000, sess, sender, receiver);
+    test_packet_size(25000, sess, sender, receiver);
+    test_packet_size(50000, sess, sender, receiver);
+    test_packet_size(100000, sess, sender, receiver);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
