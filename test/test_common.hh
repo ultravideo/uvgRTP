@@ -57,16 +57,15 @@ inline void send_packets(uvgrtp::session* sess, uvgrtp::media_stream* sender,
         for (unsigned int i = 0; i < packets; ++i)
         {
             std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
+
+            memset(dummy_frame.get(), 'a', size);
+
             if (add_start_code && size > 8)
             {
                 memset(dummy_frame.get(),     0, 3);
                 memset(dummy_frame.get() + 3, 1, 1);
 
-                memset(dummy_frame.get() + 4, 1, 19); // Intra frame
-            }
-            else
-            {
-                memset(dummy_frame.get(), 'a', size);
+                memset(dummy_frame.get() + 4, 1, (19 << 1)); // Intra frame
             }
 
             rtp_error_t ret = RTP_OK;
@@ -141,7 +140,7 @@ inline void test_packet_size(size_t size, uvgrtp::session* sess, uvgrtp::media_s
 
         if (size > 20000)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(150));
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
         }
         else
         {
