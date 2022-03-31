@@ -371,7 +371,7 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, in
                 // create new buffer spaces if the process/read hasn't freed any spots on the ring buffer
                 if (next_write_index == ring_read_index_)
                 {
-                    LOG_DEBUG("Reception buffer ran out, increasing the buffer size ...");
+                    LOG_DEBUG("Reception buffer ran out, increasing the buffer size by 25%");
 
                     // increase the buffer size by 25%
                     int increase = ring_buffer_.size()/4;
@@ -382,8 +382,9 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, in
                     for (unsigned int i = 0; i < increase; ++i)
                     {
                         ring_buffer_.insert(ring_buffer_.begin() + next_write_index, { new uint8_t[RECV_BUFFER_SIZE] , 0 });
-                        ++ring_read_index_;
                     }
+                    ring_read_index_ += increase; // move read ahead because of the new empty indexes
+
                     ring_mutex_.unlock();
                 }
 
