@@ -2,8 +2,6 @@
 
 #include "zrtp_receiver.hh"
 
-#include "../zrtp.hh"
-
 #include "uvgrtp/crypto.hh"
 #include "uvgrtp/frame.hh"
 #include "uvgrtp/socket.hh"

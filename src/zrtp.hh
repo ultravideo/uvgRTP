@@ -1,6 +1,7 @@
 #pragma once
 
 #include "zrtp/zrtp_receiver.hh"
+#include "zrtp/defines.hh"
 
 
 #ifdef _WIN32
@@ -23,155 +24,12 @@ namespace uvgrtp {
         struct rtp_frame;
     }
 
-    namespace crypto
-    {
-        namespace hmac {
-            class sha256;
-        }
 
-        class sha256;
-        class dh;
-    }
-
-    namespace zrtp_msg {
-        struct zrtp_hello_ack;
-        struct zrtp_commit;
-        struct zrtp_hello;
-        struct zrtp_dh;
-    }
 
     enum ZRTP_ROLE {
         INITIATOR,
         RESPONDER
     };
-
-    typedef struct capabilities {
-        /* Supported ZRTP version */
-        uint32_t version = 0;
-
-        /* Supported hash algorithms (empty for us) */
-        std::vector<uint32_t> hash_algos;
-
-        /* Supported cipher algorithms (empty for us) */
-        std::vector<uint32_t> cipher_algos;
-
-        /* Supported authentication tag types (empty for us) */
-        std::vector<uint32_t> auth_tags;
-
-        /* Supported Key Agreement types (empty for us) */
-        std::vector<uint32_t> key_agreements;
-
-        /* Supported SAS types (empty for us) */
-        std::vector<uint32_t> sas_types;
-    } zrtp_capab_t;
-
-	typedef struct zrtp_crypto_ctx {
-        uvgrtp::crypto::hmac::sha256 *hmac_sha256 = nullptr;
-        uvgrtp::crypto::sha256 *sha256 = nullptr;
-        uvgrtp::crypto::dh *dh = nullptr;
-    } zrtp_crypto_ctx_t;
-
-    typedef struct zrtp_secrets {
-        /* Retained (for uvgRTP, preshared mode is not supported so we're
-         * going to generate just some random values for these) */
-        uint8_t rs1[32];
-        uint8_t rs2[32];
-        uint8_t raux[32];
-        uint8_t rpbx[32];
-
-        /* Shared secrets
-         *
-         * Because uvgRTP supports only DH mode,
-         * other shared secrets (s1 - s3) are null */
-        uint8_t s0[32];
-        uint8_t *s1 = nullptr;
-        uint8_t *s2 = nullptr;
-        uint8_t *s3 = nullptr;
-    } zrtp_secrets_t;
-
-    typedef struct zrtp_messages {
-        std::pair<size_t, struct uvgrtp::zrtp_msg::zrtp_commit  *> commit;
-        std::pair<size_t, struct uvgrtp::zrtp_msg::zrtp_hello   *> hello;
-        std::pair<size_t, struct uvgrtp::zrtp_msg::zrtp_dh      *> dh;
-    } zrtp_messages_t;
-
-    /* Various ZRTP-related keys */
-    typedef struct zrtp_key_ctx {
-        uint8_t zrtp_sess_key[32];
-        uint8_t sas_hash[32];
-
-        /* ZRTP keys used to encrypt Confirm1/Confirm2 messages */
-        uint8_t zrtp_keyi[16];
-        uint8_t zrtp_keyr[16];
-
-        /* HMAC keys used to authenticate Confirm1/Confirm2 messages */
-        uint8_t hmac_keyi[32];
-        uint8_t hmac_keyr[32];
-    } zrtp_key_ctx_t;
-
-    /* Diffie-Hellman context for the ZRTP session */
-    typedef struct zrtp_dh_ctx {
-        /* Our public/private key pair */
-        uint8_t private_key[22];
-        uint8_t public_key[384];
-
-        /* Remote public key received in DHPart1/DHPart2 Message */
-        uint8_t remote_public[384];
-
-        /* DHResult aka "remote_public ^ private_key mod p" (see src/crypto/crypto.cc) */
-        uint8_t dh_result[384];
-    } zrtp_dh_ctx_t;
-
-    typedef struct zrtp_hash_ctx {
-        uint8_t o_hvi[32]; /* our hash value of initator (if we're the initiator) */
-        uint8_t r_hvi[32]; /* remote's hash value of initiator (if they're the initiator) */
-
-        /* Session hashes (H0 - H3), Section 9 of RFC 6189 */
-        uint8_t o_hash[4][32]; /* our session hashes */
-        uint8_t r_hash[4][32]; /* remote's session hashes */
-
-        uint64_t r_mac[4];
-
-        /* Section 4.4.1.4 */
-        uint8_t total_hash[32];
-    } zrtp_hash_ctx_t;
-
-    /* Collection of algorithms that are used by ZRTP
-     * (based on information gathered from Hello message) */
-    typedef struct zrtp_session {
-        int role = 0;       /* initiator/responder */
-        uint32_t ssrc = 0;
-        uint16_t seq = 0;
-
-        uint32_t hash_algo = 0;
-        uint32_t cipher_algo = 0;
-        uint32_t auth_tag_type = 0;
-        uint32_t key_agreement_type = 0;
-        uint32_t sas_type = 0;
-
-        /* Session capabilities */
-        zrtp_capab_t capabilities;
-
-        /* Various hash values of the ZRTP session */
-        zrtp_hash_ctx_t hash_ctx;
-
-        /* DH-related variables */
-        zrtp_dh_ctx_t dh_ctx;
-
-        /* ZRTP keying material (for HMAC/AES etc) */
-        zrtp_key_ctx_t key_ctx;
-
-        /* Retained and shared secrets of the ZRTP session */
-        zrtp_secrets_t secrets;
-
-        uint8_t o_zid[12]; /* our ZID */
-        uint8_t r_zid[12]; /* remote ZID */
-
-        /* Pointers to messages sent by us and messages received from remote.
-         * These are used to calculate various hash values */
-        zrtp_messages_t l_msg;
-        zrtp_messages_t r_msg;
-    } zrtp_session_t;
 
     class zrtp {
         public:

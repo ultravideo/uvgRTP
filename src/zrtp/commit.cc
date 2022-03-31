@@ -1,7 +1,5 @@
 #include "commit.hh"
 
-#include "../zrtp.hh"
-
 #include "uvgrtp/crypto.hh"
 #include "uvgrtp/debug.hh"
 #include "uvgrtp/frame.hh"

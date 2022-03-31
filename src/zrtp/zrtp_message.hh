@@ -1,7 +1,7 @@
 #pragma once
 
+#include "zrtp_receiver.hh"
 #include "defines.hh"
-#include "../zrtp.hh"
 
 #include "uvgrtp/frame.hh"
 #include "uvgrtp/util.hh"
@@ -9,6 +9,8 @@
 #include <memory>
 
 namespace uvgrtp {
+
+    class socket;
 
     namespace zrtp_msg {
 
