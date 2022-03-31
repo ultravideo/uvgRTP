@@ -23,10 +23,13 @@ namespace uvgrtp {
             HEADER_SIZE_RTP            = 12,
             HEADER_SIZE_OPUS           =  1,
             HEADER_SIZE_H264_INDICATOR =  1,
+            HEADER_SIZE_H264_NAL       =  1,
             HEADER_SIZE_H264_FU        =  1,
             HEADER_SIZE_H265_PAYLOAD   =  2,
+            HEADER_SIZE_H265_NAL       =  2,
             HEADER_SIZE_H265_FU        =  1,
             HEADER_SIZE_H266_PAYLOAD   =  2,
+            HEADER_SIZE_H266_NAL       =  2,
             HEADER_SIZE_H266_FU        =  1,
         };
 

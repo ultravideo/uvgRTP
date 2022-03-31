@@ -59,13 +59,14 @@ namespace uvgrtp {
                 virtual uint8_t get_nal_type(uint8_t* data) const;
 
                 virtual uint8_t get_payload_header_size() const;
+                virtual uint8_t get_nal_header_size() const;
                 virtual uint8_t get_fu_header_size() const;
                 virtual uint8_t get_start_code_range() const;
 
                 virtual int get_fragment_type(uvgrtp::frame::rtp_frame* frame) const;
                 virtual uvgrtp::formats::NAL_TYPES get_nal_type(uvgrtp::frame::rtp_frame* frame) const;
 
-                virtual void copy_payload_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload);
+                virtual void get_nal_header_from_fu_headers(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload);
 
             private:
                 h264_aggregation_packet aggr_pkt_info_;

@@ -34,6 +34,11 @@ uint8_t uvgrtp::formats::h266::get_payload_header_size() const
     return uvgrtp::frame::HEADER_SIZE_H266_PAYLOAD;
 }
 
+uint8_t uvgrtp::formats::h266::get_nal_header_size() const
+{
+    return uvgrtp::frame::HEADER_SIZE_H266_NAL;
+}
+
 uint8_t uvgrtp::formats::h266::get_fu_header_size() const
 {
     return uvgrtp::frame::HEADER_SIZE_H266_FU;
@@ -55,7 +60,7 @@ int uvgrtp::formats::h266::get_fragment_type(uvgrtp::frame::rtp_frame* frame) co
     bool last_frag = frame->payload[2] & 0x40;
 
     if ((frame->payload[1] >> 3) != uvgrtp::formats::H266_PKT_FRAG)
-        return uvgrtp::formats::FT_NOT_FRAG;
+        return uvgrtp::formats::FT_NOT_FRAG; // Single NAL unit
 
     if (first_frag && last_frag)
         return uvgrtp::formats::FT_INVALID;
@@ -94,8 +99,5 @@ rtp_error_t uvgrtp::formats::h266::construct_format_header_divide_fus(uint8_t* d
     buffers.push_back(std::make_pair(sizeof(uint8_t), &headers->fu_headers[0]));
     buffers.push_back(std::make_pair(payload_size, nullptr));
 
-    size_t data_pos = uvgrtp::frame::HEADER_SIZE_H266_PAYLOAD;
-    data_len -= uvgrtp::frame::HEADER_SIZE_H266_PAYLOAD;
-
-    return divide_frame_to_fus(data, data_len, data_pos, payload_size, buffers, headers->fu_headers);
+    return divide_frame_to_fus(data, data_len, payload_size, buffers, headers->fu_headers);
 }

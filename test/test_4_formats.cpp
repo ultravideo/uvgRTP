@@ -28,11 +28,16 @@ TEST(FormatTests, h264)
     test_packet_size(1443, sess, sender, receiver);
     test_packet_size(1444, sess, sender, receiver);
     test_packet_size(1445, sess, sender, receiver);
-    test_packet_size(1446, sess, sender, receiver);
+    test_packet_size(1446, sess, sender, receiver); // packet limit
     test_packet_size(1447, sess, sender, receiver);
     test_packet_size(1448, sess, sender, receiver);
     test_packet_size(1449, sess, sender, receiver);
     test_packet_size(1450, sess, sender, receiver);
+    test_packet_size(1451, sess, sender, receiver);
+    test_packet_size(1452, sess, sender, receiver);
+    test_packet_size(1453, sess, sender, receiver);
+    test_packet_size(1454, sess, sender, receiver);
+    test_packet_size(1455, sess, sender, receiver);
     test_packet_size(1501, sess, sender, receiver);
     test_packet_size(15000, sess, sender, receiver);
     test_packet_size(150000, sess, sender, receiver);
@@ -61,11 +66,16 @@ TEST(FormatTests, h265)
     test_packet_size(1443, sess, sender, receiver);
     test_packet_size(1444, sess, sender, receiver);
     test_packet_size(1445, sess, sender, receiver);
-    test_packet_size(1446, sess, sender, receiver);
+    test_packet_size(1446, sess, sender, receiver); // packet limit
     test_packet_size(1447, sess, sender, receiver);
     test_packet_size(1448, sess, sender, receiver);
     test_packet_size(1449, sess, sender, receiver);
     test_packet_size(1450, sess, sender, receiver);
+    test_packet_size(1451, sess, sender, receiver);
+    test_packet_size(1452, sess, sender, receiver);
+    test_packet_size(1453, sess, sender, receiver);
+    test_packet_size(1454, sess, sender, receiver);
+    test_packet_size(1455, sess, sender, receiver);
     test_packet_size(1501, sess, sender, receiver);
     test_packet_size(15000, sess, sender, receiver);
     test_packet_size(150000, sess, sender, receiver);
@@ -94,11 +104,16 @@ TEST(FormatTests, h266)
     test_packet_size(1443, sess, sender, receiver);
     test_packet_size(1444, sess, sender, receiver);
     test_packet_size(1445, sess, sender, receiver);
-    test_packet_size(1446, sess, sender, receiver);
+    test_packet_size(1446, sess, sender, receiver); // packet limit
     test_packet_size(1447, sess, sender, receiver);
     test_packet_size(1448, sess, sender, receiver);
     test_packet_size(1449, sess, sender, receiver);
     test_packet_size(1450, sess, sender, receiver);
+    test_packet_size(1451, sess, sender, receiver);
+    test_packet_size(1452, sess, sender, receiver);
+    test_packet_size(1453, sess, sender, receiver);
+    test_packet_size(1454, sess, sender, receiver);
+    test_packet_size(1455, sess, sender, receiver);
     test_packet_size(1501, sess, sender, receiver);
     test_packet_size(15000, sess, sender, receiver);
     test_packet_size(150000, sess, sender, receiver);

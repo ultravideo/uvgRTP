@@ -283,12 +283,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
         return ret;
     }
 
-    size_t payload_size = rtp_ctx_->get_payload_size() - get_payload_header_size() - get_fu_header_size();
-
-    if (payload_size <= 0)
-    {
-        return RTP_INVALID_VALUE;
-    }
+    size_t payload_size = rtp_ctx_->get_payload_size();
 
     // find all the locations of NAL units using Start Code Lookup (SCL)
     std::vector<nal_info> nals;
@@ -321,28 +316,25 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
         (void)finalize_aggregation_pkt();
     }
 
-    if (nals.size() == 1 && nals[0].size <= payload_size && !should_aggregate) // Single NAL unit, non-aggretable
+    for (auto& nal : nals) // non-aggregatable NAL units
     {
-        if ((ret = single_nal_unit(data + nals.at(0).prefix_len, data_len - nals.at(0).prefix_len)) != RTP_OK)
+        if (!nal.aggregate || !should_aggregate)
         {
-            fqueue_->deinit_transaction();
-            return ret;
-        }
-    }
-    else // send all NAL units requiring FU division (single NAL unit is an alternative to this)
-    {
-        // push NAL units
-        for (auto& nal : nals)
-        {
-            if (!nal.aggregate || !should_aggregate)
+            // single NAL unit uses the NAL unit header as the payload header meaning that it does not
+            // add anything extra to the packet and we can just compare the NAL size with the payload size allowed
+            if (nal.size <= payload_size) // send as a single NAL unit packet
+            {
+                ret = single_nal_unit(data + nal.offset, nal.size);
+            }
+            else // send divided based on payload_size
             {
                 ret = fu_division(&data[nal.offset], nal.size, payload_size);
+            }
 
-                if (ret != RTP_OK)
-                {
-                    fqueue_->deinit_transaction();
-                    return ret;
-                }
+            if (ret != RTP_OK)
+            {
+                fqueue_->deinit_transaction();
+                return ret;
             }
         }
     }
@@ -402,9 +394,8 @@ void uvgrtp::formats::h26x::clear_aggregation_info()
 
 rtp_error_t uvgrtp::formats::h26x::single_nal_unit(uint8_t* data, size_t data_len)
 {
-    // TODO: I have a hunch that the payload is missing payload header with single NAL unit
-
-
+    // single NAL unit packets use NAL header directly as payload header so the packet is
+    // correct as is
     rtp_error_t ret = RTP_OK;
     if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
         LOG_ERROR("Failed to enqueue single h26x NAL Unit packet!");
@@ -414,7 +405,7 @@ rtp_error_t uvgrtp::formats::h26x::single_nal_unit(uint8_t* data, size_t data_le
 }
 
 rtp_error_t uvgrtp::formats::h26x::divide_frame_to_fus(uint8_t* data, size_t& data_left, 
-    size_t& data_pos, size_t payload_size, uvgrtp::buf_vec& buffers, uint8_t fu_headers[])
+    size_t payload_size, uvgrtp::buf_vec& buffers, uint8_t fu_headers[])
 {
     if (data_left <= payload_size)
     {
@@ -424,26 +415,31 @@ rtp_error_t uvgrtp::formats::h26x::divide_frame_to_fus(uint8_t* data, size_t& da
 
     rtp_error_t ret = RTP_OK;
 
-    // This seems to work by always using the headers in first and second index of buffer 
-    // (and modifying those) and replacing the payload in third, then sending all
+    // the FU structure has both payload header and an fu header
+    size_t fu_payload_size = payload_size - get_payload_header_size() - get_fu_header_size();
 
-    // the headers for first fragment are already in buffers.at(0)
+    // skip NAL header of data since it is incorporated in payload and fu headers (which are repeated
+    // for each packet, but NAL header is only at the beginning of NAL unit)
+    size_t data_pos = get_nal_header_size();
+    data_left -= get_nal_header_size();
 
-    while (data_left > payload_size) {
+    while (data_left > fu_payload_size) {
+
+        /* This seems to work by always using the payload headers in first and fu headers in the second index 
+         * of buffer (and modifying those) and replacing the payload in third, then sending all. 
+         * The headers for first fragment are already in buffers.at(1) */
 
         // set the payload for this fragment
-        buffers.at(2).first = payload_size;
+        buffers.at(2).first = fu_payload_size;
         buffers.at(2).second = &data[data_pos];
 
         if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
-            LOG_ERROR("Queueing the message failed!");
-            clear_aggregation_info();
-            fqueue_->deinit_transaction();
+            LOG_ERROR("Queueing the FU packet failed!");
             return ret;
         }
 
-        data_pos += payload_size;
-        data_left -= payload_size;
+        data_pos += fu_payload_size;
+        data_left -= fu_payload_size;
 
         buffers.at(1).second = &fu_headers[1]; // middle fragment header
     }
@@ -619,11 +615,9 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
      * pointed to by "intra" and new intra frame shall take the place of active intra frame */
     uint32_t intra = INVALID_TS;
 
-    const size_t format_header_size = get_payload_header_size() + get_fu_header_size();
     frame = *out;
 
     int frag_type = get_fragment_type(frame);
-
     
     if (frag_type == FT_AGGR) {
         // handle aggregate packets (packets with multiple NAL units in them)
@@ -670,8 +664,10 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         initialize_new_fragmented_frame(c_ts);
     }
 
+    const size_t sizeof_fu_headers = get_payload_header_size() + get_fu_header_size();
+
     frames_[c_ts].pkts_received += 1;
-    frames_[c_ts].total_size += (frame->payload_len - format_header_size);
+    frames_[c_ts].total_size += (frame->payload_len - sizeof_fu_headers);
 
     if (frag_type == FT_START) {
         frames_[c_ts].s_seq = c_seq;
@@ -729,18 +725,19 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
 
             size_t fptr = 0;
             uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode((flags & RCE_H26X_PREPEND_SC), 
-                (*out)->header,  frames_[c_ts].total_size + get_payload_header_size(), fptr);
+                (*out)->header, get_nal_header_size() + frames_[c_ts].total_size, fptr);
 
-            copy_payload_header(fptr, frame->payload, complete->payload); // NAL header
-            fptr += get_payload_header_size();
+            get_nal_header_from_fu_headers(fptr, frame->payload, complete->payload); // NAL header
+            fptr += get_nal_header_size();
 
             for (auto& fragment : frames_.at(c_ts).fragments) {
+                // copy everything expect fu headers (which repeat for every fu)
                 std::memcpy(
                     &complete->payload[fptr],
-                    &fragment.second->payload[format_header_size],
-                    fragment.second->payload_len - format_header_size
+                    &fragment.second->payload[sizeof_fu_headers], 
+                    fragment.second->payload_len - sizeof_fu_headers
                 );
-                fptr += fragment.second->payload_len - format_header_size;
+                fptr += fragment.second->payload_len - sizeof_fu_headers;
                 (void)uvgrtp::frame::dealloc_frame(fragment.second);
             }
 
@@ -762,11 +759,10 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     }
 
     garbage_collect_lost_frames();
-
     return RTP_OK;
 }
 
-void uvgrtp::formats::h26x::copy_payload_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload)
+void uvgrtp::formats::h26x::get_nal_header_from_fu_headers(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload)
 {
     uint8_t payload_header[2] = {
         (uint8_t)((frame_payload[0] & 0x81) | ((frame_payload[2] & 0x3f) << 1)),
@@ -838,6 +834,7 @@ void uvgrtp::formats::h26x::scl(uint8_t* data, size_t data_len, size_t packet_si
     uint8_t start_len = 0;
     ssize_t offset = find_h26x_start_code(data, data_len, 0, start_len);
 
+    packet_size -= get_payload_header_size(); // aggregate packet has a payload header
 
     while (offset != -1) {
         nal_info nal;
@@ -869,9 +866,12 @@ void uvgrtp::formats::h26x::scl(uint8_t* data, size_t data_len, size_t packet_si
             nals.at(i).size = data_len - nals[i].offset;
         }
 
-        if (aggregate_size + nals.at(i).size <= packet_size)
+        // each NAL unit added to aggregate packet needs the size added which has to be taken into account
+        // when calculating the aggregate packet 
+        // (NOTE: This is not enough for MTAP in h264, but I doubt uvgRTP will support it)
+        if (aggregate_size + nals.at(i).size + sizeof(uint16_t) <= packet_size)
         {
-            aggregate_size += nals.at(i).size;
+            aggregate_size += nals.at(i).size + sizeof(uint16_t);
             nals.at(i).aggregate = true;
             ++aggregatable_packets;
         }

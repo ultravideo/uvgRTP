@@ -33,6 +33,11 @@ uint8_t uvgrtp::formats::h265::get_payload_header_size() const
     return uvgrtp::frame::HEADER_SIZE_H265_PAYLOAD;
 }
 
+uint8_t uvgrtp::formats::h265::get_nal_header_size() const
+{
+    return uvgrtp::frame::HEADER_SIZE_H265_NAL;
+}
+
 uint8_t uvgrtp::formats::h265::get_fu_header_size() const
 {
     return uvgrtp::frame::HEADER_SIZE_H265_FU;
@@ -50,14 +55,14 @@ uint8_t uvgrtp::formats::h265::get_nal_type(uint8_t* data) const
 
 int uvgrtp::formats::h265::get_fragment_type(uvgrtp::frame::rtp_frame* frame) const
 {
-    bool first_frag = frame->payload[2] & 0x80;
-    bool last_frag = frame->payload[2] & 0x40;
+    bool first_frag = frame->payload[2] & 0x80; // S bit
+    bool last_frag = frame->payload[2] & 0x40;  // E bit
 
     if ((frame->payload[0] >> 1) == uvgrtp::formats::H265_PKT_AGGR)
         return uvgrtp::formats::FT_AGGR;
 
     if ((frame->payload[0] >> 1) != uvgrtp::formats::H265_PKT_FRAG)
-        return uvgrtp::formats::FT_NOT_FRAG;
+        return uvgrtp::formats::FT_NOT_FRAG; // Single NAL unit
 
     if (first_frag && last_frag)
         return uvgrtp::formats::FT_INVALID;
@@ -163,8 +168,5 @@ rtp_error_t uvgrtp::formats::h265::construct_format_header_divide_fus(uint8_t* d
     buffers.push_back(std::make_pair(sizeof(uint8_t), &headers->fu_headers[0])); // first fragment
     buffers.push_back(std::make_pair(payload_size, nullptr));
 
-    size_t data_pos = uvgrtp::frame::HEADER_SIZE_H265_PAYLOAD;
-    data_len -= uvgrtp::frame::HEADER_SIZE_H265_PAYLOAD;
-
-    return divide_frame_to_fus(data, data_len, data_pos, payload_size, buffers, headers->fu_headers);
+    return divide_frame_to_fus(data, data_len, payload_size, buffers, headers->fu_headers);
 }

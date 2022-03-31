@@ -130,7 +130,7 @@ namespace uvgrtp {
                     size_t payload_size, uvgrtp::buf_vec& buffers) = 0;
 
                 // a helper function that handles the fu division.
-                rtp_error_t divide_frame_to_fus(uint8_t* data, size_t& data_left, size_t& data_pos, size_t payload_size,
+                rtp_error_t divide_frame_to_fus(uint8_t* data, size_t& data_left, size_t payload_size,
                     uvgrtp::buf_vec& buffers, uint8_t fu_headers[]);
 
                 void initialize_fu_headers(uint8_t nal_type, uint8_t fu_headers[]);
@@ -141,12 +141,13 @@ namespace uvgrtp {
                 virtual uint8_t get_nal_type(uint8_t* data) const = 0;
 
                 virtual uint8_t get_payload_header_size() const = 0;
+                virtual uint8_t get_nal_header_size() const = 0;
                 virtual uint8_t get_fu_header_size() const = 0;
                 virtual uint8_t get_start_code_range() const = 0;
                 virtual int get_fragment_type(uvgrtp::frame::rtp_frame* frame) const = 0;
                 virtual uvgrtp::formats::NAL_TYPES get_nal_type(uvgrtp::frame::rtp_frame* frame) const = 0;
 
-                virtual void copy_payload_header(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload);
+                virtual void get_nal_header_from_fu_headers(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload);
 
         private:
 

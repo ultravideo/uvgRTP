@@ -69,9 +69,11 @@ inline void send_packets(uvgrtp::session* sess, uvgrtp::media_stream* sender,
                 memset(dummy_frame.get(), 'a', size);
             }
 
-            if (sender->push_frame(std::move(dummy_frame), size, RTP_NO_FLAGS) != RTP_OK)
+            rtp_error_t ret = RTP_OK;
+            if ((ret = sender->push_frame(std::move(dummy_frame), size, RTP_NO_FLAGS)) != RTP_OK)
             {
-                std::cout << "Failed to send test packet!" << std::endl;
+                std::cout << "Failed to send test packet! Return value: " << ret << std::endl;
+                return;
             }
 
             if (i % (packets / 10) == packets / 10 - 1 && print_progress)
