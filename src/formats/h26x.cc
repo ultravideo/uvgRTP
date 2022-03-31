@@ -838,9 +838,9 @@ void uvgrtp::formats::h26x::scl(uint8_t* data, size_t data_len, size_t packet_si
 
     packet_size -= get_payload_header_size(); // aggregate packet has a payload header
 
-    while (offset != -1) {
+    while (offset > -1) {
         nal_info nal;
-        nal.offset = offset;
+        nal.offset = size_t(offset);
         nal.prefix_len = start_len;
         nal.size = 0; // set after all NALs have been found
         nal.aggregate = false; // determined with size calculations
@@ -854,7 +854,7 @@ void uvgrtp::formats::h26x::scl(uint8_t* data, size_t data_len, size_t packet_si
     int aggregatable_packets = 0;
 
     // calculate the sizes of NAL units
-    for (ssize_t i = 0; i < nals.size(); ++i)
+    for (size_t i = 0; i < nals.size(); ++i)
     {
         if (nals.size() > i + 1)
         {

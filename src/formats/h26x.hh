@@ -60,9 +60,9 @@ namespace uvgrtp {
 
         struct nal_info
         {
-            ssize_t offset = 0;
-            ssize_t prefix_len = 0;
-            ssize_t size = 0;
+            size_t offset = 0;
+            size_t prefix_len = 0;
+            size_t size = 0;
             bool aggregate = false;
         };
 
