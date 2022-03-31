@@ -307,6 +307,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
             {
                 if ((ret = add_aggregate_packet(data + nal.offset, nal.size)) != RTP_OK)
                 {
+                    clear_aggregation_info();
                     fqueue_->deinit_transaction();
                     return ret;
                 }
@@ -333,6 +334,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
 
             if (ret != RTP_OK)
             {
+                clear_aggregation_info();
                 fqueue_->deinit_transaction();
                 return ret;
             }
