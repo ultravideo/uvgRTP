@@ -288,7 +288,19 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
     // find all the locations of NAL units using Start Code Lookup (SCL)
     std::vector<nal_info> nals;
     bool should_aggregate = false;
-    scl(data, data_len, payload_size, nals, should_aggregate);
+
+    if (flags & RCE_NO_H26X_SCL) {
+        nal_info nal;
+        nal.offset = 0;
+        nal.prefix_len = 0;
+        nal.size = data_len;
+        nal.aggregate = false;
+
+        nals.push_back(nal);
+    }
+    else {
+        scl(data, data_len, payload_size, nals, should_aggregate);
+    }
 
     if (nals.empty())
     {
