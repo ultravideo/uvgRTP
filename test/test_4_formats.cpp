@@ -49,7 +49,6 @@ TEST(FormatTests, h264)
     test_packet_size(10000, sess, sender, receiver);
     test_packet_size(25000, sess, sender, receiver);
     test_packet_size(50000, sess, sender, receiver);
-    test_packet_size(100000, sess, sender, receiver);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -96,7 +95,34 @@ TEST(FormatTests, h265)
     test_packet_size(10000, sess, sender, receiver);
     test_packet_size(25000, sess, sender, receiver);
     test_packet_size(50000, sess, sender, receiver);
-    test_packet_size(100000, sess, sender, receiver);
+
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
+}
+
+TEST(FormatTests, h265_large)
+{
+    std::cout << "Starting h265 test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    if (sess)
+    {
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_H26X_PREPEND_SC);
+    }
+
+    test_packet_size( 100000, sess, sender, receiver);
+    test_packet_size( 200000, sess, sender, receiver);
+    test_packet_size( 300000, sess, sender, receiver);
+    test_packet_size( 400000, sess, sender, receiver);
+    test_packet_size( 500000, sess, sender, receiver);
+    //test_packet_size( 750000, sess, sender, receiver);
+    //test_packet_size(1000000, sess, sender, receiver);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -143,7 +169,6 @@ TEST(FormatTests, h266)
     test_packet_size(10000, sess, sender, receiver);
     test_packet_size(25000, sess, sender, receiver);
     test_packet_size(50000, sess, sender, receiver);
-    test_packet_size(100000, sess, sender, receiver);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
