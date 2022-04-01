@@ -606,6 +606,7 @@ rtp_error_t uvgrtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
 {
     if (participants_.find(ssrc) == participants_.end())
     {
+        LOG_ERROR("Did not find participant SSRC when updating seq");
         return RTP_GENERIC_ERROR;
     }
 
@@ -650,6 +651,7 @@ rtp_error_t uvgrtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
            uvgrtp::rtcp::init_participant_seq(ssrc, seq);
        } else {
            p->stats.bad_seq = (seq + 1) & (RTP_SEQ_MOD - 1);
+           LOG_ERROR("Invalid sequence number");
            return RTP_GENERIC_ERROR;
        }
     } else {
@@ -754,6 +756,7 @@ rtp_error_t uvgrtp::rtcp::recv_packet_handler(void *arg, int flags, frame::rtp_f
     {
         if ((rtcp->init_new_participant(frame)) != RTP_OK)
         {
+            LOG_ERROR("Failed to initiate new participant");
             return RTP_GENERIC_ERROR;
         }
     } else if ((ret = rtcp->update_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK) {
@@ -761,6 +764,7 @@ rtp_error_t uvgrtp::rtcp::recv_packet_handler(void *arg, int flags, frame::rtp_f
             return RTP_OK;
         }
         else {
+            LOG_ERROR("Failed to initiate update participant seq");
             return RTP_GENERIC_ERROR;
         }
     }
