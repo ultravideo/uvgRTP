@@ -149,12 +149,14 @@ namespace uvgrtp {
 
                 virtual void get_nal_header_from_fu_headers(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload);
 
+                virtual uvgrtp::frame::rtp_frame* allocate_rtp_frame_with_startcode(bool add_start_code,
+                    uvgrtp::frame::rtp_header& header, size_t payload_size_without_startcode, size_t& fptr);
+
+                virtual void prepend_start_code(int flags, uvgrtp::frame::rtp_frame** out);
+
         private:
 
-            uvgrtp::frame::rtp_frame* allocate_rtp_frame_with_startcode(bool add_start_code,
-                uvgrtp::frame::rtp_header& header, size_t payload_size_without_startcode, size_t& fptr);
 
-            static void prepend_start_code(int flags, uvgrtp::frame::rtp_frame** out);
 
             bool is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay);
             uint32_t drop_frame(uint32_t ts);

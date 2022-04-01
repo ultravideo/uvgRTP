@@ -159,3 +159,45 @@ void uvgrtp::formats::h264::get_nal_header_from_fu_headers(size_t fptr, uint8_t*
 {
     complete_payload[fptr] = (frame_payload[0] & 0xe0) | (frame_payload[1] & 0x1f);
 }
+
+uvgrtp::frame::rtp_frame* uvgrtp::formats::h264::allocate_rtp_frame_with_startcode(bool add_start_code,
+    uvgrtp::frame::rtp_header& header, size_t payload_size_without_startcode, size_t& fptr)
+{
+    uvgrtp::frame::rtp_frame* complete = uvgrtp::frame::alloc_rtp_frame();
+
+    complete->payload_len = payload_size_without_startcode;
+
+    if (add_start_code) {
+        complete->payload_len += 3;
+    }
+
+    complete->payload = new uint8_t[complete->payload_len];
+
+    if (add_start_code) {
+        complete->payload[0] = 0;
+        complete->payload[1] = 0;
+        complete->payload[2] = 1;
+        fptr += 3;
+    }
+
+    complete->header = header; // copy
+
+    return complete;
+}
+
+void uvgrtp::formats::h264::prepend_start_code(int flags, uvgrtp::frame::rtp_frame** out)
+{
+    if (flags & RCE_H26X_PREPEND_SC) {
+        uint8_t* pl = new uint8_t[(*out)->payload_len + 3];
+
+        pl[0] = 0;
+        pl[1] = 0;
+        pl[2] = 1;
+
+        std::memcpy(pl + 3, (*out)->payload, (*out)->payload_len);
+        delete[](*out)->payload;
+
+        (*out)->payload = pl;
+        (*out)->payload_len += 3;
+    }
+}
