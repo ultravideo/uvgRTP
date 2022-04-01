@@ -121,8 +121,8 @@ TEST(FormatTests, h265_large)
     test_packet_size( 300000, sess, sender, receiver);
     test_packet_size( 400000, sess, sender, receiver);
     test_packet_size( 500000, sess, sender, receiver);
-    //test_packet_size( 750000, sess, sender, receiver);
-    //test_packet_size(1000000, sess, sender, receiver);
+    test_packet_size( 750000, sess, sender, receiver);
+    test_packet_size(1000000, sess, sender, receiver);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
