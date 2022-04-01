@@ -371,7 +371,7 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, in
                 // create new buffer spaces if the process/read hasn't freed any spots on the ring buffer
                 if (next_write_index == ring_read_index_)
                 {
-                    LOG_DEBUG("Reception buffer ran out, increasing the buffer size by 25%");
+                    LOG_DEBUG("Reception buffer ran out, increasing the buffer size ...");
 
                     // increase the buffer size by 25%
                     int increase = ring_buffer_.size()/4;

@@ -386,12 +386,12 @@ rtp_error_t uvgrtp::socket::__sendtov(
     DWORD sent_bytes = 0;
     WSABUF wsa_bufs[WSABUF_SIZE];
 
-    if (buffers.size() > WSABUF_SIZE) {
-        LOG_ERROR("Input vector to __sendtov() has more than %u elements!", WSABUF_SIZE);
-        return RTP_GENERIC_ERROR;
-    }
-
     for (auto& buffer : buffers) {
+
+        if (buffer.size() > WSABUF_SIZE) {
+            LOG_ERROR("Input vector to __sendtov() has more than %u elements!", WSABUF_SIZE);
+            return RTP_GENERIC_ERROR;
+        }
         /* create WSABUFs from input buffer and send them at once */
         for (size_t i = 0; i < buffer.size(); ++i) {
             wsa_bufs[i].len = (ULONG)buffer.at(i).first;
