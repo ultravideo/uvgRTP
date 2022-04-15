@@ -5,7 +5,7 @@ uvgRTP is an *Real-Time Transport Protocol (RTP)* library written in C++ with a 
 uvgRTP is licensed under the permissive BSD 2-Clause License. This cross-platform library can be run on both Linux and Windows operating systems. Mac OS is currently not supported, but contributions are welcome to help with this. For SRTP/ZRTP support, uvgRTP uses [Crypto++ library](https://www.cryptopp.com/). 
 
 Currently supported specifications:
-   * [RFC 3350: RTP: A Transport Protocol for Real-Time Applications](https://tools.ietf.org/html/rfc3550)
+   * [RFC 3550: RTP: A Transport Protocol for Real-Time Applications](https://tools.ietf.org/html/rfc3550)
    * [RFC 7798: RTP Payload Format for High Efficiency Video Coding (HEVC)](https://tools.ietf.org/html/rfc7798)
    * [RFC 6184: RTP Payload Format for H.264 Video](https://tools.ietf.org/html/rfc6184)
    * [RFC 7587: RTP Payload Format for the Opus Speech and Audio Codec](https://tools.ietf.org/html/rfc7587)
