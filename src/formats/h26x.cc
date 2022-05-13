@@ -638,7 +638,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         return handle_aggregation_packet(out, get_payload_header_size(), flags);
     }
     else if (frag_type == FT_NOT_FRAG) {
-        // handle single NAL unit packet by doing nothing (TODO: should remove the duplicate NAL header probably)
+        // handle single NAL unit packet by doing nothing
         prepend_start_code(flags, out);
         return RTP_PKT_READY;
     }
