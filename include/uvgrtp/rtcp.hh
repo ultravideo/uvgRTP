@@ -12,6 +12,7 @@
 #include <vector>
 #include <functional>
 #include <memory>
+#include <mutex>
 
 namespace uvgrtp {
 
@@ -283,6 +284,9 @@ namespace uvgrtp {
             rtp_error_t install_app_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
             rtp_error_t install_app_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
 
+
+            rtp_error_t remove_all_hooks();
+
             /// \cond DO_NOT_DOCUMENT
             /* Update RTCP-related sender statistics */
             rtp_error_t update_sender_stats(size_t pkt_size);
@@ -450,14 +454,19 @@ namespace uvgrtp {
             void (*sdes_hook_)(uvgrtp::frame::rtcp_sdes_packet *);
             void (*app_hook_)(uvgrtp::frame::rtcp_app_packet *);
 
-            std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_hook_f_;
-            std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_hook_u_;
+            std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sender_report>)>   sr_hook_f_;
+            std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sender_report>)>   sr_hook_u_;
             std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_hook_f_;
             std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_hook_u_;
-            std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_hook_f_;
-            std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_hook_u_;
-            std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)> app_hook_f_;
-            std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>)> app_hook_u_;
+            std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sdes_packet>)>     sdes_hook_f_;
+            std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sdes_packet>)>     sdes_hook_u_;
+            std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)>      app_hook_f_;
+            std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>)>      app_hook_u_;
+
+            std::mutex sr_mutex_;
+            std::mutex rr_mutex_;
+            std::mutex sdes_mutex_;
+            std::mutex app_mutex_;
 
             std::unique_ptr<std::thread> report_generator_;
 
