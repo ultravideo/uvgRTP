@@ -12,7 +12,7 @@ inline void send_packets(uvgrtp::session* sess, uvgrtp::media_stream* sender,
     int packets, size_t size, int packet_interval_ms, bool add_start_code, bool print_progress);
 inline void add_hook(Test_receiver* tester, uvgrtp::media_stream* receiver, void (*hook)(void*, uvgrtp::frame::rtp_frame*));
 
-inline void test_packet_size(size_t size, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver);
+inline void test_packet_size(int packets, size_t size, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver);
 
 inline void cleanup_sess(uvgrtp::context& ctx, uvgrtp::session* sess);
 inline void cleanup_ms(uvgrtp::session* sess, uvgrtp::media_stream* ms);
@@ -58,7 +58,7 @@ inline void send_packets(uvgrtp::session* sess, uvgrtp::media_stream* sender,
         {
             std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
 
-            memset(dummy_frame.get(), 'a', size);
+            memset(dummy_frame.get(), 'b', size);
 
             if (add_start_code && size > 8)
             {
@@ -122,7 +122,7 @@ inline void cleanup_ms(uvgrtp::session* sess, uvgrtp::media_stream* ms)
 }
 
 
-inline void test_packet_size(size_t size, uvgrtp::session* sess, uvgrtp::media_stream* sender, 
+inline void test_packet_size(int packets, size_t size, uvgrtp::session* sess, uvgrtp::media_stream* sender,
     uvgrtp::media_stream* receiver)
 {
     EXPECT_NE(nullptr, sess);
@@ -131,12 +131,12 @@ inline void test_packet_size(size_t size, uvgrtp::session* sess, uvgrtp::media_s
 
     if (sess && sender && receiver)
     {
-        int packets = 10;
-
         Test_receiver* tester = new Test_receiver(packets);
 
+        int interval_ms = 10;
+
         add_hook(tester, receiver, rtp_receive_hook);
-        send_packets(sess, sender, packets, size, 10, true, false);
+        send_packets(sess, sender, packets, size, interval_ms, true, false);
 
         if (size > 20000)
         {

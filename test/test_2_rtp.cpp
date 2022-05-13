@@ -50,8 +50,8 @@ TEST(RTPTests, rtp_hook)
         receiver = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
     }
 
-    test_packet_size(1000, sess, sender, receiver);
-    test_packet_size(2000, sess, sender, receiver);
+    test_packet_size(10, 1000, sess, sender, receiver);
+    test_packet_size(10, 2000, sess, sender, receiver);
 
     cleanup_ms(sess, receiver);
     cleanup_sess(ctx, sess);
@@ -74,7 +74,7 @@ TEST(RTPTests, rtp_send_test)
         receiver = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
     }
 
-    test_packet_size(1500, sess, sender, receiver);
+    test_packet_size(10, 1500, sess, sender, receiver);
 
     cleanup_ms(sess, sender);
     cleanup_sess(ctx, sess);
