@@ -73,7 +73,11 @@ void uvgrtp::rtp::set_dynamic_payload(uint8_t payload)
 
 void uvgrtp::rtp::inc_sequence()
 {
-    seq_++;
+    if (seq_ != UINT16_MAX) {
+        seq_++;
+    } else {
+        seq_ = 0;
+    }
 }
 
 void uvgrtp::rtp::inc_sent_pkts()
