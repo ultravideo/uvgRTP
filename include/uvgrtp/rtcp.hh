@@ -239,6 +239,7 @@ namespace uvgrtp {
              */
             rtp_error_t install_sender_hook(void (*hook)(uvgrtp::frame::rtcp_sender_report *));
             rtp_error_t install_sender_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_handler);
+            rtp_error_t install_sender_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_handler);
 
             /**
              * \brief Install an RTCP Receiver Report hook
@@ -252,6 +253,7 @@ namespace uvgrtp {
              */
             rtp_error_t install_receiver_hook(void (*hook)(uvgrtp::frame::rtcp_receiver_report *));
             rtp_error_t install_receiver_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_handler);
+            rtp_error_t install_receiver_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_handler);
 
             /**
              * \brief Install an RTCP SDES packet hook
@@ -265,6 +267,7 @@ namespace uvgrtp {
              */
             rtp_error_t install_sdes_hook(void (*hook)(uvgrtp::frame::rtcp_sdes_packet *));
             rtp_error_t install_sdes_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_handler);
+            rtp_error_t install_sdes_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_handler);
 
             /**
              * \brief Install an RTCP APP packet hook
@@ -278,6 +281,7 @@ namespace uvgrtp {
              */
             rtp_error_t install_app_hook(void (*hook)(uvgrtp::frame::rtcp_app_packet *));
             rtp_error_t install_app_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
+            rtp_error_t install_app_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
 
             /// \cond DO_NOT_DOCUMENT
             /* Update RTCP-related sender statistics */
@@ -447,9 +451,13 @@ namespace uvgrtp {
             void (*app_hook_)(uvgrtp::frame::rtcp_app_packet *);
 
             std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_hook_f_;
+            std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_hook_u_;
             std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_hook_f_;
+            std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_hook_u_;
             std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_hook_f_;
+            std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_hook_u_;
             std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)> app_hook_f_;
+            std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>)> app_hook_u_;
 
             std::unique_ptr<std::thread> report_generator_;
 

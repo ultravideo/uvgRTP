@@ -315,6 +315,7 @@ rtp_error_t uvgrtp::rtcp::install_sender_hook(void (*hook)(uvgrtp::frame::rtcp_s
 
     sender_hook_ = hook;
     sr_hook_f_ = nullptr;
+    sr_hook_u_ = nullptr;
     return RTP_OK;
 }
 
@@ -327,6 +328,20 @@ rtp_error_t uvgrtp::rtcp::install_sender_hook(std::function<void(std::shared_ptr
 
     sender_hook_ = nullptr;
     sr_hook_f_ = sr_handler;
+    sr_hook_u_ = nullptr;
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::rtcp::install_sender_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_handler)
+{
+    if (!sr_handler)
+    {
+        return RTP_INVALID_VALUE;
+    }
+
+    sender_hook_ = nullptr;
+    sr_hook_f_ = nullptr;
+    sr_hook_u_ = sr_handler;
     return RTP_OK;
 }
 
@@ -339,6 +354,7 @@ rtp_error_t uvgrtp::rtcp::install_receiver_hook(void (*hook)(uvgrtp::frame::rtcp
 
     receiver_hook_ = hook;
     rr_hook_f_ = nullptr;
+    rr_hook_u_ = nullptr;
     return RTP_OK;
 }
 
@@ -351,6 +367,20 @@ rtp_error_t uvgrtp::rtcp::install_receiver_hook(std::function<void(std::shared_p
 
     receiver_hook_ = nullptr;
     rr_hook_f_ = rr_handler;
+    rr_hook_u_ = nullptr;
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::rtcp::install_receiver_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_handler)
+{
+    if (!rr_handler)
+    {
+        return RTP_INVALID_VALUE;
+    }
+
+    receiver_hook_ = nullptr;
+    rr_hook_f_ = nullptr;
+    rr_hook_u_ = rr_handler;
     return RTP_OK;
 }
 
@@ -363,6 +393,7 @@ rtp_error_t uvgrtp::rtcp::install_sdes_hook(void (*hook)(uvgrtp::frame::rtcp_sde
 
     sdes_hook_ = hook;
     sdes_hook_f_ = nullptr;
+    sdes_hook_u_ = nullptr;
     return RTP_OK;
 }
 
@@ -375,6 +406,20 @@ rtp_error_t uvgrtp::rtcp::install_sdes_hook(std::function<void(std::shared_ptr<u
 
     sdes_hook_ = nullptr;
     sdes_hook_f_ = sdes_handler;
+    sdes_hook_u_ = nullptr;
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::rtcp::install_sdes_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_handler)
+{
+    if (!sdes_handler)
+    {
+        return RTP_INVALID_VALUE;
+    }
+
+    sdes_hook_ = nullptr;
+    sdes_hook_f_ = nullptr;
+    sdes_hook_u_ = sdes_handler;
     return RTP_OK;
 }
 
@@ -387,6 +432,7 @@ rtp_error_t uvgrtp::rtcp::install_app_hook(void (*hook)(uvgrtp::frame::rtcp_app_
 
     app_hook_ = hook;
     app_hook_f_ = nullptr;
+    app_hook_u_ = nullptr;
     return RTP_OK;
 }
 
@@ -399,6 +445,20 @@ rtp_error_t uvgrtp::rtcp::install_app_hook(std::function<void(std::shared_ptr<uv
 
     app_hook_ = nullptr;
     app_hook_f_ = app_handler;
+    app_hook_u_ = nullptr;
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::rtcp::install_app_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler)
+{
+    if (!app_handler)
+    {
+        return RTP_INVALID_VALUE;
+    }
+
+    app_hook_ = nullptr;
+    app_hook_f_ = nullptr;
+    app_hook_u_ = app_handler;
     return RTP_OK;
 }
 
@@ -907,11 +967,12 @@ rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t* packet, size_t size,
         ptr += item.length; // TODO: Clang warning here
     }
 
-    if (sdes_hook_)
-    {
+    if (sdes_hook_) {
         sdes_hook_(frame);
     } else if (sdes_hook_f_) {
         sdes_hook_f_(std::shared_ptr<uvgrtp::frame::rtcp_sdes_packet>(frame));
+    } else if (sdes_hook_u_) {
+        sdes_hook_u_(std::unique_ptr<uvgrtp::frame::rtcp_sdes_packet>(frame));
     } else {
         participants_[frame->ssrc]->sdes_frame = frame;
     }
@@ -982,11 +1043,12 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t size,
     memcpy(frame->payload, &packet[RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE],
         frame->header.length - RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE);
 
-    if (app_hook_)
-    {
+    if (app_hook_) {
         app_hook_(frame);
     } else if (app_hook_f_) {
         app_hook_f_(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>(frame));
+    } else if (app_hook_u_) {
+        app_hook_u_(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>(frame));
     } else {
         participants_[frame->ssrc]->app_frame = frame;
     }
@@ -1039,11 +1101,12 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* packet, size_t 
 
     read_reports(packet, size, frame->header.count, false, frame->report_blocks);
 
-    if (receiver_hook_)
-    {
+    if (receiver_hook_) {
         receiver_hook_(frame);
     } else if (rr_hook_f_) {
         rr_hook_f_(std::shared_ptr<uvgrtp::frame::rtcp_receiver_report>(frame));
+    } else if (rr_hook_u_) {
+        rr_hook_u_(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report>(frame));
     } else {
         participants_[frame->ssrc]->rr_frame = frame;
     }
@@ -1095,11 +1158,12 @@ rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t* packet, size_t si
 
     read_reports(packet, size, frame->header.count, true, frame->report_blocks);
 
-    if (sender_hook_)
-    {
+    if (sender_hook_) {
         sender_hook_(frame);
     } else if (sr_hook_f_) {
         sr_hook_f_(std::shared_ptr<uvgrtp::frame::rtcp_sender_report>(frame));
+    } else if (sr_hook_u_) {
+        sr_hook_u_(std::unique_ptr<uvgrtp::frame::rtcp_sender_report>(frame));
     } else {
         participants_[frame->ssrc]->sr_frame = frame;
     }
@@ -1416,4 +1480,3 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(char* name, uint8_t subtype,
 
     return send_rtcp_packet_to_participants(frame, frame_size);
 }
-
