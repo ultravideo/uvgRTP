@@ -34,12 +34,12 @@ uvgrtp::rtp::~rtp()
 {
 }
 
-uint32_t uvgrtp::rtp::get_ssrc()
+uint32_t uvgrtp::rtp::get_ssrc() const
 {
     return ssrc_;
 }
 
-uint16_t uvgrtp::rtp::get_sequence()
+uint16_t uvgrtp::rtp::get_sequence() const
 {
     return seq_;
 }
@@ -127,7 +127,7 @@ void uvgrtp::rtp::set_timestamp(uint64_t timestamp)
     timestamp_= timestamp;
 }
 
-uint32_t uvgrtp::rtp::get_clock_rate(void)
+uint32_t uvgrtp::rtp::get_clock_rate() const
 {
     return clock_rate_;
 }
@@ -137,12 +137,12 @@ void uvgrtp::rtp::set_payload_size(size_t payload_size)
     payload_size_ = payload_size;
 }
 
-size_t uvgrtp::rtp::get_payload_size()
+size_t uvgrtp::rtp::get_payload_size() const
 {
     return payload_size_;
 }
 
-rtp_format_t uvgrtp::rtp::get_payload()
+rtp_format_t uvgrtp::rtp::get_payload() const
 {
     return (rtp_format_t)fmt_;
 }
@@ -152,7 +152,7 @@ void uvgrtp::rtp::set_pkt_max_delay(size_t delay)
     delay_ = delay;
 }
 
-size_t uvgrtp::rtp::get_pkt_max_delay()
+size_t uvgrtp::rtp::get_pkt_max_delay() const
 {
     return delay_;
 }

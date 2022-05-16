@@ -584,6 +584,16 @@ uvgrtp::rtcp *uvgrtp::media_stream::get_rtcp()
     return rtcp_.get();
 }
 
+uint32_t uvgrtp::media_stream::get_ssrc() const
+{
+    if (!initialized_ || rtp_ == nullptr) {
+        LOG_ERROR("RTP context has not been initialized, please call init before asking ssrc!");
+        return RTP_NOT_INITIALIZED;
+    }
+
+    return rtp_->get_ssrc();
+}
+
 rtp_error_t uvgrtp::media_stream::init_srtp_with_zrtp(int flags, int type, std::shared_ptr<uvgrtp::base_srtp> srtp,
     std::shared_ptr<uvgrtp::zrtp> zrtp)
 {

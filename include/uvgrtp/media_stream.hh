@@ -296,6 +296,8 @@ namespace uvgrtp {
              */
             uvgrtp::rtcp *get_rtcp();
 
+            uint32_t get_ssrc() const;
+
         private:
             /* Initialize the connection by initializing the socket
              * and binding ourselves to specified interface and creating

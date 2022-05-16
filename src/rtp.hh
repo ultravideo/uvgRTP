@@ -15,12 +15,12 @@ namespace uvgrtp {
             rtp(rtp_format_t fmt);
             ~rtp();
 
-            uint32_t     get_ssrc();
-            uint16_t     get_sequence();
-            uint32_t     get_clock_rate();
-            size_t       get_payload_size();
-            size_t       get_pkt_max_delay();
-            rtp_format_t get_payload();
+            uint32_t     get_ssrc()          const;
+            uint16_t     get_sequence()      const;
+            uint32_t     get_clock_rate()    const;
+            size_t       get_payload_size()  const;
+            size_t       get_pkt_max_delay() const;
+            rtp_format_t get_payload()       const;
 
             void inc_sent_pkts();
             void inc_sequence();
