@@ -36,11 +36,12 @@ constexpr int ESTIMATED_MAX_RECEPTION_TIME_MS = 10;
 const uint32_t MAX_SUPPORTED_PARTICIPANTS = 31;
 
 uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, int flags):
-    rtp_(rtp), flags_(flags), our_role_(RECEIVER),
+    flags_(flags), our_role_(RECEIVER),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
-    we_sent_(0), avg_rtcp_pkt_pize_(0), rtcp_pkt_count_(0),
-    rtcp_pkt_sent_count_(0), initial_(true), num_receivers_(0),
+    we_sent_(false), avg_rtcp_pkt_pize_(0), rtcp_pkt_count_(0),
+    rtcp_pkt_sent_count_(0), initial_(true), ssrc_(rtp->get_ssrc()), 
+    num_receivers_(0),
     sender_hook_(nullptr),
     receiver_hook_(nullptr),
     sdes_hook_(nullptr),
@@ -55,7 +56,6 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, int flags):
     app_hook_u_(nullptr),
     active_(false)
 {
-    ssrc_         = rtp->get_ssrc();
     clock_rate_   = rtp->get_clock_rate();
 
     clock_start_  = 0;
@@ -595,7 +595,7 @@ std::vector<uvgrtp::socket>& uvgrtp::rtcp::get_sockets()
     return sockets_;
 }
 
-std::vector<uint32_t> uvgrtp::rtcp::get_participants()
+std::vector<uint32_t> uvgrtp::rtcp::get_participants() const
 {
     std::vector<uint32_t> ssrcs;
 
@@ -645,7 +645,7 @@ void uvgrtp::rtcp::zero_stats(uvgrtp::receiver_statistics *stats)
     stats->cycles   = 0;
 }
 
-bool uvgrtp::rtcp::is_participant(uint32_t ssrc)
+bool uvgrtp::rtcp::is_participant(uint32_t ssrc) const
 {
     return participants_.find(ssrc) != participants_.end();
 }
@@ -657,7 +657,7 @@ void uvgrtp::rtcp::set_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32
     rtp_ts_start_ = rtp_ts_start;
 }
 
-void uvgrtp::rtcp::sender_update_stats(uvgrtp::frame::rtp_frame *frame)
+void uvgrtp::rtcp::sender_update_stats(const uvgrtp::frame::rtp_frame *frame)
 {
     if (!frame)
     {
@@ -675,7 +675,7 @@ void uvgrtp::rtcp::sender_update_stats(uvgrtp::frame::rtp_frame *frame)
     our_stats.sent_rtp_packet = true;
 }
 
-rtp_error_t uvgrtp::rtcp::init_new_participant(uvgrtp::frame::rtp_frame *frame)
+rtp_error_t uvgrtp::rtcp::init_new_participant(const uvgrtp::frame::rtp_frame *frame)
 {
     rtp_error_t ret;
 
@@ -809,14 +809,14 @@ rtp_error_t uvgrtp::rtcp::reset_rtcp_state(uint32_t ssrc)
     return RTP_OK;
 }
 
-bool uvgrtp::rtcp::collision_detected(uint32_t ssrc, sockaddr_in& src_addr)
+bool uvgrtp::rtcp::collision_detected(uint32_t ssrc, const sockaddr_in& src_addr) const
 {
     if (participants_.find(ssrc) == participants_.end())
     {
         return false;
     }
 
-    auto sender = participants_[ssrc];
+    auto sender = participants_.at(ssrc);
 
     if (src_addr.sin_port        != sender->address.sin_port &&
         src_addr.sin_addr.s_addr != sender->address.sin_addr.s_addr)
@@ -827,7 +827,7 @@ bool uvgrtp::rtcp::collision_detected(uint32_t ssrc, sockaddr_in& src_addr)
     return false;
 }
 
-void uvgrtp::rtcp::update_session_statistics(uvgrtp::frame::rtp_frame *frame)
+void uvgrtp::rtcp::update_session_statistics(const uvgrtp::frame::rtp_frame *frame)
 {
     auto p = participants_[frame->header.ssrc];
 
@@ -1137,7 +1137,7 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t size,
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* packet, size_t size, 
+rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* packet, size_t size,
     uvgrtp::frame::rtcp_header& header)
 {
     if (!packet || !size)
@@ -1286,7 +1286,7 @@ rtp_error_t uvgrtp::rtcp::construct_rtcp_header(size_t packet_size,
     return RTP_OK;
 }
 
-void uvgrtp::rtcp::read_rtcp_header(uint8_t* packet, uvgrtp::frame::rtcp_header& header)
+void uvgrtp::rtcp::read_rtcp_header(const uint8_t* packet, uvgrtp::frame::rtcp_header& header)
 {
     header.version = (packet[0] >> 6) & 0x3;
     header.padding = (packet[0] >> 5) & 0x1;
@@ -1303,7 +1303,7 @@ void uvgrtp::rtcp::read_rtcp_header(uint8_t* packet, uvgrtp::frame::rtcp_header&
     header.length = ntohs(*(uint16_t*)&packet[2]);
 }
 
-void uvgrtp::rtcp::read_reports(uint8_t* packet, size_t size, uint8_t count, bool has_sender_block,
+void uvgrtp::rtcp::read_reports(const uint8_t* packet, size_t size, uint8_t count, bool has_sender_block,
                                 std::vector<uvgrtp::frame::rtcp_report_block>& reports)
 {
     uint32_t report_section = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
@@ -1463,7 +1463,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
     return send_rtcp_packet_to_participants(frame, frame_size);
 }
 
-rtp_error_t uvgrtp::rtcp::send_sdes_packet(std::vector<uvgrtp::frame::rtcp_sdes_item>& items)
+rtp_error_t uvgrtp::rtcp::send_sdes_packet(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items)
 {
     if (items.empty())
     {
@@ -1540,8 +1540,8 @@ rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
     return send_rtcp_packet_to_participants(frame, frame_size);
 }
 
-rtp_error_t uvgrtp::rtcp::send_app_packet(char* name, uint8_t subtype,
-    size_t payload_len, uint8_t* payload)
+rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
+    size_t payload_len, const uint8_t* payload)
 {
     rtp_error_t ret = RTP_OK;
     uint8_t* frame = nullptr;

@@ -24,7 +24,7 @@ namespace uvgrtp {
             rtp_error_t encrypt(uint32_t ssrc, uint16_t seq, uint8_t* buffer, size_t len);
 
             /* Has RTP packet authentication been enabled? */
-            bool authenticate_rtp();
+            bool authenticate_rtp() const;
 
             /* By default RTP packet authentication is disabled but by
              * giving RCE_SRTP_AUTHENTICATE_RTP to create_stream() user can enable it.

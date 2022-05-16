@@ -151,7 +151,7 @@ authenticate:
     return ret;
 }
 
-bool uvgrtp::srtp::authenticate_rtp()
+bool uvgrtp::srtp::authenticate_rtp() const
 {
     return authenticate_rtp_;
 }

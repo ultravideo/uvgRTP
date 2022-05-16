@@ -80,7 +80,7 @@ namespace uvgrtp {
 
         private:
             /* Generate CNAME for participant using host and login names */
-            std::string generate_cname();
+            std::string generate_cname() const;
 
             /* CNAME is the same for all connections */
             std::string cname_;

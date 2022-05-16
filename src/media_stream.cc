@@ -574,7 +574,7 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int flag, ssize_t value)
     return ret;
 }
 
-uint32_t uvgrtp::media_stream::get_key()
+uint32_t uvgrtp::media_stream::get_key() const
 {
     return key_;
 }

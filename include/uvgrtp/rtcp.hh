@@ -119,7 +119,7 @@ namespace uvgrtp {
              * \retval RTP_MEMORY_ERROR If allocation fails
              * \retval RTP_GENERIC_ERROR If sending fails
              */
-            rtp_error_t send_sdes_packet(std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
+            rtp_error_t send_sdes_packet(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
 
             /**
              * \brief Send an RTCP APP packet
@@ -133,7 +133,7 @@ namespace uvgrtp {
              * \retval RTP_MEMORY_ERROR If allocation fails
              * \retval RTP_GENERIC_ERROR If sending fails
              */
-            rtp_error_t send_app_packet(char *name, uint8_t subtype, size_t payload_len, uint8_t *payload);
+            rtp_error_t send_app_packet(const char *name, uint8_t subtype, size_t payload_len, const uint8_t *payload);
 
             /**
              * \brief Send an RTCP BYE packet
@@ -175,22 +175,7 @@ namespace uvgrtp {
             rtp_error_t add_participant(std::string dst_addr, uint16_t dst_port, uint16_t src_port, uint32_t clock_rate);
 
             /* Functions for updating various RTP sender statistics */
-            void sender_inc_seq_cycle_count();
-            void sender_inc_sent_pkts(size_t n);
-            void sender_inc_sent_bytes(size_t n);
-            void sender_update_stats(uvgrtp::frame::rtp_frame *frame);
-
-            void receiver_inc_sent_bytes(uint32_t sender_ssrc, size_t n);
-            void receiver_inc_overhead_bytes(uint32_t sender_ssrc, size_t n);
-            void receiver_inc_total_bytes(uint32_t sender_ssrc, size_t n);
-            void receiver_inc_sent_pkts(uint32_t sender_ssrc, size_t n);
-
-            /* Update the RTCP statistics regarding this packet
-             *
-             * Return RTP_OK if packet is valid
-             * Return RTP_INVALID_VALUE if SSRCs of remotes have collided or the packet is invalid in some way
-             * return RTP_SSRC_COLLISION if our own SSRC has collided and we need to reinitialize it */
-            rtp_error_t receiver_update_stats(uvgrtp::frame::rtp_frame *frame);
+            void sender_update_stats(const uvgrtp::frame::rtp_frame *frame);
 
             /* If we've detected that our SSRC has collided with someone else's SSRC, we need to
              * generate new random SSRC and reinitialize our own RTCP state.
@@ -202,10 +187,10 @@ namespace uvgrtp {
             rtp_error_t reset_rtcp_state(uint32_t ssrc);
 
             /* Update various session statistics */
-            void update_session_statistics(uvgrtp::frame::rtp_frame *frame);
+            void update_session_statistics(const uvgrtp::frame::rtp_frame *frame);
 
             /* Return SSRCs of all participants */
-            std::vector<uint32_t> get_participants();
+            std::vector<uint32_t> get_participants() const;
             /// \endcond
 
             /**
@@ -318,7 +303,7 @@ namespace uvgrtp {
             /* when we start the RTCP instance, we don't know what the SSRC of the remote is
              * when an RTP packet is received, we must check if we've already received a packet
              * from this sender and if not, create new entry to receiver_stats_ map */
-            bool is_participant(uint32_t ssrc);
+            bool is_participant(uint32_t ssrc) const;
 
             /* When we receive an RTP or RTCP packet, we need to check the source address and see if it's
              * the same address where we've received packets before.
@@ -326,14 +311,14 @@ namespace uvgrtp {
              * If the address is new, it means we have detected an SSRC collision and the paket should
              * be dropped We also need to check whether this SSRC matches with our own SSRC and if it does
              * we need to send RTCP BYE and rejoin to the session */
-            bool collision_detected(uint32_t ssrc, sockaddr_in& src_addr);
+            bool collision_detected(uint32_t ssrc, const sockaddr_in& src_addr) const;
 
             /* Move participant from initial_peers_ to participants_ */
             rtp_error_t add_participant(uint32_t ssrc);
 
             /* We've got a message from new source (the SSRC of the frame is not known to us)
              * Initialize statistics for the peer and move it to participants_ */
-            rtp_error_t init_new_participant(uvgrtp::frame::rtp_frame *frame);
+            rtp_error_t init_new_participant(const uvgrtp::frame::rtp_frame *frame);
 
             /* Initialize the RTP Sequence related stuff of peer
              * This function assumes that the peer already exists in the participants_ map */
@@ -364,8 +349,8 @@ namespace uvgrtp {
                 uint16_t secondField, uvgrtp::frame::RTCP_FRAME_TYPE frame_type, bool addLocalSSRC);
 
             /* read the header values from rtcp packet */
-            void read_rtcp_header(uint8_t* packet, uvgrtp::frame::rtcp_header& header);
-            void read_reports(uint8_t* packet, size_t size, uint8_t count, bool has_sender_block,
+            void read_rtcp_header(const uint8_t* packet, uvgrtp::frame::rtcp_header& header);
+            void read_reports(const uint8_t* packet, size_t size, uint8_t count, bool has_sender_block,
                 std::vector<uvgrtp::frame::rtcp_report_block>& reports);
 
             /* Takes ownership of the frame */
@@ -374,20 +359,17 @@ namespace uvgrtp {
 
             void free_participant(rtcp_participant* participant);
 
-            /* Pointer to RTP context from which clock rate etc. info is collected and which is
-             * used to change SSRC if a collision is detected */
-            std::shared_ptr<uvgrtp::rtp> rtp_;
-
             /* Secure RTCP context */
             std::shared_ptr<uvgrtp::srtcp> srtcp_;
 
             /* RTP context flags */
             int flags_;
 
-            /* are we a sender or a receiver */
+            /* are we a sender (and possible a receiver) or just a receiver */
             int our_role_;
 
             /* TODO: time_t?? */
+            // TODO: Check these, they don't seem to be used
             size_t tp_;       /* the last time an RTCP packet was transmitted */
             size_t tc_;       /* the current time */
             size_t tn_;       /* the next scheduled transmission time of an RTCP packet */
@@ -399,19 +381,23 @@ namespace uvgrtp {
              * that will be used for RTCP packets by all members of this session,
              * in octets per second.  This will be a specified fraction of the
              * "session bandwidth" parameter supplied to the application at startup. */
+            // TODO: Not used anywhere at the moment
             size_t rtcp_bandwidth_;
 
             /* Flag that is true if the application has sent data since
              * the 2nd previous RTCP report was transmitted. */
+            // TODO: Only set, never read
             bool we_sent_;
 
             /* The average compound RTCP packet size, in octets,
              * over all RTCP packets sent and received by this participant. The
              * size includes lower-layer transport and network protocol headers
              * (e.g., UDP and IP) as explained in Section 6.2 */
+             // TODO: Only set, never read
             size_t avg_rtcp_pkt_pize_;
 
             /* Number of RTCP packets and bytes sent and received by this participant */
+            // TODO: Only set, never read
             size_t rtcp_pkt_count_;
             size_t rtcp_byte_count_;
 
@@ -419,10 +405,11 @@ namespace uvgrtp {
             uint32_t rtcp_pkt_sent_count_;
 
             /* Flag that is true if the application has not yet sent an RTCP packet. */
+            // TODO: Only set, never read
             bool initial_;
 
             /* Copy of our own current SSRC */
-            uint32_t ssrc_;
+            const uint32_t ssrc_;
 
             /* NTP timestamp associated with initial RTP timestamp (aka t = 0) */
             uint64_t clock_start_;
@@ -434,7 +421,7 @@ namespace uvgrtp {
             uint32_t rtp_ts_start_;
 
             std::map<uint32_t, rtcp_participant *> participants_;
-            uint8_t num_receivers_; // maximum is 32 (5 bits)
+            uint8_t num_receivers_; // maximum is 32 at the moment (5 bits)
 
             /* statistics for RTCP Sender and Receiver Reports */
             struct sender_statistics our_stats;

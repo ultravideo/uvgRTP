@@ -75,7 +75,7 @@ void uvgrtp::reception_flow::destroy_ring_buffer()
     ring_buffer_.clear();
 }
 
-void uvgrtp::reception_flow::set_buffer_size(ssize_t& value)
+void uvgrtp::reception_flow::set_buffer_size(const ssize_t& value)
 {
     buffer_size_kbytes_ = value;
     create_ring_buffer();

@@ -279,7 +279,7 @@ namespace uvgrtp {
 
             /* Get unique key of the media stream
              * Used by session to index media streams */
-            uint32_t get_key();
+            uint32_t get_key() const;
             /// \endcond
 
             /**

@@ -212,7 +212,7 @@ rtp_error_t uvgrtp::base_srtp::allocate_crypto_ctx(size_t key_size)
     return RTP_OK;
 }
 
-size_t uvgrtp::base_srtp::get_key_size(int flags)
+size_t uvgrtp::base_srtp::get_key_size(int flags) const
 {
     size_t key_size = AES128_KEY_SIZE;
 

@@ -7,7 +7,7 @@
 
 /* ***************** hmac-sha1 ***************** */
 
-uvgrtp::crypto::hmac::sha1::sha1(uint8_t *key, size_t key_size)
+uvgrtp::crypto::hmac::sha1::sha1(const uint8_t *key, size_t key_size)
 #ifdef __RTP_CRYPTO__
     :hmac_(key, key_size)
 #endif
@@ -21,7 +21,7 @@ uvgrtp::crypto::hmac::sha1::~sha1()
 {
 }
 
-void uvgrtp::crypto::hmac::sha1::update(uint8_t *data, size_t len)
+void uvgrtp::crypto::hmac::sha1::update(const uint8_t *data, size_t len)
 {
 #ifdef __RTP_CRYPTO__
     hmac_.Update(data, len);
@@ -62,7 +62,7 @@ void uvgrtp::crypto::hmac::sha1::final(uint8_t *digest, size_t size)
 
 /* ***************** hmac-sha256 ***************** */
 
-uvgrtp::crypto::hmac::sha256::sha256(uint8_t *key, size_t key_size)
+uvgrtp::crypto::hmac::sha256::sha256(const uint8_t *key, size_t key_size)
 #ifdef __RTP_CRYPTO__
     :hmac_(key, key_size)
 #endif
@@ -76,7 +76,7 @@ uvgrtp::crypto::hmac::sha256::~sha256()
 {
 }
 
-void uvgrtp::crypto::hmac::sha256::update(uint8_t *data, size_t len)
+void uvgrtp::crypto::hmac::sha256::update(const uint8_t *data, size_t len)
 {
 #ifdef __RTP_CRYPTO__
     hmac_.Update(data, len);
@@ -113,7 +113,7 @@ uvgrtp::crypto::sha256::~sha256()
 {
 }
 
-void uvgrtp::crypto::sha256::update(uint8_t *data, size_t len)
+void uvgrtp::crypto::sha256::update(const uint8_t *data, size_t len)
 {
 #ifdef __RTP_CRYPTO__
     sha_.Update(data, len);
@@ -139,7 +139,7 @@ void uvgrtp::crypto::sha256::final(uint8_t *digest)
 
 /* ***************** aes-128 ***************** */
 
-uvgrtp::crypto::aes::ctr::ctr(uint8_t *key, size_t key_size, uint8_t *iv)
+uvgrtp::crypto::aes::ctr::ctr(const uint8_t *key, size_t key_size, const uint8_t *iv)
 #ifdef __RTP_CRYPTO__
     :enc_(key, key_size, iv),
     dec_(key, key_size, iv)
@@ -154,7 +154,7 @@ uvgrtp::crypto::aes::ctr::~ctr()
 {
 }
 
-void uvgrtp::crypto::aes::ctr::encrypt(uint8_t *output, uint8_t *input, size_t len)
+void uvgrtp::crypto::aes::ctr::encrypt(uint8_t *output, const uint8_t *input, size_t len)
 {
 #ifdef __RTP_CRYPTO__
     enc_.ProcessData(output, input, len);
@@ -166,7 +166,7 @@ void uvgrtp::crypto::aes::ctr::encrypt(uint8_t *output, uint8_t *input, size_t l
 #endif
 }
 
-void uvgrtp::crypto::aes::ctr::decrypt(uint8_t *output, uint8_t *input, size_t len)
+void uvgrtp::crypto::aes::ctr::decrypt(uint8_t *output, const uint8_t *input, size_t len)
 {
 #ifdef __RTP_CRYPTO__
     dec_.ProcessData(output, input, len);
@@ -178,7 +178,7 @@ void uvgrtp::crypto::aes::ctr::decrypt(uint8_t *output, uint8_t *input, size_t l
 #endif
 }
 
-uvgrtp::crypto::aes::cfb::cfb(uint8_t *key, size_t key_size, uint8_t *iv)
+uvgrtp::crypto::aes::cfb::cfb(const uint8_t *key, size_t key_size, const uint8_t *iv)
 #ifdef __RTP_CRYPTO__
     :enc_(key, key_size, iv),
     dec_(key, key_size, iv)
@@ -193,7 +193,7 @@ uvgrtp::crypto::aes::cfb::~cfb()
 {
 }
 
-void uvgrtp::crypto::aes::cfb::encrypt(uint8_t *output, uint8_t *input, size_t len)
+void uvgrtp::crypto::aes::cfb::encrypt(uint8_t *output, const uint8_t *input, size_t len)
 {
 #ifdef __RTP_CRYPTO__
     enc_.ProcessData(output, input, len);
@@ -205,7 +205,7 @@ void uvgrtp::crypto::aes::cfb::encrypt(uint8_t *output, uint8_t *input, size_t l
 #endif
 }
 
-void uvgrtp::crypto::aes::cfb::decrypt(uint8_t *output, uint8_t *input, size_t len)
+void uvgrtp::crypto::aes::cfb::decrypt(uint8_t *output, const uint8_t *input, size_t len)
 {
 #ifdef __RTP_CRYPTO__
     dec_.ProcessData(output, input, len);
@@ -217,7 +217,7 @@ void uvgrtp::crypto::aes::cfb::decrypt(uint8_t *output, uint8_t *input, size_t l
 #endif
 }
 
-uvgrtp::crypto::aes::ecb::ecb(uint8_t *key, size_t key_size)
+uvgrtp::crypto::aes::ecb::ecb(const uint8_t *key, size_t key_size)
 #ifdef __RTP_CRYPTO__
     :enc_(key, key_size),
     dec_(key, key_size)
@@ -232,7 +232,7 @@ uvgrtp::crypto::aes::ecb::~ecb()
 {
 }
 
-void uvgrtp::crypto::aes::ecb::encrypt(uint8_t *output, uint8_t *input, size_t len)
+void uvgrtp::crypto::aes::ecb::encrypt(uint8_t *output, const uint8_t *input, size_t len)
 {
 #ifdef __RTP_CRYPTO__
     enc_.ProcessData(output, input, len);
@@ -244,7 +244,7 @@ void uvgrtp::crypto::aes::ecb::encrypt(uint8_t *output, uint8_t *input, size_t l
 #endif
 }
 
-void uvgrtp::crypto::aes::ecb::decrypt(uint8_t *output, uint8_t *input, size_t len)
+void uvgrtp::crypto::aes::ecb::decrypt(uint8_t *output, const uint8_t *input, size_t len)
 {
 #ifdef __RTP_CRYPTO__
     dec_.ProcessData(output, input, len);
@@ -382,7 +382,7 @@ uvgrtp::crypto::b32::~b32()
 {
 }
 
-void uvgrtp::crypto::b32::encode(uint8_t *input, uint8_t *output, size_t len)
+void uvgrtp::crypto::b32::encode(const uint8_t *input, uint8_t *output, size_t len)
 {
 #ifdef __RTP_CRYPTO__
     enc_.Put(input, len);
@@ -418,7 +418,7 @@ void uvgrtp::crypto::random::generate_random(uint8_t *out, size_t len)
 
 /* ***************** crc32 ***************** */
 
-void uvgrtp::crypto::crc32::get_crc32(uint8_t *input, size_t len, uint32_t *output)
+void uvgrtp::crypto::crc32::get_crc32(const uint8_t *input, size_t len, uint32_t *output)
 {
 #ifdef __RTP_CRYPTO__
     CryptoPP::CRC32 crc32;
@@ -433,7 +433,7 @@ void uvgrtp::crypto::crc32::get_crc32(uint8_t *input, size_t len, uint32_t *outp
 #endif
 }
 
-uint32_t uvgrtp::crypto::crc32::calculate_crc32(uint8_t *input, size_t len)
+uint32_t uvgrtp::crypto::crc32::calculate_crc32(const uint8_t *input, size_t len)
 {
 #ifdef __RTP_CRYPTO__
     CryptoPP::CRC32 crc32;
@@ -451,7 +451,7 @@ uint32_t uvgrtp::crypto::crc32::calculate_crc32(uint8_t *input, size_t len)
 #endif
 }
 
-bool uvgrtp::crypto::crc32::verify_crc32(uint8_t *input, size_t len, uint32_t old_crc)
+bool uvgrtp::crypto::crc32::verify_crc32(const uint8_t *input, size_t len, uint32_t old_crc)
 {
 #ifdef __RTP_CRYPTO__
     CryptoPP::CRC32 crc32;

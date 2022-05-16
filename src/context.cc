@@ -64,7 +64,7 @@ rtp_error_t uvgrtp::context::destroy_session(uvgrtp::session *session)
     return RTP_OK;
 }
 
-std::string uvgrtp::context::generate_cname()
+std::string uvgrtp::context::generate_cname() const
 {
     std::string host = uvgrtp::hostname::get_hostname();
     std::string user = uvgrtp::hostname::get_username();

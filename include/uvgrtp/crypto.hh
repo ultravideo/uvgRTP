@@ -52,10 +52,10 @@ namespace uvgrtp {
         namespace hmac {
             class sha1 {
                 public:
-                    sha1(uint8_t *key, size_t key_size);
+                    sha1(const uint8_t *key, size_t key_size);
                     ~sha1();
 
-                    void update(uint8_t *data, size_t len);
+                    void update(const uint8_t *data, size_t len);
                     void final(uint8_t *digest);
 
                     /* truncate digest to "size" bytes */
@@ -69,10 +69,10 @@ namespace uvgrtp {
 
             class sha256 {
                 public:
-                    sha256(uint8_t *key, size_t key_size);
+                    sha256(const uint8_t *key, size_t key_size);
                     ~sha256();
 
-                    void update(uint8_t *data, size_t len);
+                    void update(const uint8_t *data, size_t len);
                     void final(uint8_t *digest);
 
                 private:
@@ -87,7 +87,7 @@ namespace uvgrtp {
                 sha256();
                 ~sha256();
 
-                void update(uint8_t *data, size_t len);
+                void update(const uint8_t *data, size_t len);
                 void final(uint8_t *digest);
 
             private:
@@ -100,11 +100,11 @@ namespace uvgrtp {
 
             class ecb {
                 public:
-                    ecb(uint8_t *key, size_t key_size);
+                    ecb(const uint8_t *key, size_t key_size);
                     ~ecb();
 
-                    void encrypt(uint8_t *output, uint8_t *input, size_t len);
-                    void decrypt(uint8_t *output, uint8_t *input, size_t len);
+                    void encrypt(uint8_t *output, const uint8_t *input, size_t len);
+                    void decrypt(uint8_t *output, const uint8_t *input, size_t len);
 
                 private:
 #ifdef __RTP_CRYPTO__
@@ -115,11 +115,11 @@ namespace uvgrtp {
 
             class cfb {
                 public:
-                    cfb(uint8_t *key, size_t key_size, uint8_t *iv);
+                    cfb(const uint8_t *key, size_t key_size, const uint8_t *iv);
                     ~cfb();
 
-                    void encrypt(uint8_t *output, uint8_t *input, size_t len);
-                    void decrypt(uint8_t *output, uint8_t *input, size_t len);
+                    void encrypt(uint8_t *output, const uint8_t *input, size_t len);
+                    void decrypt(uint8_t *output, const uint8_t *input, size_t len);
 
                 private:
 #ifdef __RTP_CRYPTO__
@@ -130,11 +130,11 @@ namespace uvgrtp {
 
             class ctr {
                 public:
-                    ctr(uint8_t *key, size_t key_size, uint8_t *iv);
+                    ctr(const uint8_t *key, size_t key_size, const uint8_t *iv);
                     ~ctr();
 
-                    void encrypt(uint8_t *output, uint8_t *input, size_t len);
-                    void decrypt(uint8_t *output, uint8_t *input, size_t len);
+                    void encrypt(uint8_t *output, const uint8_t *input, size_t len);
+                    void decrypt(uint8_t *output, const uint8_t *input, size_t len);
 
                 private:
 #ifdef __RTP_CRYPTO__
@@ -176,7 +176,7 @@ namespace uvgrtp {
                 b32();
                 ~b32();
 
-                void encode(uint8_t *input, uint8_t *output, size_t len);
+                void encode(const uint8_t *input, uint8_t *output, size_t len);
 
             private:
 #ifdef __RTP_CRYPTO__
@@ -189,9 +189,9 @@ namespace uvgrtp {
         }
 
         namespace crc32 {
-            void get_crc32(uint8_t *input, size_t len, uint32_t *output);
-            bool verify_crc32(uint8_t *input, size_t len, uint32_t old_crc);
-            uint32_t calculate_crc32(uint8_t *input, size_t len);
+            void get_crc32(const uint8_t *input, size_t len, uint32_t *output);
+            bool verify_crc32(const uint8_t *input, size_t len, uint32_t old_crc);
+            uint32_t calculate_crc32(const uint8_t *input, size_t len);
         }
 
         bool enabled();

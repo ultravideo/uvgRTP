@@ -148,7 +148,7 @@ namespace uvgrtp {
              * Returns false if replay protection has not been enabled */
             bool is_replayed_packet(uint8_t *digest);
 
-            size_t get_key_size(int flags);
+            size_t get_key_size(int flags) const;
 
         protected:
 
