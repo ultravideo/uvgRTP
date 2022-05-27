@@ -189,6 +189,8 @@ namespace uvgrtp {
             /* Update various session statistics */
             void update_session_statistics(const uvgrtp::frame::rtp_frame *frame);
 
+            void set_session_bandwidth(int kbps);
+
             /* Return SSRCs of all participants */
             std::vector<uint32_t> get_participants() const;
             /// \endcond
@@ -298,7 +300,7 @@ namespace uvgrtp {
             rtp_error_t handle_app_packet(uint8_t* frame, size_t size,
                 uvgrtp::frame::rtcp_header& header);
 
-            static void rtcp_runner(rtcp *rtcp);
+            static void rtcp_runner(rtcp *rtcp, int interval);
 
             /* when we start the RTCP instance, we don't know what the SSRC of the remote is
              * when an RTP packet is received, we must check if we've already received a packet
@@ -463,6 +465,8 @@ namespace uvgrtp {
             }
 
             bool active_;
+
+            int interval_ms_;
     };
 }
 

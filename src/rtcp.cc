@@ -29,7 +29,7 @@ const uint32_t RTP_SEQ_MOD    = 1 << 16;
 const uint32_t MIN_SEQUENTIAL = 2;
 const uint32_t MAX_DROPOUT    = 3000;
 const uint32_t MAX_MISORDER   = 100;
-const uint32_t MIN_TIMEOUT_MS    = 5000;
+const uint32_t DEFAULT_RTCP_INTERVAL_MS = 5000;
 
 constexpr int ESTIMATED_MAX_RECEPTION_TIME_MS = 10;
 
@@ -54,7 +54,8 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, int flags):
     sdes_hook_u_(nullptr),
     app_hook_f_(nullptr),
     app_hook_u_(nullptr),
-    active_(false)
+    active_(false),
+    interval_ms_(DEFAULT_RTCP_INTERVAL_MS)
 {
     clock_rate_   = rtp->get_clock_rate();
 
@@ -115,7 +116,7 @@ rtp_error_t uvgrtp::rtcp::start()
     }
     active_ = true;
 
-    report_generator_.reset(new std::thread(rtcp_runner, this));
+    report_generator_.reset(new std::thread(rtcp_runner, this, interval_ms_));
 
     return RTP_OK;
 }
@@ -164,11 +165,9 @@ rtp_error_t uvgrtp::rtcp::stop()
     return uvgrtp::rtcp::send_bye_packet({ ssrc_ });
 }
 
-void uvgrtp::rtcp::rtcp_runner(uvgrtp::rtcp* rtcp)
+void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp, int interval)
 {
     LOG_INFO("RTCP instance created!");
-
-    int interval = MIN_TIMEOUT_MS;
 
     // RFC 3550 says to wait half interval before sending first report
     std::this_thread::sleep_for(std::chrono::milliseconds(interval/2));
@@ -1563,4 +1562,11 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
     }
 
     return send_rtcp_packet_to_participants(frame, frame_size);
+}
+
+void uvgrtp::rtcp::set_session_bandwidth(int kbps)
+{
+    interval_ms_ = 1000*360 / kbps; // the reduced minimum (see section 6.2 in RFC 3550)
+
+    // TODO: This should follow the algorithm specified in RFC 3550 appendix-A.7
 }

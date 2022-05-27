@@ -35,6 +35,8 @@ namespace uvgrtp {
         class media;
     }
 
+    // Corresponds to one RTP session in RFC 3550
+
     class media_stream {
         public:
             /// \cond DO_NOT_DOCUMENT
@@ -314,6 +316,8 @@ namespace uvgrtp {
                                             std::shared_ptr<uvgrtp::zrtp> zrtp);
 
             rtp_error_t start_components();
+
+            int get_default_bandwidth_kbps(rtp_format_t fmt);
 
             uint32_t key_;
 

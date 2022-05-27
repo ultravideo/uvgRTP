@@ -13,6 +13,10 @@ namespace uvgrtp {
     class media_stream;
     class zrtp;
 
+    /* This session is not the same as RTP session. One uvgRTP session 
+     * houses multiple RTP sessions.
+     */
+
     class session {
         public:
             /// \cond DO_NOT_DOCUMENT
