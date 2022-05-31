@@ -842,25 +842,18 @@ void uvgrtp::rtcp::update_session_statistics(const uvgrtp::frame::rtp_frame *fra
     int dropped = expected - p->stats.received_pkts;
     p->stats.dropped_pkts = dropped >= 0 ? dropped : 0;
 
-    uint64_t arrival =
+    // the arrival time expressed as an RTP timestamp
+    uint32_t arrival =
         p->stats.initial_rtp +
-        + uvgrtp::clock::ntp::diff_now(p->stats.initial_ntp)
-        * (p->stats.clock_rate
-        / 1000);
+        + (uint32_t)uvgrtp::clock::ntp::diff_now(p->stats.initial_ntp)*(p->stats.clock_rate / 1000);
 
-	/* calculate interarrival jitter. See RFC 3550 A.8 */
-    uint64_t transit = arrival - frame->header.timestamp;
+    // calculate interarrival jitter. See RFC 3550 A.8
+    uint32_t transit = arrival - frame->header.timestamp; // A.8: int transit = arrival - r->ts
+    uint32_t trans_difference = std::abs((int)(transit - p->stats.transit));
 
-    if (transit > UINT32_MAX)
-    {
-        transit = UINT32_MAX;
-    }
-
-    uint32_t transit32 = (uint32_t)transit;
-    uint32_t trans_difference = std::abs((int)(transit32 - p->stats.transit));
-
-    p->stats.transit = transit32;
-    p->stats.jitter += (uint32_t)((1.f / 16.f) * ((double)trans_difference - p->stats.jitter));
+    // update statistics
+    p->stats.transit = transit;
+    p->stats.jitter += (1.f / 16.f) * ((double)trans_difference - p->stats.jitter);
 }
 
 /* RTCP packet handler is responsible for doing two things:

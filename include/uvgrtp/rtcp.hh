@@ -39,7 +39,7 @@ namespace uvgrtp {
         uint32_t received_bytes = 0; /* Number of bytes received excluding RTP Header */
         bool received_rtp_packet = false; // since last report
 
-        uint32_t jitter = 0;         /* TODO: */
+        float jitter = 0;            /* The estimation of jitter (see RFC 3550 A.8) */
         uint32_t transit = 0;        /* TODO: */
 
 
