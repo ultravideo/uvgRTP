@@ -615,18 +615,24 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     uvgrtp::frame::rtp_frame* frame;
 
     frame = *out;
-    int frag_type = get_fragment_type(frame); // aggregate, start, middle, end or single NAL
+
+    // aggregate, start, middle, end or single NAL
+    uvgrtp::formats::FRAG_TYPE frag_type = get_fragment_type(frame); 
     
-    if (frag_type == FT_AGGR) {
+    if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_AGGR) {
+
         // handle aggregate packets (packets with multiple NAL units in them)
         return handle_aggregation_packet(out, get_payload_header_size(), flags);
     }
-    else if (frag_type == FT_NOT_FRAG) { // Single NAL unit
+    else if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_NOT_FRAG) { // Single NAL unit
+
+        // TODO: Check if previous dependencies have been sent forward
+
         // nothing special needs to be done, just possibly add start codes back
         prepend_start_code(flags, out);
         return RTP_PKT_READY;
     }
-    else if (frag_type == FT_INVALID) {
+    else if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_INVALID) {
         // something is wrong
         LOG_WARN("invalid frame received!");
         (void)uvgrtp::frame::dealloc_frame(*out);
@@ -636,18 +642,18 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
 
     // We have received a fragment. Rest of the function deals with fragmented frames
 
-    // fragment timestamp, all fragments of the same frame have the same timestamp
+    // Fragment timestamp, all fragments of the same frame have the same timestamp
     uint32_t fragment_ts = frame->header.timestamp; 
 
-    // fragment sequence number, determines the order of the fragments within frame
+    // Fragment sequence number, determines the order of the fragments within frame
     uint32_t fragment_seq = frame->header.seq;      
     
-    uint8_t nal_type = get_nal_type(frame); // Intra or inter frame
+    uvgrtp::formats::NAL_TYPE nal_type = get_nal_type(frame); // Intra, inter or some other type of frame
 
-    // initialize new frame if this is the first packet with this timestamp
+    // Initialize new frame if this is the first packet with this timestamp
     if (frames_.find(fragment_ts) == frames_.end()) {
 
-        // make sure we haven't discarded the frame "c_ts" before 
+        // Make sure we haven't discarded the frame corresponding to the fragment timestamp before 
         if (dropped_.find(fragment_ts) != dropped_.end()) {
             LOG_WARN("packet belonging to a dropped frame was received!");
             return RTP_GENERIC_ERROR;
@@ -662,7 +668,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     frames_[fragment_ts].pkts_received += 1;
     frames_[fragment_ts].total_size += (frame->payload_len - sizeof_fu_headers);
 
-    if (frag_type == FT_START) {
+    if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_START) {
         frames_[fragment_ts].s_seq = fragment_seq; // set the first sequence number of the frame
         frames_[fragment_ts].fragments[fragment_seq] = frame; 
 
@@ -678,7 +684,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     }
     else
     {
-        if (frag_type == FT_END)
+        if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_END)
         {
             frames_[fragment_ts].e_seq = fragment_seq;
         }
@@ -718,6 +724,10 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         // have we received every fragment and can the frame can be reconstructed?
         if (received == frames_[fragment_ts].pkts_received) {
 
+
+            // TODO: check here if previous dependencies have been sent forward
+
+
             // Finally, reconstruct and return the completed frame
 
             size_t fptr = 0;
@@ -751,7 +761,8 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     bool enable_idelay = !(flags & RCE_NO_H26X_INTRA_DELAY);
 
     if (is_frame_late(frames_.at(fragment_ts), rtp_ctx_->get_pkt_max_delay())) {
-        if (nal_type != NT_INTRA || (nal_type == NT_INTRA && !enable_idelay)) {
+        if (nal_type != uvgrtp::formats::NAL_TYPE::NT_INTRA || 
+            (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTRA && !enable_idelay)) {
             LOG_WARN("Received a packet that is too late!");
             drop_frame(fragment_ts);
         }

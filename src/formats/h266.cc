@@ -54,35 +54,35 @@ uint8_t uvgrtp::formats::h266::get_nal_type(uint8_t* data) const
     return (data[1] >> 3) & 0x1f;
 }
 
-int uvgrtp::formats::h266::get_fragment_type(uvgrtp::frame::rtp_frame* frame) const
+uvgrtp::formats::FRAG_TYPE uvgrtp::formats::h266::get_fragment_type(uvgrtp::frame::rtp_frame* frame) const
 {
     bool first_frag = frame->payload[2] & 0x80;
     bool last_frag = frame->payload[2] & 0x40;
 
     if ((frame->payload[1] >> 3) != uvgrtp::formats::H266_PKT_FRAG)
-        return uvgrtp::formats::FT_NOT_FRAG; // Single NAL unit
+        return uvgrtp::formats::FRAG_TYPE::FT_NOT_FRAG; // Single NAL unit
 
     if (first_frag && last_frag)
-        return uvgrtp::formats::FT_INVALID;
+        return uvgrtp::formats::FRAG_TYPE::FT_INVALID;
 
     if (first_frag)
-        return uvgrtp::formats::FT_START;
+        return uvgrtp::formats::FRAG_TYPE::FT_START;
 
     if (last_frag)
-        return uvgrtp::formats::FT_END;
+        return uvgrtp::formats::FRAG_TYPE::FT_END;
 
-    return uvgrtp::formats::FT_MIDDLE;
+    return uvgrtp::formats::FRAG_TYPE::FT_MIDDLE;
 }
 
-uvgrtp::formats::NAL_TYPES uvgrtp::formats::h266::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
+uvgrtp::formats::NAL_TYPE uvgrtp::formats::h266::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
 {
     switch (frame->payload[2] & 0x3f) {
-    case 19: return uvgrtp::formats::NT_INTRA;
-    case 1:  return uvgrtp::formats::NT_INTER;
+    case 19: return uvgrtp::formats::NAL_TYPE::NT_INTRA;
+    case 1:  return uvgrtp::formats::NAL_TYPE::NT_INTER;
     default: break;
     }
 
-    return uvgrtp::formats::NT_OTHER;
+    return uvgrtp::formats::NAL_TYPE::NT_OTHER;
 }
 
 rtp_error_t uvgrtp::formats::h266::construct_format_header_divide_fus(uint8_t* data, size_t data_len,

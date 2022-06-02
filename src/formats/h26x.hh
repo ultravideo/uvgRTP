@@ -19,7 +19,7 @@ namespace uvgrtp {
         #define INVALID_SEQ           0x13371338
         #define RTP_HDR_SIZE  12
 
-        enum FRAG_TYPES {
+        enum class FRAG_TYPE {
             FT_INVALID = -2, /* invalid combination of S and E bits */
             FT_NOT_FRAG = -1, /* frame doesn't contain fragment */
             FT_START = 1, /* frame contains a fragment with S bit set */
@@ -28,7 +28,7 @@ namespace uvgrtp {
             FT_AGGR = 4  /* aggregation packet */
         };
 
-        enum NAL_TYPES {
+        enum class NAL_TYPE {
             NT_INTRA = 0x00,
             NT_INTER = 0x01,
             NT_OTHER = 0xff
@@ -144,8 +144,8 @@ namespace uvgrtp {
                 virtual uint8_t get_nal_header_size() const = 0;
                 virtual uint8_t get_fu_header_size() const = 0;
                 virtual uint8_t get_start_code_range() const = 0;
-                virtual int get_fragment_type(uvgrtp::frame::rtp_frame* frame) const = 0;
-                virtual uvgrtp::formats::NAL_TYPES get_nal_type(uvgrtp::frame::rtp_frame* frame) const = 0;
+                virtual uvgrtp::formats::FRAG_TYPE get_fragment_type(uvgrtp::frame::rtp_frame* frame) const = 0;
+                virtual uvgrtp::formats::NAL_TYPE  get_nal_type(uvgrtp::frame::rtp_frame* frame) const = 0;
 
                 virtual void get_nal_header_from_fu_headers(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload);
 

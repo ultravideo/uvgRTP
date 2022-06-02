@@ -53,38 +53,38 @@ uint8_t uvgrtp::formats::h265::get_nal_type(uint8_t* data) const
     return (data[0] >> 1) & 0x3f;
 }
 
-int uvgrtp::formats::h265::get_fragment_type(uvgrtp::frame::rtp_frame* frame) const
+uvgrtp::formats::FRAG_TYPE uvgrtp::formats::h265::get_fragment_type(uvgrtp::frame::rtp_frame* frame) const
 {
     bool first_frag = frame->payload[2] & 0x80; // S bit
     bool last_frag = frame->payload[2] & 0x40;  // E bit
 
     if ((frame->payload[0] >> 1) == uvgrtp::formats::H265_PKT_AGGR)
-        return uvgrtp::formats::FT_AGGR;
+        return uvgrtp::formats::FRAG_TYPE::FT_AGGR;
 
     if ((frame->payload[0] >> 1) != uvgrtp::formats::H265_PKT_FRAG)
-        return uvgrtp::formats::FT_NOT_FRAG; // Single NAL unit
+        return uvgrtp::formats::FRAG_TYPE::FT_NOT_FRAG; // Single NAL unit
 
     if (first_frag && last_frag)
-        return uvgrtp::formats::FT_INVALID;
+        return uvgrtp::formats::FRAG_TYPE::FT_INVALID;
 
     if (first_frag)
-        return uvgrtp::formats::FT_START;
+        return uvgrtp::formats::FRAG_TYPE::FT_START;
 
     if (last_frag)
-        return uvgrtp::formats::FT_END;
+        return uvgrtp::formats::FRAG_TYPE::FT_END;
 
-    return uvgrtp::formats::FT_MIDDLE;
+    return uvgrtp::formats::FRAG_TYPE::FT_MIDDLE;
 }
 
-uvgrtp::formats::NAL_TYPES uvgrtp::formats::h265::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
+uvgrtp::formats::NAL_TYPE uvgrtp::formats::h265::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
 {
     switch (frame->payload[2] & 0x3f) {
-    case 19: return uvgrtp::formats::NT_INTRA;
-    case 1:  return uvgrtp::formats::NT_INTER;
+    case 19: return uvgrtp::formats::NAL_TYPE::NT_INTRA;
+    case 1:  return uvgrtp::formats::NAL_TYPE::NT_INTER;
     default: break;
     }
 
-    return uvgrtp::formats::NT_OTHER;
+    return uvgrtp::formats::NAL_TYPE::NT_OTHER;
 }
 
 void uvgrtp::formats::h265::clear_aggregation_info()

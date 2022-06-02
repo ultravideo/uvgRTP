@@ -45,38 +45,38 @@ uint8_t uvgrtp::formats::h264::get_start_code_range() const
     return 1; // H264 can have three byte start codes and therefore we must scan one byte at a time
 }
 
-int uvgrtp::formats::h264::get_fragment_type(uvgrtp::frame::rtp_frame* frame) const
+uvgrtp::formats::FRAG_TYPE uvgrtp::formats::h264::get_fragment_type(uvgrtp::frame::rtp_frame* frame) const
 {
     bool first_frag = frame->payload[1] & 0x80;
     bool last_frag = frame->payload[1] & 0x40;
 
     if ((frame->payload[0] & 0x1f) == uvgrtp::formats::H264_PKT_AGGR)
-        return uvgrtp::formats::FT_AGGR;
+        return uvgrtp::formats::FRAG_TYPE::FT_AGGR;
 
     if ((frame->payload[0] & 0x1f) != uvgrtp::formats::H264_PKT_FRAG)
-        return uvgrtp::formats::FT_NOT_FRAG; // Single NAL unit
+        return uvgrtp::formats::FRAG_TYPE::FT_NOT_FRAG; // Single NAL unit
 
     if (first_frag && last_frag)
-        return uvgrtp::formats::FT_INVALID;
+        return uvgrtp::formats::FRAG_TYPE::FT_INVALID;
 
     if (first_frag)
-        return uvgrtp::formats::FT_START;
+        return uvgrtp::formats::FRAG_TYPE::FT_START;
 
     if (last_frag)
-        return uvgrtp::formats::FT_END;
+        return uvgrtp::formats::FRAG_TYPE::FT_END;
 
-    return uvgrtp::formats::FT_MIDDLE;
+    return uvgrtp::formats::FRAG_TYPE::FT_MIDDLE;
 }
 
-uvgrtp::formats::NAL_TYPES uvgrtp::formats::h264::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
+uvgrtp::formats::NAL_TYPE uvgrtp::formats::h264::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
 {
     switch (frame->payload[1] & 0x1f) {
-    case 19: return uvgrtp::formats::NT_INTRA;
-    case 1:  return uvgrtp::formats::NT_INTER;
+    case 19: return uvgrtp::formats::NAL_TYPE::NT_INTRA;
+    case 1:  return uvgrtp::formats::NAL_TYPE::NT_INTER;
     default: break;
     }
 
-    return uvgrtp::formats::NT_OTHER;
+    return uvgrtp::formats::NAL_TYPE::NT_OTHER;
 }
 
 uint8_t uvgrtp::formats::h264::get_nal_type(uint8_t* data) const
