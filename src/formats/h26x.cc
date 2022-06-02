@@ -613,21 +613,6 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_
 rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_frame** out)
 {
     uvgrtp::frame::rtp_frame* frame;
-    bool enable_idelay = !(flags & RCE_NO_H26X_INTRA_DELAY);
-
-    /* Use "intra" to keep track of intra frames
-     *
-     * If uvgRTP is in the process of receiving fragments of an incomplete intra frame,
-     * "intra" shall be the timestamp value of that intra frame. This means that when 
-     * we're receiving packets out of order and an inter frame is complete while "intra" 
-     * contains value other than INVALID_TS, we drop the inter frame and wait for
-     * the intra frame to complete.
-     *
-     * If "intra" contains INVALID_TS and all packets of an inter frame have been received,
-     * the inter frame is returned to user.  If intra contains a value other than INVALID_TS
-     * (meaning an intra frame is in progress) and a new intra frame is received, the old intra 
-     * frame pointed to by "intra" and new intra frame shall take the place of active intra frame */
-    uint32_t intra = INVALID_TS;
 
     frame = *out;
     int frag_type = get_fragment_type(frame); // aggregate, start, middle, end or single NAL
@@ -666,17 +651,6 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         if (dropped_.find(fragment_ts) != dropped_.end()) {
             LOG_WARN("packet belonging to a dropped frame was received!");
             return RTP_GENERIC_ERROR;
-        }
-
-        // drop old intra if a new one is received
-        if (nal_type == NT_INTRA) {
-
-            // TODO: This does not work
-            if (intra != INVALID_TS && enable_idelay) {
-                LOG_WARN("Dropping old h26x intra since new one has arrived");
-                drop_frame(intra);
-            }
-            intra = fragment_ts;
         }
 
         initialize_new_fragmented_frame(fragment_ts);
@@ -744,18 +718,6 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         // have we received every fragment and can the frame can be reconstructed?
         if (received == frames_[fragment_ts].pkts_received) {
 
-            /* intra is still in progress, do not return the inter */
-
-            // TODO: Do not drop a frame here since it may lead to needless loss of a frame! 
-            // Instead wait for inter to be received or next inter
-
-            // TODO: This does not work, since intra variable is local to this function call
-            if (nal_type == NT_INTER && intra != INVALID_TS && enable_idelay) {
-                LOG_WARN("Got h26x Inter frame while intra is still in progress");
-                drop_frame(fragment_ts);
-                return RTP_OK;
-            }
-
             // Finally, reconstruct and return the completed frame
 
             size_t fptr = 0;
@@ -780,16 +742,13 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
                 (void)uvgrtp::frame::dealloc_frame(fragment.second); // free fragment memory
             }
 
-            // TODO: Does not work
-            if (nal_type == NT_INTRA)
-                intra = INVALID_TS;
-
-
             *out = complete;      // save result to output
             frames_.erase(fragment_ts);  // erase data structures for this frame
             return RTP_PKT_READY; // indicate that we have a frame ready
         }
     }
+
+    bool enable_idelay = !(flags & RCE_NO_H26X_INTRA_DELAY);
 
     if (is_frame_late(frames_.at(fragment_ts), rtp_ctx_->get_pkt_max_delay())) {
         if (nal_type != NT_INTRA || (nal_type == NT_INTRA && !enable_idelay)) {
