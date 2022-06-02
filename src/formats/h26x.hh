@@ -38,10 +38,10 @@ namespace uvgrtp {
             /* clock reading when the first fragment is received */
             uvgrtp::clock::hrc::hrc_t sframe_time;
 
-            /* sequence number of the frame with s-bit */
+            /* sequence number of the fragment with s-bit (start) */
             uint32_t s_seq = 0;
 
-            /* sequence number of the frame with e-bit */
+            /* sequence number of the fragment with e-bit (end) */
             uint32_t e_seq = 0;
 
             /* how many fragments have been received */
@@ -155,8 +155,6 @@ namespace uvgrtp {
                 virtual void prepend_start_code(int flags, uvgrtp::frame::rtp_frame** out);
 
         private:
-
-
 
             bool is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay);
             uint32_t drop_frame(uint32_t ts);

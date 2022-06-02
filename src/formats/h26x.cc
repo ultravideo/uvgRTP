@@ -618,27 +618,26 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     /* Use "intra" to keep track of intra frames
      *
      * If uvgRTP is in the process of receiving fragments of an incomplete intra frame,
-     * "intra" shall be the timestamp value of that intra frame.
-     * This means that when we're receiving packets out of order and an inter frame is complete
-     * while "intra" contains value other than INVALID_TS, we drop the inter frame and wait for
+     * "intra" shall be the timestamp value of that intra frame. This means that when 
+     * we're receiving packets out of order and an inter frame is complete while "intra" 
+     * contains value other than INVALID_TS, we drop the inter frame and wait for
      * the intra frame to complete.
      *
      * If "intra" contains INVALID_TS and all packets of an inter frame have been received,
      * the inter frame is returned to user.  If intra contains a value other than INVALID_TS
-     * (meaning an intra frame is in progress) and a new intra frame is received, the old intra frame
-     * pointed to by "intra" and new intra frame shall take the place of active intra frame */
+     * (meaning an intra frame is in progress) and a new intra frame is received, the old intra 
+     * frame pointed to by "intra" and new intra frame shall take the place of active intra frame */
     uint32_t intra = INVALID_TS;
 
     frame = *out;
-
-    int frag_type = get_fragment_type(frame);
+    int frag_type = get_fragment_type(frame); // aggregate, start, middle, end or single NAL
     
     if (frag_type == FT_AGGR) {
         // handle aggregate packets (packets with multiple NAL units in them)
         return handle_aggregation_packet(out, get_payload_header_size(), flags);
     }
-    else if (frag_type == FT_NOT_FRAG) {
-        // handle single NAL unit packet by doing nothing
+    else if (frag_type == FT_NOT_FRAG) { // Single NAL unit
+        // nothing special needs to be done, just possibly add start codes back
         prepend_start_code(flags, out);
         return RTP_PKT_READY;
     }
@@ -650,101 +649,127 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         return RTP_GENERIC_ERROR;
     }
 
-    // rest of the function deals with fragmented frames
+    // We have received a fragment. Rest of the function deals with fragmented frames
 
-    uint32_t c_ts = frame->header.timestamp;
-    uint32_t c_seq = frame->header.seq;
+    // fragment timestamp, all fragments of the same frame have the same timestamp
+    uint32_t fragment_ts = frame->header.timestamp; 
+
+    // fragment sequence number, determines the order of the fragments within frame
+    uint32_t fragment_seq = frame->header.seq;      
     
-    uint8_t nal_type = get_nal_type(frame);
+    uint8_t nal_type = get_nal_type(frame); // Intra or inter frame
 
-    /* initialize new frame if this is the first packet with this timestamp */
-    if (frames_.find(c_ts) == frames_.end()) {
+    // initialize new frame if this is the first packet with this timestamp
+    if (frames_.find(fragment_ts) == frames_.end()) {
 
-        /* make sure we haven't discarded the frame "c_ts" before */
-        if (dropped_.find(c_ts) != dropped_.end()) {
+        // make sure we haven't discarded the frame "c_ts" before 
+        if (dropped_.find(fragment_ts) != dropped_.end()) {
             LOG_WARN("packet belonging to a dropped frame was received!");
             return RTP_GENERIC_ERROR;
         }
 
-        /* drop old intra if a new one is received */
+        // drop old intra if a new one is received
         if (nal_type == NT_INTRA) {
+
+            // TODO: This does not work
             if (intra != INVALID_TS && enable_idelay) {
                 LOG_WARN("Dropping old h26x intra since new one has arrived");
                 drop_frame(intra);
             }
-            intra = c_ts;
+            intra = fragment_ts;
         }
 
-        initialize_new_fragmented_frame(c_ts);
+        initialize_new_fragmented_frame(fragment_ts);
     }
 
-    const size_t sizeof_fu_headers = get_payload_header_size() + get_fu_header_size();
+    const uint8_t sizeof_fu_headers = (uint8_t)get_payload_header_size() + 
+                                               get_fu_header_size();
 
-    frames_[c_ts].pkts_received += 1;
-    frames_[c_ts].total_size += (frame->payload_len - sizeof_fu_headers);
+    frames_[fragment_ts].pkts_received += 1;
+    frames_[fragment_ts].total_size += (frame->payload_len - sizeof_fu_headers);
 
     if (frag_type == FT_START) {
-        frames_[c_ts].s_seq = c_seq;
-        frames_[c_ts].fragments[c_seq] = frame;
+        frames_[fragment_ts].s_seq = fragment_seq; // set the first sequence number of the frame
+        frames_[fragment_ts].fragments[fragment_seq] = frame; 
 
-        for (auto& fragment : frames_[c_ts].temporary) {
-            uint16_t fseq = fragment->header.seq;
-            uint32_t seq = (c_seq > fseq) ? 0x10000 + fseq : fseq;
+        // move all fragments that arrived before the start fragment to correct places
+        for (auto& temp_fragment : frames_[fragment_ts].temporary) {
+            uint16_t temp_seq = temp_fragment->header.seq;
+            uint32_t seq = (fragment_seq > temp_seq) ? 0x10000 + temp_seq : temp_seq;
 
-            frames_[c_ts].fragments[seq] = fragment;
+            frames_[fragment_ts].fragments[seq] = temp_fragment;
         }
-        frames_[c_ts].temporary.clear();
+
+        frames_[fragment_ts].temporary.clear();
     }
+    else
+    {
+        if (frag_type == FT_END)
+        {
+            frames_[fragment_ts].e_seq = fragment_seq;
+        }
 
-    if (frag_type == FT_END)
-        frames_[c_ts].e_seq = c_seq;
+        // find a place to store the fragment
+        if (frames_[fragment_ts].s_seq != INVALID_SEQ) { // has the start fragment arrived yet?
 
-    /* Out-of-order nature poses an interesting problem when reconstructing the frame:
-     * how to store the fragments such that we mustn't shuffle them around when frame reconstruction takes place?
-     *
-     * std::map is an option but the overflow of 16-bit sequence number counter makes that a little harder because
-     * if the first few fragments of a frame are near 65535, the rest of the fragments are going to have sequence
-     * numbers less than that and thus our frame reconstruction breaks.
-     *
-     * This can be solved by checking if current fragment's sequence is less than start fragment's sequence number
-     * (overflow has occurred) and correcting the current sequence by adding 0x10000 to its value so it appears
-     * in order with other fragments */
-    if (frag_type != FT_START) {
-        if (frames_[c_ts].s_seq != INVALID_SEQ) {
-            /* overflow has occurred, adjust the sequence number of current
+            /* Out-of-order nature poses an interesting problem when reconstructing the frame:
+             * How to store the fragments such that we don't have to shuffle them around when
+             * frame reconstruction takes place?
+             *
+             * std::map is an option but the overflow of 16-bit sequence number counter makes
+             * that a little harder because if the first few fragments of a frame are near
+             * 16-bit maximum (65535),  the rest of the fragments are going to have sequence
+             * numbers less than that and thus our frame reconstruction breaks.
+             *
+             * This can be solved by checking if current fragment's sequence is less than start fragment's sequence number
+             * (overflow has occurred) and correcting the current sequence by adding 0x10000 to its value so it appears
+             * in order with other fragments 
+
+             * Here the overflow has occurred, adjust the sequence number of current
              * fragment so it appears in order with other fragments of the frame
              *
-             * Note: if the frame is huge (~94 MB), this will not work but it's not a realistic scenario */
-            frames_[c_ts].fragments[((frames_[c_ts].s_seq > c_seq) ? 0x10000 + c_seq : c_seq)] = frame;
+             * Note: if the frame is huge (~94 MB), this will not work */
+            frames_[fragment_ts].fragments[((frames_[fragment_ts].s_seq > fragment_seq) ? 0x10000 + fragment_seq : fragment_seq)] = frame;
         }
         else {
-            /* position for the fragment cannot be calculated so move the fragment to a temporary storage */
-            frames_[c_ts].temporary.push_back(frame);
+            // position for the fragment cannot be calculated so move the fragment to a temporary storage
+            frames_[fragment_ts].temporary.push_back(frame);
         }
     }
 
-    // have the first and last fragment arrived so we can possible start reconstructing the frame?
-    if (frames_[c_ts].s_seq != INVALID_SEQ && frames_[c_ts].e_seq != INVALID_SEQ) {
-        size_t received = calculate_expected_fus(c_ts);
+    // have the first and last fragment arrived so we can possibly start reconstructing the frame?
+    if (frames_[fragment_ts].s_seq != INVALID_SEQ && frames_[fragment_ts].e_seq != INVALID_SEQ) {
+        size_t received = calculate_expected_fus(fragment_ts);
 
-        /* we've received every fragment and the frame can be reconstructed */
-        if (received == frames_[c_ts].pkts_received) {
+        // have we received every fragment and can the frame can be reconstructed?
+        if (received == frames_[fragment_ts].pkts_received) {
 
             /* intra is still in progress, do not return the inter */
+
+            // TODO: Do not drop a frame here since it may lead to needless loss of a frame! 
+            // Instead wait for inter to be received or next inter
+
+            // TODO: This does not work, since intra variable is local to this function call
             if (nal_type == NT_INTER && intra != INVALID_TS && enable_idelay) {
                 LOG_WARN("Got h26x Inter frame while intra is still in progress");
-                drop_frame(c_ts);
+                drop_frame(fragment_ts);
                 return RTP_OK;
             }
 
-            size_t fptr = 0;
-            uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode((flags & RCE_H26X_PREPEND_SC), 
-                (*out)->header, get_nal_header_size() + frames_[c_ts].total_size, fptr);
+            // Finally, reconstruct and return the completed frame
 
+            size_t fptr = 0;
+
+            // allocating the frame with start code ready saves a copy operation for the frame
+            uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode((flags & RCE_H26X_PREPEND_SC), 
+                (*out)->header, get_nal_header_size() + frames_[fragment_ts].total_size, fptr);
+
+            // construct the NAL header from fragment header of current fragment
             get_nal_header_from_fu_headers(fptr, frame->payload, complete->payload); // NAL header
             fptr += get_nal_header_size();
 
-            for (auto& fragment : frames_.at(c_ts).fragments) {
+            // reconstruct rest of the frame data from fragments
+            for (auto& fragment : frames_.at(fragment_ts).fragments) {
                 // copy everything expect fu headers (which repeat for every fu)
                 std::memcpy(
                     &complete->payload[fptr],
@@ -752,28 +777,30 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
                     fragment.second->payload_len - sizeof_fu_headers
                 );
                 fptr += fragment.second->payload_len - sizeof_fu_headers;
-                (void)uvgrtp::frame::dealloc_frame(fragment.second);
+                (void)uvgrtp::frame::dealloc_frame(fragment.second); // free fragment memory
             }
 
-
+            // TODO: Does not work
             if (nal_type == NT_INTRA)
                 intra = INVALID_TS;
 
-            *out = complete;
-            frames_.erase(c_ts);
-            return RTP_PKT_READY;
+
+            *out = complete;      // save result to output
+            frames_.erase(fragment_ts);  // erase data structures for this frame
+            return RTP_PKT_READY; // indicate that we have a frame ready
         }
     }
 
-    if (is_frame_late(frames_.at(c_ts), rtp_ctx_->get_pkt_max_delay())) {
+    if (is_frame_late(frames_.at(fragment_ts), rtp_ctx_->get_pkt_max_delay())) {
         if (nal_type != NT_INTRA || (nal_type == NT_INTRA && !enable_idelay)) {
             LOG_WARN("Received a packet that is too late!");
-            drop_frame(c_ts);
+            drop_frame(fragment_ts);
         }
     }
 
+    // make sure uvgRTP does not reserve increasing amounts of memory because some frames are not completed
     garbage_collect_lost_frames();
-    return RTP_OK;
+    return RTP_OK; // no frame was completed, but everything went ok for this fragment
 }
 
 void uvgrtp::formats::h26x::get_nal_header_from_fu_headers(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload)
