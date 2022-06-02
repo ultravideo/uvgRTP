@@ -12,6 +12,9 @@ benchmarks/*/results
 benchmarks/*/*data
 benchmarks/*/*receiver
 benchmarks/*/*sender
+examples/.qtc_clangd/*
+examples/build-Example*
+uvgRTP.pro.user.*
 build/*
 *.prof
 *.user
