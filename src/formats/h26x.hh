@@ -167,6 +167,9 @@ namespace uvgrtp {
 
             void garbage_collect_lost_frames();
 
+            rtp_error_t reconstruction(uvgrtp::frame::rtp_frame** out,
+                int flags, uint32_t frame_timestamp, const uint8_t sizeof_fu_headers);
+
             std::deque<uvgrtp::frame::rtp_frame*> queued_;
             std::unordered_map<uint32_t, h26x_info_t> frames_;
 
@@ -177,6 +180,8 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::rtp> rtp_ctx_;
 
             uvgrtp::clock::hrc::hrc_t last_garbage_collection_;
+
+            bool discard_until_key_frame_ = true;
         };
     }
 }

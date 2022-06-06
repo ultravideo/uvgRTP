@@ -87,7 +87,8 @@ uvgrtp::formats::h26x::h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_
     fragments_(UINT16_MAX, nullptr),
     dropped_(), 
     rtp_ctx_(rtp),
-    last_garbage_collection_(uvgrtp::clock::hrc::now())
+    last_garbage_collection_(uvgrtp::clock::hrc::now()),
+    discard_until_key_frame_(true)
 {}
 
 uvgrtp::formats::h26x::~h26x()
@@ -536,8 +537,8 @@ uint32_t uvgrtp::formats::h26x::drop_frame(uint32_t ts)
     uint16_t s_seq = frames_.at(ts).s_seq;
     uint16_t e_seq = frames_.at(ts).e_seq;
 
-    LOG_INFO("Dropping frame. Ts: %lu, Seq: %u <-> %u, received/expected: %lli/%lli", 
-        ts, s_seq, e_seq, frames_[ts].received_packet_seqs.size(), calculate_expected_fus(ts));
+    //LOG_INFO("Dropping frame. Ts: %lu, Seq: %u <-> %u, received/expected: %lli/%lli", 
+    //    ts, s_seq, e_seq, frames_[ts].received_packet_seqs.size(), calculate_expected_fus(ts));
 
     for (auto& fragment_seq : frames_[ts].received_packet_seqs)
     {
@@ -547,6 +548,8 @@ uint32_t uvgrtp::formats::h26x::drop_frame(uint32_t ts)
 
     frames_.erase(ts);
     dropped_.insert(ts);
+
+    discard_until_key_frame_ = true;
 
     return total_cleaned;
 }
@@ -593,9 +596,7 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_
 
 rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_frame** out)
 {
-    uvgrtp::frame::rtp_frame* frame;
-
-    frame = *out;
+    uvgrtp::frame::rtp_frame* frame = *out;
 
     // aggregate, start, middle, end or single NAL
     uvgrtp::formats::FRAG_TYPE frag_type = get_fragment_type(frame); 
@@ -624,13 +625,11 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     // We have received a fragment. Rest of the function deals with fragmented frames
 
     // Fragment timestamp, all fragments of the same frame have the same timestamp
-    uint16_t fragment_ts = frame->header.timestamp;
+    uint32_t fragment_ts = frame->header.timestamp;
 
     // Fragment sequence number, determines the order of the fragments within frame
     uint16_t fragment_seq = frame->header.seq;      
     
-    uvgrtp::formats::NAL_TYPE nal_type = get_nal_type(frame); // Intra, inter or some other type of frame
-
     // Initialize new frame if this is the first packet with this timestamp
     if (frames_.find(fragment_ts) == frames_.end()) {
 
@@ -681,49 +680,33 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         frames_[fragment_ts].end_received = true;
     }
 
+    uvgrtp::formats::NAL_TYPE nal_type = get_nal_type(frame); // Intra, inter or some other type of frame
+
     // have the first and last fragment arrived so we can possibly start reconstructing the frame?
     if (frames_[fragment_ts].start_received && frames_[fragment_ts].end_received) {
         size_t received = calculate_expected_fus(fragment_ts);
 
         // have we received every fragment and can the frame can be reconstructed?
         if (received == frames_[fragment_ts].received_packet_seqs.size()) {
-            // TODO: check here if previous dependencies have been sent forward
 
+            // here we discard inter frames if their references were not received correctly
+            if (discard_until_key_frame_) {
+                if (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTER) {
+                    LOG_WARN("Dropping h26x frame because of missing reference. Timestamp: %lu. Seq: %u - %u", 
+                        fragment_ts, frames_[fragment_ts].s_seq, frames_[fragment_ts].e_seq);
 
-            // Reconstruction of frame from fragments
-            size_t fptr = 0;
-
-            // allocating the frame with start code ready saves a copy operation for the frame
-            uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode((flags & RCE_H26X_PREPEND_SC), 
-                (*out)->header, get_nal_header_size() + frames_[fragment_ts].total_size, fptr);
-
-            // construct the NAL header from fragment header of current fragment
-            get_nal_header_from_fu_headers(fptr, frame->payload, complete->payload); // NAL header
-            fptr += get_nal_header_size();
-
-            uint16_t next_from_last = frames_.at(fragment_ts).e_seq + 1;
-            for (uint16_t i = frames_.at(fragment_ts).s_seq; i != next_from_last; ++i)
-            {
-                if (fragments_[i] == nullptr)
-                {
-                    LOG_ERROR("Missing fragment in reconstruction. Seq range: %u - %u. Missing seq %u", 
-                        frames_.at(fragment_ts).s_seq, frames_.at(fragment_ts).e_seq, i);
+                    drop_frame(fragment_ts);
                     return RTP_GENERIC_ERROR;
                 }
+                else if (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTRA) {
 
-                // copy everything expect fu headers (which repeat for every fu)
-                std::memcpy(
-                    &complete->payload[fptr],
-                    &fragments_[i]->payload[sizeof_fu_headers],
-                    fragments_[i]->payload_len - sizeof_fu_headers
-                );
-                fptr += fragments_[i]->payload_len - sizeof_fu_headers;
-                free_fragment(i);
+                    // we don't have to discard anymore
+                    LOG_INFO("Found a key frame at ts %lu", fragment_ts);
+                    discard_until_key_frame_ = false;
+                }
             }
 
-            *out = complete;      // save result to output
-            frames_.erase(fragment_ts);  // erase data structures for this frame
-            return RTP_PKT_READY; // indicate that we have a frame ready
+            return reconstruction(out, flags, fragment_ts, sizeof_fu_headers);
         }
     }
 
@@ -732,7 +715,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     if (is_frame_late(frames_.at(fragment_ts), rtp_ctx_->get_pkt_max_delay())) {
         if (nal_type != uvgrtp::formats::NAL_TYPE::NT_INTRA || 
             (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTRA && !enable_idelay)) {
-            LOG_WARN("Received a packet that is too late!");
+            LOG_WARN("Received a packet that is too late! Timestamp: %lu", fragment_ts);
             drop_frame(fragment_ts);
         }
     }
@@ -872,4 +855,45 @@ void uvgrtp::formats::h26x::scl(uint8_t* data, size_t data_len, size_t packet_si
     }
 
     can_be_aggregated = (aggregatable_packets >= 2);
+}
+
+rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out, 
+    int flags, uint32_t frame_timestamp, const uint8_t sizeof_fu_headers)
+{
+    uvgrtp::frame::rtp_frame* frame = *out;
+
+    // Reconstruction of frame from fragments
+    size_t fptr = 0;
+
+    // allocating the frame with start code ready saves a copy operation for the frame
+    uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode((flags & RCE_H26X_PREPEND_SC),
+        frame->header, get_nal_header_size() + frames_[frame_timestamp].total_size, fptr);
+
+    // construct the NAL header from fragment header of current fragment
+    get_nal_header_from_fu_headers(fptr, frame->payload, complete->payload); // NAL header
+    fptr += get_nal_header_size();
+
+    uint16_t next_from_last = frames_.at(frame_timestamp).e_seq + 1;
+    for (uint16_t i = frames_.at(frame_timestamp).s_seq; i != next_from_last; ++i)
+    {
+        if (fragments_[i] == nullptr)
+        {
+            LOG_ERROR("Missing fragment in reconstruction. Seq range: %u - %u. Missing seq %u",
+                frames_.at(frame_timestamp).s_seq, frames_.at(frame_timestamp).e_seq, i);
+            return RTP_GENERIC_ERROR;
+        }
+
+        // copy everything expect fu headers (which repeat for every fu)
+        std::memcpy(
+            &complete->payload[fptr],
+            &fragments_[i]->payload[sizeof_fu_headers],
+            fragments_[i]->payload_len - sizeof_fu_headers
+        );
+        fptr += fragments_[i]->payload_len - sizeof_fu_headers;
+        free_fragment(i);
+    }
+
+    *out = complete;      // save result to output
+    frames_.erase(frame_timestamp);  // erase data structures for this frame
+    return RTP_PKT_READY; // indicate that we have a frame ready
 }
