@@ -8,6 +8,7 @@
 
 #include <deque>
 #include <memory>
+#include <set>
 
 namespace uvgrtp {
 
@@ -16,7 +17,6 @@ namespace uvgrtp {
 
     namespace formats {
 
-        #define INVALID_SEQ           0x13371338
         #define RTP_HDR_SIZE  12
 
         enum class FRAG_TYPE {
@@ -38,24 +38,20 @@ namespace uvgrtp {
             /* clock reading when the first fragment is received */
             uvgrtp::clock::hrc::hrc_t sframe_time;
 
+            bool start_received = false;
+            bool end_received = false;
+
             /* sequence number of the fragment with s-bit (start) */
-            uint32_t s_seq = 0;
+            uint16_t s_seq = 0;
 
             /* sequence number of the fragment with e-bit (end) */
-            uint32_t e_seq = 0;
-
-            /* how many fragments have been received */
-            size_t pkts_received = 0;
+            uint16_t e_seq = 0;
 
             /* total size of all fragments */
             size_t total_size = 0;
 
-            /* map of frame's fragments,
-             * allows out-of-order insertion and loop-through in order */
-            std::map<uint32_t, uvgrtp::frame::rtp_frame*> fragments;
-
-            /* storage for fragments that require relocation */
-            std::vector<uvgrtp::frame::rtp_frame*> temporary;
+            // needed for cleaning fragments in case the frame is dropped
+            std::set<uint16_t> received_packet_seqs;
         } h26x_info_t;
 
         struct nal_info
@@ -96,8 +92,7 @@ namespace uvgrtp {
 
                 /* Packet handler for RTP frames that transport HEVC bitstream
                  *
-                 * If "frame" is not a fragmentation unit, packet handler checks
-                 * if "frame" is SPS/VPS/PPS packet and if so, returns the packet
+                 * If "frame" is not a fragmentation unit, packet handler returns the packet
                  * to user immediately.
                  *
                  * If "frame" is a fragmentation unit, packet handler checks if
@@ -162,6 +157,8 @@ namespace uvgrtp {
             inline size_t calculate_expected_fus(uint32_t ts);
             inline void initialize_new_fragmented_frame(uint32_t ts);
 
+            void free_fragment(uint16_t sequence_number);
+
             void scl(uint8_t* data, size_t data_len, size_t packet_size, 
                 std::vector<nal_info>& nals, bool& can_be_aggregated);
 
@@ -172,6 +169,10 @@ namespace uvgrtp {
 
             std::deque<uvgrtp::frame::rtp_frame*> queued_;
             std::unordered_map<uint32_t, h26x_info_t> frames_;
+
+            // Holds all possible fragments in sequence number order
+            std::vector<uvgrtp::frame::rtp_frame*> fragments_;
+
             std::unordered_set<uint32_t> dropped_;
             std::shared_ptr<uvgrtp::rtp> rtp_ctx_;
 
