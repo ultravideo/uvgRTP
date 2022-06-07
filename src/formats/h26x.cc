@@ -84,7 +84,7 @@ uvgrtp::formats::h26x::h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_
     media(socket, rtp, flags), 
     queued_(), 
     frames_(), 
-    fragments_(UINT16_MAX, nullptr),
+    fragments_(UINT16_MAX + 1, nullptr),
     dropped_(), 
     rtp_ctx_(rtp),
     last_garbage_collection_(uvgrtp::clock::hrc::now()),
