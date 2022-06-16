@@ -1113,7 +1113,7 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t size,
 
     memcpy(frame->name, &packet[RTCP_HEADER_SIZE + SSRC_CSRC_SIZE], APP_NAME_SIZE);
     memcpy(frame->payload, &packet[RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE],
-        frame->header.length - RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE);
+        frame->header.length - RTCP_HEADER_SIZE - SSRC_CSRC_SIZE - APP_NAME_SIZE);
 
     app_mutex_.lock();
     if (app_hook_) {
