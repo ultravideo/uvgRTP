@@ -35,7 +35,7 @@ typedef SSIZE_T ssize_t;
 
 const int MAX_PACKET       = 65536;
 const int MAX_PAYLOAD      = 1446;
-const int PKT_MAX_DELAY    = 100;
+const int PKT_MAX_DELAY    = 500;
 
 /* TODO: add ability for user to specify these? */
 enum HEADER_SIZES {
