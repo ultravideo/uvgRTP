@@ -71,7 +71,7 @@ uvgrtp::formats::FRAG_TYPE uvgrtp::formats::h264::get_fragment_type(uvgrtp::fram
 uvgrtp::formats::NAL_TYPE uvgrtp::formats::h264::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
 {
     switch (frame->payload[1] & 0x1f) {
-    case 19: return uvgrtp::formats::NAL_TYPE::NT_INTRA;
+    case 5: return uvgrtp::formats::NAL_TYPE::NT_INTRA;
     case 1:  return uvgrtp::formats::NAL_TYPE::NT_INTER;
     default: break;
     }

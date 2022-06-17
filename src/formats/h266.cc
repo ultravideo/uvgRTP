@@ -76,11 +76,12 @@ uvgrtp::formats::FRAG_TYPE uvgrtp::formats::h266::get_fragment_type(uvgrtp::fram
 
 uvgrtp::formats::NAL_TYPE uvgrtp::formats::h266::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
 {
-    switch (frame->payload[2] & 0x3f) {
-    case 19: return uvgrtp::formats::NAL_TYPE::NT_INTRA;
-    case 1:  return uvgrtp::formats::NAL_TYPE::NT_INTER;
-    default: break;
-    }
+    uint8_t nal_type = frame->payload[2] & 0x3f;
+
+    if (nal_type == 7)
+        return uvgrtp::formats::NAL_TYPE::NT_INTRA;
+    else if (nal_type == 0)
+        return uvgrtp::formats::NAL_TYPE::NT_INTER;
 
     return uvgrtp::formats::NAL_TYPE::NT_OTHER;
 }
