@@ -343,6 +343,7 @@ rtp_error_t uvgrtp::media_stream::start_components()
 
     if (ctx_config_.flags & RCE_RTCP) {
         rtcp_->add_participant(addr_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
+        rtcp_->set_session_bandwidth(get_default_bandwidth_kbps(fmt_));
         rtcp_->start();
     }
 
@@ -625,4 +626,30 @@ rtp_error_t uvgrtp::media_stream::init_srtp_with_zrtp(int flags, int type, std::
     delete[] remote_key;
 
     return ret;
+}
+
+
+int uvgrtp::media_stream::get_default_bandwidth_kbps(rtp_format_t fmt)
+{
+    int bandwidth = 50;
+    switch (fmt) {
+        case RTP_FORMAT_H264:
+            bandwidth = 6000;
+            break;
+        case RTP_FORMAT_H265:
+            bandwidth = 3000;
+            break;
+        case RTP_FORMAT_H266:
+            bandwidth = 2000;
+            break;
+        case RTP_FORMAT_OPUS:
+            bandwidth = 24;
+            break;
+        default:
+            LOG_WARN("Unknown RTP format, setting session bandwidth to 64 kbps");
+            int bandwidth = 64;
+            break;
+    }
+
+    return bandwidth;
 }

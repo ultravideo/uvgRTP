@@ -39,7 +39,7 @@ namespace uvgrtp {
         uint32_t received_bytes = 0; /* Number of bytes received excluding RTP Header */
         bool received_rtp_packet = false; // since last report
 
-        uint32_t jitter = 0;         /* TODO: */
+        float jitter = 0;            /* The estimation of jitter (see RFC 3550 A.8) */
         uint32_t transit = 0;        /* TODO: */
 
 
@@ -189,6 +189,8 @@ namespace uvgrtp {
             /* Update various session statistics */
             void update_session_statistics(const uvgrtp::frame::rtp_frame *frame);
 
+            void set_session_bandwidth(int kbps);
+
             /* Return SSRCs of all participants */
             std::vector<uint32_t> get_participants() const;
             /// \endcond
@@ -298,7 +300,7 @@ namespace uvgrtp {
             rtp_error_t handle_app_packet(uint8_t* frame, size_t size,
                 uvgrtp::frame::rtcp_header& header);
 
-            static void rtcp_runner(rtcp *rtcp);
+            static void rtcp_runner(rtcp *rtcp, int interval);
 
             /* when we start the RTCP instance, we don't know what the SSRC of the remote is
              * when an RTP packet is received, we must check if we've already received a packet
@@ -463,6 +465,8 @@ namespace uvgrtp {
             }
 
             bool active_;
+
+            int interval_ms_;
     };
 }
 

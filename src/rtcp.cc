@@ -29,7 +29,7 @@ const uint32_t RTP_SEQ_MOD    = 1 << 16;
 const uint32_t MIN_SEQUENTIAL = 2;
 const uint32_t MAX_DROPOUT    = 3000;
 const uint32_t MAX_MISORDER   = 100;
-const uint32_t MIN_TIMEOUT_MS    = 5000;
+const uint32_t DEFAULT_RTCP_INTERVAL_MS = 5000;
 
 constexpr int ESTIMATED_MAX_RECEPTION_TIME_MS = 10;
 
@@ -54,7 +54,8 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, int flags):
     sdes_hook_u_(nullptr),
     app_hook_f_(nullptr),
     app_hook_u_(nullptr),
-    active_(false)
+    active_(false),
+    interval_ms_(DEFAULT_RTCP_INTERVAL_MS)
 {
     clock_rate_   = rtp->get_clock_rate();
 
@@ -115,7 +116,7 @@ rtp_error_t uvgrtp::rtcp::start()
     }
     active_ = true;
 
-    report_generator_.reset(new std::thread(rtcp_runner, this));
+    report_generator_.reset(new std::thread(rtcp_runner, this, interval_ms_));
 
     return RTP_OK;
 }
@@ -164,14 +165,14 @@ rtp_error_t uvgrtp::rtcp::stop()
     return uvgrtp::rtcp::send_bye_packet({ ssrc_ });
 }
 
-void uvgrtp::rtcp::rtcp_runner(uvgrtp::rtcp* rtcp)
+void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp, int interval)
 {
-    LOG_INFO("RTCP instance created!");
-
-    int interval = MIN_TIMEOUT_MS;
+    LOG_INFO("RTCP instance created! RTCP interval: %i ms", interval);
 
     // RFC 3550 says to wait half interval before sending first report
-    std::this_thread::sleep_for(std::chrono::milliseconds(interval/2));
+    int initial_sleep_ms = interval / 2;
+    LOG_DEBUG("Sleeping for %i ms before sending first RTCP report", initial_sleep_ms);
+    std::this_thread::sleep_for(std::chrono::milliseconds(initial_sleep_ms));
 
     uint8_t buffer[MAX_PACKET];
 
@@ -180,12 +181,16 @@ void uvgrtp::rtcp::rtcp_runner(uvgrtp::rtcp* rtcp)
     int i = 0;
     while (rtcp->is_active())
     {
-        auto time_since_start = uvgrtp::clock::hrc::diff_now(start);
-        long int diff_ms = i*interval - time_since_start;
+        long int next_sendslot = i * interval;
+        long int run_time = uvgrtp::clock::hrc::diff_now(start);
+        long int diff_ms = next_sendslot - run_time;
 
         if (diff_ms <= 0)
         {
             ++i;
+
+            LOG_DEBUG("Sending RTCP report number %i at time slot %i ms", i, next_sendslot);
+
             rtp_error_t ret = RTP_OK;
             if ((ret = rtcp->generate_report()) != RTP_OK && ret != RTP_NOT_READY)
             {
@@ -194,8 +199,18 @@ void uvgrtp::rtcp::rtcp_runner(uvgrtp::rtcp* rtcp)
         } else if (diff_ms > ESTIMATED_MAX_RECEPTION_TIME_MS) { // try receiving if we have time
             // Receive RTCP reports until time to send report
             int nread = 0;
+
+            int poll_timout = diff_ms - ESTIMATED_MAX_RECEPTION_TIME_MS;
+
+            // using max poll we make sure that exiting uvgRTP doesn't take several seconds
+            int max_poll_timeout_ms = 100;
+            if (poll_timout > max_poll_timeout_ms)
+            {
+                poll_timout = max_poll_timeout_ms;
+            }
+
             rtp_error_t ret = uvgrtp::poll::poll(rtcp->get_sockets(), buffer, MAX_PACKET,
-                                                 diff_ms - ESTIMATED_MAX_RECEPTION_TIME_MS, &nread);
+                                                 poll_timout, &nread);
 
             if (ret == RTP_OK && nread > 0)
             {
@@ -205,7 +220,7 @@ void uvgrtp::rtcp::rtcp_runner(uvgrtp::rtcp* rtcp)
             } else {
                 LOG_ERROR("recvfrom failed, %d", ret);
             }
-        } else {// sleep until it is time to send the report
+        } else { // sleep until it is time to send the report
             std::this_thread::sleep_for(std::chrono::milliseconds(diff_ms));
         }
     }
@@ -843,25 +858,18 @@ void uvgrtp::rtcp::update_session_statistics(const uvgrtp::frame::rtp_frame *fra
     int dropped = expected - p->stats.received_pkts;
     p->stats.dropped_pkts = dropped >= 0 ? dropped : 0;
 
-    uint64_t arrival =
+    // the arrival time expressed as an RTP timestamp
+    uint32_t arrival =
         p->stats.initial_rtp +
-        + uvgrtp::clock::ntp::diff_now(p->stats.initial_ntp)
-        * (p->stats.clock_rate
-        / 1000);
+        + (uint32_t)uvgrtp::clock::ntp::diff_now(p->stats.initial_ntp)*(p->stats.clock_rate / 1000);
 
-	/* calculate interarrival jitter. See RFC 3550 A.8 */
-    uint64_t transit = arrival - frame->header.timestamp;
+    // calculate interarrival jitter. See RFC 3550 A.8
+    uint32_t transit = arrival - frame->header.timestamp; // A.8: int transit = arrival - r->ts
+    uint32_t trans_difference = std::abs((int)(transit - p->stats.transit));
 
-    if (transit > UINT32_MAX)
-    {
-        transit = UINT32_MAX;
-    }
-
-    uint32_t transit32 = (uint32_t)transit;
-    uint32_t trans_difference = std::abs((int)(transit32 - p->stats.transit));
-
-    p->stats.transit = transit32;
-    p->stats.jitter += (uint32_t)((1.f / 16.f) * ((double)trans_difference - p->stats.jitter));
+    // update statistics
+    p->stats.transit = transit;
+    p->stats.jitter += (1.f / 16.f) * ((double)trans_difference - p->stats.jitter);
 }
 
 /* RTCP packet handler is responsible for doing two things:
@@ -1563,4 +1571,15 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
     }
 
     return send_rtcp_packet_to_participants(frame, frame_size);
+}
+
+void uvgrtp::rtcp::set_session_bandwidth(int kbps)
+{
+    interval_ms_ = 1000*360 / kbps; // the reduced minimum (see section 6.2 in RFC 3550)
+
+    if (interval_ms_ > DEFAULT_RTCP_INTERVAL_MS)
+    {
+        interval_ms_ = DEFAULT_RTCP_INTERVAL_MS;
+    }
+    // TODO: This should follow the algorithm specified in RFC 3550 appendix-A.7
 }
