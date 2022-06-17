@@ -116,13 +116,13 @@ typedef enum RTP_FLAGS {
  * \details These flags are passed to uvgrtp::session::create_stream and can be OR'ed together
  */
 enum RTP_CTX_ENABLE_FLAGS {
-    RCE_NO_FLAGS                  = 0 << 0,
+    RCE_NO_FLAGS                  = 0,
 
     /* Obsolete */
-    RCE_SYSTEM_CALL_DISPATCHER    = 1 << 2,
+    RCE_SYSTEM_CALL_DISPATCHER    = 1,
 
     /** Use SRTP for this connection */
-    RCE_SRTP                      = 1 << 3,
+    RCE_SRTP                      = 1 << 1,
 
     /** Use ZRTP for key management
      *
@@ -132,7 +132,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      *
      * This flag must be coupled with RCE_SRTP and is mutually exclusive
      * with RCE_SRTP_KMNGMNT_USER. */
-    RCE_SRTP_KMNGMNT_ZRTP         = 1 << 4,
+    RCE_SRTP_KMNGMNT_ZRTP         = 1 << 2,
 
     /** Use user-defined way to manage keys
      *
@@ -142,39 +142,28 @@ enum RTP_CTX_ENABLE_FLAGS {
      *
      * This flag must be coupled with RCE_SRTP and is mutually exclusive
      * with RCE_SRTP_KMNGMNT_ZRTP */
-    RCE_SRTP_KMNGMNT_USER         = 1 << 5,
+    RCE_SRTP_KMNGMNT_USER         = 1 << 3,
 
-    /** When uvgRTP is receiving H26X stream, as an attempt to improve
-     * QoS, it will set frame delay for intra frames to be the same
-     * as intra period.
-     *
-     * What this means is that if the regular timer expires for frame
-     * (100 ms) and the frame type is intra, uvgRTP will not drop the
-     * frame but will continue receiving packets in hopes that all the
-     * packets of the intra frame will be received and the frame can be
-     * returned to user. During this period, when the intra frame is deemed
-     * to be late and incomplete, uvgRTP will drop all inter frames until
-     * a) all the packets of late intra frame are received or
-     * b) a new intra frame is received
-     *
-     * This behaviour should reduce the number of gray screens during
-     * video decoding but might cause the video stream to freeze for a while
-     * which is subjectively lesser of two evils
-     *
-     * This behavior can be disabled with RCE_NO_H26X_INTRA_DELAY
-     * If this flag is given, uvgRTP treats all frame types
-     * equally and drops all frames that are late */
-    RCE_NO_H26X_INTRA_DELAY       = 1 << 5,
+    /** Disable timout of intra frames */
+    RCE_NO_H26X_INTRA_DELAY       = 1 << 4,
 
     /** By default, uvgRTP searches for start code prefixes (0x00000001)
-     * from the frame to divide NAL units. If you instead want to provide the NAL
-     * units yourself (without the start code prefix), you may use this flag 
-     * to disable SCL and the frames will be treated as NAL units. */
-    RCE_NO_H26X_SCL               = 1 << 6,
+     * from the frame to divide NAL units and remove the prefix. If you instead 
+     * want to provide the NAL units without the start code prefix yourself, 
+     * you may use this flag to disable Start Code Lookup (SCL) and the frames 
+     * will be treated as send-ready NAL units. */
+    RCE_NO_H26X_SCL               = 1 << 5,
 
-    /** By default, the RTP does not include the start code prefixes. Use this flag
-     * to prepend the 4-byte start code (0x00000001) to each received H26x frame */
-    RCE_H26X_PREPEND_SC           = 1 << 7,
+    /** By default, the RTP packet payload does not include the start code prefixes. 
+     * Use this flag to prepend the 4-byte start code (0x00000001) to each received
+     * H26x frame, so there is no difference with sender input. Recommended in 
+     * most cases. */
+    RCE_H26X_PREPEND_SC           = 1 << 6,
+
+    /** By default, uvgRTP discards inter frames until an intra (key) frame has been 
+     * received in case a frame is dropped. This flag disables this behavior and frames 
+     * without dependencies are let through. */
+    RCE_H26X_NO_DEPENDENCY_ENFORCEMENT = 1 << 7,
 
     /** Fragment generic frames into RTP packets of 1500 bytes.
      *
@@ -220,8 +209,6 @@ enum RTP_CTX_ENABLE_FLAGS {
     /** Enable RTCP for the media stream.
      * If SRTP is enabled, SRTCP is used instead */
     RCE_RTCP                      = 1 << 14,
-
-
 
     /** If the Mediastream object is used as a unidirectional stream
      * but holepunching has been enabled, this flag can be used to make
