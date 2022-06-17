@@ -167,10 +167,12 @@ rtp_error_t uvgrtp::rtcp::stop()
 
 void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp, int interval)
 {
-    LOG_INFO("RTCP instance created!");
+    LOG_INFO("RTCP instance created! RTCP interval: %i ms", interval);
 
     // RFC 3550 says to wait half interval before sending first report
-    std::this_thread::sleep_for(std::chrono::milliseconds(interval/2));
+    int initial_sleep_ms = interval / 2;
+    LOG_DEBUG("Sleeping for %i ms before sending first RTCP report", initial_sleep_ms);
+    std::this_thread::sleep_for(std::chrono::milliseconds(initial_sleep_ms));
 
     uint8_t buffer[MAX_PACKET];
 
@@ -179,12 +181,16 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp, int interval)
     int i = 0;
     while (rtcp->is_active())
     {
-        auto time_since_start = uvgrtp::clock::hrc::diff_now(start);
-        long int diff_ms = i*interval - time_since_start;
+        long int next_sendslot = i * interval;
+        long int run_time = uvgrtp::clock::hrc::diff_now(start);
+        long int diff_ms = next_sendslot - run_time;
 
         if (diff_ms <= 0)
         {
             ++i;
+
+            LOG_DEBUG("Sending RTCP report number %i at time slot %i ms", i, next_sendslot);
+
             rtp_error_t ret = RTP_OK;
             if ((ret = rtcp->generate_report()) != RTP_OK && ret != RTP_NOT_READY)
             {
@@ -193,8 +199,18 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp, int interval)
         } else if (diff_ms > ESTIMATED_MAX_RECEPTION_TIME_MS) { // try receiving if we have time
             // Receive RTCP reports until time to send report
             int nread = 0;
+
+            int poll_timout = diff_ms - ESTIMATED_MAX_RECEPTION_TIME_MS;
+
+            // using max poll we make sure that exiting uvgRTP doesn't take several seconds
+            int max_poll_timeout_ms = 100;
+            if (poll_timout > max_poll_timeout_ms)
+            {
+                poll_timout = max_poll_timeout_ms;
+            }
+
             rtp_error_t ret = uvgrtp::poll::poll(rtcp->get_sockets(), buffer, MAX_PACKET,
-                                                 diff_ms - ESTIMATED_MAX_RECEPTION_TIME_MS, &nread);
+                                                 poll_timout, &nread);
 
             if (ret == RTP_OK && nread > 0)
             {
@@ -204,7 +220,7 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp, int interval)
             } else {
                 LOG_ERROR("recvfrom failed, %d", ret);
             }
-        } else {// sleep until it is time to send the report
+        } else { // sleep until it is time to send the report
             std::this_thread::sleep_for(std::chrono::milliseconds(diff_ms));
         }
     }
@@ -1561,5 +1577,9 @@ void uvgrtp::rtcp::set_session_bandwidth(int kbps)
 {
     interval_ms_ = 1000*360 / kbps; // the reduced minimum (see section 6.2 in RFC 3550)
 
+    if (interval_ms_ > DEFAULT_RTCP_INTERVAL_MS)
+    {
+        interval_ms_ = DEFAULT_RTCP_INTERVAL_MS;
+    }
     // TODO: This should follow the algorithm specified in RFC 3550 appendix-A.7
 }
