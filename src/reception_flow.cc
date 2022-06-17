@@ -271,7 +271,8 @@ void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int flags, uvgrtp::
                 continue;
 
             case RTP_GENERIC_ERROR:
-                LOG_DEBUG("Received a corrupted packet!");
+                // too many prints with this in case of minor errors
+                //LOG_DEBUG("Error in auxiliary handling of received packet!");
                 break;
 
             default:
@@ -313,7 +314,8 @@ void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int flags, uvgrtp::
 
         case RTP_GENERIC_ERROR:
         {
-            LOG_DEBUG("Received a corrupted packet!");
+            // too many prints with this in case of minor errors
+            //LOG_DEBUG("Error in auxiliary handling of received packet (cpp)!");
             break;
         }
 
@@ -471,7 +473,7 @@ void uvgrtp::reception_flow::process_packet(int flags)
                     break;
 
                 case RTP_GENERIC_ERROR:
-                    LOG_DEBUG("Received a corrupted packet!");
+                    LOG_DEBUG("Error in handling of received packet!");
                     break;
 
                 default:
