@@ -21,34 +21,35 @@ TEST(FormatTests, h264)
     if (sess)
     {
         sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H264, RCE_NO_FLAGS);
-        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H264, RCE_H26X_PREPEND_SC);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, 
+            RTP_FORMAT_H264, RCE_H26X_PREPEND_SC | RCE_H26X_NO_DEPENDENCY_ENFORCEMENT);
     }
 
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
-    test_packet_size(10, 1443, sess, sender, receiver);
-    test_packet_size(10, 1444, sess, sender, receiver);
-    test_packet_size(10, 1445, sess, sender, receiver);
-    test_packet_size(10, 1446, sess, sender, receiver); // packet limit
-    test_packet_size(10, 1447, sess, sender, receiver);
-    test_packet_size(10, 1448, sess, sender, receiver);
-    test_packet_size(10, 1449, sess, sender, receiver);
-    test_packet_size(10, 1450, sess, sender, receiver);
-    test_packet_size(10, 1451, sess, sender, receiver);
-    test_packet_size(10, 1452, sess, sender, receiver);
-    test_packet_size(10, 1453, sess, sender, receiver);
-    test_packet_size(10, 1454, sess, sender, receiver);
-    test_packet_size(10, 1455, sess, sender, receiver);
-    test_packet_size(10, 1501, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1443, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1444, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1445, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1446, sess, sender, receiver); // packet limit
+    test_packet_size(RTP_FORMAT_H264, 10, 1447, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1448, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1449, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1450, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1451, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1452, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1453, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1454, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1455, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1501, sess, sender, receiver);
 
-    test_packet_size(10, 1446 * 2 - 1, sess, sender, receiver);
-    test_packet_size(10, 1446 * 2, sess, sender, receiver);
-    test_packet_size(10, 1446 * 2 + 1, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1446 * 2 - 1, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1446 * 2, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 1446 * 2 + 1, sess, sender, receiver);
 
-    test_packet_size(10, 5000, sess, sender, receiver);
-    test_packet_size(10, 7500, sess, sender, receiver);
-    test_packet_size(10, 10000, sess, sender, receiver);
-    test_packet_size(10, 25000, sess, sender, receiver);
-    test_packet_size(10, 50000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 5000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 7500, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 10000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 25000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H264, 10, 50000, sess, sender, receiver);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -71,30 +72,30 @@ TEST(FormatTests, h265)
     }
 
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
-    test_packet_size(10, 1443, sess, sender, receiver);
-    test_packet_size(10, 1444, sess, sender, receiver);
-    test_packet_size(10, 1445, sess, sender, receiver);
-    test_packet_size(10, 1446, sess, sender, receiver); // packet limit
-    test_packet_size(10, 1447, sess, sender, receiver);
-    test_packet_size(10, 1448, sess, sender, receiver);
-    test_packet_size(10, 1449, sess, sender, receiver);
-    test_packet_size(10, 1450, sess, sender, receiver);
-    test_packet_size(10, 1451, sess, sender, receiver);
-    test_packet_size(10, 1452, sess, sender, receiver);
-    test_packet_size(10, 1453, sess, sender, receiver);
-    test_packet_size(10, 1454, sess, sender, receiver);
-    test_packet_size(10, 1455, sess, sender, receiver);
-    test_packet_size(10, 1501, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1443, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1444, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1445, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1446, sess, sender, receiver); // packet limit
+    test_packet_size(RTP_FORMAT_H265, 10, 1447, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1448, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1449, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1450, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1451, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1452, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1453, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1454, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1455, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1501, sess, sender, receiver);
 
-    test_packet_size(10, 1446 * 2 - 1, sess, sender, receiver);
-    test_packet_size(10, 1446 * 2, sess, sender, receiver);
-    test_packet_size(10, 1446 * 2 + 1, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1446 * 2 - 1, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1446 * 2, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1446 * 2 + 1, sess, sender, receiver);
 
-    test_packet_size(10, 5000, sess, sender, receiver);
-    test_packet_size(10, 7500, sess, sender, receiver);
-    test_packet_size(10, 10000, sess, sender, receiver);
-    test_packet_size(10, 25000, sess, sender, receiver);
-    test_packet_size(10, 50000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 5000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 7500, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 10000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 25000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 50000, sess, sender, receiver);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -118,13 +119,13 @@ TEST(FormatTests, h265_large)
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_H26X_PREPEND_SC);
     }
 
-    test_packet_size(10,  100000, sess, sender, receiver);
-    test_packet_size(10,  200000, sess, sender, receiver);
-    test_packet_size(10,  300000, sess, sender, receiver);
-    test_packet_size(10,  400000, sess, sender, receiver);
-    test_packet_size(10,  500000, sess, sender, receiver);
-    test_packet_size(10,  750000, sess, sender, receiver);
-    test_packet_size(10, 1000000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10,  100000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10,  200000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10,  300000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10,  400000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10,  500000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10,  750000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H265, 10, 1000000, sess, sender, receiver);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -147,30 +148,30 @@ TEST(FormatTests, h266)
     }
 
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
-    test_packet_size(10, 1443, sess, sender, receiver);
-    test_packet_size(10, 1444, sess, sender, receiver);
-    test_packet_size(10, 1445, sess, sender, receiver);
-    test_packet_size(10, 1446, sess, sender, receiver); // packet limit
-    test_packet_size(10, 1447, sess, sender, receiver);
-    test_packet_size(10, 1448, sess, sender, receiver);
-    test_packet_size(10, 1449, sess, sender, receiver);
-    test_packet_size(10, 1450, sess, sender, receiver);
-    test_packet_size(10, 1451, sess, sender, receiver);
-    test_packet_size(10, 1452, sess, sender, receiver);
-    test_packet_size(10, 1453, sess, sender, receiver);
-    test_packet_size(10, 1454, sess, sender, receiver);
-    test_packet_size(10, 1455, sess, sender, receiver);
-    test_packet_size(10, 1501, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1443, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1444, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1445, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1446, sess, sender, receiver); // packet limit
+    test_packet_size(RTP_FORMAT_H266, 10, 1447, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1448, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1449, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1450, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1451, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1452, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1453, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1454, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1455, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1501, sess, sender, receiver);
 
-    test_packet_size(10, 1446 * 2 - 1, sess, sender, receiver);
-    test_packet_size(10, 1446 * 2, sess, sender, receiver);
-    test_packet_size(10, 1446 * 2 + 1, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1446 * 2 - 1, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1446 * 2,     sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 1446 * 2 + 1, sess, sender, receiver);
 
-    test_packet_size(10, 5000, sess, sender, receiver);
-    test_packet_size(10, 7500, sess, sender, receiver);
-    test_packet_size(10, 10000, sess, sender, receiver);
-    test_packet_size(10, 25000, sess, sender, receiver);
-    test_packet_size(10, 50000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 5000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 7500, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 10000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 25000, sess, sender, receiver);
+    test_packet_size(RTP_FORMAT_H266, 10, 50000, sess, sender, receiver);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);

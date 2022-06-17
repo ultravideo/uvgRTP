@@ -8,11 +8,11 @@ class Test_receiver;
 void wait_until_next_frame(std::chrono::steady_clock::time_point& start, 
     int frame_index, int packet_interval_ms);
 
-inline void send_packets(uvgrtp::session* sess, uvgrtp::media_stream* sender,
+inline void send_packets(rtp_format_t format, uvgrtp::session* sess, uvgrtp::media_stream* sender,
     int packets, size_t size, int packet_interval_ms, bool add_start_code, bool print_progress);
 inline void add_hook(Test_receiver* tester, uvgrtp::media_stream* receiver, void (*hook)(void*, uvgrtp::frame::rtp_frame*));
 
-inline void test_packet_size(int packets, size_t size, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver);
+inline void test_packet_size(rtp_format_t format, int packets, size_t size, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver);
 
 inline void cleanup_sess(uvgrtp::context& ctx, uvgrtp::session* sess);
 inline void cleanup_ms(uvgrtp::session* sess, uvgrtp::media_stream* ms);
@@ -44,7 +44,7 @@ private:
     int expectedPackets_;
 };
 
-inline void send_packets(uvgrtp::session* sess, uvgrtp::media_stream* sender, 
+inline void send_packets(rtp_format_t format, uvgrtp::session* sess, uvgrtp::media_stream* sender,
     int packets, size_t size, int packet_interval_ms, bool add_start_code, bool print_progress)
 {
     EXPECT_NE(nullptr, sess);
@@ -60,12 +60,26 @@ inline void send_packets(uvgrtp::session* sess, uvgrtp::media_stream* sender,
 
             memset(dummy_frame.get(), 'b', size);
 
-            if (add_start_code && size > 8)
+            if (add_start_code && size > 8) 
             {
-                memset(dummy_frame.get(),     0, 3);
-                memset(dummy_frame.get() + 3, 1, 1);
-
-                memset(dummy_frame.get() + 4, 1, (19 << 1)); // Intra frame
+                if (format == RTP_FORMAT_H264)
+                {
+                    memset(dummy_frame.get(), 0, 2);
+                    memset(dummy_frame.get() + 2, 1, 1);
+                    memset(dummy_frame.get() + 3, 1, (5 << 1)); // Intra frame
+                }
+                else if (format == RTP_FORMAT_H265)
+                {
+                    memset(dummy_frame.get(), 0, 3);
+                    memset(dummy_frame.get() + 3, 1, 1);
+                    memset(dummy_frame.get() + 4, 1, (19 << 1)); // Intra frame
+                }
+                else if (format == RTP_FORMAT_H266)
+                {
+                    memset(dummy_frame.get(), 0, 3);
+                    memset(dummy_frame.get() + 3, 1, 1);
+                    memset(dummy_frame.get() + 4, 1, (7 << 1)); // Intra frame
+                }
             }
 
             rtp_error_t ret = RTP_OK;
@@ -122,7 +136,7 @@ inline void cleanup_ms(uvgrtp::session* sess, uvgrtp::media_stream* ms)
 }
 
 
-inline void test_packet_size(int packets, size_t size, uvgrtp::session* sess, uvgrtp::media_stream* sender,
+inline void test_packet_size(rtp_format_t format, int packets, size_t size, uvgrtp::session* sess, uvgrtp::media_stream* sender,
     uvgrtp::media_stream* receiver)
 {
     EXPECT_NE(nullptr, sess);
@@ -136,11 +150,11 @@ inline void test_packet_size(int packets, size_t size, uvgrtp::session* sess, uv
         int interval_ms = 10;
 
         add_hook(tester, receiver, rtp_receive_hook);
-        send_packets(sess, sender, packets, size, interval_ms, true, false);
+        send_packets(format, sess, sender, packets, size, interval_ms, true, false);
 
         if (size > 20000)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+            std::this_thread::sleep_for(std::chrono::milliseconds(400));
         }
         else
         {
