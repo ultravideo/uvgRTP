@@ -165,7 +165,7 @@ namespace uvgrtp {
             // constructs and sends the RTP packets with format specific stuff
             rtp_error_t fu_division(uint8_t* data, size_t data_len, size_t payload_size);
 
-            void garbage_collect_lost_frames();
+            void garbage_collect_lost_frames(size_t timout);
 
             rtp_error_t reconstruction(uvgrtp::frame::rtp_frame** out,
                 int flags, uint32_t frame_timestamp, const uint8_t sizeof_fu_headers);

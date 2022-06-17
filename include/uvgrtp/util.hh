@@ -144,7 +144,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      * with RCE_SRTP_KMNGMNT_ZRTP */
     RCE_SRTP_KMNGMNT_USER         = 1 << 3,
 
-    /** Disable timout of intra frames */
+    /** Obsolete */
     RCE_NO_H26X_INTRA_DELAY       = 1 << 4,
 
     /** By default, uvgRTP searches for start code prefixes (0x00000001)

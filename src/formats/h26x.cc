@@ -36,7 +36,6 @@
 #endif
 
 constexpr int GARBAGE_COLLECTION_INTERVAL_MS = 100;
-constexpr int LOST_FRAME_TIMEOUT_MS = 500;
 
 static inline unsigned __find_h26x_start(uint32_t value,bool& additional_byte)
 {
@@ -711,18 +710,8 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         }
     }
 
-    bool enable_idelay = !(flags & RCE_NO_H26X_INTRA_DELAY);
-
-    if (is_frame_late(frames_.at(fragment_ts), rtp_ctx_->get_pkt_max_delay())) {
-        if (nal_type != uvgrtp::formats::NAL_TYPE::NT_INTRA || 
-            (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTRA && !enable_idelay)) {
-            LOG_WARN("Received a packet that is too late! Timestamp: %lu", fragment_ts);
-            drop_frame(fragment_ts);
-        }
-    }
-
     // make sure uvgRTP does not reserve increasing amounts of memory because some frames are not completed
-    garbage_collect_lost_frames();
+    garbage_collect_lost_frames(rtp_ctx_->get_pkt_max_delay());
     return RTP_OK; // no frame was completed, but everything went ok for this fragment
 }
 
@@ -736,7 +725,7 @@ void uvgrtp::formats::h26x::get_nal_header_from_fu_headers(size_t fptr, uint8_t*
     std::memcpy(&complete_payload[fptr], payload_header, get_payload_header_size());
 }
 
-void uvgrtp::formats::h26x::garbage_collect_lost_frames()
+void uvgrtp::formats::h26x::garbage_collect_lost_frames(size_t timout)
 {
     if (uvgrtp::clock::hrc::diff_now(last_garbage_collection_) >= GARBAGE_COLLECTION_INTERVAL_MS) {
         uint32_t total_cleaned = 0;
@@ -744,7 +733,7 @@ void uvgrtp::formats::h26x::garbage_collect_lost_frames()
 
         // first find all frames that have been waiting for too long
         for (auto& gc_frame : frames_) {
-            if (uvgrtp::clock::hrc::diff_now(gc_frame.second.sframe_time) > LOST_FRAME_TIMEOUT_MS) {
+            if (uvgrtp::clock::hrc::diff_now(gc_frame.second.sframe_time) > timout) {
                 LOG_WARN("Found an old frame that has not been completed");
                 to_remove.push_back(gc_frame.first);
             }
