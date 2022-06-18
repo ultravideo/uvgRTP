@@ -17,6 +17,8 @@ namespace uvgrtp {
     namespace formats {
 
         enum H264_NAL_TYPES {
+            H264_NON_IDR = 1,
+            H264_IDR = 5,
             H264_PKT_AGGR = 24,
             H264_PKT_FRAG = 28
         };

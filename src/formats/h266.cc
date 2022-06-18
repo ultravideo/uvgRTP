@@ -49,8 +49,22 @@ uint8_t uvgrtp::formats::h266::get_start_code_range() const
     return 4;
 }
 
+uvgrtp::formats::NAL_TYPE uvgrtp::formats::h266::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
+{
+    // see https://datatracker.ietf.org/doc/html/draft-ietf-avtcore-rtp-vvc#section-4.3.3
+    uint8_t nal_type = frame->payload[2] & 0x3f;
+
+    if (nal_type == H266_IDR_W_RADL)
+        return uvgrtp::formats::NAL_TYPE::NT_INTRA;
+    else if (nal_type == H266_TRAIL_NUT)
+        return uvgrtp::formats::NAL_TYPE::NT_INTER;
+
+    return uvgrtp::formats::NAL_TYPE::NT_OTHER;
+}
+
 uint8_t uvgrtp::formats::h266::get_nal_type(uint8_t* data) const
 {
+    // see https://datatracker.ietf.org/doc/html/draft-ietf-avtcore-rtp-vvc#section-1.1.4
     return (data[1] >> 3) & 0x1f;
 }
 
@@ -74,25 +88,13 @@ uvgrtp::formats::FRAG_TYPE uvgrtp::formats::h266::get_fragment_type(uvgrtp::fram
     return uvgrtp::formats::FRAG_TYPE::FT_MIDDLE;
 }
 
-uvgrtp::formats::NAL_TYPE uvgrtp::formats::h266::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
-{
-    uint8_t nal_type = frame->payload[2] & 0x3f;
-
-    if (nal_type == 7)
-        return uvgrtp::formats::NAL_TYPE::NT_INTRA;
-    else if (nal_type == 0)
-        return uvgrtp::formats::NAL_TYPE::NT_INTER;
-
-    return uvgrtp::formats::NAL_TYPE::NT_OTHER;
-}
-
 rtp_error_t uvgrtp::formats::h266::construct_format_header_divide_fus(uint8_t* data, size_t data_len,
     size_t payload_size, uvgrtp::buf_vec& buffers)
 {
     auto headers = (uvgrtp::formats::h266_headers*)fqueue_->get_media_headers();
 
     headers->payload_header[0] = data[0];
-    headers->payload_header[1] = (29 << 3) | (data[1] & 0x7);
+    headers->payload_header[1] = (H266_PKT_FRAG << 3) | (data[1] & 0x7);
 
     initialize_fu_headers(get_nal_type(data), headers->fu_headers);
 

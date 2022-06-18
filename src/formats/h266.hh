@@ -17,6 +17,9 @@ namespace uvgrtp {
     namespace formats {
 
         enum H266_NAL_TYPES {
+            H266_TRAIL_NUT = 0,
+            H266_IDR_W_RADL = 7,
+            H266_PKT_AGGR = 28, // not implemented yet
             H266_PKT_FRAG = 29
         };
 

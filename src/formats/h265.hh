@@ -18,6 +18,8 @@ namespace uvgrtp {
     namespace formats {
 
         enum H265_NAL_TYPES {
+            H265_TRAIL_R = 1,
+            H265_IDR_W_RADL = 19,
             H265_PKT_AGGR = 48,
             H265_PKT_FRAG = 49
         };

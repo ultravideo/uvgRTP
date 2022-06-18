@@ -48,8 +48,21 @@ uint8_t uvgrtp::formats::h265::get_start_code_range() const
     return 4;
 }
 
+uvgrtp::formats::NAL_TYPE uvgrtp::formats::h265::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
+{
+    // see https://datatracker.ietf.org/doc/html/rfc7798#section-4.4.3
+    switch (frame->payload[2] & 0x3f) {
+    case H265_IDR_W_RADL: return uvgrtp::formats::NAL_TYPE::NT_INTRA;
+    case H265_TRAIL_R:    return uvgrtp::formats::NAL_TYPE::NT_INTER;
+    default: break;
+    }
+
+    return uvgrtp::formats::NAL_TYPE::NT_OTHER;
+}
+
 uint8_t uvgrtp::formats::h265::get_nal_type(uint8_t* data) const
 {
+    // see https://datatracker.ietf.org/doc/html/rfc7798#section-1.1.4
     return (data[0] >> 1) & 0x3f;
 }
 
@@ -76,16 +89,6 @@ uvgrtp::formats::FRAG_TYPE uvgrtp::formats::h265::get_fragment_type(uvgrtp::fram
     return uvgrtp::formats::FRAG_TYPE::FT_MIDDLE;
 }
 
-uvgrtp::formats::NAL_TYPE uvgrtp::formats::h265::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
-{
-    switch (frame->payload[2] & 0x3f) {
-    case 19: return uvgrtp::formats::NAL_TYPE::NT_INTRA;
-    case 1:  return uvgrtp::formats::NAL_TYPE::NT_INTER;
-    default: break;
-    }
-
-    return uvgrtp::formats::NAL_TYPE::NT_OTHER;
-}
 
 void uvgrtp::formats::h265::clear_aggregation_info()
 {

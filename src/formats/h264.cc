@@ -70,9 +70,11 @@ uvgrtp::formats::FRAG_TYPE uvgrtp::formats::h264::get_fragment_type(uvgrtp::fram
 
 uvgrtp::formats::NAL_TYPE uvgrtp::formats::h264::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
 {
+    // see https://datatracker.ietf.org/doc/html/rfc6184#section-5.8
+
     switch (frame->payload[1] & 0x1f) {
-    case 5: return uvgrtp::formats::NAL_TYPE::NT_INTRA;
-    case 1:  return uvgrtp::formats::NAL_TYPE::NT_INTER;
+    case H264_IDR: return uvgrtp::formats::NAL_TYPE::NT_INTRA;
+    case H264_NON_IDR:  return uvgrtp::formats::NAL_TYPE::NT_INTER;
     default: break;
     }
 
@@ -81,6 +83,7 @@ uvgrtp::formats::NAL_TYPE uvgrtp::formats::h264::get_nal_type(uvgrtp::frame::rtp
 
 uint8_t uvgrtp::formats::h264::get_nal_type(uint8_t* data) const
 {
+    // see https://datatracker.ietf.org/doc/html/rfc6184#section-5.3
     return data[0] & 0x1f;
 }
 
