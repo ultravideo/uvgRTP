@@ -628,24 +628,26 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
 
     // Fragment sequence number, determines the order of the fragments within frame
     uint16_t fragment_seq = frame->header.seq;      
+
+    uvgrtp::formats::NAL_TYPE nal_type = get_nal_type(frame); // Intra, inter or some other type of frame
     
     // Initialize new frame if this is the first packet with this timestamp
     if (frames_.find(fragment_ts) == frames_.end()) {
 
         // Make sure we haven't discarded the frame corresponding to the fragment timestamp before 
         if (dropped_.find(fragment_ts) != dropped_.end()) {
-            LOG_WARN("Fragment belonging to a dropped frame was received! Timestamp: %lu", 
+            LOG_DEBUG("Fragment belonging to a dropped frame was received! Timestamp: %lu",
                 fragment_ts);
             return RTP_GENERIC_ERROR;
         }
 
-        initialize_new_fragmented_frame(fragment_ts);
+        initialize_new_fragmented_frame(fragment_ts, nal_type);
     }
     else if (frames_[fragment_ts].received_packet_seqs.find(fragment_seq) !=
         frames_[fragment_ts].received_packet_seqs.end()) {
 
         // we have already received this seq
-        LOG_WARN("Detected duplicate fragment, dropping! Seq: %u", fragment_seq);
+        LOG_DEBUG("Detected duplicate fragment, dropping! Seq: %u", fragment_seq);
         (void)uvgrtp::frame::dealloc_frame(frame); // free fragment memory
         *out = nullptr;
         return RTP_GENERIC_ERROR;
@@ -653,6 +655,12 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
 
     const uint8_t sizeof_fu_headers = (uint8_t)get_payload_header_size() + 
                                                get_fu_header_size();
+
+    if (frames_[fragment_ts].nal_type != nal_type)
+    {
+        LOG_ERROR("The fragment has different NAL type fragments before!");
+        return RTP_GENERIC_ERROR;
+    }
 
     // keep track of fragments belonging to this frame in case we need to delete them
     frames_[fragment_ts].received_packet_seqs.insert(fragment_seq);
@@ -678,8 +686,6 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         frames_[fragment_ts].e_seq = fragment_seq;
         frames_[fragment_ts].end_received = true;
     }
-
-    uvgrtp::formats::NAL_TYPE nal_type = get_nal_type(frame); // Intra, inter or some other type of frame
 
     // have the first and last fragment arrived so we can possibly start reconstructing the frame?
     if (frames_[fragment_ts].start_received && frames_[fragment_ts].end_received) {
@@ -753,8 +759,9 @@ void uvgrtp::formats::h26x::garbage_collect_lost_frames(size_t timout)
     }
 }
 
-void uvgrtp::formats::h26x::initialize_new_fragmented_frame(uint32_t ts)
+void uvgrtp::formats::h26x::initialize_new_fragmented_frame(uint32_t ts, NAL_TYPE nal_type)
 {
+    frames_[ts].nal_type = nal_type;
     frames_[ts].s_seq = 0;
     frames_[ts].start_received = false;
     frames_[ts].e_seq = 0;

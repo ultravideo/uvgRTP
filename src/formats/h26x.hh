@@ -38,6 +38,8 @@ namespace uvgrtp {
             /* clock reading when the first fragment is received */
             uvgrtp::clock::hrc::hrc_t sframe_time;
 
+            uvgrtp::formats::NAL_TYPE nal_type;
+
             bool start_received = false;
             bool end_received = false;
 
@@ -155,7 +157,7 @@ namespace uvgrtp {
             uint32_t drop_frame(uint32_t ts);
 
             inline size_t calculate_expected_fus(uint32_t ts);
-            inline void initialize_new_fragmented_frame(uint32_t ts);
+            inline void initialize_new_fragmented_frame(uint32_t ts, NAL_TYPE nal_type);
 
             void free_fragment(uint16_t sequence_number);
 
