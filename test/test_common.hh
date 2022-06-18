@@ -64,21 +64,29 @@ inline void send_packets(rtp_format_t format, uvgrtp::session* sess, uvgrtp::med
             {
                 if (format == RTP_FORMAT_H264)
                 {
+                    // https://datatracker.ietf.org/doc/html/rfc6184#section-1.3
                     memset(dummy_frame.get(), 0, 2);
                     memset(dummy_frame.get() + 2, 1, 1);
-                    memset(dummy_frame.get() + 3, 1, (5 << 1)); // Intra frame
+                    memset(dummy_frame.get() + 3, 5, 1); // Intra frame
                 }
                 else if (format == RTP_FORMAT_H265)
                 {
+                    // see https://datatracker.ietf.org/doc/html/rfc7798#section-1.1.4
                     memset(dummy_frame.get(), 0, 3);
                     memset(dummy_frame.get() + 3, 1, 1);
-                    memset(dummy_frame.get() + 4, 1, (19 << 1)); // Intra frame
+                    memset(dummy_frame.get() + 4, (19 << 1), 1); // Intra frame
                 }
                 else if (format == RTP_FORMAT_H266)
                 {
+                    // see https://datatracker.ietf.org/doc/html/draft-ietf-avtcore-rtp-vvc#section-1.1.4
                     memset(dummy_frame.get(), 0, 3);
                     memset(dummy_frame.get() + 3, 1, 1);
-                    memset(dummy_frame.get() + 4, 1, (7 << 1)); // Intra frame
+
+                    // |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
+                    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                    // |F|Z|  LayerID  |  Type   | TID |
+                    memset(dummy_frame.get() + 4, 0, 1);
+                    memset(dummy_frame.get() + 5, (7 << 3), 1); // Intra frame (type)
                 }
             }
 
@@ -152,14 +160,7 @@ inline void test_packet_size(rtp_format_t format, int packets, size_t size, uvgr
         add_hook(tester, receiver, rtp_receive_hook);
         send_packets(format, sess, sender, packets, size, interval_ms, true, false);
 
-        if (size > 20000)
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(400));
-        }
-        else
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50 + size/1000));
 
         tester->gotAll();
         delete tester;

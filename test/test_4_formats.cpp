@@ -22,7 +22,7 @@ TEST(FormatTests, h264)
     {
         sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H264, RCE_NO_FLAGS);
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, 
-            RTP_FORMAT_H264, RCE_H26X_PREPEND_SC | RCE_H26X_NO_DEPENDENCY_ENFORCEMENT);
+            RTP_FORMAT_H264, RCE_H26X_PREPEND_SC);
     }
 
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
