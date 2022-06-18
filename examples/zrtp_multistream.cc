@@ -76,7 +76,7 @@ int main(void)
                            RTP_FORMAT_OPUS, RECEIVER_AUDIO_PORT, SENDER_AUDIO_PORT);
 
     std::thread v_receiver(receive_function, receiver_session, rce_flags, print_mutex,
-                           RTP_FORMAT_H266, RECEIVER_VIDEO_PORT, SENDER_VIDEO_PORT);
+                           RTP_FORMAT_H265, RECEIVER_VIDEO_PORT, SENDER_VIDEO_PORT);
 
     uvgrtp::context sender_ctx;
     uvgrtp::session *sender_session = sender_ctx.create_session(RECEIVER_ADDRESS);
@@ -87,7 +87,7 @@ int main(void)
                          AUDIO_PAYLOAD_SIZE, AUDIO_FRAME_INTERVAL_MS);
 
     std::thread v_sender(sender_function, sender_session, rce_flags, print_mutex,
-                         RTP_FORMAT_H266, SENDER_VIDEO_PORT, RECEIVER_VIDEO_PORT,
+                         RTP_FORMAT_H265, SENDER_VIDEO_PORT, RECEIVER_VIDEO_PORT,
                          VIDEO_PAYLOAD_SIZE, VIDEO_FRAME_INTERVAL_MS);
 
     // wait until all threads have ended
