@@ -100,11 +100,18 @@ typedef enum RTP_FLAGS {
     /** No flags */
     RTP_NO_FLAGS = 0 << 0,
 
-    /** Treat the incoming frame as an H26X slice unit and do not perform start code lookup on it */
+    /** Obsolete */
     RTP_SLICE    = 1 << 0,
 
-    /** Make a copy of the data given to push_frame() and operate on that */
-    RTP_COPY     = 1 << 1
+    /** Not implemented, may be implemented in the future */
+    RTP_COPY     = 1 << 1,
+
+    /** By default, uvgRTP searches for start code prefixes (0x000001 or 0x00000001)
+     * from the frame to divide NAL units and remove the prefix. If you instead
+     * want to provide the NAL units without the start code prefix yourself,
+     * you may use this flag to disable Start Code Lookup (SCL) and the frames
+     * will be treated as send-ready NAL units. */
+    RTP_NO_H26X_SCL = 1 << 2
 
 } rtp_flags_t;
 
@@ -119,10 +126,10 @@ enum RTP_CTX_ENABLE_FLAGS {
     RCE_NO_FLAGS                  = 0,
 
     /* Obsolete */
-    RCE_SYSTEM_CALL_DISPATCHER    = 1,
+    RCE_SYSTEM_CALL_DISPATCHER    = 0,
 
     /** Use SRTP for this connection */
-    RCE_SRTP                      = 1 << 1,
+    RCE_SRTP                      = 1,
 
     /** Use ZRTP for key management
      *
@@ -132,7 +139,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      *
      * This flag must be coupled with RCE_SRTP and is mutually exclusive
      * with RCE_SRTP_KMNGMNT_USER. */
-    RCE_SRTP_KMNGMNT_ZRTP         = 1 << 2,
+    RCE_SRTP_KMNGMNT_ZRTP         = 1 << 1,
 
     /** Use user-defined way to manage keys
      *
@@ -142,28 +149,24 @@ enum RTP_CTX_ENABLE_FLAGS {
      *
      * This flag must be coupled with RCE_SRTP and is mutually exclusive
      * with RCE_SRTP_KMNGMNT_ZRTP */
-    RCE_SRTP_KMNGMNT_USER         = 1 << 3,
+    RCE_SRTP_KMNGMNT_USER         = 1 << 2,
 
     /** Obsolete */
-    RCE_NO_H26X_INTRA_DELAY       = 1 << 4,
+    RCE_NO_H26X_INTRA_DELAY       = 0,
 
-    /** By default, uvgRTP searches for start code prefixes (0x00000001)
-     * from the frame to divide NAL units and remove the prefix. If you instead 
-     * want to provide the NAL units without the start code prefix yourself, 
-     * you may use this flag to disable Start Code Lookup (SCL) and the frames 
-     * will be treated as send-ready NAL units. */
-    RCE_NO_H26X_SCL               = 1 << 5,
+    /** Obsolete */
+    RCE_NO_H26X_SCL               = 0,
 
     /** By default, the RTP packet payload does not include the start code prefixes. 
      * Use this flag to prepend the 4-byte start code (0x00000001) to each received
      * H26x frame, so there is no difference with sender input. Recommended in 
      * most cases. */
-    RCE_H26X_PREPEND_SC           = 1 << 6,
+    RCE_H26X_PREPEND_SC           = 1 << 3,
 
     /** By default, uvgRTP discards inter frames until an intra (key) frame has been 
      * received in case a frame is dropped. This flag disables this behavior and frames 
      * without dependencies are let through. */
-    RCE_H26X_NO_DEPENDENCY_ENFORCEMENT = 1 << 7,
+    RCE_H26X_NO_DEPENDENCY_ENFORCEMENT = 1 << 4,
 
     /** Fragment generic frames into RTP packets of 1500 bytes.
      *
@@ -177,7 +180,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      * RCE_FRAGMENT_GENERIC can be used, for example, when you're using uvgRTP for
      * both sender and receiver and the media stream you wish to stream is not supported
      * by uvgRTP but requires packetization because MEDIA_FRAME_SIZE > MTU */
-    RCE_FRAGMENT_GENERIC          = 1 << 8,
+    RCE_FRAGMENT_GENERIC          = 1 << 5,
 
     /** If SRTP is enabled and RCE_INPLACE_ENCRYPTION flag is *not* given,
      * uvgRTP will make a copy of the frame given to push_frame().
@@ -187,13 +190,13 @@ enum RTP_CTX_ENABLE_FLAGS {
      * unnecessary copy operations.
      *
      * If RCE_INPLACE_ENCRYPTION is given to push_frame(), the input pointer must be writable! */
-    RCE_SRTP_INPLACE_ENCRYPTION   = 1 << 9,
+    RCE_SRTP_INPLACE_ENCRYPTION   = 1 << 6,
 
     /** Disable System Call Clustering (SCC) */
-    RCE_NO_SYSTEM_CALL_CLUSTERING = 1 << 10,
+    RCE_NO_SYSTEM_CALL_CLUSTERING = 1 << 7,
 
     /** Disable RTP payload encryption */
-    RCE_SRTP_NULL_CIPHER          = 1 << 11,
+    RCE_SRTP_NULL_CIPHER          = 1 << 8,
 
     /** Enable RTP packet authentication
      *
@@ -201,28 +204,28 @@ enum RTP_CTX_ENABLE_FLAGS {
      * to each outgoing RTP packet for all streams that have SRTP enabled.
      *
      * NOTE: this flag must be coupled with at least RCE_SRTP */
-    RCE_SRTP_AUTHENTICATE_RTP     = 1 << 12,
+    RCE_SRTP_AUTHENTICATE_RTP     = 1 << 9,
 
     /** Enable packet replay protection */
-    RCE_SRTP_REPLAY_PROTECTION    = 1 << 13,
+    RCE_SRTP_REPLAY_PROTECTION    = 1 << 10,
 
     /** Enable RTCP for the media stream.
      * If SRTP is enabled, SRTCP is used instead */
-    RCE_RTCP                      = 1 << 14,
+    RCE_RTCP                      = 1 << 11,
 
     /** If the Mediastream object is used as a unidirectional stream
      * but holepunching has been enabled, this flag can be used to make
      * uvgRTP periodically send a short UDP datagram to keep the hole
      * in the firewall open */
-    RCE_HOLEPUNCH_KEEPALIVE       = 1 << 15,
+    RCE_HOLEPUNCH_KEEPALIVE       = 1 << 12,
 
     /** Use 192-bit keys with SRTP */
-    RCE_SRTP_KEYSIZE_192          = 1 << 16,
+    RCE_SRTP_KEYSIZE_192          = 1 << 13,
 
     /** Use 256-bit keys with SRTP */
-    RCE_SRTP_KEYSIZE_256          = 1 << 17,
+    RCE_SRTP_KEYSIZE_256          = 1 << 14,
 
-    RCE_LAST                      = 1 << 18,
+    RCE_LAST                      = 1 << 15,
 };
 
 /**

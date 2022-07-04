@@ -33,7 +33,7 @@ TEST(EncryptionTests, no_send_user)
 
     receiver = user_initialization(ctx, SRTP_256, sender_session, send);
 
-    send_packets(RTP_FORMAT_GENERIC, sender_session, send, 10, strlen((char*)"Hello, world!"), 10, true, false);
+    send_packets(RTP_FORMAT_GENERIC, sender_session, send, 10, strlen((char*)"Hello, world!"), 10, true, false, RTP_NO_FLAGS);
     cleanup_ms(sender_session, send);
 
     if (receiver && receiver->joinable())

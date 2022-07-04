@@ -52,7 +52,7 @@ TEST(RTCPTests, rtcp) {
     }
 
     send_packets(RTP_FORMAT_GENERIC, local_session, local_stream, 
-        SEND_TEST_PACKETS, PAYLOAD_LEN, PACKET_INTERVAL_MS, true, false);
+        SEND_TEST_PACKETS, PAYLOAD_LEN, PACKET_INTERVAL_MS, true, false, RTP_NO_FLAGS);
 
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
 }
@@ -94,7 +94,7 @@ TEST(RTCP_reopen_receiver, rtcp) {
     if (local_stream)
     {
         send_packets(RTP_FORMAT_GENERIC, local_session, local_stream, 
-            SEND_TEST_PACKETS/2, PAYLOAD_LEN, PACKET_INTERVAL_MS, true, false);
+            SEND_TEST_PACKETS/2, PAYLOAD_LEN, PACKET_INTERVAL_MS, true, false, RTP_NO_FLAGS);
 
         if (remote_stream)
         {
@@ -105,7 +105,7 @@ TEST(RTCP_reopen_receiver, rtcp) {
         }
 
         send_packets(RTP_FORMAT_GENERIC, local_session, local_stream, 
-            SEND_TEST_PACKETS / 2, PAYLOAD_LEN, PACKET_INTERVAL_MS, true, false);
+            SEND_TEST_PACKETS / 2, PAYLOAD_LEN, PACKET_INTERVAL_MS, true, false, RTP_NO_FLAGS);
     }
 
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
