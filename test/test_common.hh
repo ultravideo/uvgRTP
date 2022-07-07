@@ -61,7 +61,7 @@ inline void send_packets(rtp_format_t format, uvgrtp::session* sess, uvgrtp::med
 
             memset(dummy_frame.get(), 'b', size);
 
-            if (add_start_code && size > 8) 
+            if (add_start_code && size > 8)
             {
                 int pos = 0;
                 if (format == RTP_FORMAT_H264)
@@ -99,6 +99,7 @@ inline void send_packets(rtp_format_t format, uvgrtp::session* sess, uvgrtp::med
                         pos += 3;
                         memset(dummy_frame.get() + pos, 1, 1);
                         pos += 1;
+                    }
 
                     // |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
                     // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
