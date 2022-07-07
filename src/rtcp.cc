@@ -1237,8 +1237,8 @@ rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t* packet, size_t si
 
     participants_[frame->ssrc]->stats.sr_ts = uvgrtp::clock::hrc::now();
     participants_[frame->ssrc]->stats.lsr =
-        ((frame->sender_info.ntp_msw >> 16) & 0xffff) |
-        ((frame->sender_info.ntp_lsw & 0xffff0000) >> 16);
+        ((frame->sender_info.ntp_msw & 0xffff) << 16) |
+        (frame->sender_info.ntp_lsw >> 16);
 
     read_reports(packet, size, frame->header.count, true, frame->report_blocks);
 
