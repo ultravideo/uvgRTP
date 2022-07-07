@@ -694,7 +694,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         // have we received every fragment and can the frame can be reconstructed?
         if (received == frames_[fragment_ts].received_packet_seqs.size()) {
 
-            bool enable_reference_discarding = !(flags & RCE_H26X_NO_DEPENDENCY_ENFORCEMENT);
+            bool enable_reference_discarding = (flags & RCE_H26X_DEPENDENCY_ENFORCEMENT);
             // here we discard inter frames if their references were not received correctly
             if (discard_until_key_frame_ && enable_reference_discarding) {
                 if (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTER) {

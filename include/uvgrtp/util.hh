@@ -163,10 +163,12 @@ enum RTP_CTX_ENABLE_FLAGS {
      * most cases. */
     RCE_H26X_PREPEND_SC           = 1 << 3,
 
-    /** By default, uvgRTP discards inter frames until an intra (key) frame has been 
-     * received in case a frame is dropped. This flag disables this behavior and frames 
-     * without dependencies are let through. */
-    RCE_H26X_NO_DEPENDENCY_ENFORCEMENT = 1 << 4,
+    /** Obsolete */
+    RCE_H26X_NO_DEPENDENCY_ENFORCEMENT = 0,
+
+    /** Use this flag to discard inter frames that don't have their previous dependencies
+        arrived. Does not work if the dependencies are not in monotonic order. */
+    RCE_H26X_DEPENDENCY_ENFORCEMENT = 1 << 4,
 
     /** Fragment generic frames into RTP packets of 1500 bytes.
      *
