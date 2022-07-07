@@ -940,79 +940,91 @@ rtp_error_t uvgrtp::rtcp::send_packet_handler_vec(void *arg, uvgrtp::buf_vec& bu
 
 rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
 {
-    (void)size;
+    size_t ptr = 0;
+    size_t remaining_size = size;
 
-    // TODO: Handle compound packets here
-
-    if (size < RTCP_HEADER_LENGTH)
+    while (remaining_size > 0)
     {
-        LOG_ERROR("Didn't get enough data for an rtcp header");
-        return RTP_INVALID_VALUE;
+        if (remaining_size < RTCP_HEADER_LENGTH)
+        {
+            LOG_ERROR("Didn't get enough data for an rtcp header");
+            return RTP_INVALID_VALUE;
+        }
+
+        uint8_t* packet_location = buffer + ptr;
+
+        uvgrtp::frame::rtcp_header header;
+        read_rtcp_header(packet_location + ptr, header);
+
+        // the length field is the rtcp packet size measured in 32-bit words - 1
+        uint32_t size_of_rtcp_packet = (header.length + 1) * sizeof(uint32_t);
+
+        if (remaining_size < size_of_rtcp_packet)
+        {
+            LOG_ERROR("Received a partial rtcp packet. Not supported!");
+            return RTP_NOT_SUPPORTED;
+        }
+
+        if (header.version != 0x2)
+        {
+            LOG_ERROR("Invalid header version (%u)", header.version);
+            return RTP_INVALID_VALUE;
+        }
+
+        if (header.padding)
+        {
+            LOG_ERROR("Cannot handle padded packets!");
+            return RTP_INVALID_VALUE;
+        }
+
+        if (header.pkt_type > uvgrtp::frame::RTCP_FT_APP ||
+            header.pkt_type < uvgrtp::frame::RTCP_FT_SR)
+        {
+            LOG_ERROR("Invalid packet type (%u)!", header.pkt_type);
+            return RTP_INVALID_VALUE;
+        }
+
+        update_rtcp_bandwidth(size_of_rtcp_packet);
+
+        rtp_error_t ret = RTP_INVALID_VALUE;
+
+        switch (header.pkt_type)
+        {
+            case uvgrtp::frame::RTCP_FT_SR:
+                ret = handle_sender_report_packet(packet_location, size_of_rtcp_packet, header);
+                break;
+
+            case uvgrtp::frame::RTCP_FT_RR:
+                ret = handle_receiver_report_packet(packet_location, size_of_rtcp_packet, header);
+                break;
+
+            case uvgrtp::frame::RTCP_FT_SDES:
+                ret = handle_sdes_packet(packet_location, size_of_rtcp_packet, header);
+                break;
+
+            case uvgrtp::frame::RTCP_FT_BYE:
+                ret = handle_bye_packet(packet_location, size_of_rtcp_packet);
+                break;
+
+            case uvgrtp::frame::RTCP_FT_APP:
+                ret = handle_app_packet(packet_location, size_of_rtcp_packet, header);
+                break;
+
+            default:
+                LOG_WARN("Unknown packet received, type %d", header.pkt_type);
+                break;
+        }
+
+        if (ret != RTP_OK)
+        {
+            return ret;
+        }
+
+        ptr += size_of_rtcp_packet;
+        remaining_size -= size_of_rtcp_packet;
     }
 
-    uvgrtp::frame::rtcp_header header;
-    read_rtcp_header(buffer, header);
-
-    // the length field is the rtcp packet size measured in 32-bit words - 1
-    uint32_t size_of_rtcp_packet = (header.length + 1)*sizeof(uint32_t);
-
-    if (size < size_of_rtcp_packet)
-    {
-        LOG_ERROR("Received a partial rtcp packet. Not supported!");
-        return RTP_NOT_SUPPORTED;
-    }
-
-    if (header.version != 0x2)
-    {
-        LOG_ERROR("Invalid header version (%u)", header.version);
-        return RTP_INVALID_VALUE;
-    }
-
-    if (header.padding)
-    {
-        LOG_ERROR("Cannot handle padded packets!");
-        return RTP_INVALID_VALUE;
-    }
-
-    if (header.pkt_type > uvgrtp::frame::RTCP_FT_APP ||
-        header.pkt_type < uvgrtp::frame::RTCP_FT_SR)
-    {
-        LOG_ERROR("Invalid packet type (%u)!", header.pkt_type);
-        return RTP_INVALID_VALUE;
-    }
-
-    update_rtcp_bandwidth(size);
-
-    rtp_error_t ret = RTP_INVALID_VALUE;
-
-    switch (header.pkt_type)
-    {
-        case uvgrtp::frame::RTCP_FT_SR:
-            ret = handle_sender_report_packet(buffer, size, header);
-            break;
-
-        case uvgrtp::frame::RTCP_FT_RR:
-            ret = handle_receiver_report_packet(buffer, size, header);
-            break;
-
-        case uvgrtp::frame::RTCP_FT_SDES:
-            ret = handle_sdes_packet(buffer, size, header);
-            break;
-
-        case uvgrtp::frame::RTCP_FT_BYE:
-            ret = handle_bye_packet(buffer, size);
-            break;
-
-        case uvgrtp::frame::RTCP_FT_APP:
-            ret = handle_app_packet(buffer, size, header);
-            break;
-
-        default:
-            LOG_WARN("Unknown packet received, type %d", header.pkt_type);
-            break;
-    }
-
-    return ret;
+    return RTP_OK;
 }
 
 rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t* packet, size_t size,
