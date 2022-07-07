@@ -1285,20 +1285,16 @@ rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t* packet, size_t si
 }
 
 rtp_error_t uvgrtp::rtcp::construct_rtcp_header(size_t packet_size, 
-    uint8_t*& frame,
+    uint8_t* frame,
     uint16_t secondField, 
     uvgrtp::frame::RTCP_FRAME_TYPE frame_type, 
-    bool add_local_ssrc
-)
+    bool add_local_ssrc) 
 {
     if (packet_size > UINT16_MAX)
     {
         LOG_ERROR("RTCP receiver report packet size too large!");
         return RTP_GENERIC_ERROR;
     }
-
-    frame = new uint8_t[packet_size];
-    memset(frame, 0, packet_size);
 
     // header |V=2|P|    SC   |  PT  |             length            |
     frame[0] = (2 << 6) | (0 << 5) | secondField;
@@ -1422,6 +1418,8 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         LOG_DEBUG("Generating RTCP Sender report");
         // sender reports have sender information in addition compared to receiver reports
         frame_size += SENDER_INFO_SIZE;
+        frame = new uint8_t[frame_size];
+        memset(frame, 0, frame_size);
         construct_rtcp_header(frame_size, frame, reports, uvgrtp::frame::RTCP_FT_SR, true);
 
         // add sender info to packet
@@ -1446,6 +1444,8 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
     } else { // RECEIVER
         LOG_DEBUG("Generating RTCP Receiver report");
+        frame = new uint8_t[frame_size];
+        memset(frame, 0, frame_size);
         construct_rtcp_header(frame_size, frame, reports, uvgrtp::frame::RTCP_FT_RR, true);
     }
 
@@ -1508,7 +1508,10 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(const std::vector<uvgrtp::frame::rtcp
         return RTP_GENERIC_ERROR;
     }
 
-    uint8_t* frame = nullptr;
+    size_t frame_size = get_sdes_packet_size(items);
+
+    uint8_t* frame = new uint8_t[frame_size];
+    memset(frame, 0, frame_size);
     rtp_error_t ret = RTP_OK;
 
     // this already adds our ssrc
@@ -1535,8 +1538,8 @@ rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
     }
 
     size_t frame_size = RTCP_HEADER_SIZE + ssrcs.size() * SSRC_CSRC_SIZE;
-    uint8_t* frame = nullptr;
-    int ptr = RTCP_HEADER_SIZE;
+    uint8_t* frame = new uint8_t[frame_size];
+    memset(frame, 0, frame_size);
 
     rtp_error_t ret = RTP_OK;
     if ((ret = construct_rtcp_header(frame_size, frame, (ssrcs.size() & 0x1f),
@@ -1544,6 +1547,8 @@ rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
     {
         return ret;
     }
+
+    int ptr = RTCP_HEADER_SIZE;
 
     for (auto& ssrc : ssrcs)
     {
@@ -1557,9 +1562,11 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
     size_t payload_len, const uint8_t* payload)
 {
     rtp_error_t ret = RTP_OK;
-    uint8_t* frame = nullptr;
 
     size_t frame_size = get_app_packet_size(payload_len);
+    uint8_t* frame = new uint8_t[frame_size];
+    memset(frame, 0, frame_size);
+
     if ((ret = construct_rtcp_header(frame_size, frame, (subtype & 0x1f),
                                      uvgrtp::frame::RTCP_FT_APP, true)) != RTP_OK)
     {
