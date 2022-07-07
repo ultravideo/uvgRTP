@@ -942,6 +942,8 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
 {
     (void)size;
 
+    // TODO: Handle compound packets here
+
     if (size < RTCP_HEADER_LENGTH)
     {
         LOG_ERROR("Didn't get enough data for an rtcp header");
@@ -951,9 +953,12 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
     uvgrtp::frame::rtcp_header header;
     read_rtcp_header(buffer, header);
 
-    if (size < header.length) // TODO: This length in header is not supposed to be bytes, but 32-bit words - 1
+    // the length field is the rtcp packet size measured in 32-bit words - 1
+    uint32_t size_of_rtcp_packet = (header.length + 1)*sizeof(uint32_t);
+
+    if (size < size_of_rtcp_packet)
     {
-        LOG_ERROR("Received partial rtcp packet. Not supported");
+        LOG_ERROR("Received a partial rtcp packet. Not supported!");
         return RTP_NOT_SUPPORTED;
     }
 
@@ -1029,7 +1034,9 @@ rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t* packet, size_t size,
         return ret;
     }
 
-    for (int ptr = 8; ptr < frame->header.length; )
+    uint32_t rtcp_packet_size = (frame->header.length + 1) * sizeof(uint32_t);
+
+    for (int ptr = 8; ptr < rtcp_packet_size; )
     {
         uvgrtp::frame::rtcp_sdes_item item;
 
@@ -1117,11 +1124,17 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t size,
         add_participant(frame->ssrc);
     }
 
-    frame->payload = new uint8_t[frame->header.length];
+    uint32_t rtcp_packet_size = (frame->header.length + 1) * sizeof(uint32_t);
+    uint32_t application_data_size = rtcp_packet_size
+        - (RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE);
 
+    // application data is saved to payload
+    frame->payload = new uint8_t[application_data_size];
+
+    // copy app name and application-dependent data from network packet to RTCP structures
     memcpy(frame->name, &packet[RTCP_HEADER_SIZE + SSRC_CSRC_SIZE], APP_NAME_SIZE);
-    memcpy(frame->payload, &packet[RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE],
-        frame->header.length - RTCP_HEADER_SIZE - SSRC_CSRC_SIZE - APP_NAME_SIZE);
+    memcpy(frame->payload, &packet[RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE], 
+           application_data_size);
 
     app_mutex_.lock();
     if (app_hook_) {
@@ -1283,8 +1296,8 @@ rtp_error_t uvgrtp::rtcp::construct_rtcp_header(size_t packet_size,
     frame[0] = (2 << 6) | (0 << 5) | secondField;
     frame[1] = frame_type;
 
-    // TODO: This should be size in 32-bit words - 1
-    *(uint16_t*)&frame[2] = htons((u_short)packet_size);
+    // The RTCP header length field is measured in 32-bit words - 1
+    *(uint16_t*)&frame[2] = htons((uint16_t)packet_size/sizeof(uint32_t) - 1);
 
     if (add_local_ssrc)
     {
