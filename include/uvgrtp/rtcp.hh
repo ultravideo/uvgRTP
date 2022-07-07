@@ -356,7 +356,7 @@ namespace uvgrtp {
                 std::vector<uvgrtp::frame::rtcp_report_block>& reports);
 
             /* Takes ownership of the frame */
-            rtp_error_t send_rtcp_packet_to_participants(uint8_t* frame, size_t frame_size);
+            rtp_error_t send_rtcp_packet_to_participants(uint8_t* frame, size_t frame_size, bool encrypt);
 
 
             void free_participant(rtcp_participant* participant);

@@ -1361,9 +1361,18 @@ void uvgrtp::rtcp::read_reports(const uint8_t* packet, size_t size, uint8_t coun
     }
 }
 
-rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, size_t frame_size)
+rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, size_t frame_size, bool encrypt)
 {
     rtp_error_t ret = RTP_OK;
+
+    if (encrypt && srtcp_ && 
+        (ret = srtcp_->handle_rtcp_encryption(flags_, rtcp_pkt_sent_count_, ssrc_, frame, frame_size)) != RTP_OK)
+    {
+        LOG_DEBUG("Encryption failed. Not sending packet");
+        delete[] frame;
+        return ret;
+    }
+
     for (auto& p : participants_)
     {
         if (p.second->socket != nullptr)
@@ -1483,14 +1492,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         }
     }
 
-    if (srtcp_ && (ret = srtcp_->handle_rtcp_encryption(flags_, rtcp_pkt_sent_count_, ssrc_, frame, frame_size)) != RTP_OK)
-    {
-        LOG_DEBUG("Encryption failed. Not sending packet");
-        delete[] frame;
-        return ret;
-    }
-
-    return send_rtcp_packet_to_participants(frame, frame_size);
+    return send_rtcp_packet_to_participants(frame, frame_size, true);
 }
 
 rtp_error_t uvgrtp::rtcp::send_sdes_packet(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items)
@@ -1521,14 +1523,7 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(const std::vector<uvgrtp::frame::rtcp
 
     construct_sdes_packet(frame, ptr, items);
 
-    if (srtcp_ && (ret = srtcp_->handle_rtcp_encryption(flags_, rtcp_pkt_sent_count_,
-                                                        ssrc_, frame, frame_size)) != RTP_OK)
-    {
-        delete[] frame;
-        return ret;
-    }
-
-    return send_rtcp_packet_to_participants(frame, frame_size);
+    return send_rtcp_packet_to_participants(frame, frame_size, true);
 }
 
 rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
@@ -1556,7 +1551,7 @@ rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
         SET_NEXT_FIELD_32(frame, ptr, htonl(ssrc));
     }
 
-    return send_rtcp_packet_to_participants(frame, frame_size);
+    return send_rtcp_packet_to_participants(frame, frame_size, false);
 }
 
 rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
@@ -1577,14 +1572,7 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
     int ptr = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
 
     construct_app_packet(frame, ptr, name, payload, payload_len);
-
-    if (srtcp_ && (ret = srtcp_->handle_rtcp_encryption(flags_, rtcp_pkt_sent_count_, ssrc_, frame, frame_size)) != RTP_OK)
-    {
-        delete[] frame;
-        return ret;
-    }
-
-    return send_rtcp_packet_to_participants(frame, frame_size);
+    return send_rtcp_packet_to_participants(frame, frame_size, true);
 }
 
 void uvgrtp::rtcp::set_session_bandwidth(int kbps)
