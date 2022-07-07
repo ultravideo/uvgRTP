@@ -346,10 +346,6 @@ namespace uvgrtp {
 
             void zero_stats(uvgrtp::receiver_statistics *stats);
 
-            /* Set the first four or eight bytes of an RTCP packet */
-            rtp_error_t construct_rtcp_header(size_t packet_size, uint8_t* frame,
-                uint16_t secondField, uvgrtp::frame::RTCP_FRAME_TYPE frame_type, bool addLocalSSRC);
-
             /* read the header values from rtcp packet */
             void read_rtcp_header(const uint8_t* packet, uvgrtp::frame::rtcp_header& header);
             void read_reports(const uint8_t* packet, size_t size, uint8_t count, bool has_sender_block,

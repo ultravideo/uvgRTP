@@ -1285,33 +1285,6 @@ rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t* packet, size_t si
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::rtcp::construct_rtcp_header(size_t packet_size, 
-    uint8_t* frame,
-    uint16_t secondField, 
-    uvgrtp::frame::RTCP_FRAME_TYPE frame_type, 
-    bool add_local_ssrc) 
-{
-    if (packet_size > UINT16_MAX)
-    {
-        LOG_ERROR("RTCP receiver report packet size too large!");
-        return RTP_GENERIC_ERROR;
-    }
-
-    // header |V=2|P|    SC   |  PT  |             length            |
-    frame[0] = (2 << 6) | (0 << 5) | secondField;
-    frame[1] = frame_type;
-
-    // The RTCP header length field is measured in 32-bit words - 1
-    *(uint16_t*)&frame[2] = htons((uint16_t)packet_size/sizeof(uint32_t) - 1);
-
-    if (add_local_ssrc)
-    {
-        *(uint32_t*)&frame[RTCP_HEADER_SIZE] = htonl(ssrc_);
-    }
-
-    return RTP_OK;
-}
-
 void uvgrtp::rtcp::read_rtcp_header(const uint8_t* packet, uvgrtp::frame::rtcp_header& header)
 {
     header.version = (packet[0] >> 6) & 0x3;
@@ -1430,7 +1403,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         frame_size += SENDER_INFO_SIZE;
         frame = new uint8_t[frame_size];
         memset(frame, 0, frame_size);
-        construct_rtcp_header(frame_size, frame, reports, uvgrtp::frame::RTCP_FT_SR, true);
+        construct_rtcp_header(frame_size, frame, reports, uvgrtp::frame::RTCP_FT_SR, ssrc_);
 
         // add sender info to packet
         if (clock_start_ == 0)
@@ -1456,7 +1429,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         LOG_DEBUG("Generating RTCP Receiver report");
         frame = new uint8_t[frame_size];
         memset(frame, 0, frame_size);
-        construct_rtcp_header(frame_size, frame, reports, uvgrtp::frame::RTCP_FT_RR, true);
+        construct_rtcp_header(frame_size, frame, reports, uvgrtp::frame::RTCP_FT_RR, ssrc_);
     }
 
     // the report blocks for sender or receiver report. Both have same reports.
@@ -1518,7 +1491,7 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(const std::vector<uvgrtp::frame::rtcp
     rtp_error_t ret = RTP_OK;
 
     // this already adds our ssrc
-    construct_rtcp_header(frame_size, frame, num_receivers_, uvgrtp::frame::RTCP_FT_SDES, true);
+    construct_rtcp_header(frame_size, frame, num_receivers_, uvgrtp::frame::RTCP_FT_SDES, ssrc_);
     int ptr = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
 
     construct_sdes_packet(frame, ptr, items);
@@ -1538,8 +1511,9 @@ rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
     memset(frame, 0, frame_size);
 
     rtp_error_t ret = RTP_OK;
+    // TODO: Should this be our or peer SSRC? In others, its ours
     if ((ret = construct_rtcp_header(frame_size, frame, (ssrcs.size() & 0x1f),
-                                     uvgrtp::frame::RTCP_FT_BYE, false)) != RTP_OK)
+                                     uvgrtp::frame::RTCP_FT_BYE, 0)) != RTP_OK)
     {
         return ret;
     }
@@ -1564,7 +1538,7 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
     memset(frame, 0, frame_size);
 
     if ((ret = construct_rtcp_header(frame_size, frame, (subtype & 0x1f),
-                                     uvgrtp::frame::RTCP_FT_APP, true)) != RTP_OK)
+                                     uvgrtp::frame::RTCP_FT_APP, ssrc_)) != RTP_OK)
     {
         return ret;
     }
