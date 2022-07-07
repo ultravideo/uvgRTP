@@ -1516,25 +1516,36 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(const std::vector<uvgrtp::frame::rtcp
     rtp_error_t ret = RTP_OK;
     size_t frame_size = 0;
 
-    // TODO: This does not seem correct. Each SDES item has its own SSRC/CSRC 
-    // and there is no one SSRC per packet. This also does not take into account the size of payload
-    frame_size = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
-    frame_size += items.size() * 2; /* sdes item type + length */
-    int ptr = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
+    /* We currently only support having one source. If uvgRTP is used in a mixer, multiple sources
+     * should be supported in SDES packet. */
 
+    // calculate SDES packet size
+    frame_size = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE; // our csrc
+    frame_size += items.size() * 2; /* sdes item type + length, both take one byte */
     for (auto& item : items)
     {
-        frame_size += item.length;
+        if (item.length <= 255)
+        {
+            frame_size += item.length;
+        }
+        else
+        {
+            LOG_ERROR("SDES item text must not be longer than 255 characters");
+        }
     }
 
     construct_rtcp_header(frame_size, frame, num_receivers_, uvgrtp::frame::RTCP_FT_SDES, true);
 
+    int ptr = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
     for (auto& item : items)
     {
-        frame[ptr++] = item.type;
-        frame[ptr++] = item.length;
-        memcpy(frame + ptr, item.data, item.length);
-        ptr += item.length;
+        if (item.length <= 255)
+        {
+            frame[ptr++] = item.type;
+            frame[ptr++] = item.length;
+            memcpy(frame + ptr, item.data, item.length);
+            ptr += item.length;
+        }
     }
 
     if (srtcp_ && (ret = srtcp_->handle_rtcp_encryption(flags_, rtcp_pkt_sent_count_,
