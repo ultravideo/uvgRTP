@@ -802,7 +802,7 @@ rtp_error_t uvgrtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
            uvgrtp::rtcp::init_participant_seq(ssrc, seq);
        } else {
            p->stats.bad_seq = (seq + 1) & (RTP_SEQ_MOD - 1);
-           LOG_ERROR("Invalid sequence number");
+           LOG_ERROR("Invalid sequence number. Seq jump: %u -> %u", p->stats.max_seq, seq);
            return RTP_GENERIC_ERROR;
        }
     } else {
@@ -908,8 +908,8 @@ rtp_error_t uvgrtp::rtcp::recv_packet_handler(void *arg, int flags, frame::rtp_f
             return RTP_OK;
         }
         else {
-            LOG_ERROR("Failed to initiate update participant seq");
-            return RTP_GENERIC_ERROR;
+            LOG_ERROR("Failed to update participant with seq %u", frame->header.seq);
+            return ret;
         }
     }
 
