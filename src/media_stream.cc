@@ -19,7 +19,8 @@
 #include <cstring>
 #include <errno.h>
 
-uvgrtp::media_stream::media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags):
+uvgrtp::media_stream::media_stream(std::string cname, std::string addr, 
+    int src_port, int dst_port, rtp_format_t fmt, int flags):
     srtp_(nullptr),
     srtcp_(nullptr),
     socket_(nullptr),
@@ -31,7 +32,8 @@ uvgrtp::media_stream::media_stream(std::string addr, int src_port, int dst_port,
     rtp_handler_key_(0),
     reception_flow_(nullptr),
     media_(nullptr),
-    holepuncher_(nullptr)
+    holepuncher_(nullptr),
+    cname_(cname)
 {
     fmt_      = fmt;
     addr_     = addr;
@@ -44,12 +46,12 @@ uvgrtp::media_stream::media_stream(std::string addr, int src_port, int dst_port,
     ctx_config_.flags = flags;
 }
 
-uvgrtp::media_stream::media_stream(
+uvgrtp::media_stream::media_stream(std::string cname,
     std::string remote_addr, std::string local_addr,
     int src_port, int dst_port,
     rtp_format_t fmt, int flags
 ):
-    media_stream(remote_addr, src_port, dst_port, fmt, flags)
+    media_stream(cname, remote_addr, src_port, dst_port, fmt, flags)
 {
     laddr_ = local_addr;
 }
@@ -233,7 +235,7 @@ rtp_error_t uvgrtp::media_stream::init()
     reception_flow_ = std::unique_ptr<uvgrtp::reception_flow> (new uvgrtp::reception_flow());
 
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
-    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, ctx_config_.flags));
+    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, cname_, ctx_config_.flags));
 
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
 
@@ -245,7 +247,7 @@ rtp_error_t uvgrtp::media_stream::init()
 
 rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
 {
-    rtp_error_t ret;
+    rtp_error_t ret = RTP_OK;
 
     if (init_connection() != RTP_OK) {
         log_platform_error("Failed to initialize the underlying socket");
@@ -269,7 +271,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
     if ((ret = init_srtp_with_zrtp(ctx_config_.flags, SRTCP, srtcp_, zrtp)) != RTP_OK)
       return free_resources(ret);
 
-    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, srtcp_, ctx_config_.flags));
+    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, cname_, srtcp_, ctx_config_.flags));
 
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
     socket_->install_handler(srtp_.get(), srtp_->send_packet_handler);
@@ -318,7 +320,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         return free_resources(ret);
     }
 
-    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, srtcp_, ctx_config_.flags));
+    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, cname_, srtcp_, ctx_config_.flags));
 
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
     socket_->install_handler(srtp_.get(), srtp_->send_packet_handler);

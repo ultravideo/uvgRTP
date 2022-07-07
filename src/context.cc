@@ -43,7 +43,7 @@ uvgrtp::session *uvgrtp::context::create_session(std::string remote_addr)
     if (remote_addr == "")
         return nullptr;
 
-    return new uvgrtp::session(remote_addr);
+    return new uvgrtp::session(get_cname(), remote_addr);
 }
 
 uvgrtp::session *uvgrtp::context::create_session(std::string remote_addr, std::string local_addr)
@@ -51,7 +51,7 @@ uvgrtp::session *uvgrtp::context::create_session(std::string remote_addr, std::s
     if (remote_addr == "" || local_addr == "")
         return nullptr;
 
-    return new uvgrtp::session(remote_addr, local_addr);
+    return new uvgrtp::session(get_cname(), remote_addr, local_addr);
 }
 
 rtp_error_t uvgrtp::context::destroy_session(uvgrtp::session *session)

@@ -20,8 +20,9 @@ namespace uvgrtp {
     class session {
         public:
             /// \cond DO_NOT_DOCUMENT
-            session(std::string addr);
-            session(std::string remote_addr, std::string local_addr);
+            session(std::string cname, std::string addr);
+            session(std::string cname, std::string remote_addr, 
+                std::string local_addr);
             ~session();
             /// \endcond
 
@@ -90,6 +91,8 @@ namespace uvgrtp {
             std::unordered_map<uint32_t, uvgrtp::media_stream *> streams_;
 
             std::mutex session_mtx_;
+
+            std::string cname_;
     };
 }
 

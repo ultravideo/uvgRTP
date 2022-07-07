@@ -31,7 +31,7 @@ constexpr int ESTIMATED_MAX_RECEPTION_TIME_MS = 10;
 
 const uint32_t MAX_SUPPORTED_PARTICIPANTS = 31;
 
-uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, int flags):
+uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int flags):
     flags_(flags), our_role_(RECEIVER),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
@@ -65,8 +65,9 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, int flags):
     zero_stats(&our_stats);
 }
 
-uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<uvgrtp::srtcp> srtcp, int flags):
-    rtcp(rtp, flags)
+uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, 
+    std::shared_ptr<uvgrtp::srtcp> srtcp, int flags):
+    rtcp(rtp, cname, flags)
 {
     srtcp_ = srtcp;
 }

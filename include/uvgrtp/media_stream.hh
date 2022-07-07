@@ -40,8 +40,8 @@ namespace uvgrtp {
     class media_stream {
         public:
             /// \cond DO_NOT_DOCUMENT
-            media_stream(std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags);
-            media_stream(std::string remote_addr, std::string local_addr, int src_port, int dst_port, rtp_format_t fmt, int flags);
+            media_stream(std::string cname, std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags);
+            media_stream(std::string cname, std::string remote_addr, std::string local_addr, int src_port, int dst_port, rtp_format_t fmt, int flags);
             ~media_stream();
 
             /* Initialize traditional RTP session
@@ -356,6 +356,8 @@ namespace uvgrtp {
 
             /* Thread that keeps the holepunched connection open for unidirectional streams */
             std::unique_ptr<uvgrtp::holepuncher> holepuncher_;
+
+            std::string cname_;
     };
 }
 

@@ -6,17 +6,18 @@
 #include "uvgrtp/debug.hh"
 
 
-uvgrtp::session::session(std::string addr):
+uvgrtp::session::session(std::string cname, std::string addr):
 #ifdef __RTP_CRYPTO__
     zrtp_(new uvgrtp::zrtp()),
 #endif
     addr_(addr),
-    laddr_("")
+    laddr_(""),
+    cname_(cname)
 {
 }
 
-uvgrtp::session::session(std::string remote_addr, std::string local_addr):
-    session(remote_addr)
+uvgrtp::session::session(std::string cname, std::string remote_addr, std::string local_addr):
+    session(cname, remote_addr)
 {
     laddr_ = local_addr;
 }
@@ -42,9 +43,9 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
     }
 
     if (laddr_ == "")
-        stream = new uvgrtp::media_stream(addr_, r_port, s_port, fmt, flags);
+        stream = new uvgrtp::media_stream(cname_, addr_, r_port, s_port, fmt, flags);
     else
-        stream = new uvgrtp::media_stream(addr_, laddr_, r_port, s_port, fmt, flags);
+        stream = new uvgrtp::media_stream(cname_, addr_, laddr_, r_port, s_port, fmt, flags);
 
     if (flags & RCE_SRTP) {
         if (!uvgrtp::crypto::enabled()) {

@@ -77,8 +77,8 @@ namespace uvgrtp {
     class rtcp {
         public:
             /// \cond DO_NOT_DOCUMENT
-            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, int flags);
-            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<uvgrtp::srtcp> srtcp, int flags);
+            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int flags);
+            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, std::shared_ptr<uvgrtp::srtcp> srtcp, int flags);
             ~rtcp();
 
             /* start the RTCP runner thread
@@ -347,7 +347,7 @@ namespace uvgrtp {
             void zero_stats(uvgrtp::receiver_statistics *stats);
 
             /* Set the first four or eight bytes of an RTCP packet */
-            rtp_error_t construct_rtcp_header(size_t packet_size, uint8_t*& frame,
+            rtp_error_t construct_rtcp_header(size_t packet_size, uint8_t* frame,
                 uint16_t secondField, uvgrtp::frame::RTCP_FRAME_TYPE frame_type, bool addLocalSSRC);
 
             /* read the header values from rtcp packet */
@@ -467,6 +467,8 @@ namespace uvgrtp {
             bool active_;
 
             int interval_ms_;
+
+            std::string cname_;
     };
 }
 
