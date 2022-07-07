@@ -14,7 +14,7 @@ namespace uvgrtp
     const uint16_t APP_NAME_SIZE = 4;
 
     /* Set the first four or eight bytes of an RTCP packet */
-    rtp_error_t construct_rtcp_header(size_t packet_size,
+    rtp_error_t construct_rtcp_header(int& ptr, size_t packet_size,
         uint8_t* frame,
         uint16_t secondField,
         uvgrtp::frame::RTCP_FRAME_TYPE frame_type,
@@ -23,8 +23,9 @@ namespace uvgrtp
     size_t get_sdes_packet_size(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
     size_t get_app_packet_size(size_t payload_len);
 
-    void construct_sdes_packet(uint8_t* frame, int& ptr,
+    rtp_error_t construct_sdes_packet(uint8_t* frame, int& ptr,
         const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
-    void construct_app_packet(uint8_t* frame, int& ptr,
-        const char* name, const uint8_t* payload, size_t payload_len);
+    rtp_error_t construct_app_packet(uint8_t* frame, int& ptr,
+        const char* name, const uint8_t* payload, size_t payload_len, 
+        uint8_t subtype, uint32_t local_ssrc);
 }

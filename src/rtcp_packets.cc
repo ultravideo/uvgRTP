@@ -4,7 +4,7 @@
 
 
 
-rtp_error_t uvgrtp::construct_rtcp_header(size_t packet_size,
+rtp_error_t uvgrtp::construct_rtcp_header(int& ptr, size_t packet_size,
     uint8_t* frame,
     uint16_t secondField,
     uvgrtp::frame::RTCP_FRAME_TYPE frame_type,
@@ -17,18 +17,44 @@ rtp_error_t uvgrtp::construct_rtcp_header(size_t packet_size,
     }
 
     // header |V=2|P|    SC   |  PT  |             length            |
-    frame[0] = (2 << 6) | (0 << 5) | secondField;
-    frame[1] = frame_type;
+    frame[ptr] = (2 << 6) | (0 << 5) | secondField;
+    frame[ptr + 1] = frame_type;
 
     // The RTCP header length field is measured in 32-bit words - 1
-    *(uint16_t*)&frame[2] = htons((uint16_t)packet_size / sizeof(uint32_t) - 1);
+    *(uint16_t*)&frame[ptr + 2] = htons((uint16_t)packet_size / sizeof(uint32_t) - 1);
+    ptr += RTCP_HEADER_SIZE;
 
     if (ssrc)
     {
-        *(uint32_t*)&frame[RTCP_HEADER_SIZE] = htonl(ssrc);
+        *(uint32_t*)&frame[ptr] = htonl(ssrc);
+        ptr += SSRC_CSRC_SIZE;
     }
 
     return RTP_OK;
+}
+
+size_t uvgrtp::get_app_packet_size(size_t payload_len)
+{
+    return RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE + payload_len;
+}
+
+rtp_error_t uvgrtp::construct_app_packet(uint8_t* frame, int& ptr,
+    const char* name, const uint8_t* payload, size_t payload_len, 
+    uint8_t subtype, uint32_t local_ssrc)
+{
+    rtp_error_t ret = RTP_OK;
+
+    if ((ret = construct_rtcp_header(ptr, get_app_packet_size(payload_len), frame, (subtype & 0x1f),
+        uvgrtp::frame::RTCP_FT_APP, local_ssrc)) != RTP_OK)
+    {
+        return ret;
+    }
+
+    memcpy(&frame[ptr], name, APP_NAME_SIZE);
+    memcpy(&frame[ptr + APP_NAME_SIZE], payload, payload_len);
+    ptr += APP_NAME_SIZE + payload_len;
+
+    return ret;
 }
 
 size_t uvgrtp::get_sdes_packet_size(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items) {
@@ -55,15 +81,8 @@ size_t uvgrtp::get_sdes_packet_size(const std::vector<uvgrtp::frame::rtcp_sdes_i
     return frame_size;
 }
 
-size_t uvgrtp::get_app_packet_size(size_t payload_len)
-{
-    return RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE + payload_len;
-}
-
-void uvgrtp::construct_sdes_packet(uint8_t* frame, int& ptr,
+rtp_error_t uvgrtp::construct_sdes_packet(uint8_t* frame, int& ptr,
     const std::vector<uvgrtp::frame::rtcp_sdes_item>& items) {
-
-
 
     for (auto& item : items)
     {
@@ -75,11 +94,6 @@ void uvgrtp::construct_sdes_packet(uint8_t* frame, int& ptr,
             ptr += item.length;
         }
     }
-}
 
-void uvgrtp::construct_app_packet(uint8_t* frame, int& ptr,
-    const char* name, const uint8_t* payload, size_t payload_len)
-{
-    memcpy(&frame[RTCP_HEADER_SIZE + SSRC_CSRC_SIZE], name, APP_NAME_SIZE);
-    memcpy(&frame[RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE], payload, payload_len);
+    return RTP_OK;
 }

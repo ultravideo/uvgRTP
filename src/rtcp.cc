@@ -1372,12 +1372,6 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 {
     rtcp_pkt_sent_count_++;
 
-    rtp_error_t ret = RTP_OK;
-    uint8_t* frame = nullptr;
-    int ptr = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
-
-    size_t frame_size = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
-
     uint16_t reports = 0;
     for (auto& p : participants_)
     {
@@ -1387,7 +1381,10 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         }
     }
 
-    frame_size += REPORT_BLOCK_SIZE*reports;
+    rtp_error_t ret = RTP_OK;
+    uint8_t* frame = nullptr;
+    size_t frame_size = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + 
+        REPORT_BLOCK_SIZE * reports;
 
     if (flags_ & RCE_SRTP)
     {
@@ -1396,6 +1393,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
     // see https://datatracker.ietf.org/doc/html/rfc3550#section-6.4.1
 
+    int ptr = 0;
     if (our_role_ == SENDER && our_stats.sent_rtp_packet)
     {
         LOG_DEBUG("Generating RTCP Sender report");
@@ -1403,7 +1401,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         frame_size += SENDER_INFO_SIZE;
         frame = new uint8_t[frame_size];
         memset(frame, 0, frame_size);
-        construct_rtcp_header(frame_size, frame, reports, uvgrtp::frame::RTCP_FT_SR, ssrc_);
+        construct_rtcp_header(ptr, frame_size, frame, reports, uvgrtp::frame::RTCP_FT_SR, ssrc_);
 
         // add sender info to packet
         if (clock_start_ == 0)
@@ -1429,7 +1427,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         LOG_DEBUG("Generating RTCP Receiver report");
         frame = new uint8_t[frame_size];
         memset(frame, 0, frame_size);
-        construct_rtcp_header(frame_size, frame, reports, uvgrtp::frame::RTCP_FT_RR, ssrc_);
+        construct_rtcp_header(ptr, frame_size, frame, reports, uvgrtp::frame::RTCP_FT_RR, ssrc_);
     }
 
     // the report blocks for sender or receiver report. Both have same reports.
@@ -1490,10 +1488,9 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(const std::vector<uvgrtp::frame::rtcp
     memset(frame, 0, frame_size);
     rtp_error_t ret = RTP_OK;
 
+    int ptr = 0;
     // this already adds our ssrc
-    construct_rtcp_header(frame_size, frame, num_receivers_, uvgrtp::frame::RTCP_FT_SDES, ssrc_);
-    int ptr = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
-
+    construct_rtcp_header(ptr, frame_size, frame, num_receivers_, uvgrtp::frame::RTCP_FT_SDES, ssrc_);
     construct_sdes_packet(frame, ptr, items);
 
     return send_rtcp_packet_to_participants(frame, frame_size, true);
@@ -1511,14 +1508,13 @@ rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
     memset(frame, 0, frame_size);
 
     rtp_error_t ret = RTP_OK;
-    // TODO: Should this be our or peer SSRC? In others, its ours
-    if ((ret = construct_rtcp_header(frame_size, frame, (ssrcs.size() & 0x1f),
+    int ptr = 0;
+    // TODO: Should this be our or peer SSRC?
+    if ((ret = construct_rtcp_header(ptr, frame_size, frame, (ssrcs.size() & 0x1f),
                                      uvgrtp::frame::RTCP_FT_BYE, 0)) != RTP_OK)
     {
         return ret;
     }
-
-    int ptr = RTCP_HEADER_SIZE;
 
     for (auto& ssrc : ssrcs)
     {
@@ -1531,21 +1527,13 @@ rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
 rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
     size_t payload_len, const uint8_t* payload)
 {
-    rtp_error_t ret = RTP_OK;
-
     size_t frame_size = get_app_packet_size(payload_len);
     uint8_t* frame = new uint8_t[frame_size];
     memset(frame, 0, frame_size);
 
-    if ((ret = construct_rtcp_header(frame_size, frame, (subtype & 0x1f),
-                                     uvgrtp::frame::RTCP_FT_APP, ssrc_)) != RTP_OK)
-    {
-        return ret;
-    }
+    int ptr = 0;
 
-    int ptr = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
-
-    construct_app_packet(frame, ptr, name, payload, payload_len);
+    construct_app_packet(frame, ptr, name, payload, payload_len, subtype, ssrc_);
     return send_rtcp_packet_to_participants(frame, frame_size, true);
 }
 
