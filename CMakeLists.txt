@@ -38,16 +38,19 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/frame_queue.cc
         src/random.cc
         src/rtcp.cc
+        src/rtcp_packets.cc
         src/rtp.cc
         src/session.cc
         src/socket.cc
         src/zrtp.cc
         src/holepuncher.cc
+
         src/formats/media.cc
         src/formats/h26x.cc
         src/formats/h264.cc
         src/formats/h265.cc
         src/formats/h266.cc
+
         src/zrtp/zrtp_receiver.cc
         src/zrtp/hello.cc
         src/zrtp/hello_ack.cc
@@ -78,6 +81,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/reception_flow.hh
         src/poll.hh
         src/rtp.hh
+        src/rtcp_packets.hh
         src/zrtp.hh
         src/frame_queue.hh
 

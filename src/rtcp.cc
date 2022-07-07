@@ -4,6 +4,7 @@
 #include "poll.hh"
 #include "rtp.hh"
 #include "srtp/srtcp.hh"
+#include "rtcp_packets.hh"
 
 #include "uvgrtp/debug.hh"
 #include "uvgrtp/util.hh"
@@ -18,11 +19,6 @@
 #include <cstring>
 #include <iostream>
 
-const uint16_t RTCP_HEADER_SIZE = 4;
-const uint16_t SSRC_CSRC_SIZE = 4;
-const uint16_t SENDER_INFO_SIZE = 20;
-const uint16_t REPORT_BLOCK_SIZE = 24;
-const uint16_t APP_NAME_SIZE = 4;
 
 /* TODO: explain these constants */
 const uint32_t RTP_SEQ_MOD    = 1 << 16;
@@ -1514,39 +1510,12 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(const std::vector<uvgrtp::frame::rtcp
 
     uint8_t* frame = nullptr;
     rtp_error_t ret = RTP_OK;
-    size_t frame_size = 0;
 
-    /* We currently only support having one source. If uvgRTP is used in a mixer, multiple sources
-     * should be supported in SDES packet. */
-
-    // calculate SDES packet size
-    frame_size = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE; // our csrc
-    frame_size += items.size() * 2; /* sdes item type + length, both take one byte */
-    for (auto& item : items)
-    {
-        if (item.length <= 255)
-        {
-            frame_size += item.length;
-        }
-        else
-        {
-            LOG_ERROR("SDES item text must not be longer than 255 characters");
-        }
-    }
-
+    // this already adds our ssrc
     construct_rtcp_header(frame_size, frame, num_receivers_, uvgrtp::frame::RTCP_FT_SDES, true);
-
     int ptr = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
-    for (auto& item : items)
-    {
-        if (item.length <= 255)
-        {
-            frame[ptr++] = item.type;
-            frame[ptr++] = item.length;
-            memcpy(frame + ptr, item.data, item.length);
-            ptr += item.length;
-        }
-    }
+
+    construct_sdes_packet(frame, ptr, items);
 
     if (srtcp_ && (ret = srtcp_->handle_rtcp_encryption(flags_, rtcp_pkt_sent_count_,
                                                         ssrc_, frame, frame_size)) != RTP_OK)
@@ -1589,16 +1558,17 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
 {
     rtp_error_t ret = RTP_OK;
     uint8_t* frame = nullptr;
-    size_t frame_size = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE + payload_len;
 
+    size_t frame_size = get_app_packet_size(payload_len);
     if ((ret = construct_rtcp_header(frame_size, frame, (subtype & 0x1f),
                                      uvgrtp::frame::RTCP_FT_APP, true)) != RTP_OK)
     {
         return ret;
     }
 
-    memcpy(&frame[RTCP_HEADER_SIZE + SSRC_CSRC_SIZE], name, APP_NAME_SIZE);
-    memcpy(&frame[RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE], payload, payload_len);
+    int ptr = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE;
+
+    construct_app_packet(frame, ptr, name, payload, payload_len);
 
     if (srtcp_ && (ret = srtcp_->handle_rtcp_encryption(flags_, rtcp_pkt_sent_count_, ssrc_, frame, frame_size)) != RTP_OK)
     {
