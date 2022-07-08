@@ -1498,27 +1498,23 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(const std::vector<uvgrtp::frame::rtcp
 
 rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
 {
+    // ssrcs contains all our ssrcs which usually is one unless we are a mixer
     if (ssrcs.empty())
     {
         LOG_WARN("Source Count in RTCP BYE packet is 0");
     }
 
-    size_t frame_size = RTCP_HEADER_SIZE + ssrcs.size() * SSRC_CSRC_SIZE;
+    size_t frame_size = get_bye_packet_size(ssrcs);
     uint8_t* frame = new uint8_t[frame_size];
     memset(frame, 0, frame_size);
 
     rtp_error_t ret = RTP_OK;
     int ptr = 0;
-    // TODO: Should this be our or peer SSRC?
-    if ((ret = construct_rtcp_header(ptr, frame_size, frame, (ssrcs.size() & 0x1f),
-                                     uvgrtp::frame::RTCP_FT_BYE, 0)) != RTP_OK)
+    uint16_t secondField = (ssrcs.size() & 0x1f);
+    if (!construct_rtcp_header(ptr, frame_size, frame, secondField, uvgrtp::frame::RTCP_FT_BYE, 0) ||
+        !construct_bye_packet(frame, ptr, ssrcs))
     {
-        return ret;
-    }
-
-    for (auto& ssrc : ssrcs)
-    {
-        SET_NEXT_FIELD_32(frame, ptr, htonl(ssrc));
+        return RTP_GENERIC_ERROR;
     }
 
     return send_rtcp_packet_to_participants(frame, frame_size, false);
@@ -1532,8 +1528,14 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
     memset(frame, 0, frame_size);
 
     int ptr = 0;
+    uint16_t secondField = (subtype & 0x1f);
 
-    construct_app_packet(frame, ptr, name, payload, payload_len, subtype, ssrc_);
+    if (!construct_rtcp_header(ptr, frame_size, frame, secondField, uvgrtp::frame::RTCP_FT_APP, ssrc_) ||
+        !construct_app_packet(frame, ptr, name, payload, payload_len))
+    {
+        return RTP_GENERIC_ERROR;
+    }
+
     return send_rtcp_packet_to_participants(frame, frame_size, true);
 }
 
