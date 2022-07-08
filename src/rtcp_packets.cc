@@ -4,8 +4,7 @@
 
 
 
-bool uvgrtp::construct_rtcp_header(int& ptr, size_t packet_size,
-    uint8_t* frame,
+bool uvgrtp::construct_rtcp_header(uint8_t* frame, int& ptr, size_t packet_size,
     uint16_t secondField,
     uvgrtp::frame::RTCP_FRAME_TYPE frame_type,
     uint32_t ssrc)

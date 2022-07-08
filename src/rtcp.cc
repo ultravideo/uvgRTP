@@ -1383,12 +1383,12 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
     rtp_error_t ret = RTP_OK;
     uint8_t* frame = nullptr;
-    size_t frame_size = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + 
+    size_t rtcp_packet_size = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE +
         REPORT_BLOCK_SIZE * reports;
 
     if (flags_ & RCE_SRTP)
     {
-        frame_size += UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH;
+        rtcp_packet_size += UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH;
     }
 
     // see https://datatracker.ietf.org/doc/html/rfc3550#section-6.4.1
@@ -1398,10 +1398,10 @@ rtp_error_t uvgrtp::rtcp::generate_report()
     {
         LOG_DEBUG("Generating RTCP Sender report");
         // sender reports have sender information in addition compared to receiver reports
-        frame_size += SENDER_INFO_SIZE;
-        frame = new uint8_t[frame_size];
-        memset(frame, 0, frame_size);
-        construct_rtcp_header(ptr, frame_size, frame, reports, uvgrtp::frame::RTCP_FT_SR, ssrc_);
+        rtcp_packet_size += SENDER_INFO_SIZE;
+        frame = new uint8_t[rtcp_packet_size];
+        memset(frame, 0, rtcp_packet_size);
+        construct_rtcp_header(frame, ptr, rtcp_packet_size, reports, uvgrtp::frame::RTCP_FT_SR, ssrc_);
 
         // add sender info to packet
         if (clock_start_ == 0)
@@ -1425,15 +1425,12 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
     } else { // RECEIVER
         LOG_DEBUG("Generating RTCP Receiver report");
-        frame = new uint8_t[frame_size];
-        memset(frame, 0, frame_size);
-        construct_rtcp_header(ptr, frame_size, frame, reports, uvgrtp::frame::RTCP_FT_RR, ssrc_);
+        frame = new uint8_t[rtcp_packet_size];
+        memset(frame, 0, rtcp_packet_size);
+        construct_rtcp_header(frame, ptr, rtcp_packet_size, reports, uvgrtp::frame::RTCP_FT_RR, ssrc_);
     }
 
     // the report blocks for sender or receiver report. Both have same reports.
-
-    // TODO: Only include reports from sources which we
-    // have received RTP packets since last report.
     for (auto& p : participants_)
     {
         // only add report blocks if we have received data from them
@@ -1463,7 +1460,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         }
     }
 
-    return send_rtcp_packet_to_participants(frame, frame_size, true);
+    return send_rtcp_packet_to_participants(frame, rtcp_packet_size, true);
 }
 
 rtp_error_t uvgrtp::rtcp::send_sdes_packet(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items)
@@ -1476,67 +1473,69 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(const std::vector<uvgrtp::frame::rtcp
 
     if (num_receivers_ > MAX_SUPPORTED_PARTICIPANTS)
     {
-        LOG_ERROR("Source count is larger than packet supports!");
-
         // TODO: Multiple SDES packets should be sent in this case
+        LOG_ERROR("Source count is larger than packet supports!");
         return RTP_GENERIC_ERROR;
     }
 
-    size_t frame_size = get_sdes_packet_size(items);
-
-    uint8_t* frame = new uint8_t[frame_size];
-    memset(frame, 0, frame_size);
-    rtp_error_t ret = RTP_OK;
+    size_t rtcp_packet_size = get_sdes_packet_size(items);
+    uint8_t* frame = new uint8_t[rtcp_packet_size];
+    memset(frame, 0, rtcp_packet_size);
 
     int ptr = 0;
-    // this already adds our ssrc
-    construct_rtcp_header(ptr, frame_size, frame, num_receivers_, uvgrtp::frame::RTCP_FT_SDES, ssrc_);
-    construct_sdes_packet(frame, ptr, items);
 
-    return send_rtcp_packet_to_participants(frame, frame_size, true);
+    // header construction also adds our ssrc
+    if (!construct_rtcp_header(frame, ptr, rtcp_packet_size, num_receivers_, uvgrtp::frame::RTCP_FT_SDES, ssrc_) ||
+        !construct_sdes_packet(frame, ptr, items))
+    {
+        return RTP_GENERIC_ERROR;
+    }
+
+    return send_rtcp_packet_to_participants(frame, rtcp_packet_size, true);
 }
 
 rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
 {
-    // ssrcs contains all our ssrcs which usually is one unless we are a mixer
+    // ssrcs contains all our ssrcs which we usually have one unless we are a mixer
     if (ssrcs.empty())
     {
         LOG_WARN("Source Count in RTCP BYE packet is 0");
     }
 
-    size_t frame_size = get_bye_packet_size(ssrcs);
-    uint8_t* frame = new uint8_t[frame_size];
-    memset(frame, 0, frame_size);
+    size_t rtcp_packet_size = get_bye_packet_size(ssrcs);
+    uint8_t* frame = new uint8_t[rtcp_packet_size];
+    memset(frame, 0, rtcp_packet_size);
 
     rtp_error_t ret = RTP_OK;
     int ptr = 0;
     uint16_t secondField = (ssrcs.size() & 0x1f);
-    if (!construct_rtcp_header(ptr, frame_size, frame, secondField, uvgrtp::frame::RTCP_FT_BYE, 0) ||
+    // header construction does not add our ssrc for BYE
+    if (!construct_rtcp_header(frame, ptr, rtcp_packet_size, secondField, uvgrtp::frame::RTCP_FT_BYE, 0) ||
         !construct_bye_packet(frame, ptr, ssrcs))
     {
         return RTP_GENERIC_ERROR;
     }
 
-    return send_rtcp_packet_to_participants(frame, frame_size, false);
+    return send_rtcp_packet_to_participants(frame, rtcp_packet_size, false);
 }
 
 rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
     size_t payload_len, const uint8_t* payload)
 {
-    size_t frame_size = get_app_packet_size(payload_len);
-    uint8_t* frame = new uint8_t[frame_size];
-    memset(frame, 0, frame_size);
+    size_t rtcp_packet_size = get_app_packet_size(payload_len);
+    uint8_t* frame = new uint8_t[rtcp_packet_size];
+    memset(frame, 0, rtcp_packet_size);
 
     int ptr = 0;
     uint16_t secondField = (subtype & 0x1f);
 
-    if (!construct_rtcp_header(ptr, frame_size, frame, secondField, uvgrtp::frame::RTCP_FT_APP, ssrc_) ||
+    if (!construct_rtcp_header(frame, ptr, rtcp_packet_size, secondField, uvgrtp::frame::RTCP_FT_APP, ssrc_) ||
         !construct_app_packet(frame, ptr, name, payload, payload_len))
     {
         return RTP_GENERIC_ERROR;
     }
 
-    return send_rtcp_packet_to_participants(frame, frame_size, true);
+    return send_rtcp_packet_to_participants(frame, rtcp_packet_size, true);
 }
 
 void uvgrtp::rtcp::set_session_bandwidth(int kbps)
