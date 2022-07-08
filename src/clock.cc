@@ -82,7 +82,7 @@ uint64_t uvgrtp::clock::hrc::diff_now_us(hrc_t& then)
 
 uint64_t uvgrtp::clock::ms_to_jiffies(uint64_t ms)
 {
-    return (uint64_t)(((double)ms / 1000) * 65536);
+    return (uint64_t)(((double)ms/1000)* 65536);
 }
 
 uint64_t uvgrtp::clock::jiffies_to_ms(uint64_t jiffies)

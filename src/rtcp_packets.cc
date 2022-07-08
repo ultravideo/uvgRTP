@@ -5,35 +5,6 @@
 #include "uvgrtp/debug.hh"
 
 
-
-bool uvgrtp::construct_rtcp_header(uint8_t* frame, int& ptr, size_t packet_size,
-    uint16_t secondField,
-    uvgrtp::frame::RTCP_FRAME_TYPE frame_type,
-    uint32_t ssrc)
-{
-    if (packet_size > UINT16_MAX)
-    {
-        LOG_ERROR("RTCP receiver report packet size too large!");
-        return false;
-    }
-
-    // header |V=2|P|    SC   |  PT  |             length            |
-    frame[ptr] = (2 << 6) | (0 << 5) | secondField;
-    frame[ptr + 1] = frame_type;
-
-    // The RTCP header length field is measured in 32-bit words - 1
-    *(uint16_t*)&frame[ptr + 2] = htons((uint16_t)packet_size / sizeof(uint32_t) - 1);
-    ptr += RTCP_HEADER_SIZE;
-
-    if (ssrc)
-    {
-        *(uint32_t*)&frame[ptr] = htonl(ssrc);
-        ptr += SSRC_CSRC_SIZE;
-    }
-
-    return true;
-}
-
 size_t uvgrtp::get_sr_packet_size(int flags, uint16_t reports)
 {
     /* Sender report is otherwise identical with receiver report, 
@@ -82,6 +53,56 @@ size_t uvgrtp::get_sdes_packet_size(const std::vector<uvgrtp::frame::rtcp_sdes_i
 size_t uvgrtp::get_bye_packet_size(const std::vector<uint32_t>& ssrcs)
 {
     return RTCP_HEADER_SIZE + ssrcs.size() * SSRC_CSRC_SIZE;
+}
+
+bool uvgrtp::construct_rtcp_header(uint8_t* frame, int& ptr, size_t packet_size,
+    uint16_t secondField,
+    uvgrtp::frame::RTCP_FRAME_TYPE frame_type,
+    uint32_t ssrc)
+{
+    if (packet_size > UINT16_MAX)
+    {
+        LOG_ERROR("RTCP receiver report packet size too large!");
+        return false;
+    }
+
+    // header |V=2|P|    SC   |  PT  |             length            |
+    frame[ptr] = (2 << 6) | (0 << 5) | secondField;
+    frame[ptr + 1] = frame_type;
+
+    // The RTCP header length field is measured in 32-bit words - 1
+    *(uint16_t*)&frame[ptr + 2] = htons((uint16_t)packet_size / sizeof(uint32_t) - 1);
+    ptr += RTCP_HEADER_SIZE;
+
+    if (ssrc)
+    {
+        *(uint32_t*)&frame[ptr] = htonl(ssrc);
+        ptr += SSRC_CSRC_SIZE;
+    }
+
+    return true;
+}
+
+void uvgrtp::construct_sender_info(uint8_t* frame, int& ptr, uint64_t ntp_ts, uint64_t rtp_ts,
+    uint32_t sent_packets, uint32_t sent_bytes)
+{
+    SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts >> 32));        // NTP ts msw
+    SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts & 0xffffffff)); // NTP ts lsw
+    SET_NEXT_FIELD_32(frame, ptr, htonl((uint32_t)rtp_ts));    // RTP ts
+    SET_NEXT_FIELD_32(frame, ptr, htonl(sent_packets));        // sender's packet count
+    SET_NEXT_FIELD_32(frame, ptr, htonl(sent_bytes));          // sender's octet count (not bytes)
+}
+
+void uvgrtp::construct_report_block(uint8_t* frame, int& ptr, uint32_t ssrc, uint8_t fraction, 
+    uint32_t dropped_packets, uint16_t seq_cycles, uint16_t max_seq, uint32_t jitter, 
+    uint32_t lsr, uint32_t dlsr)
+{
+    SET_NEXT_FIELD_32(frame, ptr, htonl(ssrc));
+    SET_NEXT_FIELD_32(frame, ptr, htonl(uint32_t(fraction << 24) | dropped_packets));
+    SET_NEXT_FIELD_32(frame, ptr, htonl(uint32_t(seq_cycles) << 16 | max_seq));
+    SET_NEXT_FIELD_32(frame, ptr, htonl(jitter));
+    SET_NEXT_FIELD_32(frame, ptr, htonl(lsr));
+    SET_NEXT_FIELD_32(frame, ptr, htonl(dlsr));
 }
 
 bool uvgrtp::construct_app_packet(uint8_t* frame, int& ptr,

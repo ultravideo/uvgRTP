@@ -786,7 +786,7 @@ rtp_error_t uvgrtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
        if (seq < p->stats.max_seq)
        {
            /* Sequence number wrapped - count another 64K cycle.  */
-           p->stats.cycles += RTP_SEQ_MOD;
+           p->stats.cycles += 1;
        }
        p->stats.max_seq = seq;
     } else if (udelta <= RTP_SEQ_MOD - MAX_MISORDER) {
@@ -1395,23 +1395,21 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         memset(frame, 0, rtcp_packet_size);
         construct_rtcp_header(frame, ptr, rtcp_packet_size, reports, uvgrtp::frame::RTCP_FT_SR, ssrc_);
 
-        // add sender info to packet
+        /* TODO: The clock would be better to start with first sent RTP packet.
+         * In reality it should be provided by user which I think is implemented? */
         if (clock_start_ == 0)
         {
           clock_start_ = uvgrtp::clock::ntp::now();
         }
 
-        /* Sender information */
+        /* TODO: The RTP timestamp should be from an actual RTP packet and NTP timestamp should be the one
+           corresponding to it. */
         uint64_t ntp_ts = uvgrtp::clock::ntp::now();
-
         uint64_t rtp_ts = rtp_ts_start_ + (uvgrtp::clock::ntp::diff(clock_start_, ntp_ts))
             * float(clock_rate_ / 1000);
 
-        SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts >> 32));
-        SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts & 0xffffffff));
-        SET_NEXT_FIELD_32(frame, ptr, htonl((u_long)rtp_ts));
-        SET_NEXT_FIELD_32(frame, ptr, htonl(our_stats.sent_pkts));
-        SET_NEXT_FIELD_32(frame, ptr, htonl(our_stats.sent_bytes));
+        construct_sender_info(frame, ptr, ntp_ts, rtp_ts, 
+            our_stats.sent_pkts, our_stats.sent_bytes);
 
         our_stats.sent_rtp_packet = false;
 
@@ -1429,24 +1427,23 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         // only add report blocks if we have received data from them
         if (p.second->stats.received_rtp_packet)
         {
-            int dropped = p.second->stats.dropped_pkts;
+            uint32_t dropped_packets = p.second->stats.dropped_pkts;
             // TODO: This should be the number of packets lost compared to number of packets expected (see fraction lost in RFC 3550)
             // see https://datatracker.ietf.org/doc/html/rfc3550#appendix-A.3
-            uint8_t frac = dropped ? p.second->stats.received_bytes / dropped : 0; 
+            uint8_t fraction = dropped_packets ? p.second->stats.received_bytes / dropped_packets : 0;
 
-            SET_NEXT_FIELD_32(frame, ptr, htonl(p.first)); /* ssrc */
-            SET_NEXT_FIELD_32(frame, ptr, htonl((frac << 24) | p.second->stats.dropped_pkts));
-            SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.max_seq));
-            SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.jitter));
-            SET_NEXT_FIELD_32(frame, ptr, htonl(p.second->stats.lsr));
+            uint64_t diff = (u_long)uvgrtp::clock::hrc::diff_now(p.second->stats.sr_ts);
+            uint32_t dlrs = uvgrtp::clock::ms_to_jiffies(diff);
 
             /* calculate delay of last SR only if SR has been received at least once */
-            if (p.second->stats.lsr)
+            if (p.second->stats.lsr == 0)
             {
-              uint64_t diff = (u_long)uvgrtp::clock::hrc::diff_now(p.second->stats.sr_ts);
-              SET_NEXT_FIELD_32(frame, ptr, (uint32_t)htonl((u_long)uvgrtp::clock::ms_to_jiffies(diff)));
+                dlrs = 0;
             }
-            ptr += p.second->stats.lsr ? 0 : 4;
+
+            construct_report_block(frame, ptr, p.first, fraction, dropped_packets,
+                p.second->stats.cycles, p.second->stats.max_seq, p.second->stats.jitter, 
+                p.second->stats.lsr, dlrs);
 
             // we only send reports if there is something to report since last report
             p.second->stats.received_rtp_packet = false;

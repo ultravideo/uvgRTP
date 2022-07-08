@@ -39,7 +39,7 @@ namespace uvgrtp {
         uint32_t received_bytes = 0; /* Number of bytes received excluding RTP Header */
         bool received_rtp_packet = false; // since last report
 
-        float jitter = 0;            /* The estimation of jitter (see RFC 3550 A.8) */
+        double jitter = 0;            /* The estimation of jitter (see RFC 3550 A.8) */
         uint32_t transit = 0;        /* TODO: */
 
 
@@ -54,7 +54,7 @@ namespace uvgrtp {
         uint16_t max_seq = 0;        /* Highest sequence number received */
         uint32_t base_seq = 0;       /* First sequence number received */
         uint32_t bad_seq = 0;        /* TODO:  */
-        uint32_t cycles = 0;         /* Number of sequence cycles */
+        uint16_t cycles = 0;         /* Number of sequence cycles */
     };
 
     struct rtcp_participant {

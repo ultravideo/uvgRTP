@@ -122,7 +122,7 @@ void receiver_hook(uvgrtp::frame::rtcp_receiver_report *frame)
         std::cout << "last_seq: "   << block.last_seq << std::endl;
         std::cout << "jitter: "     << block.jitter   << std::endl;
         std::cout << "lsr: "        << block.lsr      << std::endl;
-        std::cout << "dlsr (ms): "  << uvgrtp::clock::jiffies_to_ms(block.dlsr)
+        std::cout << "dlsr (jiffies): "  << uvgrtp::clock::jiffies_to_ms(block.dlsr)
                   << std::endl << std::endl;
     }
 
@@ -147,7 +147,7 @@ void sender_hook(uvgrtp::frame::rtcp_sender_report *frame)
         std::cout << "last_seq: "   << block.last_seq << std::endl;
         std::cout << "jitter: "     << block.jitter   << std::endl;
         std::cout << "lsr: "        << block.lsr      << std::endl;
-        std::cout << "dlsr (ms): "  << uvgrtp::clock::jiffies_to_ms(block.dlsr)
+        std::cout << "dlsr (jiffies): "  << uvgrtp::clock::jiffies_to_ms(block.dlsr)
                   << std::endl << std::endl;
     }
 
