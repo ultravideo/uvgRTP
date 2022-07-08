@@ -1381,24 +1381,16 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         }
     }
 
-    rtp_error_t ret = RTP_OK;
     uint8_t* frame = nullptr;
-    size_t rtcp_packet_size = RTCP_HEADER_SIZE + SSRC_CSRC_SIZE +
-        REPORT_BLOCK_SIZE * reports;
-
-    if (flags_ & RCE_SRTP)
-    {
-        rtcp_packet_size += UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH;
-    }
-
     // see https://datatracker.ietf.org/doc/html/rfc3550#section-6.4.1
+    size_t rtcp_packet_size = 0;
 
     int ptr = 0;
     if (our_role_ == SENDER && our_stats.sent_rtp_packet)
     {
         LOG_DEBUG("Generating RTCP Sender report");
         // sender reports have sender information in addition compared to receiver reports
-        rtcp_packet_size += SENDER_INFO_SIZE;
+        rtcp_packet_size = get_sr_packet_size(flags_, reports);
         frame = new uint8_t[rtcp_packet_size];
         memset(frame, 0, rtcp_packet_size);
         construct_rtcp_header(frame, ptr, rtcp_packet_size, reports, uvgrtp::frame::RTCP_FT_SR, ssrc_);
@@ -1425,6 +1417,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
     } else { // RECEIVER
         LOG_DEBUG("Generating RTCP Receiver report");
+        rtcp_packet_size = get_rr_packet_size(flags_, reports);
         frame = new uint8_t[rtcp_packet_size];
         memset(frame, 0, rtcp_packet_size);
         construct_rtcp_header(frame, ptr, rtcp_packet_size, reports, uvgrtp::frame::RTCP_FT_RR, ssrc_);
