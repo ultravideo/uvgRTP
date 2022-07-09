@@ -940,18 +940,22 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
     size_t ptr = 0;
     size_t remaining_size = size;
 
+    int packets = 0;
+
+    // this handles each separate rtcp packet in a compound packet
     while (remaining_size > 0)
     {
+        ++packets;
         if (remaining_size < RTCP_HEADER_LENGTH)
         {
-            LOG_ERROR("Didn't get enough data for an rtcp header");
+            LOG_ERROR("Didn't get enough data for an rtcp header. Packet # %i Got data: %lli", packets, remaining_size);
             return RTP_INVALID_VALUE;
         }
 
         uint8_t* packet_location = buffer + ptr;
 
         uvgrtp::frame::rtcp_header header;
-        read_rtcp_header(packet_location + ptr, header);
+        read_rtcp_header(packet_location, header);
 
         // the length field is the rtcp packet size measured in 32-bit words - 1
         uint32_t size_of_rtcp_packet = (header.length + 1) * sizeof(uint32_t);
@@ -1021,6 +1025,10 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
         remaining_size -= size_of_rtcp_packet;
     }
 
+    if (packets > 1)
+    {
+        LOG_DEBUG("Received a compound RTCP frame with %i packets", packets);
+    }
     return RTP_OK;
 }
 
