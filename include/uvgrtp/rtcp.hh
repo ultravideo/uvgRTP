@@ -121,6 +121,9 @@ namespace uvgrtp {
              */
             rtp_error_t send_sdes_packet(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
 
+
+            rtp_error_t set_sdes_items(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
+
             /**
              * \brief Send an RTCP APP packet
              *
@@ -464,7 +467,10 @@ namespace uvgrtp {
 
             int interval_ms_;
 
-            std::string cname_;
+            std::vector<uvgrtp::frame::rtcp_sdes_item> ourItems_;
+
+            uvgrtp::frame::rtcp_sdes_item cnameItem_;
+            char cname_[255];
     };
 }
 

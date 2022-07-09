@@ -63,6 +63,21 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int flag
     srtcp_        = nullptr;
 
     zero_stats(&our_stats);
+
+    if (cname.length() > 255)
+    {
+        LOG_ERROR("Our CName is too long");
+    }
+    else
+    {
+        // items should not have null termination
+        const char* c = cname.c_str();
+        memcpy(cname_, c, cname.length());
+        uint8_t length = cname.length();
+
+        cnameItem_ = { 1, length, (void*)cname_ };
+        ourItems_.push_back(cnameItem_);
+    }
 }
 
 uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, 
@@ -78,6 +93,8 @@ uvgrtp::rtcp::~rtcp()
     {
         stop();
     }
+
+    ourItems_.clear();
 }
 
 void uvgrtp::rtcp::free_participant(rtcp_participant* participant)
@@ -221,6 +238,31 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp, int interval)
             std::this_thread::sleep_for(std::chrono::milliseconds(diff_ms));
         }
     }
+}
+
+rtp_error_t uvgrtp::rtcp::set_sdes_items(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items)
+{
+    bool hasCname = false;
+
+    for (auto& item : items)
+    {
+        if (item.type == 1)
+        {
+            hasCname = true;
+            LOG_DEBUG("Found CName in sdes items, not adding pregenerated");
+            break;
+        }
+    }
+
+    ourItems_.clear();
+    if (!hasCname)
+    {
+        ourItems_.push_back(cnameItem_);
+    }
+
+    ourItems_.insert(ourItems_.end(), items.begin(), items.end());
+
+    return RTP_OK;
 }
 
 rtp_error_t uvgrtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_port, uint16_t src_port, uint32_t clock_rate)
