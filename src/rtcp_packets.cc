@@ -57,8 +57,7 @@ size_t uvgrtp::get_bye_packet_size(const std::vector<uint32_t>& ssrcs)
 
 bool uvgrtp::construct_rtcp_header(uint8_t* frame, int& ptr, size_t packet_size,
     uint16_t secondField,
-    uvgrtp::frame::RTCP_FRAME_TYPE frame_type,
-    uint32_t ssrc)
+    uvgrtp::frame::RTCP_FRAME_TYPE frame_type)
 {
     if (packet_size > UINT16_MAX)
     {
@@ -74,12 +73,12 @@ bool uvgrtp::construct_rtcp_header(uint8_t* frame, int& ptr, size_t packet_size,
     *(uint16_t*)&frame[ptr + 2] = htons((uint16_t)packet_size / sizeof(uint32_t) - 1);
     ptr += RTCP_HEADER_SIZE;
 
-    if (ssrc)
-    {
-        *(uint32_t*)&frame[ptr] = htonl(ssrc);
-        ptr += SSRC_CSRC_SIZE;
-    }
+    return true;
+}
 
+bool uvgrtp::construct_ssrc(uint8_t* frame, int& ptr, uint32_t ssrc)
+{
+    SET_NEXT_FIELD_32(frame, ptr, htonl(ssrc));
     return true;
 }
 
@@ -115,13 +114,21 @@ bool uvgrtp::construct_app_packet(uint8_t* frame, int& ptr,
     return true;
 }
 
-bool uvgrtp::construct_sdes_packet(uint8_t* frame, int& ptr,
-    const std::vector<uvgrtp::frame::rtcp_sdes_item>& items) {
+bool uvgrtp::construct_sdes_chunk(uint8_t* frame, int& ptr,
+    uint32_t ssrc, const std::vector<uvgrtp::frame::rtcp_sdes_item>& items) {
+    bool have_cname = false;
+
+    construct_ssrc(frame, ptr, ssrc);
 
     for (auto& item : items)
     {
         if (item.length <= 255)
         {
+            if (item.type == 1)
+            {
+                have_cname = true;
+            }
+
             frame[ptr++] = item.type;
             frame[ptr++] = item.length;
             memcpy(frame + ptr, item.data, item.length);
@@ -129,7 +136,7 @@ bool uvgrtp::construct_sdes_packet(uint8_t* frame, int& ptr,
         }
     }
 
-    return true;
+    return have_cname;
 }
 
 bool uvgrtp::construct_bye_packet(uint8_t* frame, int& ptr, const std::vector<uint32_t>& ssrcs)
