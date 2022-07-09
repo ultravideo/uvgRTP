@@ -36,8 +36,7 @@ namespace uvgrtp
         uint32_t lsr, uint32_t dlsr);
 
     // Add the items to the frame
-    bool construct_sdes_chunk(uint8_t* frame, int& ptr, 
-        uint32_t ssrc, const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
+    bool construct_sdes_chunk(uint8_t* frame, int& ptr, uvgrtp::frame::rtcp_sdes_chunk chunk);
 
     // Add the name and payload to APP packet, remember to also add SSRC separately
     bool construct_app_packet(uint8_t* frame, int& ptr,

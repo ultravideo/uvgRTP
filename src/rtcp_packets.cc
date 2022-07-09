@@ -115,12 +115,13 @@ bool uvgrtp::construct_app_packet(uint8_t* frame, int& ptr,
 }
 
 bool uvgrtp::construct_sdes_chunk(uint8_t* frame, int& ptr,
-    uint32_t ssrc, const std::vector<uvgrtp::frame::rtcp_sdes_item>& items) {
+    uvgrtp::frame::rtcp_sdes_chunk chunk) {
+
     bool have_cname = false;
 
-    construct_ssrc(frame, ptr, ssrc);
+    construct_ssrc(frame, ptr, chunk.ssrc);
 
-    for (auto& item : items)
+    for (auto& item : chunk.items)
     {
         if (item.length <= 255)
         {
@@ -134,6 +135,11 @@ bool uvgrtp::construct_sdes_chunk(uint8_t* frame, int& ptr,
             memcpy(frame + ptr, item.data, item.length);
             ptr += item.length;
         }
+    }
+
+    if (!have_cname)
+    {
+        LOG_ERROR("SDES chunk did not contain cname!");
     }
 
     return have_cname;

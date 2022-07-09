@@ -13,10 +13,6 @@
 #include <string>
 #include <vector>
 
-
-#define RTP_HEADER_LENGTH   12
-#define RTCP_HEADER_LENGTH  12
-
 namespace uvgrtp {
     namespace frame {
         enum HEADER_SIZES {
@@ -144,10 +140,14 @@ namespace uvgrtp {
             void *data = nullptr;
         };
 
-        struct rtcp_sdes_packet {
-            struct rtcp_header header;
+        struct rtcp_sdes_chunk {
             uint32_t ssrc = 0;
             std::vector<rtcp_sdes_item> items;
+        };
+
+        struct rtcp_sdes_packet {
+            struct rtcp_header header;
+            std::vector<rtcp_sdes_chunk> chunks;
         };
 
         struct rtcp_app_packet {

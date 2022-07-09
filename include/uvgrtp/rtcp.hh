@@ -288,19 +288,31 @@ namespace uvgrtp {
             static rtp_error_t send_packet_handler_vec(void *arg, uvgrtp::buf_vec& buffers);
             /// \endcond
 
+            // the length field is the rtcp packet size measured in 32-bit words - 1
+            size_t rtcp_length_in_bytes(uint16_t length);
+
         private:
+
+            /* read the header values from rtcp packet */
+            void read_rtcp_header(const uint8_t* buffer, size_t& read_ptr, 
+                uvgrtp::frame::rtcp_header& header);
+            void read_reports(const uint8_t* buffer, size_t& read_ptr, size_t packet_end, uint8_t count,
+                std::vector<uvgrtp::frame::rtcp_report_block>& reports);
+
+            void read_ssrc(const uint8_t* buffer, size_t& read_ptr, uint32_t& out_ssrc);
 
             /* Handle different kinds of incoming rtcp packets. The read header is passed to functions
                which read rest of the frame type specific data.
              * Return RTP_OK on success and RTP_ERROR on error */
-            rtp_error_t handle_sender_report_packet(uint8_t* frame, size_t size,
+            rtp_error_t handle_sender_report_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
                 uvgrtp::frame::rtcp_header& header);
-            rtp_error_t handle_receiver_report_packet(uint8_t* frame, size_t size,
+            rtp_error_t handle_receiver_report_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
                 uvgrtp::frame::rtcp_header& header);
-            rtp_error_t handle_sdes_packet(uint8_t* frame, size_t size,
+            rtp_error_t handle_sdes_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
+                uvgrtp::frame::rtcp_header& header, uint32_t sender_ssrc);
+            rtp_error_t handle_bye_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
                 uvgrtp::frame::rtcp_header& header);
-            rtp_error_t handle_bye_packet(uint8_t* frame, size_t size);
-            rtp_error_t handle_app_packet(uint8_t* frame, size_t size,
+            rtp_error_t handle_app_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
                 uvgrtp::frame::rtcp_header& header);
 
             static void rtcp_runner(rtcp *rtcp, int interval);
@@ -349,14 +361,8 @@ namespace uvgrtp {
 
             void zero_stats(uvgrtp::receiver_statistics *stats);
 
-            /* read the header values from rtcp packet */
-            void read_rtcp_header(const uint8_t* packet, uvgrtp::frame::rtcp_header& header);
-            void read_reports(const uint8_t* packet, size_t size, uint8_t count, bool has_sender_block,
-                std::vector<uvgrtp::frame::rtcp_report_block>& reports);
-
             /* Takes ownership of the frame */
             rtp_error_t send_rtcp_packet_to_participants(uint8_t* frame, size_t frame_size, bool encrypt);
-
 
             void free_participant(rtcp_participant* participant);
 
