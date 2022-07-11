@@ -162,6 +162,7 @@ rtp_error_t uvgrtp::rtcp::stop()
 
     if (report_generator_ && report_generator_->joinable())
     {
+        LOG_DEBUG("Waiting for RTCP loop to exit");
         report_generator_->join();
     }
 
@@ -234,11 +235,14 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp, int interval)
                 /* do nothing */
             } else {
                 LOG_ERROR("poll failed, %d", ret);
+                break; // TODO the sockets should be manages so that this is not needed
             }
         } else { // sleep until it is time to send the report
             std::this_thread::sleep_for(std::chrono::milliseconds(diff_ms));
         }
     }
+
+    LOG_DEBUG("Exited RTCP loop");
 }
 
 rtp_error_t uvgrtp::rtcp::set_sdes_items(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items)
@@ -1336,14 +1340,13 @@ rtp_error_t uvgrtp::rtcp::handle_bye_packet(uint8_t* packet, size_t& read_ptr,
             continue;
         }
 
+        LOG_DEBUG("Destroying participant with BYE");
         participants_[ssrc]->socket = nullptr;
         delete participants_[ssrc];
         participants_.erase(ssrc);
     }
 
     // TODO: Give BYE packet to user and read optional reason for BYE
-
-    // TODO: Should we exit the whole RTCP here?
 
     return RTP_OK;
 }
