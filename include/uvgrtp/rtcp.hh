@@ -121,9 +121,6 @@ namespace uvgrtp {
              */
             rtp_error_t send_sdes_packet(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
 
-
-            rtp_error_t set_sdes_items(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
-
             /**
              * \brief Send an RTCP APP packet
              *
@@ -292,6 +289,8 @@ namespace uvgrtp {
             size_t rtcp_length_in_bytes(uint16_t length);
 
         private:
+
+            rtp_error_t set_sdes_items(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
 
             /* read the header values from rtcp packet */
             void read_rtcp_header(const uint8_t* buffer, size_t& read_ptr, 

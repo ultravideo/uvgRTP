@@ -1555,6 +1555,10 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(const std::vector<uvgrtp::frame::rtcp
         return RTP_INVALID_VALUE;
     }
 
+    /* TODO: the SDES should be sent later in a compound packets, this saves it, but until the padding has
+     * been implemented, the sending cannot be implemented. */
+    set_sdes_items(items);
+
     size_t rtcp_packet_size = get_sdes_packet_size(items);
     uint8_t* frame = new uint8_t[rtcp_packet_size];
     memset(frame, 0, rtcp_packet_size);
