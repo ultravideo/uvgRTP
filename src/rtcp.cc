@@ -1490,6 +1490,8 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         uint64_t rtp_ts = rtp_ts_start_ + (uvgrtp::clock::ntp::diff(clock_start_, ntp_ts))
             * float(clock_rate_ / 1000);
 
+
+        // TODO: Return error if these fail
         construct_rtcp_header(frame, write_ptr, sender_report_size, reports, uvgrtp::frame::RTCP_FT_SR);
         construct_ssrc(frame, write_ptr, ssrc_);
         construct_sender_info(frame, write_ptr, ntp_ts, rtp_ts, our_stats.sent_pkts, our_stats.sent_bytes);
@@ -1499,6 +1501,8 @@ rtp_error_t uvgrtp::rtcp::generate_report()
     } else { // RECEIVER
         size_t receiver_report_size = get_rr_packet_size(flags_, reports);
         LOG_DEBUG("Generating RTCP Receiver report size: %li", receiver_report_size);
+
+        // TODO: Return error if these fail
         construct_rtcp_header(frame, write_ptr, receiver_report_size, reports, uvgrtp::frame::RTCP_FT_RR);
         construct_ssrc(frame, write_ptr, ssrc_);
     }

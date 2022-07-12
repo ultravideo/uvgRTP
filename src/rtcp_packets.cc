@@ -65,6 +65,12 @@ bool uvgrtp::construct_rtcp_header(uint8_t* frame, int& ptr, size_t packet_size,
         return false;
     }
 
+    if (packet_size % 4 != 0)
+    {
+        LOG_ERROR("RTCP packet size should be measured in 32-bit words!");
+        return false;
+    }
+
     // header |V=2|P|    SC   |  PT  |             length            |
     frame[ptr] = (2 << 6) | (0 << 5) | secondField;
     frame[ptr + 1] = frame_type;
