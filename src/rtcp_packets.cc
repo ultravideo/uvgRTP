@@ -47,10 +47,9 @@ size_t uvgrtp::get_sdes_packet_size(const std::vector<uvgrtp::frame::rtcp_sdes_i
         }
     }
 
-    if (frame_size % 4 != 0)
-    {
-        frame_size += (4 - frame_size % 4);
-    }
+    /* each chunk must end to a zero octet so 4 zeros is only option
+     * if the length matches 32-bits multiples */
+    frame_size += (4 - frame_size % 4);
 
     return frame_size;
 }

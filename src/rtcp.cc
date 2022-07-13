@@ -1009,8 +1009,9 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
     // decrypt the whole compound packet
     if (size > RTCP_HEADER_SIZE + SSRC_CSRC_SIZE)
     {
-        sender_ssrc = ntohl(*(uint32_t*)& buffer[read_ptr]);
-        if (srtcp_ && (ret = srtcp_->handle_rtcp_decryption(flags_, sender_ssrc, buffer + read_ptr, size)) != RTP_OK)
+        sender_ssrc = ntohl(*(uint32_t*)& buffer[read_ptr + RTCP_HEADER_SIZE]);
+        if (srtcp_ && (ret = srtcp_->handle_rtcp_decryption(flags_, sender_ssrc, 
+            buffer + RTCP_HEADER_SIZE + SSRC_CSRC_SIZE, size)) != RTP_OK)
         {
             LOG_ERROR("Failed at decryption");
             return ret;
@@ -1173,7 +1174,7 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* buffer, size_t&
      * Check if that's the case and if so, move the entry from initial_participants_ to participants_ */
     if (!is_participant(frame->ssrc))
     {
-        LOG_WARN("Got a Receiver Report from an unknown participant");
+        LOG_INFO("Got a Receiver Report from a previously unknown participant SSRC %lu", frame->ssrc);
         add_participant(frame->ssrc);
     }
 
@@ -1217,7 +1218,7 @@ rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t* buffer, size_t& r
     read_ssrc(buffer, read_ptr, frame->ssrc);
     if (!is_participant(frame->ssrc))
     {
-        LOG_INFO("Sender Report received from a new participant");
+        LOG_INFO("Got a Sender Report from a previously unknown participant SSRC %lu", frame->ssrc);
         add_participant(frame->ssrc);
     }
 
@@ -1264,6 +1265,12 @@ rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t* buffer, size_t& r
 rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t* packet, size_t& read_ptr, size_t packet_end,
     uvgrtp::frame::rtcp_header& header, uint32_t sender_ssrc)
 {
+    if (!is_participant(sender_ssrc))
+    {
+        LOG_INFO("Got an SDES packet from a previously unknown participant SSRC %lu", sender_ssrc);
+        add_participant(sender_ssrc);
+    }
+
     auto frame = new uvgrtp::frame::rtcp_sdes_packet;
     frame->header = header;
 
@@ -1276,7 +1283,7 @@ rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t* packet, size_t& read_ptr, 
         read_ssrc(packet, read_ptr, chunk.ssrc);
 
         // Read chunk items, 2 makes sure we at least get item type and length
-        while (read_ptr + 2 <= packet_end)
+        while (read_ptr + 2 <= packet_end && packet[read_ptr] != 0)
         {
             uvgrtp::frame::rtcp_sdes_item item;
             item.type = packet[read_ptr];
@@ -1293,7 +1300,14 @@ rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t* packet, size_t& read_ptr, 
 
             chunk.items.push_back(item);
         }
+
+        if (packet[read_ptr] == 0)
+        {
+            read_ptr += (4 - read_ptr % 4);
+        }
+
         frame->chunks.push_back(chunk);
+        
     }
 
     sdes_mutex_.lock();
@@ -1452,7 +1466,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         }
     }
 
-    bool add_sdes = false;
+    bool add_sdes = true;
 
     size_t compound_packet_size = get_rr_packet_size(flags_, reports);
 

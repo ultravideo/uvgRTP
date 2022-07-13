@@ -14,6 +14,7 @@ constexpr int PACKET_INTERVAL_MS = 1000 / FRAME_RATE;
 
 void receiver_hook(uvgrtp::frame::rtcp_receiver_report* frame);
 void sender_hook(uvgrtp::frame::rtcp_sender_report* frame);
+void sdes_hook(uvgrtp::frame::rtcp_sdes_packet* frame);
 void cleanup(uvgrtp::context& ctx, uvgrtp::session* local_session, uvgrtp::session* remote_session,
     uvgrtp::media_stream* send, uvgrtp::media_stream* receive);
 
@@ -44,11 +45,13 @@ TEST(RTCPTests, rtcp) {
     if (local_stream)
     {
         EXPECT_EQ(RTP_OK, local_stream->get_rtcp()->install_receiver_hook(receiver_hook));
+        EXPECT_EQ(RTP_OK, local_stream->get_rtcp()->install_sdes_hook(sdes_hook));
     }
 
     if (remote_stream)
     {
         EXPECT_EQ(RTP_OK, remote_stream->get_rtcp()->install_sender_hook(sender_hook));
+        EXPECT_EQ(RTP_OK, remote_stream->get_rtcp()->install_sdes_hook(sdes_hook));
     }
 
     std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
@@ -85,11 +88,13 @@ TEST(RTCP_reopen_receiver, rtcp) {
     if (local_stream)
     {
         EXPECT_EQ(RTP_OK, local_stream->get_rtcp()->install_receiver_hook(receiver_hook));
+        EXPECT_EQ(RTP_OK, local_stream->get_rtcp()->install_sdes_hook(sdes_hook));
     }
 
     if (remote_stream)
     {
         EXPECT_EQ(RTP_OK, remote_stream->get_rtcp()->install_sender_hook(sender_hook));
+        EXPECT_EQ(RTP_OK, remote_stream->get_rtcp()->install_sdes_hook(sdes_hook));
     }
 
     if (local_stream)
@@ -184,6 +189,14 @@ void sender_hook(uvgrtp::frame::rtcp_sender_report* frame)
         std::cout << "lsr: " << block.lsr << std::endl;
         std::cout << "dlsr (jiffies): " << block.dlsr << std::endl << std::endl;
     }
+
+    /* RTCP frames can be deallocated using delete */
+    delete frame;
+}
+
+void sdes_hook(uvgrtp::frame::rtcp_sdes_packet* frame)
+{
+    std::cout << "Got SDES frame with " << frame->chunks.size() << " chunk" << std::endl;
 
     /* RTCP frames can be deallocated using delete */
     delete frame;
