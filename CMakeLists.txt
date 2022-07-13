@@ -193,6 +193,10 @@ if (UNIX)
     endif()
 endif (UNIX)
 
+if(APPLE)
+    target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Security")
+endif()
+
 add_subdirectory(test EXCLUDE_FROM_ALL)
 
 #

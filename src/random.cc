@@ -2,18 +2,20 @@
 
 #include "uvgrtp/debug.hh"
 
-#ifdef _WIN32
+#if defined(HAVE_GETRANDOM)
+#include <sys/random.h>
+#elif defined(_WIN32)
 #include <winsock2.h>
 #include <windows.h>
 #include <wincrypt.h>
-#else // non _WIN32
-#ifdef HAVE_GETRANDOM
-#include <sys/random.h>
-#else // HAVE_GETRANDOM
+#elif defined(__APPLE__)
+#include <Security/SecRandom.h>
+#endif
+
+#ifndef _WIN32
 #include <unistd.h>
 #include <sys/syscall.h>
-#endif // HAVE_GETRANDOM
-#endif // _WIN32
+#endif
 
 
 #include <cstdlib>
@@ -31,10 +33,11 @@ rtp_error_t uvgrtp::random::init()
 
 int uvgrtp::random::generate(void *buf, size_t n)
 {
-#ifndef _WIN32
-#ifdef HAVE_GETRANDOM
+#if defined(HAVE_GETRANDOM)
+
     return getrandom(buf, n, 0);
-#else
+
+#elif defined(SYS_getrandom)
 
     // Replace with the syscall
     int read = syscall(SYS_getrandom, buf, n, 0);
@@ -51,8 +54,8 @@ int uvgrtp::random::generate(void *buf, size_t n)
     }
 
     return read;
-#endif // HAVE_GETRANDOM
-#else
+
+#elif defined(_WIN32)
 
     if (n > UINT32_MAX)
     {
@@ -69,7 +72,17 @@ int uvgrtp::random::generate(void *buf, size_t n)
         return res ? 0 : -1;
     }
     return -1;
+
+#elif defined(__APPLE__)
+
+    int status = SecRandomCopyBytes(kSecRandomDefault, n, buf);
+    if (status == errSecSuccess)
+        return n;
+    return -1;
+
 #endif
+
+    return -1;
 }
 
 uint32_t uvgrtp::random::generate_32()
