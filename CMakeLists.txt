@@ -184,12 +184,20 @@ if (UNIX)
         message("pkg-config not found. Not generating pc file")
     endif(PkgConfig_FOUND)
 
-    # Check the getrandom() function exists
+    # Check if platform-specific functions exist
     include(CheckCXXSymbolExists)
     check_cxx_symbol_exists(getrandom sys/random.h HAVE_GETRANDOM)
+    check_cxx_symbol_exists(sendmsg sys/socket.h HAVE_SENDMSG)
+    check_cxx_symbol_exists(sendmmsg sys/socket.h HAVE_SENDMMSG)
 
     if(HAVE_GETRANDOM)
         target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_GETRANDOM=1)
+    endif()
+    if(HAVE_SENDMSG)
+        target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_SENDMSG=1)
+    endif()
+    if(HAVE_SENDMMSG)
+        target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_SENDMMSG=1)
     endif()
 endif (UNIX)
 
