@@ -27,6 +27,9 @@ inline void cleanup_ms(uvgrtp::session* sess, uvgrtp::media_stream* ms);
 inline void process_rtp_frame(uvgrtp::frame::rtp_frame* frame);
 inline void rtp_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 
+inline void set_nal_unit(uint8_t* frame, size_t& pos, bool zero_prefix, uint8_t zeros,
+    uint8_t first_byte, uint8_t second_byte);
+
 class Test_receiver
 {
 public:
@@ -59,50 +62,23 @@ inline std::unique_ptr<uint8_t[]> create_test_packet(rtp_format_t format, uint8_
 
     if (add_start_code && size > 8)
     {
-        int pos = 0;
+        size_t pos = 0;
+        bool zero_prefix = !(rtp_flags & RTP_NO_H26X_SCL);
+
         if (format == RTP_FORMAT_H264)
         {
             // https://datatracker.ietf.org/doc/html/rfc6184#section-1.3
-            if (!(rtp_flags & RTP_NO_H26X_SCL))
-            {
-                memset(test_frame.get() + pos, 0, 2);
-                pos += 2;
-                memset(test_frame.get() + pos, 1, 1);
-                pos += 1;
-            }
-            memset(test_frame.get() + pos, 5, 1); // Intra frame
-            pos += 1;
+            set_nal_unit(test_frame.get(), pos, zero_prefix, 2, 5, 0);
         }
         else if (format == RTP_FORMAT_H265)
         {
             // see https://datatracker.ietf.org/doc/html/rfc7798#section-1.1.4
-            if (!(rtp_flags & RTP_NO_H26X_SCL))
-            {
-                memset(test_frame.get() + pos, 0, 3);
-                pos += 3;
-                memset(test_frame.get() + pos, 1, 1);
-                pos += 1;
-            }
-            memset(test_frame.get() + pos, (19 << 1), 1); // Intra frame
-            pos += 1;
+            set_nal_unit(test_frame.get(), pos, zero_prefix, 3, (19 << 1), 0);
         }
         else if (format == RTP_FORMAT_H266)
         {
             // see https://datatracker.ietf.org/doc/html/draft-ietf-avtcore-rtp-vvc#section-1.1.4
-            if (!(rtp_flags & RTP_NO_H26X_SCL))
-            {
-                memset(test_frame.get() + pos, 0, 3);
-                pos += 3;
-                memset(test_frame.get() + pos, 1, 1);
-                pos += 1;
-            }
-
-            // |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
-            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-            // |F|Z|  LayerID  |  Type   | TID |
-            memset(test_frame.get() + pos, 0, 1);
-            pos += 1;
-            memset(test_frame.get() + pos, (7 << 3), 1); // Intra frame (type)
+            set_nal_unit(test_frame.get(), pos, zero_prefix, 3, 0, (7 << 3));
         }
     }
 
@@ -222,10 +198,27 @@ inline void rtp_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
     process_rtp_frame(frame);
 }
 
-
 inline void process_rtp_frame(uvgrtp::frame::rtp_frame* frame)
 {
     EXPECT_NE(0, frame->payload_len);
     EXPECT_EQ(2, frame->header.version);
     (void)uvgrtp::frame::dealloc_frame(frame);
+}
+
+inline void set_nal_unit(uint8_t* frame, size_t& pos, bool start_code, uint8_t zeros,
+    uint8_t first_byte, uint8_t second_byte)
+{
+    // see https://datatracker.ietf.org/doc/html/draft-ietf-avtcore-rtp-vvc#section-1.1.4
+    if (start_code)
+    {
+        memset(frame + pos, 0, zeros);
+        pos += zeros;
+        memset(frame + pos, 1, 1);
+        pos += 1;
+    }
+
+    memset(frame + pos, first_byte, 1);
+    pos += 1;
+    memset(frame + pos, second_byte, 1); // Intra frame (type)
+    pos += 1;
 }

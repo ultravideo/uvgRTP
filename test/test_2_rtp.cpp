@@ -1,8 +1,8 @@
 #include "test_common.hh"
 
 
-// TODO: 1) Test only sending, 2) test sending with different configuration, 3) test receiving with different configurations, and 
-// 4) test sending and receiving within same test while checking frame size
+/* TODO: 1) Test only sending, 2) test sending with different configuration, 3) test receiving with different configurations, and 
+ * 4) test sending and receiving within same test while checking frame size */
 
 // parameters for this test. You can change these to suit your network environment
 constexpr uint16_t SEND_PORT = 9300;
@@ -88,8 +88,6 @@ TEST(RTPTests, rtp_send_test)
     cleanup_ms(sess, sender);
     cleanup_sess(ctx, sess);
 }
-
-
 
 TEST(RTPTests, rtp_poll)
 {
