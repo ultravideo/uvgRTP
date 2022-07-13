@@ -50,8 +50,13 @@ TEST(RTPTests, rtp_hook)
         receiver = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
     }
 
-    test_packet_size(RTP_FORMAT_GENERIC, 10, 1000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_GENERIC, 10, 2000, sess, sender, receiver, RTP_NO_FLAGS);
+    int test_packets = 10;
+    std::vector<size_t> sizes = { 1000, 2000 };
+    for (size_t& size : sizes)
+    {
+        std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
+        send_packets(std::move(test_frame), size, sess, sender, test_packets, 0, true, RTP_NO_FLAGS);
+    }
 
     cleanup_ms(sess, receiver);
     cleanup_sess(ctx, sess);
@@ -74,7 +79,11 @@ TEST(RTPTests, rtp_send_test)
         receiver = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
     }
 
-    test_packet_size(RTP_FORMAT_GENERIC, 10, 1500, sess, sender, receiver, RTP_NO_FLAGS);
+    int test_packets = 10;
+    size_t size = 1500;
+
+    std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
+    send_packets(std::move(test_frame), size, sess, sender, test_packets, 0, true, RTP_NO_FLAGS);
 
     cleanup_ms(sess, sender);
     cleanup_sess(ctx, sess);
@@ -107,7 +116,9 @@ TEST(RTPTests, rtp_poll)
     if (sender)
     {
         const int frame_size = 1500;
-        send_packets(RTP_FORMAT_GENERIC, sess, sender, test_packets, frame_size, 0, true, false, RTP_NO_FLAGS);
+        std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[frame_size]);
+        memset(test_frame.get(), 'b', frame_size);
+        send_packets(std::move(test_frame), frame_size, sess, sender, test_packets, 0, true, RTP_NO_FLAGS);
 
         uvgrtp::frame::rtp_frame* received_frame = nullptr;
 
@@ -135,7 +146,9 @@ TEST(RTPTests, rtp_poll)
         EXPECT_EQ(received_packets_no_timeout, test_packets);
         int received_packets_timout = 0;
 
-        send_packets(RTP_FORMAT_GENERIC, sess, sender, test_packets, frame_size, 0, true, false, RTP_NO_FLAGS);
+        test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[frame_size]);
+        memset(test_frame.get(), 'b', frame_size);
+        send_packets(std::move(test_frame), frame_size, sess, sender, test_packets, 0, true, RTP_NO_FLAGS);
 
         std::cout << "Start pulling data with 3 ms timout" << std::endl;
 
@@ -171,7 +184,7 @@ TEST(RTPTests, rtp_poll)
     cleanup_sess(ctx, sess);
 }
 
-TEST(RTPTests, send_too_much)
+TEST(RTPTests, send_large_amounts)
 {
     // Tests sending large amounts of data to make sure nothing breaks because of it
 
@@ -195,10 +208,18 @@ TEST(RTPTests, send_too_much)
     add_hook(nullptr, receiver, rtp_receive_hook);
 
     // send 10000 small packets
-    send_packets(RTP_FORMAT_GENERIC, sess, sender, 10000, 1000, 0, true, true, RTP_NO_FLAGS);
+    size_t frame_size = 1000;
+    int test_packets  = 10000;
+    std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[frame_size]);
+    memset(test_frame.get(), 'b', frame_size);
+    send_packets(std::move(test_frame), frame_size, sess, sender, test_packets, 0, true, RTP_NO_FLAGS);
 
     // send 2000 large packets
-    send_packets(RTP_FORMAT_GENERIC, sess, sender, 2000, 20000, 2, true, true, RTP_NO_FLAGS);
+    frame_size   = 20000;
+    test_packets = 2000;
+    test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[frame_size]);
+    memset(test_frame.get(), 'b', frame_size);
+    send_packets(std::move(test_frame), frame_size, sess, sender, test_packets, 0, true, RTP_NO_FLAGS);
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);

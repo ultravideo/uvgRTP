@@ -1,5 +1,7 @@
 #include "test_common.hh"
 
+#include <numeric>
+
 constexpr uint16_t SEND_PORT = 9100;
 constexpr char LOCAL_ADDRESS[] = "127.0.0.1";
 constexpr uint16_t RECEIVE_PORT = 9102;
@@ -25,11 +27,24 @@ TEST(FormatTests, h26x_flags)
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_H26X_PREPEND_SC);
     }
 
-    test_packet_size(RTP_FORMAT_H264, 10, 1443, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 1501, sess, sender, receiver, RTP_NO_FLAGS);
+    std::vector<size_t> test_sizes = { 1443, 1501 };
+    int rtp_flags = RTP_NO_FLAGS;
+    int nal_type = 5;
+    rtp_format_t format = RTP_FORMAT_H264;
+    int test_runs = 10;
 
-    test_packet_size(RTP_FORMAT_H264, 10, 1443, sess, sender, receiver, RTP_NO_H26X_SCL);
-    test_packet_size(RTP_FORMAT_H264, 10, 1501, sess, sender, receiver, RTP_NO_H26X_SCL);
+    for (auto& size : test_sizes)
+    {
+        std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+    }
+
+    rtp_flags = RTP_NO_H26X_SCL;
+    for (auto& size : test_sizes)
+    {
+        std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+    }
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -53,30 +68,25 @@ TEST(FormatTests, h264)
     }
 
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
-    test_packet_size(RTP_FORMAT_H264, 10, 1443, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 1444, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 1445, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 1446, sess, sender, receiver, RTP_NO_FLAGS); // packet limit
-    test_packet_size(RTP_FORMAT_H264, 10, 1447, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 1448, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 1449, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 1450, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 1451, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 1452, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 1453, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 1454, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 1455, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 1501, sess, sender, receiver, RTP_NO_FLAGS);
 
-    test_packet_size(RTP_FORMAT_H264, 10, 1446 * 2 - 1, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 1446 * 2, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 1446 * 2 + 1, sess, sender, receiver, RTP_NO_FLAGS);
+    std::vector<size_t> test_sizes = std::vector<size_t>(13);
+    std::iota(test_sizes.begin(), test_sizes.end(), 1443);
+    test_sizes.insert(test_sizes.end(), { 1501,
+        1446 * 2 - 1,
+        1446 * 2,
+        1446 * 2 + 1,
+        5000, 7500, 10000, 25000, 50000 });
 
-    test_packet_size(RTP_FORMAT_H264, 10, 5000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 7500, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 10000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 25000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H264, 10, 50000, sess, sender, receiver, RTP_NO_FLAGS);
+    int rtp_flags = RTP_NO_FLAGS;
+    int nal_type = 5;
+    rtp_format_t format = RTP_FORMAT_H264;
+    int test_runs = 10;
+
+    for (auto& size : test_sizes)
+    {
+        std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+    }
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -98,31 +108,25 @@ TEST(FormatTests, h265)
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_H26X_PREPEND_SC);
     }
 
+    std::vector<size_t> test_sizes = std::vector<size_t>(13);
+    std::iota(test_sizes.begin(), test_sizes.end(), 1443);
+    test_sizes.insert(test_sizes.end(), { 1501,
+        1446 * 2 - 1,
+        1446 * 2,
+        1446 * 2 + 1,
+        5000, 7500, 10000, 25000, 50000 });
+
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
-    test_packet_size(RTP_FORMAT_H265, 10, 1443, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 1444, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 1445, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 1446, sess, sender, receiver, RTP_NO_FLAGS); // packet limit
-    test_packet_size(RTP_FORMAT_H265, 10, 1447, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 1448, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 1449, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 1450, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 1451, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 1452, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 1453, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 1454, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 1455, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 1501, sess, sender, receiver, RTP_NO_FLAGS);
+    int rtp_flags = RTP_NO_FLAGS;
+    int nal_type = 5;
+    rtp_format_t format = RTP_FORMAT_H265;
+    int test_runs = 10;
 
-    test_packet_size(RTP_FORMAT_H265, 10, 1446 * 2 - 1, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 1446 * 2, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 1446 * 2 + 1, sess, sender, receiver, RTP_NO_FLAGS);
-
-    test_packet_size(RTP_FORMAT_H265, 10, 5000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 7500, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 10000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 25000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 50000, sess, sender, receiver, RTP_NO_FLAGS);
+    for (auto& size : test_sizes)
+    {
+        std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+    }
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -146,13 +150,19 @@ TEST(FormatTests, h265_large)
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_H26X_PREPEND_SC);
     }
 
-    test_packet_size(RTP_FORMAT_H265, 10,  100000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10,  200000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10,  300000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10,  400000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10,  500000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10,  750000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H265, 10, 1000000, sess, sender, receiver, RTP_NO_FLAGS);
+    std::vector<size_t> test_sizes = {100000, 200000, 300000, 400000, 500000, 750000, 1000000};
+
+    // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
+    int rtp_flags = RTP_NO_FLAGS;
+    int nal_type = 5;
+    rtp_format_t format = RTP_FORMAT_H265;
+    int test_runs = 10;
+
+    for (auto& size : test_sizes)
+    {
+        std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+    }
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -174,31 +184,25 @@ TEST(FormatTests, h266)
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H266, RCE_H26X_PREPEND_SC);
     }
 
+    std::vector<size_t> test_sizes = std::vector<size_t>(13);
+    std::iota(test_sizes.begin(), test_sizes.end(), 1443);
+    test_sizes.insert(test_sizes.end(), { 1501,
+        1446 * 2 - 1,
+        1446 * 2,
+        1446 * 2 + 1,
+        5000, 7500, 10000, 25000, 50000 });
+
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
-    test_packet_size(RTP_FORMAT_H266, 10, 1443, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 1444, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 1445, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 1446, sess, sender, receiver, RTP_NO_FLAGS); // packet limit
-    test_packet_size(RTP_FORMAT_H266, 10, 1447, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 1448, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 1449, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 1450, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 1451, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 1452, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 1453, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 1454, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 1455, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 1501, sess, sender, receiver, RTP_NO_FLAGS);
+    int rtp_flags = RTP_NO_FLAGS;
+    int nal_type = 5;
+    rtp_format_t format = RTP_FORMAT_H266;
+    int test_runs = 10;
 
-    test_packet_size(RTP_FORMAT_H266, 10, 1446 * 2 - 1, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 1446 * 2,     sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 1446 * 2 + 1, sess, sender, receiver, RTP_NO_FLAGS);
-
-    test_packet_size(RTP_FORMAT_H266, 10, 5000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 7500, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 10000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 25000, sess, sender, receiver, RTP_NO_FLAGS);
-    test_packet_size(RTP_FORMAT_H266, 10, 50000, sess, sender, receiver, RTP_NO_FLAGS);
+    for (auto& size : test_sizes)
+    {
+        std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+    }
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);

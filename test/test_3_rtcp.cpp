@@ -51,8 +51,9 @@ TEST(RTCPTests, rtcp) {
         EXPECT_EQ(RTP_OK, remote_stream->get_rtcp()->install_sender_hook(sender_hook));
     }
 
-    send_packets(RTP_FORMAT_GENERIC, local_session, local_stream, 
-        SEND_TEST_PACKETS, PAYLOAD_LEN, PACKET_INTERVAL_MS, true, false, RTP_NO_FLAGS);
+    std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
+    memset(test_frame.get(), 'b', PAYLOAD_LEN);
+    send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS, 0, true, RTP_NO_FLAGS);
 
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
 }
@@ -93,8 +94,9 @@ TEST(RTCP_reopen_receiver, rtcp) {
 
     if (local_stream)
     {
-        send_packets(RTP_FORMAT_GENERIC, local_session, local_stream, 
-            SEND_TEST_PACKETS/2, PAYLOAD_LEN, PACKET_INTERVAL_MS, true, false, RTP_NO_FLAGS);
+        std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
+        memset(test_frame.get(), 'b', PAYLOAD_LEN);
+        send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS/2, 0, true, RTP_NO_FLAGS);
 
         if (remote_stream)
         {
@@ -104,8 +106,9 @@ TEST(RTCP_reopen_receiver, rtcp) {
             EXPECT_NE(nullptr, remote_stream);
         }
 
-        send_packets(RTP_FORMAT_GENERIC, local_session, local_stream, 
-            SEND_TEST_PACKETS / 2, PAYLOAD_LEN, PACKET_INTERVAL_MS, true, false, RTP_NO_FLAGS);
+        test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
+        memset(test_frame.get(), 'b', PAYLOAD_LEN);
+        send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS / 2, 0, true, RTP_NO_FLAGS);
     }
 
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);

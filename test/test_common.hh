@@ -8,12 +8,18 @@ class Test_receiver;
 void wait_until_next_frame(std::chrono::steady_clock::time_point& start, 
     int frame_index, int packet_interval_ms);
 
-inline void test_packet_size(rtp_format_t format, int packets, size_t size, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver,
-    int rtp_flags);
-inline void send_packets(rtp_format_t format, uvgrtp::session* sess, uvgrtp::media_stream* sender,
-    int packets, size_t size, int packet_interval_ms, bool add_start_code, bool print_progress, int rtp_flags);
+inline std::unique_ptr<uint8_t[]> create_test_packet(rtp_format_t format, uint8_t nal_type, 
+    bool add_start_code, size_t size, int rtp_flags);
 
-inline void add_hook(Test_receiver* tester, uvgrtp::media_stream* receiver, void (*hook)(void*, uvgrtp::frame::rtp_frame*));
+inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets, size_t size,
+    uvgrtp::session* sess, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver, int rtp_flags);
+
+inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size, 
+    uvgrtp::session* sess, uvgrtp::media_stream* sender,
+    int packets, int packet_interval_ms, bool print_progress, int rtp_flags);
+
+inline void add_hook(Test_receiver* tester, uvgrtp::media_stream* receiver, 
+    void (*hook)(void*, uvgrtp::frame::rtp_frame*));
 
 inline void cleanup_sess(uvgrtp::context& ctx, uvgrtp::session* sess);
 inline void cleanup_ms(uvgrtp::session* sess, uvgrtp::media_stream* ms);
@@ -45,8 +51,67 @@ private:
     int expectedPackets_;
 };
 
-inline void send_packets(rtp_format_t format, uvgrtp::session* sess, uvgrtp::media_stream* sender,
-    int packets, size_t size, int packet_interval_ms, bool add_start_code, bool print_progress, int rtp_flags)
+inline std::unique_ptr<uint8_t[]> create_test_packet(rtp_format_t format, uint8_t nal_type,
+    bool add_start_code, size_t size, int rtp_flags)
+{
+    std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
+    memset(test_frame.get(), 'b', size);
+
+    if (add_start_code && size > 8)
+    {
+        int pos = 0;
+        if (format == RTP_FORMAT_H264)
+        {
+            // https://datatracker.ietf.org/doc/html/rfc6184#section-1.3
+            if (!(rtp_flags & RTP_NO_H26X_SCL))
+            {
+                memset(test_frame.get() + pos, 0, 2);
+                pos += 2;
+                memset(test_frame.get() + pos, 1, 1);
+                pos += 1;
+            }
+            memset(test_frame.get() + pos, 5, 1); // Intra frame
+            pos += 1;
+        }
+        else if (format == RTP_FORMAT_H265)
+        {
+            // see https://datatracker.ietf.org/doc/html/rfc7798#section-1.1.4
+            if (!(rtp_flags & RTP_NO_H26X_SCL))
+            {
+                memset(test_frame.get() + pos, 0, 3);
+                pos += 3;
+                memset(test_frame.get() + pos, 1, 1);
+                pos += 1;
+            }
+            memset(test_frame.get() + pos, (19 << 1), 1); // Intra frame
+            pos += 1;
+        }
+        else if (format == RTP_FORMAT_H266)
+        {
+            // see https://datatracker.ietf.org/doc/html/draft-ietf-avtcore-rtp-vvc#section-1.1.4
+            if (!(rtp_flags & RTP_NO_H26X_SCL))
+            {
+                memset(test_frame.get() + pos, 0, 3);
+                pos += 3;
+                memset(test_frame.get() + pos, 1, 1);
+                pos += 1;
+            }
+
+            // |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            // |F|Z|  LayerID  |  Type   | TID |
+            memset(test_frame.get() + pos, 0, 1);
+            pos += 1;
+            memset(test_frame.get() + pos, (7 << 3), 1); // Intra frame (type)
+        }
+    }
+
+    return test_frame;
+}
+
+inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size, 
+    uvgrtp::session* sess, uvgrtp::media_stream* sender,
+    int packets, int packet_interval_ms, bool print_progress, int rtp_flags)
 {
     EXPECT_NE(nullptr, sess);
     EXPECT_NE(nullptr, sender);
@@ -57,61 +122,11 @@ inline void send_packets(rtp_format_t format, uvgrtp::session* sess, uvgrtp::med
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
         for (unsigned int i = 0; i < packets; ++i)
         {
-            std::unique_ptr<uint8_t[]> dummy_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
-
-            memset(dummy_frame.get(), 'b', size);
-
-            if (add_start_code && size > 8)
-            {
-                int pos = 0;
-                if (format == RTP_FORMAT_H264)
-                {
-                    // https://datatracker.ietf.org/doc/html/rfc6184#section-1.3
-                    if (!(rtp_flags & RTP_NO_H26X_SCL))
-                    {
-                        memset(dummy_frame.get() + pos, 0, 2);
-                        pos += 2;
-                        memset(dummy_frame.get() + pos, 1, 1);
-                        pos += 1;
-                    }
-                    memset(dummy_frame.get() + pos, 5, 1); // Intra frame
-                    pos += 1;
-                }
-                else if (format == RTP_FORMAT_H265)
-                {
-                    // see https://datatracker.ietf.org/doc/html/rfc7798#section-1.1.4
-                    if (!(rtp_flags & RTP_NO_H26X_SCL))
-                    {
-                        memset(dummy_frame.get() + pos, 0, 3);
-                        pos += 3;
-                        memset(dummy_frame.get() + pos, 1, 1);
-                        pos += 1;
-                    }
-                    memset(dummy_frame.get() + pos, (19 << 1), 1); // Intra frame
-                    pos += 1;
-                }
-                else if (format == RTP_FORMAT_H266)
-                {
-                    // see https://datatracker.ietf.org/doc/html/draft-ietf-avtcore-rtp-vvc#section-1.1.4
-                    if (!(rtp_flags & RTP_NO_H26X_SCL))
-                    {
-                        memset(dummy_frame.get() + pos, 0, 3);
-                        pos += 3;
-                        memset(dummy_frame.get() + pos, 1, 1);
-                        pos += 1;
-                    }
-
-                    // |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
-                    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                    // |F|Z|  LayerID  |  Type   | TID |
-                    memset(dummy_frame.get() + pos, 0, 1);
-                    pos += 1;
-                    memset(dummy_frame.get() + pos, (7 << 3), 1); // Intra frame (type)
-                }
-            }
+            std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
+            memcpy(test_frame.get(), test_packet.get(), size);
 
             rtp_error_t ret = RTP_OK;
-            if ((ret = sender->push_frame(std::move(dummy_frame), size, rtp_flags)) != RTP_OK)
+            if ((ret = sender->push_frame(std::move(test_frame), size, rtp_flags)) != RTP_OK)
             {
                 std::cout << "Failed to send test packet! Return value: " << ret << std::endl;
                 return;
@@ -163,9 +178,8 @@ inline void cleanup_ms(uvgrtp::session* sess, uvgrtp::media_stream* ms)
     }
 }
 
-
-inline void test_packet_size(rtp_format_t format, int packets, size_t size, uvgrtp::session* sess, uvgrtp::media_stream* sender,
-    uvgrtp::media_stream* receiver, int rtp_flags)
+inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets, size_t size, 
+    uvgrtp::session* sess, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver, int rtp_flags)
 {
     EXPECT_NE(nullptr, sess);
     EXPECT_NE(nullptr, sender);
@@ -178,7 +192,7 @@ inline void test_packet_size(rtp_format_t format, int packets, size_t size, uvgr
         int interval_ms = 10;
 
         add_hook(tester, receiver, rtp_receive_hook);
-        send_packets(format, sess, sender, packets, size, interval_ms, true, false, rtp_flags);
+        send_packets(std::move(test_packet), size, sess, sender, packets, interval_ms, false, rtp_flags);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(50 + size/1000));
 

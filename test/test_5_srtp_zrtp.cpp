@@ -33,7 +33,11 @@ TEST(EncryptionTests, no_send_user)
 
     receiver = user_initialization(ctx, SRTP_256, sender_session, send);
 
-    send_packets(RTP_FORMAT_GENERIC, sender_session, send, 10, strlen((char*)"Hello, world!"), 10, true, false, RTP_NO_FLAGS);
+    int test_packets = 10;
+    size_t frame_size = strlen((char*)"Hello, world!");
+    std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, frame_size, RTP_NO_FLAGS);
+    send_packets(std::move(test_frame), frame_size, sender_session, send, test_packets, 0, true, RTP_NO_FLAGS);
+
     cleanup_ms(sender_session, send);
 
     if (receiver && receiver->joinable())
