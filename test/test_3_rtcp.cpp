@@ -53,7 +53,7 @@ TEST(RTCPTests, rtcp) {
 
     std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
     memset(test_frame.get(), 'b', PAYLOAD_LEN);
-    send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS, 0, true, RTP_NO_FLAGS);
+    send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
 
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
 }
@@ -96,7 +96,8 @@ TEST(RTCP_reopen_receiver, rtcp) {
     {
         std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
         memset(test_frame.get(), 'b', PAYLOAD_LEN);
-        send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS/2, 0, true, RTP_NO_FLAGS);
+        send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS/2, 
+            PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
 
         if (remote_stream)
         {
@@ -108,7 +109,8 @@ TEST(RTCP_reopen_receiver, rtcp) {
 
         test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
         memset(test_frame.get(), 'b', PAYLOAD_LEN);
-        send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS / 2, 0, true, RTP_NO_FLAGS);
+        send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS / 2, 
+            PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
     }
 
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
@@ -146,7 +148,7 @@ TEST(RTCP_double_bind_test, rtcp) {
 
 void receiver_hook(uvgrtp::frame::rtcp_receiver_report* frame)
 {
-    std::cout << "RTCP receiver report! ----------" << std::endl;
+    std::cout << std::endl << "RTCP receiver report! ----------" << std::endl;
 
     for (auto& block : frame->report_blocks)
     {
@@ -165,7 +167,7 @@ void receiver_hook(uvgrtp::frame::rtcp_receiver_report* frame)
 
 void sender_hook(uvgrtp::frame::rtcp_sender_report* frame)
 {
-    std::cout << "RTCP sender report! ----------" << std::endl;
+    std::cout << std::endl << "RTCP sender report! ----------" << std::endl;
     std::cout << "NTP msw: " << frame->sender_info.ntp_msw << std::endl;
     std::cout << "NTP lsw: " << frame->sender_info.ntp_lsw << std::endl;
     std::cout << "RTP timestamp: " << frame->sender_info.rtp_ts << std::endl;

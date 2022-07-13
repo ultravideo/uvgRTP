@@ -55,7 +55,7 @@ TEST(RTPTests, rtp_hook)
     for (size_t& size : sizes)
     {
         std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
-        send_packets(std::move(test_frame), size, sess, sender, test_packets, 0, true, RTP_NO_FLAGS);
+        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, RTP_NO_FLAGS);
     }
 
     cleanup_ms(sess, receiver);
@@ -83,7 +83,7 @@ TEST(RTPTests, rtp_send_test)
     size_t size = 1500;
 
     std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
-    send_packets(std::move(test_frame), size, sess, sender, test_packets, 0, true, RTP_NO_FLAGS);
+    test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, RTP_NO_FLAGS);
 
     cleanup_ms(sess, sender);
     cleanup_sess(ctx, sess);
