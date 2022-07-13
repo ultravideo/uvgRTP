@@ -1267,6 +1267,8 @@ rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t* packet, size_t& read_ptr, 
     auto frame = new uvgrtp::frame::rtcp_sdes_packet;
     frame->header = header;
 
+    // TODO: The SDES parsing is incorrect at the moment
+
     // Read SDES chunks
     while (read_ptr + SSRC_CSRC_SIZE <= packet_end)
     {
@@ -1543,6 +1545,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
             uvgrtp::frame::RTCP_FT_SDES) ||
             !construct_sdes_chunk(frame, write_ptr, { ssrc_, ourItems_ }))
         {
+            LOG_ERROR("Failed to add SDES packet");
             delete[] frame;
             return RTP_GENERIC_ERROR;
         }
