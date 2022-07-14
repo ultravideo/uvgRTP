@@ -2,7 +2,7 @@
 #include <string>
 
 #include <uvgrtp/lib.hh>
-#include <uvgrtp/c_wrapper.hh>
+#include <uvgrtp/wrapper_c.hh>
 
 void
 uvgrtp_create_ctx(void** uvgrtp_context)

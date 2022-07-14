@@ -60,7 +60,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/srtp/base.cc
         src/srtp/srtp.cc
         src/srtp/srtcp.cc
-        src/c_wrapper.cc
+        src/wrapper_c.cc
         )
 
 source_group(src/srtp src/srtp/.*)
@@ -117,7 +117,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         include/uvgrtp/rtcp.hh
         include/uvgrtp/session.hh
         include/uvgrtp/socket.hh
-        include/uvgrtp/c_wrapper.hh
+        include/uvgrtp/wrapper_c.hh
         )
 
 if(WIN32)
