@@ -13,6 +13,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <deque>
 
 namespace uvgrtp {
 
@@ -72,6 +73,15 @@ namespace uvgrtp {
         uvgrtp::frame::rtcp_sdes_packet     *sdes_frame = nullptr;
         uvgrtp::frame::rtcp_app_packet      *app_frame = nullptr;
     };
+
+    struct rtcp_app_packet {
+        const char* name;
+        uint8_t subtype;
+
+        size_t payload_len;
+        const uint8_t* payload;
+    };
+
     /// \endcond
 
     class rtcp {
@@ -472,7 +482,12 @@ namespace uvgrtp {
 
             int interval_ms_;
 
-            std::vector<uvgrtp::frame::rtcp_sdes_item> ourItems_;
+            std::mutex packet_mutex_;
+
+            // messages waiting to be sent
+            std::vector<uvgrtp::frame::rtcp_sdes_item> ourItems_; // always sent
+            std::vector<uint32_t> bye_ssrcs_; // sent once
+            std::map<std::string, std::deque<rtcp_app_packet>> app_packets_; // sent one at a time per name
 
             uvgrtp::frame::rtcp_sdes_item cnameItem_;
             char cname_[255];
