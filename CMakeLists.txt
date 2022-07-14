@@ -18,10 +18,12 @@ include(cmake/Versioning.cmake)
 option(DISABLE_CRYPTO "Do not build uvgRTP with crypto enabled" OFF)
 
 add_library(${PROJECT_NAME})
-set_target_properties(${PROJECT_NAME} PROPERTIES
+if("{LIBRARY_VERSION}")
+    set_target_properties(${PROJECT_NAME} PROPERTIES
         SOVERSION "${PROJECT_VERSION_MAJOR}"
         VERSION "${LIBRARY_VERSION}"
         )
+endif()
 set(UVGRTP_CXX_FLAGS "")
 set(UVGRTP_LINKER_FLAGS "")
 

@@ -17,8 +17,10 @@ endif()
 option(RELEASE_COMMIT "Create a release version" OFF)
 if(RELEASE_COMMIT)
     set (LIBRARY_VERSION ${PROJECT_VERSION})
-else()
+elseif(uvgrtp_GIT_HASH)
     set (LIBRARY_VERSION ${PROJECT_VERSION} + "-" + ${uvgrtp_GIT_HASH})
+else()
+    set (LIBRARY_VERSION "")
 endif()
 
 configure_file(cmake/version.cpp.in version.cpp
