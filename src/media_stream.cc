@@ -566,6 +566,7 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int flag, ssize_t value)
             }
 
             rtp_->set_payload_size(value - hdr);
+            rtcp_->set_mtu_size(value - (ETH_HDR_SIZE + IPV4_HDR_SIZE + UDP_HDR_SIZE));
 
         }
         break;

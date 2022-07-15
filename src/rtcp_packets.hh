@@ -27,11 +27,11 @@ namespace uvgrtp
     bool construct_ssrc(uint8_t* frame, int& ptr, uint32_t ssrc);
 
     // Add sender info for sender report
-    void construct_sender_info(uint8_t* frame, int& ptr,  
+    bool construct_sender_info(uint8_t* frame, int& ptr,
         uint64_t ntp_ts, uint64_t rtp_ts, uint32_t sent_packets, uint32_t sent_bytes);
 
     // Add one report block for sender or receiver report
-    void construct_report_block(uint8_t* frame, int& ptr, uint32_t ssrc, uint8_t fraction,
+    bool construct_report_block(uint8_t* frame, int& ptr, uint32_t ssrc, uint8_t fraction,
         uint32_t dropped_packets, uint16_t seq_cycles, uint16_t max_seq, uint32_t jitter,
         uint32_t lsr, uint32_t dlsr);
 

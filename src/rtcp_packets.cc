@@ -92,7 +92,7 @@ bool uvgrtp::construct_ssrc(uint8_t* frame, int& ptr, uint32_t ssrc)
     return true;
 }
 
-void uvgrtp::construct_sender_info(uint8_t* frame, int& ptr, uint64_t ntp_ts, uint64_t rtp_ts,
+bool uvgrtp::construct_sender_info(uint8_t* frame, int& ptr, uint64_t ntp_ts, uint64_t rtp_ts,
     uint32_t sent_packets, uint32_t sent_bytes)
 {
     SET_NEXT_FIELD_32(frame, ptr, htonl(ntp_ts >> 32));        // NTP ts msw
@@ -100,9 +100,11 @@ void uvgrtp::construct_sender_info(uint8_t* frame, int& ptr, uint64_t ntp_ts, ui
     SET_NEXT_FIELD_32(frame, ptr, htonl((uint32_t)rtp_ts));    // RTP ts
     SET_NEXT_FIELD_32(frame, ptr, htonl(sent_packets));        // sender's packet count
     SET_NEXT_FIELD_32(frame, ptr, htonl(sent_bytes));          // sender's octet count (not bytes)
+
+    return true;
 }
 
-void uvgrtp::construct_report_block(uint8_t* frame, int& ptr, uint32_t ssrc, uint8_t fraction, 
+bool uvgrtp::construct_report_block(uint8_t* frame, int& ptr, uint32_t ssrc, uint8_t fraction,
     uint32_t dropped_packets, uint16_t seq_cycles, uint16_t max_seq, uint32_t jitter, 
     uint32_t lsr, uint32_t dlsr)
 {
@@ -112,6 +114,8 @@ void uvgrtp::construct_report_block(uint8_t* frame, int& ptr, uint32_t ssrc, uin
     SET_NEXT_FIELD_32(frame, ptr, htonl(jitter));
     SET_NEXT_FIELD_32(frame, ptr, htonl(lsr));
     SET_NEXT_FIELD_32(frame, ptr, htonl(dlsr));
+
+    return true;
 }
 
 bool uvgrtp::construct_app_packet(uint8_t* frame, int& ptr,
