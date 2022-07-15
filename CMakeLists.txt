@@ -160,6 +160,9 @@ if (DISABLE_PRINTS)
 endif()
 
 if (UNIX)
+    if(CMAKE_BUILD_TYPE)
+        message(STATUS "Build type detected: ${CMAKE_BUILD_TYPE}")
+    endif()
 
     # Try finding if pkg-config installed in the system
     find_package(PkgConfig REQUIRED)
