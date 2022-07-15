@@ -16,6 +16,7 @@ project(uvgrtp
 include(cmake/FindDependencies.cmake)
 include(cmake/Versioning.cmake)
 option(DISABLE_CRYPTO "Do not build uvgRTP with crypto enabled" OFF)
+option(DISABLE_PRINTS "Do not print anything from uvgRTP" OFF)
 
 add_library(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -151,6 +152,11 @@ endif()
 if (DISABLE_CRYPTO)
     list(APPEND UVGRTP_CXX_FLAGS "-D__RTP_NO_CRYPTO__")
     target_compile_definitions(${PROJECT_NAME} PRIVATE __RTP_NO_CRYPTO__)
+endif()
+
+if (DISABLE_PRINTS)
+    list(APPEND UVGRTP_CXX_FLAGS "-D__RTP_SILENT__")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE __RTP_SILENT__)
 endif()
 
 if (UNIX)
