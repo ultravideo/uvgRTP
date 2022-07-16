@@ -58,7 +58,7 @@ int main(void)
         return EXIT_FAILURE;
     }
 
-    uvgrtp::session *receiver_session = receiver_ctx.create_session(SENDER_ADDRESS);
+    uvgrtp::session *receiver_session = receiver_ctx.create_session(SENDER_ADDRESS, RECEIVER_ADDRESS);
 
     std::shared_ptr<std::mutex> print_mutex = std::shared_ptr<std::mutex> (new std::mutex);
 
@@ -79,7 +79,7 @@ int main(void)
                            RTP_FORMAT_H265, RECEIVER_VIDEO_PORT, SENDER_VIDEO_PORT);
 
     uvgrtp::context sender_ctx;
-    uvgrtp::session *sender_session = sender_ctx.create_session(RECEIVER_ADDRESS);
+    uvgrtp::session *sender_session = sender_ctx.create_session(RECEIVER_ADDRESS, SENDER_ADDRESS);
 
     // start the senders in their own threads
     std::thread a_sender(sender_function, sender_session, rce_flags, print_mutex,
