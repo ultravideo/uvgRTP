@@ -1526,7 +1526,7 @@ size_t uvgrtp::rtcp::size_of_compound_packet(uint16_t reports,
 
 rtp_error_t uvgrtp::rtcp::generate_report()
 {
-    packet_mutex_.lock();
+    std::lock_guard<std::mutex> lock(packet_mutex_);
     rtcp_pkt_sent_count_++;
 
     uint16_t reports = 0;
@@ -1697,7 +1697,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
         bye_ssrcs_.clear();
     }
-    packet_mutex_.unlock();
+    
 
     LOG_DEBUG("Sending RTCP report compound packet, Total size: %lli",
         compound_packet_size);
