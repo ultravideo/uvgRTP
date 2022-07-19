@@ -250,7 +250,14 @@ void sdes_hook(uvgrtp::frame::rtcp_sdes_packet* frame)
 
 void app_hook(uvgrtp::frame::rtcp_app_packet* frame)
 {
-    std::cout << "Got APP frame with " << frame->header.length << " 32-bit length" << std::endl;
+    size_t payload_len = size_t(frame->header.length - 2)*4;
+    std::string payload = std::string((char*)frame->payload, payload_len);
+    std::string name = std::string((char*)frame->name, 4);
+
+    std::cout << std::endl << "APP frame! ----------" << std::endl;
+    std::cout << "ssrc: " << frame->ssrc << std::endl;
+    std::cout << "Name: " << name << std::endl;
+    std::cout << "Payload length " << payload_len << " and content: " << payload << std::endl;
     delete frame;
 }
 
