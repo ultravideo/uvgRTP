@@ -51,26 +51,33 @@ static inline void win_get_last_error(void)
 #endif
 #define LOG_LEVEL_DEBUG "DEBUG"
 
-#define uvgrtp_debug(level, fmt, ...) \
-    fprintf(stderr, "[uvgRTP][%s][%s::%s] " fmt "\n", level, \
-            "", __func__, ##__VA_ARGS__)
+static inline void uvgrtp_debug(const char *level, const char *function, const char *s, ...)
+{
+    va_list args;
+    va_start(args, s);
+    char fmt[256] = {0};
+    snprintf(fmt, sizeof(fmt), "[uvgRTP][%s][%s::%s] %s\n", level,
+             "", function, s);
+    vfprintf(stderr, fmt, args);
+    va_end(args);
+}
 
 #ifndef NDEBUG
-#define LOG_DEBUG(fmt,  ...) uvgrtp_debug(LOG_LEVEL_DEBUG,  fmt, ##__VA_ARGS__)
+#define LOG_DEBUG(...) uvgrtp_debug(LOG_LEVEL_DEBUG, __func__, __VA_ARGS__)
 #else
-#define LOG_DEBUG(fmt,  ...) ;
+#define LOG_DEBUG(...) ;
 #endif
 
 #ifdef __RTP_SILENT__
-#define LOG_ERROR(fmt,  ...) ;
-#define LOG_WARN(fmt,   ...) ;
-#define LOG_INFO(fmt,   ...) ;
+#define LOG_ERROR(...) ;
+#define LOG_WARN(...) ;
+#define LOG_INFO(...) ;
 #undef LOG_DEBUG
-#define LOG_DEBUG(fmt,  ...) ;
+#define LOG_DEBUG(...) ;
 #else
-#define LOG_ERROR(fmt,  ...) uvgrtp_debug(LOG_LEVEL_ERROR, fmt, ##__VA_ARGS__)
-#define LOG_WARN(fmt,   ...) uvgrtp_debug(LOG_LEVEL_WARN,  fmt, ##__VA_ARGS__)
-#define LOG_INFO(fmt,   ...) uvgrtp_debug(LOG_LEVEL_INFO,  fmt, ##__VA_ARGS__)
+#define LOG_ERROR(...) uvgrtp_debug(LOG_LEVEL_ERROR, __func__, __VA_ARGS__)
+#define LOG_WARN(...)  uvgrtp_debug(LOG_LEVEL_WARN,  __func__, __VA_ARGS__)
+#define LOG_INFO(...)  uvgrtp_debug(LOG_LEVEL_INFO,  __func__, __VA_ARGS__)
 #endif
 
 static inline void log_platform_error(const char *aux)
