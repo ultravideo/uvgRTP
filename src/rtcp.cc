@@ -1420,8 +1420,7 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t& read_ptr,
 
     // application data is saved to payload
     frame->payload = new uint8_t[application_data_size];
-    memcpy(frame->payload, &packet[RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE], 
-           application_data_size);
+    memcpy(frame->payload, &packet[read_ptr], application_data_size);
 
     app_mutex_.lock();
     if (app_hook_) {
