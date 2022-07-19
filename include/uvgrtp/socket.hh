@@ -22,7 +22,7 @@ namespace uvgrtp {
     typedef unsigned int socklen_t;
 #endif
 
-#if defined(HAVE_SENDMSG) && !defined(HAVE_SENDMMSG)
+#if defined(UVGRTP_HAVE_SENDMSG) && !defined(UVGRTP_HAVE_SENDMMSG)
     struct mmsghdr {
         struct msghdr msg_hdr;
         unsigned int msg_len;

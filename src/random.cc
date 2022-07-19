@@ -2,7 +2,7 @@
 
 #include "uvgrtp/debug.hh"
 
-#if defined(HAVE_GETRANDOM)
+#if defined(UVGRTP_HAVE_GETRANDOM)
 #include <sys/random.h>
 #elif defined(_WIN32)
 #include <winsock2.h>
@@ -33,7 +33,7 @@ rtp_error_t uvgrtp::random::init()
 
 int uvgrtp::random::generate(void *buf, size_t n)
 {
-#if defined(HAVE_GETRANDOM)
+#if defined(UVGRTP_HAVE_GETRANDOM)
 
     return getrandom(buf, n, 0);
 
