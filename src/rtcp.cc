@@ -1059,7 +1059,7 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
          * We have to substract the size of header, since it was added when reading the header. */
         size_t packet_end = read_ptr - RTCP_HEADER_SIZE + size_of_rtcp_packet;
 
-        LOG_ERROR("Handling packet # %i with size %li and remaining packet amount %li",
+        LOG_DEBUG("Handling packet # %i with size %li and remaining packet amount %li",
             packets, size_of_rtcp_packet, remaining_size);
 
         if (header.version != 0x2)
