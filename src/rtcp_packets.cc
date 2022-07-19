@@ -151,6 +151,8 @@ bool uvgrtp::construct_sdes_chunk(uint8_t* frame, int& ptr,
         }
     }
 
+    ptr += (4 - ptr % 4);
+
     if (!have_cname)
     {
         LOG_ERROR("SDES chunk did not contain cname!");
