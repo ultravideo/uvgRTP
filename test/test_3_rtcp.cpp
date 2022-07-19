@@ -99,13 +99,10 @@ TEST(RTCPTests, rtcp_app) {
         EXPECT_EQ(RTP_OK, remote_stream->get_rtcp()->install_sdes_hook(sdes_hook));
         EXPECT_EQ(RTP_OK, remote_stream->get_rtcp()->install_app_hook(app_hook));
     }
-    const char* data = "ABCD";
-    local_stream->get_rtcp()->send_app_packet("Test", 1, 4, (uint8_t*)data);
-    remote_stream->get_rtcp()->send_app_packet("Test", 1, 4, (uint8_t*)data);
 
     std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
     memset(test_frame.get(), 'b', PAYLOAD_LEN);
-    send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
+    send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS, true);
 
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
 }

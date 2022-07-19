@@ -16,7 +16,7 @@ inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets
 
 inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size, 
     uvgrtp::session* sess, uvgrtp::media_stream* sender,
-    int packets, int packet_interval_ms, bool print_progress, int rtp_flags);
+    int packets, int packet_interval_ms, bool print_progress, int rtp_flags, bool send_app = false);
 
 inline void add_hook(Test_receiver* tester, uvgrtp::media_stream* receiver, 
     void (*hook)(void*, uvgrtp::frame::rtp_frame*));
@@ -87,7 +87,7 @@ inline std::unique_ptr<uint8_t[]> create_test_packet(rtp_format_t format, uint8_
 
 inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size, 
     uvgrtp::session* sess, uvgrtp::media_stream* sender,
-    int packets, int packet_interval_ms, bool print_progress, int rtp_flags)
+    int packets, int packet_interval_ms, bool print_progress, int rtp_flags, bool send_app)
 {
     EXPECT_NE(nullptr, sess);
     EXPECT_NE(nullptr, sender);
@@ -100,6 +100,12 @@ inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size,
         {
             std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
             memcpy(test_frame.get(), test_packet.get(), size);
+
+            if (i % 60 == 0 && send_app)
+            {
+                const char* data = "ABCD";
+                sender->get_rtcp()->send_app_packet("Test", 1, 4, (uint8_t*)data);
+            }
 
             rtp_error_t ret = RTP_OK;
             if ((ret = sender->push_frame(std::move(test_frame), size, rtp_flags)) != RTP_OK)
