@@ -156,7 +156,10 @@ if (UNIX)
     # Try finding if pkg-config installed in the system
     find_package(PkgConfig REQUIRED)
     if(PkgConfig_FOUND)
-        list(APPEND UVGRTP_LINKER_FLAGS "-luvgrtp" "-lpthread")
+        list(APPEND UVGRTP_LINKER_FLAGS "-luvgrtp")
+        if(CMAKE_USE_PTHREADS_INIT AND NOT CMAKE_HAVE_LIBC_PTHREAD)
+            list(APPEND UVGRTP_LINKER_FLAGS "-lpthread")
+        endif()
         # Check PKG_CONFIG_PATH, if not defined, use /usr/local/lib/pkgconfig
         if(NOT DEFINED ENV{PKG_CONFIG_PATH})
             set(PKG_CONFIG_PATH "/usr/local/lib/pkgconfig")
