@@ -6,7 +6,7 @@ Name: @PROJECT_NAME@
 Description: @uvgrtp_DESCR@
 URL: @uvgrtp_URL@
 Version: @PROJECT_VERSION@
-CFlags: -I${includedir} @CRYPTOPP_INCLUDE_DIRS@
-Libs: -L${libdir} @UVGRTP_LINKER_FLAGS@ @UVGRTP_CXX_FLAGS@
+CFlags: -I${includedir} @CRYPTOPP_INCLUDE_DIRS@ @UVGRTP_CXX_FLAGS@
+Libs: -L${libdir} @UVGRTP_LINKER_FLAGS@
 Requires:
 
