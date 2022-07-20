@@ -99,6 +99,13 @@ uvgrtp::rtcp::~rtcp()
     }
 
     ourItems_.clear();
+
+    for (auto& [name, dq] : app_packets_) {
+        for (auto& packet : dq) {
+            delete[] packet.payload;
+        }
+    }
+
 }
 
 void uvgrtp::rtcp::free_participant(rtcp_participant* participant)
@@ -1689,9 +1696,11 @@ rtp_error_t uvgrtp::rtcp::generate_report()
                     !construct_app_packet(frame, write_ptr, next_packet.name, next_packet.payload, next_packet.payload_len))
                 {
                     LOG_ERROR("Failed to construct APP packet");
+                    delete[] next_packet.payload;
                     delete[] frame;
                     return RTP_GENERIC_ERROR;
                 }
+                delete[] next_packet.payload;
             }
         }
     }
@@ -1754,7 +1763,10 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
     size_t payload_len, const uint8_t* payload)
 {
     std::string str(name);
-    rtcp_app_packet packet = { name, subtype, payload_len, payload };
+    uint8_t* packet_payload = new uint8_t[payload_len];
+    memcpy(packet_payload, payload, payload_len);
+    rtcp_app_packet packet = { name, subtype, payload_len, packet_payload };
+    
     packet_mutex_.lock();
     if (!app_packets_[name].empty())
     {
