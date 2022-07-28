@@ -52,6 +52,8 @@ namespace uvgrtp {
 
                 virtual uint8_t get_nal_type(uint8_t* data) const;
 
+                virtual void get_nal_header_from_fu_headers(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload);
+
                 virtual uint8_t get_payload_header_size() const;
                 virtual uint8_t get_nal_header_size() const;
                 virtual uint8_t get_fu_header_size() const;

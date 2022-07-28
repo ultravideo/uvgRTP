@@ -88,6 +88,17 @@ uvgrtp::formats::FRAG_TYPE uvgrtp::formats::h266::get_fragment_type(uvgrtp::fram
     return uvgrtp::formats::FRAG_TYPE::FT_MIDDLE;
 }
 
+void uvgrtp::formats::h266::get_nal_header_from_fu_headers(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload)
+{
+    uint8_t payload_header[2] = {
+        (uint8_t)((frame_payload[0])),
+        (uint8_t)((frame_payload[1]&0x7)|((frame_payload[2] & 0x1f) << 3))
+    };
+
+    std::memcpy(&complete_payload[fptr], payload_header, get_payload_header_size());
+}
+
+
 rtp_error_t uvgrtp::formats::h266::construct_format_header_divide_fus(uint8_t* data, size_t data_len,
     size_t payload_size, uvgrtp::buf_vec& buffers)
 {
