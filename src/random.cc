@@ -24,7 +24,7 @@ rtp_error_t uvgrtp::random::init()
 #ifdef _WIN32
     srand(GetTickCount());
 #else
-    srand(time(NULL));
+    srand(int(time(NULL)));
 #endif
     return RTP_OK;
 }
@@ -34,6 +34,9 @@ int uvgrtp::random::generate(void *buf, size_t n)
 #ifndef _WIN32
 #ifdef HAVE_GETRANDOM
     return getrandom(buf, n, 0);
+#elif HAVE_ARC4RANDOM
+    arc4random_buf(buf, n);
+    return 0;
 #else
 
     // Replace with the syscall
@@ -51,7 +54,7 @@ int uvgrtp::random::generate(void *buf, size_t n)
     }
 
     return read;
-#endif // HAVE_GETRANDOM
+#endif
 #else
 
     if (n > UINT32_MAX)

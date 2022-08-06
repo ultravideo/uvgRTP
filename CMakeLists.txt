@@ -193,8 +193,14 @@ if (UNIX)
     include(CheckCXXSymbolExists)
     check_cxx_symbol_exists(getrandom sys/random.h HAVE_GETRANDOM)
 
+    # Check the arc4random() function exists
+    check_cxx_symbol_exists(arc4random stdlib.h HAVE_ARC4RANDOM)
+    
     if(HAVE_GETRANDOM)
         target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_GETRANDOM=1)
+    endif()
+    if(HAVE_ARC4RANDOM)
+        target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_ARC4RANDOM=1)
     endif()
 endif (UNIX)
 
