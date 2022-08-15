@@ -915,7 +915,7 @@ void uvgrtp::rtcp::update_session_statistics(const uvgrtp::frame::rtp_frame *fra
     p->stats.received_bytes += (uint32_t)frame->payload_len;
 
     /* calculate number of dropped packets */
-    int extended_max = p->stats.cycles + p->stats.max_seq;
+    int extended_max = (static_cast<int>(p->stats.cycles) << 16) + p->stats.max_seq;
     int expected     = extended_max - p->stats.base_seq + 1;
 
     int dropped = expected - p->stats.received_pkts;
