@@ -154,6 +154,24 @@ if (DISABLE_CRYPTO)
 endif()
 
 if (UNIX)
+    # Check if platform-specific functions exist
+    include(CheckCXXSymbolExists)
+    check_cxx_symbol_exists(getrandom sys/random.h HAVE_GETRANDOM)
+    check_cxx_symbol_exists(sendmsg sys/socket.h HAVE_SENDMSG)
+    check_cxx_symbol_exists(sendmmsg sys/socket.h HAVE_SENDMMSG)
+
+    if(HAVE_GETRANDOM)
+        list(APPEND UVGRTP_CXX_FLAGS "-DUVGRTP_HAVE_GETRANDOM=1")
+        target_compile_definitions(${PROJECT_NAME} PRIVATE UVGRTP_HAVE_GETRANDOM=1)
+    endif()
+    if(HAVE_SENDMSG)
+        list(APPEND UVGRTP_CXX_FLAGS "-DUVGRTP_HAVE_SENDMSG=1")
+        target_compile_definitions(${PROJECT_NAME} PRIVATE UVGRTP_HAVE_SENDMSG=1)
+    endif()
+    if(HAVE_SENDMMSG)
+        list(APPEND UVGRTP_CXX_FLAGS "-DUVGRTP_HAVE_SENDMMSG=1")
+        target_compile_definitions(${PROJECT_NAME} PRIVATE UVGRTP_HAVE_SENDMMSG=1)
+    endif()
 
     # Try finding if pkg-config installed in the system
     find_package(PkgConfig REQUIRED)
@@ -188,15 +206,11 @@ if (UNIX)
     else()
         message("pkg-config not found. Not generating pc file")
     endif(PkgConfig_FOUND)
-
-    # Check the getrandom() function exists
-    include(CheckCXXSymbolExists)
-    check_cxx_symbol_exists(getrandom sys/random.h HAVE_GETRANDOM)
-
-    if(HAVE_GETRANDOM)
-        target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_GETRANDOM=1)
-    endif()
 endif (UNIX)
+
+if(APPLE)
+    target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Security")
+endif()
 
 add_subdirectory(test EXCLUDE_FROM_ALL)
 

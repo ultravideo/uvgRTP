@@ -22,6 +22,28 @@ namespace uvgrtp {
     typedef unsigned int socklen_t;
 #endif
 
+#if defined(UVGRTP_HAVE_SENDMSG) && !defined(UVGRTP_HAVE_SENDMMSG)
+    struct mmsghdr {
+        struct msghdr msg_hdr;
+        unsigned int msg_len;
+    };
+    static inline
+    int sendmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen,
+        int flags)
+    {
+        ssize_t n = 0;
+        for (unsigned int i = 0; i < vlen; i++) {
+            ssize_t ret = sendmsg(sockfd, &msgvec[i].msg_hdr, flags);
+            if (ret < 0)
+                break;
+            n += ret;
+        }
+        if (n == 0)
+            return -1;
+        return n;
+    }
+#endif
+
     const int MAX_BUFFER_COUNT = 256;
 
     /* Vector of buffers that contain a full RTP frame */
