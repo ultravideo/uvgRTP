@@ -101,6 +101,25 @@ uvgrtp::rtcp::~rtcp()
     ourItems_.clear();
 }
 
+uvgrtp::rtcp_app_packet::rtcp_app_packet(const char* name, uint8_t subtype, size_t payload_len, const uint8_t* payload)
+{
+    uint8_t* packet_payload = new uint8_t[payload_len];
+    memcpy(packet_payload, payload, payload_len);
+
+    char* packet_name = new char[APP_NAME_SIZE];
+    memcpy(packet_name, name, APP_NAME_SIZE);
+
+    this->name = packet_name;
+    this->payload = packet_payload;
+    this->subtype = subtype;
+    this->payload_len = payload_len;
+}
+
+uvgrtp::rtcp_app_packet::~rtcp_app_packet() {
+    delete[] name;
+    delete[] payload;
+}
+
 void uvgrtp::rtcp::free_participant(rtcp_participant* participant)
 {
     participant->socket = nullptr;
@@ -1676,8 +1695,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
             if (!app_name.second.empty())
             {
                 // take the oldest APP packet and send it
-                rtcp_app_packet next_packet = app_name.second.front();
-                app_name.second.pop_front();
+                rtcp_app_packet& next_packet = app_name.second.front();
 
                 uint16_t secondField = (next_packet.subtype & 0x1f);
 
@@ -1690,8 +1708,10 @@ rtp_error_t uvgrtp::rtcp::generate_report()
                 {
                     LOG_ERROR("Failed to construct APP packet");
                     delete[] frame;
+                    app_name.second.pop_front();
                     return RTP_GENERIC_ERROR;
                 }
+                app_name.second.pop_front();
             }
         }
     }
@@ -1753,15 +1773,13 @@ rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
 rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
     size_t payload_len, const uint8_t* payload)
 {
-    std::string str(name);
-    rtcp_app_packet packet = { name, subtype, payload_len, payload };
     packet_mutex_.lock();
     if (!app_packets_[name].empty())
     {
         LOG_WARN("Adding a new APP packet for sending when %llu packets are waiting to be sent",
             app_packets_[name].size());
     }
-    app_packets_[name].push_back(packet);
+    app_packets_[name].emplace_back(name, subtype, payload_len, payload);
     packet_mutex_.unlock();
 
     return RTP_OK;

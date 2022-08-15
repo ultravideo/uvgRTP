@@ -75,6 +75,10 @@ namespace uvgrtp {
     };
 
     struct rtcp_app_packet {
+        rtcp_app_packet(const rtcp_app_packet& orig_packet) = delete;
+        rtcp_app_packet(const char* name, uint8_t subtype, size_t payload_len, const uint8_t* payload);
+        ~rtcp_app_packet();
+
         const char* name;
         uint8_t subtype;
 
