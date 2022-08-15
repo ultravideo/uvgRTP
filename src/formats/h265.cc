@@ -89,6 +89,15 @@ uvgrtp::formats::FRAG_TYPE uvgrtp::formats::h265::get_fragment_type(uvgrtp::fram
     return uvgrtp::formats::FRAG_TYPE::FT_MIDDLE;
 }
 
+void uvgrtp::formats::h265::get_nal_header_from_fu_headers(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload)
+{
+    uint8_t payload_header[2] = {
+        (uint8_t)((frame_payload[0] & 0x81) | ((frame_payload[2] & 0x3f) << 1)),
+        (uint8_t)frame_payload[1]
+    };
+
+    std::memcpy(&complete_payload[fptr], payload_header, get_payload_header_size());
+}
 
 void uvgrtp::formats::h265::clear_aggregation_info()
 {

@@ -69,6 +69,8 @@ namespace uvgrtp {
                 virtual uvgrtp::formats::FRAG_TYPE get_fragment_type(uvgrtp::frame::rtp_frame* frame) const;
                 virtual uvgrtp::formats::NAL_TYPE  get_nal_type(uvgrtp::frame::rtp_frame* frame) const;
 
+                virtual void get_nal_header_from_fu_headers(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload);
+
             private:
                 h265_aggregation_packet aggr_pkt_info_;
         };

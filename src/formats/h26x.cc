@@ -721,16 +721,6 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     return RTP_OK; // no frame was completed, but everything went ok for this fragment
 }
 
-void uvgrtp::formats::h26x::get_nal_header_from_fu_headers(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload)
-{
-    uint8_t payload_header[2] = {
-        (uint8_t)((frame_payload[0] & 0x81) | ((frame_payload[2] & 0x3f) << 1)),
-        (uint8_t)frame_payload[1]
-    };
-
-    std::memcpy(&complete_payload[fptr], payload_header, get_payload_header_size());
-}
-
 void uvgrtp::formats::h26x::garbage_collect_lost_frames(size_t timout)
 {
     if (uvgrtp::clock::hrc::diff_now(last_garbage_collection_) >= GARBAGE_COLLECTION_INTERVAL_MS) {
