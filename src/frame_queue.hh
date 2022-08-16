@@ -15,25 +15,15 @@
 typedef SSIZE_T ssize_t;
 #endif
 
+// TODO: get these from socket?
 const int MAX_MSG_COUNT   = 5000;
 const int MAX_QUEUED_MSGS =  10;
 const int MAX_CHUNK_COUNT =   4;
 
 namespace uvgrtp {
-    class frame_queue;
     class rtp;
 
-
-    typedef struct active_range {
-        size_t h_start; size_t h_end;
-        size_t c_start; size_t c_end;
-    } active_t;
-
     typedef struct transaction {
-
-        /* Each transaction has a unique key  when moving the transactions 
-         * between "queued_" and "free_" */
-        uint32_t key = 0;
 
         /* To provide true scatter/gather I/O, each transaction has a buf_vec
          * structure which may contain differents buffers and their sizes.
@@ -70,15 +60,9 @@ namespace uvgrtp {
         /* Pointer to RTP authentication (if enabled) */
         uint8_t *rtp_auth_tags = nullptr;
 
-        size_t chunk_ptr = 0;
         size_t hdr_ptr = 0;
         size_t rtphdr_ptr = 0;
         size_t rtpauth_ptr = 0;
-
-        /* Address of receiver, used by sendmmsg(2) */
-        sockaddr_in out_addr;
-
-        uvgrtp::frame_queue *fqueue = nullptr;
 
         /* The flag "RTP_COPY" means that uvgRTP has a made a copy of the original chunk 
          * and it can be safely freed */
@@ -100,22 +84,11 @@ namespace uvgrtp {
             rtp_error_t init_transaction(uint8_t *data);
             rtp_error_t init_transaction(std::unique_ptr<uint8_t[]> data);
 
-            /* If there are less than "MAX_QUEUED_MSGS" in the "free_" vector,
-             * the transaction is moved there, otherwise it's destroyed
-             *
-             * If parameter "key" is given, the transaction with that key will be deinitialized
-             * Otherwise the active transaction is deinitialized
+            /* Releases all memory associated with transaction
              *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "key" doesn't point to valid transaction */
             rtp_error_t deinit_transaction();
-            rtp_error_t deinit_transaction(uint32_t key);
-
-            /* Release all memory of transaction "t"
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "t" is nullptr */
-            rtp_error_t destroy_transaction(uvgrtp::transaction_t *t);
 
             /* Cache "message" to frame queue
              *
@@ -123,7 +96,7 @@ namespace uvgrtp {
              * Return RTP_INVALID_VALUE if one of the parameters is invalid
              * Return RTP_MEMORY_ERROR if the maximum amount of chunks/messages is exceeded */
             rtp_error_t enqueue_message(uint8_t *message, size_t message_len);
-            rtp_error_t enqueue_message(uint8_t *message, size_t message_len, bool set_marker);
+            rtp_error_t enqueue_message(uint8_t *message, size_t message_len, bool set_m_bit);
 
             /* Cache all messages in "buffers" in order to frame queue
              *
@@ -180,21 +153,11 @@ namespace uvgrtp {
 
             void enqueue_finalize(uvgrtp::buf_vec& tmp);
 
-            /* Both the application and SCD access "free_" and "queued_" structures so the
-             * access must be protected by a mutex
-             *
-             * When application has finished making the transaction, it will push it to "queued_"
-             * from which it's moved back to "free_" by the SCD when the time comes. */
-            std::mutex transaction_mtx_;
-            std::vector<transaction_t *> free_;
-            std::unordered_map<uint32_t, transaction_t *> queued_;
-
             transaction_t *active_;
 
             /* Deallocation hook is stored here and copied to transaction upon initialization */
             void (*dealloc_hook_)(void *);
 
-            ssize_t max_queued_; /* number of queued transactions */
             ssize_t max_mcount_; /* number of messages per transactions */
             ssize_t max_ccount_; /* number of chunks per message */
 
