@@ -17,7 +17,7 @@
 #define INVALID_TS UINT64_MAX
 
 uvgrtp::rtp::rtp(rtp_format_t fmt):
-    wc_start_(0),
+    wc_start_(std::chrono::high_resolution_clock::now()),
     sent_pkts_(0),
     timestamp_(INVALID_TS),
     delay_(PKT_MAX_DELAY)
@@ -100,9 +100,8 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer)
 
     /* This is the first RTP message, get wall clock reading (t = 0)
      * and generate random RTP timestamp for this reading */
-    if (!wc_start_) {
+    if (!ts_) {
         ts_        = uvgrtp::random::generate_32();
-        wc_start_  = uvgrtp::clock::ntp::now();
     }
 
     buffer[0] = 2 << 6; // RTP version
@@ -112,10 +111,14 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer)
     *(uint32_t *)&buffer[8] = htonl(ssrc_);
 
     if (timestamp_ == INVALID_TS) {
-        *(uint32_t *)&buffer[4] = htonl((u_long)(
-            ts_ + 
-            uvgrtp::clock::ntp::diff_now(wc_start_) * clock_rate_ / 1000)
-        );
+
+        auto t1 = std::chrono::high_resolution_clock::now();
+        std::chrono::microseconds time_since_start = 
+            std::chrono::duration_cast<std::chrono::microseconds>(t1 - wc_start_);
+
+        uint32_t rtp_timestamp = ts_ + time_since_start.count() * clock_rate_ / 1000000;
+
+        *(uint32_t *)&buffer[4] = htonl((u_long)rtp_timestamp);
 
     } else {
         *(uint32_t *)&buffer[4] = htonl((u_long)timestamp_);

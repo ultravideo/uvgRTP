@@ -3,6 +3,8 @@
 #include "uvgrtp/clock.hh"
 #include "uvgrtp/util.hh"
 
+#include <chrono>
+
 namespace uvgrtp {
 
     namespace frame
@@ -47,7 +49,7 @@ namespace uvgrtp {
             uint8_t payload_;
 
             uint32_t clock_rate_;
-            uint64_t wc_start_;
+            std::chrono::time_point<std::chrono::high_resolution_clock> wc_start_;
             uvgrtp::clock::hrc::hrc_t wc_start_2;
 
             size_t sent_pkts_;
