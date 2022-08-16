@@ -4,6 +4,8 @@
 
 #include "debug.hh"
 
+#include <thread>
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <Ws2tcpip.h>
@@ -411,14 +413,23 @@ send_:
             nullptr
         );
 
-        if (ret == -1) {
-            if (WSAGetLastError() == WSAEWOULDBLOCK)
+        if (ret == SOCKET_ERROR) {
+
+            int error = WSAGetLastError();
+            if (error == WSAEWOULDBLOCK) {
+                LOG_DEBUG("WSASendTo would block, trying again after 3 ms");
+                std::this_thread::sleep_for(std::chrono::milliseconds(3));
                 goto send_;
-            log_platform_error("WSASendTo() failed");
+            }
+            else
+            {
+                LOG_ERROR("WSASendTo failed with error %li", error);
+                log_platform_error("WSASendTo() failed");
+            }
+
             set_bytes(bytes_sent, -1);
             return RTP_SEND_ERROR;
         }
-
     }
 #endif
 
