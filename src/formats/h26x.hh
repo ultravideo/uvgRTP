@@ -123,8 +123,7 @@ namespace uvgrtp {
                 rtp_error_t single_nal_unit(uint8_t* data, size_t data_len);
 
                 // constructs format specific RTP header with correct values
-                virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t data_len,
-                    size_t payload_size, uvgrtp::buf_vec& buffers) = 0;
+                virtual rtp_error_t fu_division(uint8_t* data, size_t data_len, size_t payload_size) = 0;
 
                 // a helper function that handles the fu division.
                 rtp_error_t divide_frame_to_fus(uint8_t* data, size_t& data_left, size_t payload_size,
@@ -163,9 +162,6 @@ namespace uvgrtp {
 
             void scl(uint8_t* data, size_t data_len, size_t packet_size, 
                 std::vector<nal_info>& nals, bool& can_be_aggregated);
-
-            // constructs and sends the RTP packets with format specific stuff
-            rtp_error_t fu_division(uint8_t* data, size_t data_len, size_t payload_size);
 
             void garbage_collect_lost_frames(size_t timout);
 

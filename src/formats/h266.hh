@@ -47,8 +47,7 @@ namespace uvgrtp {
             protected:
 
                 // constructs h266 RTP header with correct values
-                virtual rtp_error_t construct_format_header_divide_fus(uint8_t* data, size_t data_len,
-                    size_t payload_size, uvgrtp::buf_vec& buffers);
+                virtual rtp_error_t fu_division(uint8_t* data, size_t data_len, size_t payload_size);
 
                 virtual uint8_t get_nal_type(uint8_t* data) const;
 

@@ -361,38 +361,6 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
     return ret;
 }
 
-rtp_error_t uvgrtp::formats::h26x::fu_division(uint8_t *data, size_t data_len, size_t payload_size)
-{
-    if (data_len == 0 || data_len <= payload_size)
-        return RTP_GENERIC_ERROR; // a bug, should be caught earlier
-
-    /* The payload is larger than MTU (1500 bytes) so we must split it into 
-     * smaller RTP frames, because we cannot make any assumptions about the 
-     * life time of current stack, we need to store NAL and FU headers to the frame queue transaction.
-     *
-     * This can be done by asking a handle to current transaction's buffer vectors.
-     *
-     * During Connection initialization, the frame queue was given the payload format so the
-     * transaction also contains our media-specific headers [get_media_headers()]. */
-    uvgrtp::buf_vec* buffers = fqueue_->get_buffer_vector();
-
-    if (!buffers)
-    {
-        return RTP_GENERIC_ERROR;
-    }
-
-    rtp_error_t ret = RTP_OK;
-    if ((ret = construct_format_header_divide_fus(data, data_len, payload_size, *buffers)) != RTP_OK)
-        return ret;
-
-    if ((ret = fqueue_->enqueue_message(*buffers)) != RTP_OK) {
-        LOG_ERROR("Failed to send divided H26x frame!");
-        return ret;
-    }
-
-    return ret;
-}
-
 rtp_error_t uvgrtp::formats::h26x::add_aggregate_packet(uint8_t* data, size_t data_len)
 {
     // the default implementation is to just use single NAL units and don't do the aggregate packet
@@ -464,6 +432,11 @@ rtp_error_t uvgrtp::formats::h26x::divide_frame_to_fus(uint8_t* data, size_t& da
     // set payload for the last fragment
     buffers.at(2).first = data_left;
     buffers.at(2).second = &data[data_pos];
+
+    // send the last fragment
+    if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
+        LOG_ERROR("Failed to send the last fragment of an H26x frame!");
+    }
 
     return ret;
 }
