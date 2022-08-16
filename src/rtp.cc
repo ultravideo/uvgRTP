@@ -17,7 +17,7 @@
 #define INVALID_TS UINT64_MAX
 
 uvgrtp::rtp::rtp(rtp_format_t fmt):
-    wc_start_(std::chrono::high_resolution_clock::now()),
+    wc_start_(),
     sent_pkts_(0),
     timestamp_(INVALID_TS),
     delay_(PKT_MAX_DELAY)
@@ -102,6 +102,7 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer)
      * and generate random RTP timestamp for this reading */
     if (!ts_) {
         ts_        = uvgrtp::random::generate_32();
+        wc_start_ = std::chrono::high_resolution_clock::now();
     }
 
     buffer[0] = 2 << 6; // RTP version
