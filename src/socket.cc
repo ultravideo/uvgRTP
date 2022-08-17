@@ -330,7 +330,6 @@ rtp_error_t uvgrtp::socket::sendto(
         }
     }
 
-    auto buf = { buffers };
     return __sendtov(addr, buffers, flags, bytes_sent);
 }
 

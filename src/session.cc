@@ -43,14 +43,17 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
         return nullptr;
     }
 
-    if (laddr_ == "")
+    if (laddr_ == "") {
         stream = new uvgrtp::media_stream(cname_, addr_, r_port, s_port, fmt, flags);
-    else
+    }
+    else {
         stream = new uvgrtp::media_stream(cname_, addr_, laddr_, r_port, s_port, fmt, flags);
+    }
 
     if (flags & RCE_SRTP) {
         if (!uvgrtp::crypto::enabled()) {
             UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+            delete stream;
             rtp_errno = RTP_GENERIC_ERROR;
             return nullptr;
         }

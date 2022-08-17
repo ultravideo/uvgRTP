@@ -24,8 +24,6 @@ namespace uvgrtp {
         struct rtp_frame;
     }
 
-
-
     enum ZRTP_ROLE {
         INITIATOR,
         RESPONDER

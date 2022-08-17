@@ -506,11 +506,13 @@ uint32_t uvgrtp::formats::h26x::drop_frame(uint32_t ts)
         return total_cleaned;
     }
 
+    /*
     uint16_t s_seq = frames_.at(ts).s_seq;
     uint16_t e_seq = frames_.at(ts).e_seq;
 
-    //UVG_LOG_INFO("Dropping frame. Ts: %lu, Seq: %u <-> %u, received/expected: %lli/%lli", 
-    //    ts, s_seq, e_seq, frames_[ts].received_packet_seqs.size(), calculate_expected_fus(ts));
+    UVG_LOG_INFO("Dropping frame. Ts: %lu, Seq: %u <-> %u, received/expected: %lli/%lli", 
+        ts, s_seq, e_seq, frames_[ts].received_packet_seqs.size(), calculate_expected_fus(ts));
+    */
 
     for (auto& fragment_seq : frames_[ts].received_packet_seqs)
     {

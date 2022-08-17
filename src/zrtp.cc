@@ -515,7 +515,7 @@ rtp_error_t uvgrtp::zrtp::dh_part2()
 
     if ((ret = dhpart.parse_msg(receiver_, session_)) != RTP_OK) {
         UVG_LOG_ERROR("Failed to parse DHPart1 Message!");
-        return RTP_INVALID_VALUE;
+        return ret;
     }
 
     /* parse_msg() above extracted the public key of remote and saved it to session_.
@@ -525,6 +525,7 @@ rtp_error_t uvgrtp::zrtp::dh_part2()
     for (int i = 0; i < 10; ++i) {
         if ((ret = dhpart.send_msg(socket_, addr_)) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send DHPart2 Message!");
+            return ret;
         }
 
         if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
@@ -563,7 +564,7 @@ rtp_error_t uvgrtp::zrtp::responder_finalize_session()
 
                 if ((ret = validate_session()) != RTP_OK) {
                     UVG_LOG_ERROR("Mismatch on one of the received MACs/Hashes, session cannot continue");
-                    return RTP_INVALID_VALUE;
+                    return ret;
                 }
 
                 /* TODO: send in a loop? */
@@ -588,12 +589,12 @@ rtp_error_t uvgrtp::zrtp::initiator_finalize_session()
 
     if ((ret = confirm.parse_msg(receiver_, session_)) != RTP_OK) {
         UVG_LOG_ERROR("Failed to parse Confirm1 Message!");
-        return RTP_INVALID_VALUE;
+        return ret;
     }
 
     if ((ret = validate_session()) != RTP_OK) {
         UVG_LOG_ERROR("Mismatch on one of the received MACs/Hashes, session cannot continue");
-        return RTP_INVALID_VALUE;
+        return ret;
     }
 
     for (int i = 0; i < 10; ++i) {

@@ -320,9 +320,7 @@ rtp_error_t uvgrtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_por
     }
 
     rtp_error_t ret;
-    rtcp_participant *p;
-
-    p = new rtcp_participant();
+    rtcp_participant *p = new rtcp_participant();
 
     zero_stats(&p->stats);
 
@@ -330,6 +328,7 @@ rtp_error_t uvgrtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_por
 
     if ((ret = p->socket->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
     {
+        delete p;
         return ret;
     }
 
@@ -337,6 +336,7 @@ rtp_error_t uvgrtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_por
 
     if ((ret = p->socket->setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int))) != RTP_OK)
     {
+        delete p;
         return ret;
     }
 
@@ -360,6 +360,7 @@ rtp_error_t uvgrtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_por
 
     if ((ret = p->socket->setsockopt(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))) != RTP_OK)
     {
+        delete p;
         return ret;
     }
 
@@ -367,6 +368,7 @@ rtp_error_t uvgrtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_por
 
     if ((ret = p->socket->bind(AF_INET, INADDR_ANY, src_port)) != RTP_OK)
     {
+        delete p;
         return ret;
     }
 
@@ -1233,6 +1235,7 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* buffer, size_t&
     if (!frame->header.count)
     {
         UVG_LOG_ERROR("RR cannot have 0 report blocks!");
+        delete frame;
         return RTP_INVALID_VALUE;
     }
 

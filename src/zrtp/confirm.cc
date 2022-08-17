@@ -105,7 +105,17 @@ rtp_error_t uvgrtp::zrtp_msg::confirm::parse_msg(uvgrtp::zrtp_msg::receiver& rec
     memcpy(&cmac, msg->confirm_mac, sizeof(uint64_t));
 
     if (mac != cmac)
+    {
+        if (aes_cfb)
+        {
+            delete aes_cfb;
+        }
+        if (hmac_sha256)
+        {
+            delete hmac_sha256;
+        }
         return RTP_INVALID_VALUE;
+    }
 
     aes_cfb->decrypt((uint8_t *)msg->hash, (uint8_t *)msg->hash, 40);
 
