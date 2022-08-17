@@ -2,7 +2,8 @@
 
 #include "uvgrtp/clock.hh"
 #include "uvgrtp/socket.hh"
-#include "uvgrtp/debug.hh"
+
+#include "debug.hh"
 
 
 #define THRESHOLD 2000

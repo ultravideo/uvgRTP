@@ -75,6 +75,7 @@ source_group(include include/.*)
 
 # Including header files so VisualStudio will list them correctly
 target_sources(${PROJECT_NAME} PRIVATE
+        src/debug.hh
         src/random.hh
         src/holepuncher.hh
         src/hostname.hh
@@ -114,7 +115,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         include/uvgrtp/clock.hh
         include/uvgrtp/context.hh
         include/uvgrtp/crypto.hh
-        include/uvgrtp/debug.hh
+
         include/uvgrtp/frame.hh
         include/uvgrtp/lib.hh
         include/uvgrtp/media_stream.hh

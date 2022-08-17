@@ -2,7 +2,7 @@
 
 #include "srtp/srtcp.hh"
 
-#include "uvgrtp/debug.hh"
+#include "debug.hh"
 
 
 size_t uvgrtp::get_sr_packet_size(int flags, uint16_t reports)

@@ -1,6 +1,6 @@
 #include "uvgrtp/crypto.hh"
 
-#include "uvgrtp/debug.hh"
+#include "debug.hh"
 
 
 

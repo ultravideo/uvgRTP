@@ -1,12 +1,11 @@
 #include "error.hh"
 
-#include "zrtp_receiver.hh"
-
 #include "uvgrtp/crypto.hh"
 #include "uvgrtp/socket.hh"
 #include "uvgrtp/frame.hh"
-#include "uvgrtp/debug.hh"
 
+#include "zrtp_receiver.hh"
+#include "debug.hh"
 
 #include <cstring>
 

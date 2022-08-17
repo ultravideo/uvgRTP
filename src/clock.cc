@@ -1,6 +1,6 @@
 #include "uvgrtp/clock.hh"
 
-#include "uvgrtp/debug.hh"
+#include "debug.hh"
 
 #include <stdio.h>
 

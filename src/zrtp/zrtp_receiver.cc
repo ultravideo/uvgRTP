@@ -1,5 +1,9 @@
 #include "zrtp_receiver.hh"
 
+#include "uvgrtp/socket.hh"
+#include "uvgrtp/crypto.hh"
+#include "uvgrtp/util.hh"
+
 #include "defines.hh"
 #include "dh_kxchng.hh"
 #include "commit.hh"
@@ -7,14 +11,9 @@
 #include "confirm.hh"
 #include "hello.hh"
 #include "hello_ack.hh"
-
 #include "../poll.hh"
+#include "debug.hh"
 
-#include "uvgrtp/socket.hh"
-#include "uvgrtp/crypto.hh"
-
-#include "uvgrtp/debug.hh"
-#include "uvgrtp/util.hh"
 
 #ifdef _WIN32
 #include <winsock2.h>

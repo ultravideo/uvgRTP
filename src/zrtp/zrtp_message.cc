@@ -3,7 +3,7 @@
 #include "uvgrtp/frame.hh"
 #include "uvgrtp/socket.hh"
 
-#include "uvgrtp/debug.hh"
+#include "debug.hh"
 
 #include <string>
 

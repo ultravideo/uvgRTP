@@ -1,6 +1,6 @@
 #include "random.hh"
 
-#include "uvgrtp/debug.hh"
+#include "debug.hh"
 
 #if defined(UVGRTP_HAVE_GETRANDOM)
 #include <sys/random.h>

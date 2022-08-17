@@ -2,9 +2,9 @@
 
 #include "uvgrtp/version.hh"
 #include "uvgrtp/session.hh"
-#include "uvgrtp/debug.hh"
 #include "uvgrtp/crypto.hh"
 
+#include "debug.hh"
 #include "hostname.hh"
 #include "random.hh"
 

@@ -1,5 +1,8 @@
 #include "zrtp.hh"
 
+#include "uvgrtp/socket.hh"
+#include "uvgrtp/crypto.hh"
+
 #include "zrtp/commit.hh"
 #include "zrtp/confack.hh"
 #include "zrtp/confirm.hh"
@@ -8,12 +11,7 @@
 #include "zrtp/hello_ack.hh"
 
 #include "random.hh"
-
-#include "uvgrtp/socket.hh"
-#include "uvgrtp/debug.hh"
-#include "uvgrtp/crypto.hh"
-
-
+#include "debug.hh"
 
 #include <cstring>
 #include <thread>

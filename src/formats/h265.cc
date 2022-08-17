@@ -4,7 +4,7 @@
 #include "../rtp.hh"
 #include "../frame_queue.hh"
 
-#include "uvgrtp/debug.hh"
+#include "debug.hh"
 
 #include <cstdint>
 #include <cstring>
