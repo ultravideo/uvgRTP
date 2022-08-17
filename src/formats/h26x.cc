@@ -280,7 +280,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
         return RTP_INVALID_VALUE;
 
     if ((ret = fqueue_->init_transaction(data)) != RTP_OK) {
-        LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
+        UVG_LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
         return ret;
     }
 
@@ -305,7 +305,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
 
     if (nals.empty())
     {
-        LOG_ERROR("Did not find any NAL units in frame. Cannot send.");
+        UVG_LOG_ERROR("Did not find any NAL units in frame. Cannot send.");
         return RTP_INVALID_VALUE;
     }
 
@@ -381,7 +381,7 @@ rtp_error_t uvgrtp::formats::h26x::single_nal_unit(uint8_t* data, size_t data_le
     // correct as is
     rtp_error_t ret = RTP_OK;
     if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
-        LOG_ERROR("Failed to enqueue single h26x NAL Unit packet!");
+        UVG_LOG_ERROR("Failed to enqueue single h26x NAL Unit packet!");
     }
 
     return ret;
@@ -392,7 +392,7 @@ rtp_error_t uvgrtp::formats::h26x::divide_frame_to_fus(uint8_t* data, size_t& da
 {
     if (data_left <= payload_size)
     {
-        LOG_ERROR("Cannot use FU division for packets smaller than payload size");
+        UVG_LOG_ERROR("Cannot use FU division for packets smaller than payload size");
         return RTP_GENERIC_ERROR;
     }
 
@@ -417,7 +417,7 @@ rtp_error_t uvgrtp::formats::h26x::divide_frame_to_fus(uint8_t* data, size_t& da
         buffers.at(2).second = &data[data_pos];
 
         if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
-            LOG_ERROR("Queueing the FU packet failed!");
+            UVG_LOG_ERROR("Queueing the FU packet failed!");
             return ret;
         }
 
@@ -435,7 +435,7 @@ rtp_error_t uvgrtp::formats::h26x::divide_frame_to_fus(uint8_t* data, size_t& da
 
     // send the last fragment
     if ((ret = fqueue_->enqueue_message(buffers)) != RTP_OK) {
-        LOG_ERROR("Failed to send the last fragment of an H26x frame!");
+        UVG_LOG_ERROR("Failed to send the last fragment of an H26x frame!");
     }
 
     return ret;
@@ -502,14 +502,14 @@ uint32_t uvgrtp::formats::h26x::drop_frame(uint32_t ts)
     uint32_t total_cleaned = 0;
     if (frames_.find(ts) == frames_.end())
     {
-        LOG_ERROR("Tried to drop a non-existing frame");
+        UVG_LOG_ERROR("Tried to drop a non-existing frame");
         return total_cleaned;
     }
 
     uint16_t s_seq = frames_.at(ts).s_seq;
     uint16_t e_seq = frames_.at(ts).e_seq;
 
-    //LOG_INFO("Dropping frame. Ts: %lu, Seq: %u <-> %u, received/expected: %lli/%lli", 
+    //UVG_LOG_INFO("Dropping frame. Ts: %lu, Seq: %u <-> %u, received/expected: %lli/%lli", 
     //    ts, s_seq, e_seq, frames_[ts].received_packet_seqs.size(), calculate_expected_fus(ts));
 
     for (auto& fragment_seq : frames_[ts].received_packet_seqs)
@@ -544,7 +544,7 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_
             nalus.push_back(std::make_pair(packet_size, &frame->payload[i] + sizeof(uint16_t)));
         }
         else {
-            LOG_ERROR("The received aggregation packet claims to be larger than packet!");
+            UVG_LOG_ERROR("The received aggregation packet claims to be larger than packet!");
             return RTP_GENERIC_ERROR;
         }
     }
@@ -588,7 +588,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     }
     else if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_INVALID) {
         // something is wrong
-        LOG_WARN("invalid frame received!");
+        UVG_LOG_WARN("invalid frame received!");
         (void)uvgrtp::frame::dealloc_frame(*out);
         *out = nullptr;
         return RTP_GENERIC_ERROR;
@@ -609,7 +609,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
 
         // Make sure we haven't discarded the frame corresponding to the fragment timestamp before 
         if (dropped_.find(fragment_ts) != dropped_.end()) {
-            LOG_DEBUG("Fragment belonging to a dropped frame was received! Timestamp: %lu",
+            UVG_LOG_DEBUG("Fragment belonging to a dropped frame was received! Timestamp: %lu",
                 fragment_ts);
             return RTP_GENERIC_ERROR;
         }
@@ -620,7 +620,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         frames_[fragment_ts].received_packet_seqs.end()) {
 
         // we have already received this seq
-        LOG_DEBUG("Detected duplicate fragment, dropping! Seq: %u", fragment_seq);
+        UVG_LOG_DEBUG("Detected duplicate fragment, dropping! Seq: %u", fragment_seq);
         (void)uvgrtp::frame::dealloc_frame(frame); // free fragment memory
         *out = nullptr;
         return RTP_GENERIC_ERROR;
@@ -631,7 +631,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
 
     if (frames_[fragment_ts].nal_type != nal_type)
     {
-        LOG_ERROR("The fragment has different NAL type fragments before!");
+        UVG_LOG_ERROR("The fragment has different NAL type fragments before!");
         return RTP_GENERIC_ERROR;
     }
 
@@ -641,7 +641,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
 
     if (fragments_[fragment_seq] != nullptr)
     {
-        LOG_WARN("Found an existing fragment with same sequence number %u! Fragment ts: %lu, current ts: %lu", 
+        UVG_LOG_WARN("Found an existing fragment with same sequence number %u! Fragment ts: %lu, current ts: %lu",
             fragment_seq, fragments_[fragment_seq]->header.timestamp, fragment_ts);
 
         free_fragment(fragment_seq);
@@ -671,7 +671,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
             // here we discard inter frames if their references were not received correctly
             if (discard_until_key_frame_ && enable_reference_discarding) {
                 if (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTER) {
-                    LOG_WARN("Dropping h26x frame because of missing reference. Timestamp: %lu. Seq: %u - %u", 
+                    UVG_LOG_WARN("Dropping h26x frame because of missing reference. Timestamp: %lu. Seq: %u - %u",
                         fragment_ts, frames_[fragment_ts].s_seq, frames_[fragment_ts].e_seq);
 
                     drop_frame(fragment_ts);
@@ -680,7 +680,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
                 else if (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTRA) {
 
                     // we don't have to discard anymore
-                    LOG_INFO("Found a key frame at ts %lu", fragment_ts);
+                    UVG_LOG_INFO("Found a key frame at ts %lu", fragment_ts);
                     discard_until_key_frame_ = false;
                 }
             }
@@ -703,7 +703,7 @@ void uvgrtp::formats::h26x::garbage_collect_lost_frames(size_t timout)
         // first find all frames that have been waiting for too long
         for (auto& gc_frame : frames_) {
             if (uvgrtp::clock::hrc::diff_now(gc_frame.second.sframe_time) > timout) {
-                LOG_WARN("Found an old frame that has not been completed");
+                UVG_LOG_WARN("Found an old frame that has not been completed");
                 to_remove.push_back(gc_frame.first);
             }
         }
@@ -715,7 +715,7 @@ void uvgrtp::formats::h26x::garbage_collect_lost_frames(size_t timout)
         }
 
         if (total_cleaned > 0) {
-            LOG_INFO("Garbage collection cleaned %d bytes!", total_cleaned);
+            UVG_LOG_INFO("Garbage collection cleaned %d bytes!", total_cleaned);
         }
 
         last_garbage_collection_ = uvgrtp::clock::hrc::now();
@@ -757,7 +757,7 @@ void uvgrtp::formats::h26x::free_fragment(uint16_t sequence_number)
 {
     if (fragments_[sequence_number] == nullptr)
     {
-        LOG_ERROR("Tried to free an already freed fragment with seq: %u", sequence_number);
+        UVG_LOG_ERROR("Tried to free an already freed fragment with seq: %u", sequence_number);
         return;
     }
 
@@ -838,7 +838,7 @@ rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out
     {
         if (fragments_[i] == nullptr)
         {
-            LOG_ERROR("Missing fragment in reconstruction. Seq range: %u - %u. Missing seq %u",
+            UVG_LOG_ERROR("Missing fragment in reconstruction. Seq range: %u - %u. Missing seq %u",
                 frames_.at(frame_timestamp).s_seq, frames_.at(frame_timestamp).e_seq, i);
             return RTP_GENERIC_ERROR;
         }

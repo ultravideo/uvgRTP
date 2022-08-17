@@ -85,7 +85,7 @@ rtp_error_t uvgrtp::reception_flow::start(std::shared_ptr<uvgrtp::socket> socket
 {
     should_stop_ = false;
 
-    LOG_DEBUG("Creating receiving threads and setting priorities");
+    UVG_LOG_DEBUG("Creating receiving threads and setting priorities");
     processor_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::reception_flow::process_packet, this, flags));
     receiver_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::reception_flow::receiver, this, socket, flags));
 
@@ -272,11 +272,11 @@ void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int flags, uvgrtp::
 
             case RTP_GENERIC_ERROR:
                 // too many prints with this in case of minor errors
-                //LOG_DEBUG("Error in auxiliary handling of received packet!");
+                //UVG_LOG_DEBUG("Error in auxiliary handling of received packet!");
                 break;
 
             default:
-                LOG_ERROR("Unknown error code from packet handler: %d", ret);
+                UVG_LOG_ERROR("Unknown error code from packet handler: %d", ret);
                 break;
         }
     }
@@ -315,13 +315,13 @@ void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int flags, uvgrtp::
         case RTP_GENERIC_ERROR:
         {
             // too many prints with this in case of minor errors
-            //LOG_DEBUG("Error in auxiliary handling of received packet (cpp)!");
+            //UVG_LOG_DEBUG("Error in auxiliary handling of received packet (cpp)!");
             break;
         }
 
         default:
         {
-            LOG_ERROR("Unknown error code from packet handler: %d", ret);
+            UVG_LOG_ERROR("Unknown error code from packet handler: %d", ret);
             break;
         }
         }
@@ -352,7 +352,7 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, in
 #else
         if (poll(pfds, 1, timeout_ms) < 0) {
 #endif
-            LOG_ERROR("poll(2) failed");
+            UVG_LOG_ERROR("poll(2) failed");
             if (pfds)
             {
                 delete pfds;
@@ -373,7 +373,7 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, in
                 // create new buffer spaces if the process/read hasn't freed any spots on the ring buffer
                 if (next_write_index == ring_read_index_)
                 {
-                    LOG_DEBUG("Reception buffer ran out, increasing the buffer size ...");
+                    UVG_LOG_DEBUG("Reception buffer ran out, increasing the buffer size ...");
 
                     // increase the buffer size by 25%
                     int increase = ring_buffer_.size()/4;
@@ -401,11 +401,11 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, in
                 }
                 else if (ring_buffer_[next_write_index].read == 0)
                 {
-                    LOG_WARN("Failed to read anything from socket");
+                    UVG_LOG_WARN("Failed to read anything from socket");
                     break;
                 }
                 else if (ret != RTP_OK) {
-                    LOG_ERROR("recvfrom(2) failed! Reception flow cannot continue %d!", ret);
+                    UVG_LOG_ERROR("recvfrom(2) failed! Reception flow cannot continue %d!", ret);
                     should_stop_ = true;
                     break;
                 }
@@ -473,11 +473,11 @@ void uvgrtp::reception_flow::process_packet(int flags)
                     break;
 
                 case RTP_GENERIC_ERROR:
-                    LOG_DEBUG("Error in handling of received packet!");
+                    UVG_LOG_DEBUG("Error in handling of received packet!");
                     break;
 
                 default:
-                    LOG_ERROR("Unknown error code from packet handler: %d", ret);
+                    UVG_LOG_ERROR("Unknown error code from packet handler: %d", ret);
                     break;
                 }
             }

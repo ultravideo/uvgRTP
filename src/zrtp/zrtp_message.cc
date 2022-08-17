@@ -17,7 +17,7 @@ uvgrtp::zrtp_msg::zrtp_message::zrtp_message():
 
 uvgrtp::zrtp_msg::zrtp_message::~zrtp_message()
 {
-  LOG_DEBUG("Freeing zrtp message...");
+    UVG_LOG_DEBUG("Freeing zrtp message...");
 
   if (frame_)
     (void)uvgrtp::frame::dealloc_frame(frame_);
@@ -69,7 +69,7 @@ void uvgrtp::zrtp_msg::zrtp_message::set_zrtp_start_base(uvgrtp::zrtp_msg::zrtp_
     start.length = length/4 - 1;
     memcpy(&start.msgblock, msgblock.c_str(), 8);
 
-    LOG_DEBUG("Constructed ZRTP header. Length: %u", start.length);
+    UVG_LOG_DEBUG("Constructed ZRTP header. Length: %u", start.length);
 }
 
 void uvgrtp::zrtp_msg::zrtp_message::set_zrtp_start(uvgrtp::zrtp_msg::zrtp_msg& start,

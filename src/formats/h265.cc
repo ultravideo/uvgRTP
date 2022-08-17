@@ -145,12 +145,12 @@ rtp_error_t uvgrtp::formats::h265::finalize_aggregation_pkt()
                 )
             );
         } else {
-            LOG_ERROR("NALU too large");
+            UVG_LOG_ERROR("NALU too large");
         }
     }
 
     if ((ret = fqueue_->enqueue_message(aggr_pkt_info_.aggr_pkt)) != RTP_OK) {
-        LOG_ERROR("Failed to enqueue buffers of an aggregation packet!");
+        UVG_LOG_ERROR("Failed to enqueue buffers of an aggregation packet!");
         return ret;
     }
 

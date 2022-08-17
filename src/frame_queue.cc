@@ -100,7 +100,7 @@ rtp_error_t uvgrtp::frame_queue::init_transaction(uint8_t *data)
         return RTP_INVALID_VALUE;
 
     if (init_transaction() != RTP_OK) {
-        LOG_ERROR("Failed to initialize transaction");
+        UVG_LOG_ERROR("Failed to initialize transaction");
         return RTP_GENERIC_ERROR;
     }
 
@@ -116,7 +116,7 @@ rtp_error_t uvgrtp::frame_queue::init_transaction(std::unique_ptr<uint8_t[]> dat
         return RTP_INVALID_VALUE;
 
     if (init_transaction() != RTP_OK) {
-        LOG_ERROR("Failed to initialize transaction");
+        UVG_LOG_ERROR("Failed to initialize transaction");
         return RTP_GENERIC_ERROR;
     }
 
@@ -129,7 +129,7 @@ rtp_error_t uvgrtp::frame_queue::init_transaction(std::unique_ptr<uint8_t[]> dat
 rtp_error_t uvgrtp::frame_queue::deinit_transaction()
 {
     if (active_ == nullptr) {
-        LOG_WARN("Trying to deinit transaction, no active transaction!");
+        UVG_LOG_WARN("Trying to deinit transaction, no active transaction!");
         return RTP_INVALID_VALUE;
     }
 
@@ -183,7 +183,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(uint8_t *message, size_t messag
 {
     if (message == nullptr || message_len == 0)
     {
-      LOG_ERROR("Tried to enqueue invalid message");
+        UVG_LOG_ERROR("Tried to enqueue invalid message");
       return RTP_INVALID_VALUE;
     }
 
@@ -223,7 +223,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(buf_vec& buffers)
 {
     if (!buffers.size())
     {
-        LOG_ERROR("Tried to enqueue an empty buffer");
+        UVG_LOG_ERROR("Tried to enqueue an empty buffer");
         return RTP_INVALID_VALUE;
     }
 
@@ -250,7 +250,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(buf_vec& buffers)
 
         if (total > 1500)
         {
-            LOG_DEBUG("Encryption needs to keep its FU division!");
+            UVG_LOG_DEBUG("Encryption needs to keep its FU division!");
         }
 
         uint8_t* mem = new uint8_t[total];
@@ -277,7 +277,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(buf_vec& buffers)
 rtp_error_t uvgrtp::frame_queue::flush_queue()
 {
     if (active_->packets.empty()) {
-        LOG_ERROR("Cannot send an empty packet!");
+        UVG_LOG_ERROR("Cannot send an empty packet!");
         (void)deinit_transaction();
         return RTP_INVALID_VALUE;
     }
@@ -287,12 +287,12 @@ rtp_error_t uvgrtp::frame_queue::flush_queue()
         ((uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr - 1])[1] |= (1 << 7);
 
     if (socket_->sendto(active_->packets, 0) != RTP_OK) {
-        LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
+        UVG_LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
         (void)deinit_transaction();
         return RTP_SEND_ERROR;
     }
 
-    //LOG_DEBUG("full message took %zu chunks and %zu messages", active_->chunk_ptr, active_->hdr_ptr);
+    //UVG_LOG_DEBUG("full message took %zu chunks and %zu messages", active_->chunk_ptr, active_->hdr_ptr);
     return deinit_transaction();
 }
 
@@ -306,7 +306,7 @@ uvgrtp::buf_vec* uvgrtp::frame_queue::get_buffer_vector()
 {
     if (!active_)
     {
-        LOG_ERROR("No active transaction");
+        UVG_LOG_ERROR("No active transaction");
         return nullptr;
     }
   

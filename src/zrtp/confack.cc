@@ -13,7 +13,7 @@
 uvgrtp::zrtp_msg::confack::confack(zrtp_session_t& session):
     zrtp_message()
 {
-    LOG_DEBUG("Create ZRTP Conf2ACK message!");
+    UVG_LOG_DEBUG("Create ZRTP Conf2ACK message!");
 
     allocate_frame(sizeof(zrtp_confack));
     zrtp_confack* msg = (zrtp_confack*)frame_;
@@ -33,7 +33,7 @@ rtp_error_t uvgrtp::zrtp_msg::confack::parse_msg(uvgrtp::zrtp_msg::receiver& rec
     allocate_rframe(sizeof(zrtp_confack));
 
     if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
-        LOG_ERROR("Failed to get message from ZRTP receiver");
+        UVG_LOG_ERROR("Failed to get message from ZRTP receiver");
         return RTP_INVALID_VALUE;
     }
 

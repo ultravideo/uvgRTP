@@ -32,7 +32,7 @@ uvgrtp::socket::socket(int flags):
 
 uvgrtp::socket::~socket()
 {
-    LOG_DEBUG("Socket total sent packets is %lu and received packets is %lu", sent_packets_, received_packets_);
+    UVG_LOG_DEBUG("Socket total sent packets is %lu and received packets is %lu", sent_packets_, received_packets_);
 
 #ifndef _WIN32
     close(socket_);
@@ -50,7 +50,7 @@ rtp_error_t uvgrtp::socket::init(short family, int type, int protocol)
         win_get_last_error();
 #else
     if ((socket_ = ::socket(family, type, protocol)) < 0) {
-        LOG_ERROR("Failed to create socket: %s", strerror(errno));
+        UVG_LOG_ERROR("Failed to create socket: %s", strerror(errno));
 #endif
         return RTP_SOCKET_ERROR;
     }
@@ -68,7 +68,7 @@ rtp_error_t uvgrtp::socket::init(short family, int type, int protocol)
 rtp_error_t uvgrtp::socket::setsockopt(int level, int optname, const void *optval, socklen_t optlen)
 {
     if (::setsockopt(socket_, level, optname, (const char *)optval, optlen) < 0) {
-        LOG_ERROR("Failed to set socket options: %s", strerror(errno));
+        UVG_LOG_ERROR("Failed to set socket options: %s", strerror(errno));
         return RTP_GENERIC_ERROR;
     }
 
@@ -87,7 +87,7 @@ rtp_error_t uvgrtp::socket::bind(short family, unsigned host, short port)
 #else
         fprintf(stderr, "%s\n", strerror(errno));
 #endif
-        LOG_ERROR("Binding to port %u failed!", port);
+        UVG_LOG_ERROR("Binding to port %u failed!", port);
         return RTP_BIND_ERROR;
     }
 
@@ -156,7 +156,7 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf
 
 #ifndef _WIN32
     if ((nsend = ::sendto(socket_, buf, buf_len, flags, (const struct sockaddr *)&addr, sizeof(addr_))) == -1) {
-        LOG_ERROR("Failed to send data: %s", strerror(errno));
+        UVG_LOG_ERROR("Failed to send data: %s", strerror(errno));
 
         if (bytes_sent)
             *bytes_sent = -1;
@@ -233,7 +233,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
     header_.msg_hdr.msg_controllen = 0;
 
     if (sendmmsg(socket_, &header_, 1, flags) < 0) {
-        LOG_ERROR("Failed to send RTP frame: %s!", strerror(errno));
+        UVG_LOG_ERROR("Failed to send RTP frame: %s!", strerror(errno));
         set_bytes(bytes_sent, -1);
         return RTP_SEND_ERROR;
     }
@@ -243,7 +243,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
     // DWORD corresponds to uint16 on most platforms
     if (buffers.size() > UINT16_MAX)
     {
-        LOG_ERROR("Trying to send too large buffer");
+        UVG_LOG_ERROR("Trying to send too large buffer");
         return RTP_INVALID_VALUE;
     }
 
@@ -278,7 +278,7 @@ rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int flags)
 
     for (auto& handler : vec_handlers_) {
         if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
-            LOG_ERROR("Malformed packet");
+            UVG_LOG_ERROR("Malformed packet");
             return ret;
         }
     }
@@ -292,7 +292,7 @@ rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int flags, int *bytes_sent)
 
     for (auto& handler : vec_handlers_) {
         if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
-            LOG_ERROR("Malformed packet");
+            UVG_LOG_ERROR("Malformed packet");
             return ret;
         }
     }
@@ -306,7 +306,7 @@ rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, buf_vec& buffers, int flag
 
     for (auto& handler : vec_handlers_) {
         if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
-            LOG_ERROR("Malformed packet");
+            UVG_LOG_ERROR("Malformed packet");
             return ret;
         }
     }
@@ -324,7 +324,7 @@ rtp_error_t uvgrtp::socket::sendto(
 
     for (auto& handler : vec_handlers_) {
         if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
-            LOG_ERROR("Malformed packet");
+            UVG_LOG_ERROR("Malformed packet");
             return ret;
         }
     }
@@ -389,7 +389,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
     for (auto& buffer : buffers) {
 
         if (buffer.size() > WSABUF_SIZE) {
-            LOG_ERROR("Input vector to __sendtov() has more than %u elements!", WSABUF_SIZE);
+            UVG_LOG_ERROR("Input vector to __sendtov() has more than %u elements!", WSABUF_SIZE);
             return RTP_GENERIC_ERROR;
         }
         /* create WSABUFs from input buffer and send them at once */
@@ -437,7 +437,7 @@ rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int flags)
     for (auto& buffer : buffers) {
         for (auto& handler : vec_handlers_) {
             if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
-                LOG_ERROR("Malformed packet");
+                UVG_LOG_ERROR("Malformed packet");
                 return ret;
             }
         }
@@ -453,7 +453,7 @@ rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int flags, int *bytes_sent)
     for (auto& buffer : buffers) {
         for (auto& handler : vec_handlers_) {
             if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
-                LOG_ERROR("Malformed packet");
+                UVG_LOG_ERROR("Malformed packet");
                 return ret;
             }
         }
@@ -469,7 +469,7 @@ rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int flag
     for (auto& buffer : buffers) {
         for (auto& handler : vec_handlers_) {
             if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
-                LOG_ERROR("Malformed packet");
+                UVG_LOG_ERROR("Malformed packet");
                 return ret;
             }
         }
@@ -485,7 +485,7 @@ rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int flag
     for (auto& buffer : buffers) {
         for (auto& handler : vec_handlers_) {
             if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
-                LOG_ERROR("Malformed packet");
+                UVG_LOG_ERROR("Malformed packet");
                 return ret;
             }
         }
@@ -509,7 +509,7 @@ rtp_error_t uvgrtp::socket::__recv(uint8_t *buf, size_t buf_len, int flags, int 
             set_bytes(bytes_read, 0);
             return RTP_INTERRUPTED;
         }
-        LOG_ERROR("recv(2) failed: %s", strerror(errno));
+        UVG_LOG_ERROR("recv(2) failed: %s", strerror(errno));
 
         set_bytes(bytes_read, -1);
         return RTP_GENERIC_ERROR;
@@ -572,7 +572,7 @@ rtp_error_t uvgrtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags, 
             set_bytes(bytes_read, 0);
             return RTP_INTERRUPTED;
         }
-        LOG_ERROR("recvfrom failed: %s", strerror(errno));
+        UVG_LOG_ERROR("recvfrom failed: %s", strerror(errno));
 
         set_bytes(bytes_read, -1);
         return RTP_GENERIC_ERROR;

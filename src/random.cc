@@ -59,7 +59,7 @@ int uvgrtp::random::generate(void *buf, size_t n)
 
     if (n > UINT32_MAX)
     {
-        LOG_WARN("Tried to generate too large random number");
+        UVG_LOG_WARN("Tried to generate too large random number");
         n = UINT32_MAX;
     }
 

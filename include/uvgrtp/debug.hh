@@ -63,30 +63,30 @@ static inline void uvgrtp_debug(const char *level, const char *function, const c
 }
 
 #ifndef NDEBUG
-#define LOG_DEBUG(...) uvgrtp_debug(LOG_LEVEL_DEBUG, __func__, __VA_ARGS__)
+#define UVG_LOG_DEBUG(...) uvgrtp_debug(LOG_LEVEL_DEBUG, __func__, __VA_ARGS__)
 #else
-#define LOG_DEBUG(...) ;
+#define UVG_LOG_DEBUG(...) ;
 #endif
 
 #ifdef __RTP_SILENT__
-#define LOG_ERROR(...) ;
-#define LOG_WARN(...) ;
-#define LOG_INFO(...) ;
-#undef LOG_DEBUG
-#define LOG_DEBUG(...) ;
+#define UVG_LOG_ERROR(...) ;
+#define UVG_LOG_WARN(...) ;
+#define UVG_LOG_INFO(...) ;
+#undef UVG_LOG_DEBUG
+#define UVG_LOG_DEBUG(...) ;
 #else
-#define LOG_ERROR(...) uvgrtp_debug(LOG_LEVEL_ERROR, __func__, __VA_ARGS__)
-#define LOG_WARN(...)  uvgrtp_debug(LOG_LEVEL_WARN,  __func__, __VA_ARGS__)
-#define LOG_INFO(...)  uvgrtp_debug(LOG_LEVEL_INFO,  __func__, __VA_ARGS__)
+#define UVG_LOG_ERROR(...) uvgrtp_debug(LOG_LEVEL_ERROR, __func__, __VA_ARGS__)
+#define UVG_LOG_WARN(...)  uvgrtp_debug(LOG_LEVEL_WARN,  __func__, __VA_ARGS__)
+#define UVG_LOG_INFO(...)  uvgrtp_debug(LOG_LEVEL_INFO,  __func__, __VA_ARGS__)
 #endif
 
 static inline void log_platform_error(const char *aux)
 {
 #ifndef _WIN32
         if (aux) {
-            LOG_ERROR("%s: %s %d\n", aux, strerror(errno), errno);
+            UVG_LOG_ERROR("%s: %s %d\n", aux, strerror(errno), errno);
         } else {
-            LOG_ERROR("%s %d\n", strerror(errno), errno);
+            UVG_LOG_ERROR("%s %d\n", strerror(errno), errno);
         }
 #else
     wchar_t *s = NULL;
@@ -98,9 +98,9 @@ static inline void log_platform_error(const char *aux)
     );
 
     if (aux) {
-        LOG_ERROR("%s: %ls %d\n", aux, s, WSAGetLastError());
+        UVG_LOG_ERROR("%s: %ls %d\n", aux, s, WSAGetLastError());
     } else {
-        LOG_ERROR("%ls %d\n", s, WSAGetLastError());
+        UVG_LOG_ERROR("%ls %d\n", s, WSAGetLastError());
     }
     LocalFree(s);
 #endif

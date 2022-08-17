@@ -24,7 +24,7 @@ uvgrtp::zrtp_msg::dh_key_exchange::dh_key_exchange(zrtp_session_t& session, int 
         }
     };
 
-    LOG_DEBUG("Create ZRTP DHPart%d message", part);
+    UVG_LOG_DEBUG("Create ZRTP DHPart%d message", part);
 
     allocate_frame(sizeof(zrtp_dh));
     zrtp_dh* msg = (zrtp_dh*)frame_;
@@ -97,12 +97,12 @@ uvgrtp::zrtp_msg::dh_key_exchange::~dh_key_exchange()
 
 rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
-    LOG_DEBUG("Parsing DHPart1/DHPart2 message...");
+    UVG_LOG_DEBUG("Parsing DHPart1/DHPart2 message...");
 
     ssize_t len = 0;
     allocate_rframe(sizeof(zrtp_dh));
     if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
-        LOG_ERROR("Failed to get message from ZRTP receiver");
+        UVG_LOG_ERROR("Failed to get message from ZRTP receiver");
         return RTP_INVALID_VALUE;
     }
 
