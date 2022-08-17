@@ -16,7 +16,7 @@ uvgrtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part):
     /* temporary storage for the full hmac hash */
     uint8_t mac_full[32];
 
-    LOG_DEBUG("Create ZRTP Confirm%d message!", part);
+    UVG_LOG_DEBUG("Create ZRTP Confirm%d message!", part);
 
     allocate_frame(sizeof(zrtp_confirm));
     zrtp_confirm* msg = (zrtp_confirm*)frame_;
@@ -80,7 +80,7 @@ rtp_error_t uvgrtp::zrtp_msg::confirm::parse_msg(uvgrtp::zrtp_msg::receiver& rec
 
     allocate_rframe(sizeof(zrtp_confirm));
     if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
-        LOG_ERROR("Failed to get message from ZRTP receiver");
+        UVG_LOG_ERROR("Failed to get message from ZRTP receiver");
         return RTP_INVALID_VALUE;
     }
 

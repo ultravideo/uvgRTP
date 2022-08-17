@@ -72,14 +72,14 @@ rtp_error_t uvgrtp::zrtp_msg::hello::parse_msg(uvgrtp::zrtp_msg::receiver& recei
     ssize_t len = 0;
     allocate_rframe(sizeof(zrtp_hello) + 5 * 8);
     if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
-        LOG_ERROR("Failed to get message from ZRTP receiver");
+        UVG_LOG_ERROR("Failed to get message from ZRTP receiver");
         return RTP_INVALID_VALUE;
     }
 
     zrtp_hello *msg = (zrtp_hello *)rframe_;
 
     if (strncmp((const char *)&msg->version, ZRTP_VERSION, 4)) {
-        LOG_ERROR("Invalid ZRTP version!");
+        UVG_LOG_ERROR("Invalid ZRTP version!");
         session.capabilities.version = 0;
     } else {
         session.capabilities.version = 110;

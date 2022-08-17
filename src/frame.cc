@@ -68,7 +68,7 @@ rtp_error_t uvgrtp::frame::dealloc_frame(uvgrtp::frame::rtp_frame *frame)
     else if (frame->payload)
         delete[] frame->payload;
 
-    //LOG_DEBUG("Deallocating frame, type %u", frame->type);
+    //UVG_LOG_DEBUG("Deallocating frame, type %u", frame->type);
 
     delete frame;
     return RTP_OK;
@@ -81,7 +81,7 @@ uvgrtp::frame::zrtp_frame *uvgrtp::frame::alloc_zrtp_frame(size_t size)
         return nullptr;
     }
 
-    LOG_DEBUG("Allocate ZRTP frame, packet size %zu", size);
+    UVG_LOG_DEBUG("Allocate ZRTP frame, packet size %zu", size);
 
     uvgrtp::frame::zrtp_frame *frame = (uvgrtp::frame::zrtp_frame *)new uint8_t[size];
 

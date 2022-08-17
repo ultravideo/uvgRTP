@@ -85,7 +85,7 @@ bool uvgrtp::base_srtp::is_replayed_packet(uint8_t *digest)
     memcpy(&truncated, digest, sizeof(uint64_t));
 
     if (replay_list_.find(truncated) != replay_list_.end()) {
-        LOG_ERROR("Replayed packet received, discarding!");
+        UVG_LOG_ERROR("Replayed packet received, discarding!");
         return true;
     }
 

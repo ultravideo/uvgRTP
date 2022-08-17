@@ -32,7 +32,7 @@ rtp_error_t uvgrtp::srtp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, 
         srtp_ctx_->roc++;
 
     if (create_iv(iv, ssrc, index, srtp_ctx_->key_ctx.local.salt_key) != RTP_OK) {
-        LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
+        UVG_LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
         return RTP_INVALID_VALUE;
     }
 
@@ -60,12 +60,12 @@ rtp_error_t uvgrtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_f
         hmac_sha1.final((uint8_t *)digest, UVG_AUTH_TAG_LENGTH);
 
         if (memcmp(digest, &frame->dgram[frame->dgram_size - UVG_AUTH_TAG_LENGTH], UVG_AUTH_TAG_LENGTH)) {
-            LOG_ERROR("Authentication tag mismatch!");
+            UVG_LOG_ERROR("Authentication tag mismatch!");
             return RTP_GENERIC_ERROR;
         }
 
         if (srtp->is_replayed_packet(digest)) {
-            LOG_ERROR("Replayed packet received, discarding!");
+            UVG_LOG_ERROR("Replayed packet received, discarding!");
             return RTP_GENERIC_ERROR;
         }
         frame->payload_len -= UVG_AUTH_TAG_LENGTH;
@@ -103,7 +103,7 @@ rtp_error_t uvgrtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_f
     }
 
     if (srtp->create_iv(iv, ssrc, index, ctx->key_ctx.remote.salt_key) != RTP_OK) {
-        LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
+        UVG_LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
         return RTP_GENERIC_ERROR;
     }
 
@@ -134,7 +134,7 @@ rtp_error_t uvgrtp::srtp::send_packet_handler(void *arg, uvgrtp::buf_vec& buffer
     );
 
     if (ret != RTP_OK) {
-        LOG_ERROR("Failed to encrypt RTP packet!");
+        UVG_LOG_ERROR("Failed to encrypt RTP packet!");
         return ret;
     }
 

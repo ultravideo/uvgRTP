@@ -43,7 +43,7 @@ size_t uvgrtp::get_sdes_packet_size(const std::vector<uvgrtp::frame::rtcp_sdes_i
         }
         else
         {
-            LOG_ERROR("SDES item text must not be longer than 255 characters");
+            UVG_LOG_ERROR("SDES item text must not be longer than 255 characters");
         }
     }
 
@@ -65,13 +65,13 @@ bool uvgrtp::construct_rtcp_header(uint8_t* frame, int& ptr, size_t packet_size,
 {
     if (packet_size > UINT16_MAX)
     {
-        LOG_ERROR("RTCP receiver report packet size too large!");
+        UVG_LOG_ERROR("RTCP receiver report packet size too large!");
         return false;
     }
 
     if (packet_size % 4 != 0)
     {
-        LOG_ERROR("RTCP packet size should be measured in 32-bit words!");
+        UVG_LOG_ERROR("RTCP packet size should be measured in 32-bit words!");
         return false;
     }
 
@@ -155,7 +155,7 @@ bool uvgrtp::construct_sdes_chunk(uint8_t* frame, int& ptr,
 
     if (!have_cname)
     {
-        LOG_ERROR("SDES chunk did not contain cname!");
+        UVG_LOG_ERROR("SDES chunk did not contain cname!");
     }
 
     return have_cname;

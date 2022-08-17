@@ -94,7 +94,7 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     int enabled = 1;
 
     if (::ioctlsocket(socket_->get_raw_socket(), FIONBIO, (u_long *)&enabled) < 0)
-        LOG_ERROR("Failed to make the socket non-blocking!");
+        UVG_LOG_ERROR("Failed to make the socket non-blocking!");
 #endif
 
     if (laddr_ != "") {
@@ -181,7 +181,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
             return RTP_OK;
 
         default:
-            LOG_ERROR("Unknown payload format %u\n", fmt_);
+            UVG_LOG_ERROR("Unknown payload format %u\n", fmt_);
             media_ = nullptr;
             return RTP_NOT_SUPPORTED;
     }
@@ -228,7 +228,7 @@ rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
 rtp_error_t uvgrtp::media_stream::init()
 {
     if (init_connection() != RTP_OK) {
-        LOG_ERROR("Failed to initialize the underlying socket");
+        UVG_LOG_ERROR("Failed to initialize the underlying socket");
         return free_resources(RTP_GENERIC_ERROR);
     }
 
@@ -259,7 +259,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
 
     if ((ret = zrtp->init(rtp_->get_ssrc(), socket_, addr_out_)) != RTP_OK) {
-        LOG_WARN("Failed to initialize ZRTP for media stream!");
+        UVG_LOG_WARN("Failed to initialize ZRTP for media stream!");
         return free_resources(ret);
     }
 
@@ -294,7 +294,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     rtp_error_t ret     = RTP_OK;
 
     if (init_connection() != RTP_OK) {
-        LOG_ERROR("Failed to initialize the underlying socket");
+        UVG_LOG_ERROR("Failed to initialize the underlying socket");
         return free_resources(RTP_GENERIC_ERROR);
     }
 
@@ -309,14 +309,14 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     // why are they local and remote key/salt the same?
     if ((ret = srtp_->init(SRTP, ctx_config_.flags, key, key, salt, salt)) != RTP_OK) {
-        LOG_WARN("Failed to initialize SRTP for media stream!");
+        UVG_LOG_WARN("Failed to initialize SRTP for media stream!");
         return free_resources(ret);
     }
 
     srtcp_ = std::shared_ptr<uvgrtp::srtcp> (new uvgrtp::srtcp());
 
     if ((ret = srtcp_->init(SRTCP, ctx_config_.flags, key, key, salt, salt)) != RTP_OK) {
-        LOG_WARN("Failed to initialize SRTCP for media stream!");
+        UVG_LOG_WARN("Failed to initialize SRTCP for media stream!");
         return free_resources(ret);
     }
 
@@ -359,7 +359,7 @@ rtp_error_t uvgrtp::media_stream::start_components()
 rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int flags)
 {
     if (!initialized_) {
-        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
 
@@ -372,7 +372,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int
 rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
 {
     if (!initialized_) {
-        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
 
@@ -387,7 +387,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, uin
     rtp_error_t ret = RTP_GENERIC_ERROR;
 
     if (!initialized_) {
-        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
 
@@ -406,7 +406,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
     rtp_error_t ret = RTP_GENERIC_ERROR;
 
     if (!initialized_) {
-        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
 
@@ -423,7 +423,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
 uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame()
 {
     if (!initialized_) {
-        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         rtp_errno = RTP_NOT_INITIALIZED;
         return nullptr;
     }
@@ -434,7 +434,7 @@ uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame()
 uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame(size_t timeout_ms)
 {
     if (!initialized_) {
-        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         rtp_errno = RTP_NOT_INITIALIZED;
         return nullptr;
     }
@@ -445,7 +445,7 @@ uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame(size_t timeout_ms)
 rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *))
 {
     if (!initialized_) {
-        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
 
@@ -460,7 +460,7 @@ rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(v
 rtp_error_t uvgrtp::media_stream::install_deallocation_hook(void (*hook)(void *))
 {
     if (!initialized_) {
-        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
 
@@ -477,7 +477,7 @@ rtp_error_t uvgrtp::media_stream::install_notify_hook(void *arg, void (*hook)(vo
     (void)arg, (void)hook;
 
     if (!initialized_) {
-        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
 
@@ -502,7 +502,7 @@ void *uvgrtp::media_stream::get_media_config()
 rtp_error_t uvgrtp::media_stream::configure_ctx(int flag, ssize_t value)
 {
     if (!initialized_) {
-        LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
 
@@ -560,7 +560,7 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int flag, ssize_t value)
 
             if (value > max_size) {
                 unsigned int u_max_size = (unsigned int)max_size;
-                LOG_ERROR("Payload size (%zd) is larger than maximum UDP datagram size (%u)",
+                UVG_LOG_ERROR("Payload size (%zd) is larger than maximum UDP datagram size (%u)",
                         value, u_max_size);
                 return RTP_INVALID_VALUE;
             }
@@ -591,7 +591,7 @@ uvgrtp::rtcp *uvgrtp::media_stream::get_rtcp()
 uint32_t uvgrtp::media_stream::get_ssrc() const
 {
     if (!initialized_ || rtp_ == nullptr) {
-        LOG_ERROR("RTP context has not been initialized, please call init before asking ssrc!");
+        UVG_LOG_ERROR("RTP context has not been initialized, please call init before asking ssrc!");
         return RTP_NOT_INITIALIZED;
     }
 
@@ -622,7 +622,7 @@ rtp_error_t uvgrtp::media_stream::init_srtp_with_zrtp(int flags, int type, std::
     }
     else
     {
-        LOG_WARN("Failed to initialize SRTP for media stream!");
+        UVG_LOG_WARN("Failed to initialize SRTP for media stream!");
     }
 
     delete[] local_key;
@@ -649,7 +649,7 @@ int uvgrtp::media_stream::get_default_bandwidth_kbps(rtp_format_t fmt)
             bandwidth = 24;
             break;
         default:
-            LOG_WARN("Unknown RTP format, setting session bandwidth to 64 kbps");
+            UVG_LOG_WARN("Unknown RTP format, setting session bandwidth to 64 kbps");
             int bandwidth = 64;
             break;
     }

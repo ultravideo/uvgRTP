@@ -49,13 +49,13 @@ rtp_error_t uvgrtp::srtcp::handle_rtcp_decryption(int flags, uint32_t ssrc,
 
     if (flags & RCE_SRTP) {
         if ((ret = verify_auth_tag(packet, packet_size)) != RTP_OK) {
-            LOG_ERROR("Failed to verify RTCP authentication tag!");
+            UVG_LOG_ERROR("Failed to verify RTCP authentication tag!");
             return RTP_AUTH_TAG_MISMATCH;
         }
 
         if (((srtpi >> 31) & 0x1) && !(flags & RCE_SRTP_NULL_CIPHER)) {
             if (decrypt(ssrc, srtpi & 0x7fffffff, packet, packet_size) != RTP_OK) {
-                LOG_ERROR("Failed to decrypt RTCP Sender Report");
+                UVG_LOG_ERROR("Failed to decrypt RTCP Sender Report");
                 return ret;
             }
         }
@@ -72,7 +72,7 @@ rtp_error_t uvgrtp::srtcp::encrypt(uint32_t ssrc, uint64_t seq, uint8_t *buffer,
     uint8_t iv[UVG_IV_LENGTH] = { 0 };
 
     if (create_iv(iv, ssrc, seq, srtp_ctx_->key_ctx.local.salt_key) != RTP_OK) {
-        LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
+        UVG_LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
         return RTP_INVALID_VALUE;
     }
 
@@ -103,12 +103,12 @@ rtp_error_t uvgrtp::srtcp::verify_auth_tag(uint8_t *buffer, size_t len)
     hmac_sha1.final(digest, UVG_AUTH_TAG_LENGTH);
 
     if (memcmp(digest, &buffer[len - UVG_AUTH_TAG_LENGTH], UVG_AUTH_TAG_LENGTH)) {
-        LOG_ERROR("STCP authentication tag mismatch!");
+        UVG_LOG_ERROR("STCP authentication tag mismatch!");
         return RTP_AUTH_TAG_MISMATCH;
     }
 
     if (is_replayed_packet(digest)) {
-        LOG_ERROR("Replayed packet received, discarding!");
+        UVG_LOG_ERROR("Replayed packet received, discarding!");
         return RTP_INVALID_VALUE;
     }
 
@@ -120,7 +120,7 @@ rtp_error_t uvgrtp::srtcp::decrypt(uint32_t ssrc, uint32_t seq, uint8_t *buffer,
     uint8_t iv[UVG_IV_LENGTH]  = { 0 };
 
     if (create_iv(iv, ssrc, seq, srtp_ctx_->key_ctx.remote.salt_key) != RTP_OK) {
-        LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
+        UVG_LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
         return RTP_INVALID_VALUE;
     }
 

@@ -60,7 +60,7 @@ void uvgrtp::rtp::set_payload(rtp_format_t fmt)
             break;
 
         default:
-            LOG_WARN("Unknown RTP format, setting clock rate to 8000");
+            UVG_LOG_WARN("Unknown RTP format, setting clock rate to 8000");
             clock_rate_ = 8000;
             break;
     }
@@ -167,7 +167,7 @@ rtp_error_t uvgrtp::rtp::packet_handler(ssize_t size, void *packet, int flags, u
     /* not an RTP frame */
     if (size < 12)
     {
-        LOG_WARN("Received RTP packet is too small to contain header");
+        UVG_LOG_WARN("Received RTP packet is too small to contain header");
         return RTP_PKT_NOT_HANDLED;
     }
 
@@ -176,7 +176,7 @@ rtp_error_t uvgrtp::rtp::packet_handler(ssize_t size, void *packet, int flags, u
     /* invalid version */
     if (((ptr[0] >> 6) & 0x03) != 0x2)
     {
-        LOG_WARN("Received RTP packet with invalid version");
+        UVG_LOG_WARN("Received RTP packet with invalid version");
         return RTP_PKT_NOT_HANDLED;
     }
 
@@ -200,14 +200,14 @@ rtp_error_t uvgrtp::rtp::packet_handler(ssize_t size, void *packet, int flags, u
     ptr += sizeof(uvgrtp::frame::rtp_header);
 
     if ((*out)->header.cc > 0) {
-        LOG_DEBUG("frame contains csrc entries");
+        UVG_LOG_DEBUG("frame contains csrc entries");
 
         if ((ssize_t)((*out)->payload_len - (*out)->header.cc * sizeof(uint32_t)) < 0) {
-            LOG_DEBUG("Invalid frame length, %d CSRC entries, total length %zu", (*out)->header.cc, (*out)->payload_len);
+            UVG_LOG_DEBUG("Invalid frame length, %d CSRC entries, total length %zu", (*out)->header.cc, (*out)->payload_len);
             (void)uvgrtp::frame::dealloc_frame(*out);
             return RTP_GENERIC_ERROR;
         }
-        LOG_DEBUG("Allocating %u CSRC entries", (*out)->header.cc);
+        UVG_LOG_DEBUG("Allocating %u CSRC entries", (*out)->header.cc);
 
         (*out)->csrc         = new uint32_t[(*out)->header.cc];
         (*out)->payload_len -= (*out)->header.cc * sizeof(uint32_t);
@@ -219,7 +219,7 @@ rtp_error_t uvgrtp::rtp::packet_handler(ssize_t size, void *packet, int flags, u
     }
 
     if ((*out)->header.ext) {
-        LOG_DEBUG("Frame contains extension information");
+        UVG_LOG_DEBUG("Frame contains extension information");
         (*out)->ext = new uvgrtp::frame::ext_header;
 
         (*out)->ext->type    = ntohs(*(uint16_t *)&ptr[0]);
@@ -233,7 +233,7 @@ rtp_error_t uvgrtp::rtp::packet_handler(ssize_t size, void *packet, int flags, u
      * how many padding bytes was used. Make sure the padding length is
      * valid and subtract the amount of padding bytes from payload length */
     if ((*out)->header.padding) {
-        LOG_DEBUG("Frame contains padding");
+        UVG_LOG_DEBUG("Frame contains padding");
         uint8_t padding_len = (*out)->payload[(*out)->payload_len - 1];
 
         if (!padding_len || (*out)->payload_len <= padding_len) {

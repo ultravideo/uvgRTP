@@ -37,7 +37,7 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
     uvgrtp::media_stream *stream = nullptr;
 
     if (flags & RCE_SYSTEM_CALL_DISPATCHER) {
-        LOG_ERROR("SCD is no longer supported!");
+        UVG_LOG_ERROR("SCD is no longer supported!");
         rtp_errno = RTP_NOT_SUPPORTED;
         return nullptr;
     }
@@ -49,7 +49,7 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
 
     if (flags & RCE_SRTP) {
         if (!uvgrtp::crypto::enabled()) {
-            LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+            UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
             rtp_errno = RTP_GENERIC_ERROR;
             return nullptr;
         }
@@ -60,7 +60,7 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
         if (flags & RCE_SRTP_KMNGMNT_ZRTP) {
 
             if (flags & (RCE_SRTP_KEYSIZE_192 | RCE_SRTP_KEYSIZE_256)) {
-                LOG_ERROR("Only 128-bit keys are supported with ZRTP");
+                UVG_LOG_ERROR("Only 128-bit keys are supported with ZRTP");
                 return nullptr;
             }
 
@@ -69,19 +69,19 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
             }
 
             if (stream->init(zrtp_) != RTP_OK) {
-                LOG_ERROR("Failed to initialize media stream %s:%d/%d", addr_.c_str(), r_port, s_port);
+                UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", addr_.c_str(), r_port, s_port);
                 return nullptr;
             }
         } else if (flags & RCE_SRTP_KMNGMNT_USER) {
-            LOG_DEBUG("SRTP with user-managed keys enabled, postpone initialization");
+            UVG_LOG_DEBUG("SRTP with user-managed keys enabled, postpone initialization");
         } else {
-            LOG_ERROR("SRTP key management scheme not specified!");
+            UVG_LOG_ERROR("SRTP key management scheme not specified!");
             rtp_errno = RTP_INVALID_VALUE;
             return nullptr;
         }
     } else {
         if (stream->init() != RTP_OK) {
-            LOG_ERROR("Failed to initialize media stream %s:%d/%d", addr_.c_str(), r_port, s_port);
+            UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", addr_.c_str(), r_port, s_port);
             return nullptr;
         }
     }

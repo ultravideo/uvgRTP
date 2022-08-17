@@ -16,7 +16,7 @@ thread_local rtp_error_t rtp_errno;
 
 uvgrtp::context::context()
 {
-    LOG_INFO("uvgRTP version: %s", uvgrtp::get_version().c_str());
+    UVG_LOG_INFO("uvgRTP version: %s", uvgrtp::get_version().c_str());
 
     cname_  = uvgrtp::context::generate_cname();
 

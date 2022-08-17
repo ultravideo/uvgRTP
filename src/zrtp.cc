@@ -96,7 +96,7 @@ void uvgrtp::zrtp::derive_key(const char *label, uint32_t key_len, uint8_t *out_
     /* Key length might differ from the digest length in which case the digest
      * must be generated to a temporary buffer and truncated to fit the "out_key" buffer */
     if (key_len != 256) {
-        LOG_DEBUG("Truncate key to %u bits!", key_len);
+        UVG_LOG_DEBUG("Truncate key to %u bits!", key_len);
 
         hmac_sha256.final((uint8_t *)tmp);
         memcpy(out_key, tmp, key_len / 8);
@@ -276,7 +276,7 @@ rtp_error_t uvgrtp::zrtp::validate_session()
             session_.hash_ctx.r_mac[3]
         ))
     {
-        LOG_ERROR("Hash mismatch for Hello Message!");
+        UVG_LOG_ERROR("Hash mismatch for Hello Message!");
         return RTP_INVALID_VALUE;
     }
 
@@ -290,7 +290,7 @@ rtp_error_t uvgrtp::zrtp::validate_session()
                 session_.hash_ctx.r_mac[2]
             ))
         {
-            LOG_ERROR("Hash mismatch for Commit Message!");
+            UVG_LOG_ERROR("Hash mismatch for Commit Message!");
             return RTP_INVALID_VALUE;
         }
     }
@@ -303,11 +303,11 @@ rtp_error_t uvgrtp::zrtp::validate_session()
             session_.hash_ctx.r_mac[1]
         ))
     {
-        LOG_ERROR("Hash mismatch for DHPart1/DHPart2 Message!");
+        UVG_LOG_ERROR("Hash mismatch for DHPart1/DHPart2 Message!");
         return RTP_INVALID_VALUE;
     }
 
-    LOG_DEBUG("All hashes match!");
+    UVG_LOG_DEBUG("All hashes match!");
     return RTP_OK;
 }
 
@@ -350,7 +350,7 @@ rtp_error_t uvgrtp::zrtp::begin_session()
 
     for (i = 0; i < 20; ++i) {
         if ((ret = hello.send_msg(socket_, addr_)) != RTP_OK) {
-            LOG_ERROR("Failed to send Hello message");
+            UVG_LOG_ERROR("Failed to send Hello message");
         }
 
         if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
@@ -379,13 +379,13 @@ rtp_error_t uvgrtp::zrtp::begin_session()
                          *  indicating failure to support this ZRTP version."
                          */
                         if (session_.capabilities.version < ZRTP_VERSION) {
-                            LOG_ERROR("Remote supports version %d, uvgRTP supports %d. Session cannot continue!",
+                            UVG_LOG_ERROR("Remote supports version %d, uvgRTP supports %d. Session cannot continue!",
                                 session_.capabilities.version, ZRTP_VERSION);
 
                             return RTP_NOT_SUPPORTED;
                         }
 
-                        LOG_WARN("ZRTP Protocol version %u not supported, keep sending Hello Messages",
+                        UVG_LOG_WARN("ZRTP Protocol version %u not supported, keep sending Hello Messages",
                                 session_.capabilities.version);
                         hello_recv = false;
                     }
@@ -441,7 +441,7 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
 
     for (int i = 0; i < 10; ++i) {
         if ((ret = commit.send_msg(socket_, addr_)) != RTP_OK) {
-            LOG_ERROR("Failed to send Commit message!");
+            UVG_LOG_ERROR("Failed to send Commit message!");
         }
 
         if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
@@ -482,16 +482,16 @@ rtp_error_t uvgrtp::zrtp::dh_part1()
 
     for (int i = 0; i < 10; ++i) {
         if ((ret = dhpart.send_msg(socket_, addr_)) != RTP_OK) {
-            LOG_ERROR("Failed to send DHPart1 Message!");
+            UVG_LOG_ERROR("Failed to send DHPart1 Message!");
         }
 
         if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
             if (type == ZRTP_FT_DH_PART2) {
                 if ((ret = dhpart.parse_msg(receiver_, session_)) != RTP_OK) {
-                    LOG_ERROR("Failed to parse DHPart2 Message!");
+                    UVG_LOG_ERROR("Failed to parse DHPart2 Message!");
                     continue;
                 }
-                LOG_DEBUG("DHPart2 received and parse successfully!");
+                UVG_LOG_DEBUG("DHPart2 received and parse successfully!");
 
                 /* parse_msg() above extracted the public key of remote and saved it to session_.
                  * Now we must generate shared secrets (DHResult, total_hash, and s0) */
@@ -516,7 +516,7 @@ rtp_error_t uvgrtp::zrtp::dh_part2()
     auto dhpart     = uvgrtp::zrtp_msg::dh_key_exchange(session_, 2);
 
     if ((ret = dhpart.parse_msg(receiver_, session_)) != RTP_OK) {
-        LOG_ERROR("Failed to parse DHPart1 Message!");
+        UVG_LOG_ERROR("Failed to parse DHPart1 Message!");
         return RTP_INVALID_VALUE;
     }
 
@@ -526,12 +526,12 @@ rtp_error_t uvgrtp::zrtp::dh_part2()
 
     for (int i = 0; i < 10; ++i) {
         if ((ret = dhpart.send_msg(socket_, addr_)) != RTP_OK) {
-            LOG_ERROR("Failed to send DHPart2 Message!");
+            UVG_LOG_ERROR("Failed to send DHPart2 Message!");
         }
 
         if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
             if (type == ZRTP_FT_CONFIRM1) {
-                LOG_DEBUG("Confirm1 Message received");
+                UVG_LOG_DEBUG("Confirm1 Message received");
                 return RTP_OK;
             }
         }
@@ -553,18 +553,18 @@ rtp_error_t uvgrtp::zrtp::responder_finalize_session()
 
     for (int i = 0; i < 10; ++i) {
         if ((ret = confirm.send_msg(socket_, addr_)) != RTP_OK) {
-            LOG_ERROR("Failed to send Confirm1 Message!");
+            UVG_LOG_ERROR("Failed to send Confirm1 Message!");
         }
 
         if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
             if (type == ZRTP_FT_CONFIRM2) {
                 if ((ret = confirm.parse_msg(receiver_, session_)) != RTP_OK) {
-                    LOG_ERROR("Failed to parse Confirm2 Message!");
+                    UVG_LOG_ERROR("Failed to parse Confirm2 Message!");
                     continue;
                 }
 
                 if ((ret = validate_session()) != RTP_OK) {
-                    LOG_ERROR("Mismatch on one of the received MACs/Hashes, session cannot continue");
+                    UVG_LOG_ERROR("Mismatch on one of the received MACs/Hashes, session cannot continue");
                     return RTP_INVALID_VALUE;
                 }
 
@@ -589,23 +589,23 @@ rtp_error_t uvgrtp::zrtp::initiator_finalize_session()
     int type        = 0;
 
     if ((ret = confirm.parse_msg(receiver_, session_)) != RTP_OK) {
-        LOG_ERROR("Failed to parse Confirm1 Message!");
+        UVG_LOG_ERROR("Failed to parse Confirm1 Message!");
         return RTP_INVALID_VALUE;
     }
 
     if ((ret = validate_session()) != RTP_OK) {
-        LOG_ERROR("Mismatch on one of the received MACs/Hashes, session cannot continue");
+        UVG_LOG_ERROR("Mismatch on one of the received MACs/Hashes, session cannot continue");
         return RTP_INVALID_VALUE;
     }
 
     for (int i = 0; i < 10; ++i) {
         if ((ret = confirm.send_msg(socket_, addr_)) != RTP_OK) {
-            LOG_ERROR("Failed to send Confirm2 Message!");
+            UVG_LOG_ERROR("Failed to send Confirm2 Message!");
         }
 
         if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
             if (type == ZRTP_FT_CONF2_ACK) {
-                LOG_DEBUG("Conf2ACK received successfully!");
+                UVG_LOG_DEBUG("Conf2ACK received successfully!");
                 return RTP_OK;
             }
         }
@@ -651,7 +651,7 @@ rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
      * After begin_session() we know what remote is capable of
      * and whether we are compatible implementations */
     if ((ret = begin_session()) != RTP_OK) {
-        LOG_ERROR("Session initialization failed, ZRTP cannot be used!");
+        UVG_LOG_ERROR("Session initialization failed, ZRTP cannot be used!");
         return ret;
     }
 
@@ -681,7 +681,7 @@ rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
      * init_session() will exchange the Commit messages and select roles for the
      * participants (initiator/responder) based on rules determined in RFC 6189 */
     if ((ret = init_session(DH3k)) != RTP_OK) {
-        LOG_ERROR("Could not agree on ZRTP session parameters or roles of participants!");
+        UVG_LOG_ERROR("Could not agree on ZRTP session parameters or roles of participants!");
         return ret;
     }
 
@@ -689,23 +689,23 @@ rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
      * and different message that they need to send in order to finalize the ZRTP connection */
     if (session_.role == INITIATOR) {
         if ((ret = dh_part2()) != RTP_OK) {
-            LOG_ERROR("Failed to perform Diffie-Hellman key exchange Part2");
+            UVG_LOG_ERROR("Failed to perform Diffie-Hellman key exchange Part2");
             return ret;
         }
 
         if ((ret = initiator_finalize_session()) != RTP_OK) {
-            LOG_ERROR("Failed to finalize session using Confirm2");
+            UVG_LOG_ERROR("Failed to finalize session using Confirm2");
             return ret;
         }
 
     } else {
         if ((ret = dh_part1()) != RTP_OK) {
-            LOG_ERROR("Failed to perform Diffie-Hellman key exchange Part1");
+            UVG_LOG_ERROR("Failed to perform Diffie-Hellman key exchange Part1");
             return ret;
         }
 
         if ((ret = responder_finalize_session()) != RTP_OK) {
-            LOG_ERROR("Failed to finalize session using Confirm1/Conf2ACK");
+            UVG_LOG_ERROR("Failed to finalize session using Confirm1/Conf2ACK");
             return ret;
         }
     }
@@ -734,12 +734,12 @@ rtp_error_t uvgrtp::zrtp::init_msm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
     session_.seq  = 0;
 
     if ((ret = begin_session()) != RTP_OK) {
-        LOG_ERROR("Session initialization failed, ZRTP cannot be used!");
+        UVG_LOG_ERROR("Session initialization failed, ZRTP cannot be used!");
         return ret;
     }
 
     if ((ret = init_session(MULT)) != RTP_OK) {
-        LOG_ERROR("Could not agree on ZRTP session parameters or roles of participants!");
+        UVG_LOG_ERROR("Could not agree on ZRTP session parameters or roles of participants!");
         return ret;
     }
 
@@ -747,14 +747,14 @@ rtp_error_t uvgrtp::zrtp::init_msm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
         generate_shared_secrets_msm();
 
         if ((ret = initiator_finalize_session()) != RTP_OK) {
-            LOG_ERROR("Failed to finalize session using Confirm2");
+            UVG_LOG_ERROR("Failed to finalize session using Confirm2");
             return ret;
         }
     } else {
         generate_shared_secrets_msm();
 
         if ((ret = responder_finalize_session()) != RTP_OK) {
-            LOG_ERROR("Failed to finalize session using Confirm1/Conf2ACK");
+            UVG_LOG_ERROR("Failed to finalize session using Confirm1/Conf2ACK");
             return ret;
         }
     }

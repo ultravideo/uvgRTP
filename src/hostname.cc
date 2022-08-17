@@ -28,7 +28,7 @@ std::string uvgrtp::hostname::get_hostname()
     char hostname[NAME_MAXLEN];
 
     if (gethostname(hostname, NAME_MAXLEN) != 0) {
-        LOG_ERROR("%s", strerror(errno));
+        UVG_LOG_ERROR("%s", strerror(errno));
         return "";
     }
 
@@ -52,7 +52,7 @@ std::string uvgrtp::hostname::get_username()
     char username[NAME_MAXLEN];
 
     if (getlogin_r(username, NAME_MAXLEN) != 0) {
-        LOG_ERROR("%s", strerror(errno));
+        UVG_LOG_ERROR("%s", strerror(errno));
         return "";
     }
 

@@ -45,19 +45,19 @@ rtp_error_t uvgrtp::formats::media::push_media_frame(uint8_t *data, size_t data_
     rtp_error_t ret;
 
     if ((ret = fqueue_->init_transaction(data)) != RTP_OK) {
-        LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
+        UVG_LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
         return ret;
     }
 
     if (!(flags_ & RCE_FRAGMENT_GENERIC) || data_len <= rtp_ctx_->get_payload_size()) {
         if (data_len > rtp_ctx_->get_payload_size()) {
-            LOG_WARN("Packet is larger (%zu bytes) than maximum payload size (%zu bytes)",
+            UVG_LOG_WARN("Packet is larger (%zu bytes) than maximum payload size (%zu bytes)",
                     data_len, rtp_ctx_->get_payload_size());
-            LOG_WARN("Consider using RCE_FRAGMENT_GENERIC!");
+            UVG_LOG_WARN("Consider using RCE_FRAGMENT_GENERIC!");
         }
 
         if ((ret = fqueue_->enqueue_message(data, data_len)) != RTP_OK) {
-            LOG_ERROR("Failed to enqueue message: %d", ret);
+            UVG_LOG_ERROR("Failed to enqueue message: %d", ret);
             (void)fqueue_->deinit_transaction();
             return ret;
         }
@@ -72,7 +72,7 @@ rtp_error_t uvgrtp::formats::media::push_media_frame(uint8_t *data, size_t data_
 
     while (data_left > (ssize_t)payload_size) {
         if ((ret = fqueue_->enqueue_message(data + data_pos, payload_size, set_marker)) != RTP_OK) {
-            LOG_ERROR("Failed to enqueue packet when fragmenting generic frame");
+            UVG_LOG_ERROR("Failed to enqueue packet when fragmenting generic frame");
             return ret;
         }
 
@@ -82,7 +82,7 @@ rtp_error_t uvgrtp::formats::media::push_media_frame(uint8_t *data, size_t data_
     }
 
     if ((ret = fqueue_->enqueue_message(data + data_pos, data_left, true)) != RTP_OK) {
-        LOG_ERROR("Failed to enqueue packet when fragmenting generic frame");
+        UVG_LOG_ERROR("Failed to enqueue packet when fragmenting generic frame");
         return ret;
     }
 

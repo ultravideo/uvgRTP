@@ -58,7 +58,7 @@ rtp_error_t uvgrtp::poll::poll(std::vector<uvgrtp::socket>& sockets, uint8_t *bu
         return RTP_INVALID_VALUE;
 
     if (sockets.size() >= MULTICAST_MAX_PEERS) {
-        LOG_ERROR("Too many participants!");
+        UVG_LOG_ERROR("Too many participants!");
         return RTP_INVALID_VALUE;
     }
 
@@ -75,7 +75,7 @@ rtp_error_t uvgrtp::poll::poll(std::vector<uvgrtp::socket>& sockets, uint8_t *bu
 
     if (ret == -1) {
         set_bytes(bytes_read, -1);
-        LOG_ERROR("Poll failed: %s", strerror(errno));
+        UVG_LOG_ERROR("Poll failed: %s", strerror(errno));
         return RTP_GENERIC_ERROR;
     }
 
@@ -89,7 +89,7 @@ rtp_error_t uvgrtp::poll::poll(std::vector<uvgrtp::socket>& sockets, uint8_t *bu
             auto rtp_ret = sockets.at(i).recv(buf, buf_len, 0, bytes_read);
 
             if (rtp_ret != RTP_OK) {
-                LOG_ERROR("recv() for socket %d failed: %s", fds[i].fd, strerror(errno));
+                UVG_LOG_ERROR("recv() for socket %d failed: %s", fds[i].fd, strerror(errno));
                 set_bytes(bytes_read, -1);
                 return RTP_GENERIC_ERROR;
             }

@@ -16,7 +16,7 @@ uvgrtp::zrtp_msg::commit::commit(zrtp_session_t& session):
     /* temporary storage for the full hmac hash */
     uint8_t mac_full[32] = { 0 };
 
-    LOG_DEBUG("Create ZRTP Commit message!");
+    UVG_LOG_DEBUG("Create ZRTP Commit message!");
 
     allocate_frame(sizeof(zrtp_commit));
     zrtp_commit *msg = (zrtp_commit *)frame_;
@@ -67,7 +67,7 @@ rtp_error_t uvgrtp::zrtp_msg::commit::parse_msg(uvgrtp::zrtp_msg::receiver& rece
     allocate_rframe(sizeof(zrtp_commit));
 
     if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
-        LOG_ERROR("Failed to get message from ZRTP receiver");
+        UVG_LOG_ERROR("Failed to get message from ZRTP receiver");
         return RTP_INVALID_VALUE;
     }
 

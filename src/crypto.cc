@@ -28,7 +28,7 @@ void uvgrtp::crypto::hmac::sha1::update(const uint8_t *data, size_t len)
 #else
     (void)data, (void)len;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -40,7 +40,7 @@ void uvgrtp::crypto::hmac::sha1::final(uint8_t *digest)
 #else
     (void)digest;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -55,7 +55,7 @@ void uvgrtp::crypto::hmac::sha1::final(uint8_t *digest, size_t size)
 #else
     (void)digest, (void)size;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -83,7 +83,7 @@ void uvgrtp::crypto::hmac::sha256::update(const uint8_t *data, size_t len)
 #else
     (void)data, (void)len;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -95,7 +95,7 @@ void uvgrtp::crypto::hmac::sha256::final(uint8_t *digest)
 #else
     (void)digest;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -120,7 +120,7 @@ void uvgrtp::crypto::sha256::update(const uint8_t *data, size_t len)
 #else
     (void)data, (void)len;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -132,7 +132,7 @@ void uvgrtp::crypto::sha256::final(uint8_t *digest)
 #else
     (void)digest;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -161,7 +161,7 @@ void uvgrtp::crypto::aes::ctr::encrypt(uint8_t *output, const uint8_t *input, si
 #else
     (void)output, (void)input, (void)len;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -173,7 +173,7 @@ void uvgrtp::crypto::aes::ctr::decrypt(uint8_t *output, const uint8_t *input, si
 #else
     (void)output, (void)input, (void)len;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -200,7 +200,7 @@ void uvgrtp::crypto::aes::cfb::encrypt(uint8_t *output, const uint8_t *input, si
 #else
     (void)output, (void)input, (void)len;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -212,7 +212,7 @@ void uvgrtp::crypto::aes::cfb::decrypt(uint8_t *output, const uint8_t *input, si
 #else
     (void)output, (void)input, (void)len;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -239,7 +239,7 @@ void uvgrtp::crypto::aes::ecb::encrypt(uint8_t *output, const uint8_t *input, si
 #else
     (void)output, (void)input, (void)len;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -251,7 +251,7 @@ void uvgrtp::crypto::aes::ecb::decrypt(uint8_t *output, const uint8_t *input, si
 #else
     (void)output, (void)input, (void)len;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -289,7 +289,7 @@ uvgrtp::crypto::dh::dh()
 
     dh_.AccessGroupParameters().Initialize(p, g);
 #else
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -307,7 +307,7 @@ void uvgrtp::crypto::dh::generate_keys()
     sk_ = CryptoPP::Integer(t1, t1.size());
     pk_ = CryptoPP::Integer(t2, t2.size());
 #else
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -319,7 +319,7 @@ void uvgrtp::crypto::dh::get_pk(uint8_t *pk, size_t len)
 #else
     (void)pk, (void)len;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -331,7 +331,7 @@ void uvgrtp::crypto::dh::set_remote_pk(uint8_t *pk, size_t len)
 #else
     (void)pk, (void)len;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -365,7 +365,7 @@ void uvgrtp::crypto::dh::get_shared_secret(uint8_t *ss, size_t len)
 #else
     (void)ss, (void)len;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -396,7 +396,7 @@ void uvgrtp::crypto::b32::encode(const uint8_t *input, uint8_t *output, size_t l
 #else
     (void)input, (void)output, (void)len;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -411,7 +411,7 @@ void uvgrtp::crypto::random::generate_random(uint8_t *out, size_t len)
 #else
     (void)out, (void)len;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -428,7 +428,7 @@ void uvgrtp::crypto::crc32::get_crc32(const uint8_t *input, size_t len, uint32_t
 #else
     (void)input, (void)len, (void)output;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -446,7 +446,7 @@ uint32_t uvgrtp::crypto::crc32::calculate_crc32(const uint8_t *input, size_t len
 #else
     (void)input, (void)len;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }
@@ -464,7 +464,7 @@ bool uvgrtp::crypto::crc32::verify_crc32(const uint8_t *input, size_t len, uint3
 #else
     (void)input, (void)len, (void)old_crc;
 
-    LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+    UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
     exit(EXIT_FAILURE);
 #endif
 }

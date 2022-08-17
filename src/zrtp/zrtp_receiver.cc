@@ -39,7 +39,7 @@ uvgrtp::zrtp_msg::receiver::receiver()
 
 uvgrtp::zrtp_msg::receiver::~receiver()
 {
-    LOG_DEBUG("destroy receiver");
+    UVG_LOG_DEBUG("destroy receiver");
     delete[] mem_;
 }
 
@@ -49,7 +49,7 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
     int nread       = 0;
     rlen_           = 0;
 
-    LOG_DEBUG("Receiving a ZRTP message");
+    UVG_LOG_DEBUG("Receiving a ZRTP message");
 
 #ifdef _WIN32
     if ((ret = uvgrtp::poll::blocked_recv(socket, mem_, len_, timeout, &nread)) != RTP_OK) {
@@ -84,19 +84,19 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
     rlen_         = nread;
 
     if (msg->header.version != 0 || msg->header.magic != ZRTP_HEADER_MAGIC) {
-        LOG_DEBUG("Invalid header version or magic");
+        UVG_LOG_DEBUG("Invalid header version or magic");
         return RTP_INVALID_VALUE;
     }
 
     if (msg->magic != ZRTP_MSG_MAGIC) {
-        LOG_DEBUG("invalid ZRTP magic");
+        UVG_LOG_DEBUG("invalid ZRTP magic");
         return RTP_INVALID_VALUE;
     }
 
     switch (msg->msgblock) {
         case ZRTP_MSG_HELLO:
         {
-            LOG_DEBUG("Hello message received, verify CRC32!");
+            UVG_LOG_DEBUG("Hello message received, verify CRC32!");
 
             zrtp_hello *hello = (zrtp_hello *)msg;
 
@@ -107,7 +107,7 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
 
         case ZRTP_MSG_HELLO_ACK:
         {
-            LOG_DEBUG("HelloACK message received, verify CRC32!");
+            UVG_LOG_DEBUG("HelloACK message received, verify CRC32!");
 
             zrtp_hello_ack *ha_msg = (zrtp_hello_ack *)msg;
 
@@ -118,7 +118,7 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
 
         case ZRTP_MSG_COMMIT:
         {
-            LOG_DEBUG("Commit message received, verify CRC32!");
+            UVG_LOG_DEBUG("Commit message received, verify CRC32!");
 
             zrtp_commit *commit = (zrtp_commit *)msg;
 
@@ -129,7 +129,7 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
 
         case ZRTP_MSG_DH_PART1:
         {
-            LOG_DEBUG("DH Part1 message received, verify CRC32!");
+            UVG_LOG_DEBUG("DH Part1 message received, verify CRC32!");
 
             zrtp_dh *dh = (zrtp_dh *)msg;
 
@@ -140,7 +140,7 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
 
         case ZRTP_MSG_DH_PART2:
         {
-            LOG_DEBUG("DH Part2 message received, verify CRC32!");
+            UVG_LOG_DEBUG("DH Part2 message received, verify CRC32!");
 
             zrtp_dh *dh = (zrtp_dh *)msg;
 
@@ -151,7 +151,7 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
 
         case ZRTP_MSG_CONFIRM1:
         {
-            LOG_DEBUG("Confirm1 message received, verify CRC32!");
+            UVG_LOG_DEBUG("Confirm1 message received, verify CRC32!");
 
             zrtp_confirm *dh = (zrtp_confirm *)msg;
 
@@ -162,7 +162,7 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
 
         case ZRTP_MSG_CONFIRM2:
         {
-            LOG_DEBUG("Confirm2 message received, verify CRC32!");
+            UVG_LOG_DEBUG("Confirm2 message received, verify CRC32!");
 
             zrtp_confirm *dh = (zrtp_confirm *)msg;
 
@@ -173,7 +173,7 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
 
         case ZRTP_MSG_CONF2_ACK:
         {
-            LOG_DEBUG("Conf2 ACK message received, verify CRC32!");
+            UVG_LOG_DEBUG("Conf2 ACK message received, verify CRC32!");
 
             zrtp_confack *ca = (zrtp_confack *)msg;
 
@@ -183,27 +183,27 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
         return ZRTP_FT_CONF2_ACK;
 
         case ZRTP_MSG_ERROR:
-            LOG_DEBUG("Error message received");
+            UVG_LOG_DEBUG("Error message received");
             return ZRTP_FT_ERROR;
 
         case ZRTP_MSG_ERROR_ACK:
-            LOG_DEBUG("Error ACK message received");
+            UVG_LOG_DEBUG("Error ACK message received");
             return ZRTP_FT_ERROR_ACK;
 
         case ZRTP_MSG_SAS_RELAY:
-            LOG_DEBUG("SAS Relay message received");
+            UVG_LOG_DEBUG("SAS Relay message received");
             return ZRTP_FT_SAS_RELAY;
 
         case ZRTP_MSG_RELAY_ACK:
-            LOG_DEBUG("Relay ACK message received");
+            UVG_LOG_DEBUG("Relay ACK message received");
             return ZRTP_FT_RELAY_ACK;
 
         case ZRTP_MSG_PING_ACK:
-            LOG_DEBUG("Ping ACK message received");
+            UVG_LOG_DEBUG("Ping ACK message received");
             return ZRTP_FT_PING_ACK;
     }
 
-    LOG_WARN("Unknown message type received: 0x%lx", (int)msg->msgblock);
+    UVG_LOG_WARN("Unknown message type received: 0x%lx", (int)msg->msgblock);
     return RTP_NOT_SUPPORTED;
 }
 
@@ -216,7 +216,7 @@ ssize_t uvgrtp::zrtp_msg::receiver::get_msg(void *ptr, size_t len)
 
     if (len < rlen_) {
         cpy_len = len;
-        LOG_WARN("Destination buffer too small, cannot copy full message (%zu %zu)!", len, rlen_);
+        UVG_LOG_WARN("Destination buffer too small, cannot copy full message (%zu %zu)!", len, rlen_);
     }
 
     memcpy(ptr, mem_, cpy_len);
