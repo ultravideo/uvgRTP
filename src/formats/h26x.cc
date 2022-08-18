@@ -37,6 +37,9 @@
 
 constexpr int GARBAGE_COLLECTION_INTERVAL_MS = 100;
 
+// any value less than 30 minutes is ok here, since that is how long it takes to go through all timestamps
+constexpr int TIME_TO_KEEP_TRACK_OF_PREVIOUS_FRAMES_MS = 5000;
+
 static inline unsigned __find_h26x_start(uint32_t value,bool& additional_byte)
 {
     additional_byte = false;
@@ -84,7 +87,8 @@ uvgrtp::formats::h26x::h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_
     queued_(), 
     frames_(), 
     fragments_(UINT16_MAX + 1, nullptr),
-    dropped_(), 
+    dropped_ts_(),
+    completed_ts_(),
     rtp_ctx_(rtp),
     last_garbage_collection_(uvgrtp::clock::hrc::now()),
     discard_until_key_frame_(true)
@@ -520,8 +524,8 @@ uint32_t uvgrtp::formats::h26x::drop_frame(uint32_t ts)
         free_fragment(fragment_seq);
     }
 
+    dropped_ts_[ts] = frames_.at(ts).sframe_time;
     frames_.erase(ts);
-    dropped_.insert(ts);
 
     discard_until_key_frame_ = true;
 
@@ -574,8 +578,23 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
 
     // aggregate, start, middle, end or single NAL
     uvgrtp::formats::FRAG_TYPE frag_type = get_fragment_type(frame); 
+
+    // first we check that this packet does not belong to a frame that has been dropped or completed
+    if (dropped_ts_.find(frame->header.timestamp) != dropped_ts_.end()) {
+        LOG_DEBUG("Received an RTP packet belonging to a dropped frame! Timestamp: %lu, seq: %u",
+            frame->header.timestamp, frame->header.seq);
+        return RTP_GENERIC_ERROR;
+    }
+
+    if (completed_ts_.find(frame->header.timestamp) != completed_ts_.end()) {
+        LOG_DEBUG("Received an RTP packet belonging to a completed frame! Timestamp: %lu, seq: %u",
+            frame->header.timestamp, frame->header.seq);
+        return RTP_GENERIC_ERROR;
+    }
+
     
     if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_AGGR) {
+        completed_ts_[frame->header.timestamp] = std::chrono::high_resolution_clock::now();
 
         // handle aggregate packets (packets with multiple NAL units in them)
         return handle_aggregation_packet(out, get_payload_header_size(), flags);
@@ -583,6 +602,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     else if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_NOT_FRAG) { // Single NAL unit
 
         // TODO: Check if previous dependencies have been sent forward
+        completed_ts_[frame->header.timestamp] = std::chrono::high_resolution_clock::now();
 
         // nothing special needs to be done, just possibly add start codes back
         prepend_start_code(flags, out);
@@ -608,21 +628,14 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     
     // Initialize new frame if this is the first packet with this timestamp
     if (frames_.find(fragment_ts) == frames_.end()) {
-
-        // Make sure we haven't discarded the frame corresponding to the fragment timestamp before 
-        if (dropped_.find(fragment_ts) != dropped_.end()) {
-            UVG_LOG_DEBUG("Fragment belonging to a dropped frame was received! Timestamp: %lu",
-                fragment_ts);
-            return RTP_GENERIC_ERROR;
-        }
-
         initialize_new_fragmented_frame(fragment_ts, nal_type);
     }
     else if (frames_[fragment_ts].received_packet_seqs.find(fragment_seq) !=
         frames_[fragment_ts].received_packet_seqs.end()) {
 
         // we have already received this seq
-        UVG_LOG_DEBUG("Detected duplicate fragment, dropping! Seq: %u", fragment_seq);
+        UVG_LOG_DEBUG("Detected duplicate fragment, dropping! Fragment ts: %lu, Seq: %u", 
+            fragment_ts, fragment_seq);
         (void)uvgrtp::frame::dealloc_frame(frame); // free fragment memory
         *out = nullptr;
         return RTP_GENERIC_ERROR;
@@ -705,7 +718,12 @@ void uvgrtp::formats::h26x::garbage_collect_lost_frames(size_t timout)
         // first find all frames that have been waiting for too long
         for (auto& gc_frame : frames_) {
             if (uvgrtp::clock::hrc::diff_now(gc_frame.second.sframe_time) > timout) {
-                UVG_LOG_WARN("Found an old frame that has not been completed");
+
+                uint16_t s_seq = gc_frame.second.s_seq;
+                uint16_t e_seq = gc_frame.second.e_seq;
+                UVG_LOG_WARN("Found an old frame that has not been completed. Ts: %lu, Seq: %u <-> %u, received/expected: %lli/%lli",
+                    gc_frame.first, s_seq, e_seq, gc_frame.second.received_packet_seqs.size(), calculate_expected_fus(gc_frame.first));
+
                 to_remove.push_back(gc_frame.first);
             }
         }
@@ -717,7 +735,35 @@ void uvgrtp::formats::h26x::garbage_collect_lost_frames(size_t timout)
         }
 
         if (total_cleaned > 0) {
-            UVG_LOG_INFO("Garbage collection cleaned %d bytes!", total_cleaned);
+            UVG_LOG_DEBUG("Garbage collection cleaned %d bytes!", total_cleaned);
+        }
+
+        // we keep track of old frames, so we don't send duplicate frames forward twice
+        std::vector<uint32_t> to_remove_completed;
+        for (auto& invalid : completed_ts_) {
+            if (uvgrtp::clock::hrc::diff_now(invalid.second) > TIME_TO_KEEP_TRACK_OF_PREVIOUS_FRAMES_MS)
+            {
+                to_remove_completed.push_back(invalid.first);
+            }
+        }
+
+        for (auto& old_invalid : to_remove_completed)
+        {
+            completed_ts_.erase(old_invalid);
+        }
+
+        // we keep track of old dopped, so we don't send invalid frames forward again
+        to_remove_completed.clear();
+        for (auto& invalid : dropped_ts_) {
+            if (uvgrtp::clock::hrc::diff_now(invalid.second) > TIME_TO_KEEP_TRACK_OF_PREVIOUS_FRAMES_MS)
+            {
+                to_remove_completed.push_back(invalid.first);
+            }
+        }
+
+        for (auto& old_invalid : to_remove_completed)
+        {
+            dropped_ts_.erase(old_invalid);
         }
 
         last_garbage_collection_ = uvgrtp::clock::hrc::now();
@@ -824,6 +870,9 @@ rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out
 {
     uvgrtp::frame::rtp_frame* frame = *out;
 
+    //LOG_DEBUG("Reconstructing frame. Ts: %lu, Seq: %u -> %u", frame_timestamp, 
+    //    frames_.at(frame_timestamp).s_seq, frames_.at(frame_timestamp).e_seq);
+
     // Reconstruction of frame from fragments
     size_t fptr = 0;
 
@@ -856,6 +905,9 @@ rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out
     }
 
     *out = complete;      // save result to output
+
+    // keep track of completed frames so we don't accept the same frame again
+    completed_ts_[frame_timestamp] = frames_.at(frame_timestamp).sframe_time;
     frames_.erase(frame_timestamp);  // erase data structures for this frame
     return RTP_PKT_READY; // indicate that we have a frame ready
 }
