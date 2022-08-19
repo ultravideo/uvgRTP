@@ -417,13 +417,13 @@ send_:
 
             int error = WSAGetLastError();
             if (error == WSAEWOULDBLOCK) {
-                LOG_DEBUG("WSASendTo would block, trying again after 3 ms");
+                UVG_LOG_DEBUG("WSASendTo would block, trying again after 3 ms");
                 std::this_thread::sleep_for(std::chrono::milliseconds(3));
                 goto send_;
             }
             else
             {
-                LOG_ERROR("WSASendTo failed with error %li", error);
+                UVG_LOG_DEBUG("WSASendTo failed with error %li", error);
                 log_platform_error("WSASendTo() failed");
             }
 

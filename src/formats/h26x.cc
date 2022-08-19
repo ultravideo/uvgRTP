@@ -581,13 +581,13 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
 
     // first we check that this packet does not belong to a frame that has been dropped or completed
     if (dropped_ts_.find(frame->header.timestamp) != dropped_ts_.end()) {
-        LOG_DEBUG("Received an RTP packet belonging to a dropped frame! Timestamp: %lu, seq: %u",
+        UVG_LOG_DEBUG("Received an RTP packet belonging to a dropped frame! Timestamp: %lu, seq: %u",
             frame->header.timestamp, frame->header.seq);
         return RTP_GENERIC_ERROR;
     }
 
     if (completed_ts_.find(frame->header.timestamp) != completed_ts_.end()) {
-        LOG_DEBUG("Received an RTP packet belonging to a completed frame! Timestamp: %lu, seq: %u",
+        UVG_LOG_DEBUG("Received an RTP packet belonging to a completed frame! Timestamp: %lu, seq: %u",
             frame->header.timestamp, frame->header.seq);
         return RTP_GENERIC_ERROR;
     }

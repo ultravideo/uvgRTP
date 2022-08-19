@@ -160,6 +160,8 @@ namespace uvgrtp {
             /* Call auxiliary handlers of a primary handler */
             void call_aux_handlers(uint32_t key, int flags, uvgrtp::frame::rtp_frame **frame);
 
+            inline void increase_buffer_size(ssize_t next_write_index);
+
             /* Primary handlers for the socket */
             std::unordered_map<uint32_t, packet_handlers> packet_handlers_;
 
@@ -192,11 +194,9 @@ namespace uvgrtp {
             std::vector<Buffer> ring_buffer_;
 
             // these uphold the ring buffer details
-            ssize_t ring_read_index_;
-            ssize_t last_ring_write_index_;
+            std::atomic<ssize_t> ring_read_index_;
+            std::atomic<ssize_t> last_ring_write_index_;
 
-            std::mutex read_index_mutex_;  // guards the reading and changing of ring buffer indexes
-            std::mutex write_index_mutex_; // guards the reading and changing of ring buffer indexes
             std::mutex wait_mtx_; // for waking up the processing thread (read)
 
             std::condition_variable process_cond_;
