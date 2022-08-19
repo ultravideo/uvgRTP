@@ -164,3 +164,8 @@ rtp_error_t uvgrtp::formats::media::packet_handler(void *arg, int flags, uvgrtp:
 
     return RTP_OK;
 }
+
+void uvgrtp::formats::media::set_fps(int enumerator, int denominator)
+{
+    fqueue_->set_fps(enumerator, denominator);
+}

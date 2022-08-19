@@ -278,6 +278,10 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      * to use jumbo frames, it can set the MTU size to 9000 bytes */
     RCC_MTU_SIZE         = 5,
 
+    RCC_FPS_ENUMERATOR = 6,
+
+    RCC_FPS_DENOMINATOR = 7,
+
     RCC_LAST
 };
 
