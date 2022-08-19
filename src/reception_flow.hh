@@ -195,7 +195,8 @@ namespace uvgrtp {
             ssize_t ring_read_index_;
             ssize_t last_ring_write_index_;
 
-            std::mutex index_mutex_; // guards the reading and changing of ring buffer indexes
+            std::mutex read_index_mutex_;  // guards the reading and changing of ring buffer indexes
+            std::mutex write_index_mutex_; // guards the reading and changing of ring buffer indexes
             std::mutex wait_mtx_; // for waking up the processing thread (read)
 
             std::condition_variable process_cond_;
