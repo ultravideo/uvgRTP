@@ -594,7 +594,6 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
 
     
     if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_AGGR) {
-        completed_ts_[frame->header.timestamp] = std::chrono::high_resolution_clock::now();
 
         // handle aggregate packets (packets with multiple NAL units in them)
         return handle_aggregation_packet(out, get_payload_header_size(), flags);
