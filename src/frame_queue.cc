@@ -9,6 +9,7 @@
 
 #include "random.hh"
 #include "debug.hh"
+#include <thread>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -27,7 +28,10 @@ uvgrtp::frame_queue::frame_queue(std::shared_ptr<uvgrtp::socket> socket, std::sh
     max_ccount_(MAX_CHUNK_COUNT* max_mcount_),
     rtp_(rtp), 
     socket_(socket),
-    flags_(flags)
+    flags_(flags),
+    frame_interval_(),
+    fps_sync_point_(),
+    frames_since_sync_(0)
 {}
 
 uvgrtp::frame_queue::~frame_queue()
@@ -285,7 +289,37 @@ rtp_error_t uvgrtp::frame_queue::flush_queue()
     if (active_->packets.size() > 1)
         ((uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr - 1])[1] |= (1 << 7);
 
-    if (socket_->sendto(active_->packets, 0) != RTP_OK) {
+    if (fps)
+    {
+        std::chrono::high_resolution_clock::time_point this_moment = std::chrono::high_resolution_clock::now();
+        std::chrono::high_resolution_clock::time_point next_frame = next_frame_time();
+
+        if (next_frame > this_moment)
+        {
+            UVG_LOG_DEBUG("Updating fps sync point");
+            fps_sync_point_ = this_moment;
+            next_frame = next_frame_time();
+        }
+
+        std::chrono::nanoseconds packet_interval = frame_interval_/ active_->packets.size();
+
+        for (int i = 0; i < active_->packets.size(); ++i)
+        {
+            std::chrono::high_resolution_clock::time_point next_packet = this_moment + i * packet_interval;
+
+            // sleep until next packet time
+            std::this_thread::sleep_for(next_packet - std::chrono::high_resolution_clock::now());
+
+            //  send pkt vects
+            if (socket_->sendto(active_->packets[i], 0) != RTP_OK) {
+                UVG_LOG_ERROR("Failed to send packet: %s", strerror(errno));
+                (void)deinit_transaction();
+                return RTP_SEND_ERROR;
+            }
+        }
+
+    }
+    else if (socket_->sendto(active_->packets, 0) != RTP_OK) {
         UVG_LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
         (void)deinit_transaction();
         return RTP_SEND_ERROR;
@@ -293,6 +327,11 @@ rtp_error_t uvgrtp::frame_queue::flush_queue()
 
     //UVG_LOG_DEBUG("full message took %zu chunks and %zu messages", active_->chunk_ptr, active_->hdr_ptr);
     return deinit_transaction();
+}
+
+inline std::chrono::high_resolution_clock::time_point uvgrtp::frame_queue::next_frame_time()
+{
+    return fps_sync_point_ + frame_interval_* (frames_since_sync_ + 1);
 }
 
 void uvgrtp::frame_queue::update_rtp_header()

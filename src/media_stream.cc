@@ -34,7 +34,9 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string addr,
     reception_flow_(nullptr),
     media_(nullptr),
     holepuncher_(nullptr),
-    cname_(cname)
+    cname_(cname),
+    fps_enumerator_(30),
+    fps_denominator_(1)
 {
     fmt_      = fmt;
     addr_     = addr;
@@ -571,6 +573,20 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int flag, ssize_t value)
 
         }
         break;
+
+        case RCC_FPS_ENUMERATOR: {
+            fps_enumerator_ = value;
+
+            media_->set_fps(fps_enumerator_, fps_denominator_);
+            break;
+        }
+
+        case RCC_FPS_DENOMINATOR: {
+            fps_denominator_ = value;
+
+            media_->set_fps(fps_enumerator_, fps_denominator_);
+            break;
+        }           
 
         default:
             return RTP_INVALID_VALUE;

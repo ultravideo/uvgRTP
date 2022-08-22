@@ -174,7 +174,10 @@ namespace uvgrtp {
             // Holds all possible fragments in sequence number order
             std::vector<uvgrtp::frame::rtp_frame*> fragments_;
 
-            std::unordered_set<uint32_t> dropped_;
+            // keep track of frames discarded so we don't accept invalid fragments
+            std::unordered_map<uint32_t, uvgrtp::clock::hrc::hrc_t> dropped_ts_;
+            std::unordered_map<uint32_t, uvgrtp::clock::hrc::hrc_t> completed_ts_;
+
             std::shared_ptr<uvgrtp::rtp> rtp_ctx_;
 
             uvgrtp::clock::hrc::hrc_t last_garbage_collection_;

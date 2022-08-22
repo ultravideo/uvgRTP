@@ -358,6 +358,9 @@ namespace uvgrtp {
             std::unique_ptr<uvgrtp::holepuncher> holepuncher_;
 
             std::string cname_;
+
+            int fps_enumerator_ = 30;
+            int fps_denominator_ = 1;
     };
 }
 
