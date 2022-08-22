@@ -68,28 +68,17 @@ namespace uvgrtp {
     typedef struct srtp_key_ctx {
         /* Keys negotiated by ZRTP */
         struct {
-            /* Our master key and salt */
-            uint8_t *local_key = nullptr;
-            uint8_t local_salt[UVG_SALT_LENGTH];
-
-            /* Remote's master key and salt */
-            uint8_t *remote_key = nullptr;
-            uint8_t remote_salt[UVG_SALT_LENGTH];
+            /* master key and salt used to derive session keys*/
+            uint8_t *key = nullptr;
+            uint8_t salt[UVG_SALT_LENGTH];
         } master;
 
-        /* Used to encrypt/authenticate packets sent by us */
+        /* Used to encrypt/authenticate packets */
         struct {
             uint8_t *enc_key = nullptr;
             uint8_t auth_key[UVG_AUTH_LENGTH];
             uint8_t salt_key[UVG_SALT_LENGTH];
-        } local;
-
-        /* Used to decrypt/Authenticate packets sent by remote */
-        struct {
-            uint8_t *enc_key = nullptr;
-            uint8_t auth_key[UVG_AUTH_LENGTH];
-            uint8_t salt_key[UVG_SALT_LENGTH];
-        } remote;
+        } session;
 
     } srtp_key_ctx_t;
 
@@ -105,8 +94,6 @@ namespace uvgrtp {
         size_t mki_size = 0;  /* length of the MKI field in bytes if it's present */
         uint8_t *mki = nullptr;     /* master key identifier */
 
-        uint8_t *master_key = nullptr;  /* master key */
-        uint8_t *master_salt = nullptr; /* master salt */
         size_t  mk_cnt = 0;       /* how many packets have been encrypted with master key */
 
         size_t n_e = 0; /* size of encryption key */
@@ -118,7 +105,8 @@ namespace uvgrtp {
 
         int flags = 0; /* context configuration flags */
 
-        srtp_key_ctx_t key_ctx;
+        srtp_key_ctx_t local_key_ctx;
+        srtp_key_ctx_t remote_key_ctx;
     } srtp_ctx_t;
 
     class base_srtp {
