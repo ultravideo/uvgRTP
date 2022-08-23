@@ -328,9 +328,9 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::rtp>    rtp_;
             std::shared_ptr<uvgrtp::rtcp>   rtcp_;
 
-            sockaddr_in addr_out_;
-            std::string addr_;
-            std::string laddr_;
+            sockaddr_in remote_sockaddr_;
+            std::string remote_address_;
+            std::string local_address_;
             int src_port_;
             int dst_port_;
             rtp_format_t fmt_;

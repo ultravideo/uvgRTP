@@ -82,10 +82,10 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::zrtp> zrtp_;
 
             /* Each RTP multimedia session is always IP-specific */
-            std::string addr_;
+            std::string remote_address_;
 
             /* If user so wishes, the session can be bound to a certain interface */
-            std::string laddr_;
+            std::string local_address_;
 
             /* All media streams of this session */
             std::unordered_map<uint32_t, uvgrtp::media_stream *> streams_;

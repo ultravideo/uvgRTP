@@ -39,8 +39,8 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string addr,
     fps_denominator_(1)
 {
     fmt_      = fmt;
-    addr_     = addr;
-    laddr_    = "";
+    remote_address_     = addr;
+    local_address_    = "";
     rce_flags_ = rce_flags;
     src_port_ = src_port;
     dst_port_ = dst_port;
@@ -56,7 +56,7 @@ uvgrtp::media_stream::media_stream(std::string cname,
 ):
     media_stream(cname, remote_addr, src_port, dst_port, fmt, rce_flags)
 {
-    laddr_ = local_addr;
+    local_address_ = local_addr;
 }
 
 uvgrtp::media_stream::~media_stream()
@@ -100,8 +100,8 @@ rtp_error_t uvgrtp::media_stream::init_connection()
         UVG_LOG_ERROR("Failed to make the socket non-blocking!");
 #endif
 
-    if (laddr_ != "") {
-        sockaddr_in bind_addr = socket_->create_sockaddr(AF_INET, laddr_, src_port_);
+    if (local_address_ != "") {
+        sockaddr_in bind_addr = socket_->create_sockaddr(AF_INET, local_address_, src_port_);
         socket_t socket       = socket_->get_raw_socket();
 
         if (bind(socket, (struct sockaddr *)&bind_addr, sizeof(bind_addr)) == -1) {
@@ -123,8 +123,8 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     if ((ret = socket_->setsockopt(SOL_SOCKET, SO_RCVBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
         return ret;
 
-    addr_out_ = socket_->create_sockaddr(AF_INET, addr_, dst_port_);
-    socket_->set_sockaddr(addr_out_);
+    remote_sockaddr_ = socket_->create_sockaddr(AF_INET, remote_address_, dst_port_);
+    socket_->set_sockaddr(remote_sockaddr_);
 
     return ret;
 }
@@ -263,7 +263,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
 
     bool perform_dh = !(rce_flags_ & RCE_ZRTP_MULTISTREAM_NO_DH);
 
-    if ((ret = zrtp->init(rtp_->get_ssrc(), socket_, addr_out_, perform_dh)) != RTP_OK) {
+    if ((ret = zrtp->init(rtp_->get_ssrc(), socket_, remote_sockaddr_, perform_dh)) != RTP_OK) {
         UVG_LOG_WARN("Failed to initialize ZRTP for media stream!");
         return free_resources(ret);
     }
@@ -349,7 +349,7 @@ rtp_error_t uvgrtp::media_stream::start_components()
     }
 
     if (ctx_config_.rce_flags & RCE_RTCP) {
-        rtcp_->add_participant(addr_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
+        rtcp_->add_participant(remote_address_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
         rtcp_->set_session_bandwidth(get_default_bandwidth_kbps(fmt_));
         rtcp_->start();
     }

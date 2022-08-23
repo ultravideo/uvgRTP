@@ -11,8 +11,8 @@ uvgrtp::session::session(std::string cname, std::string addr):
 #ifdef __RTP_CRYPTO__
     zrtp_(new uvgrtp::zrtp()),
 #endif
-    addr_(addr),
-    laddr_(""),
+    remote_address_(addr),
+    local_address_(""),
     cname_(cname)
 {
 }
@@ -20,7 +20,7 @@ uvgrtp::session::session(std::string cname, std::string addr):
 uvgrtp::session::session(std::string cname, std::string remote_addr, std::string local_addr):
     session(cname, remote_addr)
 {
-    laddr_ = local_addr;
+    local_address_ = local_addr;
 }
 
 uvgrtp::session::~session()
@@ -43,11 +43,11 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
         return nullptr;
     }
 
-    if (laddr_ == "") {
-        stream = new uvgrtp::media_stream(cname_, addr_, r_port, s_port, fmt, rce_flags);
+    if (local_address_ == "") {
+        stream = new uvgrtp::media_stream(cname_, remote_address_, r_port, s_port, fmt, rce_flags);
     }
     else {
-        stream = new uvgrtp::media_stream(cname_, addr_, laddr_, r_port, s_port, fmt, rce_flags);
+        stream = new uvgrtp::media_stream(cname_, remote_address_, local_address_, r_port, s_port, fmt, rce_flags);
     }
 
     if (rce_flags & RCE_SRTP) {
@@ -73,7 +73,7 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
             }
 
             if (stream->init(zrtp_) != RTP_OK) {
-                UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", addr_.c_str(), r_port, s_port);
+                UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), r_port, s_port);
                 return nullptr;
             }
         } else if (rce_flags & RCE_SRTP_KMNGMNT_USER) {
@@ -85,7 +85,7 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
         }
     } else {
         if (stream->init() != RTP_OK) {
-            UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", addr_.c_str(), r_port, s_port);
+            UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), r_port, s_port);
             return nullptr;
         }
     }
@@ -113,5 +113,5 @@ rtp_error_t uvgrtp::session::destroy_stream(uvgrtp::media_stream *stream)
 
 std::string& uvgrtp::session::get_key()
 {
-    return addr_;
+    return remote_address_;
 }
