@@ -100,31 +100,41 @@ rtp_error_t uvgrtp::media_stream::init_connection()
         UVG_LOG_ERROR("Failed to make the socket non-blocking!");
 #endif
 
+    // no reason to fail sending even if binding fails so we set remote address first
+    remote_sockaddr_ = socket_->create_sockaddr(AF_INET, remote_address_, dst_port_);
+    socket_->set_sockaddr(remote_sockaddr_);
+
     if (local_address_ != "") {
         sockaddr_in bind_addr = socket_->create_sockaddr(AF_INET, local_address_, src_port_);
-        socket_t socket       = socket_->get_raw_socket();
 
-        if (bind(socket, (struct sockaddr *)&bind_addr, sizeof(bind_addr)) == -1) {
+        if ((ret = socket_->bind(bind_addr)) != RTP_OK)
+        {
             log_platform_error("bind(2) failed");
-            return RTP_BIND_ERROR;
-        }
-    } else {
-        if ((ret = socket_->bind(AF_INET, INADDR_ANY, src_port_)) != RTP_OK)
             return ret;
+        }
+    } 
+    else 
+    {
+        if ((ret = socket_->bind(AF_INET, INADDR_ANY, src_port_)) != RTP_OK)
+        {
+            log_platform_error("bind(2) to any failed");
+            return ret;
+        }
     }
 
     /* Set the default UDP send/recv buffer sizes to 4MB as on Windows
      * the default size is way too small for a larger video conference */
     int buf_size = 4 * 1024 * 1024;
 
-    if ((ret = socket_->setsockopt(SOL_SOCKET, SO_SNDBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
+    if ((ret = socket_->setsockopt(SOL_SOCKET, SO_SNDBUF, (const char*)&buf_size, sizeof(int))) != RTP_OK)
+    {
         return ret;
+    }
 
-    if ((ret = socket_->setsockopt(SOL_SOCKET, SO_RCVBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
+    if ((ret = socket_->setsockopt(SOL_SOCKET, SO_RCVBUF, (const char*)&buf_size, sizeof(int))) != RTP_OK)
+    {
         return ret;
-
-    remote_sockaddr_ = socket_->create_sockaddr(AF_INET, remote_address_, dst_port_);
-    socket_->set_sockaddr(remote_sockaddr_);
+    }
 
     return ret;
 }

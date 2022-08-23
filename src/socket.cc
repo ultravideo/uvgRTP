@@ -30,7 +30,8 @@ using namespace mingw;
 
 uvgrtp::socket::socket(int rce_flags):
     socket_(-1),
-    rce_flags_(rce_flags)
+    rce_flags_(rce_flags),
+    local_address_()
 {}
 
 uvgrtp::socket::~socket()
@@ -81,23 +82,30 @@ rtp_error_t uvgrtp::socket::setsockopt(int level, int optname, const void *optva
 rtp_error_t uvgrtp::socket::bind(short family, unsigned host, short port)
 {
     assert(family == AF_INET);
+    local_address_ = create_sockaddr(family, host, port);
+    return bind(local_address_);
+}
 
-    sockaddr_in addr = create_sockaddr(family, host, port);
+rtp_error_t uvgrtp::socket::bind(sockaddr_in& local_address)
+{
+    local_address_ = local_address;
 
-    if (::bind(socket_, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    UVG_LOG_DEBUG("Binding to address %s", sockaddr_to_string(local_address_).c_str());
+
+    if (::bind(socket_, (struct sockaddr*)&local_address_, sizeof(local_address_)) < 0) {
 #ifdef _WIN32
         win_get_last_error();
 #else
         fprintf(stderr, "%s\n", strerror(errno));
 #endif
-        UVG_LOG_ERROR("Binding to port %u failed!", port);
+        UVG_LOG_ERROR("Binding to port %u failed!", local_address_.sin_port);
         return RTP_BIND_ERROR;
     }
 
     return RTP_OK;
 }
 
-sockaddr_in uvgrtp::socket::create_sockaddr(short family, unsigned host, short port)
+sockaddr_in uvgrtp::socket::create_sockaddr(short family, unsigned host, short port) const
 {
     assert(family == AF_INET);
 
@@ -112,7 +120,7 @@ sockaddr_in uvgrtp::socket::create_sockaddr(short family, unsigned host, short p
     return addr;
 }
 
-sockaddr_in uvgrtp::socket::create_sockaddr(short family, std::string host, short port)
+sockaddr_in uvgrtp::socket::create_sockaddr(short family, std::string host, short port) const
 {
     assert(family == AF_INET);
 
@@ -127,16 +135,44 @@ sockaddr_in uvgrtp::socket::create_sockaddr(short family, std::string host, shor
     return addr;
 }
 
+std::string uvgrtp::socket::get_socket_path_string() const
+{
+    return sockaddr_to_string(local_address_) + " -> " + sockaddr_to_string(remote_address_);
+}
+
+std::string uvgrtp::socket::sockaddr_to_string(const sockaddr_in& addr) const
+{
+    char* c_string = new char[INET_ADDRSTRLEN];
+    memset(c_string, 0, INET_ADDRSTRLEN);
+
+    switch (addr.sin_family)
+    {
+    case AF_INET:
+    {
+        inet_ntop(AF_INET, &addr.sin_addr, c_string, INET_ADDRSTRLEN);
+        break;
+    }
+    case AF_INET6:
+    {
+        inet_ntop(AF_INET6, &addr.sin_addr, c_string, INET_ADDRSTRLEN);
+        break;
+    }
+    }
+
+    std::string string(c_string);
+    string.append(":" + std::to_string(ntohs(addr.sin_port)));
+    return string;
+}
+
 void uvgrtp::socket::set_sockaddr(sockaddr_in addr)
 {
-    addr_ = addr;
+    remote_address_ = addr;
 }
 
 socket_t& uvgrtp::socket::get_raw_socket()
 {
     return socket_;
 }
-
 
 rtp_error_t uvgrtp::socket::install_handler(void *arg, packet_handler_vec handler)
 {
@@ -158,7 +194,7 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf
     int nsend = 0;
 
 #ifndef _WIN32
-    if ((nsend = ::sendto(socket_, buf, buf_len, send_flags, (const struct sockaddr *)&addr, sizeof(addr_))) == -1) {
+    if ((nsend = ::sendto(socket_, buf, buf_len, send_flags, (const struct sockaddr *)&addr, sizeof(addr))) == -1) {
         UVG_LOG_ERROR("Failed to send data: %s", strerror(errno));
 
         if (bytes_sent)
@@ -172,8 +208,10 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf
     data_buf.buf = (char *)buf;
     data_buf.len = (ULONG)buf_len;
 
-    if (WSASendTo(socket_, &data_buf, 1, &sent_bytes, send_flags, (const struct sockaddr *)&addr, sizeof(addr_), nullptr, nullptr) == -1) {
+    if (WSASendTo(socket_, &data_buf, 1, &sent_bytes, send_flags, (const struct sockaddr *)&addr, sizeof(addr), nullptr, nullptr) == -1) {
         win_get_last_error();
+
+        UVG_LOG_ERROR("Failed to send to %s", sockaddr_to_string(addr).c_str());
 
         if (bytes_sent)
             *bytes_sent = -1;
@@ -194,12 +232,12 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf
 
 rtp_error_t uvgrtp::socket::sendto(uint8_t *buf, size_t buf_len, int send_flags)
 {
-    return __sendto(addr_, buf, buf_len, send_flags, nullptr);
+    return __sendto(remote_address_, buf, buf_len, send_flags, nullptr);
 }
 
 rtp_error_t uvgrtp::socket::sendto(uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent)
 {
-    return __sendto(addr_, buf, buf_len, send_flags, bytes_sent);
+    return __sendto(remote_address_, buf, buf_len, send_flags, bytes_sent);
 }
 
 rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent)
@@ -257,8 +295,10 @@ rtp_error_t uvgrtp::socket::__sendtov(
     }
 
     if (WSASendTo(socket_, buffers_, (DWORD)buffers.size(), &sent_bytes, send_flags,
-                  (SOCKADDR *)&addr, sizeof(addr_), nullptr, nullptr) == -1) {
+                  (SOCKADDR *)&addr, sizeof(addr), nullptr, nullptr) == -1) {
         win_get_last_error();
+
+        UVG_LOG_ERROR("Failed to send to %s", sockaddr_to_string(addr).c_str());
 
         set_bytes(bytes_sent, -1);
         return RTP_SEND_ERROR;
@@ -286,7 +326,7 @@ rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int send_flags)
         }
     }
 
-    return __sendtov(addr_, buffers, send_flags, nullptr);
+    return __sendtov(remote_address_, buffers, send_flags, nullptr);
 }
 
 rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int send_flags, int *bytes_sent)
@@ -300,7 +340,7 @@ rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int send_flags, int *bytes_
         }
     }
 
-    return __sendtov(addr_, buffers, send_flags, bytes_sent);
+    return __sendtov(remote_address_, buffers, send_flags, bytes_sent);
 }
 
 rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, buf_vec& buffers, int send_flags)
@@ -408,7 +448,7 @@ send_:
             &sent_bytes,
             send_flags,
             (SOCKADDR *)&addr,
-            sizeof(addr_),
+            sizeof(addr),
             nullptr,
             nullptr
         );
@@ -425,6 +465,8 @@ send_:
             {
                 UVG_LOG_DEBUG("WSASendTo failed with error %li", error);
                 log_platform_error("WSASendTo() failed");
+
+                UVG_LOG_ERROR("Failed to send to %s", sockaddr_to_string(addr).c_str());
             }
 
             set_bytes(bytes_sent, -1);
@@ -454,7 +496,7 @@ rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int send_flags)
         }
     }
 
-    return __sendtov(addr_, buffers, send_flags, nullptr);
+    return __sendtov(remote_address_, buffers, send_flags, nullptr);
 }
 
 rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int send_flags, int *bytes_sent)
@@ -470,7 +512,7 @@ rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int send_flags, int *bytes_
         }
     }
 
-    return __sendtov(addr_, buffers, send_flags, bytes_sent);
+    return __sendtov(remote_address_, buffers, send_flags, bytes_sent);
 }
 
 rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int send_flags)
@@ -642,5 +684,5 @@ rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int recv_flag
 
 sockaddr_in& uvgrtp::socket::get_out_address()
 {
-    return addr_;
+    return remote_address_;
 }

@@ -77,6 +77,7 @@ namespace uvgrtp {
              * Return RTP_OK on success
              * Return RTP_BIND_ERROR if the bind failed */
             rtp_error_t bind(short family, unsigned host, short port);
+            rtp_error_t bind(sockaddr_in& local_address);
 
             /* Same as setsockopt(2), used to manipulate the underlying socket object
              *
@@ -134,11 +135,13 @@ namespace uvgrtp {
 
             /* Create sockaddr_in object using the provided information
              * NOTE: "family" must be AF_INET */
-            sockaddr_in create_sockaddr(short family, unsigned host, short port);
+            sockaddr_in create_sockaddr(short family, unsigned host, short port) const;
 
             /* Create sockaddr_in object using the provided information
              * NOTE: "family" must be AF_INET */
-            sockaddr_in create_sockaddr(short family, std::string host, short port);
+            sockaddr_in create_sockaddr(short family, std::string host, short port) const;
+
+            std::string get_socket_path_string() const;
 
             /* Get reference to the actual socket object */
             socket_t& get_raw_socket();
@@ -160,6 +163,9 @@ namespace uvgrtp {
             rtp_error_t install_handler(void *arg, packet_handler_vec handler);
 
         private:
+
+            std::string sockaddr_to_string(const sockaddr_in& addr) const;
+
             /* helper function for sending UPD packets, see documentation for sendto() above */
             rtp_error_t __sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
             rtp_error_t __recv(uint8_t *buf, size_t buf_len, int recv_flags, int *bytes_read);
@@ -170,7 +176,8 @@ namespace uvgrtp {
             rtp_error_t __sendtov(sockaddr_in& addr, uvgrtp::pkt_vec& buffers, int send_flags, int *bytes_sent);
 
             socket_t socket_;
-            sockaddr_in addr_;
+            sockaddr_in remote_address_;
+            sockaddr_in local_address_;
             int rce_flags_;
 
             /* __sendto() calls these handlers in order before sending the packet */
