@@ -58,6 +58,7 @@ int main(void)
         return EXIT_FAILURE;
     }
 
+    std::cout << "Initializing receivers" << std::endl;
     uvgrtp::session *receiver_session = receiver_ctx.create_session(SENDER_ADDRESS, RECEIVER_ADDRESS);
 
     std::shared_ptr<std::mutex> print_mutex = std::shared_ptr<std::mutex> (new std::mutex);
@@ -78,6 +79,8 @@ int main(void)
     std::thread v_receiver(receive_function, receiver_session, rce_flags, print_mutex,
                            RTP_FORMAT_H265, RECEIVER_VIDEO_PORT, SENDER_VIDEO_PORT);
 
+
+    std::cout << "Initializing senders" << std::endl;
     uvgrtp::context sender_ctx;
     uvgrtp::session *sender_session = sender_ctx.create_session(RECEIVER_ADDRESS, SENDER_ADDRESS);
 
@@ -123,6 +126,9 @@ void receive_function(uvgrtp::session* receiver_session, int flags,
                       std::shared_ptr<std::mutex> print_mutex,
                       RTP_FORMAT format, uint16_t receiver_port, uint16_t sender_port)
 {
+    print_mutex->lock();
+    std::cout << "Receiver thread port: " << receiver_port << "<-" << sender_port << std::endl;
+    print_mutex->unlock();
     /* Keys created using Multistream mode */
     uvgrtp::media_stream *receiver_stream =
         receiver_session->create_stream(receiver_port, sender_port, format, flags);
@@ -164,6 +170,10 @@ void sender_function(uvgrtp::session* sender_session, int flags, std::shared_ptr
                      RTP_FORMAT format, uint16_t sender_port, uint16_t receiver_port, size_t payload_size,
                      std::chrono::milliseconds frame_interval)
 {
+    print_mutex->lock();
+    std::cout << "Sender thread port: " << sender_port << "->" << receiver_port << std::endl;
+    print_mutex->unlock();
+
     /* The first call to create_stream() creates keys for the session using Diffie-Hellman
      * key exchange and all subsequent calls to create_stream() initialize keys for the
      * stream using Multistream mode */
