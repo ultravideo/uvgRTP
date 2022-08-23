@@ -125,8 +125,11 @@ typedef enum RTP_FLAGS {
 enum RTP_CTX_ENABLE_FLAGS {
     RCE_NO_FLAGS                  = 0,
 
-    /* Obsolete */
+    // Obsolete flags
     RCE_SYSTEM_CALL_DISPATCHER    = 0,
+    RCE_NO_H26X_INTRA_DELAY = 0,
+    RCE_NO_H26X_SCL = 0,
+    RCE_H26X_NO_DEPENDENCY_ENFORCEMENT = 0,
 
     /** Use SRTP for this connection */
     RCE_SRTP                      = 1,
@@ -151,20 +154,11 @@ enum RTP_CTX_ENABLE_FLAGS {
      * with RCE_SRTP_KMNGMNT_ZRTP */
     RCE_SRTP_KMNGMNT_USER         = 1 << 2,
 
-    /** Obsolete */
-    RCE_NO_H26X_INTRA_DELAY       = 0,
-
-    /** Obsolete */
-    RCE_NO_H26X_SCL               = 0,
-
     /** By default, the RTP packet payload does not include the start code prefixes. 
      * Use this flag to prepend the 4-byte start code (0x00000001) to each received
      * H26x frame, so there is no difference with sender input. Recommended in 
      * most cases. */
     RCE_H26X_PREPEND_SC           = 1 << 3,
-
-    /** Obsolete */
-    RCE_H26X_NO_DEPENDENCY_ENFORCEMENT = 0,
 
     /** Use this flag to discard inter frames that don't have their previous dependencies
         arrived. Does not work if the dependencies are not in monotonic order. */
@@ -227,8 +221,11 @@ enum RTP_CTX_ENABLE_FLAGS {
     /** Use 256-bit keys with SRTP */
     RCE_SRTP_KEYSIZE_256          = 1 << 14,
 
-    RCE_LAST                      = 1 << 15,
+    RCE_ZRTP_MULTISTREAM_NO_DH    = 1 << 16,
+
+    RCE_LAST                      = 1 << 17,
 };
+
 
 /**
  * \enum RTP_CTX_CONFIGURATION_FLAGS

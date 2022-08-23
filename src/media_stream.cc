@@ -261,7 +261,9 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
 
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
 
-    if ((ret = zrtp->init(rtp_->get_ssrc(), socket_, addr_out_)) != RTP_OK) {
+    bool perform_dh = !(rce_flags_ & RCE_ZRTP_MULTISTREAM_NO_DH);
+
+    if ((ret = zrtp->init(rtp_->get_ssrc(), socket_, addr_out_, perform_dh)) != RTP_OK) {
         UVG_LOG_WARN("Failed to initialize ZRTP for media stream!");
         return free_resources(ret);
     }

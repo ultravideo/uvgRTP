@@ -616,13 +616,41 @@ rtp_error_t uvgrtp::zrtp::initiator_finalize_session()
     return RTP_TIMEOUT;
 }
 
-rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, bool perform_dh)
 {
-    std::lock_guard<std::mutex> lock(zrtp_mtx_);
+    rtp_error_t ret = RTP_OK;
 
-    if (!initialized_)
-        return init_dhm(ssrc, socket, addr);
-    return init_msm(ssrc, socket, addr);
+    if (perform_dh) 
+    {
+        zrtp_mtx_.lock();
+        
+        if (initialized_)
+        {
+            UVG_LOG_WARN("ZRTP multistream mode not used. Please use RCE_ZRTP_MULTISTREAM_NO_DH flag " \
+                "to select which streams should not perform DH");
+        }
+
+        // perform Diffie-Helmann (DH)
+        ret = init_dhm(ssrc, socket, addr);
+        zrtp_mtx_.unlock();
+    }
+    else
+    {
+        if (!initialized_)
+        {
+            UVG_LOG_DEBUG("Sleeping a non-DH performing stream until DH has finished");
+        }
+
+        while (!initialized_)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+
+        // multistream mode
+        ret = init_msm(ssrc, socket, addr);
+    }
+
+    return ret;
 }
 
 rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr)
