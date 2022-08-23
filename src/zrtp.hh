@@ -156,8 +156,8 @@ namespace uvgrtp {
             rtp_error_t initiator_finalize_session();
 
             uint32_t ssrc_;
-            std::shared_ptr<uvgrtp::socket> socket_;
-            sockaddr_in addr_;
+            std::shared_ptr<uvgrtp::socket> local_socket_;
+            sockaddr_in remote_addr_;
 
             /* Has the ZRTP connection been initialized using DH */
             bool initialized_;
