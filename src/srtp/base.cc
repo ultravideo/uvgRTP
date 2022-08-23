@@ -8,28 +8,16 @@
 #include <iostream>
 
 uvgrtp::base_srtp::base_srtp():
-    srtp_ctx_(new uvgrtp::srtp_ctx_t),
+    local_srtp_ctx_(std::shared_ptr<srtp_ctx_t>(new srtp_ctx_t)),
+    remote_srtp_ctx_(std::shared_ptr<srtp_ctx_t>(new srtp_ctx_t)),
     use_null_cipher_(false)
 {}
 
 uvgrtp::base_srtp::~base_srtp()
 {
-    if (srtp_ctx_)
-    {
-        // local keys
-        if (srtp_ctx_->local_key_ctx.master.key)
-            delete[] srtp_ctx_->local_key_ctx.master.key;
-        if (srtp_ctx_->local_key_ctx.session.enc_key)
-            delete[] srtp_ctx_->local_key_ctx.session.enc_key;
-
-        // remote keys
-        if (srtp_ctx_->remote_key_ctx.master.key)
-            delete[] srtp_ctx_->remote_key_ctx.master.key;
-        if (srtp_ctx_->remote_key_ctx.session.enc_key)
-            delete[] srtp_ctx_->remote_key_ctx.session.enc_key;
-
-        delete srtp_ctx_;
-    }
+    // cleanup keys
+    cleanup_context(local_srtp_ctx_);
+    cleanup_context(remote_srtp_ctx_);
 }
 
 bool uvgrtp::base_srtp::use_null_cipher()
@@ -37,12 +25,18 @@ bool uvgrtp::base_srtp::use_null_cipher()
     return use_null_cipher_;
 }
 
-uvgrtp::srtp_ctx_t *uvgrtp::base_srtp::get_ctx()
+std::shared_ptr<uvgrtp::srtp_ctx_t> uvgrtp::base_srtp::get_local_ctx()
 {
-    return srtp_ctx_;
+    return local_srtp_ctx_;
 }
 
-rtp_error_t uvgrtp::base_srtp::derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t out_len)
+std::shared_ptr<uvgrtp::srtp_ctx_t> uvgrtp::base_srtp::get_remote_ctx()
+{
+    return remote_srtp_ctx_;
+}
+
+rtp_error_t uvgrtp::base_srtp::derive_key(int label, size_t key_size, 
+    uint8_t *key, uint8_t *salt, uint8_t *out, size_t out_len)
 {
     uint8_t input[UVG_IV_LENGTH]    = { 0 };
     uint8_t ks[AES256_KEY_SIZE] = { 0 };
@@ -52,7 +46,7 @@ rtp_error_t uvgrtp::base_srtp::derive_key(int label, uint8_t *key, uint8_t *salt
 
     input[7] ^= label;
 
-    uvgrtp::crypto::aes::ecb ecb(key, srtp_ctx_->n_e);
+    uvgrtp::crypto::aes::ecb ecb(key, key_size); // srtp_ctx_->n_e);
     ecb.encrypt(ks, input, UVG_IV_LENGTH);
 
     memcpy(out, ks, out_len);
@@ -82,7 +76,7 @@ rtp_error_t uvgrtp::base_srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t i
 
 bool uvgrtp::base_srtp::is_replayed_packet(uint8_t *digest)
 {
-    if (!(srtp_ctx_->flags & RCE_SRTP_REPLAY_PROTECTION))
+    if (!(remote_srtp_ctx_->flags & RCE_SRTP_REPLAY_PROTECTION))
         return false;
 
     uint64_t truncated;
@@ -100,115 +94,13 @@ bool uvgrtp::base_srtp::is_replayed_packet(uint8_t *digest)
 rtp_error_t uvgrtp::base_srtp::init(int type, int flags, uint8_t* local_key, uint8_t* remote_key,
                                     uint8_t* local_salt, uint8_t* remote_salt)
 {
-    srtp_ctx_->roc  = 0;
-    srtp_ctx_->rts  = 0;
-    srtp_ctx_->type = type;
-    srtp_ctx_->hmac = HMAC_SHA1;
+    if (!local_key || !remote_key || !local_salt || !remote_salt)
+        return RTP_INVALID_VALUE;
 
-    size_t key_size = get_key_size(flags);
+    use_null_cipher_ = (flags & RCE_SRTP_NULL_CIPHER);
 
-    rtp_error_t ret = RTP_OK;
-    if ((ret = set_master_keys(key_size, local_key, remote_key, local_salt, remote_salt)) != RTP_OK)
-        return ret;
-
-    switch (key_size) {
-        case AES128_KEY_SIZE:
-            srtp_ctx_->enc  = AES_128;
-            break;
-
-        case AES192_KEY_SIZE:
-            srtp_ctx_->enc  = AES_192;
-            break;
-
-        case AES256_KEY_SIZE:
-            srtp_ctx_->enc  = AES_256;
-            break;
-    }
-
-    srtp_ctx_->mki_size    = 0;
-    srtp_ctx_->mki_present = false;
-    srtp_ctx_->mki         = nullptr;
-    srtp_ctx_->mk_cnt      = 0;
-
-    srtp_ctx_->n_e = key_size;
-    srtp_ctx_->n_a = UVG_HMAC_KEY_LENGTH;
-
-    srtp_ctx_->s_l    = 0;
-    srtp_ctx_->replay = nullptr;
-
-    use_null_cipher_  = (flags & RCE_SRTP_NULL_CIPHER);
-    srtp_ctx_->flags  = flags;
-
-    int label_enc  = 0;
-    int label_auth = 0;
-    int label_salt = 0;
-
-    if (type == SRTP) {
-        label_enc  = SRTP_ENCRYPTION;
-        label_auth = SRTP_AUTHENTICATION;
-        label_salt = SRTP_SALTING;
-    } else {
-        label_enc  = SRTCP_ENCRYPTION;
-        label_auth = SRTCP_AUTHENTICATION;
-        label_salt = SRTCP_SALTING;
-    }
-
-    /* Local aka encryption keys */
-    (void)derive_key(
-        label_enc,
-        srtp_ctx_->local_key_ctx.master.key,
-        srtp_ctx_->local_key_ctx.master.salt,
-        srtp_ctx_->local_key_ctx.session.enc_key,
-        key_size
-    );
-    (void)derive_key(
-        label_auth,
-        srtp_ctx_->local_key_ctx.master.key,
-        srtp_ctx_->local_key_ctx.master.salt,
-        srtp_ctx_->local_key_ctx.session.auth_key,
-        UVG_AUTH_LENGTH
-    );
-    (void)derive_key(
-        label_salt,
-        srtp_ctx_->local_key_ctx.master.key,
-        srtp_ctx_->local_key_ctx.master.salt,
-        srtp_ctx_->local_key_ctx.session.salt_key,
-        UVG_SALT_LENGTH
-    );
-
-    /* Remote aka decryption keys */
-    (void)derive_key(
-        label_enc,
-        srtp_ctx_->remote_key_ctx.master.key,
-        srtp_ctx_->remote_key_ctx.master.salt,
-        srtp_ctx_->remote_key_ctx.session.enc_key,
-        key_size
-    );
-    (void)derive_key(
-        label_auth,
-        srtp_ctx_->remote_key_ctx.master.key,
-        srtp_ctx_->remote_key_ctx.master.salt,
-        srtp_ctx_->remote_key_ctx.session.auth_key,
-        UVG_AUTH_LENGTH
-    );
-    (void)derive_key(
-        label_salt,
-        srtp_ctx_->remote_key_ctx.master.key,
-        srtp_ctx_->remote_key_ctx.master.salt,
-        srtp_ctx_->remote_key_ctx.session.salt_key,
-        UVG_SALT_LENGTH
-    );
-
-    return ret;
-}
-
-rtp_error_t uvgrtp::base_srtp::allocate_crypto_ctx(size_t key_size)
-{
-    srtp_ctx_->local_key_ctx.master.key      = new uint8_t[key_size];
-    srtp_ctx_->local_key_ctx.session.enc_key = new uint8_t[key_size];
-    
-    srtp_ctx_->remote_key_ctx.master.key      = new uint8_t[key_size];
-    srtp_ctx_->remote_key_ctx.session.enc_key = new uint8_t[key_size];
+    init_srtp_context(local_srtp_ctx_,  type, flags, local_key,  local_salt);
+    init_srtp_context(remote_srtp_ctx_, type, flags, remote_key, remote_salt);
 
     return RTP_OK;
 }
@@ -228,21 +120,98 @@ size_t uvgrtp::base_srtp::get_key_size(int flags) const
     return key_size;
 }
 
-rtp_error_t uvgrtp::base_srtp::set_master_keys(size_t key_size, uint8_t* local_key, uint8_t* remote_key,
-    uint8_t* local_salt, uint8_t* remote_salt)
+rtp_error_t uvgrtp::base_srtp::init_srtp_context(std::shared_ptr<uvgrtp::srtp_ctx_t> context, int type, int flags,
+    uint8_t* key, uint8_t* salt)
 {
-  if (!local_key || !remote_key || !local_salt || !remote_salt)
-    return RTP_INVALID_VALUE;
+    context->roc = 0;
+    context->rts = 0;
+    context->type = type;
+    context->hmac = HMAC_SHA1;
 
-  rtp_error_t ret = RTP_OK;
-  if ((ret = allocate_crypto_ctx(key_size)) != RTP_OK)
-      return ret;
+    size_t key_size = get_key_size(flags);
 
-  memcpy(srtp_ctx_->local_key_ctx.master.key,    local_key,   key_size);
-  memcpy(srtp_ctx_->local_key_ctx.master.salt,   local_salt,  UVG_SALT_LENGTH);
+    switch (key_size) {
+    case AES128_KEY_SIZE:
+        context->enc = AES_128;
+        break;
 
-  memcpy(srtp_ctx_->remote_key_ctx.master.key,   remote_key,  key_size);
-  memcpy(srtp_ctx_->remote_key_ctx.master.salt,  remote_salt, UVG_SALT_LENGTH);
+    case AES192_KEY_SIZE:
+        context->enc = AES_192;
+        break;
 
-  return ret;
+    case AES256_KEY_SIZE:
+        context->enc = AES_256;
+        break;
+    }
+
+    context->mki_size = 0;
+    context->mki_present = false;
+    context->mki = nullptr;
+    context->mk_cnt = 0;
+
+    context->n_e = key_size;
+    context->n_a = UVG_HMAC_KEY_LENGTH;
+
+    context->s_l = 0;
+    context->replay = nullptr;
+    context->flags = flags;
+
+    int label_enc = 0;
+    int label_auth = 0;
+    int label_salt = 0;
+
+    if (type == SRTP) {
+        label_enc = SRTP_ENCRYPTION;
+        label_auth = SRTP_AUTHENTICATION;
+        label_salt = SRTP_SALTING;
+    }
+    else {
+        label_enc = SRTCP_ENCRYPTION;
+        label_auth = SRTCP_AUTHENTICATION;
+        label_salt = SRTCP_SALTING;
+    }
+
+    context->key_ctx.master.key = new uint8_t[key_size];
+    memcpy(context->key_ctx.master.key, key, key_size);
+    memcpy(context->key_ctx.master.salt, salt, UVG_SALT_LENGTH);
+    context->key_ctx.session.enc_key = new uint8_t[key_size];
+
+    /* Derive session keys */
+    (void)derive_key(
+        label_enc,
+        key_size,
+        context->key_ctx.master.key,
+        context->key_ctx.master.salt,
+        context->key_ctx.session.enc_key,
+        key_size
+    );
+    (void)derive_key(
+        label_auth,
+        key_size,
+        context->key_ctx.master.key,
+        context->key_ctx.master.salt,
+        context->key_ctx.session.auth_key,
+        UVG_AUTH_LENGTH
+    );
+    (void)derive_key(
+        label_salt,
+        key_size,
+        context->key_ctx.master.key,
+        context->key_ctx.master.salt,
+        context->key_ctx.session.salt_key,
+        UVG_SALT_LENGTH
+    );
+
+    return RTP_OK;
+}
+
+void uvgrtp::base_srtp::cleanup_context(std::shared_ptr<srtp_ctx_t> context)
+{
+    if (context)
+    {
+        if (context->key_ctx.master.key)
+            delete[] context->key_ctx.master.key;
+        if (context->key_ctx.session.enc_key)
+            delete[] context->key_ctx.session.enc_key;
+    }
 }

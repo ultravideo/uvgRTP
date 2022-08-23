@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <unordered_set>
 #include <vector>
+#include <memory>
 
 
 
@@ -66,14 +67,15 @@ namespace uvgrtp {
      * Master key is not directly used to encrypt packets but it is used
      * to create session keys for the SRTP/SRTCP */
     typedef struct srtp_key_ctx {
-        /* Keys negotiated by ZRTP */
+        /* Keys negotiated by ZRTP or given by user. 
+         * Master key and salt are used to derive session keys*/
         struct {
-            /* master key and salt used to derive session keys*/
+            
             uint8_t *key = nullptr;
             uint8_t salt[UVG_SALT_LENGTH];
         } master;
 
-        /* Used to encrypt/authenticate packets */
+        /* Session keys are used to encrypt/authenticate packets */
         struct {
             uint8_t *enc_key = nullptr;
             uint8_t auth_key[UVG_AUTH_LENGTH];
@@ -84,7 +86,7 @@ namespace uvgrtp {
 
     typedef struct srtp_ctx {
         int type = 0;     /* srtp or srtcp */
-        uint32_t roc = 0; /* roll-over counter */
+        uint32_t roc = 0; /* rollover counter */
         uint32_t rts = 0; /* timestamp of the frame that causes ROC update */
 
         int enc = 0;   /* identifier for encryption algorithm */
@@ -105,8 +107,7 @@ namespace uvgrtp {
 
         int flags = 0; /* context configuration flags */
 
-        srtp_key_ctx_t local_key_ctx;
-        srtp_key_ctx_t remote_key_ctx;
+        srtp_key_ctx_t key_ctx;
     } srtp_ctx_t;
 
     class base_srtp {
@@ -130,7 +131,8 @@ namespace uvgrtp {
 
 
             /* Get reference to the SRTP context (including session keys) */
-            srtp_ctx_t *get_ctx();
+            std::shared_ptr<srtp_ctx_t> get_local_ctx();
+            std::shared_ptr<srtp_ctx_t> get_remote_ctx();
 
             /* Returns true if the packet having this HMAC digest is replayed
              * Returns false if replay protection has not been enabled */
@@ -147,21 +149,21 @@ namespace uvgrtp {
             rtp_error_t create_iv(uint8_t *out, uint32_t ssrc, uint64_t index, uint8_t *salt);
 
             /* SRTP context containing all session information and keys */
-            srtp_ctx_t *srtp_ctx_;
+            std::shared_ptr<srtp_ctx_t> local_srtp_ctx_;  // for encryption
+            std::shared_ptr<srtp_ctx_t> remote_srtp_ctx_; // for decryption
 
             /* If NULL cipher is enabled, it means that RTP packets are not
              * encrypted but other security mechanisms described in RFC 3711 may be used */
             bool use_null_cipher_;
 
         private:
-            rtp_error_t set_master_keys(size_t key_size, uint8_t* local_key, uint8_t* remote_key,
-                                 uint8_t* local_salt, uint8_t* remote_salt);
 
-            rtp_error_t derive_key(int label, uint8_t *key, uint8_t *salt, uint8_t *out, size_t len);
+            rtp_error_t init_srtp_context(std::shared_ptr<srtp_ctx_t> context, int type, int flags, 
+                uint8_t* key, uint8_t* salt);
 
-            /* Allocate space for master/session encryption keys */
-            rtp_error_t allocate_crypto_ctx(size_t key_size);
+            rtp_error_t derive_key(int label, size_t key_size, uint8_t *key, uint8_t *salt, uint8_t *out, size_t len);
 
+            void cleanup_context(std::shared_ptr<srtp_ctx_t> context);
 
             /* Map containing all authentication tags of received packets (separate for SRTP and SRTCP)
              * Used to implement replay protection */
