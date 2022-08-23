@@ -1,8 +1,8 @@
 #include "uvgrtp/session.hh"
 
 #include "uvgrtp/media_stream.hh"
-#include "uvgrtp/crypto.hh"
 
+#include "crypto.hh"
 #include "zrtp.hh"
 #include "debug.hh"
 

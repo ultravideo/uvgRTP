@@ -1,7 +1,6 @@
 #include "zrtp_receiver.hh"
 
 #include "uvgrtp/socket.hh"
-#include "uvgrtp/crypto.hh"
 #include "uvgrtp/util.hh"
 
 #include "defines.hh"
@@ -12,7 +11,8 @@
 #include "hello.hh"
 #include "hello_ack.hh"
 #include "../poll.hh"
-#include "debug.hh"
+#include "../crypto.hh"
+#include "../debug.hh"
 
 
 #ifdef _WIN32

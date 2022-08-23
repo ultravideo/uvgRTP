@@ -1,8 +1,7 @@
 #include "srtcp.hh"
 
-#include "uvgrtp/crypto.hh"
-
-#include "debug.hh"
+#include "../crypto.hh"
+#include "../debug.hh"
 
 #include <cstring>
 #include <iostream>

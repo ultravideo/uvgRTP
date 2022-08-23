@@ -10,7 +10,6 @@
 #include "rtcp.hh"          // RTCP
 
 #include "clock.hh"         // time related functions
-#include "crypto.hh"        // check if crypto is enabled
 #include "frame.hh"         // frame related functions
 #include "util.hh"          // types
 #include "version.hh"       // version

@@ -1,11 +1,11 @@
 #include "hello.hh"
 
-#include "uvgrtp/crypto.hh"
 #include "uvgrtp/frame.hh"
 #include "uvgrtp/socket.hh"
 
 #include "zrtp_receiver.hh"
-#include "debug.hh"
+#include "../debug.hh"
+#include "../crypto.hh"
 
 #include <cstring>
 

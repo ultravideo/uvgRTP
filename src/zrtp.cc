@@ -1,7 +1,6 @@
 #include "zrtp.hh"
 
 #include "uvgrtp/socket.hh"
-#include "uvgrtp/crypto.hh"
 
 #include "zrtp/commit.hh"
 #include "zrtp/confack.hh"
@@ -10,6 +9,7 @@
 #include "zrtp/hello.hh"
 #include "zrtp/hello_ack.hh"
 
+#include "crypto.hh"
 #include "random.hh"
 #include "debug.hh"
 
