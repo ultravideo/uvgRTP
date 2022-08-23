@@ -36,7 +36,7 @@ namespace uvgrtp {
 
         class media {
             public:
-                media(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp_ctx, int flags);
+                media(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp_ctx, int rce_flags);
                 virtual ~media();
 
                 /* These two functions are called by media_stream which is self is called by the application.
@@ -44,10 +44,10 @@ namespace uvgrtp {
                  * implement if they require more processing than what the default implementation offers
                  *
                  * Return RTP_OK on success */
-                rtp_error_t push_frame(uint8_t *data, size_t data_len, int flags);
-                rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags);
+                rtp_error_t push_frame(uint8_t *data, size_t data_len, int rtp_flags);
+                rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int rtp_flags);
 
-                /* Media-specific packet handler. The default handler, depending on what "flags_" contains,
+                /* Media-specific packet handler. The default handler, depending on what "rce_flags_" contains,
                  * may only return the received RTP packet or it may merge multiple packets together before
                  * returning a complete frame to the user.
                  *
@@ -57,7 +57,7 @@ namespace uvgrtp {
                  * Return RTP_PKT_NOT_HANDLED if the packet is not handled by this handler
                  * Return RTP_PKT_MODIFIED if the packet was modified but should be forwarded to other handlers
                  * Return RTP_GENERIC_ERROR if the packet was corrupted in some way */
-                static rtp_error_t packet_handler(void *arg, int flags, frame::rtp_frame **frame);
+                static rtp_error_t packet_handler(void *arg, int rce_flags, frame::rtp_frame **frame);
 
                 /* Return pointer to the internal frame info structure which is relayed to packet handler */
                 media_frame_info_t *get_media_frame_info();
@@ -65,11 +65,11 @@ namespace uvgrtp {
                 void set_fps(int enumarator, int denominator);
 
             protected:
-                virtual rtp_error_t push_media_frame(uint8_t *data, size_t data_len, int flags);
+                virtual rtp_error_t push_media_frame(uint8_t *data, size_t data_len, int rtp_flags);
 
                 std::shared_ptr<uvgrtp::socket> socket_;
                 std::shared_ptr<uvgrtp::rtp> rtp_ctx_;
-                int flags_;
+                int rce_flags_;
                 std::unique_ptr<uvgrtp::frame_queue> fqueue_;
 
             private:

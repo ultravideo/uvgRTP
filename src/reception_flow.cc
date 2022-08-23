@@ -81,13 +81,13 @@ void uvgrtp::reception_flow::set_buffer_size(const ssize_t& value)
     create_ring_buffer();
 }
 
-rtp_error_t uvgrtp::reception_flow::start(std::shared_ptr<uvgrtp::socket> socket, int flags)
+rtp_error_t uvgrtp::reception_flow::start(std::shared_ptr<uvgrtp::socket> socket, int rce_flags)
 {
     should_stop_ = false;
 
     UVG_LOG_DEBUG("Creating receiving threads and setting priorities");
-    processor_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::reception_flow::process_packet, this, flags));
-    receiver_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::reception_flow::receiver, this, socket, flags));
+    processor_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::reception_flow::process_packet, this, rce_flags));
+    receiver_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::reception_flow::receiver, this, socket, rce_flags));
 
     // set receiver thread priority to maximum
 #ifndef WIN32
@@ -243,12 +243,12 @@ void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
     }
 }
 
-void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int flags, uvgrtp::frame::rtp_frame **frame)
+void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int rce_flags, uvgrtp::frame::rtp_frame **frame)
 {
     rtp_error_t ret;
 
     for (auto& aux : packet_handlers_[key].auxiliary) {
-        switch ((ret = (*aux.handler)(aux.arg, flags, frame))) {
+        switch ((ret = (*aux.handler)(aux.arg, rce_flags, frame))) {
             /* packet was handled successfully */
             case RTP_OK:
                 break;
@@ -282,7 +282,7 @@ void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int flags, uvgrtp::
     }
 
     for (auto& aux : packet_handlers_[key].auxiliary_cpp) {
-        switch ((ret = aux.handler(flags, frame))) {
+        switch ((ret = aux.handler(rce_flags, frame))) {
             
         case RTP_OK: /* packet was handled successfully */
         {
@@ -328,7 +328,7 @@ void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int flags, uvgrtp::
     }
 }
 
-void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, int flags)
+void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, int rce_flags)
 {
     int read_packets = 0;
 
@@ -413,7 +413,7 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, in
     UVG_LOG_DEBUG("Total read packets from buffer: %li", read_packets);
 }
 
-void uvgrtp::reception_flow::process_packet(int flags)
+void uvgrtp::reception_flow::process_packet(int rce_flags)
 {
     std::unique_lock<std::mutex> lk(wait_mtx_);
 
@@ -446,7 +446,7 @@ void uvgrtp::reception_flow::process_packet(int flags)
                     // Here we don't lock ring mutex because the chaging is only done above. 
                     // NOTE: If there is a need for multiple processing threads, the read should be guarded
                     switch ((ret = (*handler.second.primary)(ring_buffer_[ring_read_index_].read,
-                        ring_buffer_[ring_read_index_].data, flags, &frame))) {
+                        ring_buffer_[ring_read_index_].data, rce_flags, &frame))) {
                         case RTP_OK:
                         {
                             // packet was handled successfully
@@ -461,7 +461,7 @@ void uvgrtp::reception_flow::process_packet(int flags)
                         }
                         case RTP_PKT_MODIFIED:
                         {
-                            this->call_aux_handlers(handler.first, flags, &frame);
+                            this->call_aux_handlers(handler.first, rce_flags, &frame);
                             break;
                         }
                         case RTP_GENERIC_ERROR:

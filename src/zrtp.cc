@@ -794,9 +794,11 @@ rtp_error_t uvgrtp::zrtp::get_srtp_keys(
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::zrtp::packet_handler(ssize_t size, void *packet, int flags, frame::rtp_frame **out)
+rtp_error_t uvgrtp::zrtp::packet_handler(ssize_t size, void *packet, int rce_flags, frame::rtp_frame **out)
 {
-    (void)size, (void)flags, (void)out;
+    (void)size; // TODO: Check this
+    (void)rce_flags;
+    (void)out;
 
     auto msg = (uvgrtp::zrtp_msg::zrtp_msg *)packet;
 

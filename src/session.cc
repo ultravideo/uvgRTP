@@ -31,26 +31,26 @@ uvgrtp::session::~session()
     streams_.clear();
 }
 
-uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp_format_t fmt, int flags)
+uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp_format_t fmt, int rce_flags)
 {
     std::lock_guard<std::mutex> m(session_mtx_);
 
     uvgrtp::media_stream *stream = nullptr;
 
-    if (flags & RCE_SYSTEM_CALL_DISPATCHER) {
+    if (rce_flags & RCE_SYSTEM_CALL_DISPATCHER) {
         UVG_LOG_ERROR("SCD is no longer supported!");
         rtp_errno = RTP_NOT_SUPPORTED;
         return nullptr;
     }
 
     if (laddr_ == "") {
-        stream = new uvgrtp::media_stream(cname_, addr_, r_port, s_port, fmt, flags);
+        stream = new uvgrtp::media_stream(cname_, addr_, r_port, s_port, fmt, rce_flags);
     }
     else {
-        stream = new uvgrtp::media_stream(cname_, addr_, laddr_, r_port, s_port, fmt, flags);
+        stream = new uvgrtp::media_stream(cname_, addr_, laddr_, r_port, s_port, fmt, rce_flags);
     }
 
-    if (flags & RCE_SRTP) {
+    if (rce_flags & RCE_SRTP) {
         if (!uvgrtp::crypto::enabled()) {
             UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
             delete stream;
@@ -58,12 +58,12 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
             return nullptr;
         }
 
-        if (flags & RCE_SRTP_REPLAY_PROTECTION)
-            flags |= RCE_SRTP_AUTHENTICATE_RTP;
+        if (rce_flags & RCE_SRTP_REPLAY_PROTECTION)
+            rce_flags |= RCE_SRTP_AUTHENTICATE_RTP;
 
-        if (flags & RCE_SRTP_KMNGMNT_ZRTP) {
+        if (rce_flags & RCE_SRTP_KMNGMNT_ZRTP) {
 
-            if (flags & (RCE_SRTP_KEYSIZE_192 | RCE_SRTP_KEYSIZE_256)) {
+            if (rce_flags & (RCE_SRTP_KEYSIZE_192 | RCE_SRTP_KEYSIZE_256)) {
                 UVG_LOG_ERROR("Only 128-bit keys are supported with ZRTP");
                 return nullptr;
             }
@@ -76,7 +76,7 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp
                 UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", addr_.c_str(), r_port, s_port);
                 return nullptr;
             }
-        } else if (flags & RCE_SRTP_KMNGMNT_USER) {
+        } else if (rce_flags & RCE_SRTP_KMNGMNT_USER) {
             UVG_LOG_DEBUG("SRTP with user-managed keys enabled, postpone initialization");
         } else {
             UVG_LOG_ERROR("SRTP key management scheme not specified!");

@@ -92,7 +92,7 @@ namespace uvgrtp {
         uint16_t s_l = 0;    /* highest received sequence number */
         uint8_t *replay = nullptr; /* list of recently received and authenticated SRTP packets */
 
-        int flags = 0; /* context configuration flags */
+        int rce_flags = 0; /* context configuration flags */
     } srtp_ctx_t;
 
     class base_srtp {
@@ -108,7 +108,7 @@ namespace uvgrtp {
              * Return RTP_OK if SRTP setup was successful
              * Return RTP_INVALID_VALUE if "key" or "salt" is nullptr
              * Return RTP_MEMORY allocation failed */
-            rtp_error_t init(int type, int flags, uint8_t *local_key, uint8_t *remote_key,
+            rtp_error_t init(int type, int rce_flags, uint8_t *local_key, uint8_t *remote_key,
                              uint8_t *local_salt, uint8_t *remote_salt);
 
             /* Has RTP packet encryption been disabled? */
@@ -122,7 +122,7 @@ namespace uvgrtp {
              * Returns false if replay protection has not been enabled */
             bool is_replayed_packet(uint8_t *digest);
 
-            size_t get_key_size(int flags) const;
+            size_t get_key_size(int rce_flags) const;
 
         protected:
 
@@ -142,7 +142,7 @@ namespace uvgrtp {
 
         private:
 
-            rtp_error_t init_srtp_context(std::shared_ptr<srtp_ctx_t> context, int type, int flags, 
+            rtp_error_t init_srtp_context(std::shared_ptr<srtp_ctx_t> context, int type, int rce_flags,
                 uint8_t* key, uint8_t* salt);
 
             rtp_error_t derive_key(int label, size_t key_size, uint8_t *key, uint8_t *salt, uint8_t *out, size_t len);

@@ -5,18 +5,18 @@
 #include "debug.hh"
 
 
-size_t uvgrtp::get_sr_packet_size(int flags, uint16_t reports)
+size_t uvgrtp::get_sr_packet_size(int rce_flags, uint16_t reports)
 {
     /* Sender report is otherwise identical with receiver report, 
      * but it also includes sender info */
-    return get_rr_packet_size(flags, reports) + SENDER_INFO_SIZE;
+    return get_rr_packet_size(rce_flags, reports) + SENDER_INFO_SIZE;
 }
 
-size_t uvgrtp::get_rr_packet_size(int flags, uint16_t reports)
+size_t uvgrtp::get_rr_packet_size(int rce_flags, uint16_t reports)
 {
     size_t size = (size_t)RTCP_HEADER_SIZE + SSRC_CSRC_SIZE 
         + (size_t)REPORT_BLOCK_SIZE * reports;
-    if (flags & RCE_SRTP)
+    if (rce_flags & RCE_SRTP)
     {
         size += UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH;
     }

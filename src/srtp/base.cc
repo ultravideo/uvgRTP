@@ -76,7 +76,7 @@ rtp_error_t uvgrtp::base_srtp::create_iv(uint8_t *out, uint32_t ssrc, uint64_t i
 
 bool uvgrtp::base_srtp::is_replayed_packet(uint8_t *digest)
 {
-    if (!(remote_srtp_ctx_->flags & RCE_SRTP_REPLAY_PROTECTION))
+    if (!(remote_srtp_ctx_->rce_flags & RCE_SRTP_REPLAY_PROTECTION))
         return false;
 
     uint64_t truncated;
@@ -91,36 +91,36 @@ bool uvgrtp::base_srtp::is_replayed_packet(uint8_t *digest)
     return false;
 }
 
-rtp_error_t uvgrtp::base_srtp::init(int type, int flags, uint8_t* local_key, uint8_t* remote_key,
+rtp_error_t uvgrtp::base_srtp::init(int type, int rce_flags, uint8_t* local_key, uint8_t* remote_key,
                                     uint8_t* local_salt, uint8_t* remote_salt)
 {
     if (!local_key || !remote_key || !local_salt || !remote_salt)
         return RTP_INVALID_VALUE;
 
-    use_null_cipher_ = (flags & RCE_SRTP_NULL_CIPHER);
+    use_null_cipher_ = (rce_flags & RCE_SRTP_NULL_CIPHER);
 
-    init_srtp_context(local_srtp_ctx_,  type, flags, local_key,  local_salt);
-    init_srtp_context(remote_srtp_ctx_, type, flags, remote_key, remote_salt);
+    init_srtp_context(local_srtp_ctx_,  type, rce_flags, local_key,  local_salt);
+    init_srtp_context(remote_srtp_ctx_, type, rce_flags, remote_key, remote_salt);
 
     return RTP_OK;
 }
 
-size_t uvgrtp::base_srtp::get_key_size(int flags) const
+size_t uvgrtp::base_srtp::get_key_size(int rce_flags) const
 {
     size_t key_size = AES128_KEY_SIZE;
 
-    if (!(flags & RCE_SRTP_KMNGMNT_ZRTP))
+    if (!(rce_flags & RCE_SRTP_KMNGMNT_ZRTP))
     {
-        if (flags & RCE_SRTP_KEYSIZE_192)
+        if (rce_flags & RCE_SRTP_KEYSIZE_192)
             key_size = AES192_KEY_SIZE;
-        else if (flags & RCE_SRTP_KEYSIZE_256)
+        else if (rce_flags & RCE_SRTP_KEYSIZE_256)
             key_size = AES256_KEY_SIZE;
     }
 
     return key_size;
 }
 
-rtp_error_t uvgrtp::base_srtp::init_srtp_context(std::shared_ptr<uvgrtp::srtp_ctx_t> context, int type, int flags,
+rtp_error_t uvgrtp::base_srtp::init_srtp_context(std::shared_ptr<uvgrtp::srtp_ctx_t> context, int type, int rce_flags,
     uint8_t* key, uint8_t* salt)
 {
     context->roc = 0;
@@ -128,7 +128,7 @@ rtp_error_t uvgrtp::base_srtp::init_srtp_context(std::shared_ptr<uvgrtp::srtp_ct
     context->type = type;
     context->hmac = HMAC_SHA1;
 
-    size_t key_size = get_key_size(flags);
+    size_t key_size = get_key_size(rce_flags);
 
     switch (key_size) {
     case AES128_KEY_SIZE:
@@ -154,7 +154,7 @@ rtp_error_t uvgrtp::base_srtp::init_srtp_context(std::shared_ptr<uvgrtp::srtp_ct
 
     context->s_l = 0;
     context->replay = nullptr;
-    context->flags = flags;
+    context->rce_flags = rce_flags;
 
     int label_enc = 0;
     int label_auth = 0;

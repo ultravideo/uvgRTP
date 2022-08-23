@@ -13,8 +13,8 @@ namespace uvgrtp
     const uint16_t REPORT_BLOCK_SIZE = 24;
     const uint16_t APP_NAME_SIZE = 4;
 
-    size_t get_sr_packet_size(int flags, uint16_t reports);
-    size_t get_rr_packet_size(int flags, uint16_t reports);
+    size_t get_sr_packet_size(int rce_flags, uint16_t reports);
+    size_t get_rr_packet_size(int rce_flags, uint16_t reports);
     size_t get_sdes_packet_size(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
     size_t get_app_packet_size(size_t payload_len);
     size_t get_bye_packet_size(const std::vector<uint32_t>& ssrcs);

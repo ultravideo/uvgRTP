@@ -38,12 +38,12 @@ namespace uvgrtp {
              * for uvgrtp::media_stream for more details.
              *
              * User can enable and disable functionality of uvgRTP by OR'ing RCE_* flags
-             * together and passing them using the flags parameter
+             * together and passing them using the rce_flags parameter
              *
              * \param src_port Local port that uvgRTP listens to for incoming RTP packets
              * \param dst_port Remote port where uvgRTP sends RTP packets
              * \param fmt      Format of the media stream. see ::RTP_FORMAT for more details
-             * \param flags    RTP context enable flags, see ::RTP_CTX_ENABLE_FLAGS for more details
+             * \param rce_flags    RTP context enable flags, see ::RTP_CTX_ENABLE_FLAGS for more details
              *
              * \return RTP media stream object
              *
@@ -56,7 +56,7 @@ namespace uvgrtp {
              * \retval nullptr                 If RCE_SRTP is given but RCE_SRTP_KMNGMNT_* flag is not given
              * \retval nullptr                 If memory allocation failed
              */
-            uvgrtp::media_stream *create_stream(int src_port, int dst_port, rtp_format_t fmt, int flags);
+            uvgrtp::media_stream *create_stream(int src_port, int dst_port, rtp_format_t fmt, int rce_flags);
 
             /**
              * \brief Destroy a media stream

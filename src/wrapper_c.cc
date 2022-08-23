@@ -43,11 +43,12 @@ uvgrtp_destroy_session(void* uvgrtp_context, void* uvgrtp_session)
 }
 
 void
-uvgrtp_create_stream(void* uvgrtp_session, void** uvgrtp_stream, uint16_t local_port, uint16_t remote_port, int flags)
+uvgrtp_create_stream(void* uvgrtp_session, void** uvgrtp_stream, uint16_t local_port, uint16_t remote_port, 
+    int rce_flags)
 {
     rtp_format_t fmt = RTP_FORMAT_H265;
     uvgrtp::session* uvg_sess_ptr = (uvgrtp::session*)uvgrtp_session;
-    uvgrtp::media_stream *stream = uvg_sess_ptr->create_stream(local_port, remote_port, fmt, flags);
+    uvgrtp::media_stream *stream = uvg_sess_ptr->create_stream(local_port, remote_port, fmt, rce_flags);
     *uvgrtp_stream = stream;
 }
 
@@ -60,8 +61,8 @@ uvgrtp_destroy_stream(void* uvgrtp_session, void* uvgrtp_stream)
 }
 
 void
-uvgrtp_push_frame(void* uvgrtp_stream, uint8_t* data, size_t data_len, int flags)
+uvgrtp_push_frame(void* uvgrtp_stream, uint8_t* data, size_t data_len, int rtp_flags)
 {
     uvgrtp::media_stream* uvg_stream_ptr = (uvgrtp::media_stream*)uvgrtp_stream;
-    uvg_stream_ptr->push_frame(data, data_len, flags);
+    uvg_stream_ptr->push_frame(data, data_len, rtp_flags);
 }

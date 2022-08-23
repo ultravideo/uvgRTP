@@ -82,8 +82,8 @@ static inline unsigned __find_h26x_start(uint32_t value,bool& additional_byte)
     return 0;
 }
 
-uvgrtp::formats::h26x::h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags) :
-    media(socket, rtp, flags), 
+uvgrtp::formats::h26x::h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int rce_flags) :
+    media(socket, rtp, rce_flags),
     queued_(), 
     frames_(), 
     fragments_(UINT16_MAX + 1, nullptr),
@@ -276,7 +276,7 @@ rtp_error_t uvgrtp::formats::h26x::frame_getter(uvgrtp::frame::rtp_frame** frame
     return RTP_NOT_FOUND;
 }
 
-rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_len, int flags)
+rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_len, int rtp_flags)
 {
     rtp_error_t ret = RTP_OK;
 
@@ -294,7 +294,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
     std::vector<nal_info> nals;
     bool should_aggregate = false;
 
-    if (flags & RTP_NO_H26X_SCL) {
+    if (rtp_flags & RTP_NO_H26X_SCL) {
         nal_info nal;
         nal.offset = 0;
         nal.prefix_len = 0;
@@ -478,9 +478,9 @@ uvgrtp::frame::rtp_frame* uvgrtp::formats::h26x::allocate_rtp_frame_with_startco
     return complete;
 }
 
-void uvgrtp::formats::h26x::prepend_start_code(int flags, uvgrtp::frame::rtp_frame** out)
+void uvgrtp::formats::h26x::prepend_start_code(int rce_flags, uvgrtp::frame::rtp_frame** out)
 {
-    if (flags & RCE_H26X_PREPEND_SC) {
+    if (rce_flags & RCE_H26X_PREPEND_SC) {
         uint8_t* pl = new uint8_t[(*out)->payload_len + 4];
 
         pl[0] = 0;
@@ -533,7 +533,7 @@ uint32_t uvgrtp::formats::h26x::drop_frame(uint32_t ts)
 }
 
 rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, 
-    uint8_t payload_header_size, int flags)
+    uint8_t payload_header_size, int rce_flags)
 {
     uvgrtp::buf_vec nalus;
 
@@ -557,8 +557,10 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_
 
     for (size_t i = 0; i < nalus.size(); ++i) {
         size_t fptr = 0;
+
+        bool prepend_startcode = rce_flags & RCE_H26X_PREPEND_SC;
         uvgrtp::frame::rtp_frame* retframe = 
-            allocate_rtp_frame_with_startcode(flags, (*out)->header, nalus[i].first, fptr);
+            allocate_rtp_frame_with_startcode(prepend_startcode, (*out)->header, nalus[i].first, fptr);
         
         std::memcpy(
             retframe->payload + fptr,
@@ -572,7 +574,7 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_
     return RTP_MULTIPLE_PKTS_READY;
 }
 
-rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_frame** out)
+rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::rtp_frame** out)
 {
     uvgrtp::frame::rtp_frame* frame = *out;
 
@@ -596,7 +598,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
     if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_AGGR) {
 
         // handle aggregate packets (packets with multiple NAL units in them)
-        return handle_aggregation_packet(out, get_payload_header_size(), flags);
+        return handle_aggregation_packet(out, get_payload_header_size(), rce_flags);
     }
     else if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_NOT_FRAG) { // Single NAL unit
 
@@ -604,7 +606,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         completed_ts_[frame->header.timestamp] = std::chrono::high_resolution_clock::now();
 
         // nothing special needs to be done, just possibly add start codes back
-        prepend_start_code(flags, out);
+        prepend_start_code(rce_flags, out);
         return RTP_PKT_READY;
     }
     else if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_INVALID) {
@@ -681,7 +683,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
         // have we received every fragment and can the frame can be reconstructed?
         if (received == frames_[fragment_ts].received_packet_seqs.size()) {
 
-            bool enable_reference_discarding = (flags & RCE_H26X_DEPENDENCY_ENFORCEMENT);
+            bool enable_reference_discarding = (rce_flags & RCE_H26X_DEPENDENCY_ENFORCEMENT);
             // here we discard inter frames if their references were not received correctly
             if (discard_until_key_frame_ && enable_reference_discarding) {
                 if (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTER) {
@@ -699,7 +701,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int flags, uvgrtp::frame::rtp_
                 }
             }
 
-            return reconstruction(out, flags, fragment_ts, sizeof_fu_headers);
+            return reconstruction(out, rce_flags, fragment_ts, sizeof_fu_headers);
         }
     }
 
@@ -865,7 +867,7 @@ void uvgrtp::formats::h26x::scl(uint8_t* data, size_t data_len, size_t packet_si
 }
 
 rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out, 
-    int flags, uint32_t frame_timestamp, const uint8_t sizeof_fu_headers)
+    int rce_flags, uint32_t frame_timestamp, const uint8_t sizeof_fu_headers)
 {
     uvgrtp::frame::rtp_frame* frame = *out;
 
@@ -876,7 +878,7 @@ rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out
     size_t fptr = 0;
 
     // allocating the frame with start code ready saves a copy operation for the frame
-    uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode((flags & RCE_H26X_PREPEND_SC),
+    uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode((rce_flags & RCE_H26X_PREPEND_SC),
         frame->header, get_nal_header_size() + frames_[frame_timestamp].total_size, fptr);
 
     // construct the NAL header from fragment header of current fragment

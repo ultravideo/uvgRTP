@@ -28,9 +28,9 @@ using namespace mingw;
 
 #define WSABUF_SIZE 256
 
-uvgrtp::socket::socket(int flags):
+uvgrtp::socket::socket(int rce_flags):
     socket_(-1),
-    flags_(flags)
+    rce_flags_(rce_flags)
 {}
 
 uvgrtp::socket::~socket()
@@ -153,12 +153,12 @@ rtp_error_t uvgrtp::socket::install_handler(void *arg, packet_handler_vec handle
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
+rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent)
 {
     int nsend = 0;
 
 #ifndef _WIN32
-    if ((nsend = ::sendto(socket_, buf, buf_len, flags, (const struct sockaddr *)&addr, sizeof(addr_))) == -1) {
+    if ((nsend = ::sendto(socket_, buf, buf_len, send_flags, (const struct sockaddr *)&addr, sizeof(addr_))) == -1) {
         UVG_LOG_ERROR("Failed to send data: %s", strerror(errno));
 
         if (bytes_sent)
@@ -172,7 +172,7 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf
     data_buf.buf = (char *)buf;
     data_buf.len = (ULONG)buf_len;
 
-    if (WSASendTo(socket_, &data_buf, 1, &sent_bytes, flags, (const struct sockaddr *)&addr, sizeof(addr_), nullptr, nullptr) == -1) {
+    if (WSASendTo(socket_, &data_buf, 1, &sent_bytes, send_flags, (const struct sockaddr *)&addr, sizeof(addr_), nullptr, nullptr) == -1) {
         win_get_last_error();
 
         if (bytes_sent)
@@ -192,30 +192,30 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags)
+rtp_error_t uvgrtp::socket::sendto(uint8_t *buf, size_t buf_len, int send_flags)
 {
-    return __sendto(addr_, buf, buf_len, flags, nullptr);
+    return __sendto(addr_, buf, buf_len, send_flags, nullptr);
 }
 
-rtp_error_t uvgrtp::socket::sendto(uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
+rtp_error_t uvgrtp::socket::sendto(uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent)
 {
-    return __sendto(addr_, buf, buf_len, flags, bytes_sent);
+    return __sendto(addr_, buf, buf_len, send_flags, bytes_sent);
 }
 
-rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent)
+rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent)
 {
-    return __sendto(addr, buf, buf_len, flags, bytes_sent);
+    return __sendto(addr, buf, buf_len, send_flags, bytes_sent);
 }
 
-rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags)
+rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int send_flags)
 {
-    return __sendto(addr, buf, buf_len, flags, nullptr);
+    return __sendto(addr, buf, buf_len, send_flags, nullptr);
 }
 
 rtp_error_t uvgrtp::socket::__sendtov(
     sockaddr_in& addr,
     uvgrtp::buf_vec& buffers,
-    int flags, int *bytes_sent
+    int send_flags, int *bytes_sent
 )
 {
 #ifndef _WIN32
@@ -235,7 +235,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
     header_.msg_hdr.msg_control    = 0;
     header_.msg_hdr.msg_controllen = 0;
 
-    if (sendmmsg(socket_, &header_, 1, flags) < 0) {
+    if (sendmmsg(socket_, &header_, 1, send_flags) < 0) {
         UVG_LOG_ERROR("Failed to send RTP frame: %s!", strerror(errno));
         set_bytes(bytes_sent, -1);
         return RTP_SEND_ERROR;
@@ -256,7 +256,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
         buffers_[i].buf = (char *)buffers.at(i).second;
     }
 
-    if (WSASendTo(socket_, buffers_, (DWORD)buffers.size(), &sent_bytes, flags, 
+    if (WSASendTo(socket_, buffers_, (DWORD)buffers.size(), &sent_bytes, send_flags,
                   (SOCKADDR *)&addr, sizeof(addr_), nullptr, nullptr) == -1) {
         win_get_last_error();
 
@@ -275,7 +275,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int flags)
+rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int send_flags)
 {
     rtp_error_t ret = RTP_OK;
 
@@ -286,10 +286,10 @@ rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int flags)
         }
     }
 
-    return __sendtov(addr_, buffers, flags, nullptr);
+    return __sendtov(addr_, buffers, send_flags, nullptr);
 }
 
-rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int flags, int *bytes_sent)
+rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int send_flags, int *bytes_sent)
 {
     rtp_error_t ret = RTP_OK;
 
@@ -300,10 +300,10 @@ rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int flags, int *bytes_sent)
         }
     }
 
-    return __sendtov(addr_, buffers, flags, bytes_sent);
+    return __sendtov(addr_, buffers, send_flags, bytes_sent);
 }
 
-rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, buf_vec& buffers, int flags)
+rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, buf_vec& buffers, int send_flags)
 {
     rtp_error_t ret = RTP_OK;
 
@@ -314,13 +314,13 @@ rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, buf_vec& buffers, int flag
         }
     }
 
-    return __sendtov(addr, buffers, flags, nullptr);
+    return __sendtov(addr, buffers, send_flags, nullptr);
 }
 
 rtp_error_t uvgrtp::socket::sendto(
     sockaddr_in& addr,
     buf_vec& buffers,
-    int flags, int *bytes_sent
+    int send_flags, int *bytes_sent
 )
 {
     rtp_error_t ret = RTP_OK;
@@ -332,13 +332,13 @@ rtp_error_t uvgrtp::socket::sendto(
         }
     }
 
-    return __sendtov(addr, buffers, flags, bytes_sent);
+    return __sendtov(addr, buffers, send_flags, bytes_sent);
 }
 
 rtp_error_t uvgrtp::socket::__sendtov(
     sockaddr_in& addr,
     uvgrtp::pkt_vec& buffers,
-    int flags, int *bytes_sent
+    int send_flags, int *bytes_sent
 )
 {
 #ifndef _WIN32
@@ -361,11 +361,11 @@ rtp_error_t uvgrtp::socket::__sendtov(
         }
     }
 
-    ssize_t npkts = (flags_ & RCE_NO_SYSTEM_CALL_CLUSTERING) ? 1 : 1024;
+    ssize_t npkts = (rce_flags_ & RCE_NO_SYSTEM_CALL_CLUSTERING) ? 1 : 1024;
     ssize_t bptr  = buffers.size();
 
     while (bptr > npkts) {
-        if (sendmmsg(socket_, hptr, npkts, flags) < 0) {
+        if (sendmmsg(socket_, hptr, npkts, send_flags) < 0) {
             log_platform_error("sendmmsg(2) failed");
             return RTP_SEND_ERROR;
         }
@@ -374,7 +374,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
         hptr += npkts;
     }
 
-    if (sendmmsg(socket_, hptr, bptr, flags) < 0) {
+    if (sendmmsg(socket_, hptr, bptr, send_flags) < 0) {
         log_platform_error("sendmmsg(2) failed");
         return RTP_SEND_ERROR;
     }
@@ -406,7 +406,7 @@ send_:
             wsa_bufs,
             (DWORD)buffer.size(),
             &sent_bytes,
-            flags,
+            send_flags,
             (SOCKADDR *)&addr,
             sizeof(addr_),
             nullptr,
@@ -441,7 +441,7 @@ send_:
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int flags)
+rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int send_flags)
 {
     rtp_error_t ret = RTP_OK;
 
@@ -454,10 +454,10 @@ rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int flags)
         }
     }
 
-    return __sendtov(addr_, buffers, flags, nullptr);
+    return __sendtov(addr_, buffers, send_flags, nullptr);
 }
 
-rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int flags, int *bytes_sent)
+rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int send_flags, int *bytes_sent)
 {
     rtp_error_t ret = RTP_OK;
 
@@ -470,10 +470,10 @@ rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int flags, int *bytes_sent)
         }
     }
 
-    return __sendtov(addr_, buffers, flags, bytes_sent);
+    return __sendtov(addr_, buffers, send_flags, bytes_sent);
 }
 
-rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int flags)
+rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int send_flags)
 {
     rtp_error_t ret = RTP_OK;
 
@@ -486,10 +486,10 @@ rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int flag
         }
     }
 
-    return __sendtov(addr, buffers, flags, nullptr);
+    return __sendtov(addr, buffers, send_flags, nullptr);
 }
 
-rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int flags, int *bytes_sent)
+rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int send_flags, int *bytes_sent)
 {
     rtp_error_t ret = RTP_OK;
 
@@ -502,10 +502,10 @@ rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int flag
         }
     }
 
-    return __sendtov(addr, buffers, flags, bytes_sent);
+    return __sendtov(addr, buffers, send_flags, bytes_sent);
 }
 
-rtp_error_t uvgrtp::socket::__recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
+rtp_error_t uvgrtp::socket::__recv(uint8_t *buf, size_t buf_len, int recv_flags, int *bytes_read)
 {
     if (!buf || !buf_len) {
         set_bytes(bytes_read, -1);
@@ -513,7 +513,7 @@ rtp_error_t uvgrtp::socket::__recv(uint8_t *buf, size_t buf_len, int flags, int 
     }
 
 #ifndef _WIN32
-    int32_t ret = ::recv(socket_, buf, buf_len, flags);
+    int32_t ret = ::recv(socket_, buf, buf_len, recv_flags);
 
     if (ret == -1) {
         if (errno == EAGAIN || errno == EINTR) {
@@ -532,9 +532,10 @@ rtp_error_t uvgrtp::socket::__recv(uint8_t *buf, size_t buf_len, int flags, int 
     WSABUF DataBuf;
     DataBuf.len = (u_long)buf_len;
     DataBuf.buf = (char *)buf;
-    DWORD bytes_received, flags_ = 0;
+    DWORD bytes_received = 0; 
+    DWORD d_recv_flags = 0;
 
-    int rc = ::WSARecv(socket_, &DataBuf, 1, &bytes_received, &flags_, NULL, NULL);
+    int rc = ::WSARecv(socket_, &DataBuf, 1, &bytes_received, &d_recv_flags, NULL, NULL);
     if (rc == SOCKET_ERROR) {
         int err = WSAGetLastError();
         if (err == WSA_IO_PENDING || err == WSAEWOULDBLOCK) {
@@ -557,17 +558,17 @@ rtp_error_t uvgrtp::socket::__recv(uint8_t *buf, size_t buf_len, int flags, int 
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::socket::recv(uint8_t *buf, size_t buf_len, int flags)
+rtp_error_t uvgrtp::socket::recv(uint8_t *buf, size_t buf_len, int recv_flags)
 {
-    return uvgrtp::socket::__recv(buf, buf_len, flags, nullptr);
+    return uvgrtp::socket::__recv(buf, buf_len, recv_flags, nullptr);
 }
 
-rtp_error_t uvgrtp::socket::recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
+rtp_error_t uvgrtp::socket::recv(uint8_t *buf, size_t buf_len, int recv_flags, int *bytes_read)
 {
-    return uvgrtp::socket::__recv(buf, buf_len, flags, bytes_read);
+    return uvgrtp::socket::__recv(buf, buf_len, recv_flags, bytes_read);
 }
 
-rtp_error_t uvgrtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read)
+rtp_error_t uvgrtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender, int *bytes_read)
 {
     socklen_t *len_ptr = nullptr;
     socklen_t len      = sizeof(sockaddr_in);
@@ -576,7 +577,7 @@ rtp_error_t uvgrtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags, 
         len_ptr = &len;
 
 #ifndef _WIN32
-    int32_t ret = ::recvfrom(socket_, buf, buf_len, flags, (struct sockaddr *)sender, len_ptr);
+    int32_t ret = ::recvfrom(socket_, buf, buf_len, recv_flags, (struct sockaddr *)sender, len_ptr);
 
     if (ret == -1) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -594,9 +595,10 @@ rtp_error_t uvgrtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags, 
     WSABUF DataBuf;
     DataBuf.len = (u_long)buf_len;
     DataBuf.buf = (char *)buf;
-    DWORD bytes_received, flags_ = 0;
+    DWORD bytes_received = 0;
+    DWORD d_recv_flags = 0;
 
-    int rc = ::WSARecvFrom(socket_, &DataBuf, 1, &bytes_received, &flags_, (SOCKADDR *)sender, (int *)len_ptr, NULL, NULL);
+    int rc = ::WSARecvFrom(socket_, &DataBuf, 1, &bytes_received, &d_recv_flags, (SOCKADDR *)sender, (int *)len_ptr, NULL, NULL);
 
     if (WSAGetLastError() == WSAEWOULDBLOCK)
         return RTP_INTERRUPTED;
@@ -618,24 +620,24 @@ rtp_error_t uvgrtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int flags, 
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read)
+rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender, int *bytes_read)
 {
-    return __recvfrom(buf, buf_len, flags, sender, bytes_read);
+    return __recvfrom(buf, buf_len, recv_flags, sender, bytes_read);
 }
 
-rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, int *bytes_read)
+rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, int *bytes_read)
 {
-    return __recvfrom(buf, buf_len, flags, nullptr, bytes_read);
+    return __recvfrom(buf, buf_len, recv_flags, nullptr, bytes_read);
 }
 
-rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender)
+rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender)
 {
-    return __recvfrom(buf, buf_len, flags, sender, nullptr);
+    return __recvfrom(buf, buf_len, recv_flags, sender, nullptr);
 }
 
-rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int flags)
+rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int recv_flags)
 {
-    return __recvfrom(buf, buf_len, flags, nullptr, nullptr);
+    return __recvfrom(buf, buf_len, recv_flags, nullptr, nullptr);
 }
 
 sockaddr_in& uvgrtp::socket::get_out_address()

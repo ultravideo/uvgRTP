@@ -77,7 +77,7 @@ namespace uvgrtp {
 
     class frame_queue {
         public:
-            frame_queue(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags);
+            frame_queue(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int rce_flags);
             ~frame_queue();
 
             rtp_error_t init_transaction();
@@ -176,8 +176,7 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::rtp> rtp_;
             std::shared_ptr<uvgrtp::socket> socket_;
 
-            /* RTP context flags */
-            int flags_;
+            int rce_flags_;
 
             bool fps = false;
             std::chrono::nanoseconds frame_interval_;

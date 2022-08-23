@@ -22,13 +22,13 @@
 #endif
 
 
-uvgrtp::frame_queue::frame_queue(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags):
+uvgrtp::frame_queue::frame_queue(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int rce_flags):
     active_(nullptr),
     max_mcount_(MAX_MSG_COUNT),
     max_ccount_(MAX_CHUNK_COUNT* max_mcount_),
     rtp_(rtp), 
     socket_(socket),
-    flags_(flags),
+    rce_flags_(rce_flags),
     frame_interval_(),
     fps_sync_point_(),
     frames_since_sync_(0)
@@ -86,7 +86,7 @@ rtp_error_t uvgrtp::frame_queue::init_transaction()
     active_->data_smart   = nullptr;
     active_->dealloc_hook = dealloc_hook_;
 
-    if (flags_ & RCE_SRTP_AUTHENTICATE_RTP)
+    if (rce_flags_ & RCE_SRTP_AUTHENTICATE_RTP)
         active_->rtp_auth_tags = new uint8_t[10 * max_mcount_];
     else
         active_->rtp_auth_tags = nullptr;
@@ -208,7 +208,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(uint8_t *message, size_t messag
 
     /* If SRTP with proper encryption has been enabled but
      * RCE_SRTP_INPLACE_ENCRYPTION has **not** been enabled, make a copy of the memory block*/
-    if ((flags_ & (RCE_SRTP | RCE_SRTP_INPLACE_ENCRYPTION | RCE_SRTP_NULL_CIPHER)) == RCE_SRTP)
+    if ((rce_flags_ & (RCE_SRTP | RCE_SRTP_INPLACE_ENCRYPTION | RCE_SRTP_NULL_CIPHER)) == RCE_SRTP)
         message = (uint8_t *)memdup(message, message_len);
 
     tmp.push_back({ message_len, message });
@@ -243,7 +243,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(buf_vec& buffers)
 
     /* If SRTP with proper encryption is used and there are more than one buffer,
      * frame queue must be a copy of the input and ... */
-    if ((flags_ & RCE_SRTP) && !(flags_ & RCE_SRTP_NULL_CIPHER) && buffers.size() > 1) {
+    if ((rce_flags_ & RCE_SRTP) && !(rce_flags_ & RCE_SRTP_NULL_CIPHER) && buffers.size() > 1) {
         
         size_t total = 0;
 
@@ -376,7 +376,7 @@ void uvgrtp::frame_queue::install_dealloc_hook(void (*dealloc_hook)(void *))
 
 void uvgrtp::frame_queue::enqueue_finalize(uvgrtp::buf_vec& tmp)
 {
-    if (flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
+    if (rce_flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
         tmp.push_back({
             UVG_AUTH_TAG_LENGTH,
             (uint8_t*)&active_->rtp_auth_tags[10 * active_->rtpauth_ptr++]

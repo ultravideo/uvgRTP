@@ -12,8 +12,8 @@
 
 #define MAX_OFF 10000
 
-uvgrtp::srtp::srtp(int flags):base_srtp(),
-      authenticate_rtp_(flags & RCE_SRTP_AUTHENTICATE_RTP)
+uvgrtp::srtp::srtp(int rce_flags):base_srtp(),
+      authenticate_rtp_(rce_flags& RCE_SRTP_AUTHENTICATE_RTP)
 {}
 
 uvgrtp::srtp::~srtp()
@@ -45,9 +45,9 @@ rtp_error_t uvgrtp::srtp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, 
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_frame **out)
+rtp_error_t uvgrtp::srtp::recv_packet_handler(void *arg, int rce_flags, frame::rtp_frame **out)
 {
-    (void)flags;
+    (void)rce_flags;
 
     auto srtp  = (uvgrtp::srtp *)arg;
     auto remote_ctx   = srtp->get_remote_ctx();

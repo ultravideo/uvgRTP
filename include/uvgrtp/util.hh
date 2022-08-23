@@ -305,7 +305,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
 
 /* see src/util.hh for more information */
 typedef struct rtp_ctx_conf {
-    int flags = 0;
+    int rce_flags = 0;
     ssize_t ctx_values[RCC_LAST];
 } rtp_ctx_conf_t;
 

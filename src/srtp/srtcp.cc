@@ -16,14 +16,14 @@ uvgrtp::srtcp::~srtcp()
 {
 }
 
-rtp_error_t uvgrtp::srtcp::handle_rtcp_encryption(int flags, uint64_t packet_number, 
+rtp_error_t uvgrtp::srtcp::handle_rtcp_encryption(int rce_flags, uint64_t packet_number,
     uint32_t ssrc, uint8_t* frame, size_t frame_size)
 {
     auto ret = RTP_OK;
 
     /* Encrypt the packet if NULL cipher has not been enabled,
      * calculate authentication tag for the packet and add SRTCP index at the end */
-    if (flags & RCE_SRTP) {
+    if (rce_flags & RCE_SRTP) {
         if (!(RCE_SRTP & RCE_SRTP_NULL_CIPHER)) {
             ret = encrypt(ssrc, packet_number, &frame[8], 
                 frame_size - 8 - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH);
@@ -42,19 +42,19 @@ rtp_error_t uvgrtp::srtcp::handle_rtcp_encryption(int flags, uint64_t packet_num
     return ret;
 }
 
-rtp_error_t uvgrtp::srtcp::handle_rtcp_decryption(int flags, uint32_t ssrc, 
+rtp_error_t uvgrtp::srtcp::handle_rtcp_decryption(int rce_flags, uint32_t ssrc,
     uint8_t* packet, size_t packet_size)
 {
     auto ret = RTP_OK;
     auto srtpi = (*(uint32_t*)&packet[packet_size - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH]);
 
-    if (flags & RCE_SRTP) {
+    if (rce_flags & RCE_SRTP) {
         if ((ret = verify_auth_tag(packet, packet_size)) != RTP_OK) {
             UVG_LOG_ERROR("Failed to verify RTCP authentication tag!");
             return RTP_AUTH_TAG_MISMATCH;
         }
 
-        if (((srtpi >> 31) & 0x1) && !(flags & RCE_SRTP_NULL_CIPHER)) {
+        if (((srtpi >> 31) & 0x1) && !(rce_flags & RCE_SRTP_NULL_CIPHER)) {
             if (decrypt(ssrc, srtpi & 0x7fffffff, packet, packet_size) != RTP_OK) {
                 UVG_LOG_ERROR("Failed to decrypt RTCP Sender Report");
                 return ret;

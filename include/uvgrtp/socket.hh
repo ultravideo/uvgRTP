@@ -61,7 +61,7 @@ namespace uvgrtp {
 
     class socket {
         public:
-            socket(int flags);
+            socket(int rce_flags);
             ~socket();
 
             /* Create socket using "family", "type" and "protocol"
@@ -84,7 +84,7 @@ namespace uvgrtp {
              * Return RTP_GENERIC_ERROR if setsockopt failed */
             rtp_error_t setsockopt(int level, int optname, const void *optval, socklen_t optlen);
 
-            /* Same as send(2), send message to remote using "flags"
+            /* Same as send(2), send message to remote with send_flags
              * This function uses the internal addr_ object as remote address so it MUST be set
              *
              * It is possible to combine multiple buffers and send them as one RTP frame by calling
@@ -94,20 +94,20 @@ namespace uvgrtp {
              *
              * Return RTP_OK on success and write the amount of bytes sent to "bytes_sent"
              * Return RTP_SEND_ERROR on error and set "bytes_sent" to -1 */
-            rtp_error_t sendto(uint8_t *buf, size_t buf_len, int flags);
-            rtp_error_t sendto(uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
-            rtp_error_t sendto(buf_vec& buffers, int flags);
-            rtp_error_t sendto(buf_vec& buffers, int flags, int *bytes_sent);
-            rtp_error_t sendto(pkt_vec& buffers, int flags);
-            rtp_error_t sendto(pkt_vec& buffers, int flags, int *bytes_sent);
+            rtp_error_t sendto(uint8_t *buf, size_t buf_len, int send_flags);
+            rtp_error_t sendto(uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
+            rtp_error_t sendto(buf_vec& buffers, int send_flags);
+            rtp_error_t sendto(buf_vec& buffers, int send_flags, int *bytes_sent);
+            rtp_error_t sendto(pkt_vec& buffers, int send_flags);
+            rtp_error_t sendto(pkt_vec& buffers, int send_flags, int *bytes_sent);
 
             /* Same as sendto() but the remote address given as parameter */
-            rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags);
-            rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
-            rtp_error_t sendto(sockaddr_in& addr, buf_vec& buffers, int flags);
-            rtp_error_t sendto(sockaddr_in& addr, buf_vec& buffers, int flags, int *bytes_sent);
-            rtp_error_t sendto(sockaddr_in& addr, pkt_vec& buffers, int flags);
-            rtp_error_t sendto(sockaddr_in& addr, pkt_vec& buffers, int flags, int *bytes_sent);
+            rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int send_flags);
+            rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
+            rtp_error_t sendto(sockaddr_in& addr, buf_vec& buffers, int send_flags);
+            rtp_error_t sendto(sockaddr_in& addr, buf_vec& buffers, int send_flags, int *bytes_sent);
+            rtp_error_t sendto(sockaddr_in& addr, pkt_vec& buffers, int send_flags);
+            rtp_error_t sendto(sockaddr_in& addr, pkt_vec& buffers, int send_flags, int *bytes_sent);
 
             /* Same as recv(2), receives a message from socket (remote address not known)
              *
@@ -116,8 +116,8 @@ namespace uvgrtp {
              * Return RTP_OK on success and write the amount of bytes received to "bytes_read"
              * Return RTP_INTERRUPTED if the call was interrupted due to timeout and set "bytes_sent" to 0
              * Return RTP_GENERIC_ERROR on error and set "bytes_sent" to -1 */
-            rtp_error_t recv(uint8_t *buf, size_t buf_len, int flags);
-            rtp_error_t recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read);
+            rtp_error_t recv(uint8_t *buf, size_t buf_len, int recv_flags);
+            rtp_error_t recv(uint8_t *buf, size_t buf_len, int recv_flags, int *bytes_read);
 
             /* Same as recvfrom(2), receives a message from remote
              *
@@ -127,10 +127,10 @@ namespace uvgrtp {
              * Return RTP_OK on success and write the amount of bytes sent to "bytes_sent"
              * Return RTP_INTERRUPTED if the call was interrupted due to timeout and set "bytes_sent" to 0
              * Return RTP_GENERIC_ERROR on error and set "bytes_sent" to -1 */
-            rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read);
-            rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender);
-            rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int flags, int *bytes_read);
-            rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int flags);
+            rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender, int *bytes_read);
+            rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender);
+            rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, int *bytes_read);
+            rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags);
 
             /* Create sockaddr_in object using the provided information
              * NOTE: "family" must be AF_INET */
@@ -161,17 +161,17 @@ namespace uvgrtp {
 
         private:
             /* helper function for sending UPD packets, see documentation for sendto() above */
-            rtp_error_t __sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int flags, int *bytes_sent);
-            rtp_error_t __recv(uint8_t *buf, size_t buf_len, int flags, int *bytes_read);
-            rtp_error_t __recvfrom(uint8_t *buf, size_t buf_len, int flags, sockaddr_in *sender, int *bytes_read);
+            rtp_error_t __sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
+            rtp_error_t __recv(uint8_t *buf, size_t buf_len, int recv_flags, int *bytes_read);
+            rtp_error_t __recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender, int *bytes_read);
 
             /* __sendtov() does the same as __sendto but it combines multiple buffers into one frame and sends them */
-            rtp_error_t __sendtov(sockaddr_in& addr, buf_vec& buffers, int flags, int *bytes_sent);
-            rtp_error_t __sendtov(sockaddr_in& addr, uvgrtp::pkt_vec& buffers, int flags, int *bytes_sent);
+            rtp_error_t __sendtov(sockaddr_in& addr, buf_vec& buffers, int send_flags, int *bytes_sent);
+            rtp_error_t __sendtov(sockaddr_in& addr, uvgrtp::pkt_vec& buffers, int send_flags, int *bytes_sent);
 
             socket_t socket_;
             sockaddr_in addr_;
-            int flags_;
+            int rce_flags_;
 
             /* __sendto() calls these handlers in order before sending the packet */
             std::vector<socket_packet_handler> buf_handlers_;
