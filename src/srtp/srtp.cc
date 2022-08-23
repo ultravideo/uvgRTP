@@ -34,12 +34,12 @@ rtp_error_t uvgrtp::srtp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, 
         UVG_LOG_DEBUG("SRTP encryption rollover, rollovers so far: %lu", local_srtp_ctx_->roc);
     }
 
-    if (create_iv(iv, ssrc, index, local_srtp_ctx_->key_ctx.session.salt_key) != RTP_OK) {
+    if (create_iv(iv, ssrc, index, local_srtp_ctx_->salt_key) != RTP_OK) {
         UVG_LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
         return RTP_INVALID_VALUE;
     }
 
-    uvgrtp::crypto::aes::ctr ctr(local_srtp_ctx_->key_ctx.session.enc_key, local_srtp_ctx_->n_e, iv);
+    uvgrtp::crypto::aes::ctr ctr(local_srtp_ctx_->enc_key, local_srtp_ctx_->n_e, iv);
     ctr.encrypt(buffer, buffer, len);
 
     return RTP_OK;
@@ -56,7 +56,7 @@ rtp_error_t uvgrtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_f
     /* Calculate authentication tag for the packet and compare it against the one we received */
     if (srtp->authenticate_rtp()) {
         uint8_t digest[10] = { 0 };
-        auto hmac_sha1     = uvgrtp::crypto::hmac::sha1(remote_ctx->key_ctx.session.auth_key, UVG_AUTH_LENGTH);
+        auto hmac_sha1     = uvgrtp::crypto::hmac::sha1(remote_ctx->auth_key, UVG_AUTH_LENGTH);
 
         hmac_sha1.update(frame->dgram, frame->dgram_size - UVG_AUTH_TAG_LENGTH);
         hmac_sha1.update((uint8_t *)&remote_ctx->roc, sizeof(remote_ctx->roc));
@@ -110,12 +110,12 @@ rtp_error_t uvgrtp::srtp::recv_packet_handler(void *arg, int flags, frame::rtp_f
     }
 
     uint8_t iv[UVG_IV_LENGTH] = { 0 };
-    if (srtp->create_iv(iv, ssrc, index, remote_ctx->key_ctx.session.salt_key) != RTP_OK) {
+    if (srtp->create_iv(iv, ssrc, index, remote_ctx->salt_key) != RTP_OK) {
         UVG_LOG_ERROR("Failed to create IV, unable to encrypt the RTP packet!");
         return RTP_GENERIC_ERROR;
     }
 
-    uvgrtp::crypto::aes::ctr ctr(remote_ctx->key_ctx.session.enc_key, remote_ctx->n_e, iv);
+    uvgrtp::crypto::aes::ctr ctr(remote_ctx->enc_key, remote_ctx->n_e, iv);
     ctr.decrypt(frame->payload, frame->payload, frame->payload_len);
 
     return RTP_PKT_MODIFIED;
@@ -128,7 +128,7 @@ rtp_error_t uvgrtp::srtp::send_packet_handler(void *arg, uvgrtp::buf_vec& buffer
     auto local_ctx   = srtp->get_local_ctx();
     auto off        = srtp->authenticate_rtp() ? 2 : 1;
     auto data       = buffers.at(buffers.size() - off);
-    auto hmac_sha1  = uvgrtp::crypto::hmac::sha1(local_ctx->key_ctx.session.auth_key, UVG_AUTH_LENGTH);
+    auto hmac_sha1  = uvgrtp::crypto::hmac::sha1(local_ctx->auth_key, UVG_AUTH_LENGTH);
     rtp_error_t ret = RTP_OK;
 
     if (srtp->use_null_cipher())

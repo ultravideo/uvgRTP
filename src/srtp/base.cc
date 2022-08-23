@@ -171,34 +171,34 @@ rtp_error_t uvgrtp::base_srtp::init_srtp_context(std::shared_ptr<uvgrtp::srtp_ct
         label_salt = SRTCP_SALTING;
     }
 
-    context->key_ctx.master.key = new uint8_t[key_size];
-    memcpy(context->key_ctx.master.key, key, key_size);
-    memcpy(context->key_ctx.master.salt, salt, UVG_SALT_LENGTH);
-    context->key_ctx.session.enc_key = new uint8_t[key_size];
+    context->master_key = new uint8_t[key_size];
+    memcpy(context->master_key, key, key_size);
+    memcpy(context->master_salt, salt, UVG_SALT_LENGTH);
+    context->enc_key = new uint8_t[key_size]; // session key
 
     /* Derive session keys */
     (void)derive_key(
         label_enc,
         key_size,
-        context->key_ctx.master.key,
-        context->key_ctx.master.salt,
-        context->key_ctx.session.enc_key,
+        context->master_key,
+        context->master_salt,
+        context->enc_key,
         key_size
     );
     (void)derive_key(
         label_auth,
         key_size,
-        context->key_ctx.master.key,
-        context->key_ctx.master.salt,
-        context->key_ctx.session.auth_key,
+        context->master_key,
+        context->master_salt,
+        context->auth_key,
         UVG_AUTH_LENGTH
     );
     (void)derive_key(
         label_salt,
         key_size,
-        context->key_ctx.master.key,
-        context->key_ctx.master.salt,
-        context->key_ctx.session.salt_key,
+        context->master_key,
+        context->master_salt,
+        context->salt_key,
         UVG_SALT_LENGTH
     );
 
@@ -209,9 +209,9 @@ void uvgrtp::base_srtp::cleanup_context(std::shared_ptr<srtp_ctx_t> context)
 {
     if (context)
     {
-        if (context->key_ctx.master.key)
-            delete[] context->key_ctx.master.key;
-        if (context->key_ctx.session.enc_key)
-            delete[] context->key_ctx.session.enc_key;
+        if (context->master_key)
+            delete[] context->master_key;
+        if (context->enc_key)
+            delete[] context->enc_key;
     }
 }

@@ -61,30 +61,17 @@ namespace uvgrtp {
         SRTCP_SALTING        = 0x5
     };
 
-    /* Key context for SRTP keys,
-     * ZRTP generates two keys: one for initiator and one for responder
-     *
-     * Master key is not directly used to encrypt packets but it is used
-     * to create session keys for the SRTP/SRTCP */
-    typedef struct srtp_key_ctx {
-        /* Keys negotiated by ZRTP or given by user. 
-         * Master key and salt are used to derive session keys*/
-        struct {
-            
-            uint8_t *key = nullptr;
-            uint8_t salt[UVG_SALT_LENGTH];
-        } master;
-
-        /* Session keys are used to encrypt/authenticate packets */
-        struct {
-            uint8_t *enc_key = nullptr;
-            uint8_t auth_key[UVG_AUTH_LENGTH];
-            uint8_t salt_key[UVG_SALT_LENGTH];
-        } session;
-
-    } srtp_key_ctx_t;
-
     typedef struct srtp_ctx {
+
+        // Master key and salt used to derive session keys
+        uint8_t* master_key = nullptr;
+        uint8_t  master_salt[UVG_SALT_LENGTH];
+
+        // Session keys are used to encrypt/authenticate packets
+        uint8_t* enc_key = nullptr;
+        uint8_t auth_key[UVG_AUTH_LENGTH];
+        uint8_t salt_key[UVG_SALT_LENGTH];
+
         int type = 0;     /* srtp or srtcp */
         uint32_t roc = 0; /* rollover counter */
         uint32_t rts = 0; /* timestamp of the frame that causes ROC update */
@@ -106,8 +93,6 @@ namespace uvgrtp {
         uint8_t *replay = nullptr; /* list of recently received and authenticated SRTP packets */
 
         int flags = 0; /* context configuration flags */
-
-        srtp_key_ctx_t key_ctx;
     } srtp_ctx_t;
 
     class base_srtp {
@@ -128,7 +113,6 @@ namespace uvgrtp {
 
             /* Has RTP packet encryption been disabled? */
             bool use_null_cipher();
-
 
             /* Get reference to the SRTP context (including session keys) */
             std::shared_ptr<srtp_ctx_t> get_local_ctx();
