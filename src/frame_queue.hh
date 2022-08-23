@@ -149,9 +149,21 @@ namespace uvgrtp {
              * significant memory leaks */
             void install_dealloc_hook(void (*dealloc_hook)(void *));
 
+            void set_fps(int enumerator, int denominator)
+            {
+                fps = enumerator > 0 && denominator > 0;
+                if (denominator > 0)
+                {
+                    frame_interval_ = std::chrono::nanoseconds(uint64_t(1.0 / double(enumerator / denominator) * 1000*1000*1000));
+                }
+                fps_sync_point_ = std::chrono::high_resolution_clock::now();
+            }
+
         private:
 
             void enqueue_finalize(uvgrtp::buf_vec& tmp);
+
+            inline std::chrono::high_resolution_clock::time_point next_frame_time();
 
             transaction_t *active_;
 
@@ -166,6 +178,12 @@ namespace uvgrtp {
 
             /* RTP context flags */
             int flags_;
+
+            bool fps = false;
+            std::chrono::nanoseconds frame_interval_;
+
+            std::chrono::high_resolution_clock::time_point fps_sync_point_;
+            uint64_t frames_since_sync_ = 0;
     };
 }
 

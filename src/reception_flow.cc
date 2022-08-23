@@ -330,6 +330,8 @@ void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int flags, uvgrtp::
 
 void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, int flags)
 {
+    int read_packets = 0;
+
     while (!should_stop_) {
 
         // First we wait using poll until there is data in the socket
@@ -366,31 +368,12 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, in
             // we write as many packets as socket has in the buffer
             while (!should_stop_)
             {
-                // get the potential next write. To make sure processing doesn't start reading 
-                // incomplete/old packets, we only update the index after buffer has the data
-                int next_write_index = next_buffer_location(last_ring_write_index_);
+                ssize_t next_write_index = next_buffer_location(last_ring_write_index_);
 
-                // create new buffer spaces if the process/read hasn't freed any spots on the ring buffer
-                if (next_write_index == ring_read_index_)
-                {
-                    UVG_LOG_DEBUG("Reception buffer ran out, increasing the buffer size ...");
-
-                    // increase the buffer size by 25%
-                    int increase = ring_buffer_.size()/4;
-                    if (increase == 0) // just so there is some increase
-                        ++increase;
-
-                    ring_mutex_.lock();
-                    for (unsigned int i = 0; i < increase; ++i)
-                    {
-                        ring_buffer_.insert(ring_buffer_.begin() + next_write_index, { new uint8_t[RECV_BUFFER_SIZE] , 0 });
-                    }
-                    ring_read_index_ += increase; // move read ahead because of the new empty indexes
-
-                    ring_mutex_.unlock();
-                }
+                //increase_buffer_size(next_write_index);
 
                 rtp_error_t ret = RTP_OK;
+
                 // get the potential packet
                 ret = socket->recvfrom(ring_buffer_[next_write_index].data, RECV_BUFFER_SIZE,
                     MSG_DONTWAIT, &ring_buffer_[next_write_index].read);
@@ -410,6 +393,8 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, in
                     break;
                 }
 
+                ++read_packets;
+
                 // finally we update the ring buffer so processing (reading) knows that there is a new frame
                 last_ring_write_index_ = next_write_index;
             }
@@ -424,11 +409,15 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, in
             pfds = nullptr;
         }
     }
+
+    UVG_LOG_DEBUG("Total read packets from buffer: %li", read_packets);
 }
 
 void uvgrtp::reception_flow::process_packet(int flags)
 {
     std::unique_lock<std::mutex> lk(wait_mtx_);
+
+    int processed_packets = 0;
 
     while (!should_stop_)
     {
@@ -440,54 +429,106 @@ void uvgrtp::reception_flow::process_packet(int flags)
             break;
         }
 
-        ring_mutex_.lock();
-
         // process all available reads in one go
         while (ring_read_index_ != last_ring_write_index_)
         {
             // first update the read location
             ring_read_index_ = next_buffer_location(ring_read_index_);
 
-            rtp_error_t ret = RTP_OK;
+            if (ring_buffer_[ring_read_index_].read > 0)
+            {
+                rtp_error_t ret = RTP_OK;
 
-            // process the ring buffer location through all the handlers
-            for (auto& handler : packet_handlers_) {
-                uvgrtp::frame::rtp_frame* frame = nullptr;
+                // process the ring buffer location through all the handlers
+                for (auto& handler : packet_handlers_) {
+                    uvgrtp::frame::rtp_frame* frame = nullptr;
 
-                // Here we don't lock ring mutex because the chaging is only done above. 
-                // NOTE: If there is a need for multiple processing threads, the read should be guarded
-                switch ((ret = (*handler.second.primary)(ring_buffer_[ring_read_index_].read,
-                    ring_buffer_[ring_read_index_].data, flags, &frame))) {
-                    /* packet was handled successfully */
-                case RTP_OK:
-                    break;
-
-                    /* packet was not handled by this primary handlers, proceed to the next one */
-                case RTP_PKT_NOT_HANDLED:
-                    continue;
-
-                    /* packet was handled by the primary handler
-                     * and should be dispatched to the auxiliary handler(s) */
-                case RTP_PKT_MODIFIED:
-                    this->call_aux_handlers(handler.first, flags, &frame);
-                    break;
-
-                case RTP_GENERIC_ERROR:
-                    UVG_LOG_DEBUG("Error in handling of received packet!");
-                    break;
-
-                default:
-                    UVG_LOG_ERROR("Unknown error code from packet handler: %d", ret);
-                    break;
+                    // Here we don't lock ring mutex because the chaging is only done above. 
+                    // NOTE: If there is a need for multiple processing threads, the read should be guarded
+                    switch ((ret = (*handler.second.primary)(ring_buffer_[ring_read_index_].read,
+                        ring_buffer_[ring_read_index_].data, flags, &frame))) {
+                        case RTP_OK:
+                        {
+                            // packet was handled successfully
+                            break;
+                        }
+                        case RTP_PKT_NOT_HANDLED:
+                        {
+                            // packet was not handled by this primary handlers, proceed to the next one
+                            continue;
+                            /* packet was handled by the primary handler
+                             * and should be dispatched to the auxiliary handler(s) */
+                        }
+                        case RTP_PKT_MODIFIED:
+                        {
+                            this->call_aux_handlers(handler.first, flags, &frame);
+                            break;
+                        }
+                        case RTP_GENERIC_ERROR:
+                        {
+                            UVG_LOG_DEBUG("Error in handling of received packet!");
+                            break;
+                        }
+                        default:
+                        {
+                            UVG_LOG_ERROR("Unknown error code from packet handler: %d", ret);
+                            break;
+                        }
+                    }
                 }
+
+                // to make sure we don't process this packet again
+                ring_buffer_[ring_read_index_].read = 0;
+                ++processed_packets;
+            }
+            else
+            {
+                ssize_t write = last_ring_write_index_;
+                ssize_t read = ring_read_index_;
+                UVG_LOG_DEBUG("Found invalid frame in read buffer: %li. R: %lli, W: %lli", 
+                    ring_buffer_[ring_read_index_].read, read, write);
             }
         }
-
-        ring_mutex_.unlock();
     }
+
+    UVG_LOG_DEBUG("Total processed packets: %li", processed_packets);
 }
 
-int uvgrtp::reception_flow::next_buffer_location(int current_location)
+ssize_t uvgrtp::reception_flow::next_buffer_location(ssize_t current_location)
 {
+/*
+#ifndef NDEBUG
+    if (current_location + 1 == ring_buffer_.size())
+    {
+        ssize_t read = ring_read_index_;
+        ssize_t write = last_ring_write_index_;
+        UVG_LOG_DEBUG("Ring buffer (%lli) rotation. R: %lli, W: %lli", ring_buffer_.size(), read, write);
+    }
+#endif // !NDEBUG
+*/
+
+    // rotates to beginning after buffer end
     return (current_location + 1) % ring_buffer_.size();
+}
+
+void uvgrtp::reception_flow::increase_buffer_size(ssize_t next_write_index)
+{
+    // create new buffer spaces if the process/read hasn't freed any spots on the ring buffer
+    if (next_write_index == ring_read_index_)
+    {
+        // increase the buffer size by 25%
+        ssize_t increase = ring_buffer_.size() / 4;
+        if (increase == 0) // just so there is some increase
+            ++increase;
+
+        UVG_LOG_DEBUG("Reception buffer ran out, increasing the buffer size: %lli -> %lli",
+            ring_buffer_.size(), ring_buffer_.size() + increase);
+        for (unsigned int i = 0; i < increase; ++i)
+        {
+            ring_buffer_.insert(ring_buffer_.begin() + next_write_index, { new uint8_t[RECV_BUFFER_SIZE] , -1 });
+        }
+
+        // this works, because we have just added increase amount of spaces
+        ring_read_index_ += increase;
+    }
 }

@@ -20,15 +20,27 @@ if(MSVC)
             PRIVATE
                 GTest::GTestMain
                 uvgrtp
-                cryptlib
             )
+            
+    if(CRYPTOPP_FOUND)
+        target_link_libraries(${PROJECT_NAME}
+                PRIVATE
+                    cryptlib
+                )
+    endif()
 else()
     target_link_libraries(${PROJECT_NAME}
             PRIVATE
                 GTest::GTestMain
                 uvgrtp
-                cryptopp
             )
+            
+    if(CRYPTOPP_FOUND)
+        target_link_libraries(${PROJECT_NAME}
+                PRIVATE
+                    cryptopp
+                )
+    endif()
 endif()
 
 gtest_add_tests(
