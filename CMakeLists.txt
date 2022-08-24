@@ -222,6 +222,7 @@ if(APPLE)
     target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Security")
 endif()
 
+add_subdirectory(examples EXCLUDE_FROM_ALL)
 add_subdirectory(test EXCLUDE_FROM_ALL)
 
 #
