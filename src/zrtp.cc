@@ -676,6 +676,8 @@ rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
 {
     rtp_error_t ret = RTP_OK;
 
+    UVG_LOG_DEBUG("Starting ZRTP Diffie-Hellman negotiation with %s", socket->sockaddr_to_string(addr).c_str());
+
     /* TODO: set all fields initially to zero */
     memset(session_.hash_ctx.o_hvi, 0, sizeof(session_.hash_ctx.o_hvi));
 
@@ -778,6 +780,8 @@ rtp_error_t uvgrtp::zrtp::init_msm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
 
     session_.ssrc = ssrc;
     session_.seq  = 0;
+
+    UVG_LOG_DEBUG("Generating ZRTP keys in multistream mode");
 
     if ((ret = begin_session()) != RTP_OK) {
         UVG_LOG_ERROR("Session initialization failed, ZRTP cannot be used!");

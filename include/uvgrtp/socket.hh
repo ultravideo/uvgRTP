@@ -143,6 +143,8 @@ namespace uvgrtp {
 
             std::string get_socket_path_string() const;
 
+            std::string sockaddr_to_string(const sockaddr_in& addr) const;
+
             /* Get reference to the actual socket object */
             socket_t& get_raw_socket();
 
@@ -163,8 +165,6 @@ namespace uvgrtp {
             rtp_error_t install_handler(void *arg, packet_handler_vec handler);
 
         private:
-
-            std::string sockaddr_to_string(const sockaddr_in& addr) const;
 
             /* helper function for sending UPD packets, see documentation for sendto() above */
             rtp_error_t __sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);

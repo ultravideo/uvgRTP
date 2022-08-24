@@ -308,7 +308,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
 #endif
 
 #ifndef NDEBUG
-    sent_packets_ += buffers.size();
+    ++sent_packets_;
 #endif // !NDEBUG
 
     set_bytes(bytes_sent, sent_bytes);

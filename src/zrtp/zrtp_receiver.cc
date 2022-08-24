@@ -49,7 +49,14 @@ rtp_error_t uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket>
     int nread       = 0;
     rlen_           = 0;
 
-    UVG_LOG_DEBUG("Waiting for ZRTP messages with timeout of %i ms", timeout);
+    if (timeout > 0)
+    {
+        UVG_LOG_DEBUG("Waiting for ZRTP messages with timeout of %i ms", timeout);
+    }
+    else
+    {
+        UVG_LOG_DEBUG("Checking if there is a ZRTP message in buffer");
+    }
 
 #ifdef _WIN32
     if ((ret = uvgrtp::poll::blocked_recv(socket, mem_, len_, timeout, &nread)) != RTP_OK) {
