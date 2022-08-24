@@ -40,7 +40,7 @@ namespace uvgrtp {
         }
         if (n == 0)
             return -1;
-        return n;
+        return int(n);
     }
 #endif
 
