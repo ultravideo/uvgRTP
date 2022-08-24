@@ -2,6 +2,8 @@
 #include <climits>
 #include <cstring>
 
+#include <iostream>
+
 /* Zimmermann RTP (ZRTP) is a key management protocol for SRTP. Compared
  * to most approaches, using ZRTP can facilitate end-to-end encryption
  * of media traffic since the keys are exchanged peer-to-peer.
@@ -30,7 +32,7 @@ constexpr uint16_t RECEIVER_AUDIO_PORT = 7778;
 constexpr int VIDEO_PAYLOAD_SIZE = 4000;
 constexpr int AUDIO_PAYLOAD_SIZE = 100;
 
-constexpr auto EXAMPLE_RUN_TIME_S = std::chrono::seconds(5);
+constexpr auto EXAMPLE_RUN_TIME_S = std::chrono::seconds(2);
 constexpr auto RECEIVER_WAIT_TIME_MS = std::chrono::milliseconds(50);
 
 constexpr auto AUDIO_FRAME_INTERVAL_MS = std::chrono::milliseconds(20);
@@ -71,12 +73,13 @@ int main(void)
 
     // Enable SRTP and use ZRTP to manage keys for both sender and receiver*/
     unsigned rce_flags = RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP;
+    unsigned rce_no_dh_flags = RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_ZRTP_MULTISTREAM_NO_DH;
 
     // start the receivers in a separate thread
     std::thread a_receiver(receive_function, receiver_session, rce_flags, print_mutex,
                            RTP_FORMAT_OPUS, RECEIVER_AUDIO_PORT, SENDER_AUDIO_PORT);
 
-    std::thread v_receiver(receive_function, receiver_session, rce_flags, print_mutex,
+    std::thread v_receiver(receive_function, receiver_session, rce_no_dh_flags, print_mutex,
                            RTP_FORMAT_H265, RECEIVER_VIDEO_PORT, SENDER_VIDEO_PORT);
 
 
@@ -89,7 +92,7 @@ int main(void)
                          RTP_FORMAT_OPUS, SENDER_AUDIO_PORT, RECEIVER_AUDIO_PORT,
                          AUDIO_PAYLOAD_SIZE, AUDIO_FRAME_INTERVAL_MS);
 
-    std::thread v_sender(sender_function, sender_session, rce_flags, print_mutex,
+    std::thread v_sender(sender_function, sender_session, rce_no_dh_flags, print_mutex,
                          RTP_FORMAT_H265, SENDER_VIDEO_PORT, RECEIVER_VIDEO_PORT,
                          VIDEO_PAYLOAD_SIZE, VIDEO_FRAME_INTERVAL_MS);
 
