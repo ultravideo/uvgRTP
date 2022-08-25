@@ -40,7 +40,7 @@ constexpr int GARBAGE_COLLECTION_INTERVAL_MS = 100;
 // any value less than 30 minutes is ok here, since that is how long it takes to go through all timestamps
 constexpr int TIME_TO_KEEP_TRACK_OF_PREVIOUS_FRAMES_MS = 5000;
 
-static inline unsigned __find_h26x_start(uint32_t value,bool& additional_byte)
+static inline uint8_t __find_h26x_start(uint32_t value,bool& additional_byte)
 {
     additional_byte = false;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -124,7 +124,6 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
 
     uint64_t prefetch = UINT64_MAX;
     uint32_t value    = UINT32_MAX;
-    unsigned ret      = 0;
 
     /* We can get rid of the bounds check when looping through
      * non-zero 8 byte chunks by setting the last byte to zero.
@@ -137,32 +136,37 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
     while (pos + 8 < len) {
         prefetch = *(uint64_t *)ptr;
 
+        if (!prev_z)
+        {
+
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-        if (!prev_z && !(cur_z = haszero64_le(prefetch))) {
+            cur_z = haszero64_le(prefetch);
 #else
-        if (!prev_z && !(cur_z = haszero64_be(prefetch))) {
+            cur_z = haszero64_be(prefetch)
 #endif
-            /* pos is not used in the following loop so it makes little sense to
-             * update it on every iteration. Faster way to do the loop is to save
-             * ptr's current value before loop, update only ptr in the loop and when
-             * the loop is exited, calculate the difference between tmp and ptr to get
-             * the number of iterations done * 8 */
-            tmp = ptr;
+            if (!cur_z) {
+                /* pos is not used in the following loop so it makes little sense to
+                 * update it on every iteration. Faster way to do the loop is to save
+                 * ptr's current value before loop, update only ptr in the loop and when
+                 * the loop is exited, calculate the difference between tmp and ptr to get
+                 * the number of iterations done * 8 */
+                tmp = ptr;
 
-            do {
-                ptr      += 8;
-                prefetch  = *(uint64_t *)ptr;
+                do {
+                    ptr += 8;
+                    prefetch = *(uint64_t*)ptr;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-                cur_z     = haszero64_le(prefetch);
+                    cur_z = haszero64_le(prefetch);
 #else
-                cur_z     = haszero64_be(prefetch);
+                    cur_z = haszero64_be(prefetch);
 #endif
-            } while (!cur_z);
+                } while (!cur_z);
 
-            pos += PTR_DIFF(ptr, tmp);
+                pos += PTR_DIFF(ptr, tmp);
 
-            if (pos + 8 >= len)
-                break;
+                if (pos + 8 >= len)
+                    break;
+            }
         }
 
         value = *(uint32_t *)ptr;
@@ -193,10 +197,11 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
             }
         }
 
-
         {
             bool additional_byte =  false;
-            if ((ret = start_len = __find_h26x_start(value,additional_byte)) > 0) {
+            uint8_t ret = __find_h26x_start(value, additional_byte);
+            start_len = ret;
+            if (ret > 0) {
                 if (ret == 5) {
                     ret = 3;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -465,7 +470,7 @@ uvgrtp::frame::rtp_frame* uvgrtp::formats::h26x::allocate_rtp_frame_with_startco
     
     complete->payload = new uint8_t[complete->payload_len];
 
-    if (add_start_code) {
+    if (add_start_code && complete->payload_len >= 4) {
         complete->payload[0] = 0;
         complete->payload[1] = 0;
         complete->payload[2] = 0;
@@ -501,9 +506,9 @@ bool uvgrtp::formats::h26x::is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, s
     return (uvgrtp::clock::hrc::diff_now(hinfo.sframe_time) >= max_delay);
 }
 
-uint32_t uvgrtp::formats::h26x::drop_frame(uint32_t ts)
+size_t uvgrtp::formats::h26x::drop_frame(uint32_t ts)
 {
-    uint32_t total_cleaned = 0;
+    size_t total_cleaned = 0;
     if (frames_.find(ts) == frames_.end())
     {
         UVG_LOG_ERROR("Tried to drop a non-existing frame");
@@ -713,7 +718,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::
 void uvgrtp::formats::h26x::garbage_collect_lost_frames(size_t timout)
 {
     if (uvgrtp::clock::hrc::diff_now(last_garbage_collection_) >= GARBAGE_COLLECTION_INTERVAL_MS) {
-        uint32_t total_cleaned = 0;
+        size_t total_cleaned = 0;
         std::vector<uint32_t> to_remove;
 
         // first find all frames that have been waiting for too long

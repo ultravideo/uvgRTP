@@ -17,8 +17,6 @@ namespace uvgrtp {
 
     namespace formats {
 
-        #define RTP_HDR_SIZE  12
-
         enum class FRAG_TYPE {
             FT_INVALID = -2, /* invalid combination of S and E bits */
             FT_NOT_FRAG = -1, /* frame doesn't contain fragment */
@@ -38,7 +36,7 @@ namespace uvgrtp {
             /* clock reading when the first fragment is received */
             uvgrtp::clock::hrc::hrc_t sframe_time;
 
-            uvgrtp::formats::NAL_TYPE nal_type;
+            uvgrtp::formats::NAL_TYPE nal_type = uvgrtp::formats::NAL_TYPE::NT_OTHER;
 
             bool start_received = false;
             bool end_received = false;
@@ -153,7 +151,7 @@ namespace uvgrtp {
         private:
 
             bool is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay);
-            uint32_t drop_frame(uint32_t ts);
+            size_t drop_frame(uint32_t ts);
 
             inline size_t calculate_expected_fus(uint32_t ts);
             inline void initialize_new_fragmented_frame(uint32_t ts, NAL_TYPE nal_type);

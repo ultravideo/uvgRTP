@@ -31,7 +31,7 @@ uvgrtp::session::~session()
     streams_.clear();
 }
 
-uvgrtp::media_stream *uvgrtp::session::create_stream(int r_port, int s_port, rtp_format_t fmt, int rce_flags)
+uvgrtp::media_stream *uvgrtp::session::create_stream(uint16_t r_port, uint16_t s_port, rtp_format_t fmt, int rce_flags)
 {
     std::lock_guard<std::mutex> m(session_mtx_);
 

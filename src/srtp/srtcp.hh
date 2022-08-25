@@ -12,8 +12,8 @@ namespace uvgrtp {
              *
              * Report RTP_OK on succes
              * Return RTP_INVALID_VALUE if IV creation fails */
-            rtp_error_t handle_rtcp_encryption(int rce_flags, uint64_t packet_number,
-                uint32_t ssrc, uint8_t* frame, size_t frame_size);
+            rtp_error_t handle_rtcp_encryption(int rce_flags, uint32_t packet_number,
+                uint32_t ssrc, uint8_t* frame, uint32_t frame_size);
 
             /* Decrypt and verify the authenticity of the RTCP packet
              *

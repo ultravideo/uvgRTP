@@ -16,6 +16,10 @@ namespace uvgrtp {
 
     namespace formats {
 
+        constexpr uint8_t HEADER_SIZE_H266_PAYLOAD = 2;
+        constexpr uint8_t HEADER_SIZE_H266_NAL = 2;
+        constexpr uint8_t HEADER_SIZE_H266_FU = 1;
+
         enum H266_NAL_TYPES {
             H266_TRAIL_NUT = 0,
             H266_IDR_W_RADL = 7,
@@ -24,19 +28,19 @@ namespace uvgrtp {
         };
 
         struct h266_aggregation_packet {
-            uint8_t payload_header[uvgrtp::frame::HEADER_SIZE_H266_PAYLOAD];
+            uint8_t payload_header[HEADER_SIZE_H266_PAYLOAD];
             uvgrtp::buf_vec nalus;  /* discrete NAL units */
             uvgrtp::buf_vec aggr_pkt; /* crafted aggregation packet */
         };
 
         struct h266_headers {
-            uint8_t payload_header[uvgrtp::frame::HEADER_SIZE_H266_PAYLOAD];
+            uint8_t payload_header[HEADER_SIZE_H266_PAYLOAD];
 
             /* there are three types of Fragmentation Unit headers:
              *  - header for the first fragment
              *  - header for all middle fragments
              *  - header for the last fragment */
-            uint8_t fu_headers[3 * uvgrtp::frame::HEADER_SIZE_H266_FU];
+            uint8_t fu_headers[3 * HEADER_SIZE_H266_FU];
         };
 
         class h266 : public h26x {

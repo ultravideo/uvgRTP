@@ -30,6 +30,10 @@ uvgrtp::zrtp_msg::confack::~confack()
 rtp_error_t uvgrtp::zrtp_msg::confack::parse_msg(uvgrtp::zrtp_msg::receiver& receiver,
     zrtp_session_t& session)
 {
+    (void)session;
+
+    // TODO
+
     ssize_t len = 0;
     allocate_rframe(sizeof(zrtp_confack));
 

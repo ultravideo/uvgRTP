@@ -30,17 +30,17 @@ uvgrtp::formats::h265::~h265()
 
 uint8_t uvgrtp::formats::h265::get_payload_header_size() const
 {
-    return uvgrtp::frame::HEADER_SIZE_H265_PAYLOAD;
+    return HEADER_SIZE_H265_PAYLOAD;
 }
 
 uint8_t uvgrtp::formats::h265::get_nal_header_size() const
 {
-    return uvgrtp::frame::HEADER_SIZE_H265_NAL;
+    return HEADER_SIZE_H265_NAL;
 }
 
 uint8_t uvgrtp::formats::h265::get_fu_header_size() const
 {
-    return uvgrtp::frame::HEADER_SIZE_H265_FU;
+    return HEADER_SIZE_H265_FU;
 }
 
 uint8_t uvgrtp::formats::h265::get_start_code_range() const
@@ -118,10 +118,7 @@ rtp_error_t uvgrtp::formats::h265::finalize_aggregation_pkt()
     aggr_pkt_info_.payload_header[1] = 1;
 
     aggr_pkt_info_.aggr_pkt.push_back(
-        std::make_pair(
-            uvgrtp::frame::HEADER_SIZE_H265_PAYLOAD,
-            aggr_pkt_info_.payload_header
-        )
+        std::make_pair(HEADER_SIZE_H265_PAYLOAD, aggr_pkt_info_.payload_header)
     );
 
     for (size_t i = 0; i < aggr_pkt_info_.nalus.size(); ++i) {

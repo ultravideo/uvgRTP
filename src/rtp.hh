@@ -45,7 +45,7 @@ namespace uvgrtp {
             uint32_t ssrc_;
             uint32_t ts_;
             uint16_t seq_;
-            uint8_t fmt_;
+            rtp_format_t fmt_;
             uint8_t payload_;
 
             uint32_t clock_rate_;

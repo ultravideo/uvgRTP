@@ -46,7 +46,8 @@ uint16_t uvgrtp::rtp::get_sequence() const
 
 void uvgrtp::rtp::set_payload(rtp_format_t fmt)
 {
-    payload_ = fmt_ = fmt;
+    fmt_ = fmt;
+    payload_ = (uint8_t)fmt;
 
     switch (fmt_) {
         case RTP_FORMAT_H264:
@@ -117,7 +118,9 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer)
         std::chrono::microseconds time_since_start = 
             std::chrono::duration_cast<std::chrono::microseconds>(t1 - wc_start_);
 
-        uint32_t rtp_timestamp = ts_ + time_since_start.count() * clock_rate_ / 1000000;
+        uint64_t u_seconds = time_since_start.count() * clock_rate_;
+
+        uint32_t rtp_timestamp = ts_ + uint32_t(u_seconds / 1000000);
 
         *(uint32_t *)&buffer[4] = htonl((u_long)rtp_timestamp);
 
@@ -181,8 +184,12 @@ rtp_error_t uvgrtp::rtp::packet_handler(ssize_t size, void *packet, int rce_flag
         return RTP_PKT_NOT_HANDLED;
     }
 
-    if (!(*out = uvgrtp::frame::alloc_rtp_frame()))
+    *out = uvgrtp::frame::alloc_rtp_frame();
+
+    if (*out == nullptr)
+    {
         return RTP_GENERIC_ERROR;
+    }
 
     (*out)->header.version   = (ptr[0] >> 6) & 0x03;
     (*out)->header.padding   = (ptr[0] >> 5) & 0x01;

@@ -150,16 +150,9 @@ namespace uvgrtp {
                 dh();
                 ~dh();
 
-                /* TODO:  */
                 void generate_keys();
-
-                /* TODO:  */
                 void get_pk(uint8_t *pk, size_t len);
-
-                /* TODO:  */
                 void set_remote_pk(uint8_t *pk, size_t len);
-
-                /* TODO:  */
                 void get_shared_secret(uint8_t *ss, size_t len);
 
             private:

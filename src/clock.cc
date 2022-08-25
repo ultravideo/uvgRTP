@@ -9,6 +9,11 @@ static const uint64_t NTP_SCALE_FRAC = 4294967296ULL;
 
 static inline uint32_t ntp_diff_ms(uint64_t older, uint64_t newer)
 {
+    if (older > newer)
+    {
+        UVG_LOG_ERROR("Older timestamp is actually newer");
+    }
+
     uint32_t s1  = (older >> 32) & 0xffffffff;
     uint32_t s2  = (newer >> 32) & 0xffffffff;
     uint64_t us1 = ((older & 0xffffffff) * 1000000UL) / NTP_SCALE_FRAC;
@@ -93,10 +98,20 @@ uint64_t uvgrtp::clock::jiffies_to_ms(uint64_t jiffies)
 #ifdef _WIN32
 int uvgrtp::clock::gettimeofday(struct timeval * tp, struct timezone * tzp)
 {
+    if (tzp != nullptr)
+    {
+        UVG_LOG_ERROR("Timezone not supported");
+        return -1;
+    }
+
+    // https://stackoverflow.com/questions/10905892/equivalent-of-gettimeday-for-windows
+
     // Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
     // This magic number is the number of 100 nanosecond intervals since January 1, 1601 (UTC)
     // until 00:00:00 January 1, 1970
-    static const uint64_t EPOCH = ((uint64_t) 116444736000000000ULL);
+    static const uint64_t epoch = ((uint64_t) 116444736000000000ULL);
+
+    // TODO: Why do we have two epochs defined?
 
     SYSTEMTIME  system_time;
     FILETIME    file_time;
@@ -107,7 +122,7 @@ int uvgrtp::clock::gettimeofday(struct timeval * tp, struct timezone * tzp)
     time =  ((uint64_t)file_time.dwLowDateTime )      ;
     time += ((uint64_t)file_time.dwHighDateTime) << 32;
 
-    tp->tv_sec  = (long) ((time - EPOCH) / 10000000L);
+    tp->tv_sec  = (long) ((time - epoch) / 10000000L);
     tp->tv_usec = (long) (system_time.wMilliseconds * 1000);
     return 0;
 }

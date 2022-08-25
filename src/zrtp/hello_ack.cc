@@ -27,6 +27,9 @@ rtp_error_t uvgrtp::zrtp_msg::hello_ack::parse_msg(uvgrtp::zrtp_msg::receiver& r
     zrtp_session_t& session)
 {
     (void)receiver;
+    (void)session;
+
+    // TODO?
 
     return RTP_OK;
 }

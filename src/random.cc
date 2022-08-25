@@ -24,7 +24,9 @@
 rtp_error_t uvgrtp::random::init()
 {
 #ifdef _WIN32
-    srand(GetTickCount());
+
+    uint32_t ticks = (uint32_t)GetTickCount64();
+    srand(ticks);
 #else
     srand(time(NULL));
 #endif
@@ -71,14 +73,14 @@ int uvgrtp::random::generate(void *buf, size_t n)
 
         return res ? 0 : -1;
     }
-    return -1;
 
 #elif defined(__APPLE__)
 
     int status = SecRandomCopyBytes(kSecRandomDefault, n, buf);
     if (status == errSecSuccess)
+    {
         return n;
-    return -1;
+    }
 
 #endif
 

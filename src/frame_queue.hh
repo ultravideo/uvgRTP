@@ -71,7 +71,7 @@ namespace uvgrtp {
 
         /* If the application code provided us a deallocation hook, this points to it.
          * When SCD finishes processing a transaction, it will call this hook with "data_raw" pointer */
-        void (*dealloc_hook)(void *);
+        void (*dealloc_hook)(void *) = nullptr;
 
     } transaction_t;
 
@@ -149,7 +149,7 @@ namespace uvgrtp {
              * significant memory leaks */
             void install_dealloc_hook(void (*dealloc_hook)(void *));
 
-            void set_fps(int enumerator, int denominator)
+            void set_fps(ssize_t enumerator, ssize_t denominator)
             {
                 fps = enumerator > 0 && denominator > 0;
                 if (denominator > 0)

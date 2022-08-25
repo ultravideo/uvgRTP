@@ -16,6 +16,10 @@ namespace uvgrtp {
 
     namespace formats {
 
+        constexpr uint8_t HEADER_SIZE_H264_INDICATOR = 1;
+        constexpr uint8_t HEADER_SIZE_H264_NAL = 1;
+        constexpr uint8_t HEADER_SIZE_H264_FU = 1;
+
         enum H264_NAL_TYPES {
             H264_NON_IDR = 1,
             H264_IDR = 5,
@@ -24,19 +28,19 @@ namespace uvgrtp {
         };
 
         struct h264_aggregation_packet {
-            uint8_t fu_indicator[uvgrtp::frame::HEADER_SIZE_H264_INDICATOR];
+            uint8_t fu_indicator[HEADER_SIZE_H264_INDICATOR] = {0};
             uvgrtp::buf_vec nalus;  /* discrete NAL units */
             uvgrtp::buf_vec aggr_pkt; /* crafted aggregation packet */
         };
 
         struct h264_headers {
-            uint8_t fu_indicator[uvgrtp::frame::HEADER_SIZE_H264_INDICATOR];
+            uint8_t fu_indicator[HEADER_SIZE_H264_INDICATOR];
 
             /* there are three types of Fragmentation Unit headers:
              *  - header for the first fragment
              *  - header for all middle fragments
              *  - header for the last fragment */
-            uint8_t fu_headers[3 * uvgrtp::frame::HEADER_SIZE_H264_FU];
+            uint8_t fu_headers[3 * HEADER_SIZE_H264_FU];
         };
 
         class h264 : public h26x {

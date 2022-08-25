@@ -30,7 +30,7 @@ namespace uvgrtp {
                 rtp_error_t recv_msg(std::shared_ptr<uvgrtp::socket> socket, int timeout, int recv_flags, 
                     int& out_type);
 
-                /* TODO:  */
+                // get received message to ptr. Len is the size of buffer in ptr.
                 ssize_t get_msg(void *ptr, size_t len);
 
                 /* ZRTP packet handler is used after ZRTP state initialization has finished

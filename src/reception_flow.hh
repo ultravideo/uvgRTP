@@ -143,13 +143,13 @@ namespace uvgrtp {
              * Return pointer to RTP frame on success
              * Return nullptr if operation timed out or an error occurred */
             uvgrtp::frame::rtp_frame *pull_frame();
-            uvgrtp::frame::rtp_frame *pull_frame(size_t timeout_ms);
+            uvgrtp::frame::rtp_frame *pull_frame(ssize_t timeout_ms);
 
             void set_buffer_size(const ssize_t& value);
 
         private:
             /* RTP packet receiver thread */
-            void receiver(std::shared_ptr<uvgrtp::socket> socket, int rce_flags);
+            void receiver(std::shared_ptr<uvgrtp::socket> socket);
 
             /* RTP packet dispatcher thread */
             void process_packet(int rce_flags);

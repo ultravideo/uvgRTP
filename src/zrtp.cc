@@ -26,6 +26,8 @@ using namespace uvgrtp::zrtp_msg;
 #define ZRTP_VERSION 110
 
 uvgrtp::zrtp::zrtp():
+    ssrc_(0),
+    remote_addr_(),
     initialized_(false),
     receiver_()
 {

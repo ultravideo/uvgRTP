@@ -65,12 +65,12 @@ namespace uvgrtp {
 
         // Master key and salt used to derive session keys
         uint8_t* master_key = nullptr;
-        uint8_t  master_salt[UVG_SALT_LENGTH];
+        uint8_t  master_salt[UVG_SALT_LENGTH] = {};
 
         // Session keys are used to encrypt/authenticate packets
         uint8_t* enc_key = nullptr;
-        uint8_t auth_key[UVG_AUTH_LENGTH];
-        uint8_t salt_key[UVG_SALT_LENGTH];
+        uint8_t auth_key[UVG_AUTH_LENGTH] = {};
+        uint8_t salt_key[UVG_SALT_LENGTH] = {};
 
         int type = 0;     /* srtp or srtcp */
         uint32_t roc = 0; /* rollover counter */
@@ -122,7 +122,7 @@ namespace uvgrtp {
              * Returns false if replay protection has not been enabled */
             bool is_replayed_packet(uint8_t *digest);
 
-            size_t get_key_size(int rce_flags) const;
+            uint32_t get_key_size(int rce_flags) const;
 
         protected:
 

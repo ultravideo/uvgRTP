@@ -15,26 +15,6 @@
 
 namespace uvgrtp {
     namespace frame {
-        enum HEADER_SIZES {
-            HEADER_SIZE_RTP            = 12,
-            HEADER_SIZE_OPUS           =  1,
-            HEADER_SIZE_H264_INDICATOR =  1,
-            HEADER_SIZE_H264_NAL       =  1,
-            HEADER_SIZE_H264_FU        =  1,
-            HEADER_SIZE_H265_PAYLOAD   =  2,
-            HEADER_SIZE_H265_NAL       =  2,
-            HEADER_SIZE_H265_FU        =  1,
-            HEADER_SIZE_H266_PAYLOAD   =  2,
-            HEADER_SIZE_H266_NAL       =  2,
-            HEADER_SIZE_H266_FU        =  1,
-        };
-
-        enum RTP_FRAME_TYPE {
-            RTP_FT_GENERIC = 0, /* payload length + RTP Header size (N + 12) */
-            RTP_FT_OPUS    = 1, /* payload length + RTP Header size + Opus header (N + 12 + 0 [for now]) */
-            RTP_FT_H265_FU = 2, /* payload length + RTP Header size + HEVC NAL Header + FU Header (N + 12 + 2 + 1) */
-            RTP_FT_H266_FU = 2, /* payload length + RTP Header size + HEVC NAL Header + FU Header (N + 12 + 2 + 1) */
-        };
 
         enum RTCP_FRAME_TYPE {
             RTCP_FT_SR   = 200, /* Sender report */
@@ -65,7 +45,7 @@ namespace uvgrtp {
         struct rtp_frame {
             struct rtp_header header;
             uint32_t *csrc = nullptr;
-            struct ext_header *ext;
+            struct ext_header *ext = nullptr;
 
             size_t padding_len = 0; /* non-zero if frame is padded */
             size_t payload_len = 0; /* payload_len: total_len - header_len - padding length (if padded) */
@@ -89,14 +69,14 @@ namespace uvgrtp {
 
             rtp_format_t format = RTP_FORMAT_GENERIC;
             int  type = 0;
-            sockaddr_in src_addr;
+            sockaddr_in src_addr = {};
         };
 
         struct rtcp_header {
             uint8_t version = 0;
             uint8_t padding = 0;
             union {
-                uint8_t count;
+                uint8_t count = 0;
                 uint8_t pkt_subtype; /* for app packets */
             };
             uint8_t pkt_type = 0;
@@ -153,7 +133,7 @@ namespace uvgrtp {
         struct rtcp_app_packet {
             struct rtcp_header header;
             uint32_t ssrc = 0;
-            uint8_t name[4];
+            uint8_t name[4] = {0};
             uint8_t *payload = nullptr;
         };
 

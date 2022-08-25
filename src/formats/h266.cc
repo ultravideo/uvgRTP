@@ -31,17 +31,17 @@ uvgrtp::formats::h266::~h266()
 
 uint8_t uvgrtp::formats::h266::get_payload_header_size() const
 {
-    return uvgrtp::frame::HEADER_SIZE_H266_PAYLOAD;
+    return HEADER_SIZE_H266_PAYLOAD;
 }
 
 uint8_t uvgrtp::formats::h266::get_nal_header_size() const
 {
-    return uvgrtp::frame::HEADER_SIZE_H266_NAL;
+    return HEADER_SIZE_H266_NAL;
 }
 
 uint8_t uvgrtp::formats::h266::get_fu_header_size() const
 {
-    return uvgrtp::frame::HEADER_SIZE_H266_FU;
+    return HEADER_SIZE_H266_FU;
 }
 
 uint8_t uvgrtp::formats::h266::get_start_code_range() const

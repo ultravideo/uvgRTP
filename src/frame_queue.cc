@@ -24,6 +24,7 @@
 
 uvgrtp::frame_queue::frame_queue(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int rce_flags):
     active_(nullptr),
+    dealloc_hook_(nullptr),
     max_mcount_(MAX_MSG_COUNT),
     max_ccount_(MAX_CHUNK_COUNT* max_mcount_),
     rtp_(rtp), 
@@ -312,7 +313,7 @@ rtp_error_t uvgrtp::frame_queue::flush_queue()
 
             //  send pkt vects
             if (socket_->sendto(active_->packets[i], 0) != RTP_OK) {
-                UVG_LOG_ERROR("Failed to send packet: %s", strerror(errno));
+                UVG_LOG_ERROR("Failed to send packet: %li", errno);
                 (void)deinit_transaction();
                 return RTP_SEND_ERROR;
             }
@@ -320,7 +321,7 @@ rtp_error_t uvgrtp::frame_queue::flush_queue()
 
     }
     else if (socket_->sendto(active_->packets, 0) != RTP_OK) {
-        UVG_LOG_ERROR("Failed to flush the message queue: %s", strerror(errno));
+        UVG_LOG_ERROR("Failed to flush the message queue: %li", errno);
         (void)deinit_transaction();
         return RTP_SEND_ERROR;
     }

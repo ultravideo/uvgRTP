@@ -174,16 +174,16 @@ namespace uvgrtp {
     typedef struct zrtp_secrets {
         /* Retained (for uvgRTP, preshared mode is not supported so we're
          * going to generate just some random values for these) */
-        uint8_t rs1[32];
-        uint8_t rs2[32];
-        uint8_t raux[32];
-        uint8_t rpbx[32];
+        uint8_t rs1[32] = {};
+        uint8_t rs2[32] = {};
+        uint8_t raux[32] = {};
+        uint8_t rpbx[32] = {};
 
         /* Shared secrets
          *
          * Because uvgRTP supports only DH mode,
          * other shared secrets (s1 - s3) are null */
-        uint8_t s0[32];
+        uint8_t s0[32] = {};
         uint8_t* s1 = nullptr;
         uint8_t* s2 = nullptr;
         uint8_t* s3 = nullptr;
@@ -250,27 +250,27 @@ namespace uvgrtp {
         uint32_t sas_type = 0;
 
         /* Session capabilities */
-        zrtp_capab_t capabilities;
+        zrtp_capab_t capabilities = {};
 
         /* Various hash values of the ZRTP session */
-        zrtp_hash_ctx_t hash_ctx;
+        zrtp_hash_ctx_t hash_ctx = {};
 
         /* DH-related variables */
-        zrtp_dh_ctx_t dh_ctx;
+        zrtp_dh_ctx_t dh_ctx = {};
 
         /* ZRTP keying material (for HMAC/AES etc) */
-        zrtp_key_ctx_t key_ctx;
+        zrtp_key_ctx_t key_ctx = {};
 
         /* Retained and shared secrets of the ZRTP session */
-        zrtp_secrets_t secrets;
+        zrtp_secrets_t secrets = {};
 
         uint8_t o_zid[12]; /* our ZID */
         uint8_t r_zid[12]; /* remote ZID */
 
         /* Pointers to messages sent by us and messages received from remote.
          * These are used to calculate various hash values */
-        zrtp_messages_t l_msg;
-        zrtp_messages_t r_msg;
+        zrtp_messages_t l_msg = {};
+        zrtp_messages_t r_msg = {};
     } zrtp_session_t;
 
 

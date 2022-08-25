@@ -56,7 +56,7 @@ namespace uvgrtp {
              * \retval nullptr                 If RCE_SRTP is given but RCE_SRTP_KMNGMNT_* flag is not given
              * \retval nullptr                 If memory allocation failed
              */
-            uvgrtp::media_stream *create_stream(int src_port, int dst_port, rtp_format_t fmt, int rce_flags);
+            uvgrtp::media_stream *create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags);
 
             /**
              * \brief Destroy a media stream

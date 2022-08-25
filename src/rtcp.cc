@@ -79,7 +79,7 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int rce_
         // items should not have null termination
         const char* c = cname.c_str();
         memcpy(cname_, c, cname.length());
-        uint8_t length = cname.length();
+        uint8_t length = (uint8_t)cname.length();
 
         cnameItem_ = { 1, length, (void*)cname_ };
         ourItems_.push_back(cnameItem_);
@@ -103,7 +103,7 @@ uvgrtp::rtcp::~rtcp()
     ourItems_.clear();
 }
 
-uvgrtp::rtcp_app_packet::rtcp_app_packet(const char* name, uint8_t subtype, size_t payload_len, const uint8_t* payload)
+uvgrtp::rtcp_app_packet::rtcp_app_packet(const char* name, uint8_t subtype, uint32_t payload_len, const uint8_t* payload)
 {
     uint8_t* packet_payload = new uint8_t[payload_len];
     memcpy(packet_payload, payload, payload_len);
@@ -216,7 +216,7 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp, int interval)
     UVG_LOG_DEBUG("Sleeping for %i ms before sending first RTCP report", initial_sleep_ms);
     std::this_thread::sleep_for(std::chrono::milliseconds(initial_sleep_ms));
 
-    uint8_t buffer[MAX_PACKET];
+    std::unique_ptr<uint8_t[]> buffer = std::unique_ptr<uint8_t[]>(new uint8_t[MAX_PACKET]);
 
     uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
 
@@ -224,7 +224,7 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp, int interval)
     while (rtcp->is_active())
     {
         long int next_sendslot = i * interval;
-        long int run_time = uvgrtp::clock::hrc::diff_now(start);
+        uint32_t run_time = (uint32_t)uvgrtp::clock::hrc::diff_now(start);
         long int diff_ms = next_sendslot - run_time;
 
         rtp_error_t ret = RTP_OK;
@@ -251,11 +251,11 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp, int interval)
                 poll_timout = max_poll_timeout_ms;
             }
 
-            ret = uvgrtp::poll::poll(rtcp->get_sockets(), buffer, MAX_PACKET, poll_timout, &nread);
+            ret = uvgrtp::poll::poll(rtcp->get_sockets(), buffer.get(), MAX_PACKET, poll_timout, &nread);
 
             if (ret == RTP_OK && nread > 0)
             {
-                (void)rtcp->handle_incoming_packet(buffer, (size_t)nread);
+                (void)rtcp->handle_incoming_packet(buffer.get(), (size_t)nread);
             } else if (ret == RTP_INTERRUPTED) {
                 /* do nothing */
             } else {
@@ -945,9 +945,8 @@ void uvgrtp::rtcp::update_session_statistics(const uvgrtp::frame::rtp_frame *fra
     p->stats.dropped_pkts = dropped >= 0 ? dropped : 0;
 
     // the arrival time expressed as an RTP timestamp
-    uint32_t arrival =
-        p->stats.initial_rtp +
-        + (uint32_t)uvgrtp::clock::ntp::diff_now(p->stats.initial_ntp)*(p->stats.clock_rate / 1000);
+    uint32_t arrival = p->stats.initial_rtp +
+        (uint32_t)uvgrtp::clock::ntp::diff_now(p->stats.initial_ntp)*(p->stats.clock_rate / 1000);
 
     // calculate interarrival jitter. See RFC 3550 A.8
     uint32_t transit = arrival - frame->header.timestamp; // A.8: int transit = arrival - r->ts
@@ -1009,7 +1008,7 @@ rtp_error_t uvgrtp::rtcp::recv_packet_handler(void *arg, int rce_flags, frame::r
 
 rtp_error_t uvgrtp::rtcp::send_packet_handler_vec(void *arg, uvgrtp::buf_vec& buffers)
 {
-    ssize_t pkt_size = -uvgrtp::frame::HEADER_SIZE_RTP;
+    ssize_t pkt_size = -HEADER_SIZES::RTP_HDR_SIZE;
 
     for (auto& buffer : buffers)
     {
@@ -1026,8 +1025,10 @@ rtp_error_t uvgrtp::rtcp::send_packet_handler_vec(void *arg, uvgrtp::buf_vec& bu
 
 size_t uvgrtp::rtcp::rtcp_length_in_bytes(uint16_t length)
 {
+    size_t expanded_length = length;
+
     // the length field is the rtcp packet size measured in 32-bit words - 1
-    return uint32_t(length + 1) * sizeof(uint32_t);
+    return (expanded_length + 1)* sizeof(uint32_t);
 }
 
 rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
@@ -1076,7 +1077,7 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
         uvgrtp::frame::rtcp_header header;
         read_rtcp_header(buffer, read_ptr, header);
 
-        uint32_t size_of_rtcp_packet = rtcp_length_in_bytes(header.length);
+        size_t size_of_rtcp_packet = rtcp_length_in_bytes(header.length);
 
         /* Possible packet padding means header.length is only reliable way to find next packet.
          * We have to substract the size of header, since it was added when reading the header. */
@@ -1111,7 +1112,7 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
             return RTP_INVALID_VALUE;
         }
 
-        rtp_error_t ret = RTP_INVALID_VALUE;
+        ret = RTP_INVALID_VALUE;
 
         switch (header.pkt_type)
         {
@@ -1400,6 +1401,8 @@ rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t* packet, size_t& read_ptr, 
 rtp_error_t uvgrtp::rtcp::handle_bye_packet(uint8_t* packet, size_t& read_ptr, 
     size_t packet_end, uvgrtp::frame::rtcp_header& header)
 {
+    (void)header; // TODO: Process BYE packet better
+
     for (size_t i = 0; i < packet_end; i += sizeof(uint32_t))
     {
         uint32_t ssrc = 0; 
@@ -1440,7 +1443,7 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t& read_ptr,
     memcpy(frame->name, &packet[read_ptr], APP_NAME_SIZE);
     read_ptr += APP_NAME_SIZE;
 
-    uint32_t application_data_size = packet_end - read_ptr;
+    size_t application_data_size = packet_end - read_ptr;
 
     // application data is saved to payload
     frame->payload = new uint8_t[application_data_size];
@@ -1468,7 +1471,7 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t& read_ptr,
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, size_t frame_size, bool encrypt)
+rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, uint32_t frame_size, bool encrypt)
 {
     if (!frame)
     {
@@ -1508,9 +1511,9 @@ rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, size_
     return ret;
 }
 
-size_t uvgrtp::rtcp::size_of_ready_app_packets() const
+uint32_t uvgrtp::rtcp::size_of_ready_app_packets() const
 {
-    size_t app_size = 0;
+    uint32_t app_size = 0;
     for (auto& app_name : app_packets_)
     {
         // TODO: Should we also send one per subtype?
@@ -1523,10 +1526,10 @@ size_t uvgrtp::rtcp::size_of_ready_app_packets() const
     return app_size;
 }
 
-size_t uvgrtp::rtcp::size_of_compound_packet(uint16_t reports,
-    bool sr_packet, bool rr_packet, bool sdes_packet, size_t app_size, bool bye_packet) const
+uint32_t uvgrtp::rtcp::size_of_compound_packet(uint16_t reports,
+    bool sr_packet, bool rr_packet, bool sdes_packet, uint32_t app_size, bool bye_packet) const
 {
-    size_t compound_packet_size = 0;
+    uint32_t compound_packet_size = 0;
 
     if (sr_packet)
     {  
@@ -1570,7 +1573,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
     std::lock_guard<std::mutex> lock(packet_mutex_);
     rtcp_pkt_sent_count_++;
 
-    uint16_t reports = 0;
+    uint8_t reports = 0;
     for (auto& p : participants_)
     {
         if (p.second->stats.received_rtp_packet)
@@ -1582,10 +1585,10 @@ rtp_error_t uvgrtp::rtcp::generate_report()
     bool sr_packet = our_role_ == SENDER && our_stats.sent_rtp_packet;
     bool rr_packet = our_role_ == RECEIVER || our_stats.sent_rtp_packet == 0;
     bool sdes_packet = true;
-    size_t app_packets_size = size_of_ready_app_packets();
+    uint32_t app_packets_size = size_of_ready_app_packets();
     bool bye_packet = !bye_ssrcs_.empty();
 
-    size_t compound_packet_size = size_of_compound_packet(reports, sr_packet, rr_packet, sdes_packet, app_packets_size, bye_packet);
+    uint32_t compound_packet_size = size_of_compound_packet(reports, sr_packet, rr_packet, sdes_packet, app_packets_size, bye_packet);
     
     if (compound_packet_size == 0)
     {
@@ -1603,7 +1606,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
     // see https://datatracker.ietf.org/doc/html/rfc3550#section-6.4.1
 
-    int write_ptr = 0;
+    size_t write_ptr = 0;
     if (sr_packet)
     {
         // sender reports have sender information in addition compared to receiver reports
@@ -1619,8 +1622,11 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         /* TODO: The RTP timestamp should be from an actual RTP packet and NTP timestamp should be the one
            corresponding to it. */
         uint64_t ntp_ts = uvgrtp::clock::ntp::now();
-        uint64_t rtp_ts = rtp_ts_start_ + (uvgrtp::clock::ntp::diff(clock_start_, ntp_ts))
-            * float(clock_rate_ / 1000);
+
+        uint64_t expanded_ts_start = rtp_ts_start_;
+        uint64_t ts_since_start = (uint64_t)(uvgrtp::clock::ntp::diff(clock_start_, ntp_ts) * double(clock_rate_ / 1000));
+
+        uint64_t rtp_ts = expanded_ts_start + ts_since_start;
 
         if (!construct_rtcp_header(frame, write_ptr, sender_report_size, reports, uvgrtp::frame::RTCP_FT_SR) ||
             !construct_ssrc(frame, write_ptr, ssrc_) ||
@@ -1655,12 +1661,15 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         if (p.second->stats.received_rtp_packet)
         {
             uint32_t dropped_packets = p.second->stats.dropped_pkts;
-            // TODO: This should be the number of packets lost compared to number of packets expected (see fraction lost in RFC 3550)
+
+            // TODO: Fraction should be the number of packets lost compared to number of packets expected (see fraction lost in RFC 3550)
             // see https://datatracker.ietf.org/doc/html/rfc3550#appendix-A.3
-            uint8_t fraction = dropped_packets ? p.second->stats.received_bytes / dropped_packets : 0;
+            
+            //uint8_t fraction = dropped_packets ? p.second->stats.received_bytes / dropped_packets : 0;
+            uint8_t fraction = 0; // disabled, because it was incorrect
 
             uint64_t diff = (u_long)uvgrtp::clock::hrc::diff_now(p.second->stats.sr_ts);
-            uint32_t dlrs = uvgrtp::clock::ms_to_jiffies(diff);
+            uint32_t dlrs = (uint32_t)uvgrtp::clock::ms_to_jiffies(diff);
 
             /* calculate delay of last SR only if SR has been received at least once */
             if (p.second->stats.lsr == 0)
@@ -1669,7 +1678,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
             }
 
             construct_report_block(frame, write_ptr, p.first, fraction, dropped_packets,
-                p.second->stats.cycles, p.second->stats.max_seq, p.second->stats.jitter, 
+                p.second->stats.cycles, p.second->stats.max_seq, (uint32_t)p.second->stats.jitter, 
                 p.second->stats.lsr, dlrs);
 
             // we only send reports if there is something to report since last report
@@ -1702,9 +1711,9 @@ rtp_error_t uvgrtp::rtcp::generate_report()
                 // take the oldest APP packet and send it
                 rtcp_app_packet& next_packet = app_name.second.front();
 
-                uint16_t secondField = (next_packet.subtype & 0x1f);
+                uint8_t secondField = (next_packet.subtype & 0x1f);
 
-                size_t packet_size = get_app_packet_size(next_packet.payload_len);
+                uint32_t packet_size = get_app_packet_size(next_packet.payload_len);
 
                 if (!construct_rtcp_header(frame, write_ptr, packet_size, secondField,
                     uvgrtp::frame::RTCP_FT_APP) ||
@@ -1725,7 +1734,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
     if (bye_packet)
     {
         // header construction does not add our ssrc for BYE
-        uint16_t secondField = (bye_ssrcs_.size() & 0x1f);
+        uint8_t secondField = (bye_ssrcs_.size() & 0x1f);
         if (!construct_rtcp_header(frame, write_ptr, get_bye_packet_size(bye_ssrcs_), secondField,
             uvgrtp::frame::RTCP_FT_BYE) ||
             !construct_bye_packet(frame, write_ptr, bye_ssrcs_))
@@ -1776,7 +1785,7 @@ rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
 }
 
 rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
-    size_t payload_len, const uint8_t* payload)
+    uint32_t payload_len, const uint8_t* payload)
 {
     packet_mutex_.lock();
     if (!app_packets_[name].empty())

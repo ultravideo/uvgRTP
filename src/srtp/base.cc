@@ -104,9 +104,9 @@ rtp_error_t uvgrtp::base_srtp::init(int type, int rce_flags, uint8_t* local_key,
     return RTP_OK;
 }
 
-size_t uvgrtp::base_srtp::get_key_size(int rce_flags) const
+uint32_t uvgrtp::base_srtp::get_key_size(int rce_flags) const
 {
-    size_t key_size = AES128_KEY_SIZE;
+    uint32_t key_size = AES128_KEY_SIZE;
 
     if (!(rce_flags & RCE_SRTP_KMNGMNT_ZRTP))
     {

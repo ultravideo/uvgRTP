@@ -38,6 +38,8 @@ const int MAX_PAYLOAD      = 1446;
 const int PKT_MAX_DELAY    = 500;
 
 /* TODO: add ability for user to specify these? */
+
+// TODO: IPv6 size is 40
 enum HEADER_SIZES {
     ETH_HDR_SIZE  = 14,
     IPV4_HDR_SIZE = 20,
@@ -298,13 +300,6 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
 
     RCC_LAST
 };
-
-
-/* see src/util.hh for more information */
-typedef struct rtp_ctx_conf {
-    int rce_flags = 0;
-    ssize_t ctx_values[RCC_LAST];
-} rtp_ctx_conf_t;
 
 extern thread_local rtp_error_t rtp_errno;
 

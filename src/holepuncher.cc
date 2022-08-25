@@ -10,9 +10,9 @@
 
 uvgrtp::holepuncher::holepuncher(std::shared_ptr<uvgrtp::socket> socket):
     socket_(socket),
-    last_dgram_sent_(0)
-{
-}
+    last_dgram_sent_(0),
+    active_(false)
+{}
 
 uvgrtp::holepuncher::~holepuncher()
 {

@@ -40,8 +40,8 @@ namespace uvgrtp {
     class media_stream {
         public:
             /// \cond DO_NOT_DOCUMENT
-            media_stream(std::string cname, std::string addr, int src_port, int dst_port, rtp_format_t fmt, int rce_flags);
-            media_stream(std::string cname, std::string remote_addr, std::string local_addr, int src_port, int dst_port, 
+            media_stream(std::string cname, std::string addr, uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags);
+            media_stream(std::string cname, std::string remote_addr, std::string local_addr, uint16_t src_port, uint16_t dst_port,
                 rtp_format_t fmt, int rce_flags);
             ~media_stream();
 
@@ -331,13 +331,12 @@ namespace uvgrtp {
             sockaddr_in remote_sockaddr_;
             std::string remote_address_;
             std::string local_address_;
-            int src_port_;
-            int dst_port_;
+            uint16_t src_port_;
+            uint16_t dst_port_;
             rtp_format_t fmt_;
-            int rce_flags_;
 
             /* Media context config */
-            rtp_ctx_conf_t ctx_config_;
+            int rce_flags_ = 0;
 
             /* Media config f.ex. for Opus */
             void *media_config_;
@@ -360,8 +359,8 @@ namespace uvgrtp {
 
             std::string cname_;
 
-            int fps_enumerator_ = 30;
-            int fps_denominator_ = 1;
+            ssize_t fps_enumerator_ = 30;
+            ssize_t fps_denominator_ = 1;
     };
 }
 

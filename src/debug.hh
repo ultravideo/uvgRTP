@@ -11,7 +11,7 @@
 #include <cstring>
 #include <string>
 
-// TODO constexpr??
+
 inline const std::string className(const std::string& prettyFunction)
 {
     size_t colons = prettyFunction.find("::");

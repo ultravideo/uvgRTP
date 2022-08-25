@@ -21,6 +21,9 @@ namespace uvgrtp {
 
         #define INVALID_TS            0xffffffff
 
+        /* TODO: This functionality has much in common with h26x fragmentation and 
+         * they could use same structures */ 
+
         typedef struct media_info {
             uint32_t s_seq = 0;
             uint32_t e_seq = 0;
@@ -62,7 +65,7 @@ namespace uvgrtp {
                 /* Return pointer to the internal frame info structure which is relayed to packet handler */
                 media_frame_info_t *get_media_frame_info();
 
-                void set_fps(int enumarator, int denominator);
+                void set_fps(ssize_t enumarator, ssize_t denominator);
 
             protected:
                 virtual rtp_error_t push_media_frame(uint8_t *data, size_t data_len, int rtp_flags);

@@ -29,9 +29,16 @@ using namespace mingw;
 #define WSABUF_SIZE 256
 
 uvgrtp::socket::socket(int rce_flags):
-    socket_(-1),
+    socket_(0),
+    remote_address_(),
+    local_address_(),
     rce_flags_(rce_flags),
-    local_address_()
+#ifdef _WIN32
+    buffers_()
+#else
+    header_(),
+    chunks_()
+#endif
 {}
 
 uvgrtp::socket::~socket()
@@ -72,7 +79,9 @@ rtp_error_t uvgrtp::socket::init(short family, int type, int protocol)
 rtp_error_t uvgrtp::socket::setsockopt(int level, int optname, const void *optval, socklen_t optlen)
 {
     if (::setsockopt(socket_, level, optname, (const char *)optval, optlen) < 0) {
-        UVG_LOG_ERROR("Failed to set socket options: %s", strerror(errno));
+
+        //strerror(errno), depricated
+        UVG_LOG_ERROR("Failed to set socket options");
         return RTP_GENERIC_ERROR;
     }
 
@@ -570,7 +579,8 @@ rtp_error_t uvgrtp::socket::__recv(uint8_t *buf, size_t buf_len, int recv_flags,
 
     set_bytes(bytes_read, ret);
 #else
-    
+    (void)recv_flags;
+
     WSABUF DataBuf;
     DataBuf.len = (u_long)buf_len;
     DataBuf.buf = (char *)buf;
@@ -634,6 +644,9 @@ rtp_error_t uvgrtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int recv_fl
 
     set_bytes(bytes_read, ret);
 #else
+
+    (void)recv_flags;
+
     WSABUF DataBuf;
     DataBuf.len = (u_long)buf_len;
     DataBuf.buf = (char *)buf;

@@ -100,7 +100,7 @@ rtp_error_t uvgrtp::formats::media::packet_handler(void *arg, int rce_flags, uvg
     auto frame   = *out;
     uint32_t ts  = frame->header.timestamp;
     uint32_t seq = frame->header.seq;
-    size_t recv  = 0;
+    uint32_t recv  = 0;
 
     /* If fragmentation of generic frame has not been enabled, we can just return the frame
      * in "out" because RTP packet handler has done all the necessasry stuff for small RTP packets */
@@ -123,9 +123,13 @@ rtp_error_t uvgrtp::formats::media::packet_handler(void *arg, int rce_flags, uvg
 
         if (minfo->frames[ts].e_seq != INVALID_SEQ && minfo->frames[ts].s_seq != INVALID_SEQ) {
             if (minfo->frames[ts].s_seq > minfo->frames[ts].e_seq)
-                recv = 0xffff - minfo->frames[ts].s_seq + minfo->frames[ts].e_seq + 2;
+            {
+                recv = UINT16_MAX - minfo->frames[ts].s_seq + minfo->frames[ts].e_seq + (uint32_t)2;
+            }
             else
-                recv = minfo->frames[ts].e_seq - minfo->frames[ts].s_seq + 1;
+            {
+                recv = minfo->frames[ts].e_seq - minfo->frames[ts].s_seq + (uint32_t)1;
+            }
 
             if (recv == minfo->frames[ts].npkts) {
                 auto retframe = uvgrtp::frame::alloc_rtp_frame(minfo->frames[ts].size);
@@ -165,7 +169,7 @@ rtp_error_t uvgrtp::formats::media::packet_handler(void *arg, int rce_flags, uvg
     return RTP_OK;
 }
 
-void uvgrtp::formats::media::set_fps(int enumerator, int denominator)
+void uvgrtp::formats::media::set_fps(ssize_t enumerator, ssize_t denominator)
 {
     fqueue_->set_fps(enumerator, denominator);
 }

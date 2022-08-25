@@ -17,6 +17,10 @@ namespace uvgrtp {
 
     namespace formats {
 
+        constexpr uint8_t HEADER_SIZE_H265_PAYLOAD = 2;
+        constexpr uint8_t HEADER_SIZE_H265_NAL = 2;
+        constexpr uint8_t HEADER_SIZE_H265_FU = 1;
+
         enum H265_NAL_TYPES {
             H265_TRAIL_R = 1,
             H265_IDR_W_RADL = 19,
@@ -25,19 +29,19 @@ namespace uvgrtp {
         };
 
         struct h265_aggregation_packet {
-            uint8_t payload_header[uvgrtp::frame::HEADER_SIZE_H265_PAYLOAD];
+            uint8_t payload_header[HEADER_SIZE_H265_PAYLOAD] = {0};
             uvgrtp::buf_vec nalus;  /* discrete NAL units */
             uvgrtp::buf_vec aggr_pkt; /* crafted aggregation packet */
         };
 
         struct h265_headers {
-            uint8_t payload_header[uvgrtp::frame::HEADER_SIZE_H265_PAYLOAD];
+            uint8_t payload_header[HEADER_SIZE_H265_PAYLOAD];
 
             /* there are three types of Fragmentation Unit headers:
              *  - header for the first fragment
              *  - header for all middle fragments
              *  - header for the last fragment */
-            uint8_t fu_headers[3 * uvgrtp::frame::HEADER_SIZE_H265_FU];
+            uint8_t fu_headers[3 * HEADER_SIZE_H265_FU];
         };
 
         class h265 : public h26x {

@@ -29,6 +29,7 @@ rtp_error_t uvgrtp::zrtp_msg::error::parse_msg(uvgrtp::zrtp_msg::receiver& recei
                                                zrtp_session_t& session)
 {
     (void)receiver;
+    (void)session;
 
     /* TODO:  */
 

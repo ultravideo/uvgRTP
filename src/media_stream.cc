@@ -21,13 +21,13 @@
 #include <errno.h>
 
 uvgrtp::media_stream::media_stream(std::string cname, std::string addr, 
-    int src_port, int dst_port, rtp_format_t fmt, int rce_flags):
+    uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags):
     srtp_(nullptr),
     srtcp_(nullptr),
     socket_(nullptr),
     rtp_(nullptr),
     rtcp_(nullptr),
-    ctx_config_(),
+    rce_flags_(),
     media_config_(nullptr),
     initialized_(false),
     rtp_handler_key_(0),
@@ -45,13 +45,11 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string addr,
     src_port_ = src_port;
     dst_port_ = dst_port;
     key_      = uvgrtp::random::generate_32();
-
-    ctx_config_.rce_flags = rce_flags;
 }
 
 uvgrtp::media_stream::media_stream(std::string cname,
     std::string remote_addr, std::string local_addr,
-    int src_port, int dst_port,
+    uint16_t src_port, uint16_t dst_port,
     rtp_format_t fmt, int rce_flags
 ):
     media_stream(cname, remote_addr, src_port, dst_port, fmt, rce_flags)
@@ -70,12 +68,12 @@ uvgrtp::media_stream::~media_stream()
     // and media stream is destroyed. Note that this is the only way to stop pull
     // frame without waiting
 
-    if ((ctx_config_.rce_flags & RCE_RTCP) && rtcp_)
+    if ((rce_flags_ & RCE_RTCP) && rtcp_)
     {
         rtcp_->stop();
     }
 
-    if ((ctx_config_.rce_flags & RCE_HOLEPUNCH_KEEPALIVE) && holepuncher_)
+    if ((rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE) && holepuncher_)
     {
         holepuncher_->stop();
     }
@@ -87,7 +85,7 @@ rtp_error_t uvgrtp::media_stream::init_connection()
 {
     rtp_error_t ret = RTP_OK;
 
-    socket_ = std::shared_ptr<uvgrtp::socket> (new uvgrtp::socket(ctx_config_.rce_flags));
+    socket_ = std::shared_ptr<uvgrtp::socket> (new uvgrtp::socket(rce_flags_));
 
     if ((ret = socket_->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
         return ret;
@@ -100,12 +98,14 @@ rtp_error_t uvgrtp::media_stream::init_connection()
         UVG_LOG_ERROR("Failed to make the socket non-blocking!");
 #endif
 
+    short int family = AF_INET;
+
     // no reason to fail sending even if binding fails so we set remote address first
-    remote_sockaddr_ = socket_->create_sockaddr(AF_INET, remote_address_, dst_port_);
+    remote_sockaddr_ = socket_->create_sockaddr(family, remote_address_, dst_port_);
     socket_->set_sockaddr(remote_sockaddr_);
 
     if (local_address_ != "") {
-        sockaddr_in bind_addr = socket_->create_sockaddr(AF_INET, local_address_, src_port_);
+        sockaddr_in bind_addr = socket_->create_sockaddr(family, local_address_, src_port_);
 
         if ((ret = socket_->bind(bind_addr)) != RTP_OK)
         {
@@ -115,7 +115,7 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     } 
     else 
     {
-        if ((ret = socket_->bind(AF_INET, INADDR_ANY, src_port_)) != RTP_OK)
+        if ((ret = socket_->bind(family, INADDR_ANY, src_port_)) != RTP_OK)
         {
             log_platform_error("bind(2) to any failed");
             return ret;
@@ -141,10 +141,10 @@ rtp_error_t uvgrtp::media_stream::init_connection()
 
 rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
 {
-    switch (fmt_) {
+    switch (fmt) {
         case RTP_FORMAT_H264:
         {
-            uvgrtp::formats::h264* format_264 = new uvgrtp::formats::h264(socket_, rtp_, ctx_config_.rce_flags);
+            uvgrtp::formats::h264* format_264 = new uvgrtp::formats::h264(socket_, rtp_, rce_flags_);
 
             reception_flow_->install_aux_handler_cpp(
                 rtp_handler_key_,
@@ -157,7 +157,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         }
         case RTP_FORMAT_H265:
         {
-            uvgrtp::formats::h265* format_265 = new uvgrtp::formats::h265(socket_, rtp_, ctx_config_.rce_flags);
+            uvgrtp::formats::h265* format_265 = new uvgrtp::formats::h265(socket_, rtp_, rce_flags_);
 
             reception_flow_->install_aux_handler_cpp(
                 rtp_handler_key_,
@@ -170,7 +170,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         }
         case RTP_FORMAT_H266:
         {
-            uvgrtp::formats::h266* format_266 = new uvgrtp::formats::h266(socket_, rtp_, ctx_config_.rce_flags);
+            uvgrtp::formats::h266* format_266 = new uvgrtp::formats::h266(socket_, rtp_, rce_flags_);
 
             reception_flow_->install_aux_handler_cpp(
                 rtp_handler_key_,
@@ -183,7 +183,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         }
         case RTP_FORMAT_OPUS:
         case RTP_FORMAT_GENERIC:
-            media_ = std::unique_ptr<uvgrtp::formats::media> (new uvgrtp::formats::media(socket_, rtp_, ctx_config_.rce_flags));
+            media_ = std::unique_ptr<uvgrtp::formats::media> (new uvgrtp::formats::media(socket_, rtp_, rce_flags_));
 
             reception_flow_->install_aux_handler(
                 rtp_handler_key_,
@@ -248,7 +248,7 @@ rtp_error_t uvgrtp::media_stream::init()
     reception_flow_ = std::unique_ptr<uvgrtp::reception_flow> (new uvgrtp::reception_flow());
 
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
-    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, cname_, ctx_config_.rce_flags));
+    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, cname_, rce_flags_));
 
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
 
@@ -278,15 +278,15 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
         return free_resources(ret);
     }
 
-    srtp_ = std::shared_ptr<uvgrtp::srtp>(new uvgrtp::srtp(ctx_config_.rce_flags));
-    if ((ret = init_srtp_with_zrtp(ctx_config_.rce_flags, SRTP, srtp_, zrtp)) != RTP_OK)
+    srtp_ = std::shared_ptr<uvgrtp::srtp>(new uvgrtp::srtp(rce_flags_));
+    if ((ret = init_srtp_with_zrtp(rce_flags_, SRTP, srtp_, zrtp)) != RTP_OK)
       return free_resources(ret);
 
     srtcp_ = std::shared_ptr<uvgrtp::srtcp> (new uvgrtp::srtcp());
-    if ((ret = init_srtp_with_zrtp(ctx_config_.rce_flags, SRTCP, srtcp_, zrtp)) != RTP_OK)
+    if ((ret = init_srtp_with_zrtp(rce_flags_, SRTCP, srtcp_, zrtp)) != RTP_OK)
       return free_resources(ret);
 
-    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, cname_, srtcp_, ctx_config_.rce_flags));
+    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, cname_, srtcp_, rce_flags_));
 
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
     socket_->install_handler(srtp_.get(), srtp_->send_packet_handler);
@@ -320,22 +320,22 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
 
-    srtp_ = std::shared_ptr<uvgrtp::srtp> (new uvgrtp::srtp(ctx_config_.rce_flags));
+    srtp_ = std::shared_ptr<uvgrtp::srtp> (new uvgrtp::srtp(rce_flags_));
 
     // why are they local and remote key/salt the same?
-    if ((ret = srtp_->init(SRTP, ctx_config_.rce_flags, key, key, salt, salt)) != RTP_OK) {
+    if ((ret = srtp_->init(SRTP, rce_flags_, key, key, salt, salt)) != RTP_OK) {
         UVG_LOG_WARN("Failed to initialize SRTP for media stream!");
         return free_resources(ret);
     }
 
     srtcp_ = std::shared_ptr<uvgrtp::srtcp> (new uvgrtp::srtcp());
 
-    if ((ret = srtcp_->init(SRTCP, ctx_config_.rce_flags, key, key, salt, salt)) != RTP_OK) {
+    if ((ret = srtcp_->init(SRTCP, rce_flags_, key, key, salt, salt)) != RTP_OK) {
         UVG_LOG_WARN("Failed to initialize SRTCP for media stream!");
         return free_resources(ret);
     }
 
-    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, cname_, srtcp_, ctx_config_.rce_flags));
+    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, cname_, srtcp_, rce_flags_));
 
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
     socket_->install_handler(srtp_.get(), srtp_->send_packet_handler);
@@ -353,22 +353,22 @@ rtp_error_t uvgrtp::media_stream::start_components()
     if (create_media(fmt_) != RTP_OK)
         return free_resources(RTP_MEMORY_ERROR);
 
-    if (ctx_config_.rce_flags & RCE_HOLEPUNCH_KEEPALIVE) {
+    if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE) {
         holepuncher_ = std::unique_ptr<uvgrtp::holepuncher> (new uvgrtp::holepuncher(socket_));
         holepuncher_->start();
     }
 
-    if (ctx_config_.rce_flags & RCE_RTCP) {
+    if (rce_flags_ & RCE_RTCP) {
         rtcp_->add_participant(remote_address_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
         rtcp_->set_session_bandwidth(get_default_bandwidth_kbps(fmt_));
         rtcp_->start();
     }
 
-    if (ctx_config_.rce_flags & RCE_SRTP_AUTHENTICATE_RTP)
+    if (rce_flags_ & RCE_SRTP_AUTHENTICATE_RTP)
         rtp_->set_payload_size(MAX_PAYLOAD - UVG_AUTH_TAG_LENGTH);
 
     initialized_ = true;
-    return reception_flow_->start(socket_, ctx_config_.rce_flags);
+    return reception_flow_->start(socket_, rce_flags_);
 }
 
 rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int rtp_flags)
@@ -378,7 +378,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int
         return RTP_NOT_INITIALIZED;
     }
 
-    if (ctx_config_.rce_flags & RCE_HOLEPUNCH_KEEPALIVE && holepuncher_)
+    if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE && holepuncher_)
         holepuncher_->notify();
 
     return media_->push_frame(data, data_len, rtp_flags);
@@ -391,7 +391,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
         return RTP_NOT_INITIALIZED;
     }
 
-    if (ctx_config_.rce_flags & RCE_HOLEPUNCH_KEEPALIVE && holepuncher_)
+    if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE && holepuncher_)
         holepuncher_->notify();
 
     return media_->push_frame(std::move(data), data_len, rtp_flags);
@@ -406,7 +406,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, uin
         return RTP_NOT_INITIALIZED;
     }
 
-    if (ctx_config_.rce_flags & RCE_HOLEPUNCH_KEEPALIVE)
+    if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
         holepuncher_->notify();
 
     rtp_->set_timestamp(ts);
@@ -425,7 +425,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
         return RTP_NOT_INITIALIZED;
     }
 
-    if (ctx_config_.rce_flags & RCE_HOLEPUNCH_KEEPALIVE)
+    if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
         holepuncher_->notify();
 
     rtp_->set_timestamp(ts);
@@ -566,7 +566,7 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             ssize_t hdr      = ETH_HDR_SIZE + IPV4_HDR_SIZE + UDP_HDR_SIZE + RTP_HDR_SIZE;
             ssize_t max_size = 0xffff - IPV4_HDR_SIZE - UDP_HDR_SIZE;
 
-            if (ctx_config_.rce_flags & RCE_SRTP_AUTHENTICATE_RTP)
+            if (rce_flags_ & RCE_SRTP_AUTHENTICATE_RTP)
                 hdr += UVG_AUTH_TAG_LENGTH;
 
             if (value <= hdr)
@@ -621,7 +621,7 @@ uint32_t uvgrtp::media_stream::get_ssrc() const
 {
     if (!initialized_ || rtp_ == nullptr) {
         UVG_LOG_ERROR("RTP context has not been initialized, please call init before asking ssrc!");
-        return RTP_NOT_INITIALIZED;
+        return 0;
     }
 
     return rtp_->get_ssrc();
@@ -630,7 +630,7 @@ uint32_t uvgrtp::media_stream::get_ssrc() const
 rtp_error_t uvgrtp::media_stream::init_srtp_with_zrtp(int rce_flags, int type, std::shared_ptr<uvgrtp::base_srtp> srtp,
     std::shared_ptr<uvgrtp::zrtp> zrtp)
 {
-    size_t key_size = srtp->get_key_size(rce_flags);
+    uint32_t key_size = srtp->get_key_size(rce_flags);
 
     uint8_t* local_key = new uint8_t[key_size];
     uint8_t* remote_key = new uint8_t[key_size];
@@ -679,7 +679,7 @@ int uvgrtp::media_stream::get_default_bandwidth_kbps(rtp_format_t fmt)
             break;
         default:
             UVG_LOG_WARN("Unknown RTP format, setting session bandwidth to 64 kbps");
-            int bandwidth = 64;
+            bandwidth = 64;
             break;
     }
 

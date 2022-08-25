@@ -15,15 +15,15 @@ uvgrtp::srtcp::~srtcp()
 {
 }
 
-rtp_error_t uvgrtp::srtcp::handle_rtcp_encryption(int rce_flags, uint64_t packet_number,
-    uint32_t ssrc, uint8_t* frame, size_t frame_size)
+rtp_error_t uvgrtp::srtcp::handle_rtcp_encryption(int rce_flags, uint32_t packet_number,
+    uint32_t ssrc, uint8_t* frame, uint32_t frame_size)
 {
     auto ret = RTP_OK;
 
     /* Encrypt the packet if NULL cipher has not been enabled,
      * calculate authentication tag for the packet and add SRTCP index at the end */
     if (rce_flags & RCE_SRTP) {
-        if (!(RCE_SRTP & RCE_SRTP_NULL_CIPHER)) {
+        if (!(rce_flags & RCE_SRTP_NULL_CIPHER)) {
             ret = encrypt(ssrc, packet_number, &frame[8], 
                 frame_size - 8 - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH);
             SET_FIELD_32(frame, frame_size - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH, 

@@ -60,7 +60,7 @@ namespace uvgrtp {
 
     struct rtcp_participant {
         std::shared_ptr<uvgrtp::socket> socket = nullptr; /* socket associated with this participant */
-        sockaddr_in address;                              /* address of the participant */
+        sockaddr_in address = {};                              /* address of the participant */
         struct receiver_statistics stats;                 /* RTCP session statistics of the participant */
 
         uint32_t probation = 0;                           /* has the participant been fully accepted to the session */
@@ -76,13 +76,13 @@ namespace uvgrtp {
 
     struct rtcp_app_packet {
         rtcp_app_packet(const rtcp_app_packet& orig_packet) = delete;
-        rtcp_app_packet(const char* name, uint8_t subtype, size_t payload_len, const uint8_t* payload);
+        rtcp_app_packet(const char* name, uint8_t subtype, uint32_t payload_len, const uint8_t* payload);
         ~rtcp_app_packet();
 
         const char* name;
         uint8_t subtype;
 
-        size_t payload_len;
+        uint32_t payload_len;
         const uint8_t* payload;
     };
 
@@ -147,7 +147,7 @@ namespace uvgrtp {
              * \retval RTP_MEMORY_ERROR If allocation fails
              * \retval RTP_GENERIC_ERROR If sending fails
              */
-            rtp_error_t send_app_packet(const char *name, uint8_t subtype, size_t payload_len, const uint8_t *payload);
+            rtp_error_t send_app_packet(const char *name, uint8_t subtype, uint32_t payload_len, const uint8_t *payload);
 
             /**
              * \brief Send an RTCP BYE packet
@@ -312,10 +312,10 @@ namespace uvgrtp {
 
             rtp_error_t set_sdes_items(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
 
-            size_t size_of_ready_app_packets() const;
+            uint32_t size_of_ready_app_packets() const;
 
-            size_t size_of_compound_packet(uint16_t reports, 
-                bool sr_packet, bool rr_packet, bool sdes_packet, size_t app_size, bool bye_packet) const;
+            uint32_t size_of_compound_packet(uint16_t reports,
+                bool sr_packet, bool rr_packet, bool sdes_packet, uint32_t app_size, bool bye_packet) const;
 
             /* read the header values from rtcp packet */
             void read_rtcp_header(const uint8_t* buffer, size_t& read_ptr, 
@@ -386,7 +386,7 @@ namespace uvgrtp {
             void zero_stats(uvgrtp::receiver_statistics *stats);
 
             /* Takes ownership of the frame */
-            rtp_error_t send_rtcp_packet_to_participants(uint8_t* frame, size_t frame_size, bool encrypt);
+            rtp_error_t send_rtcp_packet_to_participants(uint8_t* frame, uint32_t frame_size, bool encrypt);
 
             void free_participant(rtcp_participant* participant);
 

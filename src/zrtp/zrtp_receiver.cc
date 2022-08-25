@@ -30,11 +30,11 @@
 
 using namespace uvgrtp::zrtp_msg;
 
-uvgrtp::zrtp_msg::receiver::receiver()
-{
-    mem_ = new uint8_t[1024];
-    len_  = 1024;
-}
+uvgrtp::zrtp_msg::receiver::receiver():
+    mem_(new uint8_t[1024]),
+    len_(1024),
+    rlen_(0)
+{}
 
 uvgrtp::zrtp_msg::receiver::~receiver()
 {
@@ -59,6 +59,9 @@ rtp_error_t uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket>
     }
 
 #ifdef _WIN32
+
+    (void)recv_flags;
+
     if ((ret = uvgrtp::poll::blocked_recv(socket, mem_, len_, timeout, &nread)) != RTP_OK) {
         if (ret == RTP_INTERRUPTED)
             return ret;

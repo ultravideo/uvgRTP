@@ -87,7 +87,7 @@ rtp_error_t uvgrtp::reception_flow::start(std::shared_ptr<uvgrtp::socket> socket
 
     UVG_LOG_DEBUG("Creating receiving threads and setting priorities");
     processor_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::reception_flow::process_packet, this, rce_flags));
-    receiver_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::reception_flow::receiver, this, socket, rce_flags));
+    receiver_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::reception_flow::receiver, this, socket));
 
     // set receiver thread priority to maximum
 #ifndef WIN32
@@ -158,7 +158,7 @@ uvgrtp::frame::rtp_frame *uvgrtp::reception_flow::pull_frame()
     return frame;
 }
 
-uvgrtp::frame::rtp_frame *uvgrtp::reception_flow::pull_frame(size_t timeout_ms)
+uvgrtp::frame::rtp_frame *uvgrtp::reception_flow::pull_frame(ssize_t timeout_ms)
 {
     auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -328,7 +328,7 @@ void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int rce_flags, uvgr
     }
 }
 
-void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, int rce_flags)
+void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
 {
     int read_packets = 0;
 
@@ -342,7 +342,7 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket, in
         pollfd* pfds = new pollfd();
 #endif
 
-        int read_fds = socket->get_raw_socket();
+        size_t read_fds = socket->get_raw_socket();
         pfds->fd = read_fds;
         pfds->events = POLLIN;
 

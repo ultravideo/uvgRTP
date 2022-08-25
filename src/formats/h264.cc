@@ -27,17 +27,17 @@ uvgrtp::formats::h264::~h264()
 
 uint8_t uvgrtp::formats::h264::get_payload_header_size() const
 {
-    return uvgrtp::frame::HEADER_SIZE_H264_INDICATOR;
+    return HEADER_SIZE_H264_INDICATOR;
 }
 
 uint8_t uvgrtp::formats::h264::get_nal_header_size() const
 {
-    return uvgrtp::frame::HEADER_SIZE_H264_NAL;
+    return HEADER_SIZE_H264_NAL;
 }
 
 uint8_t uvgrtp::formats::h264::get_fu_header_size() const
 {
-    return uvgrtp::frame::HEADER_SIZE_H264_FU;
+    return HEADER_SIZE_H264_FU;
 }
 
 uint8_t uvgrtp::formats::h264::get_start_code_range() const
@@ -113,10 +113,7 @@ rtp_error_t uvgrtp::formats::h264::finalize_aggregation_pkt()
     aggr_pkt_info_.fu_indicator[0] = (0 << 7) | ((nri & 0x3) << 5) | H264_PKT_AGGR;
 
     aggr_pkt_info_.aggr_pkt.push_back(
-        std::make_pair(
-            uvgrtp::frame::HEADER_SIZE_H264_FU,
-            aggr_pkt_info_.fu_indicator
-        )
+        std::make_pair(HEADER_SIZE_H264_FU, aggr_pkt_info_.fu_indicator)
     );
 
     for (auto& nalu: aggr_pkt_info_.nalus) {
@@ -176,7 +173,7 @@ uvgrtp::frame::rtp_frame* uvgrtp::formats::h264::allocate_rtp_frame_with_startco
 
     complete->payload = new uint8_t[complete->payload_len];
 
-    if (add_start_code) {
+    if (add_start_code && complete->payload_len >= 3) {
         complete->payload[0] = 0;
         complete->payload[1] = 0;
         complete->payload[2] = 1;
