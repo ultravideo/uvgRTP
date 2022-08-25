@@ -60,7 +60,7 @@ void uvgrtp::reception_flow::create_ring_buffer()
     destroy_ring_buffer();
     size_t elements = buffer_size_kbytes_ / RECV_BUFFER_SIZE;
 
-    for (int i = 0; i < elements; ++i)
+    for (size_t i = 0; i < elements; ++i)
     {
         ring_buffer_.push_back({ new uint8_t[RECV_BUFFER_SIZE] , 0 });
     }
@@ -68,7 +68,7 @@ void uvgrtp::reception_flow::create_ring_buffer()
 
 void uvgrtp::reception_flow::destroy_ring_buffer()
 {
-    for (int i = 0; i < ring_buffer_.size(); ++i)
+    for (size_t i = 0; i < ring_buffer_.size(); ++i)
     {
         delete[] ring_buffer_.at(i).data;
     }

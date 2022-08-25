@@ -304,7 +304,7 @@ rtp_error_t uvgrtp::frame_queue::flush_queue()
 
         std::chrono::nanoseconds packet_interval = frame_interval_/ active_->packets.size();
 
-        for (int i = 0; i < active_->packets.size(); ++i)
+        for (size_t i = 0; i < active_->packets.size(); ++i)
         {
             std::chrono::high_resolution_clock::time_point next_packet = this_moment + i * packet_interval;
 

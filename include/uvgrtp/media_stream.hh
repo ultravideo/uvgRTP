@@ -318,7 +318,7 @@ namespace uvgrtp {
 
             rtp_error_t start_components();
 
-            int get_default_bandwidth_kbps(rtp_format_t fmt);
+            uint32_t get_default_bandwidth_kbps(rtp_format_t fmt);
 
             uint32_t key_;
 

@@ -37,14 +37,7 @@ uint32_t uvgrtp::get_sdes_packet_size(const std::vector<uvgrtp::frame::rtcp_sdes
     frame_size += (uint32_t)items.size() * 2; /* sdes item type + length, both take one byte */
     for (auto& item : items)
     {
-        if (item.length <= 255)
-        {
-            frame_size += item.length;
-        }
-        else
-        {
-            UVG_LOG_ERROR("SDES item text must not be longer than 255 characters");
-        }
+        frame_size += item.length;
     }
 
     /* each chunk must end to a zero octet so 4 zeros is only option
@@ -139,18 +132,15 @@ bool uvgrtp::construct_sdes_chunk(uint8_t* frame, size_t& ptr,
 
     for (auto& item : chunk.items)
     {
-        if (item.length <= 255)
+        if (item.type == 1)
         {
-            if (item.type == 1)
-            {
-                have_cname = true;
-            }
-
-            frame[ptr++] = item.type;
-            frame[ptr++] = item.length;
-            memcpy(frame + ptr, item.data, item.length);
-            ptr += item.length;
+            have_cname = true;
         }
+
+        frame[ptr++] = item.type;
+        frame[ptr++] = item.length;
+        memcpy(frame + ptr, item.data, item.length);
+        ptr += item.length;
     }
 
     ptr += (4 - ptr % 4);

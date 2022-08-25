@@ -1804,7 +1804,7 @@ uint32_t uvgrtp::rtcp::get_rtcp_interval_ms() const
     return interval_ms_;
 }
 
-void uvgrtp::rtcp::set_session_bandwidth(int kbps)
+void uvgrtp::rtcp::set_session_bandwidth(uint32_t kbps)
 {
     interval_ms_ = 1000*360 / kbps; // the reduced minimum (see section 6.2 in RFC 3550)
 

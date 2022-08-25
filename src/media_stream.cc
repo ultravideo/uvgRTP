@@ -661,7 +661,7 @@ rtp_error_t uvgrtp::media_stream::init_srtp_with_zrtp(int rce_flags, int type, s
 }
 
 
-int uvgrtp::media_stream::get_default_bandwidth_kbps(rtp_format_t fmt)
+uint32_t uvgrtp::media_stream::get_default_bandwidth_kbps(rtp_format_t fmt)
 {
     int bandwidth = 50;
     switch (fmt) {

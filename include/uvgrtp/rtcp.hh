@@ -206,7 +206,7 @@ namespace uvgrtp {
             /* Getter for interval_ms_, which is calculated by set_session_bandwidth */
             uint32_t get_rtcp_interval_ms() const;
 
-            void set_session_bandwidth(int kbps);
+            void set_session_bandwidth(uint32_t kbps);
 
             /* Return SSRCs of all participants */
             std::vector<uint32_t> get_participants() const;
@@ -495,7 +495,7 @@ namespace uvgrtp {
 
             bool active_;
 
-            int interval_ms_;
+            uint32_t interval_ms_;
 
             std::mutex packet_mutex_;
 

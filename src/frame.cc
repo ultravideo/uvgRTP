@@ -11,8 +11,15 @@ uvgrtp::frame::rtp_frame *uvgrtp::frame::alloc_rtp_frame()
 {
     uvgrtp::frame::rtp_frame *frame = new uvgrtp::frame::rtp_frame;
 
-    std::memset(&frame->header, 0, sizeof(uvgrtp::frame::rtp_header));
-    std::memset(frame,          0, sizeof(uvgrtp::frame::rtp_frame));
+    frame->header.version   = 0;
+    frame->header.padding   = 0;
+    frame->header.ext       = 0;
+    frame->header.cc        = 0;
+    frame->header.marker    = 0;
+    frame->header.payload   = 0;
+    frame->header.seq       = 0;
+    frame->header.timestamp = 0;
+    frame->header.ssrc      = 0;
 
     frame->payload   = nullptr;
     frame->probation = nullptr;
@@ -75,7 +82,7 @@ rtp_error_t uvgrtp::frame::dealloc_frame(uvgrtp::frame::rtp_frame *frame)
     return RTP_OK;
 }
 
-uvgrtp::frame::zrtp_frame *uvgrtp::frame::alloc_zrtp_frame(size_t size)
+void* uvgrtp::frame::alloc_zrtp_frame(size_t size)
 {
     if (size == 0) {
         rtp_errno = RTP_INVALID_VALUE;
@@ -94,7 +101,7 @@ uvgrtp::frame::zrtp_frame *uvgrtp::frame::alloc_zrtp_frame(size_t size)
     return frame;
 }
 
-rtp_error_t uvgrtp::frame::dealloc_frame(uvgrtp::frame::zrtp_frame *frame)
+rtp_error_t uvgrtp::frame::dealloc_frame(uvgrtp::frame::zrtp_frame* frame)
 {
     if (!frame)
         return RTP_INVALID_VALUE;

@@ -162,14 +162,6 @@ namespace uvgrtp {
         rtp_frame *alloc_rtp_frame(size_t payload_len);
         rtp_frame *alloc_rtp_frame(size_t payload_len, size_t pz_size);
 
-        /* Allocate ZRTP frame
-         * Parameter "payload_size" defines the length of the frame 
-         *
-         * Return pointer to frame on success
-         * Return nullptr on error and set rtp_errno to:
-         *    RTP_MEMORY_ERROR if allocation of memory failed
-         *    RTP_INVALID_VALUE if "payload_size" is 0 */
-        zrtp_frame *alloc_zrtp_frame(size_t payload_size);
 
         /* Deallocate RTP frame
          *
@@ -177,11 +169,22 @@ namespace uvgrtp {
          * Return RTP_INVALID_VALUE if "frame" is nullptr */
         rtp_error_t dealloc_frame(uvgrtp::frame::rtp_frame *frame);
 
+
+        /* Allocate ZRTP frame
+         * Parameter "payload_size" defines the length of the frame
+         *
+         * Return pointer to frame on success
+         * Return nullptr on error and set rtp_errno to:
+         *    RTP_MEMORY_ERROR if allocation of memory failed
+         *    RTP_INVALID_VALUE if "payload_size" is 0 */
+        void* alloc_zrtp_frame(size_t payload_size);
+
+
         /* Deallocate ZRTP frame
          *
          * Return RTP_OK on successs
          * Return RTP_INVALID_VALUE if "frame" is nullptr */
-        rtp_error_t dealloc_frame(uvgrtp::frame::zrtp_frame *frame);
+        rtp_error_t dealloc_frame(uvgrtp::frame::zrtp_frame* frame);
     }
 }
 

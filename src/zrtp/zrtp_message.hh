@@ -34,8 +34,8 @@ namespace uvgrtp {
             void set_zrtp_start(uvgrtp::zrtp_msg::zrtp_msg& start, zrtp_session_t& session,
                  std::string msgblock);
 
-            uvgrtp::frame::zrtp_frame* frame_;
-            uvgrtp::frame::zrtp_frame* rframe_;
+            void* frame_;
+            void* rframe_;
             size_t len_;
             size_t rlen_;
         };
