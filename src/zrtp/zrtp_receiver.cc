@@ -93,8 +93,13 @@ rtp_error_t uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket>
     zrtp_msg *msg = (zrtp_msg *)mem_;
     rlen_         = nread;
 
-    if (msg->header.version != 0 || msg->header.magic != ZRTP_HEADER_MAGIC) {
-        UVG_LOG_DEBUG("Invalid header version or magic");
+    if (msg->header.version != 0) {
+        UVG_LOG_DEBUG("Invalid header version 0");
+        return RTP_INVALID_VALUE;
+    }
+
+    if (msg->header.magic != ZRTP_HEADER_MAGIC) {
+        UVG_LOG_DEBUG("Invalid ZRTP header magic");
         return RTP_INVALID_VALUE;
     }
 

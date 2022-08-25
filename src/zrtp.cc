@@ -96,7 +96,7 @@ void uvgrtp::zrtp::derive_key(const char *label, uint32_t key_len, uint8_t *out_
     /* Key length might differ from the digest length in which case the digest
      * must be generated to a temporary buffer and truncated to fit the "out_key" buffer */
     if (key_len != 256) {
-        UVG_LOG_DEBUG("Truncate key to %u bits!", key_len);
+        //UVG_LOG_DEBUG("Truncate key to %u bits!", key_len);
 
         hmac_sha256.final((uint8_t *)tmp);
         memcpy(out_key, tmp, key_len / 8);
@@ -662,13 +662,24 @@ rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> so
             UVG_LOG_DEBUG("Sleeping a non-DH performing stream until DH has finished");
         }
 
+        std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
+
         while (!initialized_)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
+            if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - tp).count() > 10)
+            {
+                UVG_LOG_ERROR("Giving up on DH after 10 seconds");
+                ret =  RTP_TIMEOUT;
+            }
         }
 
-        // multistream mode
-        ret = init_msm(ssrc, socket, addr);
+        if (ret == RTP_OK)
+        {
+            // multistream mode
+            ret = init_msm(ssrc, socket, addr);
+        }
     }
 
     return ret;
