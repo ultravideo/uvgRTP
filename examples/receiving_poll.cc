@@ -3,7 +3,6 @@
 #include <iostream>
 #include <thread>
 
-
 /* This example demostrates using polling to receive RTP frames. Polling in
  * uvgRTP can be done with function pull_frame in media_streamer. This pull_frame
  * function can be used with or without a timeout argument. If used without a timeout

@@ -126,7 +126,7 @@ namespace uvgrtp {
              *
              * Return RTP_OK on success
              * Return RTP_MEMORY_ERROR if allocation of a thread object fails */
-            rtp_error_t start(std::shared_ptr<uvgrtp::socket> socket, int flags);
+            rtp_error_t start(std::shared_ptr<uvgrtp::socket> socket, int rce_flags);
 
             /* Stop the RTP reception flow and wait until the receive loop is exited
              * to make sure that destroying the object is safe.
@@ -149,16 +149,16 @@ namespace uvgrtp {
 
         private:
             /* RTP packet receiver thread */
-            void receiver(std::shared_ptr<uvgrtp::socket> socket, int flags);
+            void receiver(std::shared_ptr<uvgrtp::socket> socket, int rce_flags);
 
             /* RTP packet dispatcher thread */
-            void process_packet(int flags);
+            void process_packet(int rce_flags);
 
             /* Return a processed RTP frame to user either through frame queue or receive hook */
             void return_frame(uvgrtp::frame::rtp_frame *frame);
 
             /* Call auxiliary handlers of a primary handler */
-            void call_aux_handlers(uint32_t key, int flags, uvgrtp::frame::rtp_frame **frame);
+            void call_aux_handlers(uint32_t key, int rce_flags, uvgrtp::frame::rtp_frame **frame);
 
             inline void increase_buffer_size(ssize_t next_write_index);
 

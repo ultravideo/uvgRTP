@@ -1,10 +1,10 @@
 #include "confirm.hh"
 
-#include "uvgrtp/crypto.hh"
 #include "uvgrtp/frame.hh"
 #include "uvgrtp/socket.hh"
 
-#include "debug.hh"
+#include "../crypto.hh"
+#include "../debug.hh"
 
 #include <cstring>
 

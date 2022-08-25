@@ -161,9 +161,9 @@ size_t uvgrtp::rtp::get_pkt_max_delay() const
     return delay_;
 }
 
-rtp_error_t uvgrtp::rtp::packet_handler(ssize_t size, void *packet, int flags, uvgrtp::frame::rtp_frame **out)
+rtp_error_t uvgrtp::rtp::packet_handler(ssize_t size, void *packet, int rce_flags, uvgrtp::frame::rtp_frame **out)
 {
-    (void)flags;
+    (void)rce_flags;
 
     /* not an RTP frame */
     if (size < 12)

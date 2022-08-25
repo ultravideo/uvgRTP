@@ -16,6 +16,7 @@ project(uvgrtp
 include(cmake/FindDependencies.cmake)
 include(cmake/Versioning.cmake)
 option(DISABLE_CRYPTO "Do not build uvgRTP with crypto enabled" OFF)
+option(DISABLE_PRINTS "Do not print anything from uvgRTP" OFF)
 
 add_library(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -75,6 +76,7 @@ source_group(include include/.*)
 
 # Including header files so VisualStudio will list them correctly
 target_sources(${PROJECT_NAME} PRIVATE
+        src/crypto.hh
         src/debug.hh
         src/random.hh
         src/holepuncher.hh
@@ -114,7 +116,6 @@ target_sources(${PROJECT_NAME} PRIVATE
         include/uvgrtp/util.hh
         include/uvgrtp/clock.hh
         include/uvgrtp/context.hh
-        include/uvgrtp/crypto.hh
 
         include/uvgrtp/frame.hh
         include/uvgrtp/lib.hh
@@ -154,13 +155,21 @@ if (DISABLE_CRYPTO)
     target_compile_definitions(${PROJECT_NAME} PRIVATE __RTP_NO_CRYPTO__)
 endif()
 
+if (DISABLE_PRINTS)
+    list(APPEND UVGRTP_CXX_FLAGS "-D__RTP_SILENT__")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE __RTP_SILENT__)
+endif()
+
 if (UNIX)
+    if(CMAKE_BUILD_TYPE)
+        message(STATUS "Build type detected: ${CMAKE_BUILD_TYPE}")
+    endif()
+
     # Check if platform-specific functions exist
     include(CheckCXXSymbolExists)
     check_cxx_symbol_exists(getrandom sys/random.h HAVE_GETRANDOM)
     check_cxx_symbol_exists(sendmsg sys/socket.h HAVE_SENDMSG)
     check_cxx_symbol_exists(sendmmsg sys/socket.h HAVE_SENDMMSG)
-
     if(HAVE_GETRANDOM)
         list(APPEND UVGRTP_CXX_FLAGS "-DUVGRTP_HAVE_GETRANDOM=1")
         target_compile_definitions(${PROJECT_NAME} PRIVATE UVGRTP_HAVE_GETRANDOM=1)
@@ -213,6 +222,7 @@ if(APPLE)
     target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Security")
 endif()
 
+add_subdirectory(examples EXCLUDE_FROM_ALL)
 add_subdirectory(test EXCLUDE_FROM_ALL)
 
 #

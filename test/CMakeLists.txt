@@ -15,31 +15,23 @@ target_sources(${PROJECT_NAME}
             test_common.hh
         )
 
-if(MSVC)
-    target_link_libraries(${PROJECT_NAME}
-            PRIVATE
-                GTest::GTestMain
-                uvgrtp
-            )
-            
-    if(CRYPTOPP_FOUND)
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        GTest::GTestMain
+        uvgrtp
+    )
+
+if(CRYPTOPP_FOUND)
+    if(MSVC)
         target_link_libraries(${PROJECT_NAME}
-                PRIVATE
-                    cryptlib
-                )
-    endif()
-else()
-    target_link_libraries(${PROJECT_NAME}
             PRIVATE
-                GTest::GTestMain
-                uvgrtp
+                cryptlib
             )
-            
-    if(CRYPTOPP_FOUND)
+    else()
         target_link_libraries(${PROJECT_NAME}
-                PRIVATE
-                    cryptopp
-                )
+            PRIVATE
+                cryptopp
+            )
     endif()
 endif()
 

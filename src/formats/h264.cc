@@ -16,8 +16,8 @@
 #include <sys/socket.h>
 #endif
 
-uvgrtp::formats::h264::h264(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags) :
-    h26x(socket, rtp, flags)
+uvgrtp::formats::h264::h264(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int rce_flags) :
+    h26x(socket, rtp, rce_flags)
 {
 }
 
@@ -188,9 +188,9 @@ uvgrtp::frame::rtp_frame* uvgrtp::formats::h264::allocate_rtp_frame_with_startco
     return complete;
 }
 
-void uvgrtp::formats::h264::prepend_start_code(int flags, uvgrtp::frame::rtp_frame** out)
+void uvgrtp::formats::h264::prepend_start_code(int rce_flags, uvgrtp::frame::rtp_frame** out)
 {
-    if (flags & RCE_H26X_PREPEND_SC) {
+    if (rce_flags & RCE_H26X_PREPEND_SC) {
         uint8_t* pl = new uint8_t[(*out)->payload_len + 3];
 
         pl[0] = 0;

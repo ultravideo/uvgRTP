@@ -1,7 +1,6 @@
 #include "zrtp.hh"
 
 #include "uvgrtp/socket.hh"
-#include "uvgrtp/crypto.hh"
 
 #include "zrtp/commit.hh"
 #include "zrtp/confack.hh"
@@ -10,6 +9,7 @@
 #include "zrtp/hello.hh"
 #include "zrtp/hello_ack.hh"
 
+#include "crypto.hh"
 #include "random.hh"
 #include "debug.hh"
 
@@ -343,22 +343,28 @@ rtp_error_t uvgrtp::zrtp::begin_session()
     auto hello_ack  = uvgrtp::zrtp_msg::hello_ack();
     bool hello_recv = false;
     int rto         = 50;
-    int type        = 0;
-    int i           = 0;
 
-    for (i = 0; i < 20; ++i) {
-        if ((ret = hello.send_msg(socket_, addr_)) != RTP_OK) {
+    for (int i = 0; i < 20; ++i) {
+
+        std::string path = local_socket_->get_socket_path_string();
+
+        UVG_LOG_DEBUG("Sending ZRTP hello # %i, path: %s", i + 1, path.c_str());
+
+        if ((ret = hello.send_msg(local_socket_, remote_addr_)) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send Hello message");
         }
 
-        if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
+        int type = 0;
+
+        if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
             /* We received something interesting, either Hello message from remote in which case
              * we need to send HelloACK message back and keep sending our Hello until HelloACK is received,
              * or HelloACK message which means we can stop sending our  */
 
             /* We received Hello message from remote, parse it and send  */
             if (type == ZRTP_FT_HELLO) {
-                hello_ack.send_msg(socket_, addr_);
+                UVG_LOG_DEBUG("Got ZRTP Hello. Sending Hello ACK");
+                hello_ack.send_msg(local_socket_, remote_addr_);
 
                 if (!hello_recv) {
                     hello_recv = true;
@@ -392,11 +398,24 @@ rtp_error_t uvgrtp::zrtp::begin_session()
             /* We received ACK for our Hello message.
              * Make sure we've received Hello message also before exiting */
             } else if (type == ZRTP_FT_HELLO_ACK) {
+
                 if (hello_recv)
+                {
+                    UVG_LOG_DEBUG("Got Hello ACK!");
                     return RTP_OK;
+                }
+                else
+                {
+                    UVG_LOG_DEBUG("Got Hello ACK without Hello!");
+                }
             } else {
                 /* at this point we do not care about other messages */
+                UVG_LOG_DEBUG("Got an unknown ZRTP message!");
             }
+        }
+        else
+        {
+            UVG_LOG_DEBUG("Did not get any ZRTP messages on try # %i", i + 1);
         }
 
         if (rto < 200)
@@ -423,7 +442,7 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
 
     /* First check if remote has already sent the message.
      * If so, they are the initiator and we're the responder */
-    while ((type = receiver_.recv_msg(socket_, 0, MSG_DONTWAIT)) != RTP_INTERRUPTED) {
+    while (receiver_.recv_msg(local_socket_, 0, MSG_DONTWAIT, type) != RTP_INTERRUPTED) {
         if (type == ZRTP_FT_COMMIT) {
             commit.parse_msg(receiver_, session_);
             session_.role = RESPONDER;
@@ -438,11 +457,11 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
     rto           = 150;
 
     for (int i = 0; i < 10; ++i) {
-        if ((ret = commit.send_msg(socket_, addr_)) != RTP_OK) {
+        if ((ret = commit.send_msg(local_socket_, remote_addr_)) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send Commit message!");
         }
 
-        if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
+        if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
 
             /* As per RFC 6189, if both parties have sent Commit message and the mode is DH,
              * hvi shall determine who is the initiator (the party with larger hvi is initiator) */
@@ -479,11 +498,11 @@ rtp_error_t uvgrtp::zrtp::dh_part1()
     int type        = 0;
 
     for (int i = 0; i < 10; ++i) {
-        if ((ret = dhpart.send_msg(socket_, addr_)) != RTP_OK) {
+        if ((ret = dhpart.send_msg(local_socket_, remote_addr_)) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send DHPart1 Message!");
         }
 
-        if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
+        if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
             if (type == ZRTP_FT_DH_PART2) {
                 if ((ret = dhpart.parse_msg(receiver_, session_)) != RTP_OK) {
                     UVG_LOG_ERROR("Failed to parse DHPart2 Message!");
@@ -523,12 +542,12 @@ rtp_error_t uvgrtp::zrtp::dh_part2()
     generate_shared_secrets_dh();
 
     for (int i = 0; i < 10; ++i) {
-        if ((ret = dhpart.send_msg(socket_, addr_)) != RTP_OK) {
+        if ((ret = dhpart.send_msg(local_socket_, remote_addr_)) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send DHPart2 Message!");
             return ret;
         }
 
-        if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
+        if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
             if (type == ZRTP_FT_CONFIRM1) {
                 UVG_LOG_DEBUG("Confirm1 Message received");
                 return RTP_OK;
@@ -551,11 +570,11 @@ rtp_error_t uvgrtp::zrtp::responder_finalize_session()
     int type        = 0;
 
     for (int i = 0; i < 10; ++i) {
-        if ((ret = confirm.send_msg(socket_, addr_)) != RTP_OK) {
+        if ((ret = confirm.send_msg(local_socket_, remote_addr_)) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send Confirm1 Message!");
         }
 
-        if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
+        if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
             if (type == ZRTP_FT_CONFIRM2) {
                 if ((ret = confirm.parse_msg(receiver_, session_)) != RTP_OK) {
                     UVG_LOG_ERROR("Failed to parse Confirm2 Message!");
@@ -568,7 +587,7 @@ rtp_error_t uvgrtp::zrtp::responder_finalize_session()
                 }
 
                 /* TODO: send in a loop? */
-                confack.send_msg(socket_, addr_);
+                confack.send_msg(local_socket_, remote_addr_);
                 return RTP_OK;
             }
         }
@@ -598,11 +617,11 @@ rtp_error_t uvgrtp::zrtp::initiator_finalize_session()
     }
 
     for (int i = 0; i < 10; ++i) {
-        if ((ret = confirm.send_msg(socket_, addr_)) != RTP_OK) {
+        if ((ret = confirm.send_msg(local_socket_, remote_addr_)) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send Confirm2 Message!");
         }
 
-        if ((type = receiver_.recv_msg(socket_, rto, 0)) > 0) {
+        if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
             if (type == ZRTP_FT_CONF2_ACK) {
                 UVG_LOG_DEBUG("Conf2ACK received successfully!");
                 return RTP_OK;
@@ -616,18 +635,48 @@ rtp_error_t uvgrtp::zrtp::initiator_finalize_session()
     return RTP_TIMEOUT;
 }
 
-rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, bool perform_dh)
 {
-    std::lock_guard<std::mutex> lock(zrtp_mtx_);
+    rtp_error_t ret = RTP_OK;
 
-    if (!initialized_)
-        return init_dhm(ssrc, socket, addr);
-    return init_msm(ssrc, socket, addr);
+    if (perform_dh) 
+    {
+        zrtp_mtx_.lock();
+        
+        if (initialized_)
+        {
+            UVG_LOG_WARN("ZRTP multistream mode not used. Please use RCE_ZRTP_MULTISTREAM_NO_DH flag " \
+                "to select which streams should not perform DH");
+        }
+
+        // perform Diffie-Helmann (DH)
+        ret = init_dhm(ssrc, socket, addr);
+        zrtp_mtx_.unlock();
+    }
+    else
+    {
+        if (!initialized_)
+        {
+            UVG_LOG_DEBUG("Sleeping a non-DH performing stream until DH has finished");
+        }
+
+        while (!initialized_)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+
+        // multistream mode
+        ret = init_msm(ssrc, socket, addr);
+    }
+
+    return ret;
 }
 
 rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr)
 {
     rtp_error_t ret = RTP_OK;
+
+    UVG_LOG_DEBUG("Starting ZRTP Diffie-Hellman negotiation with %s", socket->sockaddr_to_string(addr).c_str());
 
     /* TODO: set all fields initially to zero */
     memset(session_.hash_ctx.o_hvi, 0, sizeof(session_.hash_ctx.o_hvi));
@@ -639,8 +688,8 @@ rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
     /* Initialize the session hashes H0 - H3 defined in Section 9 of RFC 6189 */
     init_session_hashes();
 
-    socket_ = socket;
-    addr_   = addr;
+    local_socket_ = socket;
+    remote_addr_ = addr;
 
     session_.seq  = 0;
     session_.ssrc = ssrc;
@@ -715,7 +764,7 @@ rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
     /* reset the timeout (no longer needed) */
     struct timeval tv = { 0, 0 };
 
-    if (socket_->setsockopt(SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) != RTP_OK)
+    if (local_socket_->setsockopt(SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) != RTP_OK)
         return RTP_GENERIC_ERROR;
 
     /* Session has been initialized successfully and SRTP can start */
@@ -726,11 +775,13 @@ rtp_error_t uvgrtp::zrtp::init_msm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
 {
     rtp_error_t ret;
 
-    socket_ = socket;
-    addr_   = addr;
+    local_socket_ = socket;
+    remote_addr_ = addr;
 
     session_.ssrc = ssrc;
     session_.seq  = 0;
+
+    UVG_LOG_DEBUG("Generating ZRTP keys in multistream mode");
 
     if ((ret = begin_session()) != RTP_OK) {
         UVG_LOG_ERROR("Session initialization failed, ZRTP cannot be used!");
@@ -794,9 +845,11 @@ rtp_error_t uvgrtp::zrtp::get_srtp_keys(
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::zrtp::packet_handler(ssize_t size, void *packet, int flags, frame::rtp_frame **out)
+rtp_error_t uvgrtp::zrtp::packet_handler(ssize_t size, void *packet, int rce_flags, frame::rtp_frame **out)
 {
-    (void)size, (void)flags, (void)out;
+    (void)size; // TODO: Check this
+    (void)rce_flags;
+    (void)out;
 
     auto msg = (uvgrtp::zrtp_msg::zrtp_msg *)packet;
 

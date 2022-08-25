@@ -40,8 +40,9 @@ namespace uvgrtp {
     class media_stream {
         public:
             /// \cond DO_NOT_DOCUMENT
-            media_stream(std::string cname, std::string addr, int src_port, int dst_port, rtp_format_t fmt, int flags);
-            media_stream(std::string cname, std::string remote_addr, std::string local_addr, int src_port, int dst_port, rtp_format_t fmt, int flags);
+            media_stream(std::string cname, std::string addr, int src_port, int dst_port, rtp_format_t fmt, int rce_flags);
+            media_stream(std::string cname, std::string remote_addr, std::string local_addr, int src_port, int dst_port, 
+                rtp_format_t fmt, int rce_flags);
             ~media_stream();
 
             /* Initialize traditional RTP session
@@ -98,7 +99,7 @@ namespace uvgrtp {
              *
              * \param data Pointer to data the that should be sent
              * \param data_len Length of data
-             * \param flags Optional flags, see ::RTP_FLAGS for more details
+             * \param rtp_flags Optional flags, see ::RTP_FLAGS for more details
              *
              * \return RTP error code
              *
@@ -108,7 +109,7 @@ namespace uvgrtp {
              * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
              * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
              */
-            rtp_error_t push_frame(uint8_t *data, size_t data_len, int flags);
+            rtp_error_t push_frame(uint8_t *data, size_t data_len, int rtp_flags);
 
             /**
              * \brief Send data to remote participant with a custom timestamp
@@ -122,7 +123,7 @@ namespace uvgrtp {
              *
              * \param data Smart pointer to data the that should be sent
              * \param data_len Length of data
-             * \param flags Optional flags, see ::RTP_FLAGS for more details
+             * \param rtp_flags Optional flags, see ::RTP_FLAGS for more details
              *
              * \return RTP error code
              *
@@ -132,7 +133,7 @@ namespace uvgrtp {
              * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
              * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
              */
-            rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags);
+            rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int rtp_flags);
 
             /**
              * \brief Send data to remote participant with a custom timestamp
@@ -153,7 +154,7 @@ namespace uvgrtp {
              * \param data Pointer to data the that should be sent
              * \param data_len Length of data
              * \param ts 32-bit timestamp value for the data
-             * \param flags Optional flags, see ::RTP_FLAGS for more details
+             * \param rtp_flags Optional flags, see ::RTP_FLAGS for more details
              *
              * \return RTP error code
              *
@@ -163,7 +164,7 @@ namespace uvgrtp {
              * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
              * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
              */
-            rtp_error_t push_frame(uint8_t *data, size_t data_len, uint32_t ts, int flags);
+            rtp_error_t push_frame(uint8_t *data, size_t data_len, uint32_t ts, int rtp_flags);
 
             /**
              * \brief Send data to remote participant with a custom timestamp
@@ -184,7 +185,7 @@ namespace uvgrtp {
              * \param data Smart pointer to data the that should be sent
              * \param data_len Length of data
              * \param ts 32-bit timestamp value for the data
-             * \param flags Optional flags, see ::RTP_FLAGS for more details
+             * \param rtp_flags Optional flags, see ::RTP_FLAGS for more details
              *
              * \return RTP error code
              *
@@ -194,7 +195,7 @@ namespace uvgrtp {
              * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
              * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
              */
-            rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int flags);
+            rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int rtp_flags);
 
             /**
              * \brief Poll a frame indefinitely from the media stream object
@@ -272,7 +273,7 @@ namespace uvgrtp {
              * \retval RTP_INVALID_VALUE If the provided configuration flag is not supported
              * \retval RTP_GENERIC_ERROR If setsockopt(2) failed
              */
-            rtp_error_t configure_ctx(int flag, ssize_t value);
+            rtp_error_t configure_ctx(int rcc_flag, ssize_t value);
 
             /// \cond DO_NOT_DOCUMENT
             /* Setter and getter for media-specific config that can be used f.ex with Opus */
@@ -312,7 +313,7 @@ namespace uvgrtp {
             /* free all allocated resources */
             rtp_error_t free_resources(rtp_error_t ret);
 
-            rtp_error_t init_srtp_with_zrtp(int flags, int type, std::shared_ptr<uvgrtp::base_srtp> srtp,
+            rtp_error_t init_srtp_with_zrtp(int rce_flags, int type, std::shared_ptr<uvgrtp::base_srtp> srtp,
                                             std::shared_ptr<uvgrtp::zrtp> zrtp);
 
             rtp_error_t start_components();
@@ -327,13 +328,13 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::rtp>    rtp_;
             std::shared_ptr<uvgrtp::rtcp>   rtcp_;
 
-            sockaddr_in addr_out_;
-            std::string addr_;
-            std::string laddr_;
+            sockaddr_in remote_sockaddr_;
+            std::string remote_address_;
+            std::string local_address_;
             int src_port_;
             int dst_port_;
             rtp_format_t fmt_;
-            int flags_;
+            int rce_flags_;
 
             /* Media context config */
             rtp_ctx_conf_t ctx_config_;

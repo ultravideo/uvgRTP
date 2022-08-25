@@ -1,7 +1,6 @@
 #include "zrtp_receiver.hh"
 
 #include "uvgrtp/socket.hh"
-#include "uvgrtp/crypto.hh"
 #include "uvgrtp/util.hh"
 
 #include "defines.hh"
@@ -12,7 +11,8 @@
 #include "hello.hh"
 #include "hello_ack.hh"
 #include "../poll.hh"
-#include "debug.hh"
+#include "../crypto.hh"
+#include "../debug.hh"
 
 
 #ifdef _WIN32
@@ -42,13 +42,21 @@ uvgrtp::zrtp_msg::receiver::~receiver()
     delete[] mem_;
 }
 
-int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket, int timeout, int flags)
+rtp_error_t uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket, int timeout, 
+   int recv_flags, int& out_type)
 {
     rtp_error_t ret = RTP_GENERIC_ERROR;
     int nread       = 0;
     rlen_           = 0;
 
-    UVG_LOG_DEBUG("Receiving a ZRTP message");
+    if (timeout > 0)
+    {
+        UVG_LOG_DEBUG("Waiting for ZRTP messages with timeout of %i ms", timeout);
+    }
+    else
+    {
+        UVG_LOG_DEBUG("Checking if there is a ZRTP message in buffer");
+    }
 
 #ifdef _WIN32
     if ((ret = uvgrtp::poll::blocked_recv(socket, mem_, len_, timeout, &nread)) != RTP_OK) {
@@ -70,7 +78,7 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
     if (socket->setsockopt(SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) != RTP_OK)
         return RTP_GENERIC_ERROR;
 
-    if ((ret = socket->recv(mem_, len_, flags, &nread)) != RTP_OK) {
+    if ((ret = socket->recv(mem_, len_, recv_flags, &nread)) != RTP_OK) {
         if (ret == RTP_INTERRUPTED)
             return ret;
 
@@ -102,7 +110,8 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
             if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, hello->crc))
                 return RTP_NOT_SUPPORTED;
         }
-        return ZRTP_FT_HELLO;
+        out_type = ZRTP_FT_HELLO;
+        return RTP_OK;
 
         case ZRTP_MSG_HELLO_ACK:
         {
@@ -113,7 +122,8 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
             if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, ha_msg->crc))
                 return RTP_NOT_SUPPORTED;
         }
-        return ZRTP_FT_HELLO_ACK;
+        out_type = ZRTP_FT_HELLO_ACK;
+        return RTP_OK;
 
         case ZRTP_MSG_COMMIT:
         {
@@ -124,7 +134,8 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
             if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, commit->crc))
                 return RTP_NOT_SUPPORTED;
         }
-        return ZRTP_FT_COMMIT;
+        out_type = ZRTP_FT_COMMIT;
+        return RTP_OK;
 
         case ZRTP_MSG_DH_PART1:
         {
@@ -135,7 +146,8 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
             if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
                 return RTP_NOT_SUPPORTED;
         }
-        return ZRTP_FT_DH_PART1;
+        out_type = ZRTP_FT_DH_PART1;
+        return RTP_OK;
 
         case ZRTP_MSG_DH_PART2:
         {
@@ -146,7 +158,8 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
             if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
                 return RTP_NOT_SUPPORTED;
         }
-        return ZRTP_FT_DH_PART2;
+        out_type = ZRTP_FT_DH_PART2;
+        return RTP_OK;
 
         case ZRTP_MSG_CONFIRM1:
         {
@@ -157,7 +170,8 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
             if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
                 return RTP_NOT_SUPPORTED;
         }
-        return ZRTP_FT_CONFIRM1;
+        out_type = ZRTP_FT_CONFIRM1;
+        return RTP_OK;
 
         case ZRTP_MSG_CONFIRM2:
         {
@@ -168,7 +182,8 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
             if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, dh->crc))
                 return RTP_NOT_SUPPORTED;
         }
-        return ZRTP_FT_CONFIRM2;
+        out_type = ZRTP_FT_CONFIRM2;
+        return RTP_OK;
 
         case ZRTP_MSG_CONF2_ACK:
         {
@@ -179,27 +194,43 @@ int uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket> socket,
             if (!uvgrtp::crypto::crc32::verify_crc32(mem_, rlen_ - 4, ca->crc))
                 return RTP_NOT_SUPPORTED;
         }
-        return ZRTP_FT_CONF2_ACK;
+        out_type = ZRTP_FT_CONF2_ACK;
+        return RTP_OK;
 
         case ZRTP_MSG_ERROR:
+        {
             UVG_LOG_DEBUG("Error message received");
-            return ZRTP_FT_ERROR;
+            out_type = ZRTP_FT_ERROR;
+            return RTP_OK;
+        }
 
         case ZRTP_MSG_ERROR_ACK:
+        {
             UVG_LOG_DEBUG("Error ACK message received");
-            return ZRTP_FT_ERROR_ACK;
+            out_type = ZRTP_FT_ERROR_ACK;
+            return RTP_OK;
+        }
 
         case ZRTP_MSG_SAS_RELAY:
+        {
             UVG_LOG_DEBUG("SAS Relay message received");
-            return ZRTP_FT_SAS_RELAY;
+            out_type = ZRTP_FT_SAS_RELAY;
+            return RTP_OK;
+        }
 
         case ZRTP_MSG_RELAY_ACK:
+        {
             UVG_LOG_DEBUG("Relay ACK message received");
-            return ZRTP_FT_RELAY_ACK;
+            out_type = ZRTP_FT_RELAY_ACK;
+            return RTP_OK;
+        }
 
         case ZRTP_MSG_PING_ACK:
+        {
             UVG_LOG_DEBUG("Ping ACK message received");
-            return ZRTP_FT_PING_ACK;
+            out_type = ZRTP_FT_PING_ACK;
+            return RTP_OK;
+        }
     }
 
     UVG_LOG_WARN("Unknown message type received: 0x%lx", (int)msg->msgblock);

@@ -82,7 +82,7 @@ uvgrtp::frame::zrtp_frame *uvgrtp::frame::alloc_zrtp_frame(size_t size)
         return nullptr;
     }
 
-    UVG_LOG_DEBUG("Allocate ZRTP frame, packet size %zu", size);
+    //UVG_LOG_DEBUG("Allocate ZRTP frame, packet size %zu", size);
 
     uvgrtp::frame::zrtp_frame *frame = (uvgrtp::frame::zrtp_frame *)new uint8_t[size];
 

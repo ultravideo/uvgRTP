@@ -13,8 +13,8 @@
 
 #define INVALID_SEQ 0xffffffff
 
-uvgrtp::formats::media::media(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp_ctx, int flags):
-    socket_(socket), rtp_ctx_(rtp_ctx), flags_(flags), fqueue_(new uvgrtp::frame_queue(socket, rtp_ctx, flags)), minfo_()
+uvgrtp::formats::media::media(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp_ctx, int rce_flags):
+    socket_(socket), rtp_ctx_(rtp_ctx), rce_flags_(rce_flags), fqueue_(new uvgrtp::frame_queue(socket, rtp_ctx, rce_flags)), minfo_()
 {}
 
 uvgrtp::formats::media::~media()
@@ -22,25 +22,25 @@ uvgrtp::formats::media::~media()
     fqueue_ = nullptr;
 }
 
-rtp_error_t uvgrtp::formats::media::push_frame(uint8_t *data, size_t data_len, int flags)
+rtp_error_t uvgrtp::formats::media::push_frame(uint8_t *data, size_t data_len, int rtp_flags)
 {
     if (!data || !data_len)
         return RTP_INVALID_VALUE;
 
-    return push_media_frame(data, data_len, flags);
+    return push_media_frame(data, data_len, rtp_flags);
 }
 
-rtp_error_t uvgrtp::formats::media::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int flags)
+rtp_error_t uvgrtp::formats::media::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int rtp_flags)
 {
     if (!data || !data_len)
         return RTP_INVALID_VALUE;
 
-    return push_media_frame(data.get(), data_len, flags);
+    return push_media_frame(data.get(), data_len, rtp_flags);
 }
 
-rtp_error_t uvgrtp::formats::media::push_media_frame(uint8_t *data, size_t data_len, int flags)
+rtp_error_t uvgrtp::formats::media::push_media_frame(uint8_t *data, size_t data_len, int rtp_flags)
 {
-    (void)flags;
+    (void)rtp_flags;
 
     rtp_error_t ret;
 
@@ -49,7 +49,7 @@ rtp_error_t uvgrtp::formats::media::push_media_frame(uint8_t *data, size_t data_
         return ret;
     }
 
-    if (!(flags_ & RCE_FRAGMENT_GENERIC) || data_len <= rtp_ctx_->get_payload_size()) {
+    if (!(rce_flags_ & RCE_FRAGMENT_GENERIC) || data_len <= rtp_ctx_->get_payload_size()) {
         if (data_len > rtp_ctx_->get_payload_size()) {
             UVG_LOG_WARN("Packet is larger (%zu bytes) than maximum payload size (%zu bytes)",
                     data_len, rtp_ctx_->get_payload_size());
@@ -94,7 +94,7 @@ uvgrtp::formats::media_frame_info_t *uvgrtp::formats::media::get_media_frame_inf
     return &minfo_;
 }
 
-rtp_error_t uvgrtp::formats::media::packet_handler(void *arg, int flags, uvgrtp::frame::rtp_frame **out)
+rtp_error_t uvgrtp::formats::media::packet_handler(void *arg, int rce_flags, uvgrtp::frame::rtp_frame **out)
 {
     auto minfo   = (uvgrtp::formats::media_frame_info_t *)arg;
     auto frame   = *out;
@@ -104,7 +104,7 @@ rtp_error_t uvgrtp::formats::media::packet_handler(void *arg, int flags, uvgrtp:
 
     /* If fragmentation of generic frame has not been enabled, we can just return the frame
      * in "out" because RTP packet handler has done all the necessasry stuff for small RTP packets */
-    if (!(flags & RCE_FRAGMENT_GENERIC))
+    if (!(rce_flags & RCE_FRAGMENT_GENERIC))
         return RTP_PKT_READY;
 
     if (minfo->frames.find(ts) != minfo->frames.end()) {

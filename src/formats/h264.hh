@@ -41,7 +41,7 @@ namespace uvgrtp {
 
         class h264 : public h26x {
             public:
-                h264(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags);
+                h264(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int rce_flags);
                 ~h264();
 
             protected:
@@ -72,7 +72,7 @@ namespace uvgrtp {
                 virtual uvgrtp::frame::rtp_frame* allocate_rtp_frame_with_startcode(bool add_start_code,
                     uvgrtp::frame::rtp_header& header, size_t payload_size_without_startcode, size_t& fptr);
 
-                virtual void prepend_start_code(int flags, uvgrtp::frame::rtp_frame** out);
+                virtual void prepend_start_code(int rce_flags, uvgrtp::frame::rtp_frame** out);
 
             private:
                 h264_aggregation_packet aggr_pkt_info_;

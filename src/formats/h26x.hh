@@ -66,7 +66,7 @@ namespace uvgrtp {
 
         class h26x : public media {
             public:
-                h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int flags);
+                h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int rce_flags);
                 virtual ~h26x();
 
                 /* Find H26x start code from "data"
@@ -81,7 +81,7 @@ namespace uvgrtp {
                  *
                  * Return RTP_OK on success
                  * Return RTP_INVALID_VALUE if one of the parameters is invalid */
-                rtp_error_t push_media_frame(uint8_t *data, size_t data_len, int flags);
+                rtp_error_t push_media_frame(uint8_t *data, size_t data_len, int rtp_flags);
 
                 /* If the packet handler must return more than one frame, it can install a frame getter
                  * that is called by the auxiliary handler caller if packet_handler() returns RTP_MULTIPLE_PKTS_READY
@@ -108,7 +108,7 @@ namespace uvgrtp {
                  * Return RTP_PKT_NOT_HANDLED if the packet is not handled by this handler
                  * Return RTP_PKT_MODIFIED if the packet was modified but should be forwarded to other handlers
                  * Return RTP_GENERIC_ERROR if the packet was corrupted in some way */
-                rtp_error_t packet_handler(int flags, frame::rtp_frame** frame);
+                rtp_error_t packet_handler(int rce_flags, frame::rtp_frame** frame);
 
             protected:
 
@@ -131,7 +131,7 @@ namespace uvgrtp {
 
                 void initialize_fu_headers(uint8_t nal_type, uint8_t fu_headers[]);
 
-                rtp_error_t handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size, int flags);
+                rtp_error_t handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size, int rce_flags);
 
                 /* Gets the format specific nal type from data*/
                 virtual uint8_t get_nal_type(uint8_t* data) const = 0;
@@ -148,7 +148,7 @@ namespace uvgrtp {
                 virtual uvgrtp::frame::rtp_frame* allocate_rtp_frame_with_startcode(bool add_start_code,
                     uvgrtp::frame::rtp_header& header, size_t payload_size_without_startcode, size_t& fptr);
 
-                virtual void prepend_start_code(int flags, uvgrtp::frame::rtp_frame** out);
+                virtual void prepend_start_code(int rce_flags, uvgrtp::frame::rtp_frame** out);
 
         private:
 
@@ -166,7 +166,7 @@ namespace uvgrtp {
             void garbage_collect_lost_frames(size_t timout);
 
             rtp_error_t reconstruction(uvgrtp::frame::rtp_frame** out,
-                int flags, uint32_t frame_timestamp, const uint8_t sizeof_fu_headers);
+                int rce_flags, uint32_t frame_timestamp, const uint8_t sizeof_fu_headers);
 
             std::deque<uvgrtp::frame::rtp_frame*> queued_;
             std::unordered_map<uint32_t, h26x_info_t> frames_;

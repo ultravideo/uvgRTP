@@ -91,8 +91,8 @@ namespace uvgrtp {
     class rtcp {
         public:
             /// \cond DO_NOT_DOCUMENT
-            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int flags);
-            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, std::shared_ptr<uvgrtp::srtcp> srtcp, int flags);
+            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int rce_flags);
+            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags);
             ~rtcp();
 
             /* start the RTCP runner thread
@@ -296,7 +296,7 @@ namespace uvgrtp {
             rtp_error_t update_sender_stats(size_t pkt_size);
 
             /* Update RTCP-related receiver statistics */
-            static rtp_error_t recv_packet_handler(void *arg, int flags, frame::rtp_frame **out);
+            static rtp_error_t recv_packet_handler(void *arg, int rce_flags, frame::rtp_frame **out);
 
             /* Update RTCP-related sender statistics */
             static rtp_error_t send_packet_handler_vec(void *arg, uvgrtp::buf_vec& buffers);
@@ -394,7 +394,7 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::srtcp> srtcp_;
 
             /* RTP context flags */
-            int flags_;
+            int rce_flags_;
 
             /* are we a sender (and possible a receiver) or just a receiver */
             int our_role_;

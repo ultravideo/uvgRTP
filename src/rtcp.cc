@@ -34,8 +34,8 @@ constexpr int ESTIMATED_MAX_RECEPTION_TIME_MS = 10;
 
 const uint32_t MAX_SUPPORTED_PARTICIPANTS = 31;
 
-uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int flags):
-    flags_(flags), our_role_(RECEIVER),
+uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int rce_flags):
+    rce_flags_(rce_flags), our_role_(RECEIVER),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
     we_sent_(false), avg_rtcp_pkt_pize_(0), rtcp_pkt_count_(0),
@@ -87,8 +87,8 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int flag
 }
 
 uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, 
-    std::shared_ptr<uvgrtp::srtcp> srtcp, int flags):
-    rtcp(rtp, cname, flags)
+    std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags):
+    rtcp(rtp, cname, rce_flags)
 {
     srtcp_ = srtcp;
 }
@@ -966,9 +966,9 @@ void uvgrtp::rtcp::update_session_statistics(const uvgrtp::frame::rtp_frame *fra
  *   have been received.
  * - it keeps track of participants' SSRCs and if a collision
  *   is detected, the RTP context is updated */
-rtp_error_t uvgrtp::rtcp::recv_packet_handler(void *arg, int flags, frame::rtp_frame **out)
+rtp_error_t uvgrtp::rtcp::recv_packet_handler(void *arg, int rce_flags, frame::rtp_frame **out)
 {
-    (void)flags;
+    (void)rce_flags;
 
     // The validity of the header has been checked by previous handlers
 
@@ -1054,7 +1054,7 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
     if (size > RTCP_HEADER_SIZE + SSRC_CSRC_SIZE)
     {
         sender_ssrc = ntohl(*(uint32_t*)& buffer[read_ptr + RTCP_HEADER_SIZE]);
-        if (srtcp_ && (ret = srtcp_->handle_rtcp_decryption(flags_, sender_ssrc, 
+        if (srtcp_ && (ret = srtcp_->handle_rtcp_decryption(rce_flags_, sender_ssrc, 
             buffer + RTCP_HEADER_SIZE + SSRC_CSRC_SIZE, size)) != RTP_OK)
         {
             UVG_LOG_ERROR("Failed at decryption");
@@ -1479,7 +1479,7 @@ rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, size_
     rtp_error_t ret = RTP_OK;
 
     if (encrypt && srtcp_ && 
-        (ret = srtcp_->handle_rtcp_encryption(flags_, rtcp_pkt_sent_count_, ssrc_, frame, frame_size)) != RTP_OK)
+        (ret = srtcp_->handle_rtcp_encryption(rce_flags_, rtcp_pkt_sent_count_, ssrc_, frame, frame_size)) != RTP_OK)
     {
         UVG_LOG_DEBUG("Encryption failed. Not sending packet");
         delete[] frame;
@@ -1530,12 +1530,12 @@ size_t uvgrtp::rtcp::size_of_compound_packet(uint16_t reports,
 
     if (sr_packet)
     {  
-        compound_packet_size = get_sr_packet_size(flags_, reports);
+        compound_packet_size = get_sr_packet_size(rce_flags_, reports);
         UVG_LOG_DEBUG("Sending SR. Compound packet size: %li", compound_packet_size);
     }
     else if (rr_packet)
     {
-        compound_packet_size = get_rr_packet_size(flags_, reports);
+        compound_packet_size = get_rr_packet_size(rce_flags_, reports);
         UVG_LOG_DEBUG("Sending RR. Compound packet size: %li", compound_packet_size);
     }
     else
@@ -1607,7 +1607,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
     if (sr_packet)
     {
         // sender reports have sender information in addition compared to receiver reports
-        size_t sender_report_size = get_sr_packet_size(flags_, reports);
+        size_t sender_report_size = get_sr_packet_size(rce_flags_, reports);
 
         /* TODO: The clock would be better to start with first sent RTP packet.
          * In reality it should be provided by user which I think is implemented? */
@@ -1633,7 +1633,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         our_stats.sent_rtp_packet = false;
 
     } else if (rr_packet) { // RECEIVER
-        size_t receiver_report_size = get_rr_packet_size(flags_, reports);
+        size_t receiver_report_size = get_rr_packet_size(rce_flags_, reports);
 
         if (!construct_rtcp_header(frame, write_ptr, receiver_report_size, reports, uvgrtp::frame::RTCP_FT_RR) ||
             !construct_ssrc(frame, write_ptr, ssrc_))

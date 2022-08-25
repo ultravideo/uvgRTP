@@ -42,7 +42,7 @@ namespace uvgrtp {
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr);
+            rtp_error_t init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, bool perform_dh);
 
             /* Get SRTP keys for the session that was just initialized
              *
@@ -68,7 +68,7 @@ namespace uvgrtp {
              * Return RTP_OK on success
              * Return RTP_PKT_NOT_HANDLED if "buffer" does not contain a ZRTP message
              * Return RTP_GENERIC_ERROR if "buffer" contains an invalid ZRTP message */
-            static rtp_error_t packet_handler(ssize_t size, void *packet, int flags, frame::rtp_frame **out);
+            static rtp_error_t packet_handler(ssize_t size, void *packet, int rce_flags, frame::rtp_frame **out);
 
         private:
             /* Initialize ZRTP session between us and remote using Diffie-Hellman Mode
@@ -156,8 +156,8 @@ namespace uvgrtp {
             rtp_error_t initiator_finalize_session();
 
             uint32_t ssrc_;
-            std::shared_ptr<uvgrtp::socket> socket_;
-            sockaddr_in addr_;
+            std::shared_ptr<uvgrtp::socket> local_socket_;
+            sockaddr_in remote_addr_;
 
             /* Has the ZRTP connection been initialized using DH */
             bool initialized_;
