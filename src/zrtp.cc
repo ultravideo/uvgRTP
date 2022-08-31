@@ -340,7 +340,6 @@ bool uvgrtp::zrtp::are_we_initiator(uint8_t *our_hvi, uint8_t *their_hvi)
 
 rtp_error_t uvgrtp::zrtp::begin_session()
 {
-    rtp_error_t ret = RTP_OK;
     auto hello      = uvgrtp::zrtp_msg::hello(session_);
     auto hello_ack  = uvgrtp::zrtp_msg::hello_ack();
     bool hello_recv = false;
@@ -351,14 +350,12 @@ rtp_error_t uvgrtp::zrtp::begin_session()
         std::string path = local_socket_->get_socket_path_string();
 
         UVG_LOG_DEBUG("Sending ZRTP hello # %i, path: %s", i + 1, path.c_str());
-
-        if ((ret = hello.send_msg(local_socket_, remote_addr_)) != RTP_OK) {
-            UVG_LOG_ERROR("Failed to send Hello message");
-        }
-
         int type = 0;
 
-        if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
+        if (hello.send_msg(local_socket_, remote_addr_) != RTP_OK) {
+            UVG_LOG_ERROR("Failed to send Hello message");
+        }
+        else if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
             /* We received something interesting, either Hello message from remote in which case
              * we need to send HelloACK message back and keep sending our Hello until HelloACK is received,
              * or HelloACK message which means we can stop sending our  */
@@ -439,7 +436,6 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
 
     int type        = 0;
     int rto         = 0;
-    rtp_error_t ret = RTP_OK;
     auto commit     = uvgrtp::zrtp_msg::commit(session_);
 
     /* First check if remote has already sent the message.
@@ -459,11 +455,10 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
     rto           = 150;
 
     for (int i = 0; i < 10; ++i) {
-        if ((ret = commit.send_msg(local_socket_, remote_addr_)) != RTP_OK) {
+        if (commit.send_msg(local_socket_, remote_addr_) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send Commit message!");
         }
-
-        if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
+        else if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
 
             /* As per RFC 6189, if both parties have sent Commit message and the mode is DH,
              * hvi shall determine who is the initiator (the party with larger hvi is initiator) */
@@ -494,19 +489,18 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
 
 rtp_error_t uvgrtp::zrtp::dh_part1()
 {
-    rtp_error_t ret = RTP_OK;
     auto dhpart     = uvgrtp::zrtp_msg::dh_key_exchange(session_, 1);
     int rto      = 150;
     int type        = 0;
 
     for (int i = 0; i < 10; ++i) {
-        if ((ret = dhpart.send_msg(local_socket_, remote_addr_)) != RTP_OK) {
+        if (dhpart.send_msg(local_socket_, remote_addr_) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send DHPart1 Message!");
         }
 
         if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
             if (type == ZRTP_FT_DH_PART2) {
-                if ((ret = dhpart.parse_msg(receiver_, session_)) != RTP_OK) {
+                if (dhpart.parse_msg(receiver_, session_) != RTP_OK) {
                     UVG_LOG_ERROR("Failed to parse DHPart2 Message!");
                     continue;
                 }
@@ -565,24 +559,24 @@ rtp_error_t uvgrtp::zrtp::dh_part2()
 
 rtp_error_t uvgrtp::zrtp::responder_finalize_session()
 {
-    rtp_error_t ret = RTP_OK;
     auto confirm    = uvgrtp::zrtp_msg::confirm(session_, 1);
     auto confack    = uvgrtp::zrtp_msg::confack(session_);
     int rto         = 150;
     int type        = 0;
 
     for (int i = 0; i < 10; ++i) {
-        if ((ret = confirm.send_msg(local_socket_, remote_addr_)) != RTP_OK) {
+        if (confirm.send_msg(local_socket_, remote_addr_) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send Confirm1 Message!");
         }
 
         if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
             if (type == ZRTP_FT_CONFIRM2) {
-                if ((ret = confirm.parse_msg(receiver_, session_)) != RTP_OK) {
+                if (confirm.parse_msg(receiver_, session_) != RTP_OK) {
                     UVG_LOG_ERROR("Failed to parse Confirm2 Message!");
                     continue;
                 }
 
+                rtp_error_t ret = RTP_OK;
                 if ((ret = validate_session()) != RTP_OK) {
                     UVG_LOG_ERROR("Mismatch on one of the received MACs/Hashes, session cannot continue");
                     return ret;
@@ -621,6 +615,7 @@ rtp_error_t uvgrtp::zrtp::initiator_finalize_session()
     for (int i = 0; i < 10; ++i) {
         if ((ret = confirm.send_msg(local_socket_, remote_addr_)) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send Confirm2 Message!");
+            return ret;
         }
 
         if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {

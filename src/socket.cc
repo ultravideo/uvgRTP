@@ -390,8 +390,11 @@ rtp_error_t uvgrtp::socket::__sendtov(
     int send_flags, int *bytes_sent
 )
 {
-#ifndef _WIN32
+    rtp_error_t return_value = RTP_OK;
     int sent_bytes = 0;
+
+#ifndef _WIN32
+
     struct mmsghdr *headers = new struct mmsghdr[buffers.size()];
     struct mmsghdr *hptr = headers;
 
@@ -416,32 +419,41 @@ rtp_error_t uvgrtp::socket::__sendtov(
     while (bptr > npkts) {
         if (sendmmsg(socket_, hptr, npkts, send_flags) < 0) {
             log_platform_error("sendmmsg(2) failed");
-            return RTP_SEND_ERROR;
+            return_value = RTP_SEND_ERROR;
+            break;
         }
 
         bptr -= npkts;
         hptr += npkts;
     }
 
-    if (sendmmsg(socket_, hptr, bptr, send_flags) < 0) {
-        log_platform_error("sendmmsg(2) failed");
-        return RTP_SEND_ERROR;
+    if (return_value == RTP_OK)
+    {
+        if (sendmmsg(socket_, hptr, bptr, send_flags) < 0) {
+            log_platform_error("sendmmsg(2) failed");
+            return_value = RTP_SEND_ERROR;
+        }
     }
 
     for (size_t i = 0; i < buffers.size(); ++i)
-        delete[] headers[i].msg_hdr.msg_iov;
+    {
+        if (headers[i].msg_hdr.msg_iov)
+        {
+            delete[] headers[i].msg_hdr.msg_iov;
+        }
+    }
     delete[] headers;
 
 #else
     INT ret = 0;
-    DWORD sent_bytes = 0;
     WSABUF wsa_bufs[WSABUF_SIZE];
 
     for (auto& buffer : buffers) {
 
         if (buffer.size() > WSABUF_SIZE) {
             UVG_LOG_ERROR("Input vector to __sendtov() has more than %u elements!", WSABUF_SIZE);
-            return RTP_GENERIC_ERROR;
+            return_value = RTP_GENERIC_ERROR;
+            break;
         }
         /* create WSABUFs from input buffer and send them at once */
         for (size_t i = 0; i < buffer.size(); ++i) {
@@ -450,17 +462,20 @@ rtp_error_t uvgrtp::socket::__sendtov(
         }
 
 send_:
+        DWORD sent_bytes_dw = 0;
         ret = WSASendTo(
             socket_,
             wsa_bufs,
             (DWORD)buffer.size(),
-            &sent_bytes,
+            &sent_bytes_dw,
             send_flags,
             (SOCKADDR *)&addr,
             sizeof(addr),
             nullptr,
             nullptr
         );
+
+        sent_bytes = sent_bytes_dw;
 
         if (ret == SOCKET_ERROR) {
 
@@ -478,8 +493,9 @@ send_:
                 UVG_LOG_ERROR("Failed to send to %s", sockaddr_to_string(addr).c_str());
             }
 
-            set_bytes(bytes_sent, -1);
-            return RTP_SEND_ERROR;
+            sent_bytes = -1;
+            return_value = RTP_SEND_ERROR;
+            break;
         }
     }
 #endif
@@ -489,7 +505,7 @@ send_:
 #endif // !NDEBUG
 
     set_bytes(bytes_sent, sent_bytes);
-    return RTP_OK;
+    return return_value;
 }
 
 rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int send_flags)
