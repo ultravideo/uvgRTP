@@ -664,7 +664,7 @@ rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> so
 
         std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
 
-        while (!initialized_)
+        while (!initialized_ && ret == RTP_OK)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
