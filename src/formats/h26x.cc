@@ -104,10 +104,20 @@ uvgrtp::formats::h26x::~h26x()
 {
     for (auto& frame : queued_)
     {
-        delete[] frame;
+        (void)uvgrtp::frame::dealloc_frame(frame);
     }
 
     queued_.clear();
+
+    for (auto& fragment : fragments_)
+    {
+        if (fragment != nullptr)
+        {
+            (void)uvgrtp::frame::dealloc_frame(fragment);
+        }
+    }
+
+    fragments_.clear();
 }
 
 /* NOTE: the area 0 - len (ie data[0] - data[len - 1]) must be addressable
@@ -613,12 +623,14 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::
     if (dropped_ts_.find(frame->header.timestamp) != dropped_ts_.end()) {
         UVG_LOG_DEBUG("Received an RTP packet belonging to a dropped frame! Timestamp: %lu, seq: %u",
             frame->header.timestamp, frame->header.seq);
+        (void)uvgrtp::frame::dealloc_frame(frame); // free fragment memory
         return RTP_GENERIC_ERROR;
     }
 
     if (completed_ts_.find(frame->header.timestamp) != completed_ts_.end()) {
         UVG_LOG_DEBUG("Received an RTP packet belonging to a completed frame! Timestamp: %lu, seq: %u",
             frame->header.timestamp, frame->header.seq);
+        (void)uvgrtp::frame::dealloc_frame(frame); // free fragment memory
         return RTP_GENERIC_ERROR;
     }
 
@@ -676,6 +688,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::
     if (frames_[fragment_ts].nal_type != nal_type)
     {
         UVG_LOG_ERROR("The fragment has different NAL type fragments before!");
+        (void)uvgrtp::frame::dealloc_frame(frame); // free fragment memory
         return RTP_GENERIC_ERROR;
     }
 

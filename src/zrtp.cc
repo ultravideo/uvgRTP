@@ -646,7 +646,7 @@ rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> so
                 "to select which streams should not perform DH");
         }
 
-        // perform Diffie-Helmann (DH)
+        // perform Diffie-Hellman (DH)
         ret = init_dhm(ssrc, socket, addr);
         zrtp_mtx_.unlock();
     }

@@ -188,6 +188,9 @@ TEST(EncryptionTests, zrtp)
     {
         receiver_thread->join();
     }
+
+    cleanup_sess(ctx, sender_session);
+    cleanup_sess(ctx, receiver_session);
 }
 
 TEST(EncryptionTests, zrtp_multistream)

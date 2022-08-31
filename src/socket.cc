@@ -170,6 +170,8 @@ std::string uvgrtp::socket::sockaddr_to_string(const sockaddr_in& addr) const
 
     std::string string(c_string);
     string.append(":" + std::to_string(ntohs(addr.sin_port)));
+
+    delete[] c_string;
     return string;
 }
 

@@ -176,7 +176,7 @@ namespace uvgrtp {
             uvgrtp::frame::rtcp_app_packet      *get_app_packet(uint32_t ssrc);
 
             /* Return a reference to vector that contains the sockets of all participants */
-            std::vector<uvgrtp::socket>& get_sockets();
+            std::vector<std::shared_ptr<uvgrtp::socket>>& get_sockets();
 
             /* Somebody joined the multicast group the owner of this RTCP instance is part of
              * Add it to RTCP participant list so we can start listening for reports
@@ -388,7 +388,9 @@ namespace uvgrtp {
             /* Takes ownership of the frame */
             rtp_error_t send_rtcp_packet_to_participants(uint8_t* frame, uint32_t frame_size, bool encrypt);
 
-            void free_participant(rtcp_participant* participant);
+            void free_participant(std::unique_ptr<rtcp_participant> participant);
+
+            void cleanup_participants();
 
             /* Secure RTCP context */
             std::shared_ptr<uvgrtp::srtcp> srtcp_;
@@ -451,7 +453,7 @@ namespace uvgrtp {
             /* The first value of RTP timestamp (aka t = 0) */
             uint32_t rtp_ts_start_;
 
-            std::map<uint32_t, rtcp_participant *> participants_;
+            std::map<uint32_t, std::unique_ptr<rtcp_participant>> participants_;
             uint8_t num_receivers_; // maximum is 32 at the moment (5 bits)
 
             /* statistics for RTCP Sender and Receiver Reports */
@@ -459,13 +461,13 @@ namespace uvgrtp {
 
             /* If we expect frames from remote but haven't received anything from remote yet,
              * the participant resides in this vector until he's moved to participants_ */
-            std::vector<rtcp_participant *> initial_participants_;
+            std::vector<std::unique_ptr<rtcp_participant>> initial_participants_;
 
             /* Vector of sockets the RTCP runner is listening to
              *
              * The socket are also stored here (in addition to participants_ map) so they're easier
              * to pass to poll when RTCP runner is listening to incoming packets */
-            std::vector<uvgrtp::socket> sockets_;
+            std::vector<std::shared_ptr<uvgrtp::socket>> sockets_;
 
             void (*sender_hook_)(uvgrtp::frame::rtcp_sender_report *);
             void (*receiver_hook_)(uvgrtp::frame::rtcp_receiver_report *);

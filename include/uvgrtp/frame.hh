@@ -117,7 +117,7 @@ namespace uvgrtp {
         struct rtcp_sdes_item {
             uint8_t type = 0;
             uint8_t length = 0;
-            void *data = nullptr;
+            uint8_t *data = nullptr;
         };
 
         struct rtcp_sdes_chunk {
