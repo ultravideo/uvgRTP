@@ -216,13 +216,20 @@ TEST(EncryptionTests, zrtp_multistream)
 
     std::unique_ptr<std::thread> sender_thread1 = 
         std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_flags));
+
+    std::unique_ptr<std::thread> receiver_thread1 =
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_flags));
+
     std::unique_ptr<std::thread> sender_thread2 = 
         std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 4, RECEIVER_PORT + 4, no_dh_flags));
 
-    std::unique_ptr<std::thread> receiver_thread1 = 
-        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_flags));
     std::unique_ptr<std::thread> receiver_thread2 = 
         std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 4, RECEIVER_PORT + 4, no_dh_flags));
+
+    if (receiver_thread1 && receiver_thread1->joinable())
+    {
+        receiver_thread1->join();
+    }
 
     if (sender_thread1 && sender_thread1->joinable())
     {
@@ -232,11 +239,6 @@ TEST(EncryptionTests, zrtp_multistream)
     if (sender_thread2 && sender_thread2->joinable())
     {
         sender_thread2->join();
-    }
-
-    if (receiver_thread1 && receiver_thread1->joinable())
-    {
-        receiver_thread1->join();
     }
 
     if (receiver_thread2 && receiver_thread2->joinable())
