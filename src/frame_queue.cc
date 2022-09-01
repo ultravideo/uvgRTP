@@ -207,14 +207,6 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(uint8_t *message, size_t messag
         (uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr++]
     });
 
-    /* If SRTP with proper encryption has been enabled but
-     * RCE_SRTP_INPLACE_ENCRYPTION has **not** been enabled, make a copy of the memory block*/
-    if ((rce_flags_ & (RCE_SRTP | RCE_SRTP_INPLACE_ENCRYPTION | RCE_SRTP_NULL_CIPHER)) == RCE_SRTP)
-    {
-        // TODO: This memory is never deleted
-        message = (uint8_t*)memdup(message, message_len);
-    }
-
     tmp.push_back({ message_len, message });
 
     enqueue_finalize(tmp);
