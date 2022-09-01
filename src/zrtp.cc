@@ -29,7 +29,8 @@ uvgrtp::zrtp::zrtp():
     ssrc_(0),
     remote_addr_(),
     initialized_(false),
-    receiver_()
+    receiver_(),
+    dh_finished_(false)
 {
     cctx_.sha256 = new uvgrtp::crypto::sha256;
     cctx_.dh     = new uvgrtp::crypto::dh;
@@ -679,27 +680,12 @@ rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> so
     {
         if (!initialized_)
         {
-            UVG_LOG_DEBUG("Sleeping a non-DH performing stream until DH has finished");
+            UVG_LOG_ERROR("Attempted multistream mode for non initialized ZRTP");
+            return RTP_GENERIC_ERROR;
         }
 
-        std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
-
-        while (!initialized_ && ret == RTP_OK)
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(25));
-
-            if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - tp).count() > 10)
-            {
-                UVG_LOG_ERROR("Giving up on DH after 10 seconds");
-                ret =  RTP_TIMEOUT;
-            }
-        }
-
-        if (ret == RTP_OK)
-        {
-            // multistream mode
-            ret = init_msm(ssrc, socket, addr);
-        }
+        // multistream mode
+        ret = init_msm(ssrc, socket, addr);
     }
 
     return ret;

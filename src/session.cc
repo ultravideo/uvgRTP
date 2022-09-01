@@ -33,8 +33,6 @@ uvgrtp::session::~session()
 
 uvgrtp::media_stream *uvgrtp::session::create_stream(uint16_t r_port, uint16_t s_port, rtp_format_t fmt, int rce_flags)
 {
-    std::lock_guard<std::mutex> m(session_mtx_);
-
     if (rce_flags & RCE_SYSTEM_CALL_DISPATCHER) {
         UVG_LOG_ERROR("SCD is no longer supported!");
         rtp_errno = RTP_NOT_SUPPORTED;
@@ -69,9 +67,11 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(uint16_t r_port, uint16_t s
                 return nullptr;
             }
 
+            session_mtx_.lock();
             if (!zrtp_) {
                 zrtp_ = std::shared_ptr<uvgrtp::zrtp> (new uvgrtp::zrtp());
             }
+            session_mtx_.unlock();
 
             if (stream->init(zrtp_) != RTP_OK) {
                 UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), r_port, s_port);
@@ -94,7 +94,9 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(uint16_t r_port, uint16_t s
         }
     }
 
+    session_mtx_.lock();
     streams_.insert(std::make_pair(stream->get_key(), stream));
+    session_mtx_.unlock();
 
     return stream;
 }

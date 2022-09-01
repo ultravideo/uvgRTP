@@ -70,6 +70,16 @@ namespace uvgrtp {
              * Return RTP_GENERIC_ERROR if "buffer" contains an invalid ZRTP message */
             static rtp_error_t packet_handler(ssize_t size, void *packet, int rce_flags, frame::rtp_frame **out);
 
+            inline bool has_dh_finished() const
+            {
+                return dh_finished_;
+            }
+
+            inline void dh_has_finished()
+            {
+                dh_finished_ = true;
+            }
+
         private:
             /* Initialize ZRTP session between us and remote using Diffie-Hellman Mode
              *
@@ -175,6 +185,8 @@ namespace uvgrtp {
             zrtp_session_t session_;
 
             std::mutex zrtp_mtx_;
+
+            bool dh_finished_ = false;
     };
 }
 

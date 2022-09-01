@@ -260,8 +260,6 @@ rtp_error_t uvgrtp::media_stream::init()
 
 rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
 {
-    rtp_error_t ret = RTP_OK;
-
     if (init_connection() != RTP_OK) {
         log_platform_error("Failed to initialize the underlying socket");
         return RTP_GENERIC_ERROR;
@@ -272,7 +270,24 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
 
     bool perform_dh = !(rce_flags_ & RCE_ZRTP_MULTISTREAM_NO_DH);
+    if (!perform_dh)
+    {
+        UVG_LOG_DEBUG("Sleeping non-DH performing stream until DH has finished");
+        std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
 
+        while (!zrtp->has_dh_finished())
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+            if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - tp).count() > 10)
+            {
+                UVG_LOG_ERROR("Giving up on DH after 10 seconds");
+                return free_resources(RTP_TIMEOUT);
+            }
+        }
+    }
+
+    rtp_error_t ret = RTP_OK;
     if ((ret = zrtp->init(rtp_->get_ssrc(), socket_, remote_sockaddr_, perform_dh)) != RTP_OK) {
         UVG_LOG_WARN("Failed to initialize ZRTP for media stream!");
         return free_resources(ret);
@@ -285,6 +300,8 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
     srtcp_ = std::shared_ptr<uvgrtp::srtcp> (new uvgrtp::srtcp());
     if ((ret = init_srtp_with_zrtp(rce_flags_, SRTCP, srtcp_, zrtp)) != RTP_OK)
       return free_resources(ret);
+
+    zrtp->dh_has_finished(); // only after the DH stream has gotten its keys, do we let non-DH stream perform ZRTP
 
     rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, cname_, srtcp_, rce_flags_));
 
