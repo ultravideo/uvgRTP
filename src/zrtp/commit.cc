@@ -52,6 +52,11 @@ uvgrtp::zrtp_msg::commit::commit(zrtp_session_t& session):
     /* Calculate CRC32 for the whole ZRTP packet */
     msg->crc = uvgrtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
 
+    if (session.l_msg.commit.second)
+    {
+        delete[] session.l_msg.commit.second;
+    }
+
     /* Finally make a copy of the message and save it for later use */
     session.l_msg.commit.first  = len_;
     session.l_msg.commit.second = (uvgrtp::zrtp_msg::zrtp_commit *)new uint8_t[len_];
@@ -87,6 +92,11 @@ rtp_error_t uvgrtp::zrtp_msg::commit::parse_msg(uvgrtp::zrtp_msg::receiver& rece
 
     memcpy(&session.hash_ctx.r_mac[2], &msg->mac,  8);
     memcpy(session.hash_ctx.r_hash[2], msg->hash, 32);
+
+    if (session.r_msg.commit.second)
+    {
+        delete[] session.r_msg.commit.second;
+    }
 
     /* Finally make a copy of the message and save it for later use */
     session.r_msg.commit.first  = len;

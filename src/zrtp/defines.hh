@@ -190,9 +190,9 @@ namespace uvgrtp {
     } zrtp_secrets_t;
 
     typedef struct zrtp_messages {
-        std::pair<size_t, struct uvgrtp::zrtp_msg::zrtp_commit*> commit;
-        std::pair<size_t, struct uvgrtp::zrtp_msg::zrtp_hello*> hello;
-        std::pair<size_t, struct uvgrtp::zrtp_msg::zrtp_dh*> dh;
+        std::pair<size_t, struct uvgrtp::zrtp_msg::zrtp_commit*> commit = {0, nullptr};
+        std::pair<size_t, struct uvgrtp::zrtp_msg::zrtp_hello*>  hello  = {0, nullptr};
+        std::pair<size_t, struct uvgrtp::zrtp_msg::zrtp_dh*>     dh     = {0, nullptr};
     } zrtp_messages_t;
 
     /* Various ZRTP-related keys */

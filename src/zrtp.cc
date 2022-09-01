@@ -40,19 +40,44 @@ uvgrtp::zrtp::~zrtp()
     delete cctx_.sha256;
     delete cctx_.dh;
 
+    cleanup_session();
+}
+
+void uvgrtp::zrtp::cleanup_session()
+{
     if (session_.r_msg.commit.second)
+    {
         delete[] session_.r_msg.commit.second;
+                 session_.r_msg.commit.second = nullptr;
+    }
     if (session_.r_msg.hello.second)
+    {
         delete[] session_.r_msg.hello.second;
+                 session_.r_msg.hello.second = nullptr;
+    }
+        
     if (session_.r_msg.dh.second)
+    {
         delete[] session_.r_msg.dh.second;
+                 session_.r_msg.dh.second = nullptr;
+    }
 
     if (session_.l_msg.commit.second)
+    {
         delete[] session_.l_msg.commit.second;
+                 session_.l_msg.commit.second = nullptr;
+    }
+
     if (session_.l_msg.hello.second)
+    {
         delete[] session_.l_msg.hello.second;
+                 session_.l_msg.hello.second = nullptr;
+    }
     if (session_.l_msg.dh.second)
+    {
         delete[] session_.l_msg.dh.second;
+                 session_.l_msg.dh.second = nullptr;
+    }
 }
 
 void uvgrtp::zrtp::generate_zid()
@@ -661,7 +686,7 @@ rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> so
 
         while (!initialized_ && ret == RTP_OK)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            std::this_thread::sleep_for(std::chrono::milliseconds(25));
 
             if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - tp).count() > 10)
             {

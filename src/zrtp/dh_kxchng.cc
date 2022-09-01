@@ -122,6 +122,11 @@ rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::parse_msg(uvgrtp::zrtp_msg::recei
     memcpy(&session.hash_ctx.r_mac[1],  &msg->mac,  8);
     memcpy(&session.hash_ctx.r_hash[1], msg->hash, 32);
 
+    if (session.r_msg.dh.second)
+    {
+        delete[] session.r_msg.dh.second;
+    }
+
     /* Finally make a copy of the message and save it for later use */
     session.r_msg.dh.first  = len;
     session.r_msg.dh.second = (uvgrtp::zrtp_msg::zrtp_dh *)new uint8_t[len];

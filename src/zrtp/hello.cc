@@ -58,6 +58,11 @@ uvgrtp::zrtp_msg::hello::hello(zrtp_session_t& session):
     /* Calculate CRC32 of the whole packet (excluding crc) */
     msg->crc = uvgrtp::crypto::crc32::calculate_crc32((uint8_t *)frame_, len_ - sizeof(uint32_t));
 
+    if (session.l_msg.hello.second)
+    {
+        delete[] session.l_msg.hello.second;
+    }
+
     /* Finally make a copy of the message and save it for later use */
     session.l_msg.hello.first  = len_;
     session.l_msg.hello.second = (uvgrtp::zrtp_msg::zrtp_hello *)new uint8_t[len_];
@@ -99,6 +104,11 @@ rtp_error_t uvgrtp::zrtp_msg::hello::parse_msg(uvgrtp::zrtp_msg::receiver& recei
 
     /* Save ZID */
     memcpy(session.r_zid, msg->zid, 12);
+
+    if (session.r_msg.hello.second)
+    {
+        delete[] session.r_msg.hello.second;
+    }
 
     /* Finally make a copy of the message and save it for later use */
     session.r_msg.hello.first  = len;

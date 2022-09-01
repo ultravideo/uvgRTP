@@ -122,6 +122,8 @@ namespace uvgrtp {
              * Return RTP_TIMEOUT if no message is received from remote before T2 expires */
             rtp_error_t init_session(int key_agreement);
 
+            void cleanup_session();
+
             /* Calculate HMAC-SHA256 using "key" for "buf" of "len" bytes
              * and compare the truncated, 64-bit hash digest against "mac".
              *
