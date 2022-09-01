@@ -21,6 +21,7 @@
 
 #define PTR_DIFF(a, b)  ((ptrdiff_t)((char *)(a) - (char *)(b)))
 
+// see https://graphics.stanford.edu/~seander/bithacks.html#ZeroInWord
 #define haszero64_le(v) (((v) - 0x0101010101010101) & ~(v) & 0x8080808080808080UL)
 #define haszero32_le(v) (((v) - 0x01010101)         & ~(v) & 0x80808080UL)
 
@@ -40,30 +41,35 @@ constexpr int GARBAGE_COLLECTION_INTERVAL_MS = 100;
 // any value less than 30 minutes is ok here, since that is how long it takes to go through all timestamps
 constexpr int TIME_TO_KEEP_TRACK_OF_PREVIOUS_FRAMES_MS = 5000;
 
-static inline uint8_t __find_h26x_start(uint32_t value,bool& additional_byte)
+static inline uint8_t determine_start_prefix_precense(uint32_t value, bool& additional_byte)
 {
     additional_byte = false;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-    uint16_t u = (value >> 16) & 0xffff;
-    uint16_t l = (value >>  0) & 0xffff;
+    uint16_t cur_ls = (value >> 16) & 0xffff;
+    uint16_t cur_ms = (value >>  0) & 0xffff;
 
-    bool t1 = (l == 0);
-    bool t2 = ((u & 0xff) == 0x01);
-    bool t3 = (u == 0x0100);
-    bool t4 = (((l >> 8) & 0xff) == 0);
+    // zeros in more significant bytes
+    bool ms4z = (cur_ms                 == 0);
+    bool ms2z = (((cur_ms >> 8) & 0xff) == 0);
+
+    // possible start code end in less significant bytes
+    bool ls2s = ((cur_ls & 0xff)        == 0x01);
+    bool ls4s = (cur_ls                 == 0x0100);
+    
 #else
-    uint16_t u = (value >>  0) & 0xffff;
-    uint16_t l = (value >> 16) & 0xffff;
+    uint16_t cur_ls = (value >>  0) & 0xffff;
+    uint16_t cur_ms = (value >> 16) & 0xffff;
 
-    bool t1 = (l == 0);
-    bool t2 = (((u >> 8) & 0xff) == 0x01);
-    bool t3 = (u == 0x0001);
-    bool t4 = ((l & 0xff) == 0);
+    bool ms4z = ( cur_ms                == 0);
+    bool ms2z = ((cur_ms        & 0xff) == 0);
+    bool ls2s = (((cur_ls >> 8) & 0xff) == 0x01);
+    bool ls4s = (  cur_ls               == 0x0001);
+    
 #endif
 
-    if (t1) {
+    if (ms4z) {
         /* 0x00000001 */
-        if (t3)
+        if (ls4s)
             return 4;
 
         /* "value" definitely has a start code (0x000001XX), but at this
@@ -71,9 +77,9 @@ static inline uint8_t __find_h26x_start(uint32_t value,bool& additional_byte)
          *
          * Return 5 to indicate that start length could not be determined
          * and that caller must check previous dword's last byte for 0x00 */
-        if (t2)
+        if (ls2s)
             return 5;
-    } else if (t4 && t3) {
+    } else if (ms2z && ls4s) {
         /* 0xXX000001 */
         additional_byte = true;
         return 4;
@@ -98,10 +104,20 @@ uvgrtp::formats::h26x::~h26x()
 {
     for (auto& frame : queued_)
     {
-        delete[] frame;
+        (void)uvgrtp::frame::dealloc_frame(frame);
     }
 
     queued_.clear();
+
+    for (auto& fragment : fragments_)
+    {
+        if (fragment != nullptr)
+        {
+            (void)uvgrtp::frame::dealloc_frame(fragment);
+        }
+    }
+
+    fragments_.clear();
 }
 
 /* NOTE: the area 0 - len (ie data[0] - data[len - 1]) must be addressable
@@ -110,163 +126,180 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
     uint8_t *data,
     size_t len,
     size_t offset,
-    uint8_t& start_len
-)
+    uint8_t& start_len)
 {
-    bool prev_z   = false;
-    bool cur_z    = false;
-    size_t pos    = offset;
-    size_t rpos   = len - (len % 8) - 1;
-    uint8_t *ptr  = data + offset;
-    uint8_t *tmp  = nullptr;
-    uint8_t lb    = 0;
-    uint32_t prev = UINT32_MAX;
+    if (data == nullptr || len < offset || len < 1)
+    {
+        UVG_LOG_WARN("Invalid parameter found for start code lookup");
+        return -1;
+    }
 
-    uint64_t prefetch = UINT64_MAX;
-    uint32_t value    = UINT32_MAX;
+    bool prev_had_zero   = false;
+    bool cur_has_zero    = false;
+    size_t pos           = offset;
+    size_t last_byte_position = len - (len % 8) - 1;
 
     /* We can get rid of the bounds check when looping through
      * non-zero 8 byte chunks by setting the last byte to zero.
      *
      * This added zero will make the last 8 byte zero check to fail
      * and when we get out of the loop we can check if we've reached the end */
-    lb = data[rpos];
-    data[rpos] = 0;
+    uint8_t temp_last_byte    = data[last_byte_position];
+    data[last_byte_position] = 0;
+
+    uint32_t prev_value32 = UINT32_MAX;
+    uint32_t cur_value32 = UINT32_MAX;
+
+    uint64_t prefetch64 = UINT64_MAX;
 
     while (pos + 8 < len) {
-        prefetch = *(uint64_t *)ptr;
 
-        if (!prev_z)
+        if (!prev_had_zero)
         {
-
+            // since we know that start code prefix has zeros, we find the next dword that has zeros
+            while (!cur_has_zero && pos + 8 < len)
+            {
+                prefetch64 = *(uint64_t*)(data + pos);
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-            cur_z = haszero64_le(prefetch);
+                cur_has_zero = haszero64_le(prefetch64);
 #else
-            cur_z = haszero64_be(prefetch)
+                cur_has_zero = haszero64_be(prefetch64);
 #endif
-            if (!cur_z) {
-                /* pos is not used in the following loop so it makes little sense to
-                 * update it on every iteration. Faster way to do the loop is to save
-                 * ptr's current value before loop, update only ptr in the loop and when
-                 * the loop is exited, calculate the difference between tmp and ptr to get
-                 * the number of iterations done * 8 */
-                tmp = ptr;
-
-                do {
-                    ptr += 8;
-                    prefetch = *(uint64_t*)ptr;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-                    cur_z = haszero64_le(prefetch);
-#else
-                    cur_z = haszero64_be(prefetch);
-#endif
-                } while (!cur_z);
-
-                pos += PTR_DIFF(ptr, tmp);
-
-                if (pos + 8 >= len)
-                    break;
+                if (!cur_has_zero)
+                {
+                    pos += 8;
+                }
             }
         }
 
-        value = *(uint32_t *)ptr;
-
-        if (cur_z)
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-            cur_z = haszero32_le(value);
-#else
-            cur_z = haszero32_be(value);
-#endif
-
-        if (!prev_z && !cur_z)
-            goto end;
-
-        /* Previous dword had zeros but this doesn't. The only way there might be a start code
-         * is if the most significant byte of current dword is 0x01 */
-        if (prev_z && !cur_z) {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-            /* previous dword: 0xXX000000 or 0xXXXX0000 and current dword 0x01XXXXXX */
-            if (((value  >> 0) & 0xff) == 0x01 && ((prev >> 16) & 0xffff) == 0) {
-                start_len = (((prev >>  8) & 0xffffff) == 0) ? 4 : 3;
-#else
-            if (((value >> 24) & 0xff) == 0x01 && ((prev >>  0) & 0xffff) == 0) {
-                start_len = (((prev >>  0) & 0xffffff) == 0) ? 4 : 3;
-#endif
-                data[rpos] = lb;
-                return pos + 1;
-            }
+        if (pos + 8 < len)
+        {
+            cur_value32 = *(uint32_t*)(data + pos);
         }
 
+        if (cur_has_zero)
         {
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+            cur_has_zero = haszero32_le(cur_value32);
+#else
+            cur_has_zero = haszero32_be(cur_value32);
+#endif
+        }
+
+        if (prev_had_zero || cur_has_zero)
+        {
+            /* Previous dword had zeros but this doesn't. The only way there might be a start code
+             * is if the most significant byte of current dword is 0x01 */
+            if (prev_had_zero && !cur_has_zero) {
+                /* previous dword: 0xXX000000 or 0xXXXX0000 and current dword 0x01XXXXXX */
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+                if (((cur_value32 >> 0) & 0xff) == 0x01 && ((prev_value32 >> 16) & 0xffff) == 0) {
+                    start_len = (((prev_value32 >>  8) & 0xffffff) == 0) ? 4 : 3;
+#else
+                if (((cur_value32 >> 24) & 0xff) == 0x01 && ((prev_value32 >>  0) & 0xffff) == 0) {
+                    start_len = (((prev_value32 >>  0) & 0xffffff) == 0) ? 4 : 3;
+#endif
+                    data[last_byte_position] = temp_last_byte;
+                    return pos + 1;
+                }
+            }
+
+            // find out if the current value as a whole contains start code prefix
             bool additional_byte =  false;
-            uint8_t ret = __find_h26x_start(value, additional_byte);
+            uint8_t ret = determine_start_prefix_precense(cur_value32, additional_byte);
             start_len = ret;
             if (ret > 0) {
                 if (ret == 5) {
+                    // ret 5 means we don't know how long the start code is so we check it
+
                     ret = 3;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-                    start_len = (((prev >> 24) & 0xff) == 0) ? 4 : 3;
+                    start_len = (((prev_value32 >> 24) & 0xff) == 0) ? 4 : 3;
 #else
-                    start_len = (((prev >>  0) & 0xff) == 0) ? 4 : 3;
+                    start_len = (((prev_value32 >>  0) & 0xff) == 0) ? 4 : 3;
 #endif
                 }
-                if (additional_byte) start_len--;
-                data[rpos] = lb;
+                if (additional_byte)
+                {
+                    --start_len;
+                }
+                data[last_byte_position] = temp_last_byte;
                 return pos + ret;
             }
 
+            // see if the start code prefix is split between previous and this dword
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-            uint16_t u = (value >> 16) & 0xffff;
-            uint16_t l = (value >>  0) & 0xffff;
-            uint16_t p = (prev  >> 16) & 0xffff;
+            uint16_t cur_ls  = (cur_value32 >> 16) & 0xffff; // current less significant word
+            uint16_t cur_ms  = (cur_value32 >>  0) & 0xffff; // corrent more significant word
+            uint16_t prev_ls = (prev_value32 >> 16) & 0xffff; // previous less significant word
 
-            bool t1 = ((p & 0xffff) == 0);
-            bool t2 = (((p >> 8) & 0xff) == 0);
-            bool t4 = (l == 0x0100);
-            bool t5 = (l == 0x0000 && u == 0x01);
+            // previous has 4 zeros
+            bool p4z = (prev_ls                  == 0); 
+
+            // previous has 2 zeros
+            bool p2z = (((prev_ls >> 8) & 0xff)  == 0);
+            
+            // current has 2 bytes of possible start code
+            bool c2s = (((cur_ms >> 8) & 0xff)              == 0x01);
+
+            // previous has 4 bytes of possible start code
+            bool c4s = (cur_ms                              == 0x0100); // current starts with 0001
+
+            // previous has 6 bytes of start code
+            bool c6s = (cur_ms == 0x0000 && (cur_ls & 0xff) == 0x01);          // current is 000001XX
+
 #else
-            uint16_t u = (value >>  0) & 0xffff;
-            uint16_t l = (value >> 16) & 0xffff;
-            uint16_t p = (prev  >>  0) & 0xffff;
+            uint16_t cur_ls =  (cur_value32 >>  0) & 0xffff;
+            uint16_t cur_ms =  (cur_value32 >> 16) & 0xffff;
+            uint16_t prev_ls = (prev_value32 >>  0) & 0xffff;
 
-            bool t1 = ((p & 0xffff) == 0);
-            bool t2 = ((p & 0xff) == 0);
-            bool t4 = (l == 0x0001);
-            bool t5 = (l == 0x0000 && u == 0x01);
+            bool p4z = (prev_ls == 0);
+            bool p2z = ((prev_ls & 0xff)   == 0);
+            bool c2s = ((cur_ms & 0xff)    == 0x01);
+            bool c4s = (cur_ms == 0x0001);
+            bool c6s = (cur_ms == 0x0000 && ((cur_ls >> 8) & 0xff) == 0x01);
 #endif
-            if (t1 && t4) {
-                /* previous dword 0xxxxx0000 and current dword is 0x0001XXXX */
-                if (t4) {
+            // all possible start code modes between two bytes
+            if (p4z) {
+                // previous dword 0xXXXX0000
+                if (c4s) {
+                     // current dword is 0x0001XXXX
                     start_len = 4;
-                    data[rpos] = lb;
+                    data[last_byte_position] = temp_last_byte;
                     return pos + 2;
                 }
-            /* Previous dwod was 0xXXXXXX00 */
-            } else if (t2) {
-                /* Current dword is 0x000001XX */
-                if (t5) {
+                else if (c2s)
+                {
+                    // current dword is 0x01XXXX
+                    start_len = 3;
+                    data[last_byte_position] = temp_last_byte;
+                    return pos + 2;
+                }
+            
+            } else if (p2z) {
+                // Previous dword was 0xXXXXXX00
+                
+                if (c6s) {
+                    // Current dword is 0x000001XX
                     start_len = 4;
-                    data[rpos] = lb;
+                    data[last_byte_position] = temp_last_byte;
                     return pos + 3;
                 }
-
-                /* Current dword is 0x0001XXXX */
-                else if (t4) {
+                else if (c4s) {
+                    // Current dword is 0x0001XXXX
                     start_len = 3;
-                    data[rpos] = lb;
+                    data[last_byte_position] = temp_last_byte;
                     return pos + 2;
                 }
             }
-
         }
-end:
-        prev_z = cur_z;
+
+        prev_had_zero = cur_has_zero;
         pos += get_start_code_range();
-        ptr += get_start_code_range();
-        prev = value;
+        prev_value32 = cur_value32;
     }
 
-    data[rpos] = lb;
+    data[last_byte_position] = temp_last_byte;
     return -1;
 }
 
@@ -590,12 +623,14 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::
     if (dropped_ts_.find(frame->header.timestamp) != dropped_ts_.end()) {
         UVG_LOG_DEBUG("Received an RTP packet belonging to a dropped frame! Timestamp: %lu, seq: %u",
             frame->header.timestamp, frame->header.seq);
+        (void)uvgrtp::frame::dealloc_frame(frame); // free fragment memory
         return RTP_GENERIC_ERROR;
     }
 
     if (completed_ts_.find(frame->header.timestamp) != completed_ts_.end()) {
         UVG_LOG_DEBUG("Received an RTP packet belonging to a completed frame! Timestamp: %lu, seq: %u",
             frame->header.timestamp, frame->header.seq);
+        (void)uvgrtp::frame::dealloc_frame(frame); // free fragment memory
         return RTP_GENERIC_ERROR;
     }
 
@@ -653,6 +688,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::
     if (frames_[fragment_ts].nal_type != nal_type)
     {
         UVG_LOG_ERROR("The fragment has different NAL type fragments before!");
+        (void)uvgrtp::frame::dealloc_frame(frame); // free fragment memory
         return RTP_GENERIC_ERROR;
     }
 

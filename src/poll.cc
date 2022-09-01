@@ -53,7 +53,7 @@ rtp_error_t uvgrtp::poll::blocked_recv(std::shared_ptr<uvgrtp::socket> socket, u
     return rtp_ret;
 }
 
-rtp_error_t uvgrtp::poll::poll(std::vector<uvgrtp::socket>& sockets, uint8_t *buf, size_t buf_len, int timeout, int *bytes_read)
+rtp_error_t uvgrtp::poll::poll(std::vector<std::shared_ptr<uvgrtp::socket>>& sockets, uint8_t *buf, size_t buf_len, int timeout, int *bytes_read)
 {
     if (buf == nullptr || buf_len == 0)
         return RTP_INVALID_VALUE;
@@ -68,7 +68,7 @@ rtp_error_t uvgrtp::poll::poll(std::vector<uvgrtp::socket>& sockets, uint8_t *bu
     int ret;
 
     for (size_t i = 0; i < sockets.size(); ++i) {
-        fds[i].fd      = sockets.at(i).get_raw_socket();
+        fds[i].fd      = sockets.at(i)->get_raw_socket();
         fds[i].events  = POLLIN | POLLERR;
     }
 
@@ -87,7 +87,7 @@ rtp_error_t uvgrtp::poll::poll(std::vector<uvgrtp::socket>& sockets, uint8_t *bu
 
     for (size_t i = 0; i < sockets.size(); ++i) {
         if (fds[i].revents & POLLIN) {
-            auto rtp_ret = sockets.at(i).recv(buf, buf_len, 0, bytes_read);
+            auto rtp_ret = sockets.at(i)->recv(buf, buf_len, 0, bytes_read);
 
             if (rtp_ret != RTP_OK) {
                 UVG_LOG_ERROR("recv() for socket %d failed: %s", fds[i].fd, strerror(errno));
@@ -107,7 +107,7 @@ rtp_error_t uvgrtp::poll::poll(std::vector<uvgrtp::socket>& sockets, uint8_t *bu
     FD_ZERO(&read_fds);
 
     for (size_t i = 0; i < sockets.size(); ++i) {
-        auto fd = sockets.at(i).get_raw_socket();
+        auto fd = sockets.at(i)->get_raw_socket();
         FD_SET(fd, &read_fds);
     }
 
@@ -125,7 +125,7 @@ rtp_error_t uvgrtp::poll::poll(std::vector<uvgrtp::socket>& sockets, uint8_t *bu
     }
 
     for (size_t i = 0; i < sockets.size(); ++i) {
-        auto rtp_ret = sockets.at(i).recv((uint8_t *)buf, (int)buf_len, 0, bytes_read);
+        auto rtp_ret = sockets.at(i)->recv((uint8_t *)buf, (int)buf_len, 0, bytes_read);
 
         if (rtp_ret != RTP_OK) {
             if (WSAGetLastError() == WSAEWOULDBLOCK)

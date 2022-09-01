@@ -48,7 +48,7 @@ void uvgrtp::reception_flow::clear_frames()
     frames_mtx_.lock();
     for (auto& frame : frames_)
     {
-        delete[] frame;
+        (void)uvgrtp::frame::dealloc_frame(frame);
     }
 
     frames_.clear();
@@ -256,12 +256,12 @@ void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int rce_flags, uvgr
             case RTP_MULTIPLE_PKTS_READY:
             {
                 while ((*aux.getter)(aux.arg, frame) == RTP_PKT_READY)
-                    this->return_frame(*frame);
+                    return_frame(*frame);
             }
             break;
 
             case RTP_PKT_READY:
-                this->return_frame(*frame);
+                return_frame(*frame);
                 break;
 
             /* packet was not handled or only partially handled by the handler
@@ -291,13 +291,13 @@ void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int rce_flags, uvgr
         case RTP_MULTIPLE_PKTS_READY:
         {
             while (aux.getter(frame) == RTP_PKT_READY)
-                this->return_frame(*frame);
+                return_frame(*frame);
 
             break;
         }
         case RTP_PKT_READY:
         {
-            this->return_frame(*frame);
+            return_frame(*frame);
             break;
         }
 
@@ -461,7 +461,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         }
                         case RTP_PKT_MODIFIED:
                         {
-                            this->call_aux_handlers(handler.first, rce_flags, &frame);
+                            call_aux_handlers(handler.first, rce_flags, &frame);
                             break;
                         }
                         case RTP_GENERIC_ERROR:

@@ -34,10 +34,9 @@ rtp_error_t uvgrtp::zrtp_msg::confack::parse_msg(uvgrtp::zrtp_msg::receiver& rec
 
     // TODO
 
-    ssize_t len = 0;
     allocate_rframe(sizeof(zrtp_confack));
 
-    if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
+    if (receiver.get_msg(rframe_, rlen_) < 0) {
         UVG_LOG_ERROR("Failed to get message from ZRTP receiver");
         return RTP_INVALID_VALUE;
     }

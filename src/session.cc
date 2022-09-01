@@ -35,13 +35,13 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(uint16_t r_port, uint16_t s
 {
     std::lock_guard<std::mutex> m(session_mtx_);
 
-    uvgrtp::media_stream *stream = nullptr;
-
     if (rce_flags & RCE_SYSTEM_CALL_DISPATCHER) {
         UVG_LOG_ERROR("SCD is no longer supported!");
         rtp_errno = RTP_NOT_SUPPORTED;
         return nullptr;
     }
+
+    uvgrtp::media_stream* stream = nullptr;
 
     if (local_address_ == "") {
         stream = new uvgrtp::media_stream(cname_, remote_address_, r_port, s_port, fmt, rce_flags);
@@ -65,6 +65,7 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(uint16_t r_port, uint16_t s
 
             if (rce_flags & (RCE_SRTP_KEYSIZE_192 | RCE_SRTP_KEYSIZE_256)) {
                 UVG_LOG_ERROR("Only 128-bit keys are supported with ZRTP");
+                delete stream;
                 return nullptr;
             }
 
@@ -74,6 +75,7 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(uint16_t r_port, uint16_t s
 
             if (stream->init(zrtp_) != RTP_OK) {
                 UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), r_port, s_port);
+                delete stream;
                 return nullptr;
             }
         } else if (rce_flags & RCE_SRTP_KMNGMNT_USER) {
@@ -81,11 +83,13 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(uint16_t r_port, uint16_t s
         } else {
             UVG_LOG_ERROR("SRTP key management scheme not specified!");
             rtp_errno = RTP_INVALID_VALUE;
+            delete stream;
             return nullptr;
         }
     } else {
         if (stream->init() != RTP_OK) {
             UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), r_port, s_port);
+            delete stream;
             return nullptr;
         }
     }

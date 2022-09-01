@@ -244,6 +244,17 @@ void sdes_hook(uvgrtp::frame::rtcp_sdes_packet* frame)
 {
     std::cout << "Got SDES frame with " << frame->chunks.size() << " chunk" << std::endl;
 
+    for (auto& chunk : frame->chunks)
+    {
+        for (auto& item : chunk.items)
+        {
+            if (item.data != nullptr)
+            {
+                delete[] item.data;
+            }
+        }
+    }
+
     /* RTCP frames can be deallocated using delete */
     delete frame;
 }
@@ -258,6 +269,10 @@ void app_hook(uvgrtp::frame::rtcp_app_packet* frame)
     std::cout << "ssrc: " << frame->ssrc << std::endl;
     std::cout << "Name: " << name << std::endl;
     std::cout << "Payload length " << payload_len << " and content: " << payload << std::endl;
+    if (payload_len > 0)
+    {
+        delete[] frame->payload;
+    }
     delete frame;
 }
 
