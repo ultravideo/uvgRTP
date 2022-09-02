@@ -87,7 +87,7 @@ int main(void)
         send->add_srtp_ctx(key, salt);
 
         // All media is now encrypted/decrypted automatically
-        char *message  = (char *)"Hello, world!";
+        char* message = (char*)"Hello, world!";
         size_t msg_len = strlen(message);
 
         auto start = std::chrono::steady_clock::now();
@@ -96,7 +96,10 @@ int main(void)
             if ((i+1)%10  == 0 || i == 0) // print every 10 frames and first
                 std::cout << "Sending frame # " << i + 1 << '/' << SEND_TEST_PACKETS << std::endl;
 
-            if (send->push_frame((uint8_t *)message, msg_len, RTP_NO_FLAGS) != RTP_OK)
+            uint8_t* message_data = new uint8_t[msg_len];
+            memcpy(message_data, message, msg_len);
+
+            if (send->push_frame((uint8_t *)message_data, msg_len, RTP_NO_FLAGS) != RTP_OK)
             {
                 std::cerr << "Failed to send frame" << std::endl;
             }

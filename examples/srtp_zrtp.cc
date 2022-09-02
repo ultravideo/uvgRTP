@@ -18,7 +18,8 @@ void thread_func(void)
 
     for (;;) {
         auto frame = recv->pull_frame();
-        fprintf(stderr, "Message: '%s'\n", frame->payload);
+        std::string payload = std::string((char*)frame->payload, frame->payload_len);
+        std::cout << "Received SRTP frame. Payload: " << payload << std::endl;
 
         /* the frame must be destroyed manually */
         (void)uvgrtp::frame::dealloc_frame(frame);
@@ -48,7 +49,10 @@ int main(void)
     size_t msg_len = strlen(message);
 
     for (;;) {
-        send->push_frame((uint8_t *)message, msg_len, RTP_NO_FLAGS);
+        uint8_t* message_data = new uint8_t[msg_len];
+        memcpy(message_data, message, msg_len);
+
+        send->push_frame((uint8_t *)message_data, msg_len, RTP_NO_FLAGS);
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 }
