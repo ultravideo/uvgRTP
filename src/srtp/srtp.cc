@@ -53,6 +53,13 @@ rtp_error_t uvgrtp::srtp::recv_packet_handler(void *arg, int rce_flags, frame::r
     auto remote_ctx   = srtp->get_remote_ctx();
     auto frame = *out;
 
+    if (frame->dgram_size < RTP_HDR_SIZE || 
+        (srtp->authenticate_rtp() && frame->dgram_size < RTP_HDR_SIZE + UVG_AUTH_TAG_LENGTH))
+    {
+        UVG_LOG_ERROR("Received SRTP packet that has too small size");
+        return RTP_GENERIC_ERROR;
+    }
+
     /* Calculate authentication tag for the packet and compare it against the one we received */
     if (srtp->authenticate_rtp()) {
         uint8_t digest[10] = { 0 };
