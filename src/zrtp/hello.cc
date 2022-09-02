@@ -30,6 +30,8 @@ uvgrtp::zrtp_msg::hello::hello(zrtp_session_t& session):
     allocate_frame(sizeof(zrtp_hello));
 
     zrtp_hello* msg = (zrtp_hello*)frame_;
+
+    UVG_LOG_DEBUG("Constructing ZRTP Hello");
     set_zrtp_start(msg->msg_start, session, ZRTP_HELLO);
 
     memcpy(&msg->version,            ZRTP_VERSION,                4);

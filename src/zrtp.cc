@@ -866,14 +866,19 @@ rtp_error_t uvgrtp::zrtp::get_srtp_keys(
 
 rtp_error_t uvgrtp::zrtp::packet_handler(ssize_t size, void *packet, int rce_flags, frame::rtp_frame **out)
 {
-    (void)size; // TODO: Check this
+    if (size < sizeof(uvgrtp::zrtp_msg::zrtp_msg))
+    {
+        UVG_LOG_WARN("Received a ZRTP message that is too short. Length: %lli", size);
+        return RTP_PKT_NOT_HANDLED;
+    }
+
     (void)rce_flags;
     (void)out;
 
     auto msg = (uvgrtp::zrtp_msg::zrtp_msg *)packet;
 
     /* not a ZRTP packet */
-    if (msg->header.version || msg->header.magic != ZRTP_HEADER_MAGIC || msg->magic != ZRTP_MSG_MAGIC)
+    if (msg->header.version || msg->header.magic != ZRTP_MAGIC || msg->preamble != ZRTP_PREAMBLE)
         return RTP_PKT_NOT_HANDLED;
 
     switch (msg->msgblock) {

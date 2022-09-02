@@ -23,7 +23,7 @@ namespace uvgrtp {
 
         PACK(struct zrtp_msg {
             struct zrtp_header header;
-            uint16_t magic = 0;
+            uint16_t preamble = 0;
             uint16_t length = 0;
             uint64_t msgblock = 0;
         });
@@ -67,10 +67,8 @@ namespace uvgrtp {
             ZRTP_MSG_PING_ACK  = 0x204b4341676e6950,
         };
 
-        enum MAGIC {
-            ZRTP_HEADER_MAGIC = 0x5a525450,
-            ZRTP_MSG_MAGIC    = 0x0000505a,
-        };
+        constexpr uint32_t ZRTP_MAGIC = 0x5a525450;
+        constexpr uint16_t ZRTP_PREAMBLE = 0x505a;
 
         enum HASHES {
             S256 = 0x36353253,

@@ -90,28 +90,47 @@ rtp_error_t uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket>
     }
 #endif
 
+    if (nread < sizeof(zrtp_msg))
+    {
+        UVG_LOG_WARN("The received ZRTP packet size is too small for mandatory structures");
+        return RTP_INVALID_VALUE;
+    }
+
     zrtp_msg *msg = (zrtp_msg *)mem_;
     rlen_         = nread;
 
+    if (nread != zrtp_message::header_length_to_packet(msg->length))
+    {
+        UVG_LOG_WARN("The ZRTP header size does not match received data amount!");
+        return RTP_INVALID_VALUE;
+    }
+
     if (msg->header.version != 0) {
-        UVG_LOG_DEBUG("Invalid header version 0");
+        UVG_LOG_WARN("Received invalid header version 0");
         return RTP_INVALID_VALUE;
     }
 
-    if (msg->header.magic != ZRTP_HEADER_MAGIC) {
-        UVG_LOG_DEBUG("Invalid ZRTP header magic");
+    if (msg->header.magic != ZRTP_MAGIC) {
+        UVG_LOG_WARN("Received invalid ZRTP magic");
         return RTP_INVALID_VALUE;
     }
 
-    if (msg->magic != ZRTP_MSG_MAGIC) {
-        UVG_LOG_DEBUG("invalid ZRTP magic");
+    if (msg->preamble != ZRTP_PREAMBLE) {
+        UVG_LOG_WARN("Received invalid ZRTP preamble");
         return RTP_INVALID_VALUE;
     }
 
     switch (msg->msgblock) {
         case ZRTP_MSG_HELLO:
         {
-            UVG_LOG_DEBUG("Hello message received, verify CRC32!");
+            // TODO: Check length based on algorithms
+            if (msg->length < 22) // see rfc 6189 section 5.8
+            {
+                UVG_LOG_WARN("ZRTP Hello length field is wrong");
+                return RTP_INVALID_VALUE;
+            }
+
+            UVG_LOG_DEBUG("ZRTP Hello message received, verify CRC32!");
 
             zrtp_hello *hello = (zrtp_hello *)msg;
 
@@ -123,7 +142,13 @@ rtp_error_t uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket>
 
         case ZRTP_MSG_HELLO_ACK:
         {
-            UVG_LOG_DEBUG("HelloACK message received, verify CRC32!");
+            if (msg->length != 3) // see rfc 6189 section 5.3
+            {
+                UVG_LOG_WARN("ZRTP Hello ACK length field is wrong");
+                return RTP_INVALID_VALUE;
+            }
+
+            UVG_LOG_DEBUG("ZRTP HelloACK message received, verify CRC32!");
 
             zrtp_hello_ack *ha_msg = (zrtp_hello_ack *)msg;
 
@@ -135,7 +160,15 @@ rtp_error_t uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket>
 
         case ZRTP_MSG_COMMIT:
         {
-            UVG_LOG_DEBUG("Commit message received, verify CRC32!");
+            if (msg->length != 29 &&
+                msg->length != 25 &&
+                msg->length != 27) // see rfc 6189 section 5.4
+            {
+                UVG_LOG_WARN("ZRTP Commit length field is wrong");
+                return RTP_INVALID_VALUE;
+            }
+
+            UVG_LOG_DEBUG("ZRTP Commit message received, verify CRC32!");
 
             zrtp_commit *commit = (zrtp_commit *)msg;
 
@@ -147,7 +180,14 @@ rtp_error_t uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket>
 
         case ZRTP_MSG_DH_PART1:
         {
-            UVG_LOG_DEBUG("DH Part1 message received, verify CRC32!");
+            // TODO: Check based on KA type
+            if (msg->length < 21) // see rfc 6189 section 5.5
+            {
+                UVG_LOG_WARN("ZRTP DH Part1 length field is wrong");
+                return RTP_INVALID_VALUE;
+            }
+
+            UVG_LOG_DEBUG("ZRTP DH Part1 message received, verify CRC32!");
 
             zrtp_dh *dh = (zrtp_dh *)msg;
 
@@ -159,7 +199,14 @@ rtp_error_t uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket>
 
         case ZRTP_MSG_DH_PART2:
         {
-            UVG_LOG_DEBUG("DH Part2 message received, verify CRC32!");
+            // TODO: Check based on KA type
+            if (msg->length < 21) // see rfc 6189 section 5.6
+            {
+                UVG_LOG_WARN("ZRTP DH Part2 length field is wrong");
+                return RTP_INVALID_VALUE;
+            }
+
+            UVG_LOG_DEBUG("ZRTP DH Part2 message received, verify CRC32!");
 
             zrtp_dh *dh = (zrtp_dh *)msg;
 
@@ -171,7 +218,14 @@ rtp_error_t uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket>
 
         case ZRTP_MSG_CONFIRM1:
         {
-            UVG_LOG_DEBUG("Confirm1 message received, verify CRC32!");
+            // TODO: Check based on signiture
+            if (msg->length < 19) // see rfc 6189 section 5.6
+            {
+                UVG_LOG_WARN("ZRTP Confirm1 length field is wrong");
+                return RTP_INVALID_VALUE;
+            }
+
+            UVG_LOG_DEBUG("ZRTP Confirm1 message received, verify CRC32!");
 
             zrtp_confirm *dh = (zrtp_confirm *)msg;
 
@@ -183,7 +237,14 @@ rtp_error_t uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket>
 
         case ZRTP_MSG_CONFIRM2:
         {
-            UVG_LOG_DEBUG("Confirm2 message received, verify CRC32!");
+            // TODO: Check based on signiture
+            if (msg->length < 19) // see rfc 6189 section 5.6
+            {
+                UVG_LOG_WARN("ZRTP Confirm1 length field is wrong");
+                return RTP_INVALID_VALUE;
+            }
+
+            UVG_LOG_DEBUG("ZRTP Confirm2 message received, verify CRC32!");
 
             zrtp_confirm *dh = (zrtp_confirm *)msg;
 
@@ -195,7 +256,13 @@ rtp_error_t uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket>
 
         case ZRTP_MSG_CONF2_ACK:
         {
-            UVG_LOG_DEBUG("Conf2 ACK message received, verify CRC32!");
+            if (msg->length != 3) // see rfc 6189 section 5.8
+            {
+                UVG_LOG_WARN("ZRTP Conf2 ACK length field is wrong");
+                return RTP_INVALID_VALUE;
+            }
+
+            UVG_LOG_DEBUG("ZRTP Conf2 ACK message received, verify CRC32!");
 
             zrtp_confack *ca = (zrtp_confack *)msg;
 
@@ -207,35 +274,66 @@ rtp_error_t uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket>
 
         case ZRTP_MSG_ERROR:
         {
-            UVG_LOG_DEBUG("Error message received");
+            if (msg->length != 4) // see rfc 6189 section 5.9
+            {
+                UVG_LOG_WARN("ZRTP Error length field is wrong");
+                return RTP_INVALID_VALUE;
+            }
+
+            UVG_LOG_DEBUG("ZRTP Error message received");
             out_type = ZRTP_FT_ERROR;
             return RTP_OK;
         }
 
         case ZRTP_MSG_ERROR_ACK:
         {
-            UVG_LOG_DEBUG("Error ACK message received");
+            if (msg->length != 3) // see rfc 6189 section 5.10
+            {
+                UVG_LOG_WARN("ZRTP Error ACK length field is wrong");
+                return RTP_INVALID_VALUE;
+            }
+
+            UVG_LOG_DEBUG("ZRTP Error ACK message received");
             out_type = ZRTP_FT_ERROR_ACK;
             return RTP_OK;
         }
 
         case ZRTP_MSG_SAS_RELAY:
         {
-            UVG_LOG_DEBUG("SAS Relay message received");
+            // TODO: Check based on signiture
+            if (msg->length < 19) // see rfc 6189 section 5.14
+            {
+                UVG_LOG_WARN("ZRTP SAS Relay length field is wrong");
+                return RTP_INVALID_VALUE;
+            }
+
+            UVG_LOG_DEBUG("ZRTP SAS Relay message received");
             out_type = ZRTP_FT_SAS_RELAY;
             return RTP_OK;
         }
 
         case ZRTP_MSG_RELAY_ACK:
         {
-            UVG_LOG_DEBUG("Relay ACK message received");
+            if (msg->length != 3) // see rfc 6189 section 5.14
+            {
+                UVG_LOG_WARN("ZRTP Relay ACK length field is wrong");
+                return RTP_INVALID_VALUE;
+            }
+
+            UVG_LOG_DEBUG("ZRTP Relay ACK message received");
             out_type = ZRTP_FT_RELAY_ACK;
             return RTP_OK;
         }
 
         case ZRTP_MSG_PING_ACK:
         {
-            UVG_LOG_DEBUG("Ping ACK message received");
+            if (msg->length != 9) // see rfc 6189 section 5.16
+            {
+                UVG_LOG_WARN("ZRTP Relay ACK length field is wrong");
+                return RTP_INVALID_VALUE;
+            }
+
+            UVG_LOG_DEBUG("ZRTP Ping ACK message received");
             out_type = ZRTP_FT_PING_ACK;
             return RTP_OK;
         }

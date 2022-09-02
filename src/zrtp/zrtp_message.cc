@@ -54,22 +54,12 @@ void uvgrtp::zrtp_msg::zrtp_message::set_zrtp_start_base(uvgrtp::zrtp_msg::zrtp_
     std::string msgblock)
 {
     start.header.version = 0;
-    start.header.magic = ZRTP_HEADER_MAGIC;
-    start.magic = ZRTP_MSG_MAGIC;
-
-    uint16_t length = (uint16_t)len_ - (uint16_t)sizeof(zrtp_header);
-
-    if (length%4 != 0)
-    {
-      std::string printText = "ZRTP message length is not divisible by 32-bit word. Type: " + msgblock;
-      log_platform_error(printText.c_str());
-    }
-
-    // convert size into 32-bit words and minus the size of crc
-    start.length = length/4 - 1;
+    start.header.magic = ZRTP_MAGIC;
+    start.preamble = ZRTP_PREAMBLE;
+    start.length = packet_to_header_len(len_);
     memcpy(&start.msgblock, msgblock.c_str(), 8);
 
-    UVG_LOG_DEBUG("Constructed ZRTP header. Size: %u, Length-field: %u", length, start.length);
+    UVG_LOG_DEBUG("Constructed ZRTP header. Size: %lu, Length-field: %u", len_, start.length);
 }
 
 void uvgrtp::zrtp_msg::zrtp_message::set_zrtp_start(uvgrtp::zrtp_msg::zrtp_msg& start,
@@ -80,4 +70,22 @@ void uvgrtp::zrtp_msg::zrtp_message::set_zrtp_start(uvgrtp::zrtp_msg::zrtp_msg& 
 
     start.header.ssrc = session.ssrc;
     start.header.seq = session.seq++;
+}
+
+ssize_t uvgrtp::zrtp_msg::zrtp_message::header_length_to_packet(uint16_t header_len)
+{
+    return ((ssize_t)header_len + 1)*4 + sizeof(zrtp_header);
+}
+
+uint16_t uvgrtp::zrtp_msg::zrtp_message::packet_to_header_len(ssize_t packet)
+{
+    if (packet % 4 != 0)
+    {
+        std::string printText = "ZRTP message length is not divisible by 32-bit word";
+        log_platform_error(printText.c_str());
+        return 0;
+    }
+
+    // convert size into 32-bit words and minus the size of crc
+    return ((uint16_t)packet - (uint16_t)sizeof(zrtp_header)) / 4 - 1;
 }

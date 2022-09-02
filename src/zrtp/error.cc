@@ -16,6 +16,8 @@ uvgrtp::zrtp_msg::error::error(int error_code):
 {
     allocate_frame(sizeof(zrtp_error));
     zrtp_error* msg = (zrtp_error*)frame_;
+
+    UVG_LOG_DEBUG("Constructing ZRTP error");
     set_zrtp_start_base(msg->msg_start, ZRTP_ERROR);
 
     msg->error = error_code;
