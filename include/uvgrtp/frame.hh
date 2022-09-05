@@ -80,7 +80,7 @@ namespace uvgrtp {
                 uint8_t pkt_subtype; /* for app packets */
             };
             uint8_t pkt_type = 0;
-            uint16_t length = 0;
+            uint16_t length = 0; // whole message measured in 32-bit words
         };
 
         struct rtcp_sender_info {
@@ -135,6 +135,7 @@ namespace uvgrtp {
             uint32_t ssrc = 0;
             uint8_t name[4] = {0};
             uint8_t *payload = nullptr;
+            size_t payload_len = 0; // in bytes
         };
 
         PACK(struct zrtp_frame {

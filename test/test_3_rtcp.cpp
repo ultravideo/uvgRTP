@@ -267,8 +267,11 @@ void app_hook(uvgrtp::frame::rtcp_app_packet* frame)
 
     std::cout << std::endl << "APP frame! ----------" << std::endl;
     std::cout << "ssrc: " << frame->ssrc << std::endl;
-    std::cout << "Name: " << name << std::endl;
-    std::cout << "Payload length " << payload_len << " and content: " << payload << std::endl;
+    std::cout << "Name: " << name << " and content: " << payload << std::endl;
+    std::cout << "Calculated payload length " << payload_len << std::endl;
+    std::cout << "Payload length field "      << frame->payload_len << std::endl;
+
+
     if (payload_len > 0)
     {
         delete[] frame->payload;

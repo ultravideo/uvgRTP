@@ -1459,13 +1459,13 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t& read_ptr,
     memcpy(frame->name, &packet[read_ptr], APP_NAME_SIZE);
     read_ptr += APP_NAME_SIZE;
 
-    size_t application_data_size = packet_end - read_ptr;
+    frame->payload_len = packet_end - read_ptr;
 
-    if (application_data_size > 0)
+    if (frame->payload_len > 0)
     {
         // application data is saved to payload
-        frame->payload = new uint8_t[application_data_size];
-        memcpy(frame->payload, &packet[read_ptr], application_data_size);
+        frame->payload = new uint8_t[frame->payload_len];
+        memcpy(frame->payload, &packet[read_ptr], frame->payload_len);
     }
     else
     {
