@@ -50,16 +50,50 @@ void uvgrtp::rtp::set_payload(rtp_format_t fmt)
     payload_ = (uint8_t)fmt;
 
     switch (fmt_) {
+        case RTP_FORMAT_PCMU:
+        case RTP_FORMAT_GSM:
+        case RTP_FORMAT_G723:
+        case RTP_FORMAT_DVI4_32:
+        case RTP_FORMAT_PCMA:
+        case RTP_FORMAT_LPC:
+        case RTP_FORMAT_G722: // the RFC 1890 had an error, so now G722 is incorrect forever everywhere
+        case RTP_FORMAT_G728:
+        case RTP_FORMAT_G729:
+        case RTP_FORMAT_G726_40:
+        case RTP_FORMAT_G726_32:
+        case RTP_FORMAT_G726_24:
+        case RTP_FORMAT_G726_16:
+        case RTP_FORMAT_G729D:
+        case RTP_FORMAT_G729E:
+        case RTP_FORMAT_GSM_EFR:
+            clock_rate_ = 8000;
+            break;
+        case RTP_FORMAT_DVI4_441:
+            clock_rate_ = 11025;
+            break;
+        case RTP_FORMAT_DVI4_64:
+            clock_rate_ = 16000;
+            break;
+        case RTP_FORMAT_DVI4_882:
+            clock_rate_ = 22050;
+            break;
+        case RTP_FORMAT_L16_STEREO:
+        case RTP_FORMAT_L16_MONO:
+            clock_rate_ = 44100;
+            break;
+        case RTP_FORMAT_OPUS:
+            clock_rate_ = 48000;
+            break;
         case RTP_FORMAT_H264:
         case RTP_FORMAT_H265:
         case RTP_FORMAT_H266:
             clock_rate_ = 90000;
             break;
-
-        case RTP_FORMAT_OPUS:
-            clock_rate_ = 48000;
+        case RTP_FORMAT_L8:   // variable, user should set this
+        case RTP_FORMAT_VDVI: // variable
+            UVG_LOG_WARN("Using variable clock rate format, please set rate manually. Using 8000");
+            clock_rate_ = 8000;
             break;
-
         default:
             UVG_LOG_WARN("Unknown RTP format, setting clock rate to 8000");
             clock_rate_ = 8000;

@@ -182,7 +182,29 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
             break;
         }
         case RTP_FORMAT_OPUS:
-        case RTP_FORMAT_GENERIC:
+        case RTP_FORMAT_PCMU:
+        case RTP_FORMAT_GSM:
+        case RTP_FORMAT_G723:
+        case RTP_FORMAT_DVI4_32:
+        case RTP_FORMAT_DVI4_64:
+        case RTP_FORMAT_LPC:
+        case RTP_FORMAT_PCMA:
+        case RTP_FORMAT_G722:
+        case RTP_FORMAT_L16_STEREO:
+        case RTP_FORMAT_L16_MONO:
+        case RTP_FORMAT_G728:
+        case RTP_FORMAT_DVI4_441:
+        case RTP_FORMAT_DVI4_882:
+        case RTP_FORMAT_G729:
+        case RTP_FORMAT_G726_40:
+        case RTP_FORMAT_G726_32:
+        case RTP_FORMAT_G726_24:
+        case RTP_FORMAT_G726_16:
+        case RTP_FORMAT_G729D:
+        case RTP_FORMAT_G729E:
+        case RTP_FORMAT_GSM_EFR:
+        case RTP_FORMAT_L8:
+        case RTP_FORMAT_VDVI:
             media_ = std::unique_ptr<uvgrtp::formats::media> (new uvgrtp::formats::media(socket_, rtp_, rce_flags_));
 
             reception_flow_->install_aux_handler(
@@ -682,6 +704,71 @@ uint32_t uvgrtp::media_stream::get_default_bandwidth_kbps(rtp_format_t fmt)
 {
     int bandwidth = 50;
     switch (fmt) {
+        case RTP_FORMAT_PCMU:
+        case RTP_FORMAT_PCMA:
+        case RTP_FORMAT_L8: // L8 bitrate depends on sampling rate
+            bandwidth = 64;
+            break;
+        case RTP_FORMAT_G723:
+            bandwidth = 6;
+            break;
+        case RTP_FORMAT_DVI4_32:
+            bandwidth = 32;
+            break;
+        case RTP_FORMAT_DVI4_64:
+            bandwidth = 64;
+            break;
+        case RTP_FORMAT_LPC:
+            bandwidth = 6;
+            break;
+        case RTP_FORMAT_GSM:
+            bandwidth = 13;
+            break;
+        case RTP_FORMAT_G722:
+            bandwidth = 64;
+            break;
+        case RTP_FORMAT_L16_STEREO:
+            bandwidth = 1411;
+            break;
+        case RTP_FORMAT_L16_MONO:
+            bandwidth = 706;
+            break;
+        case RTP_FORMAT_G728:
+            bandwidth = 16;
+            break;
+        case RTP_FORMAT_DVI4_441:
+            bandwidth = 44;
+            break;
+        case RTP_FORMAT_DVI4_882:
+            bandwidth = 88;
+            break;
+        case RTP_FORMAT_G729:
+            bandwidth = 8;
+            break;
+        case RTP_FORMAT_G726_40:
+            bandwidth = 40;
+            break;
+        case RTP_FORMAT_G726_32:
+            bandwidth = 32;
+            break;
+        case RTP_FORMAT_G726_24:
+            bandwidth = 24;
+            break;
+        case RTP_FORMAT_G726_16:
+            bandwidth = 16;
+            break;
+        case RTP_FORMAT_G729D:
+            bandwidth = 6;
+            break;
+        case RTP_FORMAT_G729E:
+            bandwidth = 11;
+            break;
+        case RTP_FORMAT_GSM_EFR:
+            bandwidth = 12;
+            break;
+        case RTP_FORMAT_VDVI:
+            bandwidth = 25;
+            break;
         case RTP_FORMAT_H264:
             bandwidth = 6000;
             break;
