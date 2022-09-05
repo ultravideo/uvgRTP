@@ -166,18 +166,11 @@ enum RTP_CTX_ENABLE_FLAGS {
         arrived. Does not work if the dependencies are not in monotonic order. */
     RCE_H26X_DEPENDENCY_ENFORCEMENT = 1 << 4,
 
-    /** Fragment generic frames into RTP packets of 1500 bytes.
+    /** Fragment frames into RTP packets of MTU size (1500 bytes).
      *
-     * If RCE_FRAGMENT_GENERIC is given to create_stream(), uvgRTP will split frames
-     * of type RTP_FORMAT_GENERIC into packets of 1500 bytes automatically and reconstruct
-     * the full frame from the fragments in the receiver
-     *
-     * This behavior is not from any specification and only supported by uvgRTP so it
-     * will break interoperability between libraries if enabled.
-     *
-     * RCE_FRAGMENT_GENERIC can be used, for example, when you're using uvgRTP for
-     * both sender and receiver and the media stream you wish to stream is not supported
-     * by uvgRTP but requires packetization because MEDIA_FRAME_SIZE > MTU */
+     * Some RTP profiles define fragmentation with marker bit indicating the end of frame.
+     * You can enable this functionality using this flag at both sender and receiver. 
+     */
     RCE_FRAGMENT_GENERIC          = 1 << 5,
 
     /** If SRTP is enabled and RCE_INPLACE_ENCRYPTION flag is *not* given,
