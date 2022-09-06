@@ -62,31 +62,41 @@ TEST(RTPTests, rtp_hook)
     cleanup_sess(ctx, sess);
 }
 
-TEST(RTPTests, rtp_send_test)
+TEST(RTPTests, rtp_send_receive_only)
 {
     // Tests installing a hook to uvgRTP
     std::cout << "Starting RTP hook test" << std::endl;
     uvgrtp::context ctx;
-    uvgrtp::session* sess = ctx.create_session(REMOTE_ADDRESS);
+    uvgrtp::session* send_sess = ctx.create_session(REMOTE_ADDRESS);
+    uvgrtp::session* receive_sess = ctx.create_session(REMOTE_ADDRESS);
 
     uvgrtp::media_stream* sender = nullptr;
     uvgrtp::media_stream* receiver = nullptr;
 
-    int flags = RCE_FRAGMENT_GENERIC;
-    if (sess)
+    int send_flags = RCE_FRAGMENT_GENERIC | RCE_SEND_ONLY;
+    int receive_flags = RCE_FRAGMENT_GENERIC | RCE_RECEIVE_ONLY;
+    if (send_sess)
     {
-        sender = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_GENERIC, flags);
-        receiver = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
+        sender = send_sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_GENERIC, send_flags);
+    }
+
+    if (receive_sess)
+    {
+        receiver = receive_sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, receive_flags);
     }
 
     int test_packets = 10;
-    size_t size = 1500;
+    std::vector<size_t> sizes = { 1000, 2000 };
+    for (size_t& size : sizes)
+    {
+        std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
+        test_packet_size(std::move(test_frame), test_packets, size, send_sess, sender, receiver, RTP_NO_FLAGS);
+    }
 
-    std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
-    test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, RTP_NO_FLAGS);
-
-    cleanup_ms(sess, sender);
-    cleanup_sess(ctx, sess);
+    cleanup_ms(send_sess, sender);
+    cleanup_ms(receive_sess, receiver);
+    cleanup_sess(ctx, send_sess);
+    cleanup_sess(ctx, receive_sess);
 }
 
 TEST(RTPTests, rtp_poll)
