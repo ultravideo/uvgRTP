@@ -187,14 +187,19 @@ typedef enum RTP_FLAGS {
 enum RTP_CTX_ENABLE_FLAGS {
     RCE_NO_FLAGS                  = 0,
 
-    // Obsolete flags
-    RCE_SYSTEM_CALL_DISPATCHER    = 0,
-    RCE_NO_H26X_INTRA_DELAY = 0,
-    RCE_NO_H26X_SCL = 0,
-    RCE_H26X_NO_DEPENDENCY_ENFORCEMENT = 0,
+    // Obsolete flags, they do nothing because the feature has been removed or they are enabled by default
+    RCE_OBSOLETE                        = 1, // for checking if user inputs obsolete flags
+    RCE_SYSTEM_CALL_DISPATCHER          = 1, // removed feature
+    RCE_NO_H26X_INTRA_DELAY             = 1, // removed feature
+    RCE_NO_H26X_SCL                     = 1, // this flag was moved to be an RTP flag
+    RCE_H26X_NO_DEPENDENCY_ENFORCEMENT  = 1, // the feature is disabled by default
+
+    // These can be used to specify what the address does for one address create session
+    RCE_SEND_ONLY                  = 1 << 1, // address interpreted as remote, no binding to socket
+    RCE_RECEIVE_ONLY               = 1 << 2, // address interpreted as local, sending not possible
 
     /** Use SRTP for this connection */
-    RCE_SRTP                      = 1,
+    RCE_SRTP                      = 1 << 3,
 
     /** Use ZRTP for key management
      *
@@ -204,7 +209,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      *
      * This flag must be coupled with RCE_SRTP and is mutually exclusive
      * with RCE_SRTP_KMNGMNT_USER. */
-    RCE_SRTP_KMNGMNT_ZRTP         = 1 << 1,
+    RCE_SRTP_KMNGMNT_ZRTP         = 1 << 4,
 
     /** Use user-defined way to manage keys
      *
@@ -214,24 +219,24 @@ enum RTP_CTX_ENABLE_FLAGS {
      *
      * This flag must be coupled with RCE_SRTP and is mutually exclusive
      * with RCE_SRTP_KMNGMNT_ZRTP */
-    RCE_SRTP_KMNGMNT_USER         = 1 << 2,
+    RCE_SRTP_KMNGMNT_USER         = 1 << 5,
 
     /** By default, the RTP packet payload does not include the start code prefixes. 
      * Use this flag to prepend the 4-byte start code (0x00000001) to each received
      * H26x frame, so there is no difference with sender input. Recommended in 
      * most cases. */
-    RCE_H26X_PREPEND_SC           = 1 << 3,
+    RCE_H26X_PREPEND_SC           = 1 << 6,
 
     /** Use this flag to discard inter frames that don't have their previous dependencies
         arrived. Does not work if the dependencies are not in monotonic order. */
-    RCE_H26X_DEPENDENCY_ENFORCEMENT = 1 << 4,
+    RCE_H26X_DEPENDENCY_ENFORCEMENT = 1 << 7,
 
     /** Fragment frames into RTP packets of MTU size (1500 bytes).
      *
      * Some RTP profiles define fragmentation with marker bit indicating the end of frame.
      * You can enable this functionality using this flag at both sender and receiver. 
      */
-    RCE_FRAGMENT_GENERIC          = 1 << 5,
+    RCE_FRAGMENT_GENERIC          = 1 << 8,
 
     /** If SRTP is enabled and RCE_INPLACE_ENCRYPTION flag is *not* given,
      * uvgRTP will make a copy of the frame given to push_frame().
@@ -241,13 +246,13 @@ enum RTP_CTX_ENABLE_FLAGS {
      * unnecessary copy operations.
      *
      * If RCE_INPLACE_ENCRYPTION is given to push_frame(), the input pointer must be writable! */
-    RCE_SRTP_INPLACE_ENCRYPTION   = 1 << 6,
+    RCE_SRTP_INPLACE_ENCRYPTION   = 1 << 9,
 
     /** Disable System Call Clustering (SCC) */
-    RCE_NO_SYSTEM_CALL_CLUSTERING = 1 << 7,
+    RCE_NO_SYSTEM_CALL_CLUSTERING = 1 << 10,
 
     /** Disable RTP payload encryption */
-    RCE_SRTP_NULL_CIPHER          = 1 << 8,
+    RCE_SRTP_NULL_CIPHER          = 1 << 11,
 
     /** Enable RTP packet authentication
      *
@@ -255,31 +260,31 @@ enum RTP_CTX_ENABLE_FLAGS {
      * to each outgoing RTP packet for all streams that have SRTP enabled.
      *
      * NOTE: this flag must be coupled with at least RCE_SRTP */
-    RCE_SRTP_AUTHENTICATE_RTP     = 1 << 9,
+    RCE_SRTP_AUTHENTICATE_RTP     = 1 << 12,
 
     /** Enable packet replay protection */
-    RCE_SRTP_REPLAY_PROTECTION    = 1 << 10,
+    RCE_SRTP_REPLAY_PROTECTION    = 1 << 13,
 
     /** Enable RTCP for the media stream.
      * If SRTP is enabled, SRTCP is used instead */
-    RCE_RTCP                      = 1 << 11,
+    RCE_RTCP                      = 1 << 14,
 
     /** If the Mediastream object is used as a unidirectional stream
      * but holepunching has been enabled, this flag can be used to make
      * uvgRTP periodically send a short UDP datagram to keep the hole
      * in the firewall open */
-    RCE_HOLEPUNCH_KEEPALIVE       = 1 << 12,
+    RCE_HOLEPUNCH_KEEPALIVE       = 1 << 15,
 
     /** Use 192-bit keys with SRTP */
-    RCE_SRTP_KEYSIZE_192          = 1 << 13,
+    RCE_SRTP_KEYSIZE_192          = 1 << 16,
 
     /** Use 256-bit keys with SRTP */
-    RCE_SRTP_KEYSIZE_256          = 1 << 14,
+    RCE_SRTP_KEYSIZE_256          = 1 << 17,
 
-    RCE_ZRTP_MULTISTREAM_NO_DH    = 1 << 16,
+    RCE_ZRTP_MULTISTREAM_NO_DH    = 1 << 18,
 
-    RCE_LAST                      = 1 << 17,
-};
+    RCE_LAST                      = 1 << 19
+}; // maximum is 1 << 30 for int
 
 
 /**

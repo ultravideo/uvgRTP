@@ -21,8 +21,7 @@ namespace uvgrtp {
         public:
             /// \cond DO_NOT_DOCUMENT
             session(std::string cname, std::string addr);
-            session(std::string cname, std::string remote_addr, 
-                std::string local_addr);
+            session(std::string cname, std::string remote_addr, std::string local_addr);
             ~session();
             /// \endcond
 
@@ -31,32 +30,59 @@ namespace uvgrtp {
              *
              * \details
              *
-             * If local_addr was provided when uvgrtp::session was created, uvgRTP binds
-             * itself to local_addr:src_port, otherwise to INADDR_ANY:src_port
+             * If both addresses were provided when uvgrtp::session was created, uvgRTP binds
+             * itself to local_addr:src_port and sends packets to remote_addr:dst_port.
+             * 
+             * If only one address was provided, the RCE_SEND_ONLY flag in rce_flags can be used to 
+             * avoid binding and  src_port is thus ignored. RCE_RECEIVE_ONLY means dst_port is ignored. 
+             * Without either, the one address is interpreted as remote_addr and binding happens to ANY.
              *
              * This object is used for both sending and receiving media, see documentation
              * for uvgrtp::media_stream for more details.
              *
-             * User can enable and disable functionality of uvgRTP by OR'ing RCE_* flags
+             * User can enable and disable functionality of uvgRTP by OR'ing (using |) RCE_* flags
              * together and passing them using the rce_flags parameter
              *
-             * \param src_port Local port that uvgRTP listens to for incoming RTP packets
-             * \param dst_port Remote port where uvgRTP sends RTP packets
-             * \param fmt      Format of the media stream. see ::RTP_FORMAT for more details
+             * \param src_port   Local port that uvgRTP listens to for incoming RTP packets
+             * \param dst_port   Remote port where uvgRTP sends RTP packets
+             * \param fmt        Format of the media stream. see ::RTP_FORMAT for more details
+             * \param rce_flags  RTP context enable flags, see ::RTP_CTX_ENABLE_FLAGS for more details
+             *
+             * \return RTP media stream object
+             *
+             * \retval uvgrtp::media_stream*  On success
+             * \retval nullptr                On failure, see print and 
+             */
+            uvgrtp::media_stream *create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags);
+
+            /**
+             * \brief Create a bidirectional media stream for an RTP session
+             *
+             * \details
+             *
+             * If both addresses were provided when uvgrtp::session was created, uvgRTP binds
+             * sends packets to remote_addr:port and does not bind.
+             *
+             * If only one address was provided, the RCE_SEND_ONLY flag in rce_flags can be used to
+             * avoid binding and port is used as remote_port. RCE_RECEIVE_ONLY means port is used for binding.
+             * Without either, the one address is interpreted as remote_addr and binding happens to ANY.
+             *
+             * This object is used for both sending and receiving media, see documentation
+             * for uvgrtp::media_stream for more details.
+             *
+             * User can enable and disable functionality of uvgRTP by OR'ing (using |) RCE_* flags
+             * together and passing them using the rce_flags parameter
+             *
+             * \param port         Either local or remote port depending on rce_flags
+             * \param fmt          Format of the media stream. see ::RTP_FORMAT for more details
              * \param rce_flags    RTP context enable flags, see ::RTP_CTX_ENABLE_FLAGS for more details
              *
              * \return RTP media stream object
              *
              * \retval uvgrtp::media_stream*  On success
-             * \retval nullptr                 If src_port or dst_port is 0
-             * \retval nullptr                 If fmt is not a supported media format
-             * \retval nullptr                 If socket initialization failed
-             * \retval nullptr                 If ZRTP was enabled and it failed to finish handshaking
-             * \retval nullptr                 If RCE_SRTP is given but uvgRTP has not been compiled with Crypto++ enabled
-             * \retval nullptr                 If RCE_SRTP is given but RCE_SRTP_KMNGMNT_* flag is not given
-             * \retval nullptr                 If memory allocation failed
+             * \retval nullptr                On failure, see print
              */
-            uvgrtp::media_stream *create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags);
+            uvgrtp::media_stream *create_stream(uint16_t port, rtp_format_t fmt, int rce_flags);
 
             /**
              * \brief Destroy a media stream
@@ -80,6 +106,8 @@ namespace uvgrtp {
         private:
             /* Each RTP multimedia session shall have one ZRTP session from which all session are derived */
             std::shared_ptr<uvgrtp::zrtp> zrtp_;
+
+            std::string generic_address_;
 
             /* Each RTP multimedia session is always IP-specific */
             std::string remote_address_;

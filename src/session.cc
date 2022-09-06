@@ -7,21 +7,25 @@
 #include "debug.hh"
 
 
-uvgrtp::session::session(std::string cname, std::string addr):
+uvgrtp::session::session(std::string cname, std::string addr) :
 #ifdef __RTP_CRYPTO__
     zrtp_(new uvgrtp::zrtp()),
 #endif
-    remote_address_(addr),
+    generic_address_(addr),
+    remote_address_(""),
     local_address_(""),
     cname_(cname)
-{
-}
+{}
 
 uvgrtp::session::session(std::string cname, std::string remote_addr, std::string local_addr):
-    session(cname, remote_addr)
-{
-    local_address_ = local_addr;
-}
+#ifdef __RTP_CRYPTO__
+    zrtp_(new uvgrtp::zrtp()),
+#endif
+    generic_address_(""),
+    remote_address_(remote_addr),
+    local_address_(local_addr),
+    cname_(cname)
+{}
 
 uvgrtp::session::~session()
 {
@@ -31,22 +35,74 @@ uvgrtp::session::~session()
     streams_.clear();
 }
 
-uvgrtp::media_stream *uvgrtp::session::create_stream(uint16_t r_port, uint16_t s_port, rtp_format_t fmt, int rce_flags)
+uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t port, rtp_format_t fmt, int rce_flags)
 {
-    if (rce_flags & RCE_SYSTEM_CALL_DISPATCHER) {
-        UVG_LOG_ERROR("SCD is no longer supported!");
+    if (rce_flags & RCE_RECEIVE_ONLY)
+    {
+        return create_stream(port, 0, fmt, rce_flags);
+    }
+    else if (rce_flags & RCE_SEND_ONLY)
+    {
+        return create_stream(0, port, fmt, rce_flags);
+    }
+    
+    UVG_LOG_WARN("You haven't specified the purpose of port with rce_flags. Using it as destination port and not binding");
+    return create_stream(0, port, fmt, rce_flags);
+}
+
+uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags)
+{
+    if (rce_flags & RCE_OBSOLETE) {
+        UVG_LOG_WARN("You are using a flag that has either been removed or has been enabled by default. Consider updating RCE flags");
+    }
+
+    if ((rce_flags & RCE_SEND_ONLY) && (rce_flags & RCE_RECEIVE_ONLY)) {
+        UVG_LOG_ERROR("Cannot both use RCE_SEND_ONLY and RCE_RECEIVE_ONLY!");
         rtp_errno = RTP_NOT_SUPPORTED;
         return nullptr;
     }
 
-    uvgrtp::media_stream* stream = nullptr;
+    // select which address the one address we got as a parameter is
+    if (generic_address_ != "")
+    {
+        if (rce_flags & RCE_RECEIVE_ONLY)
+        {
+            local_address_ = generic_address_;
+        }
+        else
+        {
+            remote_address_ = generic_address_;
+        }
+    }
+    else if ((rce_flags & RCE_RECEIVE_ONLY) && local_address_ == "")
+    {
+        UVG_LOG_ERROR("RCE_RECEIVE_ONLY requires local address!");
+        rtp_errno = RTP_INVALID_VALUE;
+        return  nullptr;
+    }
+    else if ((rce_flags & RCE_SEND_ONLY) && remote_address_ == "")
+    {
+        UVG_LOG_ERROR("RCE_SEND_ONLY requires remote address!");
+        rtp_errno = RTP_INVALID_VALUE;
+        return  nullptr;
+    }
 
-    if (local_address_ == "") {
-        stream = new uvgrtp::media_stream(cname_, remote_address_, r_port, s_port, fmt, rce_flags);
+    if ((rce_flags & RCE_RECEIVE_ONLY) && src_port == 0)
+    {
+        UVG_LOG_ERROR("RCE_RECEIVE_ONLY requires source port!");
+        rtp_errno = RTP_INVALID_VALUE;
+        return  nullptr;
     }
-    else {
-        stream = new uvgrtp::media_stream(cname_, remote_address_, local_address_, r_port, s_port, fmt, rce_flags);
+
+    if ((rce_flags & RCE_SEND_ONLY) && dst_port == 0)
+    {
+        UVG_LOG_ERROR("RCE_SEND_ONLY requires destination port!");
+        rtp_errno = RTP_INVALID_VALUE;
+        return  nullptr;
     }
+
+    uvgrtp::media_stream* stream =
+        new uvgrtp::media_stream(cname_, remote_address_, local_address_, src_port, dst_port, fmt, rce_flags);
 
     if (rce_flags & RCE_SRTP) {
         if (!uvgrtp::crypto::enabled()) {
@@ -74,7 +130,7 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(uint16_t r_port, uint16_t s
             session_mtx_.unlock();
 
             if (stream->init(zrtp_) != RTP_OK) {
-                UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), r_port, s_port);
+                UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), src_port, dst_port);
                 delete stream;
                 return nullptr;
             }
@@ -88,7 +144,7 @@ uvgrtp::media_stream *uvgrtp::session::create_stream(uint16_t r_port, uint16_t s
         }
     } else {
         if (stream->init() != RTP_OK) {
-            UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), r_port, s_port);
+            UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), src_port, dst_port);
             delete stream;
             return nullptr;
         }

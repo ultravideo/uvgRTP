@@ -20,42 +20,33 @@
 #include <cstring>
 #include <errno.h>
 
-uvgrtp::media_stream::media_stream(std::string cname, std::string addr, 
-    uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags):
+uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr, 
+    std::string local_addr, uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, 
+    int rce_flags):
+    key_(uvgrtp::random::generate_32()),
     srtp_(nullptr),
     srtcp_(nullptr),
     socket_(nullptr),
     rtp_(nullptr),
     rtcp_(nullptr),
-    rce_flags_(),
+    remote_sockaddr_(),
+    remote_address_(remote_addr),
+    local_address_(local_addr),
+    src_port_(src_port),
+    dst_port_(dst_port),
+    fmt_(fmt),
+    rce_flags_(rce_flags),
     media_config_(nullptr),
     initialized_(false),
     rtp_handler_key_(0),
+    zrtp_handler_key_(0),
     reception_flow_(nullptr),
     media_(nullptr),
     holepuncher_(nullptr),
     cname_(cname),
     fps_enumerator_(30),
     fps_denominator_(1)
-{
-    fmt_      = fmt;
-    remote_address_     = addr;
-    local_address_    = "";
-    rce_flags_ = rce_flags;
-    src_port_ = src_port;
-    dst_port_ = dst_port;
-    key_      = uvgrtp::random::generate_32();
-}
-
-uvgrtp::media_stream::media_stream(std::string cname,
-    std::string remote_addr, std::string local_addr,
-    uint16_t src_port, uint16_t dst_port,
-    rtp_format_t fmt, int rce_flags
-):
-    media_stream(cname, remote_addr, src_port, dst_port, fmt, rce_flags)
-{
-    local_address_ = local_addr;
-}
+{}
 
 uvgrtp::media_stream::~media_stream()
 {
@@ -100,26 +91,44 @@ rtp_error_t uvgrtp::media_stream::init_connection()
 
     short int family = AF_INET;
 
-    // no reason to fail sending even if binding fails so we set remote address first
-    remote_sockaddr_ = socket_->create_sockaddr(family, remote_address_, dst_port_);
-    socket_->set_sockaddr(remote_sockaddr_);
-
-    if (local_address_ != "") {
-        sockaddr_in bind_addr = socket_->create_sockaddr(family, local_address_, src_port_);
-
-        if ((ret = socket_->bind(bind_addr)) != RTP_OK)
-        {
-            log_platform_error("bind(2) failed");
-            return ret;
-        }
-    } 
-    else 
+    if (!(rce_flags_ & RCE_RECEIVE_ONLY) && remote_address_ != "")
     {
-        if ((ret = socket_->bind(family, INADDR_ANY, src_port_)) != RTP_OK)
-        {
-            log_platform_error("bind(2) to any failed");
-            return ret;
+        // no reason to fail sending even if binding fails so we set remote address first
+        remote_sockaddr_ = socket_->create_sockaddr(family, remote_address_, dst_port_);
+        socket_->set_sockaddr(remote_sockaddr_);
+    }
+    else
+    {
+        UVG_LOG_INFO("Sending disabled for this stream");
+    }
+
+    if (!(rce_flags_ & RCE_SEND_ONLY))
+    {
+        if (local_address_ != "" && src_port_ != 0) {
+            sockaddr_in bind_addr = socket_->create_sockaddr(family, local_address_, src_port_);
+
+            if ((ret = socket_->bind(bind_addr)) != RTP_OK)
+            {
+                log_platform_error("bind(2) failed");
+                return ret;
+            }
         }
+        else if (src_port_ != 0)
+        {
+            if ((ret = socket_->bind(family, INADDR_ANY, src_port_)) != RTP_OK)
+            {
+                log_platform_error("bind(2) to any failed");
+                return ret;
+            }
+        }
+        else
+        {
+            UVG_LOG_INFO("Not binding, receiving is not possible");
+        }
+    }
+    else
+    {
+        UVG_LOG_INFO("Not binding, receiving is not possible");
     }
 
     /* Set the default UDP send/recv buffer sizes to 4MB as on Windows
@@ -398,9 +407,19 @@ rtp_error_t uvgrtp::media_stream::start_components()
     }
 
     if (rce_flags_ & RCE_RTCP) {
-        rtcp_->add_participant(remote_address_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
-        rtcp_->set_session_bandwidth(get_default_bandwidth_kbps(fmt_));
-        rtcp_->start();
+
+        if (remote_address_ == "" ||
+            src_port_ == 0 ||
+            dst_port_ == 0)
+        {
+            UVG_LOG_ERROR("Using RTCP requires setting at least remote address, local port and remote port");
+        }
+        else
+        {
+            rtcp_->add_participant(local_address_, remote_address_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
+            rtcp_->set_session_bandwidth(get_default_bandwidth_kbps(fmt_));
+            rtcp_->start();
+        }
     }
 
     if (rce_flags_ & RCE_SRTP_AUTHENTICATE_RTP)
@@ -412,73 +431,67 @@ rtp_error_t uvgrtp::media_stream::start_components()
 
 rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int rtp_flags)
 {
-    if (!initialized_) {
-        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
-        return RTP_NOT_INITIALIZED;
+    rtp_error_t ret = check_push_preconditions();
+    if (ret == RTP_OK)
+    {
+        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE && holepuncher_)
+            holepuncher_->notify();
+
+        ret = media_->push_frame(data, data_len, rtp_flags);
     }
 
-    if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE && holepuncher_)
-        holepuncher_->notify();
-
-    return media_->push_frame(data, data_len, rtp_flags);
+    return ret;
 }
 
 rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int rtp_flags)
 {
-    if (!initialized_) {
-        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
-        return RTP_NOT_INITIALIZED;
+    rtp_error_t ret = check_push_preconditions();
+    if (ret == RTP_OK)
+    {
+        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE && holepuncher_)
+            holepuncher_->notify();
+
+        ret = media_->push_frame(std::move(data), data_len, rtp_flags);
     }
 
-    if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE && holepuncher_)
-        holepuncher_->notify();
-
-    return media_->push_frame(std::move(data), data_len, rtp_flags);
+    return ret;
 }
 
 rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, uint32_t ts, int rtp_flags)
 {
-    rtp_error_t ret = RTP_GENERIC_ERROR;
+    rtp_error_t ret = check_push_preconditions();
+    if (ret == RTP_OK)
+    {
+        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
+            holepuncher_->notify();
 
-    if (!initialized_) {
-        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
-        return RTP_NOT_INITIALIZED;
+        rtp_->set_timestamp(ts);
+        ret = media_->push_frame(data, data_len, rtp_flags);
+        rtp_->set_timestamp(INVALID_TS);
     }
-
-    if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
-        holepuncher_->notify();
-
-    rtp_->set_timestamp(ts);
-    ret = media_->push_frame(data, data_len, rtp_flags);
-    rtp_->set_timestamp(INVALID_TS);
 
     return ret;
 }
 
 rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int rtp_flags)
 {
-    rtp_error_t ret = RTP_GENERIC_ERROR;
+    rtp_error_t ret = check_push_preconditions();
+    if (ret == RTP_OK)
+    {
+        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
+            holepuncher_->notify();
 
-    if (!initialized_) {
-        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
-        return RTP_NOT_INITIALIZED;
+        rtp_->set_timestamp(ts);
+        ret = media_->push_frame(std::move(data), data_len, rtp_flags);
+        rtp_->set_timestamp(INVALID_TS);
     }
-
-    if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
-        holepuncher_->notify();
-
-    rtp_->set_timestamp(ts);
-    ret = media_->push_frame(std::move(data), data_len, rtp_flags);
-    rtp_->set_timestamp(INVALID_TS);
 
     return ret;
 }
 
 uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame()
 {
-    if (!initialized_) {
-        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
-        rtp_errno = RTP_NOT_INITIALIZED;
+    if (!check_pull_preconditions()) {
         return nullptr;
     }
 
@@ -487,13 +500,38 @@ uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame()
 
 uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame(size_t timeout_ms)
 {
-    if (!initialized_) {
-        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
-        rtp_errno = RTP_NOT_INITIALIZED;
+    if (!check_pull_preconditions()) {
         return nullptr;
     }
 
     return reception_flow_->pull_frame(timeout_ms);
+}
+
+bool uvgrtp::media_stream::check_pull_preconditions()
+{
+    if (!initialized_) {
+        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        rtp_errno = RTP_NOT_INITIALIZED;
+        return false;
+    }
+
+    return true;
+}
+
+rtp_error_t uvgrtp::media_stream::check_push_preconditions()
+{
+    if (!initialized_) {
+        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        return RTP_NOT_INITIALIZED;
+    }
+
+    if (remote_address_ == "")
+    {
+        UVG_LOG_ERROR("Cannot push frame if remote address has not been provided!");
+        return RTP_INVALID_VALUE;
+    }
+
+    return RTP_OK;
 }
 
 rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *))
@@ -507,38 +545,6 @@ rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(v
         return RTP_INVALID_VALUE;
 
     reception_flow_->install_receive_hook(arg, hook);
-
-    return RTP_OK;
-}
-
-rtp_error_t uvgrtp::media_stream::install_deallocation_hook(void (*hook)(void *))
-{
-    if (!initialized_) {
-        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
-        return RTP_NOT_INITIALIZED;
-    }
-
-    if (!hook)
-        return RTP_INVALID_VALUE;
-
-    /* TODO:  */
-
-    return RTP_OK;
-}
-
-rtp_error_t uvgrtp::media_stream::install_notify_hook(void *arg, void (*hook)(void *, int))
-{
-    (void)arg, (void)hook;
-
-    if (!initialized_) {
-        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
-        return RTP_NOT_INITIALIZED;
-    }
-
-    if (!hook)
-        return RTP_INVALID_VALUE;
-
-    /* TODO:  */
 
     return RTP_OK;
 }

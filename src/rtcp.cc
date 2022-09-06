@@ -332,7 +332,7 @@ rtp_error_t uvgrtp::rtcp::set_sdes_items(const std::vector<uvgrtp::frame::rtcp_s
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_port, uint16_t src_port, uint32_t clock_rate)
+rtp_error_t uvgrtp::rtcp::add_participant(std::string src_addr, std::string dst_addr, uint16_t dst_port, uint16_t src_port, uint32_t clock_rate)
 {
     if (dst_addr == "" || !dst_port || !src_port)
     {
@@ -386,12 +386,26 @@ rtp_error_t uvgrtp::rtcp::add_participant(std::string dst_addr, uint16_t dst_por
         return ret;
     }
 
-    UVG_LOG_WARN("Binding to port %d (source port)", src_port);
+    
 
-    if ((ret = p->socket->bind(AF_INET, INADDR_ANY, src_port)) != RTP_OK)
+    if (src_addr != "")
     {
-        free_participant(std::move(p));
-        return ret;
+        UVG_LOG_INFO("Binding RTCP to port %s:%d", src_addr.c_str(), src_port);
+        sockaddr_in bind_addr = p->socket->create_sockaddr(AF_INET, src_addr, src_port);
+        if ((ret = p->socket->bind(bind_addr)) != RTP_OK)
+        {
+            free_participant(std::move(p));
+            return ret;
+        }
+    }
+    else
+    {
+        UVG_LOG_INFO("Binding RTCP to port %d (source port)", src_port);
+        if ((ret = p->socket->bind(AF_INET, INADDR_ANY, src_port)) != RTP_OK)
+        {
+            free_participant(std::move(p));
+            return ret;
+        }
     }
 
     p->role             = RECEIVER;

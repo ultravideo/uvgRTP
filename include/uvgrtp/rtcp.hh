@@ -186,7 +186,7 @@ namespace uvgrtp {
              * (or whether we're even sending anything)
              *
              * Return RTP_OK on success and RTP_ERROR on error */
-            rtp_error_t add_participant(std::string dst_addr, uint16_t dst_port, uint16_t src_port, uint32_t clock_rate);
+            rtp_error_t add_participant(std::string src_addr, std::string dst_addr, uint16_t dst_port, uint16_t src_port, uint32_t clock_rate);
 
             /* Functions for updating various RTP sender statistics */
             void sender_update_stats(const uvgrtp::frame::rtp_frame *frame);

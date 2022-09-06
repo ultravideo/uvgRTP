@@ -38,18 +38,24 @@ uvgrtp::context::~context()
 #endif
 }
 
-uvgrtp::session *uvgrtp::context::create_session(std::string remote_addr)
+uvgrtp::session *uvgrtp::context::create_session(std::string address)
 {
-    if (remote_addr == "")
+    if (address == "")
+    {
+        UVG_LOG_ERROR("Please specify the address you want to communicate with!");
         return nullptr;
+    }
 
-    return new uvgrtp::session(get_cname(), remote_addr);
+    return new uvgrtp::session(get_cname(), address);
 }
 
 uvgrtp::session *uvgrtp::context::create_session(std::string remote_addr, std::string local_addr)
 {
-    if (remote_addr == "" || local_addr == "")
+    if (remote_addr == "" && local_addr == "")
+    {
+        UVG_LOG_ERROR("Please specify at least one address for create_session");
         return nullptr;
+    }
 
     return new uvgrtp::session(get_cname(), remote_addr, local_addr);
 }

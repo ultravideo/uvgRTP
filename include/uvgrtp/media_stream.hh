@@ -40,7 +40,6 @@ namespace uvgrtp {
     class media_stream {
         public:
             /// \cond DO_NOT_DOCUMENT
-            media_stream(std::string cname, std::string addr, uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags);
             media_stream(std::string cname, std::string remote_addr, std::string local_addr, uint16_t src_port, uint16_t dst_port,
                 rtp_format_t fmt, int rce_flags);
             ~media_stream();
@@ -240,29 +239,6 @@ namespace uvgrtp {
              * \retval RTP_INVALID_VALUE If hook is nullptr */
             rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *));
 
-            /// \cond DO_NOT_DOCUMENT
-            /* 
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "hook" is nullptr */
-            rtp_error_t install_deallocation_hook(void (*hook)(void *));
-
-            /* If needed, a notification hook can be installed to uvgRTP that can be used as
-             * an information side channel to the internal state of the library.
-             *
-             * When uvgRTP encouters a situation it doesn't know how to react to,
-             * it calls the notify hook with certain notify reason number (src/util.hh).
-             * Upon receiving a notification, application may ignore it or act on it somehow
-             *
-             * Currently only one notification type is supported and only receiver uses notifications
-             *
-             * "arg" is optional argument that is passed to hook when it is called. It may be nullptr
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "hook" is nullptr */
-            rtp_error_t install_notify_hook(void *arg, void (*hook)(void *, int));
-            /// \endcond
-
             /**
              * \brief Configure the media stream, see ::RTP_CTX_CONFIGURATION_FLAGS for more details
              *
@@ -319,6 +295,9 @@ namespace uvgrtp {
             rtp_error_t start_components();
 
             uint32_t get_default_bandwidth_kbps(rtp_format_t fmt);
+
+            bool check_pull_preconditions();
+            rtp_error_t check_push_preconditions();
 
             uint32_t key_;
 
