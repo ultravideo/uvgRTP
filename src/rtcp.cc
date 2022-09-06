@@ -1827,7 +1827,7 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
     packet_mutex_.lock();
     if (!app_packets_[name].empty())
     {
-        UVG_LOG_WARN("Adding a new APP packet for sending when %llu packets are waiting to be sent",
+        UVG_LOG_DEBUG("Adding a new APP packet for sending when %llu packets are waiting to be sent",
             app_packets_[name].size());
     }
     app_packets_[name].emplace_back(name, subtype, payload_len, payload);
