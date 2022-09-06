@@ -576,37 +576,38 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             int buf_size = (int)value;
             if ((ret = socket_->setsockopt(SOL_SOCKET, SO_SNDBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
                 return ret;
+            break;
         }
-        break;
-
         case RCC_UDP_RCV_BUF_SIZE: {
             if (value <= 0)
                 return RTP_INVALID_VALUE;
 
-            reception_flow_->set_buffer_size(value);
-
             int buf_size = (int)value;
             if ((ret = socket_->setsockopt(SOL_SOCKET, SO_RCVBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
                 return ret;
+            break;
         }
-        break;
+        case RCC_RING_BUFFER_SIZE: {
+            if (value <= 0)
+                return RTP_INVALID_VALUE;
 
+            reception_flow_->set_buffer_size(value);
+            break;
+        }
         case RCC_PKT_MAX_DELAY: {
             if (value <= 0)
                 return RTP_INVALID_VALUE;
 
             rtp_->set_pkt_max_delay(value);
+            break;
         }
-        break;
-
         case RCC_DYN_PAYLOAD_TYPE: {
             if (value <= 0 || UINT8_MAX < value)
                 return RTP_INVALID_VALUE;
 
             rtp_->set_dynamic_payload((uint8_t)value);
+            break;
         }
-        break;
-
         case RCC_MTU_SIZE: {
             ssize_t hdr      = ETH_HDR_SIZE + IPV4_HDR_SIZE + UDP_HDR_SIZE + RTP_HDR_SIZE;
             ssize_t max_size = 0xffff - IPV4_HDR_SIZE - UDP_HDR_SIZE;
@@ -627,9 +628,9 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
 
             rtp_->set_payload_size(value - hdr);
             rtcp_->set_mtu_size(value - (ETH_HDR_SIZE + IPV4_HDR_SIZE + UDP_HDR_SIZE));
-
+            break;
         }
-        break;
+
 
         case RCC_FPS_ENUMERATOR: {
             fps_enumerator_ = value;

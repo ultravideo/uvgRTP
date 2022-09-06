@@ -71,6 +71,7 @@ int main(void)
          * For example, here UDP receive buffer is increased to BUFFER_SIZE_MB
          * and frame delay is set PACKET_MAX_DELAY_MS to allow frames to arrive a little late */
           receive->configure_ctx(RCC_UDP_RCV_BUF_SIZE, BUFFER_SIZE_MB);
+          receive->configure_ctx(RCC_RING_BUFFER_SIZE, BUFFER_SIZE_MB);
           receive->configure_ctx(RCC_PKT_MAX_DELAY,    MAX_PACKET_INTERVAL_MS);
 
           // install receive hook for asynchronous reception

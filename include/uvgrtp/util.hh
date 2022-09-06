@@ -301,7 +301,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      *
      * Default value is 4 MB
      *
-     * For video with high bitrate, it is advisable to set this
+     * For video with high bitrate (100+ fps 4K), it is advisable to set this
      * to a high number to prevent OS from dropping packets */
     RCC_UDP_RCV_BUF_SIZE = 1,
 
@@ -309,9 +309,17 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      *
      * Default value is 4 MB
      *
-     * For video with high bitrate, it is advisable to set this
+     * For video with high bitrate (100+ fps 4K), it is advisable to set this
      * to a high number to prevent OS from dropping packets */
     RCC_UDP_SND_BUF_SIZE = 2,
+
+    /** How large is the receiver ring buffer inside uvgRTP is
+     *
+     * Default value is 4 MB
+     *
+     * For video with high bitrate (100+ fps 4K), it is advisable to set this
+     * to a high number to prevent uvgRTP from overwriting previous packets */
+    RCC_RING_BUFFER_SIZE = 3,
 
     /** How many milliseconds is each frame waited for until it is considered lost.
      *
@@ -319,11 +327,11 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      *
      * This is valid only for fragmented frames,
      * i.e. RTP_FORMAT_H26X and RTP_FORMAT_GENERIC with RCE_FRAGMENT_GENERIC (TODO) */
-    RCC_PKT_MAX_DELAY    = 3,
+    RCC_PKT_MAX_DELAY    = 4,
 
     /** Overwrite uvgRTP's own payload type in RTP packets and specify your own
      * dynamic payload type for all packets of an RTP stream */
-    RCC_DYN_PAYLOAD_TYPE = 4,
+    RCC_DYN_PAYLOAD_TYPE = 5,
 
     /** Set a maximum value for the Ethernet frame size assumed by uvgRTP.
      *
@@ -333,7 +341,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      * If application wishes to use small UDP datagrams for some reason,
      * it can set MTU size to, for example, 500 bytes or if it wishes
      * to use jumbo frames, it can set the MTU size to 9000 bytes */
-    RCC_MTU_SIZE         = 5,
+    RCC_MTU_SIZE         = 6,
 
     /** Set the enumerator of frame rate enforced by uvgRTP.
     * 
@@ -344,7 +352,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
     * The fps API paces the sending of the RTP packets so that receiver is under less
     * strain to receive all. Setting this is not neccessary for small frame sizes,
     * but even then it makes the stream smoother. The cost is at most one frame extra latency. */
-    RCC_FPS_ENUMERATOR   = 6,
+    RCC_FPS_ENUMERATOR   = 7,
 
     /** Set the denominator of frame rate enforced by uvgRTP.
      *
@@ -354,7 +362,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      *
      * Setting the denominator is only necessary for fractional fps values as setting the enumerator 
      * already enables the fps functionality.  */
-    RCC_FPS_DENOMINATOR  = 7,
+    RCC_FPS_DENOMINATOR  = 8,
 
     RCC_LAST
 };
