@@ -90,7 +90,7 @@ rtp_error_t uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket>
     }
 #endif
 
-    if (nread < sizeof(zrtp_msg))
+    if (nread < 0 || (uint32_t)nread < sizeof(zrtp_msg))
     {
         UVG_LOG_WARN("The received ZRTP packet size is too small for mandatory structures");
         return RTP_INVALID_VALUE;

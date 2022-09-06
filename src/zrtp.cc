@@ -866,7 +866,7 @@ rtp_error_t uvgrtp::zrtp::get_srtp_keys(
 
 rtp_error_t uvgrtp::zrtp::packet_handler(ssize_t size, void *packet, int rce_flags, frame::rtp_frame **out)
 {
-    if (size < sizeof(uvgrtp::zrtp_msg::zrtp_msg))
+    if (size < 0 || (uint32_t)size < sizeof(uvgrtp::zrtp_msg::zrtp_msg))
     {
         UVG_LOG_WARN("Received a ZRTP message that is too short. Length: %lli", size);
         return RTP_PKT_NOT_HANDLED;
