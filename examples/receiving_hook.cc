@@ -23,11 +23,10 @@
 // parameters for this test. You can change these to suit your network environment
 constexpr uint16_t LOCAL_PORT = 8890;
 
-constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
-constexpr uint16_t REMOTE_PORT = 8888;
+constexpr char LOCAL_ADDRESS[] = "127.0.0.1";
 
 // This example runs for 5 seconds
-constexpr auto RECEIVE_TIME_S = std::chrono::seconds(3);
+constexpr auto RECEIVE_TIME_S = std::chrono::seconds(10);
 
 void rtp_receive_hook(void *arg, uvgrtp::frame::rtp_frame *frame);
 void cleanup(uvgrtp::context& ctx, uvgrtp::session *sess, uvgrtp::media_stream *receiver);
@@ -37,12 +36,9 @@ int main(void)
     std::cout << "Starting uvgRTP RTP receive hook example" << std::endl;
 
     uvgrtp::context ctx;
-    /* There remote address and port are needed if the .
-        uvgRTP API is */
-
-    uvgrtp::session *sess = ctx.create_session(REMOTE_ADDRESS);
-    int flags = RTP_NO_FLAGS;
-    uvgrtp::media_stream *receiver = sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, flags);
+    uvgrtp::session *sess = ctx.create_session(LOCAL_ADDRESS);
+    int flags = RCE_RECEIVE_ONLY;
+    uvgrtp::media_stream *receiver = sess->create_stream(LOCAL_PORT, RTP_FORMAT_H265, flags);
 
     /* Receive hook can be installed and uvgRTP will call this hook when an RTP frame is received
      *

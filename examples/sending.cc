@@ -10,7 +10,6 @@
 
 /* parameters of this example. You may change these to reflect
  * you network environment. */
-constexpr uint16_t LOCAL_PORT = 8888;
 constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
 constexpr uint16_t REMOTE_PORT = 8890;
 
@@ -42,9 +41,8 @@ int main(void)
      *
      * In this example, we have one media stream with the remote participant: H265 */
 
-    int flags = RTP_NO_FLAGS;
-    uvgrtp::media_stream *hevc = sess->create_stream(LOCAL_PORT, REMOTE_PORT,
-                                                     RTP_FORMAT_H265, flags);
+    int flags = RCE_SEND_ONLY;
+    uvgrtp::media_stream *hevc = sess->create_stream(REMOTE_PORT, RTP_FORMAT_H265, flags);
 
     if (hevc)
     {

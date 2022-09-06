@@ -15,11 +15,8 @@
 
 
 // network parameters of the example
-constexpr char LOCAL_INTERFACE[] = "127.0.0.1";
-constexpr uint16_t LOCAL_PORT = 8888;
-
 constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
-constexpr uint16_t REMOTE_PORT = 8890;
+constexpr uint16_t REMOTE_PORT = 8888;
 
 // demonstration parameters of the example
 constexpr uint32_t PAYLOAD_MAXLEN = (0xffff - 0x1000);
@@ -35,8 +32,8 @@ int main(void)
 
     // See sending example for more details
     uvgrtp::context ctx;
-    uvgrtp::session *local_session = ctx.create_session(REMOTE_ADDRESS);
-    uvgrtp::session *remote_session = ctx.create_session(LOCAL_INTERFACE);
+    uvgrtp::session *local_session = ctx.create_session(REMOTE_ADDRESS); // REMOTE_ADDRESS will be intereted as remote address due to RCE_SEND_ONLY
+    uvgrtp::session *remote_session = ctx.create_session(REMOTE_ADDRESS); // REMOTE_ADDRESS will be interpreted as local address due to RCE_RECEIVE_ONLY
 
     /* To enable interoperability between RTP libraries, uvgRTP won't fragment generic frames by default.
      *
@@ -50,11 +47,12 @@ int main(void)
      *
      * See sending.cc for more details about create_stream() */
 
-    int flags = RCE_FRAGMENT_GENERIC;
-    uvgrtp::media_stream *send = local_session->create_stream(LOCAL_PORT, REMOTE_PORT,
-                                                              RTP_FORMAT_GENERIC, flags);
-    uvgrtp::media_stream *recv = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT,
-                                                               RTP_FORMAT_GENERIC, flags);
+    int send_flags = RCE_FRAGMENT_GENERIC | RCE_SEND_ONLY;
+    int receive_flags = RCE_FRAGMENT_GENERIC | RCE_RECEIVE_ONLY;
+
+    // set only one port, this one port is interpreted based on rce flags
+    uvgrtp::media_stream *send = local_session->create_stream(REMOTE_PORT, RTP_FORMAT_GENERIC, send_flags);
+    uvgrtp::media_stream *recv = remote_session->create_stream(REMOTE_PORT, RTP_FORMAT_GENERIC, receive_flags);
 
     if (!recv || recv->install_receive_hook(nullptr, rtp_receive_hook) != RTP_OK)
     {

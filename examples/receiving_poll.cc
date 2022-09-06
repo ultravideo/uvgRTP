@@ -21,11 +21,10 @@
 // parameters of this example. You may change these to reflect you network environment
 constexpr uint16_t LOCAL_PORT = 8890;
 
-constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
-constexpr uint16_t REMOTE_PORT = 8888;
+constexpr char LOCAL_ADDRESS[] = "127.0.0.1";
 
 // How long this example will run
-constexpr auto RECEIVE_TIME_MS = std::chrono::milliseconds(3000);
+constexpr auto RECEIVE_TIME_MS = std::chrono::milliseconds(10000);
 constexpr int RECEIVER_WAIT_TIME_MS = 100;
 
 void process_frame(uvgrtp::frame::rtp_frame *frame);
@@ -35,18 +34,13 @@ int main(void)
     std::cout << "Starting uvgRTP RTP receive hook example" << std::endl;
 
     uvgrtp::context ctx;
-    uvgrtp::session *sess = ctx.create_session(REMOTE_ADDRESS);
-    int flags = RCE_NO_FLAGS;
+    uvgrtp::session *sess = ctx.create_session(LOCAL_ADDRESS);
+    int flags = RCE_RECEIVE_ONLY;
 
-    uvgrtp::media_stream *receiver = sess->create_stream(LOCAL_PORT, REMOTE_PORT,
-                                                         RTP_FORMAT_H265, flags);
-
-    // TODO: Explain how to stop poll in middle of the wait
+    uvgrtp::media_stream *receiver = sess->create_stream(LOCAL_PORT, RTP_FORMAT_H265, flags);
 
     if (receiver)
     {
-        uvgrtp::frame::rtp_frame *frame = nullptr;
-
         std::cout << "Start receiving frames for " << RECEIVE_TIME_MS.count() << " ms" << std::endl;
         auto start = std::chrono::steady_clock::now();
 
@@ -56,7 +50,7 @@ int main(void)
              * within that time limit, pull_frame() returns a nullptr
              *
              * The parameter tells how long time a frame is waited in milliseconds */
-            frame = receiver->pull_frame(RECEIVER_WAIT_TIME_MS);
+            uvgrtp::frame::rtp_frame* frame = receiver->pull_frame(RECEIVER_WAIT_TIME_MS);
 
             if (frame)
                 process_frame(frame);
