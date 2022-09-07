@@ -2,8 +2,6 @@
 
 uvgRTP RTP library uses CMake to generate build files and you must use 64-bit compiler to build uvgRTP. uvgRTP supports building with GCC, MinGW and Microsoft Visual Studio.
 
-As an alternative to CMake, uvgRTP also includes a Qt project file (uvgRTP.pro) for building using QtCreator. This method is not described in this tutorial.
-
 ## Dependencies
 
 uvgRTP has one optional dependency in [Crypto++](https://www.cryptopp.com/).
