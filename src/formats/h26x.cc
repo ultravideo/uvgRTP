@@ -260,22 +260,11 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
             bool c6s = (cur_ms == 0x0000 && ((cur_ls >> 8) & 0xff) == 0x01);
 #endif
             // all possible start code modes between two bytes
-            if (p4z) {
-                // previous dword 0xXXXX0000
-                if (c4s) {
-                     // current dword is 0x0001XXXX
-                    start_len = 4;
-                    data[last_byte_position] = temp_last_byte;
-                    return pos + 2;
-                }
-                else if (c2s)
-                {
-                    // current dword is 0x01XXXX
-                    start_len = 3;
-                    data[last_byte_position] = temp_last_byte;
-                    return pos + 2;
-                }
-            
+            if (p4z && c4s) {
+                // previous dword 0xXXXX0000 and current dword is 0x0001XXXX
+                start_len = 4;
+                data[last_byte_position] = temp_last_byte;
+                return pos + 2;
             } else if (p2z) {
                 // Previous dword was 0xXXXXXX00
                 
