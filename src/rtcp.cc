@@ -1267,13 +1267,6 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* buffer, size_t&
         add_participant(frame->ssrc);
     }
 
-    if (!frame->header.count)
-    {
-        UVG_LOG_ERROR("RR cannot have 0 report blocks!");
-        delete frame;
-        return RTP_INVALID_VALUE;
-    }
-
     read_reports(buffer, read_ptr, packet_end, frame->header.count, frame->report_blocks);
 
     rr_mutex_.lock();
