@@ -4,6 +4,7 @@
 
 #include "debug.hh"
 #include "random.hh"
+#include "memory.hh"
 
 #ifndef _WIN32
 #include <arpa/inet.h>
@@ -20,7 +21,7 @@ uvgrtp::rtp::rtp(rtp_format_t fmt):
     wc_start_(),
     sent_pkts_(0),
     timestamp_(INVALID_TS),
-    delay_(PKT_MAX_DELAY)
+    delay_(PKT_MAX_DELAY_MS)
 {
     seq_  = uvgrtp::random::generate_32() & 0xffff;
     ts_   = uvgrtp::random::generate_32();

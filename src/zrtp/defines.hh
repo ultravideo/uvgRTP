@@ -1,6 +1,6 @@
 #pragma once
 
-#include "uvgrtp/util.hh"
+#include "uvgrtp/frame.hh"
 
 #include <vector>
 

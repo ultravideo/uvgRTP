@@ -1,6 +1,8 @@
 
 #include "uvgrtp/util.hh"
 
+#include <cstdint>
+
 namespace uvgrtp {
     namespace random {
 

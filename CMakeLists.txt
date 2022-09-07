@@ -89,6 +89,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 		src/socket.hh
         src/zrtp.hh
         src/frame_queue.hh
+		src/memory.hh
 
         src/formats/h26x.hh
         src/formats/h264.hh

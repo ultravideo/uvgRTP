@@ -13,6 +13,13 @@
 #include <string>
 #include <vector>
 
+/* https://stackoverflow.com/questions/1537964/visual-c-equivalent-of-gccs-attribute-packed  */
+#if defined(__MINGW32__) || defined(__MINGW64__) || defined(__GNUC__) || defined(__linux__)
+#define PACK(__Declaration__) __Declaration__ __attribute__((__packed__))
+#else
+#define PACK(__Declaration__) __pragma(pack(push, 1)) __Declaration__ __pragma(pack(pop))
+#endif
+
 namespace uvgrtp {
     namespace frame {
 

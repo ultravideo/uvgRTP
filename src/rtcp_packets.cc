@@ -4,6 +4,7 @@
 
 #include "debug.hh"
 
+#define SET_NEXT_FIELD_32(a, p, v) do { *(uint32_t *)&(a)[p] = (v); p += 4; } while (0)
 
 uint32_t uvgrtp::get_sr_packet_size(int rce_flags, uint16_t reports)
 {

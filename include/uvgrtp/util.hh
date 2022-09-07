@@ -9,35 +9,12 @@
 #include <sys/time.h>
 #endif
 
-#include <algorithm>
-#include <cstdint>
-#include <cstddef>
-#include <cstdio>
-#include <cstring>
-#include <string>
-
 #if defined(_MSC_VER)
 typedef SSIZE_T ssize_t;
 #endif
 
-/* https://stackoverflow.com/questions/1537964/visual-c-equivalent-of-gccs-attribute-packed  */
-#if defined(__MINGW32__) || defined(__MINGW64__) || defined(__GNUC__) || defined(__linux__)
-#define PACK(__Declaration__) __Declaration__ __attribute__((__packed__))
-#else
-#define PACK(__Declaration__) __pragma(pack(push, 1)) __Declaration__ __pragma(pack(pop))
-#endif
-
-#ifdef _WIN32
-    typedef SOCKET socket_t;
-#else
-    typedef int socket_t;
-#endif
-
-const int MAX_PACKET       = 65536;
 const int MAX_PAYLOAD      = 1446;
-const int PKT_MAX_DELAY    = 500;
-
-/* TODO: add ability for user to specify these? */
+const int PKT_MAX_DELAY_MS = 500;
 
 // TODO: IPv6 size is 40
 enum HEADER_SIZES {
@@ -368,54 +345,4 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
 };
 
 extern thread_local rtp_error_t rtp_errno;
-
-#define TIME_DIFF(s, e, u) ((ssize_t)std::chrono::duration_cast<std::chrono::u>(e - s).count())
-
-#define SET_NEXT_FIELD_32(a, p, v) do { *(uint32_t *)&(a)[p] = (v); p += 4; } while (0)
-#define SET_FIELD_32(a, i, v)      do { *(uint32_t *)&(a)[i] = (v); } while (0)
-
-static inline void hex_dump(uint8_t *buf, size_t len)
-{
-    if (!buf)
-        return;
-
-    for (size_t i = 0; i < len; i += 10) {
-        fprintf(stderr, "\t");
-        for (size_t k = i; k < i + 10; ++k) {
-            fprintf(stderr, "0x%02x ", buf[k]);
-        }
-        fprintf(stderr, "\n");
-    }
-}
-
-static inline void set_bytes(int *ptr, int nbytes)
-{
-    if (ptr)
-        *ptr = nbytes;
-}
-
-static inline void *memdup(const void *src, size_t len)
-{
-    uint8_t *dst = new uint8_t[len];
-    std::memcpy(dst, src, len);
-
-    return dst;
-}
-
-static inline std::string generate_string(size_t length)
-{
-    auto randchar = []() -> char
-    {
-        const char charset[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
-        const size_t max_index = (sizeof(charset) - 1);
-        return charset[ rand() % max_index ];
-    };
-
-    std::string str(length, 0);
-    std::generate_n(str.begin(), length, randchar);
-    return str;
-}
 /// \endcond

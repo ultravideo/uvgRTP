@@ -3,6 +3,7 @@
 #include "uvgrtp/util.hh"
 
 #include "debug.hh"
+#include "memory.hh"
 
 #include <thread>
 

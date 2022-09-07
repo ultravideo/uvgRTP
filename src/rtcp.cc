@@ -31,6 +31,7 @@ const uint32_t MIN_SEQUENTIAL = 2;
 const uint32_t MAX_DROPOUT    = 3000;
 const uint32_t MAX_MISORDER   = 100;
 const uint32_t DEFAULT_RTCP_INTERVAL_MS = 5000;
+const int MAX_PACKET = 65536;
 
 constexpr int ESTIMATED_MAX_RECEPTION_TIME_MS = 10;
 

@@ -15,6 +15,11 @@
 #include <vector>
 #include <string>
 
+#ifdef _WIN32
+typedef SOCKET socket_t;
+#else
+typedef int socket_t;
+#endif
 
 namespace uvgrtp {
 

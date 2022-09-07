@@ -6,6 +6,7 @@
 #include <cstring>
 #include <iostream>
 
+#define SET_FIELD_32(a, i, v)      do { *(uint32_t *)&(a)[i] = (v); } while (0)
 
 uvgrtp::srtcp::srtcp()
 {

@@ -2,6 +2,7 @@
 
 #include "socket.hh"
 #include "debug.hh"
+#include "memory.hh"
 
 #ifdef _WIN32
 #include <winsock2.h>
