@@ -483,10 +483,12 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
             }
             else
             {
+#ifndef NDEBUG
                 ssize_t write = last_ring_write_index_;
                 ssize_t read = ring_read_index_;
                 UVG_LOG_DEBUG("Found invalid frame in read buffer: %li. R: %lli, W: %lli", 
                     ring_buffer_[ring_read_index_].read, read, write);
+#endif
             }
         }
     }
