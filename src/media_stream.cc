@@ -1,7 +1,6 @@
 #include "uvgrtp/media_stream.hh"
 
 #include "uvgrtp/rtcp.hh"
-#include "uvgrtp/socket.hh"
 
 #include "formats/h264.hh"
 #include "formats/h265.hh"
@@ -10,6 +9,7 @@
 #include "random.hh"
 #include "rtp.hh"
 #include "zrtp.hh"
+#include "socket.hh"
 
 #include "holepuncher.hh"
 #include "reception_flow.hh"

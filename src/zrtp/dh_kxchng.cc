@@ -1,8 +1,8 @@
 #include "dh_kxchng.hh"
 
 #include "uvgrtp/frame.hh"
-#include "uvgrtp/socket.hh"
 
+#include "../socket.hh"
 #include "zrtp_receiver.hh"
 #include "../debug.hh"
 #include "../crypto.hh"

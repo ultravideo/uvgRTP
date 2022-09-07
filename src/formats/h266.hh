@@ -1,11 +1,11 @@
 #pragma once
 
-#include "h26x.hh"
-
 #include "uvgrtp/util.hh"
-#include "uvgrtp/socket.hh"
 #include "uvgrtp/clock.hh"
 #include "uvgrtp/frame.hh"
+
+#include "h26x.hh"
+#include "socket.hh"
 
 #include <deque>
 #include <memory>

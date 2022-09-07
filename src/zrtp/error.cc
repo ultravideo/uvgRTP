@@ -1,6 +1,5 @@
 #include "error.hh"
 
-#include "uvgrtp/socket.hh"
 #include "uvgrtp/frame.hh"
 
 #include "zrtp_receiver.hh"

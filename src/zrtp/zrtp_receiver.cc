@@ -1,8 +1,8 @@
 #include "zrtp_receiver.hh"
 
-#include "uvgrtp/socket.hh"
 #include "uvgrtp/util.hh"
 
+#include "socket.hh"
 #include "defines.hh"
 #include "dh_kxchng.hh"
 #include "commit.hh"

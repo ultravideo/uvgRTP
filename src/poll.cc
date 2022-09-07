@@ -1,7 +1,6 @@
 #include "poll.hh"
 
-#include "uvgrtp/socket.hh"
-
+#include "socket.hh"
 #include "debug.hh"
 
 #ifdef _WIN32

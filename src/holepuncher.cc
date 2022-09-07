@@ -1,8 +1,8 @@
 #include "holepuncher.hh"
 
 #include "uvgrtp/clock.hh"
-#include "uvgrtp/socket.hh"
 
+#include "socket.hh"
 #include "debug.hh"
 
 

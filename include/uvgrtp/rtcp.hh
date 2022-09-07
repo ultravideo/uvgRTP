@@ -2,9 +2,7 @@
 
 #include "clock.hh"
 #include "util.hh"
-#include "socket.hh"
 #include "frame.hh"
-
 
 #include <bitset>
 #include <map>
@@ -19,6 +17,9 @@ namespace uvgrtp {
 
     class rtp;
     class srtcp;
+    class socket;
+
+    typedef std::vector<std::pair<size_t, uint8_t*>> buf_vec; // also defined in socket.hh
 
     /// \cond DO_NOT_DOCUMENT
     enum RTCP_ROLE {

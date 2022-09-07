@@ -1,9 +1,9 @@
 #include "h26x.hh"
 
-#include "uvgrtp/socket.hh"
+#include "socket.hh"
 
-#include "../rtp.hh"
-#include "../frame_queue.hh"
+#include "rtp.hh"
+#include "frame_queue.hh"
 #include "debug.hh"
 
 
@@ -240,7 +240,7 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
             bool p2z = (((prev_ls >> 8) & 0xff)  == 0);
             
             // current has 2 bytes of possible start code
-            bool c2s = (((cur_ms >> 8) & 0xff)              == 0x01);
+            //bool c2s = (((cur_ms >> 8) & 0xff)              == 0x01);
 
             // previous has 4 bytes of possible start code
             bool c4s = (cur_ms                              == 0x0100); // current starts with 0001
@@ -255,7 +255,7 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
 
             bool p4z = (prev_ls == 0);
             bool p2z = ((prev_ls & 0xff)   == 0);
-            bool c2s = ((cur_ms & 0xff)    == 0x01);
+            //bool c2s = ((cur_ms & 0xff)    == 0x01);
             bool c4s = (cur_ms == 0x0001);
             bool c6s = (cur_ms == 0x0000 && ((cur_ls >> 8) & 0xff) == 0x01);
 #endif

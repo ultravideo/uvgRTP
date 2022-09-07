@@ -86,6 +86,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/poll.hh
         src/rtp.hh
         src/rtcp_packets.hh
+		src/socket.hh
         src/zrtp.hh
         src/frame_queue.hh
 
@@ -122,7 +123,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         include/uvgrtp/media_stream.hh
         include/uvgrtp/rtcp.hh
         include/uvgrtp/session.hh
-        include/uvgrtp/socket.hh
+
         include/uvgrtp/wrapper_c.hh
         )
 

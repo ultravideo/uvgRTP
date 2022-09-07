@@ -1,7 +1,6 @@
 #include "media.hh"
 
-#include "uvgrtp/socket.hh"
-
+#include "../socket.hh"
 #include "../rtp.hh"
 #include "../frame_queue.hh"
 #include "debug.hh"
