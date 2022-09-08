@@ -1,6 +1,7 @@
 #include <uvgrtp/lib.hh>
 
 #include <iostream>
+#include <cstring>
 
 /* RTP is a protocol for real-time streaming. The simplest usage
  * scenario is sending one RTP stream and receiving it. This example

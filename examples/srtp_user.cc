@@ -2,6 +2,7 @@
 
 #include <climits>
 #include <iostream>
+#include <cstring>
 
 /* Encryption is also supported by uvgRTP. Encryption is facilitated
  * by Secure RTP (SRTP) protocol. In order to use SRTP, the encryption

@@ -1,6 +1,7 @@
 #include <uvgrtp/lib.hh>
 
 #include <iostream>
+#include <cstring>
 
 /* Some NATs may close the hole created in the firewall if the stream is not bidirectional,
  * i.e., only one participant produces and the other consumes.

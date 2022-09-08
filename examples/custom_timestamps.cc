@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <cstring>
 
 /* This example demostrates the usage of custom timestamps. Often when
  * streaming multiple media, there are different lengths steps in in the

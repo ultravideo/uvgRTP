@@ -1,6 +1,7 @@
 #include <uvgrtp/lib.hh>
 
 #include <iostream>
+#include <cstring>
 
 /* This example demonstrates using the configuration options of uvgRTP.
  * There are three types of configuration flags: RCE, RCC and RTP flags
