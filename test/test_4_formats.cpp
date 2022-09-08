@@ -21,10 +21,13 @@ TEST(FormatTests, h26x_flags)
     uvgrtp::media_stream* sender = nullptr;
     uvgrtp::media_stream* receiver = nullptr;
 
+    int sender_rce_flags = RCE_NO_FLAGS;
+    int receiver_rce_flags = RCE_H26X_DO_NOT_PREPEND_SC;
+
     if (sess)
     {
-        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
-        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_H26X_PREPEND_SC);
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, sender_rce_flags);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, receiver_rce_flags);
     }
 
     std::vector<size_t> test_sizes = { 1443, 1501 };
@@ -63,8 +66,7 @@ TEST(FormatTests, h264)
     if (sess)
     {
         sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H264, RCE_NO_FLAGS);
-        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, 
-            RTP_FORMAT_H264, RCE_H26X_PREPEND_SC);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H264, RCE_NO_FLAGS);
     }
 
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
@@ -105,7 +107,7 @@ TEST(FormatTests, h265)
     if (sess)
     {
         sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
-        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_H26X_PREPEND_SC);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
     }
 
     std::vector<size_t> test_sizes = std::vector<size_t>(13);
@@ -145,7 +147,7 @@ TEST(FormatTests, h265_large_fps)
     if (sess)
     {
         sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
-        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_H26X_PREPEND_SC);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
 
         if (receiver)
         {
@@ -188,7 +190,7 @@ TEST(FormatTests, h266)
     if (sess)
     {
         sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H266, RCE_NO_FLAGS);
-        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H266, RCE_H26X_PREPEND_SC);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H266, RCE_NO_FLAGS);
     }
 
     std::vector<size_t> test_sizes = std::vector<size_t>(13);

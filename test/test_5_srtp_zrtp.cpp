@@ -193,6 +193,42 @@ TEST(EncryptionTests, zrtp)
     cleanup_sess(ctx, receiver_session);
 }
 
+TEST(EncryptionTests, zrtp_authenticate)
+{
+    uvgrtp::context ctx;
+
+    if (!ctx.crypto_enabled())
+    {
+        std::cout << "Please link crypto to uvgRTP library in order to tests its ZRTP feature!" << std::endl;
+        FAIL();
+        return;
+    }
+
+    uvgrtp::session* sender_session = ctx.create_session(RECEIVER_ADDRESS, SENDER_ADDRESS);
+    uvgrtp::session* receiver_session = ctx.create_session(SENDER_ADDRESS, RECEIVER_ADDRESS);
+
+    unsigned zrtp_flags = RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP_AUTHENTICATE_RTP;
+
+    std::unique_ptr<std::thread> sender_thread =
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT, RECEIVER_PORT, zrtp_flags));
+
+    std::unique_ptr<std::thread> receiver_thread =
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT, RECEIVER_PORT, zrtp_flags));
+
+    if (sender_thread && sender_thread->joinable())
+    {
+        sender_thread->join();
+    }
+
+    if (receiver_thread && receiver_thread->joinable())
+    {
+        receiver_thread->join();
+    }
+
+    cleanup_sess(ctx, sender_session);
+    cleanup_sess(ctx, receiver_session);
+}
+
 TEST(EncryptionTests, zrtp_multistream)
 {
     uvgrtp::context ctx;
