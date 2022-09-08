@@ -19,78 +19,48 @@ jobs:
           name: Install CMAKE
           command: 'sudo apt-get install -y cmake'
       - run:
+          name: Install Crypto++
+          command: 'sudo apt-get install -y libcrypto++-dev'
+      - run:
           name: Create build files
           command: 'cmake -H. -Bbuild'
       - run:
           name: Build the uvgRTP library
           command: 'cmake --build build'
       - run:
-          name: Build binding example
-          command: 'g++ -D__RTP_NO_CRYPTO__ examples/binding.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_binding'
+          name: Build the examples
+          command: 'cmake --build build/examples'
       - run:
           name: Run binding example
-          command: './example_binding'
-      - run:
-          name: Build configuration example
-          command: 'g++ -D__RTP_NO_CRYPTO__ examples/configuration.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_configuration'
+          command: 'build/examples/binding'
       - run:
           name: Run configuration example
-          command: './example_configuration'
-      - run:
-          name: Build timestamp example
-          command: 'g++ -D__RTP_NO_CRYPTO__ examples/custom_timestamps.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_timestamp'
+          command: 'build/examples/configuration'
       - run:
           name: Run timestamp example
-          command: './example_timestamp'
-      - run:
-          name: Build hook receiving example
-          command: 'g++ -D__RTP_NO_CRYPTO__ examples/receiving_hook.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_hook'
+          command: 'build/examples/custom_timestamps'
       - run:
           name: Run RTP hook example
-          command: './example_hook'
-      - run:
-          name: Build poll receiving example
-          command: 'g++ -D__RTP_NO_CRYPTO__ examples/receiving_poll.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_poll'
+          command: 'build/examples/receiving_hook'
       - run:
           name: Run RTP polling example
-          command: './example_poll'
-      - run:
-          name: Build RTCP example
-          command: 'g++ -D__RTP_NO_CRYPTO__ examples/rtcp_hook.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_rtcp'
+          command: 'build/examples/receiving_poll'
       - run:
           name: Run RTCP hook example
-          command: './example_rtcp'
-      - run:
-          name: Build sending example
-          command: 'g++ -D__RTP_NO_CRYPTO__ examples/sending.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_sending'
+          command: 'build/examples/rtcp_hook'
       - run:
           name: Run sending example
-          command: './example_sending'
-      - run:
-          name: Build generic example
-          command: 'g++ -D__RTP_NO_CRYPTO__ examples/sending_generic.cc -Iinclude/ build/libuvgrtp.a -lpthread -o example_generic'
+          command: 'build/examples/sending'
       - run:
           name: Run generic format example
-          command: './example_generic'
-      - run:
-          name: Install Crypto++
-          command: 'sudo apt-get install -y libcrypto++-dev'
-      - run:
-          name: Create build files for crypto++ build
-          command: 'cmake -H. -Bbuild_c'
-      - run:
-          name: Build the uvgRTP library with Crypto++ enabled
-          command: 'cmake --build build_c'
-      - run:
-          name: Build user managed SRTP key example
-          command: 'g++ examples/srtp_user.cc -Iinclude/ build_c/libuvgrtp.a -lpthread -lcryptopp -o example_srtp'
+          command: 'build/examples/sending_generic'
       - run:
           name: Run user managed SRTP key example
-          command: './example_srtp'
-      - run:
-          name: Build ZRTP + SRTP multistream example
-          command: 'g++ examples/zrtp_multistream.cc -Iinclude/ build_c/libuvgrtp.a -lpthread -lcryptopp -o example_zrtp'
+          command: 'build/examples/srtp_user'
+
+# the SRTP + ZRTP example does not have an end so it is not included
+
       - run:
           name: Run ZRTP + SRTP multistream key example
-          command: './example_zrtp'
+          command: 'build/examples/zrtp_multistream'
 
