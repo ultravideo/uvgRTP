@@ -2,6 +2,7 @@
 #include "uvgrtp/util.hh"
 
 #include <cstdint>
+#include <stddef.h>
 
 namespace uvgrtp {
     namespace random {

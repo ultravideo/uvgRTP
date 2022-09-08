@@ -5,6 +5,11 @@
 
 #include <chrono>
 
+#ifndef _WIN32
+#include <sys/types.h>
+#endif // !_WIN32
+
+
 namespace uvgrtp {
 
     namespace frame
