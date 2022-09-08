@@ -169,7 +169,8 @@ enum RTP_CTX_ENABLE_FLAGS {
     RCE_SYSTEM_CALL_DISPATCHER          = 1, // removed feature
     RCE_NO_H26X_INTRA_DELAY             = 1, // removed feature
     RCE_NO_H26X_SCL                     = 1, // this flag was moved to be an RTP flag
-    RCE_H26X_NO_DEPENDENCY_ENFORCEMENT  = 1, // the feature is disabled by default
+    RCE_H26X_NO_DEPENDENCY_ENFORCEMENT  = 1, // the feature is already disabled by default
+    RCE_H26X_PREPEND_SC                 = 1, // the feature is already enabled by default
 
     // These can be used to specify what the address does for one address create session
     RCE_SEND_ONLY                  = 1 << 1, // address interpreted as remote, no binding to socket
@@ -198,11 +199,10 @@ enum RTP_CTX_ENABLE_FLAGS {
      * with RCE_SRTP_KMNGMNT_ZRTP */
     RCE_SRTP_KMNGMNT_USER         = 1 << 5,
 
-    /** By default, the RTP packet payload does not include the start code prefixes. 
-     * Use this flag to prepend the 4-byte start code (0x00000001) to each received
-     * H26x frame, so there is no difference with sender input. Recommended in 
-     * most cases. */
-    RCE_H26X_PREPEND_SC           = 1 << 6,
+    /** By default, uvgRTP restores the stream by prepending 3 or 4 byte start code to each received
+     * H26x frame, so there is no difference with sender input. You can remove start code prefix with
+     * this flag */
+    RCE_H26X_DO_NOT_PREPEND_SC = 1 << 6,
 
     /** Use this flag to discard inter frames that don't have their previous dependencies
         arrived. Does not work if the dependencies are not in monotonic order. */
