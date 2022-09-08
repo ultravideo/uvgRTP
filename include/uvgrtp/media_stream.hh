@@ -252,9 +252,6 @@ namespace uvgrtp {
             rtp_error_t configure_ctx(int rcc_flag, ssize_t value);
 
             /// \cond DO_NOT_DOCUMENT
-            /* Setter and getter for media-specific config that can be used f.ex with Opus */
-            void  set_media_config(void *config);
-            void *get_media_config();
 
             /* Get unique key of the media stream
              * Used by session to index media streams */
@@ -262,7 +259,6 @@ namespace uvgrtp {
             /// \endcond
 
             /**
-             *
              * \brief Get pointer to the RTCP object of the media stream
              *
              * \details This object is used to control all RTCP-related functionality
@@ -316,9 +312,6 @@ namespace uvgrtp {
 
             /* Media context config */
             int rce_flags_ = 0;
-
-            /* Media config f.ex. for Opus */
-            void *media_config_;
 
             /* Has the media stream been initialized */
             bool initialized_;

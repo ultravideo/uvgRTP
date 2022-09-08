@@ -26,7 +26,7 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     key_(uvgrtp::random::generate_32()),
     srtp_(nullptr),
     srtcp_(nullptr),
-    socket_(nullptr),
+    socket_(std::shared_ptr<uvgrtp::socket>(new uvgrtp::socket(rce_flags))),
     rtp_(nullptr),
     rtcp_(nullptr),
     remote_sockaddr_(),
@@ -36,13 +36,12 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     dst_port_(dst_port),
     fmt_(fmt),
     rce_flags_(rce_flags),
-    media_config_(nullptr),
     initialized_(false),
     rtp_handler_key_(0),
     zrtp_handler_key_(0),
     reception_flow_(nullptr),
     media_(nullptr),
-    holepuncher_(nullptr),
+    holepuncher_(std::unique_ptr<uvgrtp::holepuncher>(new uvgrtp::holepuncher(socket_))),
     cname_(cname),
     fps_enumerator_(30),
     fps_denominator_(1)
@@ -64,7 +63,7 @@ uvgrtp::media_stream::~media_stream()
         rtcp_->stop();
     }
 
-    if ((rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE) && holepuncher_)
+    if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
     {
         holepuncher_->stop();
     }
@@ -75,9 +74,6 @@ uvgrtp::media_stream::~media_stream()
 rtp_error_t uvgrtp::media_stream::init_connection()
 {
     rtp_error_t ret = RTP_OK;
-
-    socket_ = std::shared_ptr<uvgrtp::socket> (new uvgrtp::socket(rce_flags_));
-
     if ((ret = socket_->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
         return ret;
 
@@ -233,38 +229,19 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
 
 rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
 {
-    if (rtcp_)
+    if ((rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE) && holepuncher_)
     {
-        rtcp_ = nullptr;
+        holepuncher_->stop();
     }
-    if (rtp_)
-    {
-        rtp_ = nullptr;
-    }
-    if (srtp_)
-    {
-        srtp_ = nullptr;
-    }
-    if (srtcp_)
-    {
-        srtcp_ = nullptr;
-    }
-    if (reception_flow_)
-    {
-        reception_flow_ = nullptr;
-    }
-    if (holepuncher_)
-    {
-        holepuncher_ = nullptr;
-    }
-    if (media_)
-    {
-        media_ = nullptr;
-    }
-    if (socket_)
-    {
-        socket_ = nullptr;
-    }
+
+    rtcp_           = nullptr;
+    rtp_            = nullptr;
+    srtp_           = nullptr;
+    srtcp_          = nullptr;
+    reception_flow_ = nullptr;
+    holepuncher_    = nullptr;
+    media_          = nullptr;
+    socket_         = nullptr;
 
     return ret;
 }
@@ -402,7 +379,6 @@ rtp_error_t uvgrtp::media_stream::start_components()
         return free_resources(RTP_MEMORY_ERROR);
 
     if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE) {
-        holepuncher_ = std::unique_ptr<uvgrtp::holepuncher> (new uvgrtp::holepuncher(socket_));
         holepuncher_->start();
     }
 
@@ -434,7 +410,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int
     rtp_error_t ret = check_push_preconditions();
     if (ret == RTP_OK)
     {
-        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE && holepuncher_)
+        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
             holepuncher_->notify();
 
         ret = media_->push_frame(data, data_len, rtp_flags);
@@ -448,7 +424,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
     rtp_error_t ret = check_push_preconditions();
     if (ret == RTP_OK)
     {
-        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE && holepuncher_)
+        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
             holepuncher_->notify();
 
         ret = media_->push_frame(std::move(data), data_len, rtp_flags);
@@ -549,16 +525,6 @@ rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(v
     return RTP_OK;
 }
 
-void uvgrtp::media_stream::set_media_config(void *config)
-{
-    media_config_ = config;
-}
-
-void *uvgrtp::media_stream::get_media_config()
-{
-    return media_config_;
-}
-
 rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
 {
     if (!initialized_) {
@@ -574,8 +540,7 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
                 return RTP_INVALID_VALUE;
 
             int buf_size = (int)value;
-            if ((ret = socket_->setsockopt(SOL_SOCKET, SO_SNDBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
-                return ret;
+            ret = socket_->setsockopt(SOL_SOCKET, SO_SNDBUF, (const char*)&buf_size, sizeof(int));
             break;
         }
         case RCC_UDP_RCV_BUF_SIZE: {
@@ -583,8 +548,7 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
                 return RTP_INVALID_VALUE;
 
             int buf_size = (int)value;
-            if ((ret = socket_->setsockopt(SOL_SOCKET, SO_RCVBUF, (const char *)&buf_size, sizeof(int))) != RTP_OK)
-                return ret;
+            ret = socket_->setsockopt(SOL_SOCKET, SO_RCVBUF, (const char*)&buf_size, sizeof(int));
             break;
         }
         case RCC_RING_BUFFER_SIZE: {
