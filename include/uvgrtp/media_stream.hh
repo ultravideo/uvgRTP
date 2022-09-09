@@ -293,7 +293,9 @@ namespace uvgrtp {
             uint32_t get_default_bandwidth_kbps(rtp_format_t fmt);
 
             bool check_pull_preconditions();
-            rtp_error_t check_push_preconditions();
+            rtp_error_t check_push_preconditions(int rtp_flags, bool smart_pointer);
+
+            inline uint8_t* copy_frame(uint8_t* original, size_t data_len, int rtp_flags);
 
             uint32_t key_;
 

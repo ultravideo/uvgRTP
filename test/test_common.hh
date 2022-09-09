@@ -98,9 +98,6 @@ inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size,
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
         for (unsigned int i = 0; i < packets; ++i)
         {
-            std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
-            memcpy(test_frame.get(), test_packet.get(), size);
-
             if (i % 60 == 0 && send_app)
             {
                 const char* data = "ABCD";
@@ -108,10 +105,30 @@ inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size,
             }
 
             rtp_error_t ret = RTP_OK;
-            if ((ret = sender->push_frame(std::move(test_frame), size, rtp_flags)) != RTP_OK)
+
+            if (rtp_flags & RTP_COPY)
             {
-                std::cout << "Failed to send test packet! Return value: " << ret << std::endl;
-                return;
+                uint8_t* test_frame = new uint8_t[size];
+                memcpy(test_frame, test_packet.get(), size);
+
+                if ((ret = sender->push_frame(std::move(test_frame), size, rtp_flags)) != RTP_OK)
+                {
+                    std::cout << "Failed to send test packet! Return value: " << ret << std::endl;
+                    return;
+                }
+
+                delete[] test_frame; // copying leaves the responsibility of deletion to us
+            }
+            else
+            {
+                std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
+                memcpy(test_frame.get(), test_packet.get(), size);
+
+                if ((ret = sender->push_frame(std::move(test_frame), size, rtp_flags)) != RTP_OK)
+                {
+                    std::cout << "Failed to send test packet! Return value: " << ret << std::endl;
+                    return;
+                }
             }
 
             if (i % (packets / 10) == packets / 10 - 1 && print_progress)

@@ -63,6 +63,37 @@ TEST(RTPTests, rtp_hook)
     cleanup_sess(ctx, sess);
 }
 
+TEST(RTPTests, rtp_copy)
+{
+    // Tests installing a hook to uvgRTP
+    std::cout << "Starting RTP hook test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(REMOTE_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    int flags = RCE_FRAGMENT_GENERIC;
+    if (sess)
+    {
+        sender = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_GENERIC, flags);
+        receiver = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
+    }
+
+    int test_packets = 10;
+    std::vector<size_t> sizes = { 1000, 2000 };
+    for (size_t& size : sizes)
+    {
+        int rtp_flags = RTP_COPY;
+        std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, rtp_flags);
+        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, rtp_flags);
+    }
+
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
+}
+
 TEST(RTPTests, rtp_holepuncher)
 {
     // Tests installing a hook to uvgRTP

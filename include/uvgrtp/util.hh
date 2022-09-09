@@ -137,20 +137,22 @@ typedef enum RTP_FORMAT {
  */
 typedef enum RTP_FLAGS {
     /** No flags */
-    RTP_NO_FLAGS = 0 << 0,
+    RTP_NO_FLAGS      = 0,
 
-    /** Obsolete */
-    RTP_SLICE    = 1 << 0,
+    /** Obsolete flags*/
+    RTP_OBSOLETE      = 1,
+    RTP_SLICE         = 1, // used to do what RTP_NO_H26X_SCL does, may do something different in the future
 
-    /** Not implemented, may be implemented in the future */
-    RTP_COPY     = 1 << 1,
+    /** Make a copy of the frame and perform operation on the copy. This means 
+     * that uvgRTP does not take ownership of the frame. Cannot be used with unique_ptr. */
+    RTP_COPY          = 1 << 1,
 
     /** By default, uvgRTP searches for start code prefixes (0x000001 or 0x00000001)
      * from the frame to divide NAL units and remove the prefix. If you instead
      * want to provide the NAL units without the start code prefix yourself,
      * you may use this flag to disable Start Code Lookup (SCL) and the frames
      * will be treated as send-ready NAL units. */
-    RTP_NO_H26X_SCL = 1 << 2
+    RTP_NO_H26X_SCL   = 1 << 2
 
 } rtp_flags_t;
 
@@ -169,16 +171,17 @@ enum RTP_CTX_ENABLE_FLAGS {
     RCE_SYSTEM_CALL_DISPATCHER          = 1, // removed feature
     RCE_NO_H26X_INTRA_DELAY             = 1, // removed feature
     RCE_NO_H26X_SCL                     = 1, // this flag was moved to be an RTP flag
-    RCE_H26X_NO_DEPENDENCY_ENFORCEMENT  = 1, // the feature is already disabled by default
-    RCE_H26X_PREPEND_SC                 = 1, // the feature is already enabled by default
+    RCE_H26X_NO_DEPENDENCY_ENFORCEMENT  = 1, // the feature is disabled by default
+    RCE_H26X_PREPEND_SC                 = 1, // the feature is enabled by default
     RCE_NO_SYSTEM_CALL_CLUSTERING       = 1, // disabled by default
+    RCE_SRTP_INPLACE_ENCRYPTION         = 1, // the feature is enabled by default
 
     // These can be used to specify what the address does for one address create session
-    RCE_SEND_ONLY                  = 1 << 1, // address interpreted as remote, no binding to socket
-    RCE_RECEIVE_ONLY               = 1 << 2, // address interpreted as local, sending not possible
+    RCE_SEND_ONLY                   = 1 << 1, // address interpreted as remote, no binding to socket
+    RCE_RECEIVE_ONLY                = 1 << 2, // address interpreted as local, sending not possible
 
     /** Use SRTP for this connection */
-    RCE_SRTP                      = 1 << 3,
+    RCE_SRTP                        = 1 << 3,
 
     /** Use ZRTP for key management
      *
@@ -188,7 +191,7 @@ enum RTP_CTX_ENABLE_FLAGS {
      *
      * This flag must be coupled with RCE_SRTP and is mutually exclusive
      * with RCE_SRTP_KMNGMNT_USER. */
-    RCE_SRTP_KMNGMNT_ZRTP         = 1 << 4,
+    RCE_SRTP_KMNGMNT_ZRTP           = 1 << 4,
 
     /** Use user-defined way to manage keys
      *
@@ -198,12 +201,12 @@ enum RTP_CTX_ENABLE_FLAGS {
      *
      * This flag must be coupled with RCE_SRTP and is mutually exclusive
      * with RCE_SRTP_KMNGMNT_ZRTP */
-    RCE_SRTP_KMNGMNT_USER         = 1 << 5,
+    RCE_SRTP_KMNGMNT_USER           = 1 << 5,
 
     /** By default, uvgRTP restores the stream by prepending 3 or 4 byte start code to each received
      * H26x frame, so there is no difference with sender input. You can remove start code prefix with
      * this flag */
-    RCE_H26X_DO_NOT_PREPEND_SC = 1 << 6,
+    RCE_H26X_DO_NOT_PREPEND_SC      = 1 << 6,
 
     /** Use this flag to discard inter frames that don't have their previous dependencies
         arrived. Does not work if the dependencies are not in monotonic order. */
@@ -215,25 +218,16 @@ enum RTP_CTX_ENABLE_FLAGS {
      * last fragment of the frame. You can enable this functionality using this flag at 
      * both sender and receiver. 
      */
-    RCE_FRAGMENT_GENERIC          = 1 << 8,
-
-    /** If SRTP is enabled and RCE_INPLACE_ENCRYPTION flag is *not* given,
-     * uvgRTP will make a copy of the frame given to push_frame().
-     *
-     * If the frame is writable and the application no longer needs the frame,
-     * RCE_INPLACE_ENCRYPTION should be given to create_stream() to prevent
-     * unnecessary copy operations.
-     *
-     * If RCE_INPLACE_ENCRYPTION is given to push_frame(), the input pointer must be writable! */
-    RCE_SRTP_INPLACE_ENCRYPTION   = 1 << 9,
+    RCE_FRAGMENT_GENERIC            = 1 << 8,
 
     /** Enable System Call Clustering (SCC). Sender side flag. 
     
-    The benefit of SCC is reduced CPU usage at the sender, but its cost is in*/
-    RCE_SYSTEM_CALL_CLUSTERING    = 1 << 10,
+    The benefit of SCC is reduced CPU usage at the sender, but its cost is increased chance of 
+    losing frames at the receiving end due to too many packets arriving at once.*/
+    RCE_SYSTEM_CALL_CLUSTERING      = 1 << 9,
 
     /** Disable RTP payload encryption */
-    RCE_SRTP_NULL_CIPHER          = 1 << 11,
+    RCE_SRTP_NULL_CIPHER            = 1 << 10,
 
     /** Enable RTP packet authentication
      *
@@ -241,30 +235,30 @@ enum RTP_CTX_ENABLE_FLAGS {
      * to each outgoing RTP packet for all streams that have SRTP enabled.
      *
      * NOTE: this flag must be coupled with at least RCE_SRTP */
-    RCE_SRTP_AUTHENTICATE_RTP     = 1 << 12,
+    RCE_SRTP_AUTHENTICATE_RTP       = 1 << 11,
 
     /** Enable packet replay protection */
-    RCE_SRTP_REPLAY_PROTECTION    = 1 << 13,
+    RCE_SRTP_REPLAY_PROTECTION      = 1 << 12,
 
     /** Enable RTCP for the media stream.
      * If SRTP is enabled, SRTCP is used instead */
-    RCE_RTCP                      = 1 << 14,
+    RCE_RTCP                        = 1 << 13,
 
     /** If the Mediastream object is used as a unidirectional stream
      * but holepunching has been enabled, this flag can be used to make
      * uvgRTP periodically send a short UDP datagram to keep the hole
      * in the firewall open */
-    RCE_HOLEPUNCH_KEEPALIVE       = 1 << 15,
+    RCE_HOLEPUNCH_KEEPALIVE         = 1 << 14,
 
     /** Use 192-bit keys with SRTP */
-    RCE_SRTP_KEYSIZE_192          = 1 << 16,
+    RCE_SRTP_KEYSIZE_192            = 1 << 15,
 
     /** Use 256-bit keys with SRTP */
-    RCE_SRTP_KEYSIZE_256          = 1 << 17,
+    RCE_SRTP_KEYSIZE_256            = 1 << 16,
 
-    RCE_ZRTP_MULTISTREAM_NO_DH    = 1 << 18,
+    RCE_ZRTP_MULTISTREAM_NO_DH      = 1 << 17,
 
-    RCE_LAST                      = 1 << 19
+    RCE_LAST                        = 1 << 18
 }; // maximum is 1 << 30 for int
 
 

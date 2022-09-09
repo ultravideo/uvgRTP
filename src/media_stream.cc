@@ -407,12 +407,13 @@ rtp_error_t uvgrtp::media_stream::start_components()
 
 rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int rtp_flags)
 {
-    rtp_error_t ret = check_push_preconditions();
+    rtp_error_t ret = check_push_preconditions(rtp_flags, false);
     if (ret == RTP_OK)
     {
         if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
             holepuncher_->notify();
 
+        data = copy_frame(data, data_len, rtp_flags); // makes a copy if RTP_COPY flag is given
         ret = media_->push_frame(data, data_len, rtp_flags);
     }
 
@@ -421,12 +422,13 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int
 
 rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int rtp_flags)
 {
-    rtp_error_t ret = check_push_preconditions();
+    rtp_error_t ret = check_push_preconditions(rtp_flags, true);
     if (ret == RTP_OK)
     {
         if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
             holepuncher_->notify();
 
+        // making a copy of a smart pointer does not make sense
         ret = media_->push_frame(std::move(data), data_len, rtp_flags);
     }
 
@@ -435,12 +437,13 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
 
 rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, uint32_t ts, int rtp_flags)
 {
-    rtp_error_t ret = check_push_preconditions();
+    rtp_error_t ret = check_push_preconditions(rtp_flags, false);
     if (ret == RTP_OK)
     {
         if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
             holepuncher_->notify();
 
+        data = copy_frame(data, data_len, rtp_flags); // makes a copy if RTP_COPY flag is given
         rtp_->set_timestamp(ts);
         ret = media_->push_frame(data, data_len, rtp_flags);
         rtp_->set_timestamp(INVALID_TS);
@@ -451,12 +454,13 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, uin
 
 rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int rtp_flags)
 {
-    rtp_error_t ret = check_push_preconditions();
+    rtp_error_t ret = check_push_preconditions(rtp_flags, true);
     if (ret == RTP_OK)
     {
         if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
             holepuncher_->notify();
 
+        // making a copy of a smart pointer does not make sense
         rtp_->set_timestamp(ts);
         ret = media_->push_frame(std::move(data), data_len, rtp_flags);
         rtp_->set_timestamp(INVALID_TS);
@@ -494,7 +498,7 @@ bool uvgrtp::media_stream::check_pull_preconditions()
     return true;
 }
 
-rtp_error_t uvgrtp::media_stream::check_push_preconditions()
+rtp_error_t uvgrtp::media_stream::check_push_preconditions(int rtp_flags, bool smart_pointer)
 {
     if (!initialized_) {
         UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
@@ -507,7 +511,29 @@ rtp_error_t uvgrtp::media_stream::check_push_preconditions()
         return RTP_INVALID_VALUE;
     }
 
+    if (rtp_flags & RTP_OBSOLETE)
+    {
+        UVG_LOG_WARN("Detected an obsolete RTP flag, consider updating your flags");
+    }
+
+    if (smart_pointer && (rtp_flags & RTP_COPY))
+    {
+        UVG_LOG_ERROR("Copying a smart pointer does not make sense since the original would be lost");
+    }
+
     return RTP_OK;
+}
+
+uint8_t* uvgrtp::media_stream::copy_frame(uint8_t* original, size_t data_len, int rtp_flags)
+{
+    if (rtp_flags & RTP_COPY)
+    {
+        uint8_t* copy = new uint8_t[data_len];
+        memcpy(copy, original, data_len);
+        return copy;
+    }
+
+    return original;
 }
 
 rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *))
