@@ -416,7 +416,7 @@ rtp_error_t uvgrtp::socket::__sendtov(
         }
     }
 
-    ssize_t npkts = (rce_flags_ & RCE_NO_SYSTEM_CALL_CLUSTERING) ? 1 : 1024;
+    ssize_t npkts = (rce_flags_ & RCE_SYSTEM_CALL_CLUSTERING) ? 1024 : 1;
     ssize_t bptr  = buffers.size();
 
     while (bptr > npkts) {

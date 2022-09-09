@@ -599,12 +599,20 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
         case RCC_FPS_ENUMERATOR: {
             fps_enumerator_ = value;
 
+            if (value > 0 && (rce_flags_ & RCE_SYSTEM_CALL_CLUSTERING)) {
+                UVG_LOG_WARN("Setting FPS enumerator will disable System Call Clustering (SCC)");
+            }
+
             media_->set_fps(fps_enumerator_, fps_denominator_);
             break;
         }
 
         case RCC_FPS_DENOMINATOR: {
             fps_denominator_ = value;
+
+            if (value > 0 && (rce_flags_ & RCE_SYSTEM_CALL_CLUSTERING)) {
+                UVG_LOG_WARN("Setting FPS denominator will disable System Call Clustering (SCC)");
+            }
 
             media_->set_fps(fps_enumerator_, fps_denominator_);
             break;

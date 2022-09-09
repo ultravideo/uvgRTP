@@ -171,6 +171,7 @@ enum RTP_CTX_ENABLE_FLAGS {
     RCE_NO_H26X_SCL                     = 1, // this flag was moved to be an RTP flag
     RCE_H26X_NO_DEPENDENCY_ENFORCEMENT  = 1, // the feature is already disabled by default
     RCE_H26X_PREPEND_SC                 = 1, // the feature is already enabled by default
+    RCE_NO_SYSTEM_CALL_CLUSTERING       = 1, // disabled by default
 
     // These can be used to specify what the address does for one address create session
     RCE_SEND_ONLY                  = 1 << 1, // address interpreted as remote, no binding to socket
@@ -210,8 +211,9 @@ enum RTP_CTX_ENABLE_FLAGS {
 
     /** Fragment frames into RTP packets of MTU size (1500 bytes).
      *
-     * Some RTP profiles define fragmentation with marker bit indicating the end of frame.
-     * You can enable this functionality using this flag at both sender and receiver. 
+     * Some RTP profiles define fragmentation by setting the marker bit indicating the 
+     * last fragment of the frame. You can enable this functionality using this flag at 
+     * both sender and receiver. 
      */
     RCE_FRAGMENT_GENERIC          = 1 << 8,
 
@@ -225,8 +227,10 @@ enum RTP_CTX_ENABLE_FLAGS {
      * If RCE_INPLACE_ENCRYPTION is given to push_frame(), the input pointer must be writable! */
     RCE_SRTP_INPLACE_ENCRYPTION   = 1 << 9,
 
-    /** Disable System Call Clustering (SCC) */
-    RCE_NO_SYSTEM_CALL_CLUSTERING = 1 << 10,
+    /** Enable System Call Clustering (SCC). Sender side flag. 
+    
+    The benefit of SCC is reduced CPU usage at the sender, but its cost is in*/
+    RCE_SYSTEM_CALL_CLUSTERING    = 1 << 10,
 
     /** Disable RTP payload encryption */
     RCE_SRTP_NULL_CIPHER          = 1 << 11,
