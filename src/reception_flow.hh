@@ -10,6 +10,7 @@
 #include <thread>
 #include <condition_variable>
 #include <atomic>
+#include <deque>
 
 namespace uvgrtp {
 
@@ -175,7 +176,7 @@ namespace uvgrtp {
 
             /* If receive hook has not been installed, frames are pushed to "frames_"
              * and they can be retrieved using pull_frame() */
-            std::vector<uvgrtp::frame::rtp_frame *> frames_;
+            std::deque<uvgrtp::frame::rtp_frame *> frames_;
             std::mutex frames_mtx_;
 
             void *recv_hook_arg_;

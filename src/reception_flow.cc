@@ -178,7 +178,7 @@ uvgrtp::frame::rtp_frame *uvgrtp::reception_flow::pull_frame(ssize_t timeout_ms)
 
     frames_mtx_.lock();
     auto frame = frames_.front();
-    frames_.erase(frames_.begin());
+    frames_.pop_front();
     frames_mtx_.unlock();
 
     return frame;
