@@ -18,17 +18,20 @@
 #define INVALID_TS UINT64_MAX
 
 uvgrtp::rtp::rtp(rtp_format_t fmt):
+    ssrc_(uvgrtp::random::generate_32()),
+    ts_(uvgrtp::random::generate_32()),
+    seq_(uvgrtp::random::generate_32() & 0xffff),
+    fmt_(fmt),
+    payload_((uint8_t)fmt),
+    clock_rate_(0),
     wc_start_(),
+    wc_start_2(),
     sent_pkts_(0),
     timestamp_(INVALID_TS),
+    payload_size_(MAX_IPV4_MEDIA_PAYLOAD),
     delay_(PKT_MAX_DELAY_MS)
 {
-    seq_  = uvgrtp::random::generate_32() & 0xffff;
-    ts_   = uvgrtp::random::generate_32();
-    ssrc_ = uvgrtp::random::generate_32();
-
-    set_payload(fmt);
-    set_payload_size(MAX_IPV4_PAYLOAD);
+    set_default_clock_rate(fmt);
 }
 
 uvgrtp::rtp::~rtp()
@@ -45,12 +48,9 @@ uint16_t uvgrtp::rtp::get_sequence() const
     return seq_;
 }
 
-void uvgrtp::rtp::set_payload(rtp_format_t fmt)
+void uvgrtp::rtp::set_default_clock_rate(rtp_format_t fmt)
 {
-    fmt_ = fmt;
-    payload_ = (uint8_t)fmt;
-
-    switch (fmt_) {
+    switch (fmt) {
         case RTP_FORMAT_PCMU:
         case RTP_FORMAT_GSM:
         case RTP_FORMAT_G723:
@@ -167,6 +167,11 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer)
 void uvgrtp::rtp::set_timestamp(uint64_t timestamp)
 {
     timestamp_= timestamp;
+}
+
+void uvgrtp::rtp::set_clock_rate(size_t rate)
+{
+    clock_rate_ = rate;
 }
 
 uint32_t uvgrtp::rtp::get_clock_rate() const

@@ -33,7 +33,7 @@ namespace uvgrtp {
             void inc_sequence();
 
             void set_clock_rate(size_t rate);
-            void set_payload(rtp_format_t fmt);
+
             void set_dynamic_payload(uint8_t payload);
             void set_timestamp(uint64_t timestamp);
             void set_payload_size(size_t payload_size);
@@ -46,6 +46,8 @@ namespace uvgrtp {
             static rtp_error_t packet_handler(ssize_t size, void *packet, int rce_flags, frame::rtp_frame **out);
 
         private:
+
+            void set_default_clock_rate(rtp_format_t fmt);
 
             uint32_t ssrc_;
             uint32_t ts_;

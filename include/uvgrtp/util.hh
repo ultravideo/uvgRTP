@@ -24,9 +24,12 @@ namespace uvgrtp {
     // the default MTU size for ethernet, can be adjusted with rcc flags
     constexpr uint16_t DEFAULT_MTU_SIZE = 1500;
 
+    constexpr uint16_t MAX_IPV4_PAYLOAD = DEFAULT_MTU_SIZE - IPV4_HDR_SIZE - UDP_HDR_SIZE;
+    constexpr uint16_t MAX_IPV6_PAYLOAD = DEFAULT_MTU_SIZE - IPV6_HDR_SIZE - UDP_HDR_SIZE;
+
     // here we ignore ethernet frame header size since it is not included in MTU
-    constexpr uint16_t MAX_IPV4_PAYLOAD = DEFAULT_MTU_SIZE - IPV4_HDR_SIZE - UDP_HDR_SIZE - RTP_HDR_SIZE;
-    constexpr uint16_t MAX_IPV6_PAYLOAD = DEFAULT_MTU_SIZE - IPV6_HDR_SIZE - UDP_HDR_SIZE - RTP_HDR_SIZE;
+    constexpr uint16_t MAX_IPV4_MEDIA_PAYLOAD = MAX_IPV4_PAYLOAD - RTP_HDR_SIZE;
+    constexpr uint16_t MAX_IPV6_MEDIA_PAYLOAD = MAX_IPV6_PAYLOAD - RTP_HDR_SIZE;
 
     constexpr int PKT_MAX_DELAY_MS = 500;
 }

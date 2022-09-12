@@ -146,6 +146,7 @@ namespace uvgrtp {
             uvgrtp::frame::rtp_frame *pull_frame(ssize_t timeout_ms);
 
             void set_buffer_size(const ssize_t& value);
+            void set_payload_size(const size_t& value);
 
         private:
             /* RTP packet receiver thread */
@@ -202,6 +203,7 @@ namespace uvgrtp {
             std::condition_variable process_cond_;
 
             ssize_t buffer_size_kbytes_;
+            size_t payload_size_;
     };
 }
 

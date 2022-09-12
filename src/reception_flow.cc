@@ -19,10 +19,7 @@
 
 #include <cstring>
 
-constexpr size_t RECV_BUFFER_SIZE = UINT16_MAX - uvgrtp::IPV4_HDR_SIZE - uvgrtp::UDP_HDR_SIZE;
-
 constexpr size_t DEFAULT_INITIAL_BUFFER_SIZE = 4194304;
-
 
 uvgrtp::reception_flow::reception_flow() :
     recv_hook_arg_(nullptr),
@@ -32,7 +29,8 @@ uvgrtp::reception_flow::reception_flow() :
     ring_buffer_(),
     ring_read_index_(-1), // invalid first index that will increase to a valid one
     last_ring_write_index_(-1),
-    buffer_size_kbytes_(DEFAULT_INITIAL_BUFFER_SIZE)
+    buffer_size_kbytes_(DEFAULT_INITIAL_BUFFER_SIZE),
+    payload_size_(MAX_IPV4_PAYLOAD)
 {
     create_ring_buffer();
 }
@@ -58,11 +56,11 @@ void uvgrtp::reception_flow::clear_frames()
 void uvgrtp::reception_flow::create_ring_buffer()
 {
     destroy_ring_buffer();
-    size_t elements = buffer_size_kbytes_ / RECV_BUFFER_SIZE;
+    size_t elements = buffer_size_kbytes_ / payload_size_;
 
     for (size_t i = 0; i < elements; ++i)
     {
-        ring_buffer_.push_back({ new uint8_t[RECV_BUFFER_SIZE] , 0 });
+        ring_buffer_.push_back({ new uint8_t[payload_size_] , 0 });
     }
 }
 
@@ -78,6 +76,12 @@ void uvgrtp::reception_flow::destroy_ring_buffer()
 void uvgrtp::reception_flow::set_buffer_size(const ssize_t& value)
 {
     buffer_size_kbytes_ = value;
+    create_ring_buffer();
+}
+
+void uvgrtp::reception_flow::set_payload_size(const size_t& value)
+{
+    payload_size_ = value;
     create_ring_buffer();
 }
 
@@ -375,7 +379,7 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
                 rtp_error_t ret = RTP_OK;
 
                 // get the potential packet
-                ret = socket->recvfrom(ring_buffer_[next_write_index].data, RECV_BUFFER_SIZE,
+                ret = socket->recvfrom(ring_buffer_[next_write_index].data, payload_size_,
                     MSG_DONTWAIT, &ring_buffer_[next_write_index].read);
 
                 if (ret == RTP_INTERRUPTED)
@@ -527,7 +531,7 @@ void uvgrtp::reception_flow::increase_buffer_size(ssize_t next_write_index)
             ring_buffer_.size(), ring_buffer_.size() + increase);
         for (unsigned int i = 0; i < increase; ++i)
         {
-            ring_buffer_.insert(ring_buffer_.begin() + next_write_index, { new uint8_t[RECV_BUFFER_SIZE] , -1 });
+            ring_buffer_.insert(ring_buffer_.begin() + next_write_index, { new uint8_t[payload_size_] , -1 });
         }
 
         // this works, because we have just added increase amount of spaces

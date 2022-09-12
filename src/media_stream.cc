@@ -399,7 +399,7 @@ rtp_error_t uvgrtp::media_stream::start_components()
     }
 
     if (rce_flags_ & RCE_SRTP_AUTHENTICATE_RTP)
-        rtp_->set_payload_size(MAX_IPV4_PAYLOAD - UVG_AUTH_TAG_LENGTH);
+        rtp_->set_payload_size(MAX_IPV4_MEDIA_PAYLOAD - UVG_AUTH_TAG_LENGTH);
 
     initialized_ = true;
     return reception_flow_->start(socket_, rce_flags_);
@@ -615,11 +615,11 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             rtp_->set_payload_size(value - hdr);
 
             // auth tag is always included with SRTP and RTCP has a header for each packet within a compound frame
-            rtcp_->set_payload_size(value - (IPV4_HDR_SIZE + UDP_HDR_SIZE)); 
+            rtcp_->set_payload_size(          value - (IPV4_HDR_SIZE + UDP_HDR_SIZE)); 
+
+            reception_flow_->set_payload_size(value - (IPV4_HDR_SIZE + UDP_HDR_SIZE)); // largest packet we can get from socket
             break;
         }
-
-
         case RCC_FPS_ENUMERATOR: {
             fps_enumerator_ = value;
 
@@ -630,7 +630,6 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             media_->set_fps(fps_enumerator_, fps_denominator_);
             break;
         }
-
         case RCC_FPS_DENOMINATOR: {
             fps_denominator_ = value;
 

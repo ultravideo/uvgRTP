@@ -47,8 +47,8 @@ uvgrtp::frame::rtp_frame *uvgrtp::frame::alloc_rtp_frame(size_t payload_len, siz
     if ((frame = uvgrtp::frame::alloc_rtp_frame()) == nullptr)
         return nullptr;
 
-    frame->probation     = new uint8_t[pz_size * MAX_IPV4_PAYLOAD + payload_len];
-    frame->probation_len = pz_size * MAX_IPV4_PAYLOAD;
+    frame->probation     = new uint8_t[pz_size * MAX_IPV4_MEDIA_PAYLOAD + payload_len];
+    frame->probation_len = pz_size * MAX_IPV4_MEDIA_PAYLOAD;
     frame->probation_off = 0;
 
     frame->payload     = (uint8_t *)frame->probation + frame->probation_len;

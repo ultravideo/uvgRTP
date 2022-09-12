@@ -60,7 +60,7 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int rce_
     interval_ms_(DEFAULT_RTCP_INTERVAL_MS),
     ourItems_(),
     bye_ssrcs_(false),
-    mtu_size_(DEFAULT_MTU_SIZE - UDP_HDR_SIZE - IPV4_HDR_SIZE)
+    mtu_size_(MAX_IPV4_PAYLOAD)
 {
     clock_rate_   = rtp->get_clock_rate();
 
