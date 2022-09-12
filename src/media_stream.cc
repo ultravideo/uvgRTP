@@ -598,6 +598,13 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             rtp_->set_dynamic_payload((uint8_t)value);
             break;
         }
+        case RCC_CLOCK_RATE: {
+            if (value <= 0 || UINT32_MAX < value)
+                return RTP_INVALID_VALUE;
+
+            rtp_->set_clock_rate((uint32_t)value);
+            break;
+        }
         case RCC_MTU_SIZE: {
             ssize_t hdr      = IPV4_HDR_SIZE + UDP_HDR_SIZE + RTP_HDR_SIZE;
             if (rce_flags_ & RCE_SRTP_AUTHENTICATE_RTP)

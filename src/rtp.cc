@@ -169,7 +169,7 @@ void uvgrtp::rtp::set_timestamp(uint64_t timestamp)
     timestamp_= timestamp;
 }
 
-void uvgrtp::rtp::set_clock_rate(size_t rate)
+void uvgrtp::rtp::set_clock_rate(uint32_t rate)
 {
     clock_rate_ = rate;
 }

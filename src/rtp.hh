@@ -32,7 +32,7 @@ namespace uvgrtp {
             void inc_sent_pkts();
             void inc_sequence();
 
-            void set_clock_rate(size_t rate);
+            void set_clock_rate(uint32_t rate);
 
             void set_dynamic_payload(uint8_t payload);
             void set_timestamp(uint64_t timestamp);
