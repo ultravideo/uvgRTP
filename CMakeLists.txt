@@ -86,10 +86,10 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/poll.hh
         src/rtp.hh
         src/rtcp_packets.hh
-		src/socket.hh
+        src/socket.hh
         src/zrtp.hh
         src/frame_queue.hh
-		src/memory.hh
+        src/memory.hh
 
         src/formats/h26x.hh
         src/formats/h264.hh
@@ -145,11 +145,18 @@ target_include_directories(${PROJECT_NAME}
         PUBLIC $<INSTALL_INTERFACE:include>
         )
 
+if(CMAKE_BUILD_TYPE)
+    message(STATUS "Selecting build type: ${CMAKE_BUILD_TYPE}")
+elseif (NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "No build type selected. Selecting Debug. Use CMAKE_BUILD_TYPE to change build type.")
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /Zc:__cplusplus /W4)
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic #[[-Werror]])
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 
 if (DISABLE_CRYPTO)
@@ -163,10 +170,6 @@ if (DISABLE_PRINTS)
 endif()
 
 if (UNIX)
-    if(CMAKE_BUILD_TYPE)
-        message(STATUS "Build type detected: ${CMAKE_BUILD_TYPE}")
-    endif()
-
     # Check if platform-specific functions exist
     include(CheckCXXSymbolExists)
     check_cxx_symbol_exists(getrandom sys/random.h HAVE_GETRANDOM)

@@ -53,6 +53,16 @@ NOTE: Some application dependencies (such as Qt) may require a specific build co
 
 ### Linux and MinGW compilation
 
+##### Selecting build type with CMake
+
+If you are using a system that does not provide build type selection later, you may need to select release build with:
+
+```
+cmake -DCMAKE_BUILD_TYPE=Release ..
+```
+
+The default build type is Debug.
+
 ##### Building
 
 After generating the build configuration, run the following commands to compile and install uvgRTP:
@@ -71,6 +81,14 @@ g++ main.cc -luvgrtp -lpthread -lcryptopp
 Or if you are not using Crypto++:
 ```
 g++ main.cc -luvgrtp -lpthread
+```
+
+## Silence all prints
+
+It is possible to silence all prints coming from uvgRTP by enabling following parameter:
+
+```
+cmake -DDISABLE_PRINTS=1 ..
 ```
 
 ## Release commit (for devs)

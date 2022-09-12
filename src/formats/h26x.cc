@@ -749,12 +749,12 @@ void uvgrtp::formats::h26x::garbage_collect_lost_frames(size_t timout)
         // first find all frames that have been waiting for too long
         for (auto& gc_frame : frames_) {
             if (uvgrtp::clock::hrc::diff_now(gc_frame.second.sframe_time) > timout) {
-
+#ifndef __RTP_SILENT__
                 uint16_t s_seq = gc_frame.second.s_seq;
                 uint16_t e_seq = gc_frame.second.e_seq;
                 UVG_LOG_WARN("Found an old frame that has not been completed. Ts: %lu, Seq: %u <-> %u, received/expected: %lli/%lli",
                     gc_frame.first, s_seq, e_seq, gc_frame.second.received_packet_seqs.size(), calculate_expected_fus(gc_frame.first));
-
+#endif
                 to_remove.push_back(gc_frame.first);
             }
         }
