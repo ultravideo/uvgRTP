@@ -399,7 +399,7 @@ rtp_error_t uvgrtp::media_stream::start_components()
     }
 
     if (rce_flags_ & RCE_SRTP_AUTHENTICATE_RTP)
-        rtp_->set_payload_size(MAX_PAYLOAD - UVG_AUTH_TAG_LENGTH);
+        rtp_->set_payload_size(MAX_IPV4_PAYLOAD - UVG_AUTH_TAG_LENGTH);
 
     initialized_ = true;
     return reception_flow_->start(socket_, rce_flags_);
@@ -599,25 +599,23 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             break;
         }
         case RCC_MTU_SIZE: {
-            ssize_t hdr      = ETH_HDR_SIZE + IPV4_HDR_SIZE + UDP_HDR_SIZE + RTP_HDR_SIZE;
-            ssize_t max_size = 0xffff - IPV4_HDR_SIZE - UDP_HDR_SIZE;
-
+            ssize_t hdr      = IPV4_HDR_SIZE + UDP_HDR_SIZE + RTP_HDR_SIZE;
             if (rce_flags_ & RCE_SRTP_AUTHENTICATE_RTP)
                 hdr += UVG_AUTH_TAG_LENGTH;
 
             if (value <= hdr)
                 return RTP_INVALID_VALUE;
 
-
-            if (value > max_size) {
-                unsigned int u_max_size = (unsigned int)max_size;
+            if (value > UINT16_MAX) {
                 UVG_LOG_ERROR("Payload size (%zd) is larger than maximum UDP datagram size (%u)",
-                        value, u_max_size);
+                        value, UINT16_MAX);
                 return RTP_INVALID_VALUE;
             }
 
             rtp_->set_payload_size(value - hdr);
-            rtcp_->set_mtu_size(value - (ETH_HDR_SIZE + IPV4_HDR_SIZE + UDP_HDR_SIZE));
+
+            // auth tag is always included with SRTP and RTCP has a header for each packet within a compound frame
+            rtcp_->set_payload_size(value - (IPV4_HDR_SIZE + UDP_HDR_SIZE)); 
             break;
         }
 

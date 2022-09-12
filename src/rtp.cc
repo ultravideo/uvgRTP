@@ -28,7 +28,7 @@ uvgrtp::rtp::rtp(rtp_format_t fmt):
     ssrc_ = uvgrtp::random::generate_32();
 
     set_payload(fmt);
-    set_payload_size(MAX_PAYLOAD);
+    set_payload_size(MAX_IPV4_PAYLOAD);
 }
 
 uvgrtp::rtp::~rtp()

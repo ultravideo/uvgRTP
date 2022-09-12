@@ -13,16 +13,24 @@
 typedef SSIZE_T ssize_t;
 #endif
 
-const int MAX_PAYLOAD      = 1446;
-const int PKT_MAX_DELAY_MS = 500;
+#include <stdint.h>
 
-// TODO: IPv6 size is 40
-enum HEADER_SIZES {
-    ETH_HDR_SIZE  = 14,
-    IPV4_HDR_SIZE = 20,
-    UDP_HDR_SIZE  =  8,
-    RTP_HDR_SIZE  = 12
-};
+namespace uvgrtp {
+    constexpr uint8_t IPV4_HDR_SIZE = 20;
+    constexpr uint8_t IPV6_HDR_SIZE = 40; // TODO: Ipv6 support
+    constexpr uint8_t UDP_HDR_SIZE = 8;
+    constexpr uint8_t RTP_HDR_SIZE = 12;
+
+    // the default MTU size for ethernet, can be adjusted with rcc flags
+    constexpr uint16_t DEFAULT_MTU_SIZE = 1500;
+
+    // here we ignore ethernet frame header size since it is not included in MTU
+    constexpr uint16_t MAX_IPV4_PAYLOAD = DEFAULT_MTU_SIZE - IPV4_HDR_SIZE - UDP_HDR_SIZE - RTP_HDR_SIZE;
+    constexpr uint16_t MAX_IPV6_PAYLOAD = DEFAULT_MTU_SIZE - IPV6_HDR_SIZE - UDP_HDR_SIZE - RTP_HDR_SIZE;
+
+    constexpr int PKT_MAX_DELAY_MS = 500;
+}
+
 /// \endcond
 
 /**

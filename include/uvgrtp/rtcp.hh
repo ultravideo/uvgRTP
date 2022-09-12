@@ -307,7 +307,7 @@ namespace uvgrtp {
             size_t rtcp_length_in_bytes(uint16_t length);
 
             /// \cond DO_NOT_DOCUMENT
-            void set_mtu_size(size_t mtu_size);
+            void set_payload_size(size_t mtu_size);
 
         private:
 

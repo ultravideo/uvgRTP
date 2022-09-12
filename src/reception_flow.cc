@@ -19,7 +19,7 @@
 
 #include <cstring>
 
-constexpr size_t RECV_BUFFER_SIZE = 0xffff - IPV4_HDR_SIZE - UDP_HDR_SIZE;
+constexpr size_t RECV_BUFFER_SIZE = UINT16_MAX - uvgrtp::IPV4_HDR_SIZE - uvgrtp::UDP_HDR_SIZE;
 
 constexpr size_t DEFAULT_INITIAL_BUFFER_SIZE = 4194304;
 

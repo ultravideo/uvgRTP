@@ -60,7 +60,7 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int rce_
     interval_ms_(DEFAULT_RTCP_INTERVAL_MS),
     ourItems_(),
     bye_ssrcs_(false),
-    mtu_size_(MAX_PAYLOAD)
+    mtu_size_(DEFAULT_MTU_SIZE - UDP_HDR_SIZE - IPV4_HDR_SIZE)
 {
     clock_rate_   = rtp->get_clock_rate();
 
@@ -1045,7 +1045,7 @@ rtp_error_t uvgrtp::rtcp::recv_packet_handler(void *arg, int rce_flags, frame::r
 
 rtp_error_t uvgrtp::rtcp::send_packet_handler_vec(void *arg, uvgrtp::buf_vec& buffers)
 {
-    ssize_t pkt_size = -HEADER_SIZES::RTP_HDR_SIZE;
+    ssize_t pkt_size = -RTP_HDR_SIZE;
 
     for (auto& buffer : buffers)
     {
@@ -1849,7 +1849,7 @@ void uvgrtp::rtcp::set_session_bandwidth(uint32_t kbps)
 }
 
 
-void uvgrtp::rtcp::set_mtu_size(size_t mtu_size)
+void uvgrtp::rtcp::set_payload_size(size_t mtu_size)
 {
     mtu_size_ = mtu_size;
 }
