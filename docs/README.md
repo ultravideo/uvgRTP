@@ -1,94 +1,165 @@
 # Documentation for uvgRTP
 
-This file provides documentation of uvgRTP's usage and public API.
+This file provides documentation of uvgRTP's usage and public API. The focus in this tutorial focuses on in-depth scenarios of uvgRTP usage. If you want to learn the basic usage of uvgRTP, see the [examples](/examples) folder.
 
-## Architecture
+## The public API
 
 ![](arch.png)
 
-The top-level object for uvgRTP is the `uvgrtp::context` object. It is used to create RTP sessions
-that are bound to certain IP addresses and to provide CNAME namespace isolation if that is
-required by the application. Most of the time only one context object is enough per application.
+The top-level object for uvgRTP is the `uvgrtp::context` object. It is used to create RTP sessions that are bound to certain IP addresses and to provide CNAME namespace isolation if that is required by the application. Most of the time only one context object is needed per application.
 
-RTP sessions, `uvgrtp::session` objects, are allocated from `uvgrtp::context`. For each remote IP address, a session object should be created. uvgRTP supports UDP holepunching so during session creation a source IP address can be specified and uvgRTP binds itself to that address before it starts streaming.
+The uvgRTP session object `uvgrtp::session` is allocated from the `uvgrtp::context`. The session object contains the local and/or remote address information and is used to synchronize the usage of ZRTP. The number of session objects typically corresponds to the number of different peers you communicate with.
 
-Each session contains 1..n `uvgrtp::media_stream` objects. These objects are bidirectional streams, i.e. you use the same object to send and receive RTP frames. The object can be used as unidirectional stream too, a user then just doesn't either send or receive RTP frames using the object. Each `uvgrtp::media_stream` object contains source and destination ports, media format for the stream and a collection of context configuration flags that enable, for example, SRTP or RTCP.
+Each session can contain any number of `uvgrtp::media_stream` objects (an RTP session in RFC 3550), each corresponding to one bi- or unidirectional media stream (for example one audio and one video stream). The bidirectional version of `uvgrtp::media_stream` object contains both source and destination ports, and the unidirectional only one port that can be configured to either be the source or the destination port. In addition, the parameters have the media format for the stream and a variable for the context enable flags, for example RTCP or SRTP.
 
-## Public API
+If RTCP has been enabled, and `uvgrtp::rtcp` object is available from the `uvgrtp::media_stream` for sending and receiving RTCP packets.
 
-The public API for uvgRTP is very short. Functions not listed in the public API should not be called
-by an application using uvgRTP as they are for internal usage only. All of the features are provided
-as either built-in or they are enabled/modified through context configuration that is specified below.
-
-Read the documentation for uvgRTP's public API [here](https://ultravideo.github.io/uvgRTP/html/index.html)
+Find the full documentation for uvgRTP's public API [here](https://ultravideo.github.io/uvgRTP/html/index.html).
 
 ## Supported media formats
 
-Currently uvgRTP has a built-in support for the following media formats:
-* AVC
-* HEVC
-* VVC
-* Opus
+### Formats with packetization support:
+* AVC ([RFC 6184](https://tools.ietf.org/html/rfc6184))
+* HEVC ([RFC 7798](https://tools.ietf.org/html/rfc7798))
+* VVC ([Draft](https://tools.ietf.org/html/draft-ietf-avtcore-rtp-vvc-08))
 
-uvgRTP also features a generic media frame API that can be used to fragment and send any media format,
-see [this example code](../examples/sending_generic.cc) for more details. Fragmentation of generic media formats is a uvgRTP exclusive feature and does not work with other RTP libraries so please use it only if you are using uvgRTP for both sending and receiving.
+### Formats which don't need packetization (See [RFC 3551](https://www.rfc-editor.org/rfc/rfc3551)):
+* PCMU
+* PCMA
+* GSM
+* GSM EFR
+* DVI4 32 kbit/s
+* DVI4 64 kbit/s
+* DVI4 44.1 kbit/s
+* DVI4 88.2 kbit/s
+* VDVI
+* LPC
+* G722
+* G723
+* G726 40 kbit/s
+* G726 32 kbit/s
+* G726 24 kbit/s
+* G726 16 kbit/s
+* G728
+* G729 8 kbit/s
+* G729D 6.4 kbit/s
+* G729E 11.8 kbit/s
+* L8
+* L16 Stereo
+* L16 Mono
+* Opus ([RFC 7587](https://tools.ietf.org/html/rfc7587))
+
+uvgRTP also supports generic fragmentation, see [this example code](../examples/sending_generic.cc). This fragmentation can be used with any format that does not have packetization format implemented, just set the RCE flag at the sender and the receiver. For dynamic payload formats, you can change the number with RCC configuration. You may also change the clock rate using the RCC configuration.
 
 ## Context configuration
 
-`RCE_*` flags are used to enable/disable functionality of an **individual** `uvgrtp::media_stream` object. Table below lists all supported flags and what they enable/disable.
-`RCE_*` flags are passed to `create_stream()` as the last parameter and they can be OR'ed together
+uvgRTP has three types of configuration flags: 1) RCE flags which can be used to enable or disable functionality, 2) RCC flags which can be used to adjust values in uvgRTP such as buffer sizes and 3) RTP flags which can be used to adjust the processing of a frame.
+
+See [this example code](../examples/configuration.cc) for more details.
+
+### RTP Context Enable (RCE) flags
+
+`RCE_*` flags are used to enable/disable functionality of a created `uvgrtp::media_stream` object. Table below lists all supported flags and what they enable/disable. `RCE_*` flags are passed to `create_stream()` as the last parameter and they can be OR'ed together
 ```
 session->create_stream(..., RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP_NULL_CIPHER);
 ```
 
 | Flag | Explanation |
 | ---- |:----------:|
+| RCE_NO_FLAGS | Use this if you don't need any rce flags |
+| RCE_SEND_ONLY | Use this to prevent binding to a local address |
+| RCE_RECEIVE_ONLY | Use this to interpret any address as local address and prevent sending |
 | RCE_SRTP | Enable SRTP, must be coupled with either RCE_SRTP_KMNGMNT_ZRTP or RCE_SRTP_KMNGMNT_USER |
 | RCE_SRTP_KMNGMNT_ZRTP | Use ZRTP to manage keys (see section SRTP for more details) |
 | RCE_SRTP_KMNGMNT_USER | Let user manage keys (see section SRTP for more details) |
-| RCE_NO_H26X_INTRA_DELAY | When uvgRTP is receiving H26X stream, as an attempt to improve QoS, it will set frame delay for intra frames to be the same as intra period.  What this means is that if the regular timer expires for frame (100 ms) and the frame type is intra, uvgRTP will not drop the frame but will continue receiving packets in hopes that all the packets of the intra frame will be received and the frame can be returned to user. During this period, when the intra frame is deemed to be late and incomplete, uvgRTP will drop all inter frames until a) all the packets of late intra frame are received or b) a new intra frame is received This behaviour should reduce the number of gray screens during video decoding but might cause the video stream to freeze for a while which is subjectively lesser of two evils This behavior can be disabled with `RCE_NO_H26X_INTRA_DELAY` If this flag is given, uvgRTP treats all frame types equally and drops all frames that are late |
-| RCE_FRAGMENT_GENERIC | Fragment generic media frames into RTP packets of 1500 bytes (size is configurable, see RCC_MTU_SIZE) |
-| RCE_SRTP_INPLACE_ENCRYPTION | Perform ciphering directly on the input frame. Saves a memory copy but makes the input frame unusable for the application |
-| RCE_NO_SYSTEM_CALL_CLUSTERING | Disable System Call Clustering, see the publication for more details |
-| RCE_SRTP_NULL_CIPHER | Use NULL cipher for SRTP, i.e. do not encrypt packets |
+| RCE_H26X_DO_NOT_PREPEND_SC | Prevent uvgRTP from prepending start code prefix to received H26x frames. Use this is your decoder doesn't expect prefixes |
+| RCE_H26X_DEPENDENCY_ENFORCEMENT | In progress feature. When ready, a loss of frame means that rest of the frames that depended on that frame are also dropped |
+| RCE_FRAGMENT_GENERIC | Fragment generic media frames into RTP packets fitting into MTU (MTU is configurable, see RCC_MTU_SIZE) |
+| RCE_SYSTEM_CALL_CLUSTERING | On Unix systems, this enables the use of sendmmsg(2) to send multiple packets at once, resulting in slightly lower CPU usage. May increase frame loss at high frame rates. |
+| RCE_SRTP_NULL_CIPHER | Use NULL cipher for SRTP, meaning the packets are not encrypted |
 | RCE_SRTP_AUTHENTICATE_RTP | Add RTP authentication tag to each RTP packet and verify authenticity of each received packet before they are returned to the user |
 | RCE_SRTP_REPLAY_PROTECTION | Monitor and reject replayed RTP packets |
 | RCE_RTCP | Enable RTCP |
-| RCE_H26X_PREPEND_SC | Prepend a 4-byte start code (0x00000001) before each NAL unit |
 | RCE_HOLEPUNCH_KEEPALIVE | Keep the hole made in the firewall open in case the streaming is unidirectional. If holepunching has been enabled during session creation and this flag is given to `create_stream()` and uvgRTP notices that the application has not sent any data in a while (unidirectionality), it sends a small UDP datagram to the remote participant to keep the connection open |
+| RCE_SRTP_KEYSIZE_192 |  |
+| RCE_SRTP_KEYSIZE_256 |  |
+| RCE_ZRTP_MULTISTREAM_NO_DH | Select which streams do not perform Diffie-Hellman with ZRTP. Currently, ZRTP only works reliably with one stream performing DH and one not performing it |
+
+### RTP Context Configuration (RCC) flags
 
 `RCC_*` flags are used to modify the default values used by uvgRTP. Table below lists all supported flags and what they modify.
-
-| Flag | Explanation | Default |
-| ---- |:----------:|:----------:|
-| RCC_UDP_RCV_BUF_SIZE | Specify UDP receive buffer size | 4 MB |
-| RCC_UDP_SND_BUF_SIZE | Specify UDP send buffer size | 4 MB
-| RCC_PKT_MAX_DELAY | How many milliseconds is each frame waited until they're dropped (for fragmented frames only) | 100 ms |
-| RCC_DYN_PAYLOAD_TYPE | Override uvgRTP's payload type used in RTP headers | Format-specific, see `include/util.hh` |
-| RCC_MTU_SIZE | Set a maximum value for the Ethernet frame size assumed by uvgRTP (for enabling, for example, jumbo frame support) | 1500 bytes |
-
 Configuration done using `RCC_*` flags are done by calling `configure_ctx()` with a flag and a value
 
 ```
 stream->configure_ctx(RCC_PKT_MAX_DELAY, 150);
 ```
 
-## SRTP
+| Flag | Explanation | Default | Location |
+| ---- |:----------:|:----------:|:----------:|
+| RCC_UDP_RCV_BUF_SIZE | Specify the socket UDP receive buffer size | 4 MB | Receiver |
+| RCC_UDP_SND_BUF_SIZE | Specify the socket UDP send buffer size    | 4 MB | Sender |
+| RCC_RING_BUFFER_SIZE | Specify the size of reception ring buffer. Larger size helps receiving large number of packets at once. | 4 MB | Receiver |
+| RCC_PKT_MAX_DELAY | How many milliseconds is each frame waited until they're dropped (for fragmented frames only) | 500 ms | Receiver |
+| RCC_DYN_PAYLOAD_TYPE | Override uvgRTP's default payload number used in RTP headers | Format-specific, see [util.hh](/include/uvgrtp/util.hh) | Both |
+| RCC_CLOCK_RATE | Override uvgRTP's default clock rate used to calculate RTP timestamps | Format-specific, see [RFC 3551](https://www.rfc-editor.org/rfc/rfc3551#section-6) | Sender |
+| RCC_MTU_SIZE | Set the Maximum Transmission Unit (MTU) value. uvgRTP assumes the repsence of UDP header (8 bytes) and IP header (20 bytes for IPv4) and substract those from the value. | 1500 bytes | Both |
+| RCC_FPS_ENUMERATOR | Setting RCC_FPS_ENUMERATOR or RCC_FPS_DENOMINATOR enables the constant fps functionality. With this functionality, uvgRTP will send fragmented frames with correct transmission interval and divides each fragment for that frame interval to help receiver in receiving packets. Use this in challenging performance circumstances or to achieve extreme performance with uvgRTP. Adds one frame of latency. Disable with 0. | 30 (disabled) | Sender |
+| RCC_FPS_DENOMINATOR | Use this in combination with RCC_FPS_ENUMERATOR if you need fractional fps values | 1 (disabled) | Sender |
 
-uvgRTP provides two ways for an application to deal with SRTP key-management: ZRTP or user-managed.
-Out of the two, ZRTP is simpler but requires message exchanging before media encryption can take place
-whereas for user-managed keys the calling application must provide an encryption key and a salt.
+### RTP frame flags
+
+`RTP_*` flags are passed to `push_frame()` as the last parameter and they can be OR'ed together
+```
+stream->push_frame(frame, frame_size, RTP_NO_H26X_SCL | RTP_COPY);
+```
+
+| Flag | Explanation | 
+| ---- |:----------:|
+| RTP_NO_FLAGS    | Use this if you don't need any RTP flags |
+| RTP_COPY        | Copy the input buffer and operate on the copy. This means that uvgRTP does not take ownership of the frame. Does not work with unique_ptr for obvious reasons. | 
+| RTP_NO_H26X_SCL | By default, uvgRTP expect the need to search for NAL start codes from the frames using start code prefixes. Use this flag if your encoder provides ready NAL units without start code prefixes to disable Start Code Lookup (SCL). | 
+
+### Obsolete flags
+
+Here are are listed all the flags that have been available at one point in uvgRTP API. They still compile, but uvgRTP gives you a warning and the flags themselves don't do anything.
+
+| RCE Flag | Reason | 
+| ---- |:----------:|
+| RCE_SYSTEM_CALL_DISPATCHER    | This feature has been removed |
+| RCE_NO_H26X_INTRA_DELAY       | This feature has been removed | 
+| RCE_NO_H26X_SCL | This flag replaced by RTP_NO_H26X_SCL | 
+| RCE_H26X_NO_DEPENDENCY_ENFORCEMENT | The feature is disabled by default | 
+| RCE_H26X_PREPEND_SC | This feature is enabled by default | 
+| RCE_NO_SYSTEM_CALL_CLUSTERING | This feature is disabled by default | 
+| RCE_SRTP_INPLACE_ENCRYPTION   | This feature is enabled by default (see RTP_COPY to disable) | 
+
+| RTP Flag | Reason | 
+| ---- |:----------:|
+| RTP_SLICE  | This flag was replaced by RTP_NO_H26X_SCL |
+
+## SRTP Encryption
+
+uvgRTP provides two ways for an application to deal with SRTP key-management: 1) ZRTP or 2) user-managed. When using 1) ZRTP, uvgRTP automatically negotiates the encryption keys and provides them to SRTP automatically. The 2) user key management means that the stream needs the user to provide the encryption keys and salts.
 
 ### ZRTP-based SRTP
 
-uvgRTP supports Diffie-Hellman and Multistream modes of ZRTP. The mode selection is done transparently
-and the only thing an application must do is to provide `RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP` flag combination
-to `create_stream()`. See [ZRTP Multistream example](../examples/zrtp_multistream.cc) for more details.
+uvgRTP supports Diffie-Hellman and Multistream modes of ZRTP. To use ZRTP, user must provide `RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP` flag combination
+to `create_stream()` as well as `RCE_ZRTP_MULTISTREAM_NO_DH` flag for all streams which are in Multistream mode. See [ZRTP Multistream example](../examples/zrtp_multistream.cc) for more details.
 
 ### User-managed SRTP
 
-The second way of handling key-management of SRTP is to do it yourself. uvgRTP supports 128-bit keys
-and and 112-bit salts which must be given to the `uvgrtp::media_stream` object using `add_srtp_ctx()` right after
-`create_stream()` has been called. All calls that try to modify or use the stream
-(other than `add_srtp_ctx()`) will fail with `RTP_NOT_INITIALIZED`.
-See [this example code](../examples/srtp_user.cc) for more details.
+The second way of handling key-management of SRTP is to do it outside uvgRTP. To use user-managed keys, user must provide `RCE_SRTP | RCE_SRTP_KMNGMNT_USER` flag combination to `create_stream()`. uvgRTP supports 128-bit keys and and 112-bit salts which must be given to the `uvgrtp::media_stream` object using `add_srtp_ctx()` after `create_stream()` has been called. All other calls to the media_stream before `add_srtp_ctx()`-call will fail. See [this example code](../examples/srtp_user.cc) for more details.
+
+## MTU size
+
+The default MTU size of uvgRTP has been set to 1500. uvgRTP assumes the presence of an UDP header and IP header in addition an RTP header which are taken into account when fragmenting frames. If your application is expected to work through tunneling such as VPN which adds additional headers on top of packets, you should lower the MTU size to avoid unnecessary IP level fragmentation. Some networks also allow for a higher MTU size in which case you can increase this.
+
+## High-performance scenario
+
+The default configuration of uvgRTP should be able to handle most basic scenarios up to 4K30p without any frame loss. If you are however 1) using a higher resolution, 2) higher fps value, 3) using a low power machine to receive the RTP stream, or 4) you are experiencing frame loss, you might consider setting or increasing the following parameters: 
+* RCC_UDP_RCV_BUF_SIZE: You can try increasing this to 40 or 80 MB if it helps receiving frames
+* RCC_UDP_SND_BUF_SIZE_ You can try increasing this to 40 or 80 MB if it helps sending frames
+* RCC_RING_BUFFER_SIZE: You can try increasing this to 40 or 80 MB if it helps receiving frames
+* RCC_FPS_ENUMERATOR and RCC_FPS_DENOMINATOR: You can try setting these to stream fps value to help sending and reception of frames
+
+None of these parameters will however help if you are sending more data than the receiver can process, they only help when dealing with burst of (usually fragmented) RTP traffic.
