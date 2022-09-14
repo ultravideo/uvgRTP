@@ -6,6 +6,8 @@ cmake_minimum_required(VERSION 3.14)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+include(GNUInstallDirs)
+
 include(cmake/ProjectDetails.cmake)
 project(uvgrtp
         VERSION ${uvgrtp_VER}
@@ -195,9 +197,9 @@ if (UNIX)
         if(CMAKE_USE_PTHREADS_INIT AND NOT CMAKE_HAVE_LIBC_PTHREAD)
             list(APPEND UVGRTP_LINKER_FLAGS "-lpthread")
         endif()
-        # Check PKG_CONFIG_PATH, if not defined, use /usr/local/lib/pkgconfig
+        # Check PKG_CONFIG_PATH, if not defined, use lib/pkgconfig
         if(NOT DEFINED ENV{PKG_CONFIG_PATH})
-            set(PKG_CONFIG_PATH "/usr/local/lib/pkgconfig")
+            set(PKG_CONFIG_PATH "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
             message("PKG_CONFIG_PATH is not set. Setting it to ${PKG_CONFIG_PATH}")
         endif(NOT DEFINED ENV{PKG_CONFIG_PATH})
 
@@ -234,7 +236,7 @@ add_subdirectory(test EXCLUDE_FROM_ALL)
 # Install
 #
 # Define install target, install libraries and archives (static libraries) to "<prefix>/..."
-include(GNUInstallDirs)
+
 install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_version EXPORT ${PROJECT_NAME}Targets
         LIBRARY
             DESTINATION ${CMAKE_INSTALL_LIBDIR}
