@@ -55,28 +55,12 @@ namespace uvgrtp {
             struct ext_header *ext = nullptr;
 
             size_t padding_len = 0; /* non-zero if frame is padded */
-            size_t payload_len = 0; /* payload_len: total_len - header_len - padding length (if padded) */
 
-            /* Probation zone is a small area of free-to-use memory for the frame receiver
-             * when handling fragments. For example HEVC fragments that belong to future frames
-             * but cannot be relocated there (start sequence missing) are copied to probation
-             * zone and when the frame becomes active, all fragments in the probation are relocated
-             *
-             * NOTE 1: Probation zone will increase the memory usage and will increase
-             * the internal fragmentation as this memory is not usable for anything else
-             *
-             * NOTE 2: This is a Linux-only optimization */
-            size_t probation_len = 0;
-            size_t probation_off = 0;
-            uint8_t *probation = nullptr;
-            uint8_t *payload = nullptr;
+            size_t payload_len = 0; 
+            uint8_t* payload = nullptr;
 
             uint8_t *dgram = nullptr;      /* pointer to the UDP datagram (for internal use only) */
-            size_t   dgram_size = 0; /* size of the UDP datagram */
-
-            rtp_format_t format = RTP_FORMAT_GENERIC;
-            int  type = 0;
-            sockaddr_in src_addr = {};
+            size_t   dgram_size = 0;       /* size of the UDP datagram */
         };
 
         struct rtcp_header {
@@ -168,7 +152,6 @@ namespace uvgrtp {
          *    RTP_MEMORY_ERROR if allocation of memory failed */
         rtp_frame *alloc_rtp_frame();
         rtp_frame *alloc_rtp_frame(size_t payload_len);
-        rtp_frame *alloc_rtp_frame(size_t payload_len, size_t pz_size);
 
 
         /* Deallocate RTP frame

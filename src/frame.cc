@@ -22,7 +22,6 @@ uvgrtp::frame::rtp_frame *uvgrtp::frame::alloc_rtp_frame()
     frame->header.ssrc      = 0;
 
     frame->payload   = nullptr;
-    frame->probation = nullptr;
 
     return frame;
 }
@@ -40,23 +39,6 @@ uvgrtp::frame::rtp_frame *uvgrtp::frame::alloc_rtp_frame(size_t payload_len)
     return frame;
 }
 
-uvgrtp::frame::rtp_frame *uvgrtp::frame::alloc_rtp_frame(size_t payload_len, size_t pz_size)
-{
-    uvgrtp::frame::rtp_frame *frame = nullptr;
-
-    if ((frame = uvgrtp::frame::alloc_rtp_frame()) == nullptr)
-        return nullptr;
-
-    frame->probation     = new uint8_t[pz_size * MAX_IPV4_MEDIA_PAYLOAD + payload_len];
-    frame->probation_len = pz_size * MAX_IPV4_MEDIA_PAYLOAD;
-    frame->probation_off = 0;
-
-    frame->payload     = (uint8_t *)frame->probation + frame->probation_len;
-    frame->payload_len = payload_len;
-
-    return frame;
-}
-
 rtp_error_t uvgrtp::frame::dealloc_frame(uvgrtp::frame::rtp_frame *frame)
 {
     if (!frame)
@@ -69,9 +51,6 @@ rtp_error_t uvgrtp::frame::dealloc_frame(uvgrtp::frame::rtp_frame *frame)
         delete[] frame->ext->data;
         delete frame->ext;
     }
-
-    if (frame->probation)
-        delete[] frame->probation;
 
     else if (frame->payload)
         delete[] frame->payload;
