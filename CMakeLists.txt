@@ -6,14 +6,14 @@ cmake_minimum_required(VERSION 3.14)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-include(GNUInstallDirs)
-
 include(cmake/ProjectDetails.cmake)
 project(uvgrtp
         VERSION ${uvgrtp_VER}
         DESCRIPTION ${uvgrtp_DESCR}
         HOMEPAGE_URL ${uvgrtp_URL}
         LANGUAGES CXX)
+
+include(GNUInstallDirs)
 
 include(cmake/FindDependencies.cmake)
 include(cmake/Versioning.cmake)
