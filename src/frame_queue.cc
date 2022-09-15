@@ -16,7 +16,6 @@
 #include <windows.h>
 #else
 #include <arpa/inet.h>
-#include <sys/types.h>
 #include <cassert>
 #include <cstring>
 #endif

@@ -11,10 +11,6 @@
 #include <vector>
 #include <mutex>
 
-#if defined(_MSC_VER)
-typedef SSIZE_T ssize_t;
-#endif
-
 // TODO: get these from socket?
 const int MAX_MSG_COUNT   = 5000;
 const int MAX_QUEUED_MSGS =  10;

@@ -9,8 +9,11 @@
 #include <sys/time.h>
 #endif
 
+// ssize_t definition for all systems
 #if defined(_MSC_VER)
 typedef SSIZE_T ssize_t;
+#else
+#include <sys/types.h>
 #endif
 
 #include <stdint.h>
