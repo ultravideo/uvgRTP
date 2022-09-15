@@ -157,8 +157,7 @@ typedef enum RTP_FLAGS {
     RTP_OBSOLETE      = 1,
     RTP_SLICE         = 1, // used to do what RTP_NO_H26X_SCL does, may do something different in the future
 
-    /** Make a copy of the frame and perform operation on the copy. This means 
-     * that uvgRTP does not take ownership of the frame. Cannot be used with unique_ptr. */
+    /** Make a copy of the frame and perform operation on the copy. Cannot be used with unique_ptr. */
     RTP_COPY          = 1 << 1,
 
     /** By default, uvgRTP searches for start code prefixes (0x000001 or 0x00000001)

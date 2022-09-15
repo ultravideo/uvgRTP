@@ -102,7 +102,7 @@ namespace uvgrtp {
              * The frame is automatically reconstructed by the receiver if all fragments have been
              * received successfully.
              *
-             * \param data Pointer to data the that should be sent
+             * \param data Pointer to data the that should be sent, uvgRTP does not take ownership of the memory
              * \param data_len Length of data
              * \param rtp_flags Optional flags, see ::RTP_FLAGS for more details
              *
@@ -156,7 +156,7 @@ namespace uvgrtp {
              * parameter. If RTCP has been enabled, uvgrtp::rtcp::set_ts_info() should have
              * been called.
              *
-             * \param data Pointer to data the that should be sent
+             * \param data Pointer to data the that should be sent, uvgRTP does not take ownership of the memory
              * \param data_len Length of data
              * \param ts 32-bit timestamp value for the data
              * \param rtp_flags Optional flags, see ::RTP_FLAGS for more details
@@ -305,7 +305,7 @@ namespace uvgrtp {
             bool check_pull_preconditions();
             rtp_error_t check_push_preconditions(int rtp_flags, bool smart_pointer);
 
-            inline uint8_t* copy_frame(uint8_t* original, size_t data_len, int rtp_flags);
+            inline uint8_t* copy_frame(uint8_t* original, size_t data_len);
 
             uint32_t key_;
 

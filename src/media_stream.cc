@@ -413,8 +413,16 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int
         if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
             holepuncher_->notify();
 
-        data = copy_frame(data, data_len, rtp_flags); // makes a copy if RTP_COPY flag is given
-        ret = media_->push_frame(data, data_len, rtp_flags);
+        if (rtp_flags & RTP_COPY)
+        {
+            data = copy_frame(data, data_len);
+            std::unique_ptr<uint8_t[]> data_copy(data);
+            ret = media_->push_frame(std::move(data_copy), data_len, rtp_flags);
+        }
+        else
+        {
+            ret = media_->push_frame(data, data_len, rtp_flags);
+        }
     }
 
     return ret;
@@ -443,9 +451,17 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, uin
         if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
             holepuncher_->notify();
 
-        data = copy_frame(data, data_len, rtp_flags); // makes a copy if RTP_COPY flag is given
         rtp_->set_timestamp(ts);
-        ret = media_->push_frame(data, data_len, rtp_flags);
+        if (rtp_flags & RTP_COPY)
+        {
+            data = copy_frame(data, data_len);
+            std::unique_ptr<uint8_t[]> data_copy(data);
+            ret = media_->push_frame(std::move(data_copy), data_len, rtp_flags);
+        }
+        else
+        {
+            ret = media_->push_frame(data, data_len, rtp_flags);
+        }
         rtp_->set_timestamp(INVALID_TS);
     }
 
@@ -524,16 +540,11 @@ rtp_error_t uvgrtp::media_stream::check_push_preconditions(int rtp_flags, bool s
     return RTP_OK;
 }
 
-uint8_t* uvgrtp::media_stream::copy_frame(uint8_t* original, size_t data_len, int rtp_flags)
+uint8_t* uvgrtp::media_stream::copy_frame(uint8_t* original, size_t data_len)
 {
-    if (rtp_flags & RTP_COPY)
-    {
-        uint8_t* copy = new uint8_t[data_len];
-        memcpy(copy, original, data_len);
-        return copy;
-    }
-
-    return original;
+    uint8_t* copy = new uint8_t[data_len];
+    memcpy(copy, original, data_len);
+    return copy;
 }
 
 rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *))
