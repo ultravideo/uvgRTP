@@ -49,6 +49,7 @@ namespace uvgrtp {
             uint8_t *data = nullptr;
         });
 
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-5" target="_blank">RFC 3550 section 5</a> */
         struct rtp_frame {
             struct rtp_header header;
             uint32_t *csrc = nullptr;
@@ -56,32 +57,52 @@ namespace uvgrtp {
 
             size_t padding_len = 0; /* non-zero if frame is padded */
 
+            /** \brief Length of the packet payload in bytes added by uvgRTP to help process the frame
+            *
+            *   \details payload_len = total length - header length - padding length (if padded) 
+            */
             size_t payload_len = 0; 
             uint8_t* payload = nullptr;
 
+            /// \cond DO_NOT_DOCUMENT
             uint8_t *dgram = nullptr;      /* pointer to the UDP datagram (for internal use only) */
             size_t   dgram_size = 0;       /* size of the UDP datagram */
+            /// \endcond
         };
 
+        /** \brief Header of for all RTCP packets defined in <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6" target="_blank">RFC 3550 section 6</a> */
         struct rtcp_header {
+            /** \brief  This field identifies the version of RTP. The version defined by
+             * RFC 3550 is two (2).  */
             uint8_t version = 0;
+            /** \brief Does this packet contain padding at the end */
             uint8_t padding = 0;
             union {
-                uint8_t count = 0;
-                uint8_t pkt_subtype; /* for app packets */
+                /** \brief Source count or report count. Alternative to pkt_subtype. */
+                uint8_t count = 0;   
+                /** \brief Subtype in APP packets. Alternative to count */
+                uint8_t pkt_subtype; 
             };
+            /** \brief Identifies the RTCP packet type */
             uint8_t pkt_type = 0;
-            uint16_t length = 0; // whole message measured in 32-bit words
+            /** \brief Length of the whole message measured in 32-bit words */
+            uint16_t length = 0;
         };
 
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
         struct rtcp_sender_info {
-            uint32_t ntp_msw = 0; /* NTP timestamp, most significant word */
-            uint32_t ntp_lsw = 0; /* NTP timestamp, least significant word */
-            uint32_t rtp_ts = 0;  /* RTP timestamp corresponding to same time as NTP */
+            /** \brief NTP timestamp, most significant word */
+            uint32_t ntp_msw = 0;
+            /** \brief NTP timestamp, least significant word */
+            uint32_t ntp_lsw = 0;
+            /** \brief RTP timestamp corresponding to this NTP timestamp */
+            uint32_t rtp_ts = 0;
             uint32_t pkt_cnt = 0;
+            /** \brief Also known as octet count*/
             uint32_t byte_cnt = 0;
         };
 
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
         struct rtcp_report_block {
             uint32_t ssrc = 0;
             uint8_t  fraction = 0;
@@ -92,12 +113,14 @@ namespace uvgrtp {
             uint32_t dlsr = 0; /* delay since last Sender Report */
         };
 
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.2" target="_blank">RFC 3550 section 6.4.2</a> */
         struct rtcp_receiver_report {
             struct rtcp_header header;
             uint32_t ssrc = 0;
             std::vector<rtcp_report_block> report_blocks;
         };
 
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
         struct rtcp_sender_report {
             struct rtcp_header header;
             uint32_t ssrc = 0;
@@ -105,28 +128,33 @@ namespace uvgrtp {
             std::vector<rtcp_report_block> report_blocks;
         };
 
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
         struct rtcp_sdes_item {
             uint8_t type = 0;
             uint8_t length = 0;
             uint8_t *data = nullptr;
         };
 
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
         struct rtcp_sdes_chunk {
             uint32_t ssrc = 0;
             std::vector<rtcp_sdes_item> items;
         };
 
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
         struct rtcp_sdes_packet {
             struct rtcp_header header;
             std::vector<rtcp_sdes_chunk> chunks;
         };
 
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.7" target="_blank">RFC 3550 section 6.7</a> */
         struct rtcp_app_packet {
             struct rtcp_header header;
             uint32_t ssrc = 0;
             uint8_t name[4] = {0};
             uint8_t *payload = nullptr;
-            size_t payload_len = 0; // in bytes
+            /** \brief Size of the payload in bytes. Added by uvgRTP to help process the payload. */
+            size_t payload_len = 0;
         };
 
         PACK(struct zrtp_frame {

@@ -13,8 +13,14 @@ namespace uvgrtp {
     class media_stream;
     class zrtp;
 
-    /* This session is not the same as RTP session. One uvgRTP session 
-     * houses multiple RTP sessions.
+    /** \brief Provides ZRTP synchronization and can be used to create uvgrtp::media_stream objects
+     *
+     * \details
+     * 
+     * 
+     * 
+     * By itself session does not do anything. The actual RTP streaming is done by media_stream objects, 
+     * which can be created by session. media_stream corresponds to an RTP session in RFC 3550.
      */
 
     class session {
@@ -26,22 +32,22 @@ namespace uvgrtp {
             /// \endcond
 
             /**
-             * \brief Create a bidirectional media stream for an RTP session
+             * \brief Create a uni- or bidirectional media stream
              *
              * \details
              *
-             * If both addresses were provided when uvgrtp::session was created, uvgRTP binds
-             * itself to local_addr:src_port and sends packets to remote_addr:dst_port.
-             * 
-             * If only one address was provided, the RCE_SEND_ONLY flag in rce_flags can be used to 
-             * avoid binding and  src_port is thus ignored. RCE_RECEIVE_ONLY means dst_port is ignored. 
-             * Without either, the one address is interpreted as remote_addr and binding happens to ANY.
-             *
-             * This object is used for both sending and receiving media, see documentation
+             * The created object is used for sending and/or receiving media, see documentation
              * for uvgrtp::media_stream for more details.
              *
-             * User can enable and disable functionality of uvgRTP by OR'ing (using |) RCE_* flags
-             * together and passing them using the rce_flags parameter
+             * If both addresses were provided when uvgrtp::session was created, by default 
+             * uvgRTP binds itself to local_addr:src_port and sends packets to remote_addr:dst_port.
+             * 
+             * User can enable and disable functionality of media_stream by OR'ing (using |) RCE_* flags
+             * together and passing them using the rce_flags parameter. In rce_flags, the RCE_SEND_ONLY flag 
+             * can be used to avoid binding and src_port is thus ignored. Correspondinly RCE_RECEIVE_ONLY flag 
+             * means dst_port is ignored. Without either RCE_SEND_ONLY or RCE_RECEIVE_ONLY, 
+             * and if only one address was provided for session that address is interpreted as remote_addr and 
+             * binding happens to ANY:src_port.
              *
              * \param src_port   Local port that uvgRTP listens to for incoming RTP packets
              * \param dst_port   Remote port where uvgRTP sends RTP packets
@@ -56,22 +62,18 @@ namespace uvgrtp {
             uvgrtp::media_stream *create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags);
 
             /**
-             * \brief Create a bidirectional media stream for an RTP session
+             * \brief Create a unidirectional media_stream for an RTP session
              *
              * \details
              *
-             * If both addresses were provided when uvgrtp::session was created, uvgRTP binds
-             * sends packets to remote_addr:port and does not bind.
-             *
-             * If only one address was provided, the RCE_SEND_ONLY flag in rce_flags can be used to
-             * avoid binding and port is used as remote_port. RCE_RECEIVE_ONLY means port is used for binding.
-             * Without either, the one address is interpreted as remote_addr and binding happens to ANY.
-             *
-             * This object is used for both sending and receiving media, see documentation
+             * The created object is used for sending or receiving media, see documentation
              * for uvgrtp::media_stream for more details.
-             *
+
              * User can enable and disable functionality of uvgRTP by OR'ing (using |) RCE_* flags
-             * together and passing them using the rce_flags parameter
+             * together and passing them using the rce_flags parameter. The RCE_SEND_ONLY flag in 
+             * rce_flags means the port is interpreted as a remote port. The RCE_RECEIVE_ONLY means 
+             * the port is used for binding to a local interface. Without either flag, 
+             * this function defaults to RCE_SEND_ONLY.
              *
              * \param port         Either local or remote port depending on rce_flags
              * \param fmt          Format of the media stream. see ::RTP_FORMAT for more details

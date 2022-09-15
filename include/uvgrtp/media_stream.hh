@@ -35,8 +35,17 @@ namespace uvgrtp {
         class media;
     }
 
-    // Corresponds to one RTP session in RFC 3550
-
+    /**
+     * \brief The media_stream is an entity which represents one RTP stream.
+     *
+     * \details media_stream is defined by the ports which are used for sending and/or receiving media. 
+     * It is possible for media_stream to be bi- or unidirectional. The unidirectionality 
+     * is achieved by specifying RCE_SEND_ONLY or RCE_RECEIVE_ONLY flag when creating media_stream. 
+     * 
+     * If RCE_RTCP was given when creating media_stream, you can get the uvgrtp::rtcp object with get_rtcp()-function.
+     *
+     * media_stream corresponds to one RTP session in <a href="https://www.rfc-editor.org/rfc/rfc3550">RFC 3550</a>.
+     */
     class media_stream {
         public:
             /// \cond DO_NOT_DOCUMENT
@@ -69,12 +78,9 @@ namespace uvgrtp {
              *
              * \brief Add keying information for user-managed SRTP session
              *
-             * \details For user-managed SRTP session, the media stream is not started
-             * until SRTP key has been added and all calls to push_frame() will fail
-             *
-             * Notice that if user-managed SRTP has been enabled during media stream creation,
-             * this function must be called before anything else. All calls to other functions
-             * will fail with ::RTP_NOT_INITIALIZED until the SRTP context has been specified
+             * \details For user-managed SRTP session (flag RCE_SRTP_KMNGMNT_USER), 
+             * the media stream is not started until SRTP key has been added and all calls 
+             * to push_frame() will fail.
              *
              * \param key SRTP master key, default is 128-bit long
              * \param salt 112-bit long salt
@@ -214,8 +220,7 @@ namespace uvgrtp {
              * \return RTP frame
              *
              * \retval uvgrtp::frame::rtp_frame* On success
-             * \retval nullptr If a frame was not received within the specified time limit
-             * \retval nullptr If an unrecoverable error happened
+             * \retval nullptr If a frame was not received within the specified time limit or in case of an error
              */
             uvgrtp::frame::rtp_frame *pull_frame(size_t timeout_ms);
 
@@ -246,7 +251,6 @@ namespace uvgrtp {
              *
              * \retval RTP_OK On success
              * \retval RTP_INVALID_VALUE If the provided value is not valid for a given configuration flag
-             * \retval RTP_INVALID_VALUE If the provided configuration flag is not supported
              * \retval RTP_GENERIC_ERROR If setsockopt(2) failed
              */
             rtp_error_t configure_ctx(int rcc_flag, ssize_t value);
@@ -271,6 +275,12 @@ namespace uvgrtp {
              */
             uvgrtp::rtcp *get_rtcp();
 
+            /**
+             * \brief Get SSRC identifier. You can use the SSRC value for example to find the report 
+             * block belonging to this media_stream in RTCP sender/receiver report.
+             *
+             * \return SSRC value
+             */
             uint32_t get_ssrc() const;
 
         private:

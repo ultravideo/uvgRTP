@@ -261,12 +261,13 @@ enum RTP_CTX_ENABLE_FLAGS {
      * in the firewall open */
     RCE_HOLEPUNCH_KEEPALIVE         = 1 << 14,
 
-    /** Use 192-bit keys with SRTP */
+    /** Use 192-bit keys with SRTP, only user key management is supported */
     RCE_SRTP_KEYSIZE_192            = 1 << 15,
 
-    /** Use 256-bit keys with SRTP */
+    /** Use 256-bit keys with SRTP, only user key management is supported */
     RCE_SRTP_KEYSIZE_256            = 1 << 16,
 
+    /** Select which ZRTP stream does not perform Diffie-Hellman negotiation */
     RCE_ZRTP_MULTISTREAM_NO_DH      = 1 << 17,
 
     RCE_LAST                        = 1 << 18
@@ -299,7 +300,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      * to a high number to prevent OS from dropping packets */
     RCC_UDP_SND_BUF_SIZE = 2,
 
-    /** How large is the receiver ring buffer inside uvgRTP is
+    /** How large is the uvgRTP receiver ring buffer
      *
      * Default value is 4 MB
      *
@@ -356,4 +357,3 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
 };
 
 extern thread_local rtp_error_t rtp_errno;
-/// \endcond

@@ -10,6 +10,9 @@ namespace uvgrtp {
 
     class session;
 
+    /**
+     * \brief Provides CNAME isolation and can be used to create uvgrtp::session objects
+     */
     class context {
         public:
             /**
@@ -31,13 +34,12 @@ namespace uvgrtp {
             /**
              * \brief Create a new RTP session
              *
-             * \param addr IPv4 address of the remote participant
+             * \param address IPv4 address of the remote participant
              *
              * \return RTP session object
              *
              * \retval uvgrtp::session      On success
-             * \retval nullptr               If "remote_addr" is empty
-             * \retval nullptr               If memory allocation failed
+             * \retval nullptr               If "address" is empty or memory allocation failed
              */
             uvgrtp::session *create_session(std::string address);
 
@@ -55,7 +57,6 @@ namespace uvgrtp {
              * \return RTP session object
              *
              * \retval uvgrtp::session     On success
-             * \retval nullptr              If remote_addr or local_addr is empty
              * \retval nullptr              If memory allocation failed
              */
             uvgrtp::session *create_session(std::string remote_addr, std::string local_addr);
@@ -76,6 +77,12 @@ namespace uvgrtp {
             std::string& get_cname();
             /// \endcond
 
+            /**
+             * \brief Has Crypto++ been included in uvgRTP library
+             *
+             * \retval true      Crypto++ has been included, using SRTP is possible
+             * \retval false     Crypto++ has not been included, using SRTP is not possible
+             */
             bool crypto_enabled() const;
 
         private:

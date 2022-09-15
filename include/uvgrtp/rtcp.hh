@@ -86,9 +86,25 @@ namespace uvgrtp {
         uint32_t payload_len;
         const uint8_t* payload;
     };
-
     /// \endcond
 
+    /**
+     * \brief RTCP instance handles all incoming and outgoing RTCP traffic, including report generation
+     *
+     * \details If media_stream was created with RCE_RTCP flag, RTCP is enabled. RTCP periodically sends compound RTCP packets. 
+     * The bit rate of RTP session influences the reporting interval, but changing this has not yet been implemented.
+     *
+     * The compound RTCP packet begins with either Sender Reports if we sent RTP packets recently or Receiver Report if we didn't 
+     * send RTP packets recently. Both of these report types include report blocks for all the RTP sources we have received packets 
+     * from during reporting period. The compound packets also always have an SDES packet and calling send_sdes_packet()-function will 
+     * modify the contents of this SDES packet.
+     *
+     * You can use the APP packet to test new RTCP packet types using the send_app_packet()-function. 
+     * The APP packets are added to these periodically sent compound packets.
+     * 
+     * 
+     * See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6" target="_blank">RFC 3550 section 6</a> for more details. 
+     */
     class rtcp {
         public:
             /// \cond DO_NOT_DOCUMENT
@@ -244,7 +260,17 @@ namespace uvgrtp {
              * \retval RTP_INVALID_VALUE If hook is nullptr
              */
             rtp_error_t install_sender_hook(void (*hook)(uvgrtp::frame::rtcp_sender_report *));
-            rtp_error_t install_sender_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_handler);
+
+            /**
+             * \brief Install an RTCP Sender Report hook
+             *
+             * \details This function is called when an RTCP Sender Report is received
+             *
+             * \param sr_handler C++ function pointer to the hook
+             *
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If hook is nullptr
+             */
             rtp_error_t install_sender_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_handler);
 
             /**
@@ -258,7 +284,17 @@ namespace uvgrtp {
              * \retval RTP_INVALID_VALUE If hook is nullptr
              */
             rtp_error_t install_receiver_hook(void (*hook)(uvgrtp::frame::rtcp_receiver_report *));
-            rtp_error_t install_receiver_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_handler);
+
+            /**
+             * \brief Install an RTCP Receiver Report hook
+             *
+             * \details This function is called when an RTCP Receiver Report is received
+             *
+             * \param rr_handler C++ function pointer to the hook
+             *
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If hook is nullptr
+             */
             rtp_error_t install_receiver_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_handler);
 
             /**
@@ -272,7 +308,17 @@ namespace uvgrtp {
              * \retval RTP_INVALID_VALUE If hook is nullptr
              */
             rtp_error_t install_sdes_hook(void (*hook)(uvgrtp::frame::rtcp_sdes_packet *));
-            rtp_error_t install_sdes_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_handler);
+
+            /**
+             * \brief Install an RTCP SDES packet hook
+             *
+             * \details This function is called when an RTCP SDES packet is received
+             *
+             * \param sdes_handler C++ function pointer to the hook
+             *
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If hook is nullptr
+             */
             rtp_error_t install_sdes_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_handler);
 
             /**
@@ -286,10 +332,34 @@ namespace uvgrtp {
              * \retval RTP_INVALID_VALUE If hook is nullptr
              */
             rtp_error_t install_app_hook(void (*hook)(uvgrtp::frame::rtcp_app_packet *));
-            rtp_error_t install_app_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
+
+            /**
+             * \brief Install an RTCP APP packet hook
+             *
+             * \details This function is called when an RTCP APP packet is received
+             *
+             * \param app_handler C++ function pointer to the hook
+             *
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If hook is nullptr
+             */
             rtp_error_t install_app_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
 
+            /// \cond DO_NOT_DOCUMENT
+            // These have been replaced by functions with unique_ptr in them
+            rtp_error_t install_sender_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_handler);
+            rtp_error_t install_receiver_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_handler);
+            rtp_error_t install_sdes_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_handler);
+            rtp_error_t install_app_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
+            /// \endcond
 
+            /**
+             * \brief Remove all installed hooks for RTCP
+             *
+             * \details Removes all installed hooks so they can be readded in case of changes
+             *
+             * \retval RTP_OK on success
+             */
             rtp_error_t remove_all_hooks();
 
             /// \cond DO_NOT_DOCUMENT
@@ -301,13 +371,12 @@ namespace uvgrtp {
 
             /* Update RTCP-related sender statistics */
             static rtp_error_t send_packet_handler_vec(void *arg, uvgrtp::buf_vec& buffers);
-            /// \endcond
 
             // the length field is the rtcp packet size measured in 32-bit words - 1
             size_t rtcp_length_in_bytes(uint16_t length);
 
-            /// \cond DO_NOT_DOCUMENT
             void set_payload_size(size_t mtu_size);
+            /// \endcond
 
         private:
 
