@@ -2,7 +2,7 @@
 
 uvgRTP is an *Real-Time Transport Protocol (RTP)* library written in C++ with a focus on simple to use and high-efficiency media delivery over the Internet. It features an intuitive and easy-to-use *Application Programming Interface (API)*, built-in support for transporting *Versatile Video Coding (VVC)*, *High Efficiency Video Coding (HEVC)*, *Advanced Video Coding (AVC)* encoded video and Opus encoded audio. uvgRTP also supports *End-to-End Encrypted (E2EE)* media delivery using the combination of *Secure RTP (SRTP)* and ZRTP. According to [our measurements](https://researchportal.tuni.fi/en/publications/open-source-rtp-library-for-high-speed-4k-hevc-video-streaming) uvgRTP is able to reach a goodput of 600 MB/s (4K at 700fps) for HEVC stream when measured in LAN. The CPU usage is relative to the goodput value, and therefore smaller streams have a very small CPU usage.
 
-uvgRTP is licensed under the permissive BSD 2-Clause License. This cross-platform library can be run on both Linux and Windows operating systems. Mac OS is currently not supported, but contributions are welcome to help with this. For SRTP/ZRTP support, uvgRTP uses [Crypto++ library](https://www.cryptopp.com/). 
+uvgRTP is licensed under the permissive BSD 2-Clause License. This cross-platform library can be run on both Linux and Windows operating systems. Mac OS is also supported, but the support relies on community contributions. For SRTP/ZRTP support, uvgRTP uses [Crypto++ library](https://www.cryptopp.com/). 
 
 Currently supported specifications:
    * [RFC 3550: RTP: A Transport Protocol for Real-Time Applications](https://tools.ietf.org/html/rfc3550)
@@ -13,17 +13,15 @@ Currently supported specifications:
    * [RFC 6189: ZRTP: Media Path Key Agreement for Unicast Secure RTP](https://tools.ietf.org/html/rfc6189)
    * [Draft: RTP Payload Format for Versatile Video Coding (VVC)](https://tools.ietf.org/html/draft-ietf-avtcore-rtp-vvc-08)
 
-The original version of uvgRTP is based on Marko Viitanen's [fRTPlib library](https://github.com/fador/fRTPlib).
-
 ## Notable features
 
-* Built-in support for:
-    * AVC/HEVC/VVC video streaming
-    * Opus audio streaming
-    * Delivery encryption with SRTP/ZRTP
-* Generic interface for custom media types
-* UDP hole punching
+* AVC/HEVC/VVC video streaming, including packetization
+* Ready support for many formats which don't need packetization, including Opus
+* Delivery encryption with SRTP
+* Encryption key negotiation with ZRTP
+* UDP firewall hole punching
 * Simple to use API
+* Working examples
 * Permissive license
 
 ## Building and linking
@@ -44,7 +42,7 @@ We also have an easy to use performance test framework for benchmarking uvgRTP a
 
 ## Papers
 
-If you use uvgRTP in your research, please cite one of the following papers based on your topic. Cite the first one if you are unsure.
+If you use uvgRTP in your research, please cite one of the following papers:
 
 [Open-Source RTP Library for High-Speed 4K HEVC Video Streaming](https://researchportal.tuni.fi/en/publications/open-source-rtp-library-for-high-speed-4k-hevc-video-streaming)
 
@@ -57,3 +55,7 @@ If you use uvgRTP in your research, please cite one of the following papers base
 [Open-source RTP Library for End-to-End Encrypted Real-Time Video Streaming Applications](https://researchportal.tuni.fi/en/publications/open-source-rtp-library-for-end-to-end-encrypted-real-time-video-)
 
 ```J. Räsänen, A. Altonen, A. Mercat, and J. Vanne, “Open-source RTP library for end-to-end encrypted real-time video streaming applications,” in Proc. IEEE Int. Symp. Multimedia, Naples, Italy, Nov.-Dec. 2021.```
+
+## Origin
+
+The original version of uvgRTP is based on Marko Viitanen's [fRTPlib library](https://github.com/fador/fRTPlib).
