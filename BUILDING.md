@@ -55,13 +55,13 @@ NOTE: Some application dependencies (such as Qt) may require a specific build co
 
 ##### Selecting build type with CMake
 
-If you are using a system that does not provide build type selection later, you may need to select release build with:
+If you are using a system that does not provide build type selection later, you may need to select Debug build with:
 
 ```
-cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake -DCMAKE_BUILD_TYPE=Debug ..
 ```
 
-The default build type is Debug.
+The default build type is Release.
 
 ##### Building
 

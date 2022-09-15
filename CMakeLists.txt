@@ -150,8 +150,8 @@ target_include_directories(${PROJECT_NAME}
 if(CMAKE_BUILD_TYPE)
     message(STATUS "Selecting build type: ${CMAKE_BUILD_TYPE}")
 elseif (NOT CMAKE_CONFIGURATION_TYPES)
-    message(STATUS "No build type selected. Selecting Debug. Use CMAKE_BUILD_TYPE to change build type.")
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
+    message(STATUS "No build type selected. Selecting Release. You may use CMAKE_BUILD_TYPE to select a different build type.")
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
 
