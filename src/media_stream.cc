@@ -87,7 +87,7 @@ rtp_error_t uvgrtp::media_stream::init_connection()
 
     short int family = AF_INET;
 
-    if (!(rce_flags_ & RCE_RECEIVE_ONLY) && remote_address_ != "")
+    if (!(rce_flags_ & RCE_RECEIVE_ONLY) && remote_address_ != "" && dst_port_ != 0)
     {
         // no reason to fail sending even if binding fails so we set remote address first
         remote_sockaddr_ = socket_->create_sockaddr(family, remote_address_, dst_port_);
@@ -505,9 +505,9 @@ rtp_error_t uvgrtp::media_stream::check_push_preconditions(int rtp_flags, bool s
         return RTP_NOT_INITIALIZED;
     }
 
-    if (remote_address_ == "")
+    if (remote_address_ == "" && dst_port_ != 0)
     {
-        UVG_LOG_ERROR("Cannot push frame if remote address has not been provided!");
+        UVG_LOG_ERROR("Cannot push frame if remote address and port have not been provided!");
         return RTP_INVALID_VALUE;
     }
 
