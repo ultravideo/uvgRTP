@@ -12,20 +12,34 @@ constexpr auto EXAMPLE_DURATION_S = std::chrono::seconds(2);
 
 // encryption parameters of example
 enum Key_length { SRTP_128 = 128, SRTP_196 = 196, SRTP_256 = 256 };
-constexpr Key_length KEY_SIZE = SRTP_128; // change this to change tested key length
-constexpr int KEY_SIZE_BYTES = KEY_SIZE / 8;
 constexpr int SALT_SIZE = 112;
 constexpr int SALT_SIZE_BYTES = SALT_SIZE / 8;
 
-void user_send_func(uint8_t key[KEY_SIZE_BYTES], uint8_t salt[SALT_SIZE_BYTES]);
-void user_receive_func(uint8_t key[KEY_SIZE_BYTES], uint8_t salt[SALT_SIZE_BYTES]);
+void user_send_func(uint8_t *key, uint8_t salt[SALT_SIZE_BYTES], uint8_t key_size);
+void user_receive_func(uint8_t *key, uint8_t salt[SALT_SIZE_BYTES], uint8_t key_size);
 void zrtp_sender_func(uvgrtp::session* sender_session, int sender_port, int receiver_port, unsigned int flags);
 void zrtp_receive_func(uvgrtp::session* receiver_session, int sender_port, int receiver_port, unsigned int flags);
 
+void test_user_key(Key_length len);
 
 // User key management test
 
-TEST(EncryptionTests, srtp_user_keys)
+TEST(EncryptionTests, srtp_user_key_128)
+{
+    test_user_key(SRTP_128);
+}
+
+TEST(EncryptionTests, srtp_user_key_196)
+{
+    test_user_key(SRTP_196);
+}
+
+TEST(EncryptionTests, srtp_user_key_256)
+{
+    test_user_key(SRTP_256);
+}
+
+void test_user_key(Key_length len)
 {
     std::cout << "Starting ZRTP sender thread" << std::endl;
     uvgrtp::context ctx;
@@ -37,18 +51,18 @@ TEST(EncryptionTests, srtp_user_keys)
         return;
     }
 
-    uint8_t key[KEY_SIZE_BYTES] = { 0 };
+    uint8_t *key = new uint8_t[len];
     uint8_t salt[SALT_SIZE_BYTES] = { 0 };
 
     // initialize SRTP key and salt with dummy values
-    for (int i = 0; i < KEY_SIZE_BYTES; ++i)
+    for (int i = 0; i < len; ++i)
         key[i] = i;
 
     for (int i = 0; i < SALT_SIZE_BYTES; ++i)
         salt[i] = i * 2;
 
-    std::unique_ptr<std::thread> sender_thread = std::unique_ptr<std::thread>(new std::thread(user_send_func, key, salt));
-    std::unique_ptr<std::thread> receiver_thread = std::unique_ptr<std::thread>(new std::thread(user_receive_func, key, salt));
+    std::unique_ptr<std::thread> sender_thread = std::unique_ptr<std::thread>(new std::thread(user_send_func, key, salt, len));
+    std::unique_ptr<std::thread> receiver_thread = std::unique_ptr<std::thread>(new std::thread(user_receive_func, key, salt, len));
 
     if (sender_thread && sender_thread->joinable())
     {
@@ -59,9 +73,11 @@ TEST(EncryptionTests, srtp_user_keys)
     {
         receiver_thread->join();
     }
+
+    delete[] key;
 }
 
-void user_send_func(uint8_t key[KEY_SIZE_BYTES], uint8_t salt[SALT_SIZE_BYTES])
+void user_send_func(uint8_t* key, uint8_t salt[SALT_SIZE_BYTES], uint8_t key_size)
 {
     uvgrtp::context ctx;
     uvgrtp::session* sender_session = nullptr;
@@ -71,11 +87,11 @@ void user_send_func(uint8_t key[KEY_SIZE_BYTES], uint8_t salt[SALT_SIZE_BYTES])
 
     // Enable SRTP and let user manage the keys
     unsigned flags = RCE_SRTP | RCE_SRTP_KMNGMNT_USER;
-    if (KEY_SIZE == 192)
+    if (key_size == 192)
     {
         flags |= RCE_SRTP_KEYSIZE_192;
     }
-    else if (KEY_SIZE == 256)
+    else if (key_size == 256)
     {
         flags |= RCE_SRTP_KEYSIZE_256;
     }
@@ -103,7 +119,7 @@ void user_send_func(uint8_t key[KEY_SIZE_BYTES], uint8_t salt[SALT_SIZE_BYTES])
     }
 }
 
-void user_receive_func(uint8_t key[KEY_SIZE_BYTES], uint8_t salt[SALT_SIZE_BYTES])
+void user_receive_func(uint8_t *key, uint8_t salt[SALT_SIZE_BYTES], uint8_t key_size)
 {
     /* See sending.cc for more details */
     uvgrtp::context ctx;
@@ -112,11 +128,11 @@ void user_receive_func(uint8_t key[KEY_SIZE_BYTES], uint8_t salt[SALT_SIZE_BYTES
     /* Enable SRTP and let user manage keys */
     unsigned flags = RCE_SRTP | RCE_SRTP_KMNGMNT_USER;
 
-    if (KEY_SIZE == 192)
+    if (key_size == 192)
     {
         flags |= RCE_SRTP_KEYSIZE_192;
     }
-    else if (KEY_SIZE == 256)
+    else if (key_size == 256)
     {
         flags |= RCE_SRTP_KEYSIZE_256;
     }
