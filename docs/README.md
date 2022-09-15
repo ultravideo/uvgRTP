@@ -66,23 +66,23 @@ session->create_stream(..., RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP_NULL_CIP
 
 | Flag | Explanation |
 | ---- |:----------:|
-| RCE_NO_FLAGS | Use this if you don't need any rce flags |
-| RCE_SEND_ONLY | Use this to prevent binding to a local address |
-| RCE_RECEIVE_ONLY | Use this to interpret any address as local address and prevent sending |
-| RCE_SRTP | Enable SRTP, must be coupled with either RCE_SRTP_KMNGMNT_ZRTP or RCE_SRTP_KMNGMNT_USER |
+| RCE_NO_FLAGS          | Use this if you don't need any rce flags |
+| RCE_SEND_ONLY         | Use this to prevent binding to a local address |
+| RCE_RECEIVE_ONLY      | Use this to interpret any address as local address and prevent sending |
+| RCE_SRTP              | Enable SRTP, must be coupled with either RCE_SRTP_KMNGMNT_ZRTP or RCE_SRTP_KMNGMNT_USER |
 | RCE_SRTP_KMNGMNT_ZRTP | Use ZRTP to manage keys (see section SRTP for more details) |
 | RCE_SRTP_KMNGMNT_USER | Let user manage keys (see section SRTP for more details) |
 | RCE_H26X_DO_NOT_PREPEND_SC | Prevent uvgRTP from prepending start code prefix to received H26x frames. Use this is your decoder doesn't expect prefixes |
 | RCE_H26X_DEPENDENCY_ENFORCEMENT | In progress feature. When ready, a loss of frame means that rest of the frames that depended on that frame are also dropped |
-| RCE_FRAGMENT_GENERIC | Fragment generic media frames into RTP packets fitting into MTU (MTU is configurable, see RCC_MTU_SIZE) |
+| RCE_FRAGMENT_GENERIC       | Fragment generic media frames into RTP packets fitting into MTU (MTU is configurable, see RCC_MTU_SIZE) |
 | RCE_SYSTEM_CALL_CLUSTERING | On Unix systems, this enables the use of sendmmsg(2) to send multiple packets at once, resulting in slightly lower CPU usage. May increase frame loss at high frame rates. |
-| RCE_SRTP_NULL_CIPHER | Use NULL cipher for SRTP, meaning the packets are not encrypted |
-| RCE_SRTP_AUTHENTICATE_RTP | Add RTP authentication tag to each RTP packet and verify authenticity of each received packet before they are returned to the user |
+| RCE_SRTP_NULL_CIPHER       | Use NULL cipher for SRTP, meaning the packets are not encrypted |
+| RCE_SRTP_AUTHENTICATE_RTP  | Add RTP authentication tag to each RTP packet and verify authenticity of each received packet before they are returned to the user |
 | RCE_SRTP_REPLAY_PROTECTION | Monitor and reject replayed RTP packets |
-| RCE_RTCP | Enable RTCP |
-| RCE_HOLEPUNCH_KEEPALIVE | Keep the hole made in the firewall open in case the streaming is unidirectional. If holepunching has been enabled during session creation and this flag is given to `create_stream()` and uvgRTP notices that the application has not sent any data in a while (unidirectionality), it sends a small UDP datagram to the remote participant to keep the connection open |
-| RCE_SRTP_KEYSIZE_192 |  |
-| RCE_SRTP_KEYSIZE_256 |  |
+| RCE_RTCP                   | Enable RTCP |
+| RCE_HOLEPUNCH_KEEPALIVE    | Keep the hole made in the firewall open in case the streaming is unidirectional. If holepunching has been enabled during session creation and this flag is given to `create_stream()` and uvgRTP notices that the application has not sent any data in a while (unidirectionality), it sends a small UDP datagram to the remote participant to keep the connection open |
+| RCE_SRTP_KEYSIZE_192       | Use 196 bit SRTP keys, currently works only with RCE_SRTP_KMNGMNT_USER |
+| RCE_SRTP_KEYSIZE_256       | Use 256 bit SRTP keys, currently works only with RCE_SRTP_KMNGMNT_USER |
 | RCE_ZRTP_MULTISTREAM_NO_DH | Select which streams do not perform Diffie-Hellman with ZRTP. Currently, ZRTP only works reliably with one stream performing DH and one not performing it |
 
 ### RTP Context Configuration (RCC) flags
@@ -99,12 +99,12 @@ stream->configure_ctx(RCC_PKT_MAX_DELAY, 150);
 | RCC_UDP_RCV_BUF_SIZE | Specify the socket UDP receive buffer size | 4 MB | Receiver |
 | RCC_UDP_SND_BUF_SIZE | Specify the socket UDP send buffer size    | 4 MB | Sender |
 | RCC_RING_BUFFER_SIZE | Specify the size of reception ring buffer. Larger size helps receiving large number of packets at once. | 4 MB | Receiver |
-| RCC_PKT_MAX_DELAY | How many milliseconds is each frame waited until they're dropped (for fragmented frames only) | 500 ms | Receiver |
+| RCC_PKT_MAX_DELAY    | How many milliseconds is each frame waited until they're dropped (for fragmented frames only) | 500 ms | Receiver |
 | RCC_DYN_PAYLOAD_TYPE | Override uvgRTP's default payload number used in RTP headers | Format-specific, see [util.hh](/include/uvgrtp/util.hh) | Both |
-| RCC_CLOCK_RATE | Override uvgRTP's default clock rate used to calculate RTP timestamps | Format-specific, see [RFC 3551](https://www.rfc-editor.org/rfc/rfc3551#section-6) | Sender |
-| RCC_MTU_SIZE | Set the Maximum Transmission Unit (MTU) value. uvgRTP assumes the repsence of UDP header (8 bytes) and IP header (20 bytes for IPv4) and substract those from the value. | 1500 bytes | Both |
-| RCC_FPS_ENUMERATOR | Setting RCC_FPS_ENUMERATOR or RCC_FPS_DENOMINATOR enables the constant fps functionality. With this functionality, uvgRTP will send fragmented frames with correct transmission interval and divides each fragment for that frame interval to help receiver in receiving packets. Use this in challenging performance circumstances or to achieve extreme performance with uvgRTP. Adds one frame of latency. Disable with 0. | 30 (disabled) | Sender |
-| RCC_FPS_DENOMINATOR | Use this in combination with RCC_FPS_ENUMERATOR if you need fractional fps values | 1 (disabled) | Sender |
+| RCC_CLOCK_RATE       | Override uvgRTP's default clock rate used to calculate RTP timestamps | Format-specific, see [RFC 3551](https://www.rfc-editor.org/rfc/rfc3551#section-6) | Sender |
+| RCC_MTU_SIZE         | Set the Maximum Transmission Unit (MTU) value. uvgRTP assumes the repsence of UDP header (8 bytes) and IP header (20 bytes for IPv4) and substract those from the value. | 1500 bytes | Both |
+| RCC_FPS_ENUMERATOR   | Setting RCC_FPS_ENUMERATOR or RCC_FPS_DENOMINATOR enables the constant fps functionality. With this functionality, uvgRTP will send fragmented frames with correct transmission interval and divides each fragment for that frame interval to help receiver in receiving packets. Use this in challenging performance circumstances or to achieve extreme performance with uvgRTP. Adds one frame of latency. Disable with 0. | 30 (disabled) | Sender |
+| RCC_FPS_DENOMINATOR  | Use this in combination with RCC_FPS_ENUMERATOR if you need fractional fps values | 1 (disabled) | Sender |
 
 ### RTP frame flags
 
@@ -127,9 +127,9 @@ Here are are listed all the flags that have been available at one point in uvgRT
 | ---- |:----------:|
 | RCE_SYSTEM_CALL_DISPATCHER    | This feature has been removed |
 | RCE_NO_H26X_INTRA_DELAY       | This feature has been removed | 
-| RCE_NO_H26X_SCL | This flag replaced by RTP_NO_H26X_SCL | 
+| RCE_NO_H26X_SCL               | This flag replaced by RTP_NO_H26X_SCL | 
 | RCE_H26X_NO_DEPENDENCY_ENFORCEMENT | The feature is disabled by default | 
-| RCE_H26X_PREPEND_SC | This feature is enabled by default | 
+| RCE_H26X_PREPEND_SC           | This feature is enabled by default | 
 | RCE_NO_SYSTEM_CALL_CLUSTERING | This feature is disabled by default | 
 | RCE_SRTP_INPLACE_ENCRYPTION   | This feature is enabled by default (see RTP_COPY to disable) | 
 
