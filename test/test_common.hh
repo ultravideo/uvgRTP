@@ -12,7 +12,7 @@ inline std::unique_ptr<uint8_t[]> create_test_packet(rtp_format_t format, uint8_
     bool add_start_code, size_t size, int rtp_flags);
 
 inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets, size_t size,
-    uvgrtp::session* sess, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver, int rtp_flags);
+    uvgrtp::session* sess, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver, int rtp_flags, int framerate = 25);
 
 inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size, 
     uvgrtp::session* sess, uvgrtp::media_stream* sender,
@@ -93,9 +93,10 @@ inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size,
     EXPECT_NE(nullptr, sender);
     if (sess && sender)
     {
-        std::cout << "Sending " << packets << " test packets with size " << size << std::endl;
+        std::cout << "Sending " << packets << " test packets with size " << size 
+            << " and interval " << packet_interval_ms << "ms" << std::endl;
         
-        std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point start = std::chrono::high_resolution_clock::now();
         for (unsigned int i = 0; i < packets; ++i)
         {
             if (i % 60 == 0 && send_app)
@@ -149,11 +150,12 @@ inline void wait_until_next_frame(std::chrono::steady_clock::time_point& start, 
     // wait until it is time to send the next frame. Simulates a steady sending pace
     // and included only for demostration purposes since you can use uvgRTP to send
     // packets as fast as desired
-    auto time_since_start = std::chrono::steady_clock::now() - start;
-    auto next_frame_time = (frame_index + 1) * std::chrono::milliseconds(packet_interval_ms);
-    if (next_frame_time > time_since_start)
+    auto time_since_start = std::chrono::high_resolution_clock::now() - start;
+    auto next_frame_slot = (frame_index + 1) * std::chrono::milliseconds(packet_interval_ms);
+
+    if (next_frame_slot > time_since_start)
     {
-        std::this_thread::sleep_for(next_frame_time - time_since_start);
+        std::this_thread::sleep_for(next_frame_slot - time_since_start);
     }
 }
 
@@ -178,7 +180,7 @@ inline void cleanup_ms(uvgrtp::session* sess, uvgrtp::media_stream* ms)
 }
 
 inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets, size_t size, 
-    uvgrtp::session* sess, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver, int rtp_flags)
+    uvgrtp::session* sess, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver, int rtp_flags, int framerate)
 {
     EXPECT_NE(nullptr, sess);
     EXPECT_NE(nullptr, sender);
@@ -188,7 +190,7 @@ inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets
     {
         Test_receiver* tester = new Test_receiver(packets);
 
-        int interval_ms = 10;
+        int interval_ms = 1000/framerate;
 
         add_hook(tester, receiver, rtp_receive_hook);
 

@@ -29,6 +29,7 @@ uvgrtp::frame_queue::frame_queue(std::shared_ptr<uvgrtp::socket> socket, std::sh
     rtp_(rtp), 
     socket_(socket),
     rce_flags_(rce_flags),
+    fps_(false),
     frame_interval_(),
     fps_sync_point_(),
     frames_since_sync_(0)
@@ -284,23 +285,39 @@ rtp_error_t uvgrtp::frame_queue::flush_queue()
     if (active_->packets.size() > 1)
         ((uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr - 1])[1] |= (1 << 7);
 
-    if (fps)
+    std::chrono::high_resolution_clock::time_point this_frame_time_slot = this_frame_time();
+    if ((rce_flags_ & RCE_FRAMERATE) && fps_)
     {
-        std::chrono::high_resolution_clock::time_point this_moment = std::chrono::high_resolution_clock::now();
-        std::chrono::high_resolution_clock::time_point next_frame = next_frame_time();
-
-        if (next_frame > this_moment)
+        std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
+        if (this_frame_time_slot < now || frames_since_sync_ == 0)
         {
-            UVG_LOG_DEBUG("Updating fps sync point");
-            fps_sync_point_ = this_moment;
-            next_frame = next_frame_time();
+            UVG_LOG_DEBUG("Updating framerate sync point");
+
+            frames_since_sync_ = 0;
+            // have a little bit of extra room so we don't sync constantly
+            fps_sync_point_ = std::chrono::high_resolution_clock::now() + frame_interval_/10;
+        }
+        else if (this_frame_time_slot > now + std::chrono::milliseconds(1))
+        {
+            // wait until it is time to send this frame
+            std::this_thread::sleep_for(this_frame_time_slot - now - std::chrono::milliseconds(1));
+        }
+        ++frames_since_sync_;
+    }
+
+    if ((rce_flags_ & RCE_FRAGMENT_PACING) && fps_)
+    {
+        if (!(rce_flags_ & RCE_FRAMERATE))
+        {
+            // if framerate is not use, we just use this moment as synchronization moment
+            this_frame_time_slot = std::chrono::high_resolution_clock::now();
         }
 
         std::chrono::nanoseconds packet_interval = frame_interval_/ active_->packets.size();
 
         for (size_t i = 0; i < active_->packets.size(); ++i)
         {
-            std::chrono::high_resolution_clock::time_point next_packet = this_moment + i * packet_interval;
+            std::chrono::high_resolution_clock::time_point next_packet = this_frame_time_slot + i * packet_interval;
 
             // sleep until next packet time
             std::this_thread::sleep_for(next_packet - std::chrono::high_resolution_clock::now());
@@ -324,9 +341,10 @@ rtp_error_t uvgrtp::frame_queue::flush_queue()
     return deinit_transaction();
 }
 
-inline std::chrono::high_resolution_clock::time_point uvgrtp::frame_queue::next_frame_time()
+inline std::chrono::high_resolution_clock::time_point uvgrtp::frame_queue::this_frame_time()
 {
-    return fps_sync_point_ + frame_interval_* (frames_since_sync_ + 1);
+    return fps_sync_point_ +
+        std::chrono::nanoseconds((uint64_t)(frames_since_sync_ * frame_interval_.count()));
 }
 
 void uvgrtp::frame_queue::update_rtp_header()

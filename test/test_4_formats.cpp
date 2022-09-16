@@ -135,7 +135,7 @@ TEST(FormatTests, h265)
     cleanup_sess(ctx, sess);
 }
 
-TEST(FormatTests, h265_large_fps)
+TEST(FormatTests, h265_fps)
 {
     std::cout << "Starting h265 test" << std::endl;
     uvgrtp::context ctx;
@@ -144,14 +144,103 @@ TEST(FormatTests, h265_large_fps)
     uvgrtp::media_stream* sender = nullptr;
     uvgrtp::media_stream* receiver = nullptr;
 
+    int framerate = 10;
+
     if (sess)
     {
-        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_FRAMERATE);
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
 
         if (receiver)
         {
-            sender->configure_ctx(RCC_FPS_ENUMERATOR, 100);
+            sender->configure_ctx(RCC_FPS_ENUMERATOR, framerate);
+            sender->configure_ctx(RCC_FPS_DENOMINATOR, 1);
+        }
+    }
+
+    std::vector<size_t> test_sizes = { 10000, 20000, 30000, 40000, 50000, 75000, 100000 };
+
+    // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
+    int rtp_flags = RTP_NO_FLAGS;
+    int nal_type = 5;
+    rtp_format_t format = RTP_FORMAT_H265;
+    int test_runs = 10;
+
+    for (auto& size : test_sizes)
+    {
+        std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, framerate);
+    }
+
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
+}
+
+TEST(FormatTests, h265_small_fragment_pacing_fps)
+{
+    std::cout << "Starting h265 test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    int framerate = 10;
+
+    if (sess)
+    {
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_FRAMERATE | RCE_FRAGMENT_PACING);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
+
+        if (receiver)
+        {
+            sender->configure_ctx(RCC_FPS_ENUMERATOR, framerate);
+            sender->configure_ctx(RCC_FPS_DENOMINATOR, 1);
+
+            receiver->configure_ctx(RCC_UDP_RCV_BUF_SIZE, 40 * 1000 * 1000);
+            receiver->configure_ctx(RCC_RING_BUFFER_SIZE, 40 * 1000 * 1000);
+        }
+    }
+
+    std::vector<size_t> test_sizes = { 1000, 2000, 3000, 4000, 5000, 7500, 10000 };
+
+    // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
+    int rtp_flags = RTP_NO_FLAGS;
+    int nal_type = 5;
+    rtp_format_t format = RTP_FORMAT_H265;
+    int test_runs = 10;
+
+    for (auto& size : test_sizes)
+    {
+        std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, framerate);
+    }
+
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
+}
+
+TEST(FormatTests, h265_large_fragment_pacing)
+{
+    std::cout << "Starting h265 test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    int framerate = 10;
+
+    if (sess)
+    {
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_FRAGMENT_PACING);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
+
+        if (receiver)
+        {
+            sender->configure_ctx(RCC_FPS_ENUMERATOR, framerate);
             sender->configure_ctx(RCC_FPS_DENOMINATOR, 1);
 
             receiver->configure_ctx(RCC_UDP_RCV_BUF_SIZE, 40 * 1000 * 1000);
@@ -170,7 +259,7 @@ TEST(FormatTests, h265_large_fps)
     for (auto& size : test_sizes)
     {
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, framerate);
     }
 
     cleanup_ms(sess, sender);

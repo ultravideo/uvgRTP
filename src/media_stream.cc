@@ -225,6 +225,9 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
             media_ = nullptr;
             return RTP_NOT_SUPPORTED;
     }
+
+    // set default values for fps
+    media_->set_fps(fps_enumerator_, fps_denominator_);
 }
 
 rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)

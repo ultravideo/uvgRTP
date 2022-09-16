@@ -147,7 +147,7 @@ namespace uvgrtp {
 
             void set_fps(ssize_t enumerator, ssize_t denominator)
             {
-                fps = enumerator > 0 && denominator > 0;
+                fps_ = enumerator > 0 && denominator > 0;
                 if (denominator > 0)
                 {
                     frame_interval_ = std::chrono::nanoseconds(uint64_t(1.0 / double(enumerator / denominator) * 1000*1000*1000));
@@ -159,7 +159,7 @@ namespace uvgrtp {
 
             void enqueue_finalize(uvgrtp::buf_vec& tmp);
 
-            inline std::chrono::high_resolution_clock::time_point next_frame_time();
+            inline std::chrono::high_resolution_clock::time_point this_frame_time();
 
             transaction_t *active_;
 
@@ -174,7 +174,7 @@ namespace uvgrtp {
 
             int rce_flags_;
 
-            bool fps = false;
+            bool fps_ = false;
             std::chrono::nanoseconds frame_interval_;
 
             std::chrono::high_resolution_clock::time_point fps_sync_point_;

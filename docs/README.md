@@ -84,6 +84,8 @@ session->create_stream(..., RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP_NULL_CIP
 | RCE_SRTP_KEYSIZE_192       | Use 196 bit SRTP keys, currently works only with RCE_SRTP_KMNGMNT_USER |
 | RCE_SRTP_KEYSIZE_256       | Use 256 bit SRTP keys, currently works only with RCE_SRTP_KMNGMNT_USER |
 | RCE_ZRTP_MULTISTREAM_NO_DH | Select which streams do not perform Diffie-Hellman with ZRTP. Currently, ZRTP only works reliably with one stream performing DH and one not performing it |
+| RCE_FRAMERATE              | Try to keep the sent framerate as constant as possible (default fps is 30) |
+| RCE_FRAGMENT_PACING        | Pace the sending of framents to frame interval to help receiver receive packets (default frame interval is 1/30) |
 
 ### RTP Context Configuration (RCC) flags
 
@@ -103,8 +105,8 @@ stream->configure_ctx(RCC_PKT_MAX_DELAY, 150);
 | RCC_DYN_PAYLOAD_TYPE | Override uvgRTP's default payload number used in RTP headers | Format-specific, see [util.hh](/include/uvgrtp/util.hh) | Both |
 | RCC_CLOCK_RATE       | Override uvgRTP's default clock rate used to calculate RTP timestamps | Format-specific, see [RFC 3551](https://www.rfc-editor.org/rfc/rfc3551#section-6) | Sender |
 | RCC_MTU_SIZE         | Set the Maximum Transmission Unit (MTU) value. uvgRTP assumes the repsence of UDP header (8 bytes) and IP header (20 bytes for IPv4) and substract those from the value. | 1500 bytes | Both |
-| RCC_FPS_ENUMERATOR   | Setting RCC_FPS_ENUMERATOR or RCC_FPS_DENOMINATOR enables the constant fps functionality. With this functionality, uvgRTP will send fragmented frames with correct transmission interval and divides each fragment for that frame interval to help receiver in receiving packets. Use this in challenging performance circumstances or to achieve extreme performance with uvgRTP. Adds one frame of latency. Disable with 0. | 30 (disabled) | Sender |
-| RCC_FPS_DENOMINATOR  | Use this in combination with RCC_FPS_ENUMERATOR if you need fractional fps values | 1 (disabled) | Sender |
+| RCC_FPS_ENUMERATOR   | Set the fps used with RCE_FRAMERATE and RCE_FRAGMENT_PACING. | 30 | Sender |
+| RCC_FPS_DENOMINATOR  | Use this in combination with RCC_FPS_ENUMERATOR if you need fractional fps values | 1 | Sender |
 
 ### RTP frame flags
 
@@ -154,12 +156,12 @@ The second way of handling key-management of SRTP is to do it outside uvgRTP. To
 
 The default MTU size of uvgRTP has been set to 1500. uvgRTP assumes the presence of an UDP header and IP header in addition an RTP header which are taken into account when fragmenting frames. If your application is expected to work through tunneling such as VPN which adds additional headers on top of packets, you should lower the MTU size to avoid unnecessary IP level fragmentation. Some networks also allow for a higher MTU size in which case you can increase this.
 
-## High-performance scenario
+## Trouble receiving burst of packets?
 
 The default configuration of uvgRTP should be able to handle most basic scenarios up to 4K30p without any frame loss. If you are however 1) using a higher resolution, 2) higher fps value, 3) using a low power machine to receive the RTP stream, or 4) you are experiencing frame loss, you might consider setting or increasing the following parameters: 
 * RCC_UDP_RCV_BUF_SIZE: You can try increasing this to 40 or 80 MB if it helps receiving frames
 * RCC_UDP_SND_BUF_SIZE_ You can try increasing this to 40 or 80 MB if it helps sending frames
 * RCC_RING_BUFFER_SIZE: You can try increasing this to 40 or 80 MB if it helps receiving frames
-* RCC_FPS_ENUMERATOR and RCC_FPS_DENOMINATOR: You can try setting these to stream fps value to help sending and reception of frames
+* RCE_FRAGMENT_PACING, RCC_FPS_ENUMERATOR and RCC_FPS_DENOMINATOR: You can try RCE_FRAGMENT_PACING to make sender pace the sending of framents so receiver has easier time receiving them. Use RCC_FPS_ENUMERATOR and RCC_FPS_DENOMINATOR to set your fps
 
 None of these parameters will however help if you are sending more data than the receiver can process, they only help when dealing with burst of (usually fragmented) RTP traffic.
