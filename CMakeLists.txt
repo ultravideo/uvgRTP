@@ -205,7 +205,7 @@ if (UNIX)
 
         # Find crypto++
         if(NOT DISABLE_CRYPTO)
-            pkg_search_module(CRYPTOPP libcrypto++)
+            pkg_search_module(CRYPTOPP libcrypto++ cryptopp)
             if(CRYPTOPP_FOUND)
               list(APPEND UVGRTP_CXX_FLAGS ${CRYPTOPP_CFLAGS_OTHER})
               list(APPEND UVGRTP_LINKER_FLAGS ${CRYPTOPP_LDFLAGS})
