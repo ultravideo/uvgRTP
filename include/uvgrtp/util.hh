@@ -24,8 +24,9 @@ namespace uvgrtp {
     constexpr uint8_t UDP_HDR_SIZE = 8;
     constexpr uint8_t RTP_HDR_SIZE = 12;
 
-    // the default MTU size for ethernet, can be adjusted with rcc flags
-    constexpr uint16_t DEFAULT_MTU_SIZE = 1500;
+    /* the default MTU size for ethernet, can be adjusted with rcc flags. 
+     * The default is assumed to be 1500 minus 8 bytes reserved for additional protocol headers- */
+    constexpr uint16_t DEFAULT_MTU_SIZE = 1492;
 
     constexpr uint16_t MAX_IPV4_PAYLOAD = DEFAULT_MTU_SIZE - IPV4_HDR_SIZE - UDP_HDR_SIZE;
     constexpr uint16_t MAX_IPV6_PAYLOAD = DEFAULT_MTU_SIZE - IPV6_HDR_SIZE - UDP_HDR_SIZE;
@@ -225,7 +226,7 @@ enum RTP_CTX_ENABLE_FLAGS {
         arrived. Does not work if the dependencies are not in monotonic order. */
     RCE_H26X_DEPENDENCY_ENFORCEMENT = 1 << 7,
 
-    /** Fragment frames into RTP packets of MTU size (1500 bytes).
+    /** Fragment frames into RTP packets of MTU size (1492 bytes).
      *
      * Some RTP profiles define fragmentation by setting the marker bit indicating the 
      * last fragment of the frame. You can enable this functionality using this flag at 
@@ -332,10 +333,10 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
 
     /** Set a maximum value for the Ethernet frame size assumed by uvgRTP.
      *
-     * Default is 1500, from this Ethernet, IPv4 and UDP, and RTP headers
-     * are removed from this, giving a payload size of 1446 bytes
+     * Default is 1492, from this IPv4 and UDP, and RTP headers
+     * are removed, giving a payload size of 1452 bytes.
      *
-     * If application wishes to use small UDP datagrams for some reason,
+     * If application wishes to use small UDP datagram,
      * it can set MTU size to, for example, 500 bytes or if it wishes
      * to use jumbo frames, it can set the MTU size to 9000 bytes */
     RCC_MTU_SIZE         = 7,

@@ -247,11 +247,6 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(buf_vec& buffers)
             total += buffer.first;
         }
 
-        if (total > 1500)
-        {
-            UVG_LOG_DEBUG("Encryption needs to keep its FU division!");
-        }
-
         uint8_t* mem = new uint8_t[total];
         uint8_t* ptr = mem;
 

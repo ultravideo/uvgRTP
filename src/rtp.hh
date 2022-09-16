@@ -59,10 +59,7 @@ namespace uvgrtp {
             /* Use custom timestamp for the outgoing RTP packets */
             uint64_t timestamp_;
 
-            /* What is the maximum size of the payload available for this RTP instance
-             *
-             * By default, the value is set to 1443
-             * (maximum amount of payload bytes when MTU is 1500) */
+            /* What is the maximum size of the payload available for this RTP instance */
             size_t payload_size_;
 
             /* What is the maximum delay allowed for each frame

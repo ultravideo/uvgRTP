@@ -96,7 +96,7 @@ namespace uvgrtp {
              * \brief Send data to remote participant with a custom timestamp
              *
              * \details If so specified either by the selected media format and/or given
-             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1500 bytes,
+             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1492 bytes,
              * or to any other size defined by the application using ::RCC_MTU_SIZE
              *
              * The frame is automatically reconstructed by the receiver if all fragments have been
@@ -120,7 +120,7 @@ namespace uvgrtp {
              * \brief Send data to remote participant with a custom timestamp
              *
              * \details If so specified either by the selected media format and/or given
-             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1500 bytes,
+             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1492 bytes,
              * or to any other size defined by the application using ::RCC_MTU_SIZE
              *
              * The frame is automatically reconstructed by the receiver if all fragments have been
@@ -144,7 +144,7 @@ namespace uvgrtp {
              * \brief Send data to remote participant with a custom timestamp
              *
              * \details If so specified either by the selected media format and/or given
-             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1500 bytes,
+             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1492 bytes,
              * or to any other size defined by the application using ::RCC_MTU_SIZE
              *
              * The frame is automatically reconstructed by the receiver if all fragments have been
@@ -175,7 +175,7 @@ namespace uvgrtp {
              * \brief Send data to remote participant with a custom timestamp
              *
              * \details If so specified either by the selected media format and/or given
-             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1500 bytes,
+             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1492 bytes,
              * or to any other size defined by the application using ::RCC_MTU_SIZE
              *
              * The frame is automatically reconstructed by the receiver if all fragments have been
