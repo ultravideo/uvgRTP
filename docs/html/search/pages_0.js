@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['uvgrtp_20public_20api_20documentation_146',['uvgRTP public API documentation',['../index.html',1,'']]]
+  ['uvgrtp_0',['uvgRTP',['../index.html',1,'']]]
 ];
