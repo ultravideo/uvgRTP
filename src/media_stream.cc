@@ -44,7 +44,7 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     media_(nullptr),
     holepuncher_(std::unique_ptr<uvgrtp::holepuncher>(new uvgrtp::holepuncher(socket_))),
     cname_(cname),
-    fps_enumerator_(30),
+    fps_numerator_(30),
     fps_denominator_(1)
 {}
 
@@ -225,7 +225,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
     }
 
     // set default values for fps
-    media_->set_fps(fps_enumerator_, fps_denominator_);
+    media_->set_fps(fps_numerator_, fps_denominator_);
     return RTP_OK;
 }
 
@@ -640,14 +640,14 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             reception_flow_->set_payload_size(value - (IPV4_HDR_SIZE + UDP_HDR_SIZE)); // largest packet we can get from socket
             break;
         }
-        case RCC_FPS_ENUMERATOR: {
-            fps_enumerator_ = value;
+        case RCC_FPS_NUMERATOR: {
+            fps_numerator_ = value;
 
             if (value > 0 && (rce_flags_ & RCE_SYSTEM_CALL_CLUSTERING)) {
-                UVG_LOG_WARN("Setting FPS enumerator will disable System Call Clustering (SCC)");
+                UVG_LOG_WARN("Setting FPS numerator will disable System Call Clustering (SCC)");
             }
 
-            media_->set_fps(fps_enumerator_, fps_denominator_);
+            media_->set_fps(fps_numerator_, fps_denominator_);
             break;
         }
         case RCC_FPS_DENOMINATOR: {
@@ -657,7 +657,7 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
                 UVG_LOG_WARN("Setting FPS denominator will disable System Call Clustering (SCC)");
             }
 
-            media_->set_fps(fps_enumerator_, fps_denominator_);
+            media_->set_fps(fps_numerator_, fps_denominator_);
             break;
         }           
 

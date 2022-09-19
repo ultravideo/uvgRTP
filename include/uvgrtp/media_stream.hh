@@ -343,7 +343,7 @@ namespace uvgrtp {
 
             std::string cname_;
 
-            ssize_t fps_enumerator_ = 30;
+            ssize_t fps_numerator_ = 30;
             ssize_t fps_denominator_ = 1;
     };
 }

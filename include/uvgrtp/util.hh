@@ -322,25 +322,19 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      * to use jumbo frames, it can set the MTU size to 9000 bytes */
     RCC_MTU_SIZE         = 7,
 
-    /** Set the enumerator of frame rate enforced by uvgRTP.
+    /** Set the numerator of frame rate enforced by uvgRTP.
     * 
     * Default is 30.
     * 
-    * Setting a positive value enables this functionality. Setting it to 0 or less, disables it.
-    * 
     * The fps API paces the sending of the RTP packets so that receiver is under less
-    * strain to receive all. Setting this is not neccessary for small frame sizes,
-    * but even then it makes the stream smoother. The cost is at most one frame extra latency. */
-    RCC_FPS_ENUMERATOR   = 8,
+    * strain to receive all. Setting this is not neccessary for small frame sizes. 
+    * The cost is at most one frame extra latency. */
+    RCC_FPS_NUMERATOR  = 8,
+    RCC_FPS_ENUMERATOR = 8, // wrong name
 
     /** Set the denominator of frame rate enforced by uvgRTP.
      *
-     * Default is 1.
-     *
-     * Setting a positive value enables this functionality. Setting it to 0 or less, disables it.
-     *
-     * Setting the denominator is only necessary for fractional fps values as setting the enumerator 
-     * already enables the fps functionality.  */
+     * Default is 1 */
     RCC_FPS_DENOMINATOR  = 9,
 
     RCC_LAST

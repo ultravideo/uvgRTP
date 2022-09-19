@@ -145,12 +145,12 @@ namespace uvgrtp {
              * significant memory leaks */
             void install_dealloc_hook(void (*dealloc_hook)(void *));
 
-            void set_fps(ssize_t enumerator, ssize_t denominator)
+            void set_fps(ssize_t numerator, ssize_t denominator)
             {
-                fps_ = enumerator > 0 && denominator > 0;
+                fps_ = numerator > 0 && denominator > 0;
                 if (denominator > 0)
                 {
-                    frame_interval_ = std::chrono::nanoseconds(uint64_t(1.0 / double(enumerator / denominator) * 1000*1000*1000));
+                    frame_interval_ = std::chrono::nanoseconds(uint64_t(1.0 / double(numerator / denominator) * 1000*1000*1000));
                 }
                 fps_sync_point_ = std::chrono::high_resolution_clock::now();
             }

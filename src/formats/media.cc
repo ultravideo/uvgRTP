@@ -186,7 +186,7 @@ rtp_error_t uvgrtp::formats::media::packet_handler(void *arg, int rce_flags, uvg
     return RTP_OK;
 }
 
-void uvgrtp::formats::media::set_fps(ssize_t enumerator, ssize_t denominator)
+void uvgrtp::formats::media::set_fps(ssize_t numerator, ssize_t denominator)
 {
-    fqueue_->set_fps(enumerator, denominator);
+    fqueue_->set_fps(numerator, denominator);
 }

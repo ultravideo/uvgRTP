@@ -105,8 +105,8 @@ stream->configure_ctx(RCC_PKT_MAX_DELAY, 150);
 | RCC_DYN_PAYLOAD_TYPE | Override uvgRTP's default payload number used in RTP headers | Format-specific, see [util.hh](/include/uvgrtp/util.hh) | Both |
 | RCC_CLOCK_RATE       | Override uvgRTP's default clock rate used to calculate RTP timestamps | Format-specific, see [RFC 3551](https://www.rfc-editor.org/rfc/rfc3551#section-6) | Sender |
 | RCC_MTU_SIZE         | Set the Maximum Transmission Unit (MTU) value. uvgRTP assumes the presence of UDP header (8 bytes) and IP header (20 bytes for IPv4). Those are substracted those from the given value. | 1492 bytes | Both |
-| RCC_FPS_ENUMERATOR   | Set the fps used with RCE_FRAMERATE and RCE_FRAGMENT_PACING. | 30 | Sender |
-| RCC_FPS_DENOMINATOR  | Use this in combination with RCC_FPS_ENUMERATOR if you need fractional fps values | 1 | Sender |
+| RCC_FPS_NUMERATOR   | Set the fps used with RCE_FRAMERATE and RCE_FRAGMENT_PACING. | 30 | Sender |
+| RCC_FPS_DENOMINATOR  | Use this in combination with RCC_FPS_NUMERATOR if you need fractional fps values | 1 | Sender |
 
 ### RTP frame flags
 
