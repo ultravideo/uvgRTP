@@ -85,7 +85,7 @@ session->create_stream(..., RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP_NULL_CIP
 | RCE_SRTP_KEYSIZE_256       | Use 256 bit SRTP keys, currently works only with RCE_SRTP_KMNGMNT_USER |
 | RCE_ZRTP_MULTISTREAM_NO_DH | Select which streams do not perform Diffie-Hellman with ZRTP. Currently, ZRTP only works reliably with one stream performing DH and one not performing it |
 | RCE_FRAMERATE              | Try to keep the sent framerate as constant as possible (default fps is 30) |
-| RCE_FRAGMENT_PACING        | Pace the sending of framents to frame interval to help receiver receive packets (default frame interval is 1/30) |
+| RCE_PACE_FRAGMENT_SENDING  | Pace the sending of framents to frame interval to help receiver receive packets (default frame interval is 1/30) |
 
 ### RTP Context Configuration (RCC) flags
 
@@ -162,6 +162,6 @@ The default configuration of uvgRTP should be able to handle most basic scenario
 * RCC_UDP_RCV_BUF_SIZE: You can try increasing this to 40 or 80 MB if it helps receiving frames
 * RCC_UDP_SND_BUF_SIZE_ You can try increasing this to 40 or 80 MB if it helps sending frames
 * RCC_RING_BUFFER_SIZE: You can try increasing this to 40 or 80 MB if it helps receiving frames
-* RCE_FRAGMENT_PACING, RCC_FPS_ENUMERATOR and RCC_FPS_DENOMINATOR: You can try RCE_FRAGMENT_PACING to make sender pace the sending of framents so receiver has easier time receiving them. Use RCC_FPS_ENUMERATOR and RCC_FPS_DENOMINATOR to set your fps
+* RCE_PACE_FRAGMENT_SENDING, RCC_FPS_ENUMERATOR and RCC_FPS_DENOMINATOR: You can try RCE_PACE_FRAGMENT_SENDING to make sender pace the sending of framents so receiver has easier time receiving them. Use RCC_FPS_ENUMERATOR and RCC_FPS_DENOMINATOR to set your fps
 
 None of these parameters will however help if you are sending more data than the receiver can process, they only help when dealing with burst of (usually fragmented) RTP traffic.

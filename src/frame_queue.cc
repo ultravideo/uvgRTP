@@ -300,7 +300,7 @@ rtp_error_t uvgrtp::frame_queue::flush_queue()
         ++frames_since_sync_;
     }
 
-    if ((rce_flags_ & RCE_FRAGMENT_PACING) && fps_)
+    if ((rce_flags_ & RCE_PACE_FRAGMENT_SENDING) && fps_)
     {
         if (!(rce_flags_ & RCE_FRAMERATE))
         {

@@ -257,7 +257,8 @@ enum RTP_CTX_ENABLE_FLAGS {
     RCE_FRAMERATE                   = 1 << 18,
 
     /** Paces the sending of frame fragments within frame interval (default 1/30 s) */
-    RCE_FRAGMENT_PACING             = 1 << 19,
+    RCE_PACE_FRAGMENT_SENDING       = 1 << 19,
+    RCE_FRAGMENT_PACING             = 1 << 19, // old name
 
     RCE_LAST                        = 1 << 20
 }; // maximum is 1 << 30 for int
