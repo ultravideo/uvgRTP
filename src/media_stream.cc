@@ -157,8 +157,6 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
                 std::bind(&uvgrtp::formats::h264::packet_handler, format_264, std::placeholders::_1, std::placeholders::_2),
                 std::bind(&uvgrtp::formats::h264::frame_getter, format_264, std::placeholders::_1));
             media_.reset(format_264);
-
-            return RTP_OK;
             break;
         }
         case RTP_FORMAT_H265:
@@ -170,8 +168,6 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
                 std::bind(&uvgrtp::formats::h265::packet_handler, format_265, std::placeholders::_1, std::placeholders::_2),
                 std::bind(&uvgrtp::formats::h265::frame_getter, format_265, std::placeholders::_1));
             media_.reset(format_265);
-
-            return RTP_OK;
             break;
         }
         case RTP_FORMAT_H266:
@@ -183,8 +179,6 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
                 std::bind(&uvgrtp::formats::h266::packet_handler, format_266, std::placeholders::_1, std::placeholders::_2),
                 std::bind(&uvgrtp::formats::h266::frame_getter, format_266, std::placeholders::_1));
             media_.reset(format_266);
-
-            return RTP_OK;
             break;
         }
         case RTP_FORMAT_OPUS:
@@ -211,7 +205,8 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         case RTP_FORMAT_GSM_EFR:
         case RTP_FORMAT_L8:
         case RTP_FORMAT_VDVI:
-            media_ = std::unique_ptr<uvgrtp::formats::media> (new uvgrtp::formats::media(socket_, rtp_, rce_flags_));
+        {
+            media_ = std::unique_ptr<uvgrtp::formats::media>(new uvgrtp::formats::media(socket_, rtp_, rce_flags_));
 
             reception_flow_->install_aux_handler(
                 rtp_handler_key_,
@@ -219,16 +214,19 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
                 media_->packet_handler,
                 nullptr
             );
-            return RTP_OK;
-
+            break;
+        }
         default:
+        {
             UVG_LOG_ERROR("Unknown payload format %u\n", fmt_);
             media_ = nullptr;
             return RTP_NOT_SUPPORTED;
+        }
     }
 
     // set default values for fps
     media_->set_fps(fps_enumerator_, fps_denominator_);
+    return RTP_OK;
 }
 
 rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
