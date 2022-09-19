@@ -152,7 +152,7 @@ namespace uvgrtp {
                 {
                     frame_interval_ = std::chrono::nanoseconds(uint64_t(1.0 / double(numerator / denominator) * 1000*1000*1000));
                 }
-                fps_sync_point_ = std::chrono::high_resolution_clock::now();
+                frames_since_sync_ = 0; // forces update on sync point
             }
 
         private:

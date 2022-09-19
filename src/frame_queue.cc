@@ -284,13 +284,14 @@ rtp_error_t uvgrtp::frame_queue::flush_queue()
     if ((rce_flags_ & RCE_FRAMERATE) && fps_)
     {
         std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
-        if (this_frame_time_slot < now || frames_since_sync_ == 0)
+
+        // allow us to be 1 ms late and not sync
+        if (this_frame_time_slot < now - std::chrono::milliseconds(1) || frames_since_sync_ == 0)
         {
             UVG_LOG_DEBUG("Updating framerate sync point");
 
             frames_since_sync_ = 0;
-            // have a little bit of extra room so we don't sync constantly
-            fps_sync_point_ = std::chrono::high_resolution_clock::now() + frame_interval_/10;
+            fps_sync_point_ = std::chrono::high_resolution_clock::now();
         }
         else if (this_frame_time_slot > now + std::chrono::milliseconds(1))
         {
