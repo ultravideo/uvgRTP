@@ -26,63 +26,68 @@ Currently supported specifications:
 
 ## Tutorial
 
-You can either include files individually from [include](../include) folder or use lib.hh to include all necessary files with one line:
+You can either include files individually from the include-folder or use lib.hh to include all necessary files with one line:
 
 ```
 #include <uvgrtp/lib.hh>
 ```
 
-### Create context
+### Step 1: Create context
 
-When using uvgRTP, you must always first create the context object:
+When using uvgRTP, you must always first create the uvgrtp::context object:
 
 ```
 uvgrtp::context ctx;
 ```
-### Create session
+### Step 2: Create session
 
-Next, you will use the context object to create session objects. Session object contains all the different media streams you are sending/receiving to/from single IP address. Broadcast addresses should also work. There are two options fort creating this, Specify only remote address (currently this also binds to ANY with each media_stream):
+Next, you will use the uvgrtp::context object to create uvgrtp::session objects. The uvgrtp::session object contains all media streams you are sending/receiving to/from single IP address. Broadcast addresses should also work. There are two options for creating this: 1) specify one address, role of which can be determined with RCE_SEND_ONLY or RCE_RECEIVE_ONLY flag later:
 
 ```
 uvgrtp::session *sess = ctx.create_session("10.10.10.2");
 ```
-or specify both remote and local addresses:
+or 2) specify both remote and local addresses:
 
 ```
 uvgrtp::session *sess = ctx.create_session("10.10.10.2", "10.10.10.3");
 ```
 
-Hopefully in the future also only binding to local address and only sending will be supported. This is discussed in issue #83 and PRs are welcome to this issue (be careful not to invalidate current API).
+### Step 3: Create media_stream
 
-### Create media_stream
-
-To send/receive actual media, a media_stream object has to be created. The first parameter is the local port from which the sending happens and the second port is the port where the data is sent to (note that these are in the reverse order compared to creating the session). The third parameter specifies the RTP payload format which will be used for the outgoing and incoming data. The last parameter holds the flags that can be used to modify the behavior of uvgRTP in regards to this media_stream. 
+To send/receive actual media, a uvgrtp::media_stream object has to be created. The first parameter is the local port from which the sending happens and the second port is the port where the data is sent to (note that these are in the reverse order compared to creating the session). The third parameter specifies the RTP payload format which will be used for the outgoing and incoming data. The last parameter holds the flags that can be used to modify the behavior of created uvgrtp::media_stream. The flags can be combined using bitwise OR-operation(|). These flags start with prefix `RCE_` and the explanations can be found in docs folder of repository. RTCP can be enabled with `RCE_RTCP`-flag.
 
 ```
-uvgrtp::media_stream *strm = sess->create_stream(8888, 8888, RTP_FORMAT_GENERIC, RTP_NO_FLAGS);
+uvgrtp::media_stream *strm = sess->create_stream(8888, 8888, RTP_FORMAT_GENERIC, RCE_NO_FLAGS);
 ```
 
-The encryption can be enabled here bug specifying `RCE_SRTP| RCE_SRTP_KMNGMNT_ZRTP` or `RCE_SRTP | RCE_SRTP_KMNGMNT_USER` in the last parameter. The `RCE_SRTP_KMNGMNT_USER` requires calling `add_srtp_ctx(key, salt)` for the created media_stream after creation. These flags start with prefix `RCE_` and the explanations can be found in [docs folder](../docs). Other useful flags include `RCE_RTCP` for enabling RTCP and `RCE_H26X_PREPEND_SC` for prepending start codes which are needed for decoding of an H26x stream.
+One port version of this also exists, to be used with RCE_SEND_ONLY and RCE_RECEIVE_ONLY flags:
+```
+uvgrtp::media_stream *strm = sess->create_stream(8888, RTP_FORMAT_GENERIC, RCE_RECEIVE_ONLY);
+```
 
-### Configure media_stream (optional)
+### Step 3.1: Encryption (optional)
 
-Some of the media_stream functionality can be configured after the stream has been created:
+The encryption can be enabled by specifying `RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP` or `RCE_SRTP | RCE_SRTP_KMNGMNT_USER` in the flags parameter of create_stream. The `RCE_SRTP_KMNGMNT_USER` requires calling `add_srtp_ctx(key, salt)` for the created uvgrtp::media_stream. 
+
+### Step 3.2: Configure media_stream (optional)
+
+Some of the uvgrtp::media_stream functionality can be configured after the stream has been created:
 ```
 strm->configure_ctx(RCC_MTU_SIZE, 2312);
 ```
 
-The flags start with prefix `RCC_` and the rest of the flags can be found in the [docs folder](../docs). Also, see [configuration example](configuration.cc) for more details.
+The flags start with prefix `RCC_` and the rest of the flags can be found in the docs folder. Also, see the configuration example for more details.
 
-### Sending data
+### Step 4: Sending data
 
-Sending can be done by simple calling push_frame()-function on created media_stream:
+Sending can be done by simple calling push_frame()-function on created uvgrtp::media_stream:
 
 ```
 strm->push_frame((uint8_t *)message, msg_len, RTP_NO_FLAGS);
 ```
-See [sending example](sending.cc) for more details.
+See the sending example for more details. uvgRTP does not take ownership of the memory unless the data is provided with std::unique_ptr.
 
-### Receiving data
+### Step 5: Receiving data
 
 There are two alternatives to receiving data. Using pull_frame()-function:
 ```
@@ -95,17 +100,20 @@ or function callback based approach (I would recommend this to minimize latency)
 strm->install_receive_hook(nullptr, rtp_receive_hook);
 ```
 
-If you use classes, you can give a pointer to your class in the first parameter and call it in you callback function (an std::function API would be nice, but does not exist yet). In both versions, the user will be responsible for releasing the memory.
+If you use classes, you can give a pointer to your class in the first parameter and call it in your callback function (an std::function API does not exist yet). In both versions of receiving, the user will be responsible for releasing the memory with the following function:
+```
+uvgrtp::frame::dealloc_frame(frame);
+```
 
-### Cleanup
+### Step 6: Cleanup
 
-Cleanup can be dune with following functions:
+Cleanup can be done with following functions:
 ```
 sess->destroy_stream(strm);
 ctx.destroy_session(sess);
 ```
 
-### Simple example (non-working)
+### Simple sending example (non-working)
 
 ```
 #include <uvgrtp/lib.hh>
@@ -117,7 +125,7 @@ int main(void)
     uvgrtp::context ctx;
     uvgrtp::session *sess = ctx.create_session("127.0.0.1");
 
-    uvgrtp::media_stream *strm = sess->create_stream(8888, 8888, RTP_FORMAT_GENERIC, RTP_NO_FLAGS);
+    uvgrtp::media_stream *strm = sess->create_stream(8888, 8888, RTP_FORMAT_GENERIC, RCE_NO_FLAGS);
 
     strm->configure_ctx(RCC_MTU_SIZE, 2312);
 
@@ -130,5 +138,8 @@ int main(void)
         fprintf(stderr, "Message: '%s'\n", frame->payload);
         uvgrtp::frame::dealloc_frame(frame);
     }
+
+    sess->destroy_stream(strm);
+    ctx.destroy_session(sess);
 }
 ```

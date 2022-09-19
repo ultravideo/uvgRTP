@@ -405,7 +405,7 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Send data to remote participant with a custom timestamp. </p>
-<p >If so specified either by the selected media format and/or given <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af" title="RTP context enable flags.">RTP_CTX_ENABLE_FLAGS</a>, uvgRTP fragments the input data into RTP packets of 1500 bytes, or to any other size defined by the application using <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa7667fb72b42a2c11991b4879619f9f83">RCC_MTU_SIZE</a></p>
+<p >If so specified either by the selected media format and/or given <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af" title="RTP context enable flags.">RTP_CTX_ENABLE_FLAGS</a>, uvgRTP fragments the input data into RTP packets of 1492 bytes, or to any other size defined by the application using <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa7667fb72b42a2c11991b4879619f9f83">RCC_MTU_SIZE</a></p>
 <p >The frame is automatically reconstructed by the receiver if all fragments have been received successfully.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -468,7 +468,7 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Send data to remote participant with a custom timestamp. </p>
-<p >If so specified either by the selected media format and/or given <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af" title="RTP context enable flags.">RTP_CTX_ENABLE_FLAGS</a>, uvgRTP fragments the input data into RTP packets of 1500 bytes, or to any other size defined by the application using <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa7667fb72b42a2c11991b4879619f9f83">RCC_MTU_SIZE</a></p>
+<p >If so specified either by the selected media format and/or given <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af" title="RTP context enable flags.">RTP_CTX_ENABLE_FLAGS</a>, uvgRTP fragments the input data into RTP packets of 1492 bytes, or to any other size defined by the application using <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa7667fb72b42a2c11991b4879619f9f83">RCC_MTU_SIZE</a></p>
 <p >The frame is automatically reconstructed by the receiver if all fragments have been received successfully.</p>
 <p >If application so wishes, it may override uvgRTP's own timestamp calculations and provide timestamping information for the stream itself. This requires that the application provides a sensible value for the ts parameter. If RTCP has been enabled, <a class="el" href="classuvgrtp_1_1rtcp.html#a5d0d06f9b4b7779d96d8d60938627316" title="Provide timestamping information for RTCP.">uvgrtp::rtcp::set_ts_info()</a> should have been called.</p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -527,7 +527,7 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Send data to remote participant with a custom timestamp. </p>
-<p >If so specified either by the selected media format and/or given <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af" title="RTP context enable flags.">RTP_CTX_ENABLE_FLAGS</a>, uvgRTP fragments the input data into RTP packets of 1500 bytes, or to any other size defined by the application using <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa7667fb72b42a2c11991b4879619f9f83">RCC_MTU_SIZE</a></p>
+<p >If so specified either by the selected media format and/or given <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af" title="RTP context enable flags.">RTP_CTX_ENABLE_FLAGS</a>, uvgRTP fragments the input data into RTP packets of 1492 bytes, or to any other size defined by the application using <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa7667fb72b42a2c11991b4879619f9f83">RCC_MTU_SIZE</a></p>
 <p >The frame is automatically reconstructed by the receiver if all fragments have been received successfully.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -590,7 +590,7 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Send data to remote participant with a custom timestamp. </p>
-<p >If so specified either by the selected media format and/or given <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af" title="RTP context enable flags.">RTP_CTX_ENABLE_FLAGS</a>, uvgRTP fragments the input data into RTP packets of 1500 bytes, or to any other size defined by the application using <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa7667fb72b42a2c11991b4879619f9f83">RCC_MTU_SIZE</a></p>
+<p >If so specified either by the selected media format and/or given <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af" title="RTP context enable flags.">RTP_CTX_ENABLE_FLAGS</a>, uvgRTP fragments the input data into RTP packets of 1492 bytes, or to any other size defined by the application using <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa7667fb72b42a2c11991b4879619f9f83">RCC_MTU_SIZE</a></p>
 <p >The frame is automatically reconstructed by the receiver if all fragments have been received successfully.</p>
 <p >If application so wishes, it may override uvgRTP's own timestamp calculations and provide timestamping information for the stream itself. This requires that the application provides a sensible value for the ts parameter. If RTCP has been enabled, <a class="el" href="classuvgrtp_1_1rtcp.html#a5d0d06f9b4b7779d96d8d60938627316" title="Provide timestamping information for RTCP.">uvgrtp::rtcp::set_ts_info()</a> should have been called.</p>
 <dl class="params"><dt>Parameters</dt><dd>

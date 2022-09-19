@@ -215,7 +215,7 @@ Enumerations</h2></td></tr>
 , <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa9734027002242ab143aaecc4220b93da">RCE_FRAMERATE</a> = 1 &lt;&lt; 18
 , <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa63c559f4a0ea78a5999760fba37019df">RCE_FRAGMENT_PACING</a> = 1 &lt;&lt; 19
 , <br />
-&#160;&#160;<b>RCE_LAST</b> = 1 &lt;&lt; 18
+&#160;&#160;<b>RCE_LAST</b> = 1 &lt;&lt; 20
 <br />
  }</td></tr>
 <tr class="memdesc:a15b2d6364db6065a482c99827f4bd2af"><td class="mdescLeft">&#160;</td><td class="mdescRight">RTP context enable flags.  <a href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af">More...</a><br /></td></tr>
@@ -282,8 +282,8 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 <tr><td class="fieldname"><a id="aa98d9238629e33567e73af0d239e587faece26b6edb4fc1fe6733b8fec0504b99" name="aa98d9238629e33567e73af0d239e587faece26b6edb4fc1fe6733b8fec0504b99"></a>RCC_CLOCK_RATE&#160;</td><td class="fielddoc"><p >Change uvgRTP's clock rate in RTP header and RTP timestamp calculations </p>
 </td></tr>
 <tr><td class="fieldname"><a id="aa98d9238629e33567e73af0d239e587fa7667fb72b42a2c11991b4879619f9f83" name="aa98d9238629e33567e73af0d239e587fa7667fb72b42a2c11991b4879619f9f83"></a>RCC_MTU_SIZE&#160;</td><td class="fielddoc"><p >Set a maximum value for the Ethernet frame size assumed by uvgRTP.</p>
-<p >Default is 1500, from this Ethernet, IPv4 and UDP, and RTP headers are removed from this, giving a payload size of 1446 bytes</p>
-<p >If application wishes to use small UDP datagrams for some reason, it can set MTU size to, for example, 500 bytes or if it wishes to use jumbo frames, it can set the MTU size to 9000 bytes </p>
+<p >Default is 1492, from this IPv4 and UDP, and RTP headers are removed, giving a payload size of 1452 bytes.</p>
+<p >If application wishes to use small UDP datagram, it can set MTU size to, for example, 500 bytes or if it wishes to use jumbo frames, it can set the MTU size to 9000 bytes </p>
 </td></tr>
 <tr><td class="fieldname"><a id="aa98d9238629e33567e73af0d239e587fa972c50e87b7c6baaa2f3e1babb6b3147" name="aa98d9238629e33567e73af0d239e587fa972c50e87b7c6baaa2f3e1babb6b3147"></a>RCC_FPS_ENUMERATOR&#160;</td><td class="fielddoc"><p >Set the enumerator of frame rate enforced by uvgRTP.</p>
 <p >Default is 30.</p>
@@ -298,7 +298,7 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00292">292</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
+<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00273">273</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
 
 </div>
 </div>
@@ -331,7 +331,7 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 </td></tr>
 <tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa121da451fe2a4008cec78ac4642399b2" name="a15b2d6364db6065a482c99827f4bd2afa121da451fe2a4008cec78ac4642399b2"></a>RCE_H26X_DEPENDENCY_ENFORCEMENT&#160;</td><td class="fielddoc"><p >Use this flag to discard inter frames that don't have their previous dependencies arrived. Does not work if the dependencies are not in monotonic order. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa5b0a8dbb22c20ebe8c0711541fb68a79" name="a15b2d6364db6065a482c99827f4bd2afa5b0a8dbb22c20ebe8c0711541fb68a79"></a>RCE_FRAGMENT_GENERIC&#160;</td><td class="fielddoc"><p >Fragment frames into RTP packets of MTU size (1500 bytes).</p>
+<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa5b0a8dbb22c20ebe8c0711541fb68a79" name="a15b2d6364db6065a482c99827f4bd2afa5b0a8dbb22c20ebe8c0711541fb68a79"></a>RCE_FRAGMENT_GENERIC&#160;</td><td class="fielddoc"><p >Fragment frames into RTP packets of MTU size (1492 bytes).</p>
 <p >Some RTP profiles define fragmentation by setting the marker bit indicating the last fragment of the frame. You can enable this functionality using this flag at both sender and receiver. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa9e41141dacd18def5ab83e9f671f4263" name="a15b2d6364db6065a482c99827f4bd2afa9e41141dacd18def5ab83e9f671f4263"></a>RCE_SYSTEM_CALL_CLUSTERING&#160;</td><td class="fielddoc"><p >Enable System Call Clustering (SCC). Sender side flag.</p>
@@ -361,7 +361,7 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00179">179</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
+<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00160">160</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
 
 </div>
 </div>
@@ -412,7 +412,7 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00049">49</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
+<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00030">30</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
 
 </div>
 </div>
@@ -440,7 +440,7 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00152">152</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
+<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00133">133</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
 
 </div>
 </div>
@@ -516,7 +516,7 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00078">78</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
+<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00059">59</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
 
 </div>
 </div>

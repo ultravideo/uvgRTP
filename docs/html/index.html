@@ -98,45 +98,47 @@ Notable features</h1>
 </ul>
 <h1><a class="anchor" id="autotoc_md2"></a>
 Tutorial</h1>
-<p >You can either include files individually from <a href="../include">include</a> folder or use <a class="el" href="lib_8hh_source.html">lib.hh</a> to include all necessary files with one line:</p>
+<p >You can either include files individually from the include-folder or use <a class="el" href="lib_8hh_source.html">lib.hh</a> to include all necessary files with one line:</p>
 <div class="fragment"><div class="line">#include &lt;uvgrtp/lib.hh&gt;</div>
 </div><!-- fragment --><h2><a class="anchor" id="autotoc_md3"></a>
-Create context</h2>
-<p >When using uvgRTP, you must always first create the context object:</p>
+Step 1: Create context</h2>
+<p >When using uvgRTP, you must always first create the <a class="el" href="classuvgrtp_1_1context.html" title="Provides CNAME isolation and can be used to create uvgrtp::session objects.">uvgrtp::context</a> object:</p>
 <div class="fragment"><div class="line">uvgrtp::context ctx;</div>
 </div><!-- fragment --> <h2><a class="anchor" id="autotoc_md4"></a>
-Create session</h2>
-<p >Next, you will use the context object to create session objects. Session object contains all the different media streams you are sending/receiving to/from single IP address. Broadcast addresses should also work. There are two options fort creating this, Specify only remote address (currently this also binds to ANY with each media_stream):</p>
+Step 2: Create session</h2>
+<p >Next, you will use the <a class="el" href="classuvgrtp_1_1context.html" title="Provides CNAME isolation and can be used to create uvgrtp::session objects.">uvgrtp::context</a> object to create <a class="el" href="classuvgrtp_1_1session.html" title="Provides ZRTP synchronization and can be used to create uvgrtp::media_stream objects.">uvgrtp::session</a> objects. The <a class="el" href="classuvgrtp_1_1session.html" title="Provides ZRTP synchronization and can be used to create uvgrtp::media_stream objects.">uvgrtp::session</a> object contains all media streams you are sending/receiving to/from single IP address. Broadcast addresses should also work. There are two options for creating this: 1) specify one address, role of which can be determined with RCE_SEND_ONLY or RCE_RECEIVE_ONLY flag later:</p>
 <div class="fragment"><div class="line">uvgrtp::session *sess = ctx.create_session(&quot;10.10.10.2&quot;);</div>
-</div><!-- fragment --><p> or specify both remote and local addresses:</p>
+</div><!-- fragment --><p> or 2) specify both remote and local addresses:</p>
 <div class="fragment"><div class="line">uvgrtp::session *sess = ctx.create_session(&quot;10.10.10.2&quot;, &quot;10.10.10.3&quot;);</div>
-</div><!-- fragment --><p >Hopefully in the future also only binding to local address and only sending will be supported. This is discussed in issue #83 and PRs are welcome to this issue (be careful not to invalidate current API).</p>
-<h2><a class="anchor" id="autotoc_md5"></a>
-Create media_stream</h2>
-<p >To send/receive actual media, a media_stream object has to be created. The first parameter is the local port from which the sending happens and the second port is the port where the data is sent to (note that these are in the reverse order compared to creating the session). The third parameter specifies the RTP payload format which will be used for the outgoing and incoming data. The last parameter holds the flags that can be used to modify the behavior of uvgRTP in regards to this media_stream.</p>
-<div class="fragment"><div class="line">uvgrtp::media_stream *strm = sess-&gt;create_stream(8888, 8888, RTP_FORMAT_GENERIC, RTP_NO_FLAGS);</div>
-</div><!-- fragment --><p >The encryption can be enabled here bug specifying <code>RCE_SRTP| RCE_SRTP_KMNGMNT_ZRTP</code> or <code>RCE_SRTP | RCE_SRTP_KMNGMNT_USER</code> in the last parameter. The <code>RCE_SRTP_KMNGMNT_USER</code> requires calling <code>add_srtp_ctx(key, salt)</code> for the created media_stream after creation. These flags start with prefix <code>RCE_</code> and the explanations can be found in <a href="../docs">docs folder</a>. Other useful flags include <code>RCE_RTCP</code> for enabling RTCP and <code>RCE_H26X_PREPEND_SC</code> for prepending start codes which are needed for decoding of an H26x stream.</p>
-<h2><a class="anchor" id="autotoc_md6"></a>
-Configure media_stream (optional)</h2>
-<p >Some of the media_stream functionality can be configured after the stream has been created: </p><div class="fragment"><div class="line">strm-&gt;configure_ctx(RCC_MTU_SIZE, 2312);</div>
-</div><!-- fragment --><p >The flags start with prefix <code>RCC_</code> and the rest of the flags can be found in the <a href="../docs">docs folder</a>. Also, see <a href="configuration.cc">configuration example</a> for more details.</p>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md5"></a>
+Step 3: Create media_stream</h2>
+<p >To send/receive actual media, a <a class="el" href="classuvgrtp_1_1media__stream.html" title="The media_stream is an entity which represents one RTP stream.">uvgrtp::media_stream</a> object has to be created. The first parameter is the local port from which the sending happens and the second port is the port where the data is sent to (note that these are in the reverse order compared to creating the session). The third parameter specifies the RTP payload format which will be used for the outgoing and incoming data. The last parameter holds the flags that can be used to modify the behavior of created <a class="el" href="classuvgrtp_1_1media__stream.html" title="The media_stream is an entity which represents one RTP stream.">uvgrtp::media_stream</a>. The flags can be combined using bitwise OR-operation(|). These flags start with prefix <code>RCE_</code> and the explanations can be found in docs folder of repository. RTCP can be enabled with <code>RCE_RTCP</code>-flag.</p>
+<div class="fragment"><div class="line">uvgrtp::media_stream *strm = sess-&gt;create_stream(8888, 8888, RTP_FORMAT_GENERIC, RCE_NO_FLAGS);</div>
+</div><!-- fragment --><p >One port version of this also exists, to be used with RCE_SEND_ONLY and RCE_RECEIVE_ONLY flags: </p><div class="fragment"><div class="line">uvgrtp::media_stream *strm = sess-&gt;create_stream(8888, RTP_FORMAT_GENERIC, RCE_RECEIVE_ONLY);</div>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md6"></a>
+Step 3.1: Encryption (optional)</h2>
+<p >The encryption can be enabled by specifying <code>RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP</code> or <code>RCE_SRTP | RCE_SRTP_KMNGMNT_USER</code> in the flags parameter of create_stream. The <code>RCE_SRTP_KMNGMNT_USER</code> requires calling <code>add_srtp_ctx(key, salt)</code> for the created <a class="el" href="classuvgrtp_1_1media__stream.html" title="The media_stream is an entity which represents one RTP stream.">uvgrtp::media_stream</a>.</p>
 <h2><a class="anchor" id="autotoc_md7"></a>
-Sending data</h2>
-<p >Sending can be done by simple calling push_frame()-function on created media_stream:</p>
-<div class="fragment"><div class="line">strm-&gt;push_frame((uint8_t *)message, msg_len, RTP_NO_FLAGS);</div>
-</div><!-- fragment --><p> See <a href="sending.cc">sending example</a> for more details.</p>
+Step 3.2: Configure media_stream (optional)</h2>
+<p >Some of the <a class="el" href="classuvgrtp_1_1media__stream.html" title="The media_stream is an entity which represents one RTP stream.">uvgrtp::media_stream</a> functionality can be configured after the stream has been created: </p><div class="fragment"><div class="line">strm-&gt;configure_ctx(RCC_MTU_SIZE, 2312);</div>
+</div><!-- fragment --><p >The flags start with prefix <code>RCC_</code> and the rest of the flags can be found in the docs folder. Also, see the configuration example for more details.</p>
 <h2><a class="anchor" id="autotoc_md8"></a>
-Receiving data</h2>
+Step 4: Sending data</h2>
+<p >Sending can be done by simple calling push_frame()-function on created <a class="el" href="classuvgrtp_1_1media__stream.html" title="The media_stream is an entity which represents one RTP stream.">uvgrtp::media_stream</a>:</p>
+<div class="fragment"><div class="line">strm-&gt;push_frame((uint8_t *)message, msg_len, RTP_NO_FLAGS);</div>
+</div><!-- fragment --><p> See the sending example for more details. uvgRTP does not take ownership of the memory unless the data is provided with std::unique_ptr.</p>
+<h2><a class="anchor" id="autotoc_md9"></a>
+Step 5: Receiving data</h2>
 <p >There are two alternatives to receiving data. Using pull_frame()-function: </p><div class="fragment"><div class="line">auto frame = strm-&gt;pull_frame();</div>
 </div><!-- fragment --><p >or function callback based approach (I would recommend this to minimize latency):</p>
 <div class="fragment"><div class="line">strm-&gt;install_receive_hook(nullptr, rtp_receive_hook);</div>
-</div><!-- fragment --><p >If you use classes, you can give a pointer to your class in the first parameter and call it in you callback function (an std::function API would be nice, but does not exist yet). In both versions, the user will be responsible for releasing the memory.</p>
-<h2><a class="anchor" id="autotoc_md9"></a>
-Cleanup</h2>
-<p >Cleanup can be dune with following functions: </p><div class="fragment"><div class="line">sess-&gt;destroy_stream(strm);</div>
-<div class="line">ctx.destroy_session(sess);</div>
+</div><!-- fragment --><p >If you use classes, you can give a pointer to your class in the first parameter and call it in your callback function (an std::function API does not exist yet). In both versions of receiving, the user will be responsible for releasing the memory with the following function: </p><div class="fragment"><div class="line">uvgrtp::frame::dealloc_frame(frame);</div>
 </div><!-- fragment --><h2><a class="anchor" id="autotoc_md10"></a>
-Simple example (non-working)</h2>
+Step 6: Cleanup</h2>
+<p >Cleanup can be done with following functions: </p><div class="fragment"><div class="line">sess-&gt;destroy_stream(strm);</div>
+<div class="line">ctx.destroy_session(sess);</div>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md11"></a>
+Simple sending example (non-working)</h2>
 <div class="fragment"><div class="line">#include &lt;uvgrtp/lib.hh&gt;</div>
 <div class="line"> </div>
 <div class="line">/* g++ main.cc -luvgrtp -lpthread &amp;&amp; ./a.out */</div>
@@ -146,7 +148,7 @@ Simple example (non-working)</h2>
 <div class="line">    uvgrtp::context ctx;</div>
 <div class="line">    uvgrtp::session *sess = ctx.create_session(&quot;127.0.0.1&quot;);</div>
 <div class="line"> </div>
-<div class="line">    uvgrtp::media_stream *strm = sess-&gt;create_stream(8888, 8888, RTP_FORMAT_GENERIC, RTP_NO_FLAGS);</div>
+<div class="line">    uvgrtp::media_stream *strm = sess-&gt;create_stream(8888, 8888, RTP_FORMAT_GENERIC, RCE_NO_FLAGS);</div>
 <div class="line"> </div>
 <div class="line">    strm-&gt;configure_ctx(RCC_MTU_SIZE, 2312);</div>
 <div class="line"> </div>
@@ -159,6 +161,9 @@ Simple example (non-working)</h2>
 <div class="line">        fprintf(stderr, &quot;Message: &#39;%s&#39;\n&quot;, frame-&gt;payload);</div>
 <div class="line">        uvgrtp::frame::dealloc_frame(frame);</div>
 <div class="line">    }</div>
+<div class="line"> </div>
+<div class="line">    sess-&gt;destroy_stream(strm);</div>
+<div class="line">    ctx.destroy_session(sess);</div>
 <div class="line">}</div>
 </div><!-- fragment --> </div></div><!-- PageDoc -->
 </div><!-- contents -->
