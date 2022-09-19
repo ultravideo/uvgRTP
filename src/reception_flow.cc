@@ -7,6 +7,8 @@
 #include "debug.hh"
 #include "random.hh"
 
+#include "global.hh"
+
 #include <chrono>
 
 #ifndef _WIN32

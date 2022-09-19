@@ -242,11 +242,11 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
             // current has 2 bytes of possible start code
             //bool c2s = (((cur_ms >> 8) & 0xff)              == 0x01);
 
-            // previous has 4 bytes of possible start code
+            // current has 4 bytes of possible start code
             bool c4s = (cur_ms                              == 0x0100); // current starts with 0001
 
-            // previous has 6 bytes of start code
-            bool c6s = (cur_ms == 0x0000 && (cur_ls & 0xff) == 0x01);          // current is 000001XX
+            // current has 6 bytes of start code
+            bool c6s = (cur_ms == 0x0000 && (cur_ls & 0xff) == 0x01);   // current is 0000 01XX
 
 #else
             uint16_t cur_ls =  (cur_value32 >>  0) & 0xffff;

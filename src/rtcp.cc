@@ -11,6 +11,8 @@
 #include "srtp/srtcp.hh"
 #include "rtcp_packets.hh"
 
+#include "global.hh"
+
 
 #ifndef _WIN32
 #include <sys/time.h>

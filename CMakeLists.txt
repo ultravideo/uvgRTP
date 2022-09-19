@@ -80,6 +80,7 @@ source_group(include include/.*)
 target_sources(${PROJECT_NAME} PRIVATE
         src/crypto.hh
         src/debug.hh
+        src/global.hh
         src/random.hh
         src/holepuncher.hh
         src/hostname.hh

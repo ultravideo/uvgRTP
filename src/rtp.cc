@@ -6,14 +6,14 @@
 #include "random.hh"
 #include "memory.hh"
 
+#include "global.hh"
+
 #ifndef _WIN32
 #include <arpa/inet.h>
 #include <unistd.h>
 #endif
 
 #include <chrono>
-
-
 
 #define INVALID_TS UINT64_MAX
 

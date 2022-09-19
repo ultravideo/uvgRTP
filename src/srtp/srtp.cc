@@ -5,6 +5,7 @@
 #include "../debug.hh"
 #include "../crypto.hh"
 #include "base.hh"
+#include "global.hh"
 
 #include <cstring>
 #include <iostream>

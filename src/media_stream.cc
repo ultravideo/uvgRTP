@@ -16,6 +16,7 @@
 #include "srtp/srtcp.hh"
 #include "srtp/srtp.hh"
 #include "formats/media.hh"
+#include "global.hh"
 
 #include <cstring>
 #include <errno.h>
