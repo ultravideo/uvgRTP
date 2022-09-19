@@ -7,7 +7,7 @@ if(GIT_FOUND)
             OUTPUT_STRIP_TRAILING_WHITESPACE
     )
     if(result)
-        message(WARNING "Failed to get git hash: ${result}")
+        message(STATUS "Failed to get git hash")
     else()
         message(STATUS "Got git hash: ${uvgrtp_GIT_HASH}")
     endif()
@@ -24,13 +24,14 @@ elseif(uvgrtp_GIT_HASH)
     set (LIBRARY_VERSION ${PROJECT_VERSION} + "-" + ${uvgrtp_GIT_HASH})
 else()
     set (LIBRARY_VERSION ${PROJECT_VERSION} + "-source")
+    set(uvgrtp_GIT_HASH "source")
 endif()
 
-configure_file(cmake/version.cpp.in version.cpp
+configure_file(cmake/version.cc.in version.cc
         @ONLY
         )
 add_library(${PROJECT_NAME}_version OBJECT
-        ${CMAKE_CURRENT_BINARY_DIR}/version.cpp)
+        ${CMAKE_CURRENT_BINARY_DIR}/version.cc)
 target_include_directories(${PROJECT_NAME}_version
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
         )

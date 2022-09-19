@@ -6,7 +6,7 @@
 namespace uvgrtp {
 
 #ifdef RTP_RELEASE_COMMIT
-    std::string get_version() { return "@uvgrtp_VERSION@-@uvgrtp_GIT_HASH@-release"; }
+    std::string get_version() { return "@uvgrtp_VERSION@-release"; }
 #else
     std::string get_version() { return "@uvgrtp_VERSION@-@uvgrtp_GIT_HASH@"; }
 #endif

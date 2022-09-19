@@ -127,6 +127,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         include/uvgrtp/media_stream.hh
         include/uvgrtp/rtcp.hh
         include/uvgrtp/session.hh
+        include/uvgrtp/version.hh
 
         include/uvgrtp/wrapper_c.hh
         )
