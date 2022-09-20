@@ -148,12 +148,12 @@ TEST(FormatTests, h265_fps)
 
     if (sess)
     {
-        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_FRAMERATE);
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_FRAME_RATE);
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
 
         if (receiver)
         {
-            sender->configure_ctx(RCC_FPS_ENUMERATOR, framerate);
+            sender->configure_ctx(RCC_FPS_NUMERATOR, framerate);
             sender->configure_ctx(RCC_FPS_DENOMINATOR, 1);
         }
     }
@@ -190,12 +190,12 @@ TEST(FormatTests, h265_small_fragment_pacing_fps)
 
     if (sess)
     {
-        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_FRAMERATE | RCE_FRAGMENT_PACING);
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_FRAME_RATE | RCE_PACE_FRAGMENT_SENDING);
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
 
         if (receiver)
         {
-            sender->configure_ctx(RCC_FPS_ENUMERATOR, framerate);
+            sender->configure_ctx(RCC_FPS_NUMERATOR, framerate);
             sender->configure_ctx(RCC_FPS_DENOMINATOR, 1);
 
             receiver->configure_ctx(RCC_UDP_RCV_BUF_SIZE, 40 * 1000 * 1000);
@@ -235,12 +235,12 @@ TEST(FormatTests, h265_large_fragment_pacing)
 
     if (sess)
     {
-        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_FRAGMENT_PACING);
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_PACE_FRAGMENT_SENDING);
         receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
 
         if (receiver)
         {
-            sender->configure_ctx(RCC_FPS_ENUMERATOR, framerate);
+            sender->configure_ctx(RCC_FPS_NUMERATOR, framerate);
             sender->configure_ctx(RCC_FPS_DENOMINATOR, 1);
 
             receiver->configure_ctx(RCC_UDP_RCV_BUF_SIZE, 40 * 1000 * 1000);
