@@ -28,12 +28,15 @@ typedef SSIZE_T ssize_t;
  * \details These error valus are returned from various uvgRTP functions. Functions that return a pointer set rtp_errno global value that should be checked if a function call failed
  */
 typedef enum RTP_ERROR {
+    /// \cond DO_NOT_DOCUMENT
     RTP_MULTIPLE_PKTS_READY = 6,
     RTP_PKT_READY           = 5,
     RTP_PKT_MODIFIED        = 4,
     RTP_PKT_NOT_HANDLED     = 3,
     RTP_INTERRUPTED         = 2,
     RTP_NOT_READY           = 1,
+    /// \endcond
+
     RTP_OK                  = 0,    ///< Success
     RTP_GENERIC_ERROR       = -1,   ///< Generic error condition
     RTP_SOCKET_ERROR        = -2,   ///< Failed to create socket
@@ -131,12 +134,13 @@ typedef enum RTP_FORMAT {
  * and they can be OR'ed together
  */
 typedef enum RTP_FLAGS {
-    /** No flags */
-    RTP_NO_FLAGS      = 0,
+    RTP_NO_FLAGS      = 0, ///<  Use this if you have no RTP flags
 
+    /// \cond DO_NOT_DOCUMENT
     /** Obsolete flags*/
     RTP_OBSOLETE      = 1,
     RTP_SLICE         = 1, // used to do what RTP_NO_H26X_SCL does, may do something different in the future
+    /// \endcond
 
     /** Make a copy of the frame and perform operation on the copy. Cannot be used with unique_ptr. */
     RTP_COPY          = 1 << 1,
@@ -158,8 +162,9 @@ typedef enum RTP_FLAGS {
  * \details These flags are passed to uvgrtp::session::create_stream and can be OR'ed together
  */
 enum RTP_CTX_ENABLE_FLAGS {
-    RCE_NO_FLAGS                  = 0,
+    RCE_NO_FLAGS                  = 0, ///<  Use this if you have no RCE flags
 
+    /// \cond DO_NOT_DOCUMENT
     // Obsolete flags, they do nothing because the feature has been removed or they are enabled by default
     RCE_OBSOLETE                        = 1, // for checking if user inputs obsolete flags
     RCE_SYSTEM_CALL_DISPATCHER          = 1, // removed feature
@@ -169,10 +174,11 @@ enum RTP_CTX_ENABLE_FLAGS {
     RCE_H26X_PREPEND_SC                 = 1, // the feature is enabled by default
     RCE_NO_SYSTEM_CALL_CLUSTERING       = 1, // disabled by default
     RCE_SRTP_INPLACE_ENCRYPTION         = 1, // the feature is enabled by default
+    /// \endcond
 
     // These can be used to specify what the address does for one address create session
-    RCE_SEND_ONLY                   = 1 << 1, // address interpreted as remote, no binding to socket
-    RCE_RECEIVE_ONLY                = 1 << 2, // address interpreted as local, sending not possible
+    RCE_SEND_ONLY                   = 1 << 1, ///<  address/port interpreted as remote, no binding to local socket
+    RCE_RECEIVE_ONLY                = 1 << 2, ///<  address/port interpreted as local, sending not possible
 
     /** Use SRTP for this connection */
     RCE_SRTP                        = 1 << 3,
@@ -255,13 +261,17 @@ enum RTP_CTX_ENABLE_FLAGS {
 
     /** Force uvgRTP to send packets at certain framerate (default 30 fps) */
     RCE_FRAME_RATE                  = 1 << 18,
+    /// \cond DO_NOT_DOCUMENT
     RCE_FRAMERATE                   = 1 << 18,
+    /// \endcond
 
     /** Paces the sending of frame fragments within frame interval (default 1/30 s) */
     RCE_PACE_FRAGMENT_SENDING       = 1 << 19,
+    
+    /// \cond DO_NOT_DOCUMENT
     RCE_FRAGMENT_PACING             = 1 << 19, // old name
-
     RCE_LAST                        = 1 << 20
+   /// \endcond
 }; // maximum is 1 << 30 for int
 
 
@@ -273,7 +283,9 @@ enum RTP_CTX_ENABLE_FLAGS {
  * \details These flags are given to uvgrtp::media_stream::configure_ctx
  */
 enum RTP_CTX_CONFIGURATION_FLAGS {
+    /// \cond DO_NOT_DOCUMENT
     RCC_NO_FLAGS         = 0,
+    /// \endcond
 
     /** How large is the receiver UDP buffer size
      *
@@ -323,22 +335,32 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      * to use jumbo frames, it can set the MTU size to 9000 bytes */
     RCC_MTU_SIZE         = 7,
 
-    /** Set the numerator of frame rate enforced by uvgRTP.
+    /** Set the numerator of frame rate used by uvgRTP.
     * 
     * Default is 30.
     * 
-    * The fps API paces the sending of the RTP packets so that receiver is under less
-    * strain to receive all. Setting this is not neccessary for small frame sizes. 
-    * The cost is at most one frame extra latency. */
+    * Setting the fps for uvgRTP serves two possible functions: 
+
+    * 1) if RCE_FRAME_RATE has been set, the fps is enforced and 
+    * uvgRTP tries to send frames at this exact frame rate, 
+    
+    2) if RCE_PACE_FRAGMENT_SENDING has been set, the fragments are set at a constant pace 
+    * spaced out evenly within frame interval */
     RCC_FPS_NUMERATOR  = 8,
+    /// \cond DO_NOT_DOCUMENT
     RCC_FPS_ENUMERATOR = 8, // wrong name
+    /// \endcond
 
-    /** Set the denominator of frame rate enforced by uvgRTP.
+    /** Set the denominator of frame rate used by uvgRTP.
      *
-     * Default is 1 */
+     * Default is 1 
+     *
+     * See RCC_FPS_NUMERATOR for more info.
+     */
     RCC_FPS_DENOMINATOR  = 9,
-
+    /// \cond DO_NOT_DOCUMENT
     RCC_LAST
+    /// \endcond
 };
 
 extern thread_local rtp_error_t rtp_errno;
