@@ -279,41 +279,43 @@ rtp_error_t uvgrtp::frame_queue::flush_queue()
     /* set the marker bit of the last packet to 1 */
     if (active_->packets.size() > 1)
         ((uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr - 1])[1] |= (1 << 7);
-
-    std::chrono::high_resolution_clock::time_point this_frame_time_slot = this_frame_time();
-    if ((rce_flags_ & RCE_FRAMERATE) && fps_)
+    
+    if ((rce_flags_ & RCE_FRAME_RATE) && fps_)
     {
-        std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
-
-        // allow us to be 1 ms late and not sync
-        if (this_frame_time_slot < now - std::chrono::milliseconds(1) || frames_since_sync_ == 0)
+        std::chrono::nanoseconds wait_time = this_frame_time() - std::chrono::high_resolution_clock::now();
+        
+        if (wait_time.count() > 0 && frames_since_sync_ != 0)
         {
-            UVG_LOG_DEBUG("Updating framerate sync point");
+            // we cap the sleep at 0.9 interval so we slowly catch up to highest latency so far
+            if (wait_time > 0.9 * frame_interval_)
+            {
+                std::this_thread::sleep_for(0.9 * frame_interval_);
 
-            frames_since_sync_ = 0;
-            fps_sync_point_ = std::chrono::high_resolution_clock::now();
+                /* Update the sync point so we solify our latency gains, 
+                   we may do the same for next frame until 0.9 has been achieved */
+                update_sync_point(); 
+            }
+            else
+            {
+                std::this_thread::sleep_for(wait_time);
+            }
         }
-        else if (this_frame_time_slot > now + std::chrono::milliseconds(1))
+        else
         {
-            // wait until it is time to send this frame
-            std::this_thread::sleep_for(this_frame_time_slot - now - std::chrono::milliseconds(1));
+            update_sync_point();
         }
+
         ++frames_since_sync_;
     }
 
     if ((rce_flags_ & RCE_PACE_FRAGMENT_SENDING) && fps_)
     {
-        if (!(rce_flags_ & RCE_FRAMERATE))
-        {
-            // if framerate is not use, we just use this moment as synchronization moment
-            this_frame_time_slot = std::chrono::high_resolution_clock::now();
-        }
-
+        std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
         std::chrono::nanoseconds packet_interval = frame_interval_/ active_->packets.size();
 
         for (size_t i = 0; i < active_->packets.size(); ++i)
         {
-            std::chrono::high_resolution_clock::time_point next_packet = this_frame_time_slot + i * packet_interval;
+            std::chrono::high_resolution_clock::time_point next_packet = now + i * packet_interval;
 
             // sleep until next packet time
             std::this_thread::sleep_for(next_packet - std::chrono::high_resolution_clock::now());
@@ -395,4 +397,11 @@ void uvgrtp::frame_queue::enqueue_finalize(uvgrtp::buf_vec& tmp)
     active_->packets.push_back(tmp);
     rtp_->inc_sequence();
     rtp_->inc_sent_pkts();
+}
+
+inline void uvgrtp::frame_queue::update_sync_point()
+{
+    //UVG_LOG_DEBUG("Updating framerate sync point");
+    frames_since_sync_ = 0;
+    fps_sync_point_ = std::chrono::high_resolution_clock::now();
 }

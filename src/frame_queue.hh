@@ -161,6 +161,8 @@ namespace uvgrtp {
 
             inline std::chrono::high_resolution_clock::time_point this_frame_time();
 
+            inline void update_sync_point();
+
             transaction_t *active_;
 
             /* Deallocation hook is stored here and copied to transaction upon initialization */

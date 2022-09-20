@@ -254,6 +254,7 @@ enum RTP_CTX_ENABLE_FLAGS {
     RCE_ZRTP_MULTISTREAM_NO_DH      = 1 << 17,
 
     /** Force uvgRTP to send packets at certain framerate (default 30 fps) */
+    RCE_FRAME_RATE                  = 1 << 18,
     RCE_FRAMERATE                   = 1 << 18,
 
     /** Paces the sending of frame fragments within frame interval (default 1/30 s) */
