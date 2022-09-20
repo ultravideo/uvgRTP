@@ -187,7 +187,7 @@ uvgrtp::frame::rtp_frame* uvgrtp::formats::h264::allocate_rtp_frame_with_startco
 
 void uvgrtp::formats::h264::prepend_start_code(int rce_flags, uvgrtp::frame::rtp_frame** out)
 {
-    if (!(rce_flags & RCE_H26X_DO_NOT_PREPEND_SC)) {
+    if (!(rce_flags & RCE_NO_H26X_PREPEND_SC)) {
         uint8_t* pl = new uint8_t[(*out)->payload_len + 3];
 
         pl[0] = 0;

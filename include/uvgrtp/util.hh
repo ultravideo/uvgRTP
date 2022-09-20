@@ -174,6 +174,11 @@ enum RTP_CTX_ENABLE_FLAGS {
     RCE_H26X_PREPEND_SC                 = 1, // the feature is enabled by default
     RCE_NO_SYSTEM_CALL_CLUSTERING       = 1, // disabled by default
     RCE_SRTP_INPLACE_ENCRYPTION         = 1, // the feature is enabled by default
+
+    // renamed flags
+    RCE_H26X_DO_NOT_PREPEND_SC = 1 << 6,
+    RCE_FRAMERATE              = 1 << 18,
+    RCE_FRAGMENT_PACING        = 1 << 19, 
     /// \endcond
 
     // These can be used to specify what the address does for one address create session
@@ -203,10 +208,11 @@ enum RTP_CTX_ENABLE_FLAGS {
      * with RCE_SRTP_KMNGMNT_ZRTP */
     RCE_SRTP_KMNGMNT_USER           = 1 << 5,
 
+
     /** By default, uvgRTP restores the stream by prepending 3 or 4 byte start code to each received
      * H26x frame, so there is no difference with sender input. You can remove start code prefix with
      * this flag */
-    RCE_H26X_DO_NOT_PREPEND_SC      = 1 << 6,
+    RCE_NO_H26X_PREPEND_SC          = 1 << 6,
 
     /** Use this flag to discard inter frames that don't have their previous dependencies
         arrived. Does not work if the dependencies are not in monotonic order. */
@@ -261,15 +267,11 @@ enum RTP_CTX_ENABLE_FLAGS {
 
     /** Force uvgRTP to send packets at certain framerate (default 30 fps) */
     RCE_FRAME_RATE                  = 1 << 18,
-    /// \cond DO_NOT_DOCUMENT
-    RCE_FRAMERATE                   = 1 << 18,
-    /// \endcond
 
     /** Paces the sending of frame fragments within frame interval (default 1/30 s) */
     RCE_PACE_FRAGMENT_SENDING       = 1 << 19,
     
     /// \cond DO_NOT_DOCUMENT
-    RCE_FRAGMENT_PACING             = 1 << 19, // old name
     RCE_LAST                        = 1 << 20
    /// \endcond
 }; // maximum is 1 << 30 for int
@@ -285,6 +287,7 @@ enum RTP_CTX_ENABLE_FLAGS {
 enum RTP_CTX_CONFIGURATION_FLAGS {
     /// \cond DO_NOT_DOCUMENT
     RCC_NO_FLAGS         = 0,
+    RCC_FPS_ENUMERATOR = 8, // wrong spelling
     /// \endcond
 
     /** How large is the receiver UDP buffer size
@@ -347,9 +350,6 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
     2) if RCE_PACE_FRAGMENT_SENDING has been set, the fragments are set at a constant pace 
     * spaced out evenly within frame interval */
     RCC_FPS_NUMERATOR  = 8,
-    /// \cond DO_NOT_DOCUMENT
-    RCC_FPS_ENUMERATOR = 8, // wrong name
-    /// \endcond
 
     /** Set the denominator of frame rate used by uvgRTP.
      *

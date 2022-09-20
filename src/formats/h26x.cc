@@ -507,7 +507,7 @@ uvgrtp::frame::rtp_frame* uvgrtp::formats::h26x::allocate_rtp_frame_with_startco
 
 void uvgrtp::formats::h26x::prepend_start_code(int rce_flags, uvgrtp::frame::rtp_frame** out)
 {
-    if (!(rce_flags & RCE_H26X_DO_NOT_PREPEND_SC)) {
+    if (!(rce_flags & RCE_NO_H26X_PREPEND_SC)) {
         uint8_t* pl = new uint8_t[(*out)->payload_len + 4];
 
         pl[0] = 0;
@@ -585,7 +585,7 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_
     for (size_t i = 0; i < nalus.size(); ++i) {
         size_t fptr = 0;
 
-        bool prepend_startcode = !(rce_flags & RCE_H26X_DO_NOT_PREPEND_SC);
+        bool prepend_startcode = !(rce_flags & RCE_NO_H26X_PREPEND_SC);
         uvgrtp::frame::rtp_frame* retframe = 
             allocate_rtp_frame_with_startcode(prepend_startcode, (*out)->header, nalus[i].first, fptr);
         
@@ -908,7 +908,7 @@ rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out
     size_t fptr = 0;
 
     // allocating the frame with start code ready saves a copy operation for the frame
-    uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode(!(rce_flags & RCE_H26X_DO_NOT_PREPEND_SC),
+    uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode(!(rce_flags & RCE_NO_H26X_PREPEND_SC),
         frame->header, get_nal_header_size() + frames_[frame_timestamp].total_size, fptr);
 
     // construct the NAL header from fragment header of current fragment
