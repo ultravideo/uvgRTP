@@ -48,21 +48,21 @@ int main(void)
      * does not utilize system call clustering to reduce the possibility of packet dropping */
     int send_flags =
         RCE_RTCP |                      /* enable RTCP */
-        RCE_NO_SYSTEM_CALL_CLUSTERING;  /* disable system call clustering */
+        RCE_SYSTEM_CALL_CLUSTERING |    /* Enable system call clustering (only Linux) */
+        RCE_SEND_ONLY;                  /* interpret address/port as destination address/port */
 
     /* Prepends a 4-byte HEVC start code (0x00000001) before each NAL unit.
      * This way the stream can be saved into a file and played by a media player */
     int receive_flags =
         RCE_RTCP |                      /* enable RTCP */
-        RCE_NO_SYSTEM_CALL_CLUSTERING | /* disable system call clustering */
-        RCE_H26X_PREPEND_SC;            /* prepend a start code before each NAL unit */
+        RCE_RECEIVE_ONLY;               /* interpret address/port as binding interface */
 
     uvgrtp::context ctx;
     uvgrtp::session *local_session = ctx.create_session(REMOTE_ADDRESS);
-    uvgrtp::media_stream *send = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, send_flags);
+    uvgrtp::media_stream *send = local_session->create_stream(REMOTE_PORT, RTP_FORMAT_H265, send_flags);
 
-    uvgrtp::session *remote_session = ctx.create_session(LOCAL_ADDRESS);
-    uvgrtp::media_stream *receive = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_H265, receive_flags);
+    uvgrtp::session *remote_session = ctx.create_session(REMOTE_ADDRESS);
+    uvgrtp::media_stream *receive = remote_session->create_stream(REMOTE_PORT, RTP_FORMAT_H265, receive_flags);
 
     if (receive)
     {
@@ -75,21 +75,32 @@ int main(void)
           receive->configure_ctx(RCC_RING_BUFFER_SIZE, BUFFER_SIZE_MB);
           receive->configure_ctx(RCC_PKT_MAX_DELAY,    MAX_PACKET_INTERVAL_MS);
 
+          // set the MTU size of expected packets
+          receive->configure_ctx(RCC_MTU_SIZE, 1400);
+
+          // Change the payload number used in RTP header
+          receive->configure_ctx(RCC_DYN_PAYLOAD_TYPE, 120);
+
           // install receive hook for asynchronous reception
           receive->install_receive_hook(nullptr, receive_process_hook);
     }
     else
     {
-        std::cerr << "Failed to install receive hook!" << std::endl;
+        std::cerr << "Failed to create the receiver!" << std::endl;
         cleanup(ctx, local_session, remote_session, send, receive);
         return EXIT_FAILURE;
     }
 
     if (send)
     {
-
         /* Here, the UDP send buffer is increased to BUFFER_SIZE_MB */
         send->configure_ctx(RCC_UDP_SND_BUF_SIZE, BUFFER_SIZE_MB);
+
+        receive->configure_ctx(RCC_DYN_PAYLOAD_TYPE, 120);
+
+        /* Set the MTU size to what you expect the network to support 
+           (uvgRTP substracts UDP and IP headers from this number) */
+        send->configure_ctx(RCC_MTU_SIZE, 1400);
 
         for (int i = 0; i < SEND_TEST_PACKETS; ++i)
         {
