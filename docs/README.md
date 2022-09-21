@@ -158,10 +158,10 @@ The default MTU size of uvgRTP has been set to 1492 to account for 8 bytes of un
 
 ## Trouble receiving burst of packets?
 
-The default configuration of uvgRTP should be able to handle most basic scenarios up to 4K30p without any frame loss. If you are however 1) using a higher resolution, 2) higher fps value, 3) using a low power machine to receive the RTP stream, or 4) you are experiencing frame loss, you might consider setting or increasing the following parameters: 
+The default configuration of uvgRTP should be able to handle most basic scenarios up to 4K60p without any frame loss. If you are however 1) using a higher resolution, 2) higher fps value, 3) using a low power machine to receive the RTP stream, or 4) you are experiencing frame loss, you might consider setting or increasing the following parameters: 
 * RCC_UDP_RCV_BUF_SIZE: You can try increasing this to 40 or 80 MB if it helps receiving frames
 * RCC_UDP_SND_BUF_SIZE_ You can try increasing this to 40 or 80 MB if it helps sending frames
-* RCC_RING_BUFFER_SIZE: You can try increasing this to 40 or 80 MB if it helps receiving frames
-* RCE_PACE_FRAGMENT_SENDING, RCC_FPS_ENUMERATOR and RCC_FPS_DENOMINATOR: You can try RCE_PACE_FRAGMENT_SENDING to make sender pace the sending of framents so receiver has easier time receiving them. Use RCC_FPS_ENUMERATOR and RCC_FPS_DENOMINATOR to set your fps
+* RCC_RING_BUFFER_SIZE: You can try increasing this to 8 or 16 MB if it helps receiving frames
+* RCE_PACE_FRAGMENT_SENDING, RCC_FPS_NUMERATOR and RCC_FPS_DENOMINATOR: You can try RCE_PACE_FRAGMENT_SENDING to make sender pace the sending of framents so receiver has easier time receiving them. Use RCC_FPS_NUMERATOR and RCC_FPS_DENOMINATOR to set your frame rate
 
 None of these parameters will however help if you are sending more data than the receiver can process, they only help when dealing with burst of (usually fragmented) RTP traffic.
