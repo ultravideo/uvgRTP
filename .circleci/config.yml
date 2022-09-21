@@ -1,7 +1,4 @@
 # Simple CircleCI configuration for building uvgRTP
-# ToDo: add tests
-
-
 
 version: 2.1
 
@@ -57,10 +54,8 @@ jobs:
       - run:
           name: Run user managed SRTP key example
           command: 'build/examples/srtp_user'
-
-# the SRTP + ZRTP example does not have an end so it is not included
-
       - run:
           name: Run ZRTP + SRTP multistream key example
           command: 'build/examples/zrtp_multistream'
 
+# the SRTP + ZRTP example does not have an end so it is not included

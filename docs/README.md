@@ -21,7 +21,7 @@ Find the full documentation for uvgRTP's public API [here](https://ultravideo.gi
 ### Formats with packetization support:
 * AVC ([RFC 6184](https://tools.ietf.org/html/rfc6184))
 * HEVC ([RFC 7798](https://tools.ietf.org/html/rfc7798))
-* VVC ([Draft](https://tools.ietf.org/html/draft-ietf-avtcore-rtp-vvc-08))
+* VVC ([Draft](https://tools.ietf.org/html/draft-ietf-avtcore-rtp-vvc-18))
 
 ### Formats which don't need packetization (See [RFC 3551](https://www.rfc-editor.org/rfc/rfc3551)):
 * PCMU

@@ -21,7 +21,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">uvgRTP<span id="projectnumber">&#160;2.0.1</span>
+   <div id="projectname">uvgRTP<span id="projectnumber">&#160;2.1.0</span>
    </div>
    <div id="projectbrief">An open-source library for RTP/SRTP media delivery</div>
   </td>
@@ -99,30 +99,33 @@ typedef enum <a class="el" href="util_8hh.html#af03a75996471fc531742cd640c7caf2d
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
 <tr class="memitem:aa6dc3f3578923d1afc40045e4cbe387b"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387b">RTP_ERROR</a> { <br />
-&#160;&#160;<b>RTP_MULTIPLE_PKTS_READY</b> = 6
-, <b>RTP_PKT_READY</b> = 5
-, <b>RTP_PKT_MODIFIED</b> = 4
-, <b>RTP_PKT_NOT_HANDLED</b> = 3
+&#160;&#160;<a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba0d701531b2bb1c027f5e5bcc64ed29e1">RTP_OK</a> = 0
 , <br />
-&#160;&#160;<b>RTP_INTERRUPTED</b> = 2
-, <b>RTP_NOT_READY</b> = 1
-, <a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba0d701531b2bb1c027f5e5bcc64ed29e1">RTP_OK</a> = 0
-, <a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387bafde486de26be732acf472480e3693b19">RTP_GENERIC_ERROR</a> = -1
+&#160;&#160;<a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387bafde486de26be732acf472480e3693b19">RTP_GENERIC_ERROR</a> = -1
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387bab392a7774c551eed903855248760ad06">RTP_SOCKET_ERROR</a> = -2
-, <a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba000c0166a0c38686389fc2eba0ddc458">RTP_BIND_ERROR</a> = -3
-, <a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba4cdd3c5db294a4f05294b264afbf678b">RTP_INVALID_VALUE</a> = -4
-, <a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba6c47e86944dbed4d33531236a6e28079">RTP_SEND_ERROR</a> = -5
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba000c0166a0c38686389fc2eba0ddc458">RTP_BIND_ERROR</a> = -3
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba4cdd3c5db294a4f05294b264afbf678b">RTP_INVALID_VALUE</a> = -4
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba6c47e86944dbed4d33531236a6e28079">RTP_SEND_ERROR</a> = -5
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387bac54e582250aec15bf2aea189ccbb0348">RTP_MEMORY_ERROR</a> = -6
-, <a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba80aa5b74c1e252c2ef49e0796d4183d3">RTP_SSRC_COLLISION</a> = -7
-, <a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba0759e9bb74c7a15ef09513547ed5cc2a">RTP_INITIALIZED</a> = -8
-, <a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba32d67254c4da35568e7007ec3825f98a">RTP_NOT_INITIALIZED</a> = -9
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba80aa5b74c1e252c2ef49e0796d4183d3">RTP_SSRC_COLLISION</a> = -7
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba0759e9bb74c7a15ef09513547ed5cc2a">RTP_INITIALIZED</a> = -8
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba32d67254c4da35568e7007ec3825f98a">RTP_NOT_INITIALIZED</a> = -9
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba756d5cd372b045f069a493ed2f2cfa22">RTP_NOT_SUPPORTED</a> = -10
-, <a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387baa499befa487c22503360adffc590f33b">RTP_RECV_ERROR</a> = -11
-, <a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387bacb40716d1ab0663c0cce56f6d03f0902">RTP_TIMEOUT</a> = -12
-, <a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba0a18f9856d2dd5890bb6ec25e4acf631">RTP_NOT_FOUND</a> = -13
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387baa499befa487c22503360adffc590f33b">RTP_RECV_ERROR</a> = -11
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387bacb40716d1ab0663c0cce56f6d03f0902">RTP_TIMEOUT</a> = -12
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba0a18f9856d2dd5890bb6ec25e4acf631">RTP_NOT_FOUND</a> = -13
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#aa6dc3f3578923d1afc40045e4cbe387ba6d62ec0a7250a3db7c0f3a13280ecc65">RTP_AUTH_TAG_MISMATCH</a> = -14
 <br />
@@ -131,48 +134,68 @@ Enumerations</h2></td></tr>
 <tr class="separator:aa6dc3f3578923d1afc40045e4cbe387b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a313c6640ac5ed9384184a94ec57a9a96"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96">RTP_FORMAT</a> { <br />
 &#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96ad4b1be929d880baa2c2ca85c614f61b9">RTP_FORMAT_GENERIC</a> = 0
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a12448ad5b424a2f6d5028a7fd06019b7">RTP_FORMAT_PCMU</a> = 0
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96aa6d4ba4fb63005fac69fa371fdf18a68">RTP_FORMAT_GSM</a> = 3
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96aa97d1880bfcfba08dfef863dc82426d1">RTP_FORMAT_G723</a> = 4
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a12448ad5b424a2f6d5028a7fd06019b7">RTP_FORMAT_PCMU</a> = 0
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96aa6d4ba4fb63005fac69fa371fdf18a68">RTP_FORMAT_GSM</a> = 3
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96aa97d1880bfcfba08dfef863dc82426d1">RTP_FORMAT_G723</a> = 4
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96abf1f20482ba40b0a4161f339978c65c8">RTP_FORMAT_DVI4_32</a> = 5
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96ae0cb5522bf562899f9001adeb669f3ef">RTP_FORMAT_DVI4_64</a> = 6
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a61c2e69b79b0fd2a8fd0bb24fb359ecd">RTP_FORMAT_LPC</a> = 7
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a518313e0a5342ff1b5b79ead46791b2e">RTP_FORMAT_PCMA</a> = 8
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96ae0cb5522bf562899f9001adeb669f3ef">RTP_FORMAT_DVI4_64</a> = 6
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a61c2e69b79b0fd2a8fd0bb24fb359ecd">RTP_FORMAT_LPC</a> = 7
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a518313e0a5342ff1b5b79ead46791b2e">RTP_FORMAT_PCMA</a> = 8
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a2240ad1204186f7c34aacfb27673e692">RTP_FORMAT_G722</a> = 9
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a1de81aee545949cf4609fe3cca3ab1b8">RTP_FORMAT_L16_STEREO</a> = 10
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a4c34cf9ef36a41ba3565b0e3f6ea534a">RTP_FORMAT_L16_MONO</a> = 11
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a0f194f13a6b06211c1411caf0a454313">RTP_FORMAT_G728</a> = 15
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a1de81aee545949cf4609fe3cca3ab1b8">RTP_FORMAT_L16_STEREO</a> = 10
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a4c34cf9ef36a41ba3565b0e3f6ea534a">RTP_FORMAT_L16_MONO</a> = 11
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a0f194f13a6b06211c1411caf0a454313">RTP_FORMAT_G728</a> = 15
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96aa4e91d147dcc0696bae592e0de3ae295">RTP_FORMAT_DVI4_441</a> = 16
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96abb0d59c256c7ed6b0f78aff67f89ac18">RTP_FORMAT_DVI4_882</a> = 17
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a78da373e5b8fb9a83e28f5b8b715ca19">RTP_FORMAT_G729</a> = 18
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96af260843177efa05d95f98d30499db683">RTP_FORMAT_G726_40</a> = 96
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96abb0d59c256c7ed6b0f78aff67f89ac18">RTP_FORMAT_DVI4_882</a> = 17
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a78da373e5b8fb9a83e28f5b8b715ca19">RTP_FORMAT_G729</a> = 18
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96af260843177efa05d95f98d30499db683">RTP_FORMAT_G726_40</a> = 96
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a266862cd2289619b5c4de4c259a32785">RTP_FORMAT_G726_32</a> = 97
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a8635bcd6f336c19271e7ea20eb9111cf">RTP_FORMAT_G726_24</a> = 98
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96ae118651d66f3af54be3094e7e71336c7">RTP_FORMAT_G726_16</a> = 99
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96af2981123dc924d80ed50371625927f58">RTP_FORMAT_G729D</a> = 100
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a8635bcd6f336c19271e7ea20eb9111cf">RTP_FORMAT_G726_24</a> = 98
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96ae118651d66f3af54be3094e7e71336c7">RTP_FORMAT_G726_16</a> = 99
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96af2981123dc924d80ed50371625927f58">RTP_FORMAT_G729D</a> = 100
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96adba054e696e9d57d316c598618580a63">RTP_FORMAT_G729E</a> = 101
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a4e41697a659bea307ca6387330d5b9ed">RTP_FORMAT_GSM_EFR</a> = 102
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96abee7466b11e455f2f2362dc39e61c6a8">RTP_FORMAT_L8</a> = 103
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a91525c8b53f821a6644803967be0e3ed">RTP_FORMAT_VDVI</a> = 104
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a4e41697a659bea307ca6387330d5b9ed">RTP_FORMAT_GSM_EFR</a> = 102
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96abee7466b11e455f2f2362dc39e61c6a8">RTP_FORMAT_L8</a> = 103
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a91525c8b53f821a6644803967be0e3ed">RTP_FORMAT_VDVI</a> = 104
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a4e6ef095b4645cdc8aef241aad1f974b">RTP_FORMAT_OPUS</a> = 105
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96ad785025a8de9a53f17dc84ec3eed85bd">RTP_FORMAT_H264</a> = 106
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a4ee0ab7d51bf50f8f5a5cb995ecc407b">RTP_FORMAT_H265</a> = 107
-, <a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a0e3d0414b29804783324399c8a42c85d">RTP_FORMAT_H266</a> = 108
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96ad785025a8de9a53f17dc84ec3eed85bd">RTP_FORMAT_H264</a> = 106
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a4ee0ab7d51bf50f8f5a5cb995ecc407b">RTP_FORMAT_H265</a> = 107
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96a0e3d0414b29804783324399c8a42c85d">RTP_FORMAT_H266</a> = 108
 <br />
  }</td></tr>
 <tr class="memdesc:a313c6640ac5ed9384184a94ec57a9a96"><td class="mdescLeft">&#160;</td><td class="mdescRight">These flags are given to <a class="el" href="classuvgrtp_1_1session.html#a0b9fb48e95cbfdb76fd9f61e8cafe8e4" title="Create a uni- or bidirectional media stream.">uvgrtp::session::create_stream()</a>  <a href="util_8hh.html#a313c6640ac5ed9384184a94ec57a9a96">More...</a><br /></td></tr>
 <tr class="separator:a313c6640ac5ed9384184a94ec57a9a96"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af03a75996471fc531742cd640c7caf2d"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="util_8hh.html#af03a75996471fc531742cd640c7caf2d">RTP_FLAGS</a> { <br />
 &#160;&#160;<a class="el" href="util_8hh.html#af03a75996471fc531742cd640c7caf2da084c095dae54bbbc6d9509568c58f9a6">RTP_NO_FLAGS</a> = 0
-, <a class="el" href="util_8hh.html#af03a75996471fc531742cd640c7caf2dac44db79708ff5ea9f8abe6d427928629">RTP_OBSOLETE</a> = 1
-, <b>RTP_SLICE</b> = 1
-, <a class="el" href="util_8hh.html#af03a75996471fc531742cd640c7caf2dab1d5797a23c37a33168046a2ae6aef6a">RTP_COPY</a> = 1 &lt;&lt; 1
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#af03a75996471fc531742cd640c7caf2dab1d5797a23c37a33168046a2ae6aef6a">RTP_COPY</a> = 1 &lt;&lt; 1
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#af03a75996471fc531742cd640c7caf2dafd917713b62c18d5fa4106e42f3fbde8">RTP_NO_H26X_SCL</a> = 1 &lt;&lt; 2
 <br />
@@ -180,60 +203,67 @@ Enumerations</h2></td></tr>
 <tr class="memdesc:af03a75996471fc531742cd640c7caf2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">These flags are given to <a class="el" href="classuvgrtp_1_1media__stream.html#a157e9973d92b65e82914d4028690c770" title="Send data to remote participant with a custom timestamp.">uvgrtp::media_stream::push_frame()</a> and they can be OR'ed together.  <a href="util_8hh.html#af03a75996471fc531742cd640c7caf2d">More...</a><br /></td></tr>
 <tr class="separator:af03a75996471fc531742cd640c7caf2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a15b2d6364db6065a482c99827f4bd2af"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af">RTP_CTX_ENABLE_FLAGS</a> { <br />
-&#160;&#160;<b>RCE_NO_FLAGS</b> = 0
-, <b>RCE_OBSOLETE</b> = 1
-, <b>RCE_SYSTEM_CALL_DISPATCHER</b> = 1
-, <b>RCE_NO_H26X_INTRA_DELAY</b> = 1
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa4952226c012292c16fe04477f76e5bcb">RCE_NO_FLAGS</a> = 0
 , <br />
-&#160;&#160;<b>RCE_NO_H26X_SCL</b> = 1
-, <b>RCE_H26X_NO_DEPENDENCY_ENFORCEMENT</b> = 1
-, <b>RCE_H26X_PREPEND_SC</b> = 1
-, <b>RCE_NO_SYSTEM_CALL_CLUSTERING</b> = 1
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa6bb67e1962af60c05c6062fb6f1df374">RCE_SEND_ONLY</a> = 1 &lt;&lt; 1
 , <br />
-&#160;&#160;<b>RCE_SRTP_INPLACE_ENCRYPTION</b> = 1
-, <b>RCE_SEND_ONLY</b> = 1 &lt;&lt; 1
-, <b>RCE_RECEIVE_ONLY</b> = 1 &lt;&lt; 2
-, <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afaf235cba606675b9c38284ee1a491696b">RCE_SRTP</a> = 1 &lt;&lt; 3
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afaf89817eda89d32c43e18ed0645ac4d73">RCE_RECEIVE_ONLY</a> = 1 &lt;&lt; 2
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afaf235cba606675b9c38284ee1a491696b">RCE_SRTP</a> = 1 &lt;&lt; 3
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa40a3deab3893524daf7e057c6dfdaa75">RCE_SRTP_KMNGMNT_ZRTP</a> = 1 &lt;&lt; 4
-, <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa4722105b4fd34467a56b8aca8fc03773">RCE_SRTP_KMNGMNT_USER</a> = 1 &lt;&lt; 5
-, <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa134902ca847e3937595d76401633ff36">RCE_H26X_DO_NOT_PREPEND_SC</a> = 1 &lt;&lt; 6
-, <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa121da451fe2a4008cec78ac4642399b2">RCE_H26X_DEPENDENCY_ENFORCEMENT</a> = 1 &lt;&lt; 7
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa4722105b4fd34467a56b8aca8fc03773">RCE_SRTP_KMNGMNT_USER</a> = 1 &lt;&lt; 5
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa877835beb990d36f59f4d9c1d61d2c35">RCE_NO_H26X_PREPEND_SC</a> = 1 &lt;&lt; 6
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa121da451fe2a4008cec78ac4642399b2">RCE_H26X_DEPENDENCY_ENFORCEMENT</a> = 1 &lt;&lt; 7
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa5b0a8dbb22c20ebe8c0711541fb68a79">RCE_FRAGMENT_GENERIC</a> = 1 &lt;&lt; 8
-, <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa9e41141dacd18def5ab83e9f671f4263">RCE_SYSTEM_CALL_CLUSTERING</a> = 1 &lt;&lt; 9
-, <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa4ddec7d182cec161d6b582589bc9baba">RCE_SRTP_NULL_CIPHER</a> = 1 &lt;&lt; 10
-, <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa820625b96886d955bc42e0cbc52cdd1e">RCE_SRTP_AUTHENTICATE_RTP</a> = 1 &lt;&lt; 11
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa9e41141dacd18def5ab83e9f671f4263">RCE_SYSTEM_CALL_CLUSTERING</a> = 1 &lt;&lt; 9
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa4ddec7d182cec161d6b582589bc9baba">RCE_SRTP_NULL_CIPHER</a> = 1 &lt;&lt; 10
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa820625b96886d955bc42e0cbc52cdd1e">RCE_SRTP_AUTHENTICATE_RTP</a> = 1 &lt;&lt; 11
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afaddd5fdb170d7cc194e4165d3f9e9a1c1">RCE_SRTP_REPLAY_PROTECTION</a> = 1 &lt;&lt; 12
-, <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afab1342138e5af3f03d6eaf1378382bf3d">RCE_RTCP</a> = 1 &lt;&lt; 13
-, <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa8e66f45819774772a0156647d3788a95">RCE_HOLEPUNCH_KEEPALIVE</a> = 1 &lt;&lt; 14
-, <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afaedeac11cc80833b61b51ae32f787db73">RCE_SRTP_KEYSIZE_192</a> = 1 &lt;&lt; 15
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afab1342138e5af3f03d6eaf1378382bf3d">RCE_RTCP</a> = 1 &lt;&lt; 13
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa8e66f45819774772a0156647d3788a95">RCE_HOLEPUNCH_KEEPALIVE</a> = 1 &lt;&lt; 14
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afaedeac11cc80833b61b51ae32f787db73">RCE_SRTP_KEYSIZE_192</a> = 1 &lt;&lt; 15
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa163744fe7c054b8396a4a07ae82a80c0">RCE_SRTP_KEYSIZE_256</a> = 1 &lt;&lt; 16
-, <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa3afca34d8e1e5e856113a0fa32de03c6">RCE_ZRTP_MULTISTREAM_NO_DH</a> = 1 &lt;&lt; 17
-, <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa9734027002242ab143aaecc4220b93da">RCE_FRAMERATE</a> = 1 &lt;&lt; 18
-, <a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa63c559f4a0ea78a5999760fba37019df">RCE_FRAGMENT_PACING</a> = 1 &lt;&lt; 19
 , <br />
-&#160;&#160;<b>RCE_LAST</b> = 1 &lt;&lt; 20
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa3afca34d8e1e5e856113a0fa32de03c6">RCE_ZRTP_MULTISTREAM_NO_DH</a> = 1 &lt;&lt; 17
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afae175f37ce4fdc6e7d9e01d200b8d9abc">RCE_FRAME_RATE</a> = 1 &lt;&lt; 18
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa836063a6ef3da262d0805cf1571ab35c">RCE_PACE_FRAGMENT_SENDING</a> = 1 &lt;&lt; 19
 <br />
  }</td></tr>
 <tr class="memdesc:a15b2d6364db6065a482c99827f4bd2af"><td class="mdescLeft">&#160;</td><td class="mdescRight">RTP context enable flags.  <a href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af">More...</a><br /></td></tr>
 <tr class="separator:a15b2d6364db6065a482c99827f4bd2af"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa98d9238629e33567e73af0d239e587f"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587f">RTP_CTX_CONFIGURATION_FLAGS</a> { <br />
-&#160;&#160;<b>RCC_NO_FLAGS</b> = 0
-, <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fac52afca9d1a8c24b1a788bc5b8524663">RCC_UDP_RCV_BUF_SIZE</a> = 1
-, <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fad4eba6c62183db35dd4bd0e09ddd107b">RCC_UDP_SND_BUF_SIZE</a> = 2
-, <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa9be732aa645fc09adde5c84a2d07e0f6">RCC_RING_BUFFER_SIZE</a> = 3
+&#160;&#160;<a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fac52afca9d1a8c24b1a788bc5b8524663">RCC_UDP_RCV_BUF_SIZE</a> = 1
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fad4eba6c62183db35dd4bd0e09ddd107b">RCC_UDP_SND_BUF_SIZE</a> = 2
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa9be732aa645fc09adde5c84a2d07e0f6">RCC_RING_BUFFER_SIZE</a> = 3
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa5ac1245e18a420489083adddfa97b135">RCC_PKT_MAX_DELAY</a> = 4
-, <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fac758a522806ada30386b262660f30617">RCC_DYN_PAYLOAD_TYPE</a> = 5
-, <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587faece26b6edb4fc1fe6733b8fec0504b99">RCC_CLOCK_RATE</a> = 6
-, <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa7667fb72b42a2c11991b4879619f9f83">RCC_MTU_SIZE</a> = 7
 , <br />
-&#160;&#160;<a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa972c50e87b7c6baaa2f3e1babb6b3147">RCC_FPS_ENUMERATOR</a> = 8
-, <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa9e60e576f72eafe6219cd9f0a9615ce9">RCC_FPS_DENOMINATOR</a> = 9
-, <b>RCC_LAST</b>
+&#160;&#160;<a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fac758a522806ada30386b262660f30617">RCC_DYN_PAYLOAD_TYPE</a> = 5
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587faece26b6edb4fc1fe6733b8fec0504b99">RCC_CLOCK_RATE</a> = 6
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa7667fb72b42a2c11991b4879619f9f83">RCC_MTU_SIZE</a> = 7
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa51034849ac8a4078f0c3b5198b92ab54">RCC_FPS_NUMERATOR</a> = 8
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587fa9e60e576f72eafe6219cd9f0a9615ce9">RCC_FPS_DENOMINATOR</a> = 9
 <br />
  }</td></tr>
 <tr class="memdesc:aa98d9238629e33567e73af0d239e587f"><td class="mdescLeft">&#160;</td><td class="mdescRight">RTP context configuration flags.  <a href="util_8hh.html#aa98d9238629e33567e73af0d239e587f">More...</a><br /></td></tr>
@@ -285,20 +315,19 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 <p >Default is 1492, from this IPv4 and UDP, and RTP headers are removed, giving a payload size of 1452 bytes.</p>
 <p >If application wishes to use small UDP datagram, it can set MTU size to, for example, 500 bytes or if it wishes to use jumbo frames, it can set the MTU size to 9000 bytes </p>
 </td></tr>
-<tr><td class="fieldname"><a id="aa98d9238629e33567e73af0d239e587fa972c50e87b7c6baaa2f3e1babb6b3147" name="aa98d9238629e33567e73af0d239e587fa972c50e87b7c6baaa2f3e1babb6b3147"></a>RCC_FPS_ENUMERATOR&#160;</td><td class="fielddoc"><p >Set the enumerator of frame rate enforced by uvgRTP.</p>
+<tr><td class="fieldname"><a id="aa98d9238629e33567e73af0d239e587fa51034849ac8a4078f0c3b5198b92ab54" name="aa98d9238629e33567e73af0d239e587fa51034849ac8a4078f0c3b5198b92ab54"></a>RCC_FPS_NUMERATOR&#160;</td><td class="fielddoc"><p >Set the numerator of frame rate used by uvgRTP.</p>
 <p >Default is 30.</p>
-<p >Setting a positive value enables this functionality. Setting it to 0 or less, disables it.</p>
-<p >The fps API paces the sending of the RTP packets so that receiver is under less strain to receive all. Setting this is not neccessary for small frame sizes, but even then it makes the stream smoother. The cost is at most one frame extra latency. </p>
+<p >Setting the fps for uvgRTP serves two possible functions:</p>
+<p >1) if RCE_FRAME_RATE has been set, the fps is enforced and uvgRTP tries to send frames at this exact frame rate,</p>
+<p >2) if RCE_PACE_FRAGMENT_SENDING has been set, the fragments are set at a constant pace spaced out evenly within frame interval </p>
 </td></tr>
-<tr><td class="fieldname"><a id="aa98d9238629e33567e73af0d239e587fa9e60e576f72eafe6219cd9f0a9615ce9" name="aa98d9238629e33567e73af0d239e587fa9e60e576f72eafe6219cd9f0a9615ce9"></a>RCC_FPS_DENOMINATOR&#160;</td><td class="fielddoc"><p >Set the denominator of frame rate enforced by uvgRTP.</p>
-<p >Default is 1.</p>
-<p >Setting a positive value enables this functionality. Setting it to 0 or less, disables it.</p>
-<p >Setting the denominator is only necessary for fractional fps values as setting the enumerator already enables the fps functionality. <br  />
- </p>
+<tr><td class="fieldname"><a id="aa98d9238629e33567e73af0d239e587fa9e60e576f72eafe6219cd9f0a9615ce9" name="aa98d9238629e33567e73af0d239e587fa9e60e576f72eafe6219cd9f0a9615ce9"></a>RCC_FPS_DENOMINATOR&#160;</td><td class="fielddoc"><p >Set the denominator of frame rate used by uvgRTP.</p>
+<p >Default is 1</p>
+<p >See RCC_FPS_NUMERATOR for more info. </p>
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00273">273</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
+<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00287">287</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
 
 </div>
 </div>
@@ -317,7 +346,13 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 <p>RTP context enable flags. </p>
 <p >These flags are passed to <a class="el" href="classuvgrtp_1_1session.html#a0b9fb48e95cbfdb76fd9f61e8cafe8e4" title="Create a uni- or bidirectional media stream.">uvgrtp::session::create_stream</a> and can be OR'ed together </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afaf235cba606675b9c38284ee1a491696b" name="a15b2d6364db6065a482c99827f4bd2afaf235cba606675b9c38284ee1a491696b"></a>RCE_SRTP&#160;</td><td class="fielddoc"><p >Use SRTP for this connection </p>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa4952226c012292c16fe04477f76e5bcb" name="a15b2d6364db6065a482c99827f4bd2afa4952226c012292c16fe04477f76e5bcb"></a>RCE_NO_FLAGS&#160;</td><td class="fielddoc"><p >Use this if you have no RCE flags. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa6bb67e1962af60c05c6062fb6f1df374" name="a15b2d6364db6065a482c99827f4bd2afa6bb67e1962af60c05c6062fb6f1df374"></a>RCE_SEND_ONLY&#160;</td><td class="fielddoc"><p >address/port interpreted as remote, no binding to local socket </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afaf89817eda89d32c43e18ed0645ac4d73" name="a15b2d6364db6065a482c99827f4bd2afaf89817eda89d32c43e18ed0645ac4d73"></a>RCE_RECEIVE_ONLY&#160;</td><td class="fielddoc"><p >address/port interpreted as local, sending not possible </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afaf235cba606675b9c38284ee1a491696b" name="a15b2d6364db6065a482c99827f4bd2afaf235cba606675b9c38284ee1a491696b"></a>RCE_SRTP&#160;</td><td class="fielddoc"><p >Use SRTP for this connection </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa40a3deab3893524daf7e057c6dfdaa75" name="a15b2d6364db6065a482c99827f4bd2afa40a3deab3893524daf7e057c6dfdaa75"></a>RCE_SRTP_KMNGMNT_ZRTP&#160;</td><td class="fielddoc"><p >Use ZRTP for key management</p>
 <p >If this flag is provided, before the session starts, ZRTP will negotiate keys with the remote participants and these keys are used as salting/keying material for the session.</p>
@@ -327,7 +362,7 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 <p >If this flag is provided, before the media transportation starts, user must provide a master key and salt form which SRTP session keys are derived</p>
 <p >This flag must be coupled with RCE_SRTP and is mutually exclusive with RCE_SRTP_KMNGMNT_ZRTP </p>
 </td></tr>
-<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa134902ca847e3937595d76401633ff36" name="a15b2d6364db6065a482c99827f4bd2afa134902ca847e3937595d76401633ff36"></a>RCE_H26X_DO_NOT_PREPEND_SC&#160;</td><td class="fielddoc"><p >By default, uvgRTP restores the stream by prepending 3 or 4 byte start code to each received H26x frame, so there is no difference with sender input. You can remove start code prefix with this flag </p>
+<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa877835beb990d36f59f4d9c1d61d2c35" name="a15b2d6364db6065a482c99827f4bd2afa877835beb990d36f59f4d9c1d61d2c35"></a>RCE_NO_H26X_PREPEND_SC&#160;</td><td class="fielddoc"><p >By default, uvgRTP restores the stream by prepending 3 or 4 byte start code to each received H26x frame, so there is no difference with sender input. You can remove start code prefix with this flag </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa121da451fe2a4008cec78ac4642399b2" name="a15b2d6364db6065a482c99827f4bd2afa121da451fe2a4008cec78ac4642399b2"></a>RCE_H26X_DEPENDENCY_ENFORCEMENT&#160;</td><td class="fielddoc"><p >Use this flag to discard inter frames that don't have their previous dependencies arrived. Does not work if the dependencies are not in monotonic order. </p>
 </td></tr>
@@ -355,13 +390,13 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 </td></tr>
 <tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa3afca34d8e1e5e856113a0fa32de03c6" name="a15b2d6364db6065a482c99827f4bd2afa3afca34d8e1e5e856113a0fa32de03c6"></a>RCE_ZRTP_MULTISTREAM_NO_DH&#160;</td><td class="fielddoc"><p >Select which ZRTP stream does not perform Diffie-Hellman negotiation </p>
 </td></tr>
-<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa9734027002242ab143aaecc4220b93da" name="a15b2d6364db6065a482c99827f4bd2afa9734027002242ab143aaecc4220b93da"></a>RCE_FRAMERATE&#160;</td><td class="fielddoc"><p >Force uvgRTP to send packets at certain framerate (default 30 fps) </p>
+<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afae175f37ce4fdc6e7d9e01d200b8d9abc" name="a15b2d6364db6065a482c99827f4bd2afae175f37ce4fdc6e7d9e01d200b8d9abc"></a>RCE_FRAME_RATE&#160;</td><td class="fielddoc"><p >Force uvgRTP to send packets at certain framerate (default 30 fps) </p>
 </td></tr>
-<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa63c559f4a0ea78a5999760fba37019df" name="a15b2d6364db6065a482c99827f4bd2afa63c559f4a0ea78a5999760fba37019df"></a>RCE_FRAGMENT_PACING&#160;</td><td class="fielddoc"><p >Paces the sending of frame fragments within frame interval (default 1/30 s) </p>
+<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa836063a6ef3da262d0805cf1571ab35c" name="a15b2d6364db6065a482c99827f4bd2afa836063a6ef3da262d0805cf1571ab35c"></a>RCE_PACE_FRAGMENT_SENDING&#160;</td><td class="fielddoc"><p >Paces the sending of frame fragments within frame interval (default 1/30 s) </p>
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00160">160</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
+<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00164">164</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
 
 </div>
 </div>
@@ -430,9 +465,7 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 
 <p>These flags are given to <a class="el" href="classuvgrtp_1_1media__stream.html#a157e9973d92b65e82914d4028690c770" title="Send data to remote participant with a custom timestamp.">uvgrtp::media_stream::push_frame()</a> and they can be OR'ed together. </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="af03a75996471fc531742cd640c7caf2da084c095dae54bbbc6d9509568c58f9a6" name="af03a75996471fc531742cd640c7caf2da084c095dae54bbbc6d9509568c58f9a6"></a>RTP_NO_FLAGS&#160;</td><td class="fielddoc"><p >No flags </p>
-</td></tr>
-<tr><td class="fieldname"><a id="af03a75996471fc531742cd640c7caf2dac44db79708ff5ea9f8abe6d427928629" name="af03a75996471fc531742cd640c7caf2dac44db79708ff5ea9f8abe6d427928629"></a>RTP_OBSOLETE&#160;</td><td class="fielddoc"><p >Obsolete flags </p>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="af03a75996471fc531742cd640c7caf2da084c095dae54bbbc6d9509568c58f9a6" name="af03a75996471fc531742cd640c7caf2da084c095dae54bbbc6d9509568c58f9a6"></a>RTP_NO_FLAGS&#160;</td><td class="fielddoc"><p >Use this if you have no RTP flags. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="af03a75996471fc531742cd640c7caf2dab1d5797a23c37a33168046a2ae6aef6a" name="af03a75996471fc531742cd640c7caf2dab1d5797a23c37a33168046a2ae6aef6a"></a>RTP_COPY&#160;</td><td class="fielddoc"><p >Make a copy of the frame and perform operation on the copy. Cannot be used with unique_ptr. </p>
 </td></tr>
@@ -440,7 +473,7 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00133">133</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
+<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00136">136</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
 
 </div>
 </div>
@@ -516,7 +549,7 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00059">59</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
+<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00062">62</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
 
 </div>
 </div>
