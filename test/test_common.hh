@@ -5,7 +5,7 @@
 
 class Test_receiver;
 
-void wait_until_next_frame(std::chrono::steady_clock::time_point& start, 
+void wait_until_next_frame(std::chrono::high_resolution_clock::time_point& start,
     int frame_index, int packet_interval_ms);
 
 inline std::unique_ptr<uint8_t[]> create_test_packet(rtp_format_t format, uint8_t nal_type, 
@@ -96,7 +96,7 @@ inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size,
         std::cout << "Sending " << packets << " test packets with size " << size 
             << " and interval " << packet_interval_ms << "ms" << std::endl;
         
-        std::chrono::steady_clock::time_point start = std::chrono::high_resolution_clock::now();
+        std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
         for (unsigned int i = 0; i < packets; ++i)
         {
             if (i % 60 == 0 && send_app)
@@ -145,7 +145,7 @@ inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size,
     }
 }
 
-inline void wait_until_next_frame(std::chrono::steady_clock::time_point& start, int frame_index, int packet_interval_ms)
+inline void wait_until_next_frame(std::chrono::high_resolution_clock::time_point& start, int frame_index, int packet_interval_ms)
 {
     // wait until it is time to send the next frame. Simulates a steady sending pace
     // and included only for demostration purposes since you can use uvgRTP to send
