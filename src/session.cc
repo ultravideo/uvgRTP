@@ -123,6 +123,12 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
                 return nullptr;
             }
 
+            if (!(rce_flags & RCE_ZRTP_DIFFIE_HELLMAN_MODE) &&
+                !(rce_flags & RCE_ZRTP_MULTISTREAM_MODE)) {
+                UVG_LOG_INFO("ZRTP mode not selected, using Diffie-Hellman mode");
+                rce_flags |= RCE_ZRTP_DIFFIE_HELLMAN_MODE;
+            }
+
             session_mtx_.lock();
             if (!zrtp_) {
                 zrtp_ = std::shared_ptr<uvgrtp::zrtp> (new uvgrtp::zrtp());

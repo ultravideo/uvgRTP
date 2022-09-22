@@ -279,7 +279,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
 
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
 
-    bool perform_dh = !(rce_flags_ & RCE_ZRTP_MULTISTREAM_NO_DH);
+    bool perform_dh = !(rce_flags_ & RCE_ZRTP_MULTISTREAM_MODE);
     if (!perform_dh)
     {
         UVG_LOG_DEBUG("Sleeping non-DH performing stream until DH has finished");

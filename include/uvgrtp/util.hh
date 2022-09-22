@@ -179,6 +179,7 @@ enum RTP_CTX_ENABLE_FLAGS {
     RCE_H26X_DO_NOT_PREPEND_SC = 1 << 6,  ///< renamed flag, use RCE_NO_H26X_PREPEND_SC instead
     RCE_FRAMERATE              = 1 << 18, ///< renamed flag, use RCE_FRAME_RATE instead
     RCE_FRAGMENT_PACING        = 1 << 19, ///< renamed flag, use RCE_PACE_FRAGMENT_SENDING instead
+    RCE_ZRTP_MULTISTREAM_NO_DH = 1 << 17, ///< renamed flag, use RCE_ZRTP_MULTISTREAM_MODE instead
     /// \endcond
 
     // These can be used to specify what the address does for one address create session
@@ -262,17 +263,20 @@ enum RTP_CTX_ENABLE_FLAGS {
     /** Use 256-bit keys with SRTP, only user key management is supported */
     RCE_SRTP_KEYSIZE_256            = 1 << 16,
 
-    /** Select which ZRTP stream does not perform Diffie-Hellman negotiation */
-    RCE_ZRTP_MULTISTREAM_NO_DH      = 1 << 17,
+    /** Select which ZRTP stream performs the Diffie-Hellman exchange (default) */
+    RCE_ZRTP_DIFFIE_HELLMAN_MODE    = 1 << 17,
+
+    /** Select which ZRTP stream does not perform Diffie-Hellman exchange */
+    RCE_ZRTP_MULTISTREAM_MODE       = 1 << 18,
 
     /** Force uvgRTP to send packets at certain framerate (default 30 fps) */
-    RCE_FRAME_RATE                  = 1 << 18,
+    RCE_FRAME_RATE                  = 1 << 19,
 
     /** Paces the sending of frame fragments within frame interval (default 1/30 s) */
-    RCE_PACE_FRAGMENT_SENDING       = 1 << 19,
+    RCE_PACE_FRAGMENT_SENDING       = 1 << 20,
     
     /// \cond DO_NOT_DOCUMENT
-    RCE_LAST                        = 1 << 20
+    RCE_LAST                        = 1 << 21
    /// \endcond
 }; // maximum is 1 << 30 for int
 

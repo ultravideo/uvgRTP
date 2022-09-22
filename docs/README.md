@@ -83,7 +83,8 @@ session->create_stream(..., RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP_NULL_CIP
 | RCE_HOLEPUNCH_KEEPALIVE    | Keep the hole made in the firewall open in case the streaming is unidirectional. If holepunching has been enabled during session creation and this flag is given to `create_stream()` and uvgRTP notices that the application has not sent any data in a while (unidirectionality), it sends a small UDP datagram to the remote participant to keep the connection open |
 | RCE_SRTP_KEYSIZE_192       | Use 196 bit SRTP keys, currently works only with RCE_SRTP_KMNGMNT_USER |
 | RCE_SRTP_KEYSIZE_256       | Use 256 bit SRTP keys, currently works only with RCE_SRTP_KMNGMNT_USER |
-| RCE_ZRTP_MULTISTREAM_NO_DH | Select which streams do not perform Diffie-Hellman with ZRTP. Currently, ZRTP only works reliably with one stream performing DH and one not performing it |
+| RCE_ZRTP_DIFFIE_HELLMAN_MODE | Select which streams performs the Diffie-Hellman with ZRTP (default) |
+| RCE_ZRTP_MULTISTREAM_MODE    | Select which streams do not perform Diffie-Hellman with ZRTP. Currently, ZRTP only works reliably with one stream performing DH and one not performing it |
 | RCE_FRAMERATE              | Try to keep the sent framerate as constant as possible (default fps is 30) |
 | RCE_PACE_FRAGMENT_SENDING  | Pace the sending of framents to frame interval to help receiver receive packets (default frame interval is 1/30) |
 
@@ -146,7 +147,7 @@ uvgRTP provides two ways for an application to deal with SRTP key-management: 1)
 ### ZRTP-based SRTP
 
 uvgRTP supports Diffie-Hellman and Multistream modes of ZRTP. To use ZRTP, user must provide `RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP` flag combination
-to `create_stream()` as well as `RCE_ZRTP_MULTISTREAM_NO_DH` flag for all streams which are in Multistream mode. See [ZRTP Multistream example](../examples/zrtp_multistream.cc) for more details.
+to `create_stream()` as well as `RCE_ZRTP_MULTISTREAM_MODE` flag for all streams which are in Multistream mode. See [ZRTP Multistream example](../examples/zrtp_multistream.cc) for more details.
 
 ### User-managed SRTP
 

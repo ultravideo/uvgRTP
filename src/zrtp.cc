@@ -667,7 +667,7 @@ rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> so
         
         if (initialized_)
         {
-            UVG_LOG_WARN("ZRTP multistream mode not used. Please use RCE_ZRTP_MULTISTREAM_NO_DH flag " \
+            UVG_LOG_WARN("ZRTP multistream mode not used. Please use RCE_ZRTP_MULTISTREAM_MODE flag " \
                 "to select which streams should not perform DH");
         }
 

@@ -257,26 +257,25 @@ TEST(EncryptionTests, zrtp_multistream)
     }
 
     /* Enable SRTP and ZRTP */
-    unsigned zrtp_flags      = RCE_SRTP   | RCE_SRTP_KMNGMNT_ZRTP;
+    unsigned zrtp_dh_flags      = RCE_SRTP   | RCE_SRTP_KMNGMNT_ZRTP | RCE_ZRTP_DIFFIE_HELLMAN_MODE;
 
     // only one of the streams should perform DH
-    unsigned int no_dh_flags = zrtp_flags | RCE_ZRTP_MULTISTREAM_NO_DH;
-
+    unsigned int zrtp_multistream_flags = RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_ZRTP_MULTISTREAM_MODE;
 
     uvgrtp::session* sender_session = ctx.create_session(RECEIVER_ADDRESS, SENDER_ADDRESS);
     uvgrtp::session* receiver_session = ctx.create_session(SENDER_ADDRESS, RECEIVER_ADDRESS);
 
     std::unique_ptr<std::thread> sender_thread1 = 
-        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_flags));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_dh_flags));
 
     std::unique_ptr<std::thread> receiver_thread1 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_flags));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_dh_flags));
 
     std::unique_ptr<std::thread> sender_thread2 = 
-        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 4, RECEIVER_PORT + 4, no_dh_flags));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags));
 
     std::unique_ptr<std::thread> receiver_thread2 = 
-        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 4, RECEIVER_PORT + 4, no_dh_flags));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags));
 
     if (receiver_thread1 && receiver_thread1->joinable())
     {

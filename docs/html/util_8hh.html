@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.5"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>uvgRTP: C:/Local/rasane22/Projects/Kvazzup/libraries/uvgRTP/include/uvgrtp/util.hh File Reference</title>
+<title>uvgRTP: util.hh File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -237,11 +237,13 @@ Enumerations</h2></td></tr>
 , <br />
 &#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa163744fe7c054b8396a4a07ae82a80c0">RCE_SRTP_KEYSIZE_256</a> = 1 &lt;&lt; 16
 , <br />
-&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa3afca34d8e1e5e856113a0fa32de03c6">RCE_ZRTP_MULTISTREAM_NO_DH</a> = 1 &lt;&lt; 17
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa4fdf2b1f3f934315158b4204e71f9171">RCE_ZRTP_DIFFIE_HELLMAN_MODE</a> = 1 &lt;&lt; 17
 , <br />
-&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afae175f37ce4fdc6e7d9e01d200b8d9abc">RCE_FRAME_RATE</a> = 1 &lt;&lt; 18
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa9127265f0b1a1a45bac8e6fa7270a98a">RCE_ZRTP_MULTISTREAM_MODE</a> = 1 &lt;&lt; 18
 , <br />
-&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa836063a6ef3da262d0805cf1571ab35c">RCE_PACE_FRAGMENT_SENDING</a> = 1 &lt;&lt; 19
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afae175f37ce4fdc6e7d9e01d200b8d9abc">RCE_FRAME_RATE</a> = 1 &lt;&lt; 19
+, <br />
+&#160;&#160;<a class="el" href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2afa836063a6ef3da262d0805cf1571ab35c">RCE_PACE_FRAGMENT_SENDING</a> = 1 &lt;&lt; 20
 <br />
  }</td></tr>
 <tr class="memdesc:a15b2d6364db6065a482c99827f4bd2af"><td class="mdescLeft">&#160;</td><td class="mdescRight">RTP context enable flags.  <a href="util_8hh.html#a15b2d6364db6065a482c99827f4bd2af">More...</a><br /></td></tr>
@@ -327,7 +329,7 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00287">287</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
+<p class="definition">Definition at line <a class="el" href="util_8hh_source.html#l00291">291</a> of file <a class="el" href="util_8hh_source.html">util.hh</a>.</p>
 
 </div>
 </div>
@@ -388,7 +390,9 @@ thread_local rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>r
 </td></tr>
 <tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa163744fe7c054b8396a4a07ae82a80c0" name="a15b2d6364db6065a482c99827f4bd2afa163744fe7c054b8396a4a07ae82a80c0"></a>RCE_SRTP_KEYSIZE_256&#160;</td><td class="fielddoc"><p >Use 256-bit keys with SRTP, only user key management is supported </p>
 </td></tr>
-<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa3afca34d8e1e5e856113a0fa32de03c6" name="a15b2d6364db6065a482c99827f4bd2afa3afca34d8e1e5e856113a0fa32de03c6"></a>RCE_ZRTP_MULTISTREAM_NO_DH&#160;</td><td class="fielddoc"><p >Select which ZRTP stream does not perform Diffie-Hellman negotiation </p>
+<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa4fdf2b1f3f934315158b4204e71f9171" name="a15b2d6364db6065a482c99827f4bd2afa4fdf2b1f3f934315158b4204e71f9171"></a>RCE_ZRTP_DIFFIE_HELLMAN_MODE&#160;</td><td class="fielddoc"><p >Select which ZRTP stream performs the Diffie-Hellman exchange (default) </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afa9127265f0b1a1a45bac8e6fa7270a98a" name="a15b2d6364db6065a482c99827f4bd2afa9127265f0b1a1a45bac8e6fa7270a98a"></a>RCE_ZRTP_MULTISTREAM_MODE&#160;</td><td class="fielddoc"><p >Select which ZRTP stream does not perform Diffie-Hellman exchange </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a15b2d6364db6065a482c99827f4bd2afae175f37ce4fdc6e7d9e01d200b8d9abc" name="a15b2d6364db6065a482c99827f4bd2afae175f37ce4fdc6e7d9e01d200b8d9abc"></a>RCE_FRAME_RATE&#160;</td><td class="fielddoc"><p >Force uvgRTP to send packets at certain framerate (default 30 fps) </p>
 </td></tr>
