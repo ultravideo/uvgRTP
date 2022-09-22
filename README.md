@@ -29,9 +29,11 @@ Currently supported specifications:
 
 See [BUILDING.md](BUILDING.md) for instructions on how to build and use uvgRTP
 
-## Documentation and examples
+## Learning to use uvgRTP
 
-See [documentation](docs/README.md) and [examples](docs/examples) to get a better understanding of uvgRTP
+The [examples](docs/examples) folder contains working examples and a basic tutorial on uvgRTP usage. For more advanced details, check the [documentation folder](docs/README.md) where you can find more info on advanced topics and description of all uvgRTP flags.
+
+Furthermore, we also provide [documentation of the public API](https://ultravideo.github.io/uvgRTP/html/index.html) on Github.
 
 ## Contributing
 
