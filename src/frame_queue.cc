@@ -280,38 +280,57 @@ rtp_error_t uvgrtp::frame_queue::flush_queue()
     if (active_->packets.size() > 1)
         ((uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr - 1])[1] |= (1 << 7);
     
+    std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
+
     if ((rce_flags_ & RCE_FRAME_RATE) && fps_)
     {
-        std::chrono::nanoseconds wait_time = this_frame_time() - std::chrono::high_resolution_clock::now();
-        
-        if (wait_time.count() > 0 && frames_since_sync_ != 0)
-        {
-            // we cap the sleep at 0.9 interval so we slowly catch up to highest latency so far
-            if (wait_time > 0.9 * frame_interval_)
-            {
-                std::this_thread::sleep_for(0.9 * frame_interval_);
+        std::chrono::nanoseconds wait_time = this_frame_time() - now;
 
-                /* Update the sync point so we solify our latency gains, 
-                   we may do the same for next frame until 0.9 has been achieved */
-                update_sync_point(); 
+        if (wait_time.count() < 0 || force_sync_)
+        {
+            if (wait_time.count() < 0)
+            {
+                /*
+                UVG_LOG_DEBUG("Updating fps synchronization point because we are late by %lli ms", 
+                    -std::chrono::duration_cast<std::chrono::milliseconds> (wait_time).count());
+                    */
+            }
+            else if ( wait_time < frame_interval_ * 0.5)
+            {
+                UVG_LOG_DEBUG("Frames are arriving with sensible delay, ending forced synchronization point update");
+                force_sync_ = false;
             }
             else
             {
-                std::this_thread::sleep_for(wait_time);
+                UVG_LOG_DEBUG("Forcing fps synchronization point update");
             }
+            update_sync_point();
         }
         else
         {
-            update_sync_point();
+            // we cap the sleep/latency at frame interval
+            if (wait_time > frame_interval_)
+            {
+                UVG_LOG_DEBUG("Limiting fps wait times to frame interval");
+                std::this_thread::sleep_for(frame_interval_);
+
+                update_sync_point();
+            }
+            else
+            {
+                // if nothing is wrong, wait until it is time to send this frame
+                std::this_thread::sleep_for(wait_time);
+            }
+            now = std::chrono::high_resolution_clock::now(); // update now in case we are using fragment pacing
         }
 
         ++frames_since_sync_;
     }
 
-    if ((rce_flags_ & RCE_PACE_FRAGMENT_SENDING) && fps_)
+    if ((rce_flags_ & RCE_PACE_FRAGMENT_SENDING) && fps_ && !force_sync_)
     {
-        std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
-        std::chrono::nanoseconds packet_interval = frame_interval_/ active_->packets.size();
+        // allocate 80% of frame interval for pacing, rest for other processing
+        std::chrono::nanoseconds packet_interval = 8*frame_interval_/(10*active_->packets.size());
 
         for (size_t i = 0; i < active_->packets.size(); ++i)
         {
