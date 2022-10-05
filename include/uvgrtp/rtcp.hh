@@ -153,20 +153,6 @@ namespace uvgrtp {
             rtp_error_t send_sdes_packet(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
 
             /**
-             * \brief Send an RTCP APP packet
-             *
-             * \param name Name of the APP item, e.g., EMAIL or PHONE
-             * \param subtype Subtype of the APP item
-             * \param payload_len Length of the payload
-             * \param payload Payload
-             *
-             * \retval RTP_OK On success
-             * \retval RTP_MEMORY_ERROR If allocation fails
-             * \retval RTP_GENERIC_ERROR If sending fails
-             */
-            rtp_error_t send_app_packet(const char *name, uint8_t subtype, uint32_t payload_len, const uint8_t *payload);
-
-            /**
              * \brief Send an RTCP BYE packet
              *
              * \details In case the quitting participant is a mixer and is serving multiple
@@ -352,6 +338,7 @@ namespace uvgrtp {
             rtp_error_t install_sdes_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_handler);
             rtp_error_t install_app_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
             /// \endcond
+            rtp_error_t install_app_sending_hook(std::function<std::map<std::string, std::shared_ptr<rtcp_app_packet>>()> app_sending);
 
             /**
              * \brief Remove all installed hooks for RTCP
@@ -382,7 +369,7 @@ namespace uvgrtp {
 
             rtp_error_t set_sdes_items(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
 
-            uint32_t size_of_ready_app_packets() const;
+            uint32_t size_of_ready_app_packets(std::map<std::string, std::shared_ptr<rtcp_app_packet>> app_packets) const;
 
             uint32_t size_of_compound_packet(uint16_t reports,
                 bool sr_packet, bool rr_packet, bool sdes_packet, uint32_t app_size, bool bye_packet) const;
@@ -553,6 +540,8 @@ namespace uvgrtp {
             std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)>      app_hook_f_;
             std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>)>      app_hook_u_;
 
+            std::function<std::map<std::string, std::shared_ptr<rtcp_app_packet>>()> app_sending_hook_;
+
             std::mutex sr_mutex_;
             std::mutex rr_mutex_;
             std::mutex sdes_mutex_;
@@ -574,7 +563,6 @@ namespace uvgrtp {
             // messages waiting to be sent
             std::vector<uvgrtp::frame::rtcp_sdes_item> ourItems_; // always sent
             std::vector<uint32_t> bye_ssrcs_; // sent once
-            std::map<std::string, std::deque<rtcp_app_packet>> app_packets_; // sent one at a time per name
 
             uvgrtp::frame::rtcp_sdes_item cnameItem_;
             char cname_[255];
