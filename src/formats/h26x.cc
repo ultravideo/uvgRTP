@@ -190,7 +190,7 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
         {
             /* Previous dword had zeros but this doesn't. The only way there might be a start code
              * is if the most significant byte of current dword is 0x01 */
-            if (prev_had_zero && !cur_has_zero) {
+            if (prev_had_zero) {
                 /* previous dword: 0xXX000000 or 0xXXXX0000 and current dword 0x01XXXXXX */
 #if __BYTE_ORDER == __LITTLE_ENDIAN
                 if (((cur_value32 >> 0) & 0xff) == 0x01 && ((prev_value32 >> 16) & 0xffff) == 0) {
