@@ -12,9 +12,14 @@ target_sources(${PROJECT_NAME}
             test_3_rtcp.cpp
             test_4_formats.cpp
             test_5_srtp_zrtp.cpp
+            test_6_scl_unit_test.cpp
             test_common.hh
         )
 
+target_include_directories(${PROJECT_NAME}
+        PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../src>
+        )
+        
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         GTest::GTestMain
