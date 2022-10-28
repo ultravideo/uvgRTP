@@ -62,7 +62,15 @@ void uvgrtp::reception_flow::create_ring_buffer()
 
     for (size_t i = 0; i < elements; ++i)
     {
-        ring_buffer_.push_back({ new uint8_t[payload_size_] , 0 });
+        uint8_t* data = new uint8_t[payload_size_];
+        if (data)
+        {
+            ring_buffer_.push_back({data, 0});
+        }
+        else
+        {
+            UVG_LOG_ERROR("Failed to allocate memory for ring buffer");
+        }
     }
 }
 
@@ -70,7 +78,10 @@ void uvgrtp::reception_flow::destroy_ring_buffer()
 {
     for (size_t i = 0; i < ring_buffer_.size(); ++i)
     {
-        delete[] ring_buffer_.at(i).data;
+        if (ring_buffer_.at(i).data)
+        {
+            delete[] ring_buffer_.at(i).data;
+        }
     }
     ring_buffer_.clear();
 }
