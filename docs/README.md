@@ -157,6 +157,10 @@ The second way of handling key-management of SRTP is to do it outside uvgRTP. To
 
 The default MTU size of uvgRTP has been set to 1492 to account for 8 bytes of unknown overhead. uvgRTP assumes the presence of an UDP header and IP header in addition an RTP header which are taken into account when fragmenting frames. If your application is expected to work through tunneling such as VPN which adds additional headers on top of packets, you may need to lower the MTU size to avoid IP level fragmentation. Some networks also allow for a higher MTU size in which case you can increase this.
 
+## uvgRTP video reception behavior with packet loss
+
+The default behavior of uvgRTP video reception when there is packet loss is to give all completed frames to user, and eventually deleting all fragments (via garbage collection) belonging to non-completed frames. There are plans to implement more sophisticated frame loss options to discard frames that do not have a reference.
+
 ## Trouble receiving burst of packets?
 
 The default configuration of uvgRTP should be able to handle most basic scenarios up to 4K60p without any frame loss. If you are however 1) using a higher resolution, 2) higher fps value, 3) using a low power machine to receive the RTP stream, or 4) you are experiencing frame loss, you might consider setting or increasing the following parameters: 
