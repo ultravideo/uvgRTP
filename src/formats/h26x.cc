@@ -152,7 +152,7 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
 
     uint64_t prefetch64 = UINT64_MAX;
 
-    while (pos + 8 <= len) {
+    while (pos + 4 <= len) {
 
         if (!prev_had_zero)
         {
@@ -172,13 +172,9 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
             }
         }
 
-        if (pos + 8 <= len)
+        if (pos + 4 <= len)
         {
             cur_value32 = *(uint32_t*)(data + pos);
-        }
-
-        if (cur_has_zero)
-        {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
             cur_has_zero = haszero32_le(cur_value32);
 #else
@@ -186,7 +182,7 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
 #endif
         }
 
-        if (prev_had_zero || cur_has_zero)
+        if ((prev_had_zero || cur_has_zero) && pos + 4 <= len)
         {
             /* Previous dword had zeros but this doesn't. The only way there might be a start code
              * is if the most significant byte of current dword is 0x01 */
