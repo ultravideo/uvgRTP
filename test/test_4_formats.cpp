@@ -54,9 +54,54 @@ TEST(FormatTests, h26x_flags)
     cleanup_sess(ctx, sess);
 }
 
-TEST(FormatTests, h264)
+TEST(FormatTests, h264_single_nal_unit)
 {
-    std::cout << "Starting h264 test" << std::endl;
+    std::cout << "Starting h264 Single NAL unit test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    if (sess)
+    {
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H264, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H264, RCE_NO_FLAGS);
+    }
+
+    int rtp_flags = RTP_NO_FLAGS;
+    rtp_format_t format = RTP_FORMAT_H264;
+    int test_runs = 5;
+    int size = 8;
+    
+    std::cout << "Testing small NAL unit" << std::endl;
+    std::vector<size_t> test_sizes = std::vector<size_t>(16);
+    std::iota(test_sizes.begin(), test_sizes.end(), 4);
+
+    for (auto& size : test_sizes)
+    {
+        int nal_type = 8;
+        std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+    }
+        
+    size = 35;
+    
+    for (unsigned int nal_type = 1; nal_type <= 23; ++nal_type)
+    {
+        std::cout << "Testing H264 NAL type " << nal_type << std::endl;
+        std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+    }
+
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
+}
+
+TEST(FormatTests, h264_fragmentation)
+{
+    std::cout << "Starting h264 fragmentation test" << std::endl;
     uvgrtp::context ctx;
     uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS);
 
@@ -95,9 +140,54 @@ TEST(FormatTests, h264)
     cleanup_sess(ctx, sess);
 }
 
-TEST(FormatTests, h265)
+TEST(FormatTests, h265_single_nal_unit)
 {
-    std::cout << "Starting h265 test" << std::endl;
+    std::cout << "Starting H265 Single NAL unit test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    if (sess)
+    {
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
+    }
+
+    int rtp_flags = RTP_NO_FLAGS;
+    rtp_format_t format = RTP_FORMAT_H265;
+    int test_runs = 5;
+    int size = 8;
+
+    std::cout << "Testing small NAL unit" << std::endl;
+    std::vector<size_t> test_sizes = std::vector<size_t>(16);
+    std::iota(test_sizes.begin(), test_sizes.end(), 6);
+
+    for (auto& size : test_sizes)
+    {
+        int nal_type = 8;
+        std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+    }
+
+    size = 35;
+
+    for (unsigned int nal_type = 0; nal_type <= 47; ++nal_type)
+    {
+        std::cout << "Testing H264 NAL type " << nal_type << std::endl;
+        std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+    }
+
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
+}
+
+TEST(FormatTests, h265_fragmentation)
+{
+    std::cout << "Starting h265 fragmentation test" << std::endl;
     uvgrtp::context ctx;
     uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS);
 
@@ -222,6 +312,51 @@ TEST(FormatTests, h265_small_fragment_pacing_fps)
     cleanup_sess(ctx, sess);
 }
 
+TEST(FormatTests, h266_single_nal_unit)
+{
+    std::cout << "Starting H266 Single NAL unit test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    if (sess)
+    {
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H266, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H266, RCE_NO_FLAGS);
+    }
+
+    int rtp_flags = RTP_NO_FLAGS;
+    rtp_format_t format = RTP_FORMAT_H266;
+    int test_runs = 5;
+    int size = 8;
+
+    std::cout << "Testing small NAL unit" << std::endl;
+    std::vector<size_t> test_sizes = std::vector<size_t>(16);
+    std::iota(test_sizes.begin(), test_sizes.end(), 6);
+
+    for (auto& size : test_sizes)
+    {
+        int nal_type = 8;
+        std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+    }
+
+    size = 35;
+
+    for (unsigned int nal_type = 0; nal_type <= 27; ++nal_type)
+    {
+        std::cout << "Testing H264 NAL type " << nal_type << std::endl;
+        std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+    }
+
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
+}
+
 TEST(FormatTests, h265_large_fragment_pacing)
 {
     std::cout << "Starting h265 test" << std::endl;
@@ -267,9 +402,9 @@ TEST(FormatTests, h265_large_fragment_pacing)
     cleanup_sess(ctx, sess);
 }
 
-TEST(FormatTests, h266)
+TEST(FormatTests, h266_fragmentation)
 {
-    std::cout << "Starting h266 test" << std::endl;
+    std::cout << "Starting h266 fragmentation test" << std::endl;
     uvgrtp::context ctx;
     uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS);
 

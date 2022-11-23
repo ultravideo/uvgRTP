@@ -91,6 +91,16 @@ It is possible to silence all prints coming from uvgRTP by enabling following pa
 cmake -DDISABLE_PRINTS=1 ..
 ```
 
+## Allow compiler warnings by disabling Werror
+
+If the compiler warnings are causing your build to fail without you making any modifications, you may use this option to disable the `-Werror`-flag:
+
+```
+cmake -DDISABLE_WERROR=1 ..
+```
+
+Creation of an issue on Github that describes these warnings is also appreciated.
+
 ## Release commit (for devs)
 
 The release commit can be specified in CMake. This slightly changes how the version is printed. This feature is mostly useful for distributing release versions. Use the following command:
