@@ -152,12 +152,12 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
 
     uint64_t prefetch64 = UINT64_MAX;
 
-    while (pos + 8 < len) {
+    while (pos + 8 <= len) {
 
         if (!prev_had_zero)
         {
             // since we know that start code prefix has zeros, we find the next dword that has zeros
-            while (!cur_has_zero && pos + 8 < len)
+            while (!cur_has_zero && pos + 8 <= len)
             {
                 prefetch64 = *(uint64_t*)(data + pos);
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -172,7 +172,7 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
             }
         }
 
-        if (pos + 8 < len)
+        if (pos + 8 <= len)
         {
             cur_value32 = *(uint32_t*)(data + pos);
         }
