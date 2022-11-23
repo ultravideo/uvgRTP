@@ -29,6 +29,8 @@ inline void rtp_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 
 inline void set_nal_unit(uint8_t* frame, size_t& pos, bool zero_prefix, uint8_t zeros,
     uint8_t first_byte, uint8_t second_byte);
+inline void set_nal_unit(uint8_t* frame, size_t& pos, bool zero_prefix, uint8_t zeros,
+    uint8_t first_byte);
 
 class Test_receiver
 {
@@ -60,7 +62,7 @@ inline std::unique_ptr<uint8_t[]> create_test_packet(rtp_format_t format, uint8_
     std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
     memset(test_frame.get(), 'b', size);
 
-    if (add_start_code && size >= 6)
+    if (add_start_code && (size >= 6 || (size >= 4 && format == RTP_FORMAT_H264)))
     {
         size_t pos = 0;
         bool zero_prefix = !(rtp_flags & RTP_NO_H26X_SCL);
@@ -68,7 +70,7 @@ inline std::unique_ptr<uint8_t[]> create_test_packet(rtp_format_t format, uint8_
         if (format == RTP_FORMAT_H264)
         {
             // https://datatracker.ietf.org/doc/html/rfc6184#section-1.3
-            set_nal_unit(test_frame.get(), pos, zero_prefix, 2, nal_type, 0);
+            set_nal_unit(test_frame.get(), pos, zero_prefix, 2, nal_type);
         }
         else if (format == RTP_FORMAT_H265)
         {
@@ -237,7 +239,6 @@ inline void process_rtp_frame(uvgrtp::frame::rtp_frame* frame)
 inline void set_nal_unit(uint8_t* frame, size_t& pos, bool start_code, uint8_t zeros,
     uint8_t first_byte, uint8_t second_byte)
 {
-    // see https://datatracker.ietf.org/doc/html/draft-ietf-avtcore-rtp-vvc#section-1.1.4
     if (start_code)
     {
         memset(frame + pos, 0, zeros);
@@ -248,6 +249,21 @@ inline void set_nal_unit(uint8_t* frame, size_t& pos, bool start_code, uint8_t z
 
     memset(frame + pos, first_byte, 1);
     pos += 1;
-    memset(frame + pos, second_byte, 1); // Intra frame (type)
+    memset(frame + pos, second_byte, 1);
+    pos += 1;
+}
+
+inline void set_nal_unit(uint8_t* frame, size_t& pos, bool start_code, uint8_t zeros,
+    uint8_t first_byte)
+{
+    if (start_code)
+    {
+        memset(frame + pos, 0, zeros);
+        pos += zeros;
+        memset(frame + pos, 1, 1);
+        pos += 1;
+    }
+
+    memset(frame + pos, first_byte, 1);
     pos += 1;
 }
