@@ -112,7 +112,7 @@ rtp_error_t uvgrtp::poll::poll(std::vector<std::shared_ptr<uvgrtp::socket>>& soc
     }
 
     t_val.tv_sec  = timeout / 1000;
-    t_val.tv_usec = 0;
+    t_val.tv_usec = (timeout % 1000) * 1000;
 
     int ret = ::select((int)sockets.size(), &read_fds, nullptr, nullptr, &t_val);
 
