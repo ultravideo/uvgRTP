@@ -628,7 +628,10 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::
     else if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_NOT_FRAG) { // Single NAL unit
 
         // TODO: Check if previous dependencies have been sent forward
-        completed_ts_[frame->header.timestamp] = std::chrono::high_resolution_clock::now();
+
+        // TODO: We should detect duplicate packets, but there are legitimate situations
+        //  where single NAL units have same timestamps
+        //completed_ts_[frame->header.timestamp] = std::chrono::high_resolution_clock::now();
 
         // nothing special needs to be done, just possibly add start codes back
         prepend_start_code(rce_flags, out);
