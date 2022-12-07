@@ -1853,3 +1853,8 @@ void uvgrtp::rtcp::set_payload_size(size_t mtu_size)
 {
     mtu_size_ = mtu_size;
 }
+
+void uvgrtp::rtcp::set_ssrc(uint32_t ssrc)
+{
+    ssrc_ = ssrc;
+}

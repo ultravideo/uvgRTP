@@ -199,6 +199,11 @@ void uvgrtp::rtp::set_pkt_max_delay(size_t delay)
     delay_ = delay;
 }
 
+void uvgrtp::rtp::set_ssrc(uint32_t ssrc)
+{
+    ssrc_ = ssrc;
+}
+
 size_t uvgrtp::rtp::get_pkt_max_delay() const
 {
     return delay_;

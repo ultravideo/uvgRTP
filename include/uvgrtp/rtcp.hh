@@ -376,6 +376,8 @@ namespace uvgrtp {
             size_t rtcp_length_in_bytes(uint16_t length);
 
             void set_payload_size(size_t mtu_size);
+
+            void set_ssrc(uint32_t ssrc);
             /// \endcond
 
         private:
@@ -512,7 +514,7 @@ namespace uvgrtp {
             bool initial_;
 
             /* Copy of our own current SSRC */
-            const uint32_t ssrc_;
+            uint32_t ssrc_;
 
             /* NTP timestamp associated with initial RTP timestamp (aka t = 0) */
             uint64_t clock_start_;

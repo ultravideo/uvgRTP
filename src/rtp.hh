@@ -33,6 +33,7 @@ namespace uvgrtp {
             void set_timestamp(uint64_t timestamp);
             void set_payload_size(size_t payload_size);
             void set_pkt_max_delay(size_t delay);
+            void set_ssrc(uint32_t ssrc);
 
             void fill_header(uint8_t *buffer);
             void update_sequence(uint8_t *buffer);

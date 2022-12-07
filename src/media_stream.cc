@@ -660,7 +660,14 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             media_->set_fps(fps_numerator_, fps_denominator_);
             break;
         }           
+        case RCC_SSRC: {
+            if (value <= 0 || value > (ssize_t)UINT32_MAX)
+                return RTP_INVALID_VALUE;
 
+            rtp_-> set_ssrc(uint32_t(value));
+            rtcp_->set_ssrc(uint32_t(value));
+            break;
+        }
         default:
             return RTP_INVALID_VALUE;
     }

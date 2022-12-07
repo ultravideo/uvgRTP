@@ -362,6 +362,13 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      * See RCC_FPS_NUMERATOR for more info.
      */
     RCC_FPS_DENOMINATOR  = 9,
+
+    /** Set the SSRC of the stream manually
+    * 
+    * By default SSRC is generated randomly
+    */
+    RCC_SSRC = 10,
+
     /// \cond DO_NOT_DOCUMENT
     RCC_LAST
     /// \endcond
