@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <memory>
 #include <string>
-
+#include <atomic>
 
 #ifndef _WIN32
 #include <sys/socket.h>
@@ -345,6 +345,8 @@ namespace uvgrtp {
 
             ssize_t fps_numerator_ = 30;
             ssize_t fps_denominator_ = 1;
+
+            std::shared_ptr<std::atomic<std::uint32_t>> ssrc_;
     };
 }
 

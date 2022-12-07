@@ -37,12 +37,12 @@ constexpr int ESTIMATED_MAX_RECEPTION_TIME_MS = 10;
 
 const uint32_t MAX_SUPPORTED_PARTICIPANTS = 31;
 
-uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int rce_flags):
-    rce_flags_(rce_flags), our_role_(RECEIVER),
+uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::string cname, int rce_flags):
+    rce_flags_(rce_flags), our_role_(RECEIVER), 
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0),
     we_sent_(false), avg_rtcp_pkt_pize_(0), rtcp_pkt_count_(0),
-    rtcp_pkt_sent_count_(0), initial_(true), ssrc_(rtp->get_ssrc()), 
+    rtcp_pkt_sent_count_(0), initial_(true), ssrc_(ssrc),
     num_receivers_(0),
     sender_hook_(nullptr),
     receiver_hook_(nullptr),
@@ -92,9 +92,9 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int rce_
     }
 }
 
-uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, 
+uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::string cname,
     std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags):
-    rtcp(rtp, cname, rce_flags)
+    rtcp(rtp, ssrc, cname, rce_flags)
 {
     srtcp_ = srtcp;
 }
@@ -232,7 +232,7 @@ rtp_error_t uvgrtp::rtcp::stop()
     }
 
     /* Send BYE packet with our SSRC to all participants */
-    return uvgrtp::rtcp::send_bye_packet({ ssrc_ });
+    return uvgrtp::rtcp::send_bye_packet({ *ssrc_.get() });
 }
 
 void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp, int interval)
@@ -1518,7 +1518,7 @@ rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, uint3
     rtp_error_t ret = RTP_OK;
 
     if (encrypt && srtcp_ && 
-        (ret = srtcp_->handle_rtcp_encryption(rce_flags_, rtcp_pkt_sent_count_, ssrc_, frame, frame_size)) != RTP_OK)
+        (ret = srtcp_->handle_rtcp_encryption(rce_flags_, rtcp_pkt_sent_count_, *ssrc_.get(), frame, frame_size)) != RTP_OK)
     {
         UVG_LOG_DEBUG("Encryption failed. Not sending packet");
         delete[] frame;
@@ -1643,6 +1643,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
     // see https://datatracker.ietf.org/doc/html/rfc3550#section-6.4.1
 
     size_t write_ptr = 0;
+    uint32_t ssrc = *ssrc_.get();
     if (sr_packet)
     {
         // sender reports have sender information in addition compared to receiver reports
@@ -1665,7 +1666,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         uint64_t rtp_ts = expanded_ts_start + ts_since_start;
 
         if (!construct_rtcp_header(frame, write_ptr, sender_report_size, reports, uvgrtp::frame::RTCP_FT_SR) ||
-            !construct_ssrc(frame, write_ptr, ssrc_) ||
+            !construct_ssrc(frame, write_ptr, ssrc) ||
             !construct_sender_info(frame, write_ptr, ntp_ts, rtp_ts, our_stats.sent_pkts, our_stats.sent_bytes))
         {
             UVG_LOG_ERROR("Failed to construct SR");
@@ -1678,7 +1679,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         size_t receiver_report_size = get_rr_packet_size(rce_flags_, reports);
 
         if (!construct_rtcp_header(frame, write_ptr, receiver_report_size, reports, uvgrtp::frame::RTCP_FT_RR) ||
-            !construct_ssrc(frame, write_ptr, ssrc_))
+            !construct_ssrc(frame, write_ptr, ssrc))
         {
             UVG_LOG_ERROR("Failed to construct RR");
             return RTP_GENERIC_ERROR;
@@ -1726,7 +1727,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
     {
         uvgrtp::frame::rtcp_sdes_chunk chunk;
         chunk.items = ourItems_;
-        chunk.ssrc = ssrc_;
+        chunk.ssrc = *ssrc_.get();
 
         // add the SDES packet after the SR/RR, mandatory, must contain CNAME
         if (!construct_rtcp_header(frame, write_ptr, get_sdes_packet_size(ourItems_), num_receivers_,
@@ -1757,7 +1758,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
                 if (!construct_rtcp_header(frame, write_ptr, packet_size, secondField,
                     uvgrtp::frame::RTCP_FT_APP) ||
-                    !construct_ssrc(frame, write_ptr, ssrc_) ||
+                    !construct_ssrc(frame, write_ptr, ssrc) ||
                     !construct_app_packet(frame, write_ptr, next_packet.name, next_packet.payload, next_packet.payload_len))
                 {
                     UVG_LOG_ERROR("Failed to construct APP packet");

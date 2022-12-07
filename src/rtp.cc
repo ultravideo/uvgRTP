@@ -17,8 +17,8 @@
 
 #define INVALID_TS UINT64_MAX
 
-uvgrtp::rtp::rtp(rtp_format_t fmt):
-    ssrc_(uvgrtp::random::generate_32()),
+uvgrtp::rtp::rtp(rtp_format_t fmt, std::shared_ptr<std::atomic<std::uint32_t>> ssrc):
+    ssrc_(ssrc),
     ts_(uvgrtp::random::generate_32()),
     seq_(uvgrtp::random::generate_32() & 0xffff),
     fmt_(fmt),
@@ -40,7 +40,7 @@ uvgrtp::rtp::~rtp()
 
 uint32_t uvgrtp::rtp::get_ssrc() const
 {
-    return ssrc_;
+    return *ssrc_.get();
 }
 
 uint16_t uvgrtp::rtp::get_sequence() const
@@ -145,7 +145,7 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer)
     buffer[1] = (payload_ & 0x7f) | (0 << 7);
 
     *(uint16_t *)&buffer[2] = htons(seq_);
-    *(uint32_t *)&buffer[8] = htonl(ssrc_);
+    *(uint32_t *)&buffer[8] = htonl(*ssrc_.get());
 
     if (timestamp_ == INVALID_TS) {
 
