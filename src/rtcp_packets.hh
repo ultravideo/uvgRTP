@@ -44,4 +44,8 @@ namespace uvgrtp
 
     // Add BYE ssrcs, should probably be removed
     bool construct_bye_packet(uint8_t* frame, size_t& ptr, const std::vector<uint32_t>& ssrcs);
+
+    // APP block construction
+    bool construct_app_block(uint8_t* frame, size_t& write_ptr, uint8_t sec_field, uint32_t ssrc, const char* name, const uint8_t* payload, size_t payload_len);
+
 }

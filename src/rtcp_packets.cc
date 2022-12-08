@@ -163,3 +163,12 @@ bool uvgrtp::construct_bye_packet(uint8_t* frame, size_t& ptr, const std::vector
 
     return true;
 }
+
+bool uvgrtp::construct_app_block(uint8_t* frame, size_t& write_ptr, uint8_t sec_field, uint32_t ssrc, const char* name, const uint8_t* payload, size_t payload_len)
+{
+    uint32_t packet_size = get_app_packet_size(payload_len);
+    return construct_rtcp_header(frame, write_ptr, packet_size, sec_field,
+        uvgrtp::frame::RTCP_FT_APP) &&
+        construct_ssrc(frame, write_ptr, ssrc) &&
+        construct_app_packet(frame, write_ptr, name, payload, payload_len);
+}

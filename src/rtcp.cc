@@ -60,6 +60,7 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic
     interval_ms_(DEFAULT_RTCP_INTERVAL_MS),
     ourItems_(),
     bye_ssrcs_(false),
+    hooked_app_(false),
     mtu_size_(MAX_IPV4_PAYLOAD)
 {
     clock_rate_   = rtp->get_clock_rate();
@@ -482,6 +483,22 @@ rtp_error_t uvgrtp::rtcp::remove_all_hooks()
     app_hook_f_ = nullptr;
     app_hook_u_ = nullptr;
     app_mutex_.unlock();
+
+    send_app_mutex_.lock();
+    outgoing_app_hooks_.clear();
+    send_app_mutex_.unlock();
+    hooked_app_ = false;
+
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::rtcp::remove_send_app_hook(std::string app_name)
+{
+    std::lock_guard<std::mutex> guard(send_app_mutex_);
+    if (outgoing_app_hooks_.find(app_name) == outgoing_app_hooks_.end()) {
+        return RTP_INVALID_VALUE;
+    }
+    outgoing_app_hooks_.erase(app_name);
     return RTP_OK;
 }
 
@@ -660,6 +677,24 @@ rtp_error_t uvgrtp::rtcp::install_app_hook(std::function<void(std::shared_ptr<uv
 
     return RTP_OK;
 }
+
+rtp_error_t uvgrtp::rtcp::install_send_app_hook(std::string app_name, std::function<void(uint32_t& payload_len, uint8_t& subtype, std::vector<uint8_t>& payload)> app_sending_func)
+{
+    if (!app_sending_func || app_name.empty() || app_name.size() > 4) {
+        return RTP_INVALID_VALUE;
+    }
+    if (outgoing_app_hooks_.find(app_name) != outgoing_app_hooks_.end()) {
+        UVG_LOG_WARN("Replacing existing outgoing APP hook");
+    }
+
+    hooked_app_ = true;
+    {
+        std::lock_guard<std::mutex> lock(send_app_mutex_);
+        outgoing_app_hooks_[app_name] = app_sending_func;
+    }
+    return RTP_OK;
+}
+
 
 rtp_error_t uvgrtp::rtcp::install_app_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler)
 {
@@ -1588,6 +1623,16 @@ uint32_t uvgrtp::rtcp::size_of_ready_app_packets() const
     return app_size;
 }
 
+uint32_t uvgrtp::rtcp::size_of_apps_from_hook(std::vector<std::shared_ptr<rtcp_app_packet>> packets) const
+{
+    uint32_t app_size = 0;
+    for (auto& pkt : packets)
+    {
+        if (pkt) app_size += get_app_packet_size(pkt->payload_len);
+    }
+    return app_size;
+}
+
 uint32_t uvgrtp::rtcp::size_of_compound_packet(uint16_t reports,
     bool sr_packet, bool rr_packet, bool sdes_packet, uint32_t app_size, bool bye_packet) const
 {
@@ -1651,7 +1696,22 @@ rtp_error_t uvgrtp::rtcp::generate_report()
             ++reports;
         }
     }
-
+    std::vector< std::shared_ptr<rtcp_app_packet>> outgoing_apps_;
+    if (hooked_app_) {
+        std::lock_guard<std::mutex> grd(send_app_mutex_);
+        for (auto& [name, hook] : outgoing_app_hooks_) {
+            uint32_t p_len = 0; 
+            uint8_t subtype = 0; 
+            std::vector<uint8_t> pload = {};
+            
+            hook(p_len, subtype, pload);
+            if (p_len > 0 && !pload.empty()) {
+                std::shared_ptr<rtcp_app_packet> app_pkt = std::make_shared<rtcp_app_packet>(name.data(), subtype, p_len, pload.data());
+                outgoing_apps_.push_back(app_pkt);
+            }
+        }
+        app_packets_size = size_of_apps_from_hook(outgoing_apps_);
+    }
     uint32_t compound_packet_size = size_of_compound_packet(reports, sr_packet, rr_packet, sdes_packet, app_packets_size, bye_packet);
     
     if (compound_packet_size == 0)
@@ -1771,31 +1831,33 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
     if (app_packets_size != 0)
     {
-        for (auto& app_name : app_packets_)
-        {
-            // we send one packet per APP name
-
-            // TODO: Should we also send one per subtype?
-            if (!app_name.second.empty())
-            {
-                // take the oldest APP packet and send it
-                rtcp_app_packet& next_packet = app_name.second.front();
-
-                uint8_t secondField = (next_packet.subtype & 0x1f);
-
-                uint32_t packet_size = get_app_packet_size(next_packet.payload_len);
-
-                if (!construct_rtcp_header(frame, write_ptr, packet_size, secondField,
-                    uvgrtp::frame::RTCP_FT_APP) ||
-                    !construct_ssrc(frame, write_ptr, ssrc) ||
-                    !construct_app_packet(frame, write_ptr, next_packet.name, next_packet.payload, next_packet.payload_len))
+        if (hooked_app_) {
+            for (auto& pkt : outgoing_apps_) {
+                if(!construct_app_block(frame, write_ptr, pkt->subtype & 0x1f, *ssrc_.get(), pkt->name, pkt->payload, pkt->payload_len))
                 {
                     UVG_LOG_ERROR("Failed to construct APP packet");
                     delete[] frame;
-                    app_name.second.pop_front();
                     return RTP_GENERIC_ERROR;
                 }
-                app_name.second.pop_front();
+            }
+        }
+        else {
+            for (auto& app_name : app_packets_)
+            {
+                // TODO: Should we also send one per subtype?
+                if (!app_name.second.empty())
+                {
+                    // take the oldest APP packet and send it
+                    rtcp_app_packet& next_packet = app_name.second.front();
+                    if (!construct_app_block(frame, write_ptr, next_packet.subtype & 0x1f, *ssrc_.get(), next_packet.name, next_packet.payload, next_packet.payload_len))
+                    {
+                        UVG_LOG_ERROR("Failed to construct APP packet");
+                        delete[] frame;
+                        app_name.second.pop_front();
+                        return RTP_GENERIC_ERROR;
+                    }
+                    app_name.second.pop_front();
+                }
             }
         }
     }
