@@ -84,7 +84,10 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int rce_
         memcpy(cname_, c, cname.length());
         uint8_t length = (uint8_t)cname.length();
 
-        cnameItem_ = { 1, length, (uint8_t*)cname_ };
+        cnameItem_.type = 1;
+        cnameItem_.length = length;
+        cnameItem_.data = (uint8_t*)cname_;
+
         ourItems_.push_back(cnameItem_);
     }
 }
@@ -1721,10 +1724,14 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
     if (sdes_packet)
     {
+        uvgrtp::frame::rtcp_sdes_chunk chunk;
+        chunk.items = ourItems_;
+        chunk.ssrc = ssrc_;
+
         // add the SDES packet after the SR/RR, mandatory, must contain CNAME
         if (!construct_rtcp_header(frame, write_ptr, get_sdes_packet_size(ourItems_), num_receivers_,
             uvgrtp::frame::RTCP_FT_SDES) ||
-            !construct_sdes_chunk(frame, write_ptr, { ssrc_, ourItems_ }))
+            !construct_sdes_chunk(frame, write_ptr, chunk))
         {
             UVG_LOG_ERROR("Failed to add SDES packet");
             delete[] frame;
@@ -1847,7 +1854,6 @@ void uvgrtp::rtcp::set_session_bandwidth(uint32_t kbps)
     }
     // TODO: This should follow the algorithm specified in RFC 3550 appendix-A.7
 }
-
 
 void uvgrtp::rtcp::set_payload_size(size_t mtu_size)
 {

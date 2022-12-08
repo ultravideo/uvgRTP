@@ -152,27 +152,28 @@ std::string uvgrtp::socket::get_socket_path_string() const
 
 std::string uvgrtp::socket::sockaddr_to_string(const sockaddr_in& addr) const
 {
-    char* c_string = new char[INET_ADDRSTRLEN];
-    memset(c_string, 0, INET_ADDRSTRLEN);
+    int addr_len = INET_ADDRSTRLEN;
 
-    switch (addr.sin_family)
+    if (addr.sin_family == AF_INET6)
     {
-    case AF_INET:
-    {
-        inet_ntop(AF_INET, &addr.sin_addr, c_string, INET_ADDRSTRLEN);
-        break;
-    }
-    case AF_INET6:
-    {
-        inet_ntop(AF_INET6, &addr.sin_addr, c_string, INET_ADDRSTRLEN);
-        break;
-    }
+        addr_len = INET6_ADDRSTRLEN;
     }
 
-    std::string string(c_string);
+    char* addr_string = new char[addr_len];
+    memset(addr_string, 0, addr_len);
+
+#ifdef WIN32
+    const void* pvoid_sin_addr = &addr.sin_addr;
+    PVOID pvoid_sin_addr = const_cast<PVOID>(pvoid_sin_addr);
+    inet_ntop(addr.sin_family, &pvoid_sin_addr, addr_string, addr_len);
+#else
+    inet_ntop(addr.sin_family, &addr.sin_addr, addr_string, addr_len);
+#endif
+
+    std::string string(addr_string);
     string.append(":" + std::to_string(ntohs(addr.sin_port)));
 
-    delete[] c_string;
+    delete[] addr_string;
     return string;
 }
 
