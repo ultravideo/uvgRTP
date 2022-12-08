@@ -163,8 +163,8 @@ std::string uvgrtp::socket::sockaddr_to_string(const sockaddr_in& addr) const
     memset(addr_string, 0, addr_len);
 
 #ifdef WIN32
-    const void* pvoid_sin_addr = &addr.sin_addr;
-    PVOID pvoid_sin_addr = const_cast<PVOID>(pvoid_sin_addr);
+    const void* sin_addr = &addr.sin_addr;
+    PVOID pvoid_sin_addr = const_cast<PVOID>(sin_addr);
     inet_ntop(addr.sin_family, &pvoid_sin_addr, addr_string, addr_len);
 #else
     inet_ntop(addr.sin_family, &addr.sin_addr, addr_string, addr_len);
