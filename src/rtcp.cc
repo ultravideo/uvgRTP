@@ -766,7 +766,7 @@ void uvgrtp::rtcp::zero_stats(uvgrtp::sender_statistics *stats)
 void uvgrtp::rtcp::zero_stats(uvgrtp::receiver_statistics *stats)
 {
     stats->received_pkts  = 0;
-    stats->dropped_pkts   = 0;
+    stats->lost_pkts   = 0;
     stats->received_bytes = 0;
 
     stats->received_rtp_packet = false;
@@ -977,7 +977,7 @@ void uvgrtp::rtcp::update_session_statistics(const uvgrtp::frame::rtp_frame *fra
     int expected     = extended_max - participants_[frame->header.ssrc]->stats.base_seq + 1;
 
     int dropped = expected - participants_[frame->header.ssrc]->stats.received_pkts;
-    participants_[frame->header.ssrc]->stats.dropped_pkts = dropped >= 0 ? dropped : 0;
+    participants_[frame->header.ssrc]->stats.lost_pkts = dropped >= 0 ? dropped : 0;
 
     // the arrival time expressed as an RTP timestamp
     uint32_t arrival = participants_[frame->header.ssrc]->stats.initial_rtp +
@@ -1693,7 +1693,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         // only add report blocks if we have received data from them
         if (p.second->stats.received_rtp_packet)
         {
-            uint32_t dropped_packets = p.second->stats.dropped_pkts;
+            uint32_t dropped_packets = p.second->stats.lost_pkts;
 
             // TODO: Fraction should be the number of packets lost compared to number of packets expected (see fraction lost in RFC 3550)
             // see https://datatracker.ietf.org/doc/html/rfc3550#appendix-A.3

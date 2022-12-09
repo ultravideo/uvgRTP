@@ -37,7 +37,7 @@ namespace uvgrtp {
     struct receiver_statistics {
         /* receiver stats */
         uint32_t received_pkts = 0;  /* Number of packets received */
-        uint32_t dropped_pkts = 0;   /* Number of dropped RTP packets */
+        uint32_t lost_pkts = 0;   /* Number of dropped RTP packets */
         uint32_t received_bytes = 0; /* Number of bytes received excluding RTP Header */
         bool received_rtp_packet = false; // since last report
 
