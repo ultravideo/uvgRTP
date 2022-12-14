@@ -47,9 +47,19 @@ After you have created the build files with CMake, open the solution and build t
 
 ##### Linking to an application
 
-Add the compiled uvgRTP library and the headers in the include folder of uvgRTP (and Crypto++ library if desired) to the Visual Studio project properties of the application. 
+Add the path to uvgRTP include folder to `project -> Properties -> C/C++ -> General -> Additional Include Directories` for your project. Add `uvgrtp.lib` to `project -> Properties -> Linker -> Input -> Additional Dependencies` as a dependancy and specify the location of built library by adding the path to `project -> Properties -> Linker -> General -> Additional Library Directories`.
 
-NOTE: Some application dependencies (such as Qt and newer Visual Studio versions) may require a specific runtime library for Crypto++ linking to work. If you get errors referring to static and dynamic runtime library version mismatch, please set 
+##### Linking uvgRTP and Crypto++ to an application
+
+It is difficult to detect the presence of Crypto++ on Windows, so it is assumed to be missing for uvgRTP to avoid unexpected build errors. You need to add 1) Crypto++ header location when compiling uvgRTP, 2) Crypto++ library dependancy for your project and 3) Crypto++ library location for you project. These instructions also apply encryption portions of examples and uvgRTP test suite.
+
+1) Make sure that the uvgRTP library project can find Crypto++ headers by adding the parent directory of Crypto++ to `uvgrtp -> Properties -> C/C++ -> General -> Additional Include Directories` and making sure the folder is named `cryptopp`, otherwise Crypto++ support will be disabled. uvgRTP expects Crypto++ includes in format `cryptopp/<header name>.hh`.
+
+2) Make sure that the application is linking `cryptlib.lib` by adding it to `project -> Properties -> Linker -> Input -> Additional Dependencies`.
+
+3) Make sure that the application can find the built Crypto++ library by setting the library directory `project -> Properties -> Linker -> General -> Additional Library Directories`.
+
+Note: Some application dependencies (such as Qt and newer Visual Studio versions) may require a specific runtime library for Crypto++ linking to work. If you get errors referring to static and dynamic runtime library version mismatch, please set 
 ```
 <RuntimeLibrary>MultiThreaded</RuntimeLibrary> -> <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
 ```
@@ -57,7 +67,7 @@ and
 ```
 <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary> -> <RuntimeLibrary>MultiThreadeddDebugDLL</RuntimeLibrary>
 ```
-in Crypto++ project file `cryptlib.vcxproj`. See more details [here](https://cryptopp.com/wiki/Visual_Studio).
+in Crypto++ project file `cryptlib.vcxproj` and rebuild `cryptlib`. See more details [here](https://cryptopp.com/wiki/Visual_Studio).
 
 ### Linux and MinGW compilation
 
@@ -90,6 +100,8 @@ Or if you are not using Crypto++:
 ```
 g++ main.cc -luvgrtp -lpthread
 ```
+
+You can also use `pkg-config` to get the flags.
 
 ## Silence all prints
 
