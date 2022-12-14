@@ -49,7 +49,15 @@ After you have created the build files with CMake, open the solution and build t
 
 Add the compiled uvgRTP library and the headers in the include folder of uvgRTP (and Crypto++ library if desired) to the Visual Studio project properties of the application. 
 
-NOTE: Some application dependencies (such as Qt) may require a specific build configuration of Crypto++ to work. See more details [here](https://cryptopp.com/wiki/Visual_Studio).
+NOTE: Some application dependencies (such as Qt and newer Visual Studio versions) may require a specific runtime library for Crypto++ linking to work. If you get errors referring to static and dynamic runtime library version mismatch, please set 
+```
+<RuntimeLibrary>MultiThreaded</RuntimeLibrary> -> <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+```
+and 
+```
+<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary> -> <RuntimeLibrary>MultiThreadeddDebugDLL</RuntimeLibrary>
+```
+in Crypto++ project file `cryptlib.vcxproj`. See more details [here](https://cryptopp.com/wiki/Visual_Studio).
 
 ### Linux and MinGW compilation
 
