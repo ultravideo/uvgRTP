@@ -148,6 +148,22 @@ NOTE: The hook should not be used for extensive media processing. It is meant to
 
 ## Encryption examples
 
+On Linux, the encryption examples should build fine if Crypto++ is installed, but if using Visual Studio on Windows, some extra steps may need to be taken: 
+
+1) Make sure that the uvgrtp library project can find Crypto++ headers, otherwise Crypto++ support will be disabled.
+
+`uvgrtp -> Properties -> C/C++ -> General -> Additional Include Directories`
+
+2) Make sure that the examples are linking cryptlib.lib
+
+`example -> Properties -> Linker -> Input -> Additional Dependencies`
+
+3) Make sure that the example can find the built Crypto++ library in 
+
+`example -> Properties -> Linker -> General -> Additional Library Directories`
+
+4) If you get an error regarding linking Runtime library, see [build instructions](../BUILDING.md#linking-to-an-application).
+
 [How to use SRTP with ZRTP](srtp_zrtp.cc)
 
 [How to use multi-stream SRTP with ZRTP](zrtp_multistream.cc)
