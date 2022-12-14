@@ -47,12 +47,11 @@ After you have created the build files with CMake, open the solution and build t
 
 ##### Linking to an application
 
-Add the path to uvgRTP include folder to `project -> Properties -> C/C++ -> General -> Additional Include Directories` for your project. Add `uvgrtp.lib` to `project -> Properties -> Linker -> Input -> Additional Dependencies` as a dependancy and specify the location of built library by adding the path to `project -> Properties -> Linker -> General -> Additional Library Directories`.
+Add the path to uvgRTP include folder to `project -> Properties -> C/C++ -> General -> Additional Include Directories` for your project. Add `uvgrtp.lib` to `project -> Properties -> Linker -> Input -> Additional Dependencies` as a dependancy and specify the location of built library by adding the path to `project -> Properties -> Linker -> General -> Additional Library Directories`. Another option for finding the headers and the library is adding them to PATH.
 
 ##### Linking uvgRTP and Crypto++ to an application
 
-It is difficult to detect the presence of Crypto++ on Windows, so it is assumed to be missing for uvgRTP to avoid unexpected build errors. You need to add 1) Crypto++ header location when compiling uvgRTP, 2) Crypto++ library dependancy for your project and 3) Crypto++ library location for you project. These instructions also apply encryption portions of examples and uvgRTP test suite.
-
+It is difficult to detect the presence of Crypto++ on Windows, so it is assumed to be missing for uvgRTP to avoid unexpected build errors. You need to add 1) Crypto++ header location when compiling uvgRTP, 2) Crypto++ library dependancy for your project and 3) Crypto++ library location for you project. You can skip 1) and 3) if the files can be found in PATH. These instructions also apply encryption portions of examples and uvgRTP test suite. 
 1) Make sure that the uvgRTP library project can find Crypto++ headers by adding the parent directory of Crypto++ to `uvgrtp -> Properties -> C/C++ -> General -> Additional Include Directories` and making sure the folder is named `cryptopp`, otherwise Crypto++ support will be disabled. uvgRTP expects Crypto++ includes in format `cryptopp/<header name>.hh`.
 
 2) Make sure that the application is linking `cryptlib.lib` by adding it to `project -> Properties -> Linker -> Input -> Additional Dependencies`.
