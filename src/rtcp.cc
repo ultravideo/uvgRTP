@@ -23,6 +23,7 @@
 #include <cstring>
 #include <iostream>
 #include <set>
+#include <algorithm>
 
 
 /* TODO: explain these constants */
@@ -768,8 +769,11 @@ void uvgrtp::rtcp::zero_stats(uvgrtp::receiver_statistics *stats)
     stats->received_pkts  = 0;
     stats->lost_pkts   = 0;
     stats->received_bytes = 0;
-
     stats->received_rtp_packet = false;
+
+    stats->expected_pkts = 0;
+    stats->received_prior = 0;
+    stats->expected_prior = 0;
 
     stats->jitter  = 0;
     stats->transit = 0;
@@ -1694,12 +1698,26 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         if (p.second->stats.received_rtp_packet)
         {
             uint32_t dropped_packets = p.second->stats.lost_pkts;
-
-            // TODO: Fraction should be the number of packets lost compared to number of packets expected (see fraction lost in RFC 3550)
-            // see https://datatracker.ietf.org/doc/html/rfc3550#appendix-A.3
             
-            //uint8_t fraction = dropped_packets ? p.second->stats.received_bytes / dropped_packets : 0;
-            uint8_t fraction = 0; // disabled, because it was incorrect
+            /* RFC3550 page 83, Appendix A.3 */
+            /* Determine number of packets lost and expected */
+            uint32_t extended_max = p.second->stats.cycles + p.second->stats.max_seq;
+            uint32_t expected = extended_max - p.second->stats.base_seq + 1;
+
+            /* Calculate number of packets lost */
+            uint32_t lost = expected - p.second->stats.received_pkts;
+            lost = std::clamp(lost, uint32_t(8388607), uint32_t(8388608));
+
+            uint32_t expected_interval = expected - p.second->stats.expected_prior;
+            p.second->stats.expected_prior = expected;
+            uint32_t received_interval = p.second->stats.received_pkts - p.second->stats.received_prior;
+            p.second->stats.received_prior = p.second->stats.received_pkts;
+            int32_t lost_interval = expected_interval - received_interval;
+            
+            /* Calculate fractions of packets lost during last reporting interval */
+            uint32_t fraction = 0;
+            if (expected_interval == 0 || lost_interval <= 0) { fraction = 0; }
+            else { fraction = (lost_interval << 8) / expected_interval; }
 
             uint64_t diff = (u_long)uvgrtp::clock::hrc::diff_now(p.second->stats.sr_ts);
             uint32_t dlrs = (uint32_t)uvgrtp::clock::ms_to_jiffies(diff);
