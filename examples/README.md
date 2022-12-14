@@ -148,7 +148,7 @@ NOTE: The hook should not be used for extensive media processing. It is meant to
 
 ## Encryption examples
 
-Make sure you have checked the build instructions if you want to build the encryption examples with Visual Studio.
+Make sure you have checked the [build instructions](../BUILDING.md#linking-uvgrtp-and-crypto-to-an-application) if you want to build the encryption examples with Visual Studio.
 
 [How to use SRTP with ZRTP](srtp_zrtp.cc)
 

@@ -51,7 +51,7 @@ Add the path to uvgRTP include folder to `project -> Properties -> C/C++ -> Gene
 
 ##### Linking uvgRTP and Crypto++ to an application
 
-It is difficult to detect the presence of Crypto++ on Windows, so it is assumed to be missing for uvgRTP to avoid unexpected build errors. You need to add 1) Crypto++ header location when compiling uvgRTP, 2) Crypto++ library dependancy for your project and 3) Crypto++ library location for you project. You can skip 1) and 3) if the files can be found in PATH. These instructions also apply encryption portions of examples and uvgRTP test suite. 
+If Crypto++ is not found on Windows, it is assumed to be missing in uvgRTP to avoid unexpected build errors. You need to add 1) Crypto++ header location when compiling uvgRTP, 2) Crypto++ library dependancy for your project and 3) Crypto++ library location for you project. You can skip 1) and 3) if the files can be found in PATH. These instructions also apply to encryption portions of uvgRTP examples and test suite. 
 1) Make sure that the uvgRTP library project can find Crypto++ headers by adding the parent directory of Crypto++ to `uvgrtp -> Properties -> C/C++ -> General -> Additional Include Directories` and making sure the folder is named `cryptopp`, otherwise Crypto++ support will be disabled. uvgRTP expects Crypto++ includes in format `cryptopp/<header name>.hh`.
 
 2) Make sure that the application is linking `cryptlib.lib` by adding it to `project -> Properties -> Linker -> Input -> Additional Dependencies`.
