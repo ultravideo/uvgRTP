@@ -1701,7 +1701,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
             
             /* RFC3550 page 83, Appendix A.3 */
             /* Determine number of packets lost and expected */
-            uint32_t extended_max = p.second->stats.cycles + p.second->stats.max_seq;
+            uint32_t extended_max = ((p.second->stats.cycles) << 16) + p.second->stats.max_seq;
             uint32_t expected = extended_max - p.second->stats.base_seq + 1;
 
             /* Calculate number of packets lost */
@@ -1716,8 +1716,15 @@ rtp_error_t uvgrtp::rtcp::generate_report()
             
             /* Calculate fractions of packets lost during last reporting interval */
             uint32_t fraction = 0;
-            if (expected_interval == 0 || lost_interval <= 0) { fraction = 0; }
-            else { fraction = (lost_interval << 8) / expected_interval; }
+            if (expected_interval == 0 || lost_interval <= 0) {
+                fraction = 0; 
+            }
+            else { 
+                fraction = (lost_interval << 8) / expected_interval; 
+                if (fraction > 255) {
+                    fraction = 255;
+                }
+            }
 
             uint64_t diff = (u_long)uvgrtp::clock::hrc::diff_now(p.second->stats.sr_ts);
             uint32_t dlrs = (uint32_t)uvgrtp::clock::ms_to_jiffies(diff);
