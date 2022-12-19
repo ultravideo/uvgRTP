@@ -362,6 +362,15 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      * See RCC_FPS_NUMERATOR for more info.
      */
     RCC_FPS_DENOMINATOR  = 9,
+
+    /** Set bandwidth for the session
+    * 
+    * uvgRTP chooses this automatically depending on the format of the data being transferred.
+    * It is possible to manually set it in order to change the interval at which RTCP
+    * reports are being sent.
+    */
+    RCC_SESSION_BANDWIDTH = 10,
+
     /// \cond DO_NOT_DOCUMENT
     RCC_LAST
     /// \endcond

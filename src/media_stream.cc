@@ -395,7 +395,8 @@ rtp_error_t uvgrtp::media_stream::start_components()
         else
         {
             rtcp_->add_participant(local_address_, remote_address_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
-            rtcp_->set_session_bandwidth(get_default_bandwidth_kbps(fmt_));
+            bandwidth_ = get_default_bandwidth_kbps(fmt_);
+            rtcp_->set_session_bandwidth(bandwidth_);
             rtcp_->start();
         }
     }
@@ -659,7 +660,19 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
 
             media_->set_fps(fps_numerator_, fps_denominator_);
             break;
-        }           
+        }
+        case RCC_SESSION_BANDWIDTH: {
+            bandwidth_ = value;
+            // TODO: Is there a max value for bandwidth?
+            if (value <= 0) {
+                UVG_LOG_WARN("Bandwidth cannot be negative");
+                return RTP_INVALID_VALUE;
+            }
+            if (rtcp_) {
+                rtcp_->set_session_bandwidth(bandwidth_);
+            }
+            break;
+        }
 
         default:
             return RTP_INVALID_VALUE;

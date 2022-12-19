@@ -345,6 +345,8 @@ namespace uvgrtp {
 
             ssize_t fps_numerator_ = 30;
             ssize_t fps_denominator_ = 1;
+            uint32_t bandwidth_ = 0;
+
     };
 }
 
