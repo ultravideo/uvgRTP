@@ -193,7 +193,7 @@ rtp_error_t uvgrtp::rtcp::start()
     }
     active_ = true;
 
-    report_generator_.reset(new std::thread(rtcp_runner, this, interval_ms_));
+    report_generator_.reset(new std::thread(rtcp_runner, this));
 
     return RTP_OK;
 }
@@ -233,12 +233,12 @@ rtp_error_t uvgrtp::rtcp::stop()
     return uvgrtp::rtcp::send_bye_packet({ ssrc_ });
 }
 
-void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp, int interval)
+void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp) 
 {
-    UVG_LOG_INFO("RTCP instance created! RTCP interval: %i ms", interval);
+    UVG_LOG_INFO("RTCP instance created!");
 
     // RFC 3550 says to wait half interval before sending first report
-    int initial_sleep_ms = interval / 2;
+    int initial_sleep_ms = rtcp->get_rtcp_interval_ms() / 2;
     UVG_LOG_DEBUG("Sleeping for %i ms before sending first RTCP report", initial_sleep_ms);
     std::this_thread::sleep_for(std::chrono::milliseconds(initial_sleep_ms));
 
@@ -246,10 +246,17 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp, int interval)
 
     uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
 
+    uint32_t current_interval = rtcp->interval_ms_;
+
     int i = 0;
     while (rtcp->is_active())
     {
-        long int next_sendslot = i * interval;
+        if (rtcp->get_rtcp_interval_ms() != current_interval) {
+            current_interval = rtcp->get_rtcp_interval_ms();
+            i = 0;
+            start = uvgrtp::clock::hrc::now();
+        }
+        long int next_sendslot = i * rtcp->get_rtcp_interval_ms();
         uint32_t run_time = (uint32_t)uvgrtp::clock::hrc::diff_now(start);
         long int diff_ms = next_sendslot - run_time;
 
@@ -1676,6 +1683,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         our_stats.sent_rtp_packet = false;
 
     } else if (rr_packet) { // RECEIVER
+
         size_t receiver_report_size = get_rr_packet_size(rce_flags_, reports);
 
         if (!construct_rtcp_header(frame, write_ptr, receiver_report_size, reports, uvgrtp::frame::RTCP_FT_RR) ||
@@ -1859,7 +1867,17 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
 
 uint32_t uvgrtp::rtcp::get_rtcp_interval_ms() const 
 {
-    return interval_ms_;
+    return interval_ms_.load();
+}
+
+rtp_error_t uvgrtp::rtcp::set_rtcp_interval_ms(uint32_t new_interval) {
+    if (new_interval < 0) {
+        UVG_LOG_WARN("Interval cannot be negative");
+        return RTP_INVALID_VALUE;
+    }
+    interval_ms_ = new_interval;
+    return RTP_OK;
+
 }
 
 void uvgrtp::rtcp::set_session_bandwidth(uint32_t kbps)

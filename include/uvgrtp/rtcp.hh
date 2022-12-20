@@ -227,6 +227,12 @@ namespace uvgrtp {
             /* Getter for interval_ms_, which is calculated by set_session_bandwidth */
             uint32_t get_rtcp_interval_ms() const;
 
+            /* Set RTCP packet transmission interval in milliseconds
+            *
+            * Return RTP_OK if interval was set successfully
+            * Return RTP_INVALID_VALUE if new interval is invalid */
+            rtp_error_t set_rtcp_interval_ms(uint32_t new_interval);
+
             void set_session_bandwidth(uint32_t kbps);
 
             /* Return SSRCs of all participants */
@@ -413,7 +419,7 @@ namespace uvgrtp {
             rtp_error_t handle_app_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
                 uvgrtp::frame::rtcp_header& header);
 
-            static void rtcp_runner(rtcp *rtcp, int interval);
+            static void rtcp_runner(rtcp *rtcp);
 
             /* when we start the RTCP instance, we don't know what the SSRC of the remote is
              * when an RTP packet is received, we must check if we've already received a packet
@@ -571,7 +577,7 @@ namespace uvgrtp {
 
             bool active_;
 
-            uint32_t interval_ms_;
+            std::atomic<uint32_t> interval_ms_;
 
             std::mutex packet_mutex_;
 
