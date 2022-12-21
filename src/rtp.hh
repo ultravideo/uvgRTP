@@ -4,6 +4,8 @@
 #include "uvgrtp/util.hh"
 
 #include <chrono>
+#include <memory>
+#include <atomic>
 
 namespace uvgrtp {
 
@@ -14,7 +16,7 @@ namespace uvgrtp {
 
     class rtp {
         public:
-            rtp(rtp_format_t fmt);
+            rtp(rtp_format_t fmt, std::shared_ptr<std::atomic<std::uint32_t>> ssrc);
             ~rtp();
 
             uint32_t     get_ssrc()          const;
@@ -44,7 +46,7 @@ namespace uvgrtp {
 
             void set_default_clock_rate(rtp_format_t fmt);
 
-            uint32_t ssrc_;
+            std::shared_ptr<std::atomic<std::uint32_t>> ssrc_;
             uint32_t ts_;
             uint16_t seq_;
             rtp_format_t fmt_;

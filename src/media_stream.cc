@@ -45,7 +45,8 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     holepuncher_(std::unique_ptr<uvgrtp::holepuncher>(new uvgrtp::holepuncher(socket_))),
     cname_(cname),
     fps_numerator_(30),
-    fps_denominator_(1)
+    fps_denominator_(1),
+    ssrc_(std::make_shared<std::atomic<std::uint32_t>>(uvgrtp::random::generate_32()))
 {}
 
 uvgrtp::media_stream::~media_stream()
@@ -257,8 +258,8 @@ rtp_error_t uvgrtp::media_stream::init()
 
     reception_flow_ = std::unique_ptr<uvgrtp::reception_flow> (new uvgrtp::reception_flow());
 
-    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
-    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, cname_, rce_flags_));
+    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_, ssrc_));
+    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, ssrc_, cname_, rce_flags_));
 
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
 
@@ -277,7 +278,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
 
     reception_flow_ = std::unique_ptr<uvgrtp::reception_flow> (new uvgrtp::reception_flow());
 
-    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
+    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_, ssrc_));
 
     bool perform_dh = !(rce_flags_ & RCE_ZRTP_MULTISTREAM_MODE);
     if (!perform_dh)
@@ -313,7 +314,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
 
     zrtp->dh_has_finished(); // only after the DH stream has gotten its keys, do we let non-DH stream perform ZRTP
 
-    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, cname_, srtcp_, rce_flags_));
+    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, ssrc_, cname_, srtcp_, rce_flags_));
 
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
     socket_->install_handler(srtp_.get(), srtp_->send_packet_handler);
@@ -345,7 +346,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     reception_flow_ = std::unique_ptr<uvgrtp::reception_flow> (new uvgrtp::reception_flow());
 
-    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_));
+    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_, ssrc_));
 
     srtp_ = std::shared_ptr<uvgrtp::srtp> (new uvgrtp::srtp(rce_flags_));
 
@@ -362,7 +363,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         return free_resources(ret);
     }
 
-    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, cname_, srtcp_, rce_flags_));
+    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, ssrc_, cname_, srtcp_, rce_flags_));
 
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
     socket_->install_handler(srtp_.get(), srtp_->send_packet_handler);
@@ -660,7 +661,13 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             media_->set_fps(fps_numerator_, fps_denominator_);
             break;
         }           
+        case RCC_SSRC: {
+            if (value <= 0 || value > (ssize_t)UINT32_MAX)
+                return RTP_INVALID_VALUE;
 
+            *ssrc_ = (uint32_t)value;
+            break;
+        }
         default:
             return RTP_INVALID_VALUE;
     }
@@ -685,7 +692,7 @@ uint32_t uvgrtp::media_stream::get_ssrc() const
         return 0;
     }
 
-    return rtp_->get_ssrc();
+    return *ssrc_.get();
 }
 
 rtp_error_t uvgrtp::media_stream::init_srtp_with_zrtp(int rce_flags, int type, std::shared_ptr<uvgrtp::base_srtp> srtp,

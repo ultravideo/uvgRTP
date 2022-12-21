@@ -12,6 +12,7 @@
 #include <memory>
 #include <mutex>
 #include <deque>
+#include <atomic>
 
 namespace uvgrtp {
 
@@ -108,8 +109,8 @@ namespace uvgrtp {
     class rtcp {
         public:
             /// \cond DO_NOT_DOCUMENT
-            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int rce_flags);
-            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags);
+            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic<std::uint32_t>> ssrc, std::string cname, int rce_flags);
+            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic<std::uint32_t>> ssrc, std::string cname, std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags);
             ~rtcp();
 
             /* start the RTCP runner thread
@@ -512,7 +513,7 @@ namespace uvgrtp {
             bool initial_;
 
             /* Copy of our own current SSRC */
-            const uint32_t ssrc_;
+            std::shared_ptr<std::atomic_uint> ssrc_;
 
             /* NTP timestamp associated with initial RTP timestamp (aka t = 0) */
             uint64_t clock_start_;
