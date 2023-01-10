@@ -233,6 +233,9 @@ namespace uvgrtp {
             * Return RTP_INVALID_VALUE if new interval is invalid */
             rtp_error_t set_rtcp_interval_ms(uint32_t new_interval);
 
+            /* Set total bandwidth for this session, called at the start 
+            *  If you want to set the interval manually later, use
+            *  set_rtcp_interval_ms() function */
             void set_session_bandwidth(uint32_t kbps);
 
             /* Return SSRCs of all participants */
@@ -458,6 +461,16 @@ namespace uvgrtp {
              * should be increased before calculating the new average */
             void update_rtcp_bandwidth(size_t pkt_size);
 
+            /* Update average RTCP packet size variable
+            * packet_size is the size of received RTCP packet in octets */
+            void update_avg_rtcp_size(uint64_t packet_size);
+
+            /* Calculate the RTCP report interval in seconds
+            * rtcp_bw is given in kbps
+            * Defined in RFC3550 Appendix A.7 */
+            double rtcp_interval(int members, int senders,
+                    double rtcp_bw, bool we_sent, double avg_rtcp_size);
+
             /* Because struct statistics contains uvgRTP clock object we cannot
              * zero it out without compiler complaining about it so all the fields
              * must be set to zero manually */
@@ -490,13 +503,19 @@ namespace uvgrtp {
             size_t members_;  /* the most current estimate for the number of session members */
             size_t senders_;  /* the most current estimate for the number of senders in the session */
 
+            /* Total session bandwidth. RTCP bandwidth will be set to 5 % of this */
+            uint32_t total_bandwidth_;
+
             /* The target RTCP bandwidth, i.e., the total bandwidth
              * that will be used for RTCP packets by all members of this session,
              * in octets per second.  This will be a specified fraction of the
              * "session bandwidth" parameter supplied to the application at startup. */
-            // TODO: Not used anywhere at the moment
-            size_t rtcp_bandwidth_;
+            double rtcp_bandwidth_;
 
+            /* "Minimum" value for RTCP transmission interval, depends on the session bandwidth
+            *  Actual interval can be 50 % smaller due to randomisation */
+            uint32_t reduced_minimum_;
+           
             /* Flag that is true if the application has sent data since
              * the 2nd previous RTCP report was transmitted. */
             // TODO: Only set, never read
@@ -508,6 +527,10 @@ namespace uvgrtp {
              * (e.g., UDP and IP) as explained in Section 6.2 */
              // TODO: Only set, never read
             size_t avg_rtcp_pkt_pize_;
+
+            /* Average RTCP packet size in octets.
+            * Initialized to 64 */
+            uint64_t avg_rtcp_size_;
 
             /* Number of RTCP packets and bytes sent and received by this participant */
             // TODO: Only set, never read
