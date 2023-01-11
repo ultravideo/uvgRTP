@@ -4,8 +4,7 @@ enable_testing()
 include(GoogleTest)
 
 add_executable(${PROJECT_NAME})
-target_sources(${PROJECT_NAME}
-        PRIVATE
+target_sources(${PROJECT_NAME} PRIVATE
             main.cpp
             test_1_version.cpp
             test_2_rtp.cpp
@@ -16,30 +15,19 @@ target_sources(${PROJECT_NAME}
             test_common.hh
         )
 
-target_include_directories(${PROJECT_NAME}
-        PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../src>
-        )
-        
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE
-        GTest::GTestMain
-        uvgrtp
-    )
+target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../src>)
 
-if(CRYPTOPP_FOUND)
+# set crypto++ to be linked in tests if available
+if (NOT DISABLE_CRYPTO AND CRYPTOPP_FOUND)
     if(MSVC)
-        target_link_libraries(${PROJECT_NAME}
-            PRIVATE
-                cryptlib
-            )
+        set(CRYPTOPP_LIB_NAME "cryptlib")
     else()
-        target_link_libraries(${PROJECT_NAME}
-            PRIVATE
-                cryptopp
-            )
+        set(CRYPTOPP_LIB_NAME "cryptopp")
     endif()
+else()
+    set(CRYPTOPP_LIB_NAME "")
 endif()
 
-gtest_add_tests(
-        TARGET ${PROJECT_NAME}
-)
+target_link_libraries(${PROJECT_NAME} PRIVATE GTest::GTestMain uvgrtp ${CRYPTOPP_LIB_NAME})
+
+gtest_add_tests(TARGET ${PROJECT_NAME})
