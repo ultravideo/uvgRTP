@@ -203,6 +203,18 @@ rtp_error_t uvgrtp::rtcp::start()
 rtp_error_t uvgrtp::rtcp::stop()
 {
     UVG_LOG_DEBUG("Stopping RTCP");
+    rtp_error_t ret = RTP_OK;
+
+    // TODO: Rules for sending BYE packet when member count is more than 50: RFC 3550 6.3.7
+    // This is not implemented and BYE packet is just sent immediately
+    // It only relevant in multicast and not critical there either
+
+    /* Generate a new compound packet with a BYE packet at the end */
+    uvgrtp::rtcp::send_bye_packet({ ssrc_ });
+    if ((ret = this->generate_report()) != RTP_OK)
+    {
+        UVG_LOG_ERROR("Failed to send RTCP report with BYE packet!");
+    }
 
     // TODO: Make thread safe. I think this kind of works, but not in a flexible way
     if (!active_)
@@ -218,21 +230,8 @@ rtp_error_t uvgrtp::rtcp::stop()
         UVG_LOG_DEBUG("Waiting for RTCP loop to exit");
         report_generator_->join();
     }
-
-    /* when the member count is less than 50,
-     * we can just send the BYE message and destroy the session */
-    if (members_ >= 50)
-    {
-        tp_       = tc_;
-        members_  = 1;
-        pmembers_ = 1;
-        initial_  = true;
-        we_sent_  = false;
-        senders_  = 0;
-    }
-
-    /* Send BYE packet with our SSRC to all participants */
-    return uvgrtp::rtcp::send_bye_packet({ ssrc_ });
+  
+    return ret;
 }
 
 void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp) 
@@ -1480,9 +1479,10 @@ rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t* packet, size_t& read_ptr, 
 rtp_error_t uvgrtp::rtcp::handle_bye_packet(uint8_t* packet, size_t& read_ptr, 
     size_t packet_end, uvgrtp::frame::rtcp_header& header)
 {
-    (void)header; // TODO: Process BYE packet better
-
-    for (size_t i = 0; i < packet_end; i += sizeof(uint32_t))
+    (void)header;
+    
+    uint8_t sc = header.count;
+    for (size_t i = 0; i < sc; ++i)
     {
         uint32_t ssrc = 0; 
         read_ssrc(packet, read_ptr, ssrc);
@@ -1660,6 +1660,13 @@ uint32_t uvgrtp::rtcp::size_of_compound_packet(uint16_t reports,
 
 rtp_error_t uvgrtp::rtcp::generate_report()
 {
+    /* Check the participants_ map. If there is no other participants, don't send report */
+    if (participants_.empty()) {
+        UVG_LOG_DEBUG("No other participants in this session. Report not sent.");
+        return RTP_GENERIC_ERROR;
+
+    }
+
     std::lock_guard<std::mutex> lock(packet_mutex_);
     rtcp_pkt_sent_count_++;
 
