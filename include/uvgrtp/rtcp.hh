@@ -558,6 +558,7 @@ namespace uvgrtp {
             std::mutex rr_mutex_;
             std::mutex sdes_mutex_;
             std::mutex app_mutex_;
+            mutable std::mutex participants_mutex_;
 
             std::unique_ptr<std::thread> report_generator_;
 
