@@ -469,7 +469,13 @@ namespace uvgrtp {
             * rtcp_bw is given in kbps
             * Defined in RFC3550 Appendix A.7 */
             double rtcp_interval(int members, int senders,
-                    double rtcp_bw, bool we_sent, double avg_rtcp_size);
+                    double rtcp_bw, bool we_sent, double avg_rtcp_size, bool red_min, bool randomisation);
+
+            /* RTCP runner keeps track of ssrcs and how long they have been silent.
+            *  By default a source get timed out if it has been silent for 25 seconds
+            *  If an ssrc is timed out, this function removes it from participants_ map and
+            *  updates any other infos */
+            rtp_error_t remove_timeout_ssrc(uint32_t ssrc);
 
             /* Because struct statistics contains uvgRTP clock object we cannot
              * zero it out without compiler complaining about it so all the fields
@@ -558,6 +564,11 @@ namespace uvgrtp {
 
             std::map<uint32_t, std::unique_ptr<rtcp_participant>> participants_;
             uint8_t num_receivers_; // maximum is 32 at the moment (5 bits)
+
+            /* Map for keeping track of sources for timeouts
+            *  First number is the sources ssrc
+            *  Second number is how many milliseconds it has been silent*/
+            std::map<uint32_t, uint32_t> ms_since_last_rep_;
 
             /* statistics for RTCP Sender and Receiver Reports */
             struct sender_statistics our_stats;

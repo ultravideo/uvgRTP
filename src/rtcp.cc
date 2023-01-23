@@ -216,7 +216,6 @@ rtp_error_t uvgrtp::rtcp::stop()
         UVG_LOG_ERROR("Failed to send RTCP report with BYE packet!");
     }
 
-    // TODO: Make thread safe. I think this kind of works, but not in a flexible way
     if (!active_)
     {
         cleanup_participants();
@@ -271,6 +270,25 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp)
 
             uint32_t current_timeslot = (uint32_t)uvgrtp::clock::hrc::diff_now(initial_time);
 
+            /* Here we check if there are any timed out sources */
+            /* This vector collects the ssrcs of timed out sources */
+            std::vector<uint32_t> ssrcs_to_be_removed = {};
+
+            for (auto it = rtcp->ms_since_last_rep_.begin(); it != rtcp->ms_since_last_rep_.end(); ++it) {
+                double timeout_interval_s = rtcp->rtcp_interval(int(rtcp->members_), 1, rtcp->rtcp_bandwidth_,
+                    true, rtcp->avg_rtcp_size_, false, false);
+                it->second += uint32_t(current_interval);
+                if (it->second > 5*1000*timeout_interval_s) {
+                    ssrcs_to_be_removed.push_back(it->first);
+                }
+            }
+
+            /* If some ssrcs are timed out, remove them */
+            for (auto rm : ssrcs_to_be_removed) {
+                rtcp->remove_timeout_ssrc(rm);
+                rtcp->ms_since_last_rep_.erase(rm);
+            }
+
             UVG_LOG_DEBUG("Sending RTCP report number %i at time slot %i ms", report_number, current_timeslot);
 
             if ((ret = rtcp->generate_report()) != RTP_OK && ret != RTP_NOT_READY)
@@ -282,7 +300,7 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp)
             // TODO: Keep track of senders and update it here too
             // Same goes for we_sent also, it is always set to true. TODO: fix this
             double interval_s = rtcp->rtcp_interval(int(rtcp->members_), 1, rtcp->rtcp_bandwidth_,
-                true, rtcp->avg_rtcp_size_);
+                true, rtcp->avg_rtcp_size_, true, true);
             uint32_t calculated_interval_ms = round(1000 * interval_s);
             rtcp->set_rtcp_interval_ms(calculated_interval_ms);
 
@@ -1193,6 +1211,14 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
             return RTP_INVALID_VALUE;
         }
 
+        /* Update the timeout map */
+        std::cout << "incoming ssrc: " << sender_ssrc << std::endl;
+        if (ms_since_last_rep_.find(sender_ssrc) != ms_since_last_rep_.end()) {
+            ms_since_last_rep_.at(sender_ssrc) = 0;
+        }
+        else {            
+            ms_since_last_rep_.insert({ sender_ssrc, 0 });
+        }
         if (header.pkt_type > uvgrtp::frame::RTCP_FT_APP ||
             header.pkt_type < uvgrtp::frame::RTCP_FT_SR)
         {
@@ -1496,6 +1522,8 @@ rtp_error_t uvgrtp::rtcp::handle_bye_packet(uint8_t* packet, size_t& read_ptr,
         UVG_LOG_DEBUG("Destroying participant with BYE");
         free_participant(std::move(participants_[ssrc]));
         participants_.erase(ssrc);
+
+        ms_since_last_rep_.erase(ssrc);
     }
     // TODO: RFC3550 6.2.1: add a delay for deleting the member. This way if straggler packets
     // are received after deletion, deleted member wont be recreated
@@ -1950,8 +1978,22 @@ void uvgrtp::rtcp::set_session_bandwidth(uint32_t kbps)
     }
 }
 
+rtp_error_t uvgrtp::rtcp::remove_timeout_ssrc(uint32_t ssrc)
+{
+
+    UVG_LOG_INFO("Destroying timed out source, ssrc: %lu", ssrc);
+    free_participant(std::move(participants_[ssrc]));
+    participants_.erase(ssrc);
+
+    if (members_ >= 1) {
+        members_ -= 1;
+    }
+    return RTP_OK;
+
+}
+
 double uvgrtp::rtcp::rtcp_interval(int members, int senders,
-    double rtcp_bw, bool we_sent, double avg_rtcp_size) 
+    double rtcp_bw, bool we_sent, double avg_rtcp_size, bool red_min, bool randomisation)
 {
     /* Bandwidth is given in kbps so convert it to octets per second */
     rtcp_bw = 1000 * rtcp_bw / 8;
@@ -1989,6 +2031,10 @@ double uvgrtp::rtcp::rtcp_interval(int members, int senders,
     t = avg_rtcp_size * n / rtcp_bw;
 
     double reduced_minimum_s = double(reduced_minimum_) / 1000;
+    if (!red_min) {
+        reduced_minimum_s = 5;
+    }
+
     if (t < reduced_minimum_s) {
         t = reduced_minimum_s;
     }
@@ -1996,11 +2042,13 @@ double uvgrtp::rtcp::rtcp_interval(int members, int senders,
     /* Add randomisation to avoid unintended synchronization of RTCP traffic */
     /* RFC3550 uses drand48() which apparently is obsolete? Lets use anoher one ? */
     
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(0.0, 1.0);
-    t = t * (dis(gen) + 0.5);
-    t = t / COMPENSATION;
+    if (randomisation) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<> dis(0.0, 1.0);
+        t = t * (dis(gen) + 0.5);
+        t = t / COMPENSATION;
+    }
 
     /* Give a technical minimum value of 1 ms for interval */
     if (t < 0.001) {
