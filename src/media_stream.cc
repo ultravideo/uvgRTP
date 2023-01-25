@@ -394,10 +394,10 @@ rtp_error_t uvgrtp::media_stream::start_components()
         }
         else
         {
-            rtcp_->add_participant(local_address_, remote_address_, src_port_ + 1, dst_port_ + 1, rtp_->get_clock_rate());
+            rtcp_->set_network_addresses(local_address_, remote_address_, src_port_ + 1, dst_port_ + 1);
+            rtcp_->add_initial_participant(rtp_->get_clock_rate());
             bandwidth_ = get_default_bandwidth_kbps(fmt_);
             rtcp_->set_session_bandwidth(bandwidth_);
-            rtcp_->set_network_addresses(local_address_, remote_address_, src_port_ + 1, dst_port_ + 1);
             rtcp_->start();
         }
     }

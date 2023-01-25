@@ -110,7 +110,6 @@ uvgrtp::rtcp::~rtcp()
     cleanup_participants();
 
     ourItems_.clear();
-    sockets_.clear();
 }
 
 void uvgrtp::rtcp::cleanup_participants()
@@ -152,8 +151,6 @@ uvgrtp::rtcp_app_packet::~rtcp_app_packet() {
 
 void uvgrtp::rtcp::free_participant(std::unique_ptr<rtcp_participant> participant)
 {
-    participant->socket = nullptr;
-
     if (participant->sr_frame)
     {
         delete participant->sr_frame;
@@ -189,13 +186,61 @@ void uvgrtp::rtcp::free_participant(std::unique_ptr<rtcp_participant> participan
 
 rtp_error_t uvgrtp::rtcp::start()
 {
-    if (sockets_.empty())
-    {
-        UVG_LOG_ERROR("Cannot start RTCP Runner because no connections have been initialized");
-        return RTP_INVALID_VALUE;
-    }
     active_ = true;
+    rtcp_socket_ = std::unique_ptr<uvgrtp::socket>(new uvgrtp::socket(0));
+    rtp_error_t ret = RTP_OK;
 
+    if ((ret = rtcp_socket_->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
+    {
+        return ret;
+    }
+
+    int enable = 1;
+
+    if ((ret = rtcp_socket_->setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char*)&enable, sizeof(int))) != RTP_OK)
+    {
+        return ret;
+    }
+
+#ifdef _WIN32
+    /* Make the socket non-blocking */
+    int enabled = 1;
+
+    if (::ioctlsocket(rtcp_socket_->get_raw_socket(), FIONBIO, (u_long*)&enabled) < 0)
+    {
+        UVG_LOG_ERROR("Failed to make the socket non-blocking!");
+    }
+#endif
+
+    /* Set read timeout (5s for now)
+     *
+     * This means that the socket is listened for 5s at a time and after the timeout,
+     * Send Report is sent to all participants */
+    struct timeval tv;
+    tv.tv_sec = 3;
+    tv.tv_usec = 0;
+
+    if ((ret = rtcp_socket_->setsockopt(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))) != RTP_OK)
+    {
+        return ret;
+    }
+
+    if (local_addr_ != "")
+    {
+        UVG_LOG_INFO("Binding RTCP to port %s:%d", local_addr_.c_str(), local_port_);
+        sockaddr_in bind_addr = rtcp_socket_->create_sockaddr(AF_INET, local_addr_, local_port_);
+        if ((ret = rtcp_socket_->bind(bind_addr)) != RTP_OK)
+        {
+            return ret;
+        }
+    }
+    else
+    {
+        UVG_LOG_WARN("No local address provided");
+        return ret;
+    }
+
+    socket_address_ = rtcp_socket_->create_sockaddr(AF_INET, remote_addr_, dst_port_);
     report_generator_.reset(new std::thread(rtcp_runner, this));
 
     return RTP_OK;
@@ -230,7 +275,9 @@ rtp_error_t uvgrtp::rtcp::stop()
         UVG_LOG_DEBUG("Waiting for RTCP loop to exit");
         report_generator_->join();
     }
-  
+
+    rtcp_socket_.reset();
+
     return ret;
 }
 
@@ -320,8 +367,10 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp)
             {
                 poll_timout = max_poll_timeout_ms;
             }
+            std::vector<std::shared_ptr<uvgrtp::socket>> temp = {};
+            temp.push_back(rtcp->get_socket());
 
-            ret = uvgrtp::poll::poll(rtcp->get_sockets(), buffer.get(), MAX_PACKET, poll_timout, &nread);
+            ret = uvgrtp::poll::poll(temp, buffer.get(), MAX_PACKET, poll_timout, &nread);
 
             if (ret == RTP_OK && nread > 0)
             {
@@ -391,87 +440,16 @@ rtp_error_t uvgrtp::rtcp::set_sdes_items(const std::vector<uvgrtp::frame::rtcp_s
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::rtcp::add_participant(std::string src_addr, std::string dst_addr, uint16_t dst_port, uint16_t src_port, uint32_t clock_rate)
+rtp_error_t uvgrtp::rtcp::add_initial_participant(uint32_t clock_rate)
 {
-    if (dst_addr == "" || !dst_port || !src_port)
-    {
-        UVG_LOG_ERROR("Invalid values given (%s, %d, %d), cannot create RTCP instance",
-                dst_addr.c_str(), dst_port, src_port);
-        return RTP_INVALID_VALUE;
-    }
-
     rtp_error_t ret;
     std::unique_ptr<rtcp_participant> p = std::unique_ptr<rtcp_participant>(new rtcp_participant());
 
     zero_stats(&p->stats);
 
-    p->socket = std::shared_ptr<uvgrtp::socket> (new uvgrtp::socket(0));
-
-    if ((ret = p->socket->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
-    {
-        free_participant(std::move(p));
-        return ret;
-    }
-
-    int enable = 1;
-
-    if ((ret = p->socket->setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(int))) != RTP_OK)
-    {
-        free_participant(std::move(p));
-        return ret;
-    }
-
-#ifdef _WIN32
-    /* Make the socket non-blocking */
-    int enabled = 1;
-
-    if (::ioctlsocket(p->socket->get_raw_socket(), FIONBIO, (u_long *)&enabled) < 0)
-    {
-        UVG_LOG_ERROR("Failed to make the socket non-blocking!");
-    }
-#endif
-
-    /* Set read timeout (5s for now)
-     *
-     * This means that the socket is listened for 5s at a time and after the timeout,
-     * Send Report is sent to all participants */
-    struct timeval tv;
-    tv.tv_sec = 3;
-    tv.tv_usec = 0;
-
-    if ((ret = p->socket->setsockopt(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))) != RTP_OK)
-    {
-        free_participant(std::move(p));
-        return ret;
-    }
-
-    
-
-    if (src_addr != "")
-    {
-        UVG_LOG_INFO("Binding RTCP to port %s:%d", src_addr.c_str(), src_port);
-        sockaddr_in bind_addr = p->socket->create_sockaddr(AF_INET, src_addr, src_port);
-        if ((ret = p->socket->bind(bind_addr)) != RTP_OK)
-        {
-            free_participant(std::move(p));
-            return ret;
-        }
-    }
-    else
-    {
-        UVG_LOG_INFO("Binding RTCP to port %d (source port)", src_port);
-        if ((ret = p->socket->bind(AF_INET, INADDR_ANY, src_port)) != RTP_OK)
-        {
-            free_participant(std::move(p));
-            return ret;
-        }
-    }
-
     p->role             = RECEIVER;
-    p->address          = p->socket->create_sockaddr(AF_INET, dst_addr, dst_port);
     p->stats.clock_rate = clock_rate;
 
-    sockets_.push_back(p->socket);
     initial_participants_.push_back(std::move(p));
     members_ += 1;
 
@@ -787,10 +765,6 @@ uvgrtp::frame::rtcp_app_packet* uvgrtp::rtcp::get_app_packet(uint32_t ssrc)
     return frame;
 }
 
-std::vector<std::shared_ptr<uvgrtp::socket>>& uvgrtp::rtcp::get_sockets()
-{
-    return sockets_;
-}
 
 std::vector<uint32_t> uvgrtp::rtcp::get_participants() const
 {
@@ -887,23 +861,17 @@ rtp_error_t uvgrtp::rtcp::init_new_participant(const uvgrtp::frame::rtp_frame *f
     rtp_error_t ret;
     uint32_t sender_ssrc = frame->header.ssrc;
 
-    if (our_role_ == RECEIVER) {
-        if ((ret = add_participant(local_addr_, remote_addr_, local_port_, dst_port_, clock_rate_)) != RTP_OK) {
-            return ret;
-        }
+    if ((ret = add_initial_participant(clock_rate_)) != RTP_OK) {
+        return ret;
     }
-    if(our_role_ == SENDER) {
-        if ((ret = add_participant(local_addr_, remote_addr_, dst_port_, local_port_, clock_rate_)) != RTP_OK) {
-            return ret;
-        }
-    }
+
     if (ms_since_last_rep_.find(sender_ssrc) != ms_since_last_rep_.end()) {
         ms_since_last_rep_.at(sender_ssrc) = 0;
     }
     else {
         ms_since_last_rep_.insert({ sender_ssrc, 0 });
     }
-
+    
     if ((ret = uvgrtp::rtcp::add_participant(frame->header.ssrc)) != RTP_OK)
     {
         return ret;
@@ -1034,20 +1002,10 @@ rtp_error_t uvgrtp::rtcp::reset_rtcp_state(uint32_t ssrc)
     return RTP_OK;
 }
 
-bool uvgrtp::rtcp::collision_detected(uint32_t ssrc, const sockaddr_in& src_addr) const
+bool uvgrtp::rtcp::collision_detected(uint32_t ssrc) const
 {
-    if (participants_.find(ssrc) == participants_.end())
-    {
-        return false;
-    }
+    return participants_.find(ssrc) == participants_.end();
 
-    if (src_addr.sin_port        != participants_.at(ssrc)->address.sin_port &&
-        src_addr.sin_addr.s_addr != participants_.at(ssrc)->address.sin_addr.s_addr)
-    {
-        return true;
-    }
-
-    return false;
 }
 
 void uvgrtp::rtcp::update_session_statistics(const uvgrtp::frame::rtp_frame *frame)
@@ -1364,9 +1322,10 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* buffer, size_t&
     {
         UVG_LOG_INFO("Got an RR from a previously unknown participant SSRC %lu", frame->ssrc);
         
-        /* First add_participant function creates the socket for this participant */
+        /* First add the participant to the initial_participants vector */
         /* Second one moves it from initial_participants to participants_ */
-        add_participant(local_addr_, remote_addr_, local_port_, dst_port_, clock_rate_);
+        // TODO: There should be probation? is it already implemented?
+        add_initial_participant(clock_rate_);
         
         add_participant(frame->ssrc);
     }
@@ -1632,9 +1591,9 @@ rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, uint3
 
     for (auto& p : participants_)
     {
-        if (p.second->socket != nullptr)
+        if (rtcp_socket_ != nullptr)
         {
-            if ((ret = p.second->socket->sendto(p.second->address, frame, frame_size, 0)) != RTP_OK)
+            if ((ret = rtcp_socket_->sendto(socket_address_, frame, frame_size, 0)) != RTP_OK)
             {
                 UVG_LOG_ERROR("Sending rtcp packet with sendto() failed!");
                 break;
@@ -1997,6 +1956,11 @@ rtp_error_t uvgrtp::rtcp::set_rtcp_interval_ms(uint32_t new_interval) {
     return RTP_OK;
 
 }
+
+std::shared_ptr<uvgrtp::socket> uvgrtp::rtcp::get_socket() const{
+    return rtcp_socket_;
+}
+
 
 void uvgrtp::rtcp::set_session_bandwidth(uint32_t kbps)
 {

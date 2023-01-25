@@ -64,8 +64,6 @@ namespace uvgrtp {
     };
 
     struct rtcp_participant {
-        std::shared_ptr<uvgrtp::socket> socket = nullptr; /* socket associated with this participant */
-        sockaddr_in address = {};                              /* address of the participant */
         struct receiver_statistics stats;                 /* RTCP session statistics of the participant */
 
         uint32_t probation = 0;                           /* has the participant been fully accepted to the session */
@@ -196,9 +194,6 @@ namespace uvgrtp {
             uvgrtp::frame::rtcp_sdes_packet     *get_sdes_packet(uint32_t ssrc);
             uvgrtp::frame::rtcp_app_packet      *get_app_packet(uint32_t ssrc);
 
-            /* Return a reference to vector that contains the sockets of all participants */
-            std::vector<std::shared_ptr<uvgrtp::socket>>& get_sockets();
-
             /* Somebody joined the multicast group the owner of this RTCP instance is part of
              * Add it to RTCP participant list so we can start listening for reports
              *
@@ -207,7 +202,7 @@ namespace uvgrtp {
              * (or whether we're even sending anything)
              *
              * Return RTP_OK on success and RTP_ERROR on error */
-            rtp_error_t add_participant(std::string src_addr, std::string dst_addr, uint16_t dst_port, uint16_t src_port, uint32_t clock_rate);
+            rtp_error_t add_initial_participant(uint32_t clock_rate);
 
             /* Functions for updating various RTP sender statistics */
             void sender_update_stats(const uvgrtp::frame::rtp_frame *frame);
@@ -237,6 +232,8 @@ namespace uvgrtp {
             *  If you want to set the interval manually later, use
             *  set_rtcp_interval_ms() function */
             void set_session_bandwidth(uint32_t kbps);
+
+            std::shared_ptr<uvgrtp::socket> get_socket() const;
 
             /* Store the following info in RTCP
             *  Local IP address
@@ -439,13 +436,14 @@ namespace uvgrtp {
              * from this sender and if not, create new entry to receiver_stats_ map */
             bool is_participant(uint32_t ssrc) const;
 
+            //TODO: Resolve collision??
             /* When we receive an RTP or RTCP packet, we need to check the source address and see if it's
              * the same address where we've received packets before.
              *
              * If the address is new, it means we have detected an SSRC collision and the paket should
              * be dropped We also need to check whether this SSRC matches with our own SSRC and if it does
              * we need to send RTCP BYE and rejoin to the session */
-            bool collision_detected(uint32_t ssrc, const sockaddr_in& src_addr) const;
+            bool collision_detected(uint32_t ssrc) const;
 
             /* Move participant from initial_peers_ to participants_ */
             rtp_error_t add_participant(uint32_t ssrc);
@@ -582,6 +580,10 @@ namespace uvgrtp {
             std::map<uint32_t, std::unique_ptr<rtcp_participant>> participants_;
             uint8_t num_receivers_; // maximum is 32 at the moment (5 bits)
 
+            /* Address of the socket that we are sending data to */
+            sockaddr_in socket_address_ = {};
+
+
             /* Map for keeping track of sources for timeouts
             *  First number is the sources ssrc
             *  Second number is how many milliseconds it has been silent*/
@@ -594,11 +596,7 @@ namespace uvgrtp {
              * the participant resides in this vector until he's moved to participants_ */
             std::vector<std::unique_ptr<rtcp_participant>> initial_participants_;
 
-            /* Vector of sockets the RTCP runner is listening to
-             *
-             * The socket are also stored here (in addition to participants_ map) so they're easier
-             * to pass to poll when RTCP runner is listening to incoming packets */
-            std::vector<std::shared_ptr<uvgrtp::socket>> sockets_;
+
 
             void (*sender_hook_)(uvgrtp::frame::rtcp_sender_report *);
             void (*receiver_hook_)(uvgrtp::frame::rtcp_receiver_report *);
@@ -620,6 +618,7 @@ namespace uvgrtp {
             std::mutex app_mutex_;
 
             std::unique_ptr<std::thread> report_generator_;
+            std::shared_ptr<uvgrtp::socket> rtcp_socket_;
 
             bool is_active() const
             {
