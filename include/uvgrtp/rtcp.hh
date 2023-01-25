@@ -238,6 +238,16 @@ namespace uvgrtp {
             *  set_rtcp_interval_ms() function */
             void set_session_bandwidth(uint32_t kbps);
 
+            /* Store the following info in RTCP
+            *  Local IP address
+            *  Remote IP address
+            *  Local port number for RTCP
+            *  Destination port number for RTCP
+            *  These are used when adding new participants and creating sockets for them */
+
+            rtp_error_t set_network_addresses(std::string local_addr, std::string remote_addr,
+                uint16_t local_port, uint16_t dst_port);
+
             /* Return SSRCs of all participants */
             std::vector<uint32_t> get_participants() const;
             /// \endcond
@@ -526,6 +536,13 @@ namespace uvgrtp {
              * the 2nd previous RTCP report was transmitted. */
             // TODO: Only set, never read
             bool we_sent_;
+
+            /* Store sender and receiver info, this is needed when calling 
+            *  add_participant dynamically (i.e. after initializing the stream) */
+            std::string local_addr_;
+            std::string remote_addr_;
+            uint16_t local_port_;
+            uint16_t dst_port_;
 
             /* The average compound RTCP packet size, in octets,
              * over all RTCP packets sent and received by this participant. The

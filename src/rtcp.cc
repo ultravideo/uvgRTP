@@ -44,6 +44,7 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int rce_
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0), reduced_minimum_(0),
     we_sent_(false), avg_rtcp_pkt_pize_(0), avg_rtcp_size_(64), rtcp_pkt_count_(0),
+    local_addr_(""), remote_addr_(""), local_port_(0), dst_port_(0),
     rtcp_pkt_sent_count_(0), initial_(true), ssrc_(rtp->get_ssrc()), 
     num_receivers_(0),
     sender_hook_(nullptr),
@@ -884,6 +885,24 @@ void uvgrtp::rtcp::sender_update_stats(const uvgrtp::frame::rtp_frame *frame)
 rtp_error_t uvgrtp::rtcp::init_new_participant(const uvgrtp::frame::rtp_frame *frame)
 {
     rtp_error_t ret;
+    uint32_t sender_ssrc = frame->header.ssrc;
+
+    if (our_role_ == RECEIVER) {
+        if ((ret = add_participant(local_addr_, remote_addr_, local_port_, dst_port_, clock_rate_)) != RTP_OK) {
+            return ret;
+        }
+    }
+    if(our_role_ == SENDER) {
+        if ((ret = add_participant(local_addr_, remote_addr_, dst_port_, local_port_, clock_rate_)) != RTP_OK) {
+            return ret;
+        }
+    }
+    if (ms_since_last_rep_.find(sender_ssrc) != ms_since_last_rep_.end()) {
+        ms_since_last_rep_.at(sender_ssrc) = 0;
+    }
+    else {
+        ms_since_last_rep_.insert({ sender_ssrc, 0 });
+    }
 
     if ((ret = uvgrtp::rtcp::add_participant(frame->header.ssrc)) != RTP_OK)
     {
@@ -1344,6 +1363,11 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* buffer, size_t&
     if (!is_participant(frame->ssrc))
     {
         UVG_LOG_INFO("Got an RR from a previously unknown participant SSRC %lu", frame->ssrc);
+        
+        /* First add_participant function creates the socket for this participant */
+        /* Second one moves it from initial_participants to participants_ */
+        add_participant(local_addr_, remote_addr_, local_port_, dst_port_, clock_rate_);
+        
         add_participant(frame->ssrc);
     }
     
@@ -1949,6 +1973,17 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
 uint32_t uvgrtp::rtcp::get_rtcp_interval_ms() const 
 {
     return interval_ms_.load();
+}
+
+rtp_error_t uvgrtp::rtcp::set_network_addresses(std::string local_addr, std::string remote_addr,
+    uint16_t local_port, uint16_t dst_port)
+{
+    local_addr_ = local_addr;
+    remote_addr_ = remote_addr;
+    local_port_ = local_port;
+    dst_port_ = dst_port;
+
+    return RTP_OK;
 }
 
 rtp_error_t uvgrtp::rtcp::set_rtcp_interval_ms(uint32_t new_interval) {
