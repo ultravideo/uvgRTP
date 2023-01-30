@@ -4,6 +4,9 @@
 #include <cstring>
 #include <iostream>
 
+constexpr int AMOUNT_OF_TEST_PACKETS = 30;
+constexpr auto END_WAIT = std::chrono::seconds(5);
+
 void thread_func(void)
 {
     /* See sending.cc for more details */
@@ -48,11 +51,23 @@ int main(void)
     char *message  = (char *)"Hello, world!";
     size_t msg_len = strlen(message);
 
-    for (;;) {
+    for (int i = 0; i < AMOUNT_OF_TEST_PACKETS; ++i) {
         uint8_t* message_data = new uint8_t[msg_len];
         memcpy(message_data, message, msg_len);
 
         send->push_frame((uint8_t *)message_data, msg_len, RTP_NO_FLAGS);
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
+
+    std::cout << "All packets sent, waiting " << END_WAIT.count()
+        << " seconds before exiting." << std::endl;
+    // destroy the session after waiting for END_WAIT seconds
+    std::this_thread::sleep_for(END_WAIT);
+    sess->destroy_stream(send);
+    if (sess) {
+        ctx.destroy_session(sess);
+    }
+
+    return EXIT_SUCCESS;
+
 }

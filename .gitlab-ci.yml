@@ -1,0 +1,66 @@
+image: ultravideo/kvazaar_ci_base:latest
+
+# build without crypto
+build_no_crypto:
+  stage: build
+  script:
+    - mkdir build && cd build
+    - cmake ..
+    - make
+  artifacts:
+    paths:
+    - bin/uvgrtp
+    expire_in: 1 week
+
+build_with_crypto:
+  stage: build
+  script:
+    - mkdir build && cd build
+    - apt -y install libcrypto++-dev
+    - cmake ..
+    - make
+  artifacts:
+    paths:
+    - bin/uvgrtp
+    expire_in: 1 week
+
+tests_with_crypto:
+  stage: test
+  script:
+    - mkdir build && cd build
+    - apt -y install libcrypto++-dev
+    - cmake ..
+    - make
+    - cd test
+    - make
+    - ./uvgrtp_test
+  artifacts:
+    paths:
+    - bin/uvgrtp
+    expire_in: 1 week
+
+examples_with_crypto:
+  stage: test
+  script:
+    - mkdir build && cd build
+    - apt -y install libcrypto++-dev
+    - cmake ..
+    - make
+    - cd examples
+    - make
+    - ./binding
+    - ./configuration
+    - ./custom_timestamps
+    - ./receiving_hook
+    - ./receiving_poll
+    - ./rtcp_hook
+    - ./sending
+    - ./sending_generic
+    - ./srtp_user
+    - ./zrtp_multistream
+    - ./srtp_zrtp
+
+  artifacts:
+    paths:
+    - bin/uvgrtp
+    expire_in: 1 week
