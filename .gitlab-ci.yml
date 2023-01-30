@@ -58,6 +58,7 @@ examples_with_crypto:
     - ./sending_generic
     - ./srtp_user
     - ./zrtp_multistream
+    - ./srtp_zrtp
 
   artifacts:
     paths:
