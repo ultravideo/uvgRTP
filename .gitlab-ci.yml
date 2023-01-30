@@ -1,0 +1,17 @@
+image: ultravideo/kvazaar_ci_base:latest
+
+# build without crypto
+build_no_crypto:
+  stage: test
+  script:
+    - mkdir build && cd build
+    - cmake ..
+    - make
+    - cd test
+    - make
+    - ./uvgrtp_test
+  artifacts:
+    paths:
+    - bin/uvgrtp
+    expire_in: 1 week
+
