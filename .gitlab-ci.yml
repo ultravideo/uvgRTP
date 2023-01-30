@@ -2,9 +2,33 @@ image: ultravideo/kvazaar_ci_base:latest
 
 # build without crypto
 build_no_crypto:
+  stage: build
+  script:
+    - mkdir build && cd build
+    - cmake ..
+    - make
+  artifacts:
+    paths:
+    - bin/uvgrtp
+    expire_in: 1 week
+
+build_with_crypto:
+  stage: build
+  script:
+    - mkdir build && cd build
+    - apt -y install libcrypto++-dev
+    - cmake ..
+    - make
+  artifacts:
+    paths:
+    - bin/uvgrtp
+    expire_in: 1 week
+
+unit_tests:
   stage: test
   script:
     - mkdir build && cd build
+    - apt -y install libcrypto++-dev
     - cmake ..
     - make
     - cd test
@@ -14,4 +38,3 @@ build_no_crypto:
     paths:
     - bin/uvgrtp
     expire_in: 1 week
-
