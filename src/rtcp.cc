@@ -43,8 +43,8 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int rce_
     rce_flags_(rce_flags), our_role_(RECEIVER),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0), reduced_minimum_(0),
-    we_sent_(false), avg_rtcp_pkt_pize_(0), avg_rtcp_size_(64), rtcp_pkt_count_(0),
-    local_addr_(""), remote_addr_(""), local_port_(0), dst_port_(0),
+    we_sent_(false), local_addr_(""), remote_addr_(""), local_port_(0), dst_port_(0),
+    avg_rtcp_pkt_pize_(0), avg_rtcp_size_(64), rtcp_pkt_count_(0), rtcp_byte_count_(0),
     rtcp_pkt_sent_count_(0), initial_(true), ssrc_(rtp->get_ssrc()), 
     num_receivers_(0),
     sender_hook_(nullptr),
@@ -295,7 +295,7 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp)
     uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
 
     // save the initial timestamp for keeping track of RTCP timeslots
-    uvgrtp::clock::hrc::hrc_t initial_time = uvgrtp::clock::hrc::now();
+    // uvgrtp::clock::hrc::hrc_t initial_time = uvgrtp::clock::hrc::now();
 
     uint32_t current_interval = rtcp->get_rtcp_interval_ms();
 
@@ -314,9 +314,8 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp)
         {
             ++i;
             ++report_number;
-            uint32_t run_time = (uint32_t)uvgrtp::clock::hrc::diff_now(start);
+            run_time = (uint32_t)uvgrtp::clock::hrc::diff_now(start);
 
-            uint32_t current_timeslot = (uint32_t)uvgrtp::clock::hrc::diff_now(initial_time);
 
             /* Here we check if there are any timed out sources */
             /* This vector collects the ssrcs of timed out sources */
@@ -337,7 +336,7 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp)
                 rtcp->ms_since_last_rep_.erase(rm);
             }
 
-            UVG_LOG_DEBUG("Sending RTCP report number %i at time slot %i ms", report_number, current_timeslot);
+            UVG_LOG_DEBUG("Sending RTCP report number %i", report_number);
 
             if ((ret = rtcp->generate_report()) != RTP_OK && ret != RTP_NOT_READY)
             {
@@ -442,7 +441,6 @@ rtp_error_t uvgrtp::rtcp::set_sdes_items(const std::vector<uvgrtp::frame::rtcp_s
 
 rtp_error_t uvgrtp::rtcp::add_initial_participant(uint32_t clock_rate)
 {
-    rtp_error_t ret;
     std::unique_ptr<rtcp_participant> p = std::unique_ptr<rtcp_participant>(new rtcp_participant());
 
     zero_stats(&p->stats);
@@ -1220,7 +1218,7 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
                 break;
 
             case uvgrtp::frame::RTCP_FT_BYE:
-                ret = handle_bye_packet(buffer, read_ptr, packet_end, header);
+                ret = handle_bye_packet(buffer, read_ptr, header);
                 break;
 
             case uvgrtp::frame::RTCP_FT_APP:
@@ -1486,7 +1484,7 @@ rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t* packet, size_t& read_ptr, 
 }
 
 rtp_error_t uvgrtp::rtcp::handle_bye_packet(uint8_t* packet, size_t& read_ptr, 
-    size_t packet_end, uvgrtp::frame::rtcp_header& header)
+     uvgrtp::frame::rtcp_header& header)
 {
     (void)header;
     
@@ -1589,24 +1587,22 @@ rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, uint3
         return ret;
     }
 
-    for (auto& p : participants_)
-    {
-        if (rtcp_socket_ != nullptr)
-        {
-            if ((ret = rtcp_socket_->sendto(socket_address_, frame, frame_size, 0)) != RTP_OK)
-            {
-                UVG_LOG_ERROR("Sending rtcp packet with sendto() failed!");
-                break;
-            }
 
-            update_rtcp_bandwidth(frame_size);
-            update_avg_rtcp_size(frame_size);
-        }
-        else
+    if (rtcp_socket_ != nullptr)
+    {
+        if ((ret = rtcp_socket_->sendto(socket_address_, frame, frame_size, 0)) != RTP_OK)
         {
-            UVG_LOG_ERROR("Tried to send RTCP packet when socket does not exist!");
+            UVG_LOG_ERROR("Sending rtcp packet with sendto() failed!");
         }
+
+        update_rtcp_bandwidth(frame_size);
+        update_avg_rtcp_size(frame_size);
     }
+    else
+    {
+        UVG_LOG_ERROR("Tried to send RTCP packet when socket does not exist!");
+    }
+    
 
     delete[] frame;
     return ret;
@@ -1945,7 +1941,7 @@ rtp_error_t uvgrtp::rtcp::set_network_addresses(std::string local_addr, std::str
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::rtcp::set_rtcp_interval_ms(uint32_t new_interval) {
+rtp_error_t uvgrtp::rtcp::set_rtcp_interval_ms(int32_t new_interval) {
     if (new_interval < 0) {
         UVG_LOG_WARN("Interval cannot be negative");
         return RTP_INVALID_VALUE;

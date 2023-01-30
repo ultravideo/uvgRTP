@@ -12,6 +12,7 @@
 #include <memory>
 #include <mutex>
 #include <deque>
+#include <atomic>
 
 namespace uvgrtp {
 
@@ -226,7 +227,7 @@ namespace uvgrtp {
             *
             * Return RTP_OK if interval was set successfully
             * Return RTP_INVALID_VALUE if new interval is invalid */
-            rtp_error_t set_rtcp_interval_ms(uint32_t new_interval);
+            rtp_error_t set_rtcp_interval_ms(int32_t new_interval);
 
             /* Set total bandwidth for this session, called at the start 
             *  If you want to set the interval manually later, use
@@ -424,7 +425,7 @@ namespace uvgrtp {
                 uvgrtp::frame::rtcp_header& header);
             rtp_error_t handle_sdes_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
                 uvgrtp::frame::rtcp_header& header, uint32_t sender_ssrc);
-            rtp_error_t handle_bye_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
+            rtp_error_t handle_bye_packet(uint8_t* buffer, size_t& read_ptr,
                 uvgrtp::frame::rtcp_header& header);
             rtp_error_t handle_app_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
                 uvgrtp::frame::rtcp_header& header);
