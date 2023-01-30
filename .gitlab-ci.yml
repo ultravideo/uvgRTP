@@ -24,7 +24,7 @@ build_with_crypto:
     - bin/uvgrtp
     expire_in: 1 week
 
-unit_tests:
+tests_with_crypto:
   stage: test
   script:
     - mkdir build && cd build
@@ -34,6 +34,31 @@ unit_tests:
     - cd test
     - make
     - ./uvgrtp_test
+  artifacts:
+    paths:
+    - bin/uvgrtp
+    expire_in: 1 week
+
+examples_with_crypto:
+  stage: test
+  script:
+    - mkdir build && cd build
+    - apt -y install libcrypto++-dev
+    - cmake ..
+    - make
+    - cd examples
+    - make
+    - ./binding
+    - ./configuration
+    - ./custom_timestamps
+    - ./receiving_hook
+    - ./receiving_poll
+    - ./rtcp_hook
+    - ./sending
+    - ./sending_generic
+    - ./srtp_user
+    - ./zrtp_multistream
+
   artifacts:
     paths:
     - bin/uvgrtp
