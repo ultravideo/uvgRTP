@@ -472,6 +472,32 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, uin
     return ret;
 }
 
+rtp_error_t uvgrtp::media_stream::push_frame(uint8_t* data, size_t data_len, uint32_t ts, uint64_t s_ts, int rtp_flags)
+{
+    rtp_error_t ret = check_push_preconditions(rtp_flags, false);
+    if (ret == RTP_OK)
+    {
+        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
+            holepuncher_->notify();
+
+        rtp_->set_timestamp(ts);
+        rtp_->set_sampling_ntp(s_ts);
+        if (rtp_flags & RTP_COPY)
+        {
+            data = copy_frame(data, data_len);
+            std::unique_ptr<uint8_t[]> data_copy(data);
+            ret = media_->push_frame(std::move(data_copy), data_len, rtp_flags);
+        }
+        else
+        {
+            ret = media_->push_frame(data, data_len, rtp_flags);
+        }
+        rtp_->set_timestamp(INVALID_TS);
+    }
+
+    return ret;
+}
+
 rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int rtp_flags)
 {
     rtp_error_t ret = check_push_preconditions(rtp_flags, true);
@@ -482,6 +508,24 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
 
         // making a copy of a smart pointer does not make sense
         rtp_->set_timestamp(ts);
+        ret = media_->push_frame(std::move(data), data_len, rtp_flags);
+        rtp_->set_timestamp(INVALID_TS);
+    }
+
+    return ret;
+}
+
+rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, uint64_t s_ts, int rtp_flags)
+{
+    rtp_error_t ret = check_push_preconditions(rtp_flags, true);
+    if (ret == RTP_OK)
+    {
+        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
+            holepuncher_->notify();
+
+        // making a copy of a smart pointer does not make sense
+        rtp_->set_timestamp(ts);
+        rtp_->set_sampling_ntp(s_ts);
         ret = media_->push_frame(std::move(data), data_len, rtp_flags);
         rtp_->set_timestamp(INVALID_TS);
     }

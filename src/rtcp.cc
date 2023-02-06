@@ -61,6 +61,7 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int rce_
     app_hook_u_(nullptr),
     active_(false),
     interval_ms_(DEFAULT_RTCP_INTERVAL_MS),
+    rtp_ptr_(rtp),
     ourItems_(),
     bye_ssrcs_(false),
     mtu_size_(MAX_IPV4_PAYLOAD)
@@ -1187,7 +1188,6 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
         }
 
         /* Update the timeout map */
-        std::cout << "incoming ssrc: " << sender_ssrc << std::endl;
         if (ms_since_last_rep_.find(sender_ssrc) != ms_since_last_rep_.end()) {
             ms_since_last_rep_.at(sender_ssrc) = 0;
         }
@@ -1723,18 +1723,28 @@ rtp_error_t uvgrtp::rtcp::generate_report()
           clock_start_ = uvgrtp::clock::ntp::now();
         }
 
-        /* TODO: The RTP timestamp should be from an actual RTP packet and NTP timestamp should be the one
-           corresponding to it. */
         uint64_t ntp_ts = uvgrtp::clock::ntp::now();
 
-        uint64_t expanded_ts_start = rtp_ts_start_;
-        uint64_t ts_since_start = (uint64_t)(uvgrtp::clock::ntp::diff(clock_start_, ntp_ts) * double(clock_rate_ / 1000));
+        // TODO: user gives this timestamp of the moment when the LAST rtp frame was sampled
+        uint64_t sampling_ntp_ts = rtp_ptr_->get_sampling_ntp();
 
-        uint64_t rtp_ts = expanded_ts_start + ts_since_start;
+        uint64_t diff_us = uvgrtp::clock::ntp::diff(sampling_ntp_ts, ntp_ts) * 1000;
+
+        //std::cout << "-----diff microseconds: " << diff_us << " - clock rate/1000: " << clock_rate_/1000 << std::endl;
+
+        uint32_t rtp_ts = rtp_ptr_->get_rtp_ts();
+        //std::cout << "-----last rtp packet timestamp:  " << rtp_ts << " - plus this num: " <<
+          //  (diff_us * double(clock_rate_) / 1000000)<< std::endl;
+
+
+        uint32_t reporting_rtp_ts = rtp_ts + (diff_us * double(clock_rate_) / 1000000);
+        //std::cout << "---- Final rtp ts to be sent: " << reporting_rtp_ts << std::endl;
+
+
 
         if (!construct_rtcp_header(frame, write_ptr, sender_report_size, reports, uvgrtp::frame::RTCP_FT_SR) ||
             !construct_ssrc(frame, write_ptr, ssrc_) ||
-            !construct_sender_info(frame, write_ptr, ntp_ts, rtp_ts, our_stats.sent_pkts, our_stats.sent_bytes))
+            !construct_sender_info(frame, write_ptr, ntp_ts, reporting_rtp_ts, our_stats.sent_pkts, our_stats.sent_bytes))
         {
             UVG_LOG_ERROR("Failed to construct SR");
             return RTP_GENERIC_ERROR;
@@ -1877,7 +1887,6 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
     UVG_LOG_DEBUG("Sending RTCP report compound packet, Total size: %lli",
         compound_packet_size);
-
     return send_rtcp_packet_to_participants(frame, compound_packet_size, true);
 }
 

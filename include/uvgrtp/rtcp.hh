@@ -630,6 +630,8 @@ namespace uvgrtp {
 
             std::atomic<uint32_t> interval_ms_;
 
+            std::shared_ptr<uvgrtp::rtp> rtp_ptr_;
+
             std::mutex packet_mutex_;
 
             // messages waiting to be sent

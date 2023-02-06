@@ -11,6 +11,8 @@ add_executable(sending_generic)
 add_executable(srtp_user)        # SRTP user keys example
 add_executable(srtp_zrtp)        # SRTP + ZRTP example
 add_executable(zrtp_multistream) # ZRTP Multistream example
+add_executable(sync_sender) 	 # Syncing streams example, sender
+add_executable(sync_receiver) 	 # Syncing streams example, receiver
 
 target_sources(binding           PRIVATE binding.cc)
 target_sources(configuration     PRIVATE configuration.cc)
@@ -23,7 +25,8 @@ target_sources(sending_generic   PRIVATE sending_generic.cc)
 target_sources(srtp_user         PRIVATE srtp_user.cc)
 target_sources(srtp_zrtp         PRIVATE srtp_zrtp.cc)
 target_sources(zrtp_multistream  PRIVATE zrtp_multistream.cc)
-
+target_sources(sync_sender	 PRIVATE sync_sender.cc)
+target_sources(sync_receiver	 PRIVATE sync_receiver.cc)
 
 if(MSVC)
     set(CRYPTOPP_LIB_NAME "cryptlib")
@@ -41,6 +44,8 @@ if(CRYPTOPP_FOUND AND NOT DISABLE_CRYPTO)
     target_link_libraries(rtcp_hook         PRIVATE uvgrtp ${CRYPTOPP_LIB_NAME})
     target_link_libraries(sending           PRIVATE uvgrtp ${CRYPTOPP_LIB_NAME})
     target_link_libraries(sending_generic   PRIVATE uvgrtp ${CRYPTOPP_LIB_NAME})
+    target_link_libraries(sync_sender       PRIVATE uvgrtp ${CRYPTOPP_LIB_NAME})
+    target_link_libraries(sync_receiver       PRIVATE uvgrtp ${CRYPTOPP_LIB_NAME})
 else()
     target_link_libraries(binding           PRIVATE uvgrtp)
     target_link_libraries(configuration     PRIVATE uvgrtp)
@@ -50,6 +55,8 @@ else()
     target_link_libraries(rtcp_hook         PRIVATE uvgrtp)
     target_link_libraries(sending           PRIVATE uvgrtp)
     target_link_libraries(sending_generic   PRIVATE uvgrtp)
+    target_link_libraries(sync_sender	    PRIVATE uvgrtp)
+    target_link_libraries(sync_receiver	    PRIVATE uvgrtp)
 endif()
 
 target_link_libraries(srtp_user        PRIVATE uvgrtp ${CRYPTOPP_LIB_NAME})
