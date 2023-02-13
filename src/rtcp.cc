@@ -1716,31 +1716,21 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         // sender reports have sender information in addition compared to receiver reports
         size_t sender_report_size = get_sr_packet_size(rce_flags_, reports);
 
-        /* TODO: The clock would be better to start with first sent RTP packet.
-         * In reality it should be provided by user which I think is implemented? */
+        // TODO: is this needed anymore?
         if (clock_start_ == 0)
         {
           clock_start_ = uvgrtp::clock::ntp::now();
         }
 
-        uint64_t ntp_ts = uvgrtp::clock::ntp::now();
-
-        // TODO: user gives this timestamp of the moment when the LAST rtp frame was sampled
+        // This is the timestamp when the LAST rtp frame was sampled
         uint64_t sampling_ntp_ts = rtp_ptr_->get_sampling_ntp();
+        uint64_t ntp_ts = uvgrtp::clock::ntp::now();
 
         uint64_t diff_us = uvgrtp::clock::ntp::diff(sampling_ntp_ts, ntp_ts) * 1000;
 
-        //std::cout << "-----diff microseconds: " << diff_us << " - clock rate/1000: " << clock_rate_/1000 << std::endl;
-
         uint32_t rtp_ts = rtp_ptr_->get_rtp_ts();
-        //std::cout << "-----last rtp packet timestamp:  " << rtp_ts << " - plus this num: " <<
-          //  (diff_us * double(clock_rate_) / 1000000)<< std::endl;
-
 
         uint32_t reporting_rtp_ts = rtp_ts + (diff_us * double(clock_rate_) / 1000000);
-        //std::cout << "---- Final rtp ts to be sent: " << reporting_rtp_ts << std::endl;
-
-
 
         if (!construct_rtcp_header(frame, write_ptr, sender_report_size, reports, uvgrtp::frame::RTCP_FT_SR) ||
             !construct_ssrc(frame, write_ptr, ssrc_) ||
