@@ -65,11 +65,6 @@ uvgrtp::media_stream::~media_stream()
         rtcp_->stop();
     }
 
-    if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
-    {
-        holepuncher_->stop();
-    }
-
     (void)free_resources(RTP_OK);
 }
 
