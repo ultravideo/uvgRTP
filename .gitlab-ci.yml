@@ -59,7 +59,8 @@ examples_with_crypto:
     - ./srtp_user
     - ./zrtp_multistream
     - ./srtp_zrtp
-
+    - ./sync_receiver
+    - ./sync_sender
   artifacts:
     paths:
     - bin/uvgrtp

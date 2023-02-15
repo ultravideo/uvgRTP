@@ -12,9 +12,8 @@
  * This example demonstrates using RTCP to synchronize audio and video streams. There are two
  * receivers representing video and audio streams. This example also measures the latency between
  * generating Sender report and receiving them. For the latency measurements to be accurate, you
- * must make sure that the system clocks are synchronized! For synchronizing audio and video, this
- * is not crucial.
- *
+ * must make sure that the system clocks are synchronized! However, for only synchronizing audio and
+ * video, this is not crucial.
  *
  * This example is intended to be ran with sync_receiver example. Start sync_receiver first and then
  * sync_sender.
@@ -112,12 +111,13 @@ void sender_function(uvgrtp::session* sender_session, int flags, std::shared_ptr
         return;
     }
    
+    /* This is the RTP timestamp of the frames. Check which stream we are sending and set the initial timestamp */
     uint32_t ts;
-     if (format == RTP_FORMAT_OPUS) {
-         ts = a_ts;
-     }
-     else {
-         ts = v_ts;
+    if (format == RTP_FORMAT_OPUS) {
+        ts = a_ts;
+    }
+    else {
+        ts = v_ts;
     }
 
     if (sender_audio_strm)
@@ -136,6 +136,19 @@ void sender_function(uvgrtp::session* sender_session, int flags, std::shared_ptr
                 memset(dummy_frame.get() + 3, 1, 1);
                 memset(dummy_frame.get() + 4, 1, (19 << 1)); // Intra frame NAL type
             }
+            /* When sending data with the push_frame() function, note the following parameters:
+             * 
+             * ts: RTP timestamp defined in RFC 3550 5.1. Several consecutive RTP packets
+             * will have equal timestamps if they are (logically) generated at once, e.g., belong to the same video frame.
+             * Consecutive RTP packets MAY contain timestamps that are not monotonic if the data is not transmitted
+             * in the order it was sampled, as in the case of MPEG interpolated video frames.  (The sequence numbers of
+             * the packets as transmitted will still be monotonic.)
+             * 
+             * s_ts: NTP timestamp of when the frame was sampled. This should also be the same for all packets
+             * belonging to the same frame 
+             * 
+             * When you wish to synchronize multiple streams together, you SHOULD manually give both these parameters. It
+             * is possible to let RTP set them automatically, however that is not recommended. */
 
             uint64_t clock_ntp = uvgrtp::clock::ntp::now();
             if (sender_audio_strm->push_frame(std::move(dummy_frame), payload_size, ts, clock_ntp, RTP_NO_FLAGS) != RTP_OK)

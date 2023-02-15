@@ -11,13 +11,14 @@
  * This example demonstrates using RTCP to synchronize audio and video streams. There are two
  * receivers representing video and audio streams. This example also measures the latency between
  * generating Sender report and receiving them. For the latency measurements to be accurate, you
- * must make sure that the system clocks are synchronized! For synchronizing audio and video, this
+ * must make sure that the system clocks are synchronized! However, for only synchronizing audio and video, this
  * is not crucial.
  *
  * This receiver example prints out the NTP and RTP timestamps from RTCP Sender Reports. The process of syncing
- * audio and video streams follows these guidelines but exact implementation is up to the user:
+ * audio and video streams using these timestamps follows these guidelines but exact implementation is up to the user:
  * 
- * 1. The RTP+NTP pair in the video streams SR allows you to convert video stream RTP timestamps into NTP timestamps
+ * 1. The RTP+NTP pair in the video streams SR allows you to convert video stream RTP timestamps into NTP timestamps.
+ *    In other words, it lets you know which RTP and NTP timestamps belong together.
  * 
  * 2. Map this NTP timestamp into an audio streams RTP timestamp using the RTP+NTP timestamp pair from the audio
  *    streams Sender Reports
