@@ -1726,11 +1726,11 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         uint64_t sampling_ntp_ts = rtp_ptr_->get_sampling_ntp();
         uint64_t ntp_ts = uvgrtp::clock::ntp::now();
 
-        uint64_t diff_us = uvgrtp::clock::ntp::diff(sampling_ntp_ts, ntp_ts) * 1000;
+        uint64_t diff_ms = uvgrtp::clock::ntp::diff(sampling_ntp_ts, ntp_ts);
 
         uint32_t rtp_ts = rtp_ptr_->get_rtp_ts();
 
-        uint32_t reporting_rtp_ts = rtp_ts + (diff_us * double(clock_rate_) / 1000000);
+        uint32_t reporting_rtp_ts = rtp_ts + (diff_ms * (double(clock_rate_) / 1000));
 
         if (!construct_rtcp_header(frame, write_ptr, sender_report_size, reports, uvgrtp::frame::RTCP_FT_SR) ||
             !construct_ssrc(frame, write_ptr, ssrc_) ||
