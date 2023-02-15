@@ -170,3 +170,7 @@ The default configuration of uvgRTP should be able to handle most basic scenario
 * RCE_PACE_FRAGMENT_SENDING, RCC_FPS_NUMERATOR and RCC_FPS_DENOMINATOR: You can try RCE_PACE_FRAGMENT_SENDING to make sender pace the sending of framents so receiver has easier time receiving them. Use RCC_FPS_NUMERATOR and RCC_FPS_DENOMINATOR to set your frame rate
 
 None of these parameters will however help if you are sending more data than the receiver can process, they only help when dealing with burst of (usually fragmented) RTP traffic.
+
+## Using uvgRTP RTCP for Congestion Control
+
+When RTCP is enabled in uvgRTP (using `RCE_RTCP`), the fields in [rtcp_report_block](../include/uvgrtp/frame.hh#L106) can be used to estimate the available network bandwidth. Report blocks are sent by all media_stream entities receiving data and can be included in both Sender Reports (when sending and receiving) and Receiver Reports (when only receiving). There exists several algorithms for congestion control, but they are outside the scope of uvgRTP.
