@@ -432,6 +432,8 @@ namespace uvgrtp {
 
             static void rtcp_runner(rtcp *rtcp);
 
+            static void rtcp_report_reader(rtcp *rtcp);
+
             /* when we start the RTCP instance, we don't know what the SSRC of the remote is
              * when an RTP packet is received, we must check if we've already received a packet
              * from this sender and if not, create new entry to receiver_stats_ map */
@@ -619,6 +621,7 @@ namespace uvgrtp {
             std::mutex app_mutex_;
 
             std::unique_ptr<std::thread> report_generator_;
+            std::unique_ptr<std::thread> report_reader_;
             std::shared_ptr<uvgrtp::socket> rtcp_socket_;
 
             bool is_active() const

@@ -72,6 +72,7 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::string cname, int rce_
     rtp_ts_start_ = 0;
 
     report_generator_   = nullptr;
+    report_reader_ = nullptr;
 
     srtcp_        = nullptr;
     members_ = 1;
@@ -243,6 +244,7 @@ rtp_error_t uvgrtp::rtcp::start()
 
     socket_address_ = rtcp_socket_->create_sockaddr(AF_INET, remote_addr_, dst_port_);
     report_generator_.reset(new std::thread(rtcp_runner, this));
+    report_reader_.reset(new std::thread(rtcp_report_reader, this));
 
     return RTP_OK;
 }
@@ -276,13 +278,18 @@ rtp_error_t uvgrtp::rtcp::stop()
         UVG_LOG_DEBUG("Waiting for RTCP loop to exit");
         report_generator_->join();
     }
+    if (report_reader_ && report_reader_->joinable())
+    {
+        UVG_LOG_DEBUG("Waiting for RTCP reader to exit");
+        report_reader_->join();
+    }
 
     rtcp_socket_.reset();
 
     return ret;
 }
 
-void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp) 
+void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp)
 {
     UVG_LOG_INFO("RTCP instance created!");
 
@@ -291,114 +298,91 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp)
     UVG_LOG_DEBUG("Sleeping for %i ms before sending first RTCP report", initial_sleep_ms);
     std::this_thread::sleep_for(std::chrono::milliseconds(initial_sleep_ms));
 
-    std::unique_ptr<uint8_t[]> buffer = std::unique_ptr<uint8_t[]>(new uint8_t[MAX_PACKET]);
-
     uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
 
-    // save the initial timestamp for keeping track of RTCP timeslots
-    // uvgrtp::clock::hrc::hrc_t initial_time = uvgrtp::clock::hrc::now();
-
-    uint32_t current_interval = rtcp->get_rtcp_interval_ms();
-
-    int i = 0;
+    uint32_t current_interval_ms = rtcp->get_rtcp_interval_ms();
+    uint32_t run_time;
+    rtp_error_t ret = RTP_OK;
+    
     // keep track of report numbers
     int report_number = 0;
+
     while (rtcp->is_active())
-    {    
-        
-        long int next_sendslot = i * current_interval;
-        uint32_t run_time = (uint32_t)uvgrtp::clock::hrc::diff_now(start);
-        long int diff_ms = next_sendslot - run_time;
+    {
+        ++report_number;
+        UVG_LOG_DEBUG("Sending RTCP report number %i", report_number);
 
-        rtp_error_t ret = RTP_OK;
-        if (diff_ms <= 0)
+        if ((ret = rtcp->generate_report()) != RTP_OK && ret != RTP_NOT_READY)
         {
-            ++i;
-            ++report_number;
-            run_time = (uint32_t)uvgrtp::clock::hrc::diff_now(start);
-
-
-            /* Here we check if there are any timed out sources */
-            /* This vector collects the ssrcs of timed out sources */
-            std::vector<uint32_t> ssrcs_to_be_removed = {};
-
-            for (auto it = rtcp->ms_since_last_rep_.begin(); it != rtcp->ms_since_last_rep_.end(); ++it) {
-                double timeout_interval_s = rtcp->rtcp_interval(int(rtcp->members_), 1, rtcp->rtcp_bandwidth_,
-                    true, rtcp->avg_rtcp_size_, false, false);
-                it->second += uint32_t(current_interval);
-                if (it->second > 5*1000*timeout_interval_s) {
-                    ssrcs_to_be_removed.push_back(it->first);
-                }
-            }
-
-            /* If some ssrcs are timed out, remove them */
-            for (auto rm : ssrcs_to_be_removed) {
-                rtcp->remove_timeout_ssrc(rm);
-                rtcp->ms_since_last_rep_.erase(rm);
-            }
-
-            UVG_LOG_DEBUG("Sending RTCP report number %i", report_number);
-
-            if ((ret = rtcp->generate_report()) != RTP_OK && ret != RTP_NOT_READY)
-            {
-                UVG_LOG_ERROR("Failed to send RTCP status report!");
-            }
-
-            // Number of senders is hard set to 1, because it is not updated anywhere.
-            // TODO: Keep track of senders and update it here too
-            // Same goes for we_sent also, it is always set to true. TODO: fix this
-            double interval_s = rtcp->rtcp_interval(int(rtcp->members_), 1, rtcp->rtcp_bandwidth_,
-                true, rtcp->avg_rtcp_size_, true, true);
-            uint32_t calculated_interval_ms = round(1000 * interval_s);
-            rtcp->set_rtcp_interval_ms(calculated_interval_ms);
-
+            UVG_LOG_ERROR("Failed to send RTCP status report!");
         }
-        else if (diff_ms > ESTIMATED_MAX_RECEPTION_TIME_MS)
-        {   
-            // try receiving if we have time
-            // Receive RTCP reports until time to send report
-            int nread = 0;
 
-            int poll_timout = diff_ms - ESTIMATED_MAX_RECEPTION_TIME_MS;
 
-            // using max poll we make sure that exiting uvgRTP doesn't take several seconds
-            int max_poll_timeout_ms = 100;
-            if (poll_timout > max_poll_timeout_ms)
-            {
-                poll_timout = max_poll_timeout_ms;
-            }
-            std::vector<std::shared_ptr<uvgrtp::socket>> temp = {};
-            temp.push_back(rtcp->get_socket());
-
-            ret = uvgrtp::poll::poll(temp, buffer.get(), MAX_PACKET, poll_timout, &nread);
-
-            if (ret == RTP_OK && nread > 0)
-            {
-                (void)rtcp->handle_incoming_packet(buffer.get(), (size_t)nread);
-            } else if (ret == RTP_INTERRUPTED) {
-                /* do nothing */
-            } else {
-                UVG_LOG_ERROR("poll failed, %d", ret);
-                break; // TODO the sockets should be manages so that this is not needed
-            }
-        }
-        else
-        {   // sleep until it is time to send the report
-            std::this_thread::sleep_for(std::chrono::milliseconds(diff_ms));
-
-            // After sleeping check the ínterval value. If it is changed, restart the clock and reset i
-            if (rtcp->get_rtcp_interval_ms() != current_interval)
-            {
-                current_interval = rtcp->get_rtcp_interval_ms();
-                i = 0;
-                start = uvgrtp::clock::hrc::now();
-            }
-        }
         
-    }
+        //Here we check if there are any timed out sources
+        //This vector collects the ssrcs of timed out sources
+        std::vector<uint32_t> ssrcs_to_be_removed = {};
+        for (auto it = rtcp->ms_since_last_rep_.begin(); it != rtcp->ms_since_last_rep_.end(); ++it) {
+            double timeout_interval_s = rtcp->rtcp_interval(int(rtcp->members_), 1, rtcp->rtcp_bandwidth_,
+                true, rtcp->avg_rtcp_size_, false, false);
+            it->second += uint32_t(current_interval_ms);
+            if (it->second > 5*1000*timeout_interval_s) {
+                ssrcs_to_be_removed.push_back(it->first);
+            }
+        }
+        //If some ssrcs are timed out, remove them
+        for (auto rm : ssrcs_to_be_removed) {
+            rtcp->remove_timeout_ssrc(rm);
+            rtcp->ms_since_last_rep_.erase(rm);
+        }
 
+        // Number of senders is hard set to 1, because it is not updated anywhere.
+        // TODO: Keep track of senders and update it here too
+        // Same goes for we_sent also, it is always set to true. TODO: fix this
+        double interval_s = rtcp->rtcp_interval(int(rtcp->members_), 1, rtcp->rtcp_bandwidth_,
+            true, rtcp->avg_rtcp_size_, true, true);
+        current_interval_ms = round(1000 * interval_s);
+
+        rtcp->set_rtcp_interval_ms(current_interval_ms);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(current_interval_ms));
+    }
     UVG_LOG_DEBUG("Exited RTCP loop");
 }
+
+void uvgrtp::rtcp::rtcp_report_reader(rtcp* rtcp) {
+
+    UVG_LOG_INFO("RTCP report reader created!");
+    std::unique_ptr<uint8_t[]> buffer = std::unique_ptr<uint8_t[]>(new uint8_t[MAX_PACKET]);
+    uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
+
+    rtp_error_t ret = RTP_OK;
+    int max_poll_timeout_ms = 100;
+
+
+    while (rtcp->is_active()) {
+        int nread = 0;
+
+        std::vector<std::shared_ptr<uvgrtp::socket>> temp = {};
+        temp.push_back(rtcp->get_socket());
+
+        ret = uvgrtp::poll::poll(temp, buffer.get(), MAX_PACKET, max_poll_timeout_ms, &nread);
+
+        if (ret == RTP_OK && nread > 0)
+        {
+            (void)rtcp->handle_incoming_packet(buffer.get(), (size_t)nread);
+        }
+        else if (ret == RTP_INTERRUPTED) {
+            /* do nothing */
+        }
+        else {
+            UVG_LOG_ERROR("poll failed, %d", ret);
+            break; // TODO the sockets should be manages so that this is not needed
+        }
+    }
+    UVG_LOG_DEBUG("Exited RTCP report reader loop");
+}
+
 
 rtp_error_t uvgrtp::rtcp::set_sdes_items(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items)
 {
