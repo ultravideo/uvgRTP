@@ -211,7 +211,7 @@ rtp_error_t uvgrtp::rtp::packet_handler(ssize_t size, void *packet, int rce_flag
     /* not an RTP frame */
     if (size < 12)
     {
-        UVG_LOG_WARN("Received RTP packet is too small to contain header");
+        UVG_LOG_DEBUG("Received RTP packet is too small to contain header");
         return RTP_PKT_NOT_HANDLED;
     }
 
@@ -220,7 +220,7 @@ rtp_error_t uvgrtp::rtp::packet_handler(ssize_t size, void *packet, int rce_flag
     /* invalid version */
     if (((ptr[0] >> 6) & 0x03) != 0x2)
     {
-        UVG_LOG_WARN("Received RTP packet with invalid version");
+        UVG_LOG_DEBUG("Received RTP packet with invalid version");
         return RTP_PKT_NOT_HANDLED;
     }
 
