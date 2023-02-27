@@ -3,7 +3,7 @@
 #include "uvgrtp/frame.hh"
 
 #include <vector>
-
+#include <memory>
 
 namespace uvgrtp
 {
@@ -40,12 +40,12 @@ namespace uvgrtp
 
     // Add the name and payload to APP packet, remember to also add SSRC separately
     bool construct_app_packet(uint8_t* frame, size_t& ptr,
-        const char* name, const uint8_t* payload, size_t payload_len);
+        const char* name, std::unique_ptr<uint8_t[]> payload, size_t payload_len);
 
     // Add BYE ssrcs, should probably be removed
     bool construct_bye_packet(uint8_t* frame, size_t& ptr, const std::vector<uint32_t>& ssrcs);
 
     // APP block construction
-    bool construct_app_block(uint8_t* frame, size_t& write_ptr, uint8_t sec_field, uint32_t ssrc, const char* name, const uint8_t* payload, size_t payload_len);
+    bool construct_app_block(uint8_t* frame, size_t& write_ptr, uint8_t sec_field, uint32_t ssrc, const char* name, std::unique_ptr<uint8_t[]> payload, size_t payload_len);
 
 }

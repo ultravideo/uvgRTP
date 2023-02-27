@@ -78,14 +78,14 @@ namespace uvgrtp {
 
     struct rtcp_app_packet {
         rtcp_app_packet(const rtcp_app_packet& orig_packet) = delete;
-        rtcp_app_packet(const char* name, uint8_t subtype, uint32_t payload_len, const uint8_t* payload);
+        rtcp_app_packet(const char* name, uint8_t subtype, uint32_t payload_len, std::unique_ptr<uint8_t[]> payload);
         ~rtcp_app_packet();
 
         const char* name;
         uint8_t subtype;
 
         uint32_t payload_len;
-        const uint8_t* payload;
+        std::unique_ptr<uint8_t[]> payload;
     };
     /// \endcond
 
@@ -364,7 +364,7 @@ namespace uvgrtp {
              * \retval RTP_OK on success
              * \retval RTP_INVALID_VALUE If app_name is empty or longer that 4 characters or function pointer is empty
             */
-            rtp_error_t install_send_app_hook(std::string app_name, std::function<void(uint32_t& payload_len, uint8_t& subtype, std::vector<uint8_t>& payload)> app_sending_func);
+            rtp_error_t install_send_app_hook(std::string app_name, std::function<std::unique_ptr<uint8_t[]>(uint8_t& subtype, uint32_t& payload_len)> app_sending_func);
             
             /**
              * \brief Remove all installed hooks for RTCP
@@ -595,7 +595,7 @@ namespace uvgrtp {
             
             std::map<std::string, std::deque<rtcp_app_packet>> app_packets_; // sent one at a time per name
             // APPs for hook
-            std::map<std::string, std::function <void(uint32_t& payload_len, uint8_t& subtype, std::vector<uint8_t>& payload)>> outgoing_app_hooks_;
+            std::multimap<std::string, std::function <std::unique_ptr<uint8_t[]>(uint8_t& subtype, uint32_t& payload_len)>> outgoing_app_hooks_;
             
             bool hooked_app_;
 
