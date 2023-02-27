@@ -166,7 +166,7 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer)
 
     }
     else {
-        rtp_ts_ = timestamp_;
+        rtp_ts_ = (uint32_t)timestamp_;
         *(uint32_t *)&buffer[4] = htonl((u_long)timestamp_);
     }
 }

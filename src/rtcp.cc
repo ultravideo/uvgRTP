@@ -298,10 +298,7 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp)
     UVG_LOG_DEBUG("Sleeping for %i ms before sending first RTCP report", initial_sleep_ms);
     std::this_thread::sleep_for(std::chrono::milliseconds(initial_sleep_ms));
 
-    uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
-
     uint32_t current_interval_ms = rtcp->get_rtcp_interval_ms();
-    uint32_t run_time;
     rtp_error_t ret = RTP_OK;
     
     // keep track of report numbers
@@ -324,7 +321,7 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp)
         std::vector<uint32_t> ssrcs_to_be_removed = {};
         for (auto it = rtcp->ms_since_last_rep_.begin(); it != rtcp->ms_since_last_rep_.end(); ++it) {
             double timeout_interval_s = rtcp->rtcp_interval(int(rtcp->members_), 1, rtcp->rtcp_bandwidth_,
-                true, rtcp->avg_rtcp_size_, false, false);
+                true, (double)rtcp->avg_rtcp_size_, false, false);
             it->second += uint32_t(current_interval_ms);
             if (it->second > 5*1000*timeout_interval_s) {
                 ssrcs_to_be_removed.push_back(it->first);
@@ -340,8 +337,8 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp)
         // TODO: Keep track of senders and update it here too
         // Same goes for we_sent also, it is always set to true. TODO: fix this
         double interval_s = rtcp->rtcp_interval(int(rtcp->members_), 1, rtcp->rtcp_bandwidth_,
-            true, rtcp->avg_rtcp_size_, true, true);
-        current_interval_ms = round(1000 * interval_s);
+            true, (double)rtcp->avg_rtcp_size_, true, true);
+        current_interval_ms = (uint32_t)round(1000 * interval_s);
 
         rtcp->set_rtcp_interval_ms(current_interval_ms);
 
@@ -354,7 +351,6 @@ void uvgrtp::rtcp::rtcp_report_reader(rtcp* rtcp) {
 
     UVG_LOG_INFO("RTCP report reader created!");
     std::unique_ptr<uint8_t[]> buffer = std::unique_ptr<uint8_t[]>(new uint8_t[MAX_PACKET]);
-    uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
 
     rtp_error_t ret = RTP_OK;
     int max_poll_timeout_ms = 100;
@@ -1714,7 +1710,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
         uint32_t rtp_ts = rtp_ptr_->get_rtp_ts();
 
-        uint32_t reporting_rtp_ts = rtp_ts + (diff_ms * (double(clock_rate_) / 1000));
+        uint32_t reporting_rtp_ts = rtp_ts + (uint32_t)(diff_ms * (double(clock_rate_) / 1000));
 
         if (!construct_rtcp_header(frame, write_ptr, sender_report_size, reports, uvgrtp::frame::RTCP_FT_SR) ||
             !construct_ssrc(frame, write_ptr, ssrc_) ||
