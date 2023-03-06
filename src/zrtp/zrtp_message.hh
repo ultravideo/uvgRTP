@@ -7,6 +7,12 @@
 #include "uvgrtp/util.hh"
 
 #include <memory>
+#ifdef _WIN32
+#include <ws2ipdef.h>
+#else
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
 
 namespace uvgrtp {
 
@@ -19,7 +25,7 @@ namespace uvgrtp {
             zrtp_message();
             ~zrtp_message();
 
-            rtp_error_t send_msg(std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr);
+            rtp_error_t send_msg(std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, sockaddr_in6& addr6);
 
             virtual rtp_error_t parse_msg(uvgrtp::zrtp_msg::receiver& receiver,
                 zrtp_session_t& session) = 0;

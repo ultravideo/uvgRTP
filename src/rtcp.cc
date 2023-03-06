@@ -16,6 +16,10 @@
 
 #ifndef _WIN32
 #include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#else
+#include <ws2ipdef.h>
 #endif
 
 #include <cassert>
@@ -40,13 +44,16 @@ constexpr int ESTIMATED_MAX_RECEPTION_TIME_MS = 10;
 const uint32_t MAX_SUPPORTED_PARTICIPANTS = 31;
 
 uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::string cname, int rce_flags):
-    rce_flags_(rce_flags), our_role_(RECEIVER), 
+    rce_flags_(rce_flags), our_role_(RECEIVER),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0), reduced_minimum_(0),
     we_sent_(false), local_addr_(""), remote_addr_(""), local_port_(0), dst_port_(0),
     avg_rtcp_pkt_pize_(0), avg_rtcp_size_(64), rtcp_pkt_count_(0), rtcp_byte_count_(0),
-    rtcp_pkt_sent_count_(0), initial_(true), ssrc_(ssrc),
+    rtcp_pkt_sent_count_(0), initial_(true), ssrc_(rtp->get_ssrc()),
     num_receivers_(0),
+    ipv6_(false),
+    socket_address_({}),
+    socket_address_ipv6_({}),
     sender_hook_(nullptr),
     receiver_hook_(nullptr),
     sdes_hook_(nullptr),
@@ -194,9 +201,13 @@ rtp_error_t uvgrtp::rtcp::start()
     active_ = true;
     rtcp_socket_ = std::unique_ptr<uvgrtp::socket>(new uvgrtp::socket(0));
     rtp_error_t ret = RTP_OK;
-
-    if ((ret = rtcp_socket_->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
-    {
+    if (ipv6_) {
+        ret = rtcp_socket_->init(AF_INET6, SOCK_DGRAM, 0);
+    }
+    else {
+        ret = rtcp_socket_->init(AF_INET, SOCK_DGRAM, 0);
+    }
+    if (ret != RTP_OK) {
         return ret;
     }
 
@@ -233,19 +244,47 @@ rtp_error_t uvgrtp::rtcp::start()
     if (local_addr_ != "")
     {
         UVG_LOG_INFO("Binding RTCP to port %s:%d", local_addr_.c_str(), local_port_);
-        sockaddr_in bind_addr = rtcp_socket_->create_sockaddr(AF_INET, local_addr_, local_port_);
-        if ((ret = rtcp_socket_->bind(bind_addr)) != RTP_OK)
-        {
-            return ret;
+        if (ipv6_) {
+            sockaddr_in6 bind_addr6 = rtcp_socket_->create_ip6_sockaddr(local_addr_, local_port_);
+            if ((ret = rtcp_socket_->bind_ip6(bind_addr6)) != RTP_OK)
+            {
+                return ret;
+            }
+        }
+        else {
+            sockaddr_in bind_addr = rtcp_socket_->create_sockaddr(AF_INET, local_addr_, local_port_);
+            if ((ret = rtcp_socket_->bind(bind_addr)) != RTP_OK)
+            {
+                return ret;
+            }
         }
     }
     else
     {
-        UVG_LOG_WARN("No local address provided");
-        return ret;
+        
+        UVG_LOG_WARN("No local address provided, binding RTCP to INADDR_ANY");
+        UVG_LOG_INFO("Binding RTCP to port %s:%d", local_addr_.c_str(), local_port_);
+        if (ipv6_) {
+            sockaddr_in6 bind_addr6 = rtcp_socket_->create_ip6_sockaddr_any(local_port_);
+            if ((ret = rtcp_socket_->bind_ip6(bind_addr6)) != RTP_OK)
+            {
+                return ret;
+            }
+        }
+        else {
+            sockaddr_in bind_addr = rtcp_socket_->create_sockaddr(AF_INET, INADDR_ANY, local_port_);
+            if ((ret = rtcp_socket_->bind(bind_addr)) != RTP_OK)
+            {
+                return ret;
+            }
+        }
     }
-
-    socket_address_ = rtcp_socket_->create_sockaddr(AF_INET, remote_addr_, dst_port_);
+    if (ipv6_) {
+        socket_address_ipv6_ = rtcp_socket_->create_ip6_sockaddr(remote_addr_, dst_port_);
+    }
+    else {
+        socket_address_ = rtcp_socket_->create_sockaddr(AF_INET, remote_addr_, dst_port_);
+    }
     report_generator_.reset(new std::thread(rtcp_runner, this));
     report_reader_.reset(new std::thread(rtcp_report_reader, this));
 
@@ -1623,7 +1662,7 @@ rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, uint3
     if (rtcp_socket_ != nullptr)
     {
         std::lock_guard prtcp_lock(participants_mutex_);
-        if ((ret = rtcp_socket_->sendto(socket_address_, frame, frame_size, 0)) != RTP_OK)
+        if ((ret = rtcp_socket_->sendto(socket_address_, socket_address_ipv6_, frame, frame_size, 0)) != RTP_OK)
         {
             UVG_LOG_ERROR("Sending rtcp packet with sendto() failed!");
         }
@@ -1995,6 +2034,10 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
 uint32_t uvgrtp::rtcp::get_rtcp_interval_ms() const 
 {
     return interval_ms_.load();
+}
+
+void uvgrtp::rtcp::set_ipv6(bool set) {
+    ipv6_ = set;
 }
 
 rtp_error_t uvgrtp::rtcp::set_network_addresses(std::string local_addr, std::string remote_addr,

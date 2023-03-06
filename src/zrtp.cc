@@ -11,7 +11,12 @@
 #include "crypto.hh"
 #include "random.hh"
 #include "debug.hh"
-
+#ifdef _WIN32
+#include <ws2ipdef.h>
+#else
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
 #include <cstring>
 #include <thread>
 
@@ -27,6 +32,7 @@ using namespace uvgrtp::zrtp_msg;
 uvgrtp::zrtp::zrtp():
     ssrc_(0),
     remote_addr_(),
+    remote_ip6_addr_(),
     initialized_(false),
     receiver_(),
     dh_finished_(false)
@@ -377,7 +383,7 @@ rtp_error_t uvgrtp::zrtp::begin_session()
         UVG_LOG_DEBUG("Sending ZRTP hello # %i, path: %s", i + 1, path.c_str());
         int type = 0;
 
-        if (hello.send_msg(local_socket_, remote_addr_) != RTP_OK) {
+        if (hello.send_msg(local_socket_, remote_addr_, remote_ip6_addr_) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send Hello message");
         }
         else if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
@@ -388,7 +394,7 @@ rtp_error_t uvgrtp::zrtp::begin_session()
             /* We received Hello message from remote, parse it and send  */
             if (type == ZRTP_FT_HELLO) {
                 UVG_LOG_DEBUG("Got ZRTP Hello. Sending Hello ACK");
-                hello_ack.send_msg(local_socket_, remote_addr_);
+                hello_ack.send_msg(local_socket_, remote_addr_, remote_ip6_addr_);
 
                 if (!hello_recv) {
                     hello_recv = true;
@@ -480,7 +486,7 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
     rto           = 150;
 
     for (int i = 0; i < 10; ++i) {
-        if (commit.send_msg(local_socket_, remote_addr_) != RTP_OK) {
+        if (commit.send_msg(local_socket_, remote_addr_, remote_ip6_addr_) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send Commit message!");
         }
         else if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
@@ -519,7 +525,7 @@ rtp_error_t uvgrtp::zrtp::dh_part1()
     int type        = 0;
 
     for (int i = 0; i < 10; ++i) {
-        if (dhpart.send_msg(local_socket_, remote_addr_) != RTP_OK) {
+        if (dhpart.send_msg(local_socket_, remote_addr_, remote_ip6_addr_) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send DHPart1 Message!");
         }
 
@@ -563,7 +569,7 @@ rtp_error_t uvgrtp::zrtp::dh_part2()
     generate_shared_secrets_dh();
 
     for (int i = 0; i < 10; ++i) {
-        if ((ret = dhpart.send_msg(local_socket_, remote_addr_)) != RTP_OK) {
+        if ((ret = dhpart.send_msg(local_socket_, remote_addr_, remote_ip6_addr_)) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send DHPart2 Message!");
             return ret;
         }
@@ -590,7 +596,7 @@ rtp_error_t uvgrtp::zrtp::responder_finalize_session()
     int type        = 0;
 
     for (int i = 0; i < 10; ++i) {
-        if (confirm.send_msg(local_socket_, remote_addr_) != RTP_OK) {
+        if (confirm.send_msg(local_socket_, remote_addr_, remote_ip6_addr_) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send Confirm1 Message!");
         }
 
@@ -608,7 +614,7 @@ rtp_error_t uvgrtp::zrtp::responder_finalize_session()
                 }
 
                 /* TODO: send in a loop? */
-                confack.send_msg(local_socket_, remote_addr_);
+                confack.send_msg(local_socket_, remote_addr_, remote_ip6_addr_);
                 return RTP_OK;
             }
         }
@@ -638,7 +644,7 @@ rtp_error_t uvgrtp::zrtp::initiator_finalize_session()
     }
 
     for (int i = 0; i < 10; ++i) {
-        if ((ret = confirm.send_msg(local_socket_, remote_addr_)) != RTP_OK) {
+        if ((ret = confirm.send_msg(local_socket_, remote_addr_, remote_ip6_addr_)) != RTP_OK) {
             UVG_LOG_ERROR("Failed to send Confirm2 Message!");
             return ret;
         }
@@ -657,7 +663,7 @@ rtp_error_t uvgrtp::zrtp::initiator_finalize_session()
     return RTP_TIMEOUT;
 }
 
-rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, bool perform_dh)
+rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, sockaddr_in6& addr6, bool perform_dh, bool ipv6)
 {
     rtp_error_t ret = RTP_OK;
 
@@ -672,7 +678,7 @@ rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> so
         }
 
         // perform Diffie-Hellman (DH)
-        ret = init_dhm(ssrc, socket, addr);
+        ret = init_dhm(ssrc, socket, addr, addr6, ipv6);
         zrtp_mtx_.unlock();
     }
     else
@@ -684,17 +690,21 @@ rtp_error_t uvgrtp::zrtp::init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> so
         }
 
         // multistream mode
-        ret = init_msm(ssrc, socket, addr);
+        ret = init_msm(ssrc, socket, addr, addr6);
     }
 
     return ret;
 }
 
-rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, sockaddr_in6& addr6, bool ipv6)
 {
     rtp_error_t ret = RTP_OK;
-
-    UVG_LOG_DEBUG("Starting ZRTP Diffie-Hellman negotiation with %s", socket->sockaddr_to_string(addr).c_str());
+    if (ipv6) {
+        UVG_LOG_DEBUG("Starting ZRTP Diffie-Hellman negotiation with %s", socket->sockaddr_ip6_to_string(addr6).c_str());
+    }
+    else {
+        UVG_LOG_DEBUG("Starting ZRTP Diffie-Hellman negotiation with %s", socket->sockaddr_to_string(addr).c_str());
+    }
 
     /* TODO: set all fields initially to zero */
     memset(session_.hash_ctx.o_hvi, 0, sizeof(session_.hash_ctx.o_hvi));
@@ -708,6 +718,7 @@ rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
 
     local_socket_ = socket;
     remote_addr_ = addr;
+    remote_ip6_addr_ = addr6;
 
     session_.seq  = 0;
     session_.ssrc = ssrc;
@@ -789,12 +800,13 @@ rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::zrtp::init_msm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp::init_msm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, sockaddr_in6& addr6)
 {
     rtp_error_t ret;
 
     local_socket_ = socket;
     remote_addr_ = addr;
+    remote_ip6_addr_ = addr6;
 
     session_.ssrc = ssrc;
     session_.seq  = 0;
