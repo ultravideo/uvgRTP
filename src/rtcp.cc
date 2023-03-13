@@ -2027,12 +2027,15 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::rtcp::get_socket() const{
 
 void uvgrtp::rtcp::set_session_bandwidth(uint32_t kbps)
 {
+    if (kbps <= 0) {
+        UVG_LOG_WARN("Bandwidth must be a positive number");
+        return;
+    }
     total_bandwidth_ = kbps;
     rtcp_bandwidth_ = 0.05 * kbps;
 
     interval_ms_ = 1000*360 / kbps; // the reduced minimum (see section 6.2 in RFC 3550)
     reduced_minimum_ = interval_ms_;
-
 
     if (interval_ms_ > DEFAULT_RTCP_INTERVAL_MS)
     {

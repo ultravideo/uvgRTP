@@ -11,8 +11,8 @@ add_executable(sending_generic)
 add_executable(srtp_user)        # SRTP user keys example
 add_executable(srtp_zrtp)        # SRTP + ZRTP example
 add_executable(zrtp_multistream) # ZRTP Multistream example
-add_executable(sync_sender) 	 # Syncing streams example, sender
-add_executable(sync_receiver) 	 # Syncing streams example, receiver
+add_executable(sync_sender)      # Syncing streams example, sender
+add_executable(sync_receiver)    # Syncing streams example, receiver
 
 # Sources
 target_sources(binding           PRIVATE binding.cc)
@@ -26,8 +26,8 @@ target_sources(sending_generic   PRIVATE sending_generic.cc)
 target_sources(srtp_user         PRIVATE srtp_user.cc)
 target_sources(srtp_zrtp         PRIVATE srtp_zrtp.cc)
 target_sources(zrtp_multistream  PRIVATE zrtp_multistream.cc)
-target_sources(sync_sender	 PRIVATE sync_sender.cc)
-target_sources(sync_receiver	 PRIVATE sync_receiver.cc)
+target_sources(sync_sender       PRIVATE sync_sender.cc)
+target_sources(sync_receiver     PRIVATE sync_receiver.cc)
 
 # set crypto++ to be linked in examples if available
 if (NOT DISABLE_CRYPTO AND CRYPTOPP_FOUND)

@@ -372,8 +372,15 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
     /** Set bandwidth for the session
     * 
     * uvgRTP chooses this automatically depending on the format of the data being transferred.
-    * It is possible to manually set it in order to change the interval at which RTCP
-    * reports are being sent.
+    * Use this flag to manually set the session bandwidth in kbps. 
+    * RTCP reporting interval depends on this session bandwidth. The interval is calculated with the
+    * following formula:
+    * 
+    * RTCP interval = 1000 * 360 / session_bandwidth_kbps
+    * 
+    * Larger bandwidth values result in shorter RTCP intervals, and vice versa.
+    * The maximum RTCP reporting interval is 5000 ms, for which the bandwidth is 72 kbps.
+    * Any bandwidth value below 72 will just set the interval to 5000 ms. 
     */
     RCC_SESSION_BANDWIDTH = 11,
 

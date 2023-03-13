@@ -172,7 +172,7 @@ namespace uvgrtp {
             rtp_error_t push_frame(uint8_t *data, size_t data_len, uint32_t ts, int rtp_flags);
 
             /**
-            * \brief Send data to remote participant with a custom timestamp and sampling timestamp
+            * \brief Send data to remote participant with custom RTP and NTP timestamps
             *
             * \details If so specified either by the selected media format and/or given
             * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1492 bytes,
@@ -189,9 +189,10 @@ namespace uvgrtp {
             *
             * \param data Pointer to data the that should be sent, uvgRTP does not take ownership of the memory
             * \param data_len Length of data
-            * \param ts 32-bit timestamp value for the data, RTP timestamp
-            * \param s_ts 64-bit timestamp value of when the packets data was sampled
-
+            * \param ts 32-bit RTP timestamp for the packet
+            * \param ntp_ts 64-bit NTP timestamp value of when the packets data was sampled. NTP timestamp is a
+            *  64-bit unsigned fixed-point number with the integer part (seconds) in the first 32 bits and the
+            *  fractional part (fractional seconds) in the last 32 bits. Used for synchronizing multiple streams.
             * \param rtp_flags Optional flags, see ::RTP_FLAGS for more details
             *
             * \return RTP error code
@@ -202,7 +203,7 @@ namespace uvgrtp {
             * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
             * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
             */
-            rtp_error_t push_frame(uint8_t* data, size_t data_len, uint32_t ts, uint64_t s_ts, int rtp_flags);
+            rtp_error_t push_frame(uint8_t* data, size_t data_len, uint32_t ts, uint64_t ntp_ts, int rtp_flags);
 
             /**
              * \brief Send data to remote participant with a custom timestamp
@@ -236,7 +237,7 @@ namespace uvgrtp {
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int rtp_flags);
 
             /**
-             * \brief Send data to remote participant with a custom timestamp and sampling timestamp
+             * \brief Send data to remote participant with custom RTP and NTP timestamps
              *
              * \details If so specified either by the selected media format and/or given
              * ::RTP_CTX_ENABLE_FLAGS, uvgRTP fragments the input data into RTP packets of 1492 bytes,
@@ -253,8 +254,10 @@ namespace uvgrtp {
              *
              * \param data Smart pointer to data the that should be sent
              * \param data_len Length of data
-             * \param ts 32-bit timestamp value for the data
-             * \param s_ts 64-bit timestamp value of when the packets data was sampled
+             * \param ts 32-bit RTP timestamp for the packet
+             * \param ntp_ts 64-bit NTP timestamp value of when the packets data was sampled. NTP timestamp is a
+             *  64-bit unsigned fixed-point number with the integer part (seconds) in the first 32 bits and the
+             *  fractional part (fractional seconds) in the last 32 bits. Used for synchronizing multiple streams.
              * \param rtp_flags Optional flags, see ::RTP_FLAGS for more details
              *
              * \return RTP error code
@@ -265,7 +268,7 @@ namespace uvgrtp {
              * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
              * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
              */
-            rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, uint64_t s_ts, int rtp_flags);
+            rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, uint64_t ntp_ts, int rtp_flags);
 
             /**
              * \brief Poll a frame indefinitely from the media stream object

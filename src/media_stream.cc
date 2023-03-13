@@ -468,7 +468,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, uin
     return ret;
 }
 
-rtp_error_t uvgrtp::media_stream::push_frame(uint8_t* data, size_t data_len, uint32_t ts, uint64_t s_ts, int rtp_flags)
+rtp_error_t uvgrtp::media_stream::push_frame(uint8_t* data, size_t data_len, uint32_t ts, uint64_t ntp_ts, int rtp_flags)
 {
     rtp_error_t ret = check_push_preconditions(rtp_flags, false);
     if (ret == RTP_OK)
@@ -477,7 +477,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t* data, size_t data_len, uin
             holepuncher_->notify();
 
         rtp_->set_timestamp(ts);
-        rtp_->set_sampling_ntp(s_ts);
+        rtp_->set_sampling_ntp(ntp_ts);
         if (rtp_flags & RTP_COPY)
         {
             data = copy_frame(data, data_len);
@@ -511,7 +511,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
     return ret;
 }
 
-rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, uint64_t s_ts, int rtp_flags)
+rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, uint64_t ntp_ts, int rtp_flags)
 {
     rtp_error_t ret = check_push_preconditions(rtp_flags, true);
     if (ret == RTP_OK)
@@ -521,7 +521,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
 
         // making a copy of a smart pointer does not make sense
         rtp_->set_timestamp(ts);
-        rtp_->set_sampling_ntp(s_ts);
+        rtp_->set_sampling_ntp(ntp_ts);
         ret = media_->push_frame(std::move(data), data_len, rtp_flags);
         rtp_->set_timestamp(INVALID_TS);
     }
