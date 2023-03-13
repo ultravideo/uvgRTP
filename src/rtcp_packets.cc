@@ -3,7 +3,7 @@
 #include "srtp/srtcp.hh"
 
 #include "debug.hh"
-
+#include <memory>
 #define SET_NEXT_FIELD_32(a, p, v) do { *(uint32_t *)&(a)[p] = (v); p += 4; } while (0)
 
 uint32_t uvgrtp::get_sr_packet_size(int rce_flags, uint16_t reports)
@@ -115,10 +115,10 @@ bool uvgrtp::construct_report_block(uint8_t* frame, size_t& ptr, uint32_t ssrc, 
 }
 
 bool uvgrtp::construct_app_packet(uint8_t* frame, size_t& ptr,
-    const char* name, const uint8_t* payload, size_t payload_len)
+    const char* name, std::unique_ptr<uint8_t[]> payload, size_t payload_len)
 {
     memcpy(&frame[ptr], name, APP_NAME_SIZE);
-    memcpy(&frame[ptr + APP_NAME_SIZE], payload, payload_len);
+    memcpy(&frame[ptr + APP_NAME_SIZE], payload.get(), payload_len);
     ptr += APP_NAME_SIZE + payload_len;
 
     return true;
@@ -162,4 +162,13 @@ bool uvgrtp::construct_bye_packet(uint8_t* frame, size_t& ptr, const std::vector
     }
 
     return true;
+}
+
+bool uvgrtp::construct_app_block(uint8_t* frame, size_t& write_ptr, uint8_t sec_field, uint32_t ssrc, const char* name, std::unique_ptr<uint8_t[]> payload, size_t payload_len)
+{
+    uint32_t packet_size = get_app_packet_size((uint32_t)payload_len);
+    return construct_rtcp_header(frame, write_ptr, packet_size, sec_field,
+        uvgrtp::frame::RTCP_FT_APP) &&
+        construct_ssrc(frame, write_ptr, ssrc) &&
+        construct_app_packet(frame, write_ptr, name, std::move(payload), payload_len);
 }

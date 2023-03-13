@@ -78,14 +78,14 @@ namespace uvgrtp {
 
     struct rtcp_app_packet {
         rtcp_app_packet(const rtcp_app_packet& orig_packet) = delete;
-        rtcp_app_packet(const char* name, uint8_t subtype, uint32_t payload_len, const uint8_t* payload);
+        rtcp_app_packet(const char* name, uint8_t subtype, uint32_t payload_len, std::unique_ptr<uint8_t[]> payload);
         ~rtcp_app_packet();
 
         const char* name;
         uint8_t subtype;
 
         uint32_t payload_len;
-        const uint8_t* payload;
+        std::unique_ptr<uint8_t[]> payload;
     };
     /// \endcond
 
@@ -355,6 +355,18 @@ namespace uvgrtp {
             /// \endcond
 
             /**
+             * \brief Install hook for one type of APP packets
+             *
+             * \details Each time the RR/SR is sent, all APP sending hooks call their respective functions to get the data
+             * 
+             * \param app_name name of the APP packet. Max 4 chars
+             * \param app_sending the function to be called when hook fires
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If app_name is empty or longer that 4 characters or function pointer is empty
+            */
+            rtp_error_t install_send_app_hook(std::string app_name, std::function<std::unique_ptr<uint8_t[]>(uint8_t& subtype, uint32_t& payload_len)> app_sending_func);
+            
+            /**
              * \brief Remove all installed hooks for RTCP
              *
              * \details Removes all installed hooks so they can be readded in case of changes
@@ -362,6 +374,8 @@ namespace uvgrtp {
              * \retval RTP_OK on success
              */
             rtp_error_t remove_all_hooks();
+
+            rtp_error_t remove_send_app_hook(std::string app_name);
 
             /// \cond DO_NOT_DOCUMENT
             /* Update RTCP-related sender statistics */
@@ -384,6 +398,7 @@ namespace uvgrtp {
             rtp_error_t set_sdes_items(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
 
             uint32_t size_of_ready_app_packets() const;
+            uint32_t size_of_apps_from_hook(std::vector< std::shared_ptr<rtcp_app_packet>> packets) const;
 
             uint32_t size_of_compound_packet(uint16_t reports,
                 bool sr_packet, bool rr_packet, bool sdes_packet, uint32_t app_size, bool bye_packet) const;
@@ -559,6 +574,7 @@ namespace uvgrtp {
             std::mutex sdes_mutex_;
             std::mutex app_mutex_;
             mutable std::mutex participants_mutex_;
+			std::mutex send_app_mutex_;
 
             std::unique_ptr<std::thread> report_generator_;
 
@@ -576,7 +592,13 @@ namespace uvgrtp {
             // messages waiting to be sent
             std::vector<uvgrtp::frame::rtcp_sdes_item> ourItems_; // always sent
             std::vector<uint32_t> bye_ssrcs_; // sent once
+            
             std::map<std::string, std::deque<rtcp_app_packet>> app_packets_; // sent one at a time per name
+            // APPs for hook
+            std::multimap<std::string, std::function <std::unique_ptr<uint8_t[]>(uint8_t& subtype, uint32_t& payload_len)>> outgoing_app_hooks_;
+            
+            bool hooked_app_;
+
 
             uvgrtp::frame::rtcp_sdes_item cnameItem_;
             char cname_[255];
