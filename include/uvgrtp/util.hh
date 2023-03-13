@@ -379,8 +379,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
     * RTCP interval = 1000 * 360 / session_bandwidth_kbps
     * 
     * Larger bandwidth values result in shorter RTCP intervals, and vice versa.
-    * The maximum RTCP reporting interval is 5000 ms, for which the bandwidth is 72 kbps.
-    * Any bandwidth value below 72 will just set the interval to 5000 ms. 
+    * See RFC 3550 Appendix A.7 for further information on RTCP interval
     */
     RCC_SESSION_BANDWIDTH = 11,
 
