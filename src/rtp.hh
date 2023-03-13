@@ -25,6 +25,8 @@ namespace uvgrtp {
             size_t       get_payload_size()  const;
             size_t       get_pkt_max_delay() const;
             rtp_format_t get_payload()       const;
+            uint64_t     get_sampling_ntp()  const;
+            uint32_t     get_rtp_ts()        const;
 
             void inc_sent_pkts();
             void inc_sequence();
@@ -35,6 +37,7 @@ namespace uvgrtp {
             void set_timestamp(uint64_t timestamp);
             void set_payload_size(size_t payload_size);
             void set_pkt_max_delay(size_t delay);
+            void set_sampling_ntp(uint64_t ntp_ts);
 
             void fill_header(uint8_t *buffer);
             void update_sequence(uint8_t *buffer);
@@ -60,6 +63,13 @@ namespace uvgrtp {
 
             /* Use custom timestamp for the outgoing RTP packets */
             uint64_t timestamp_;
+
+            /* custom NTP timestamp of when the RTP packet was SAMPLED */
+            uint64_t sampling_ntp_;
+
+            /* Last RTP timestamp. The 2 timestamps above are initial timestamps, this is the 
+             * one that gets updated */
+            uint32_t rtp_ts_;
 
             /* What is the maximum size of the payload available for this RTP instance */
             size_t payload_size_;

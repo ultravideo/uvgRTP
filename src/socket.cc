@@ -108,7 +108,7 @@ rtp_error_t uvgrtp::socket::bind(sockaddr_in& local_address)
 #else
         fprintf(stderr, "%s\n", strerror(errno));
 #endif
-        UVG_LOG_ERROR("Binding to port %u failed!", local_address_.sin_port);
+        UVG_LOG_ERROR("Binding to port %u failed!", ntohs(local_address_.sin_port));
         return RTP_BIND_ERROR;
     }
 

@@ -204,7 +204,7 @@ void receiver_hook(uvgrtp::frame::rtcp_receiver_report* frame)
     for (auto& block : frame->report_blocks)
     {
         std::cout << "ssrc: " << block.ssrc << std::endl;
-        std::cout << "fraction: " << block.fraction << std::endl;
+        std::cout << "fraction: " << uint32_t(block.fraction) << std::endl;
         std::cout << "lost: " << block.lost << std::endl;
         std::cout << "last_seq: " << block.last_seq << std::endl;
         std::cout << "jitter: " << block.jitter << std::endl;
@@ -228,7 +228,7 @@ void sender_hook(uvgrtp::frame::rtcp_sender_report* frame)
     for (auto& block : frame->report_blocks)
     {
         std::cout << "ssrc: " << block.ssrc << std::endl;
-        std::cout << "fraction: " << block.fraction << std::endl;
+        std::cout << "fraction: " << uint32_t(block.fraction) << std::endl;
         std::cout << "lost: " << block.lost << std::endl;
         std::cout << "last_seq: " << block.last_seq << std::endl;
         std::cout << "jitter: " << block.jitter << std::endl;

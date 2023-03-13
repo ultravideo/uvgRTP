@@ -14,6 +14,7 @@
 #endif
 
 #include <chrono>
+#include <iostream>
 
 #define INVALID_TS UINT64_MAX
 
@@ -28,6 +29,8 @@ uvgrtp::rtp::rtp(rtp_format_t fmt, std::shared_ptr<std::atomic<std::uint32_t>> s
     wc_start_2(),
     sent_pkts_(0),
     timestamp_(INVALID_TS),
+    sampling_ntp_(0),
+    rtp_ts_(0),
     payload_size_(MAX_IPV4_MEDIA_PAYLOAD),
     delay_(PKT_MAX_DELAY_MS)
 {
@@ -156,10 +159,14 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer)
         uint64_t u_seconds = time_since_start.count() * clock_rate_;
 
         uint32_t rtp_timestamp = ts_ + uint32_t(u_seconds / 1000000);
+        rtp_ts_ = rtp_timestamp;
+        sampling_ntp_ = uvgrtp::clock::ntp::now();
 
         *(uint32_t *)&buffer[4] = htonl((u_long)rtp_timestamp);
 
-    } else {
+    }
+    else {
+        rtp_ts_ = (uint32_t)timestamp_;
         *(uint32_t *)&buffer[4] = htonl((u_long)timestamp_);
     }
 }
@@ -202,6 +209,18 @@ void uvgrtp::rtp::set_pkt_max_delay(size_t delay)
 size_t uvgrtp::rtp::get_pkt_max_delay() const
 {
     return delay_;
+}
+
+void uvgrtp::rtp::set_sampling_ntp(uint64_t ntp_ts) {
+    sampling_ntp_ = ntp_ts;
+}
+
+uint64_t uvgrtp::rtp::get_sampling_ntp() const {
+    return sampling_ntp_;
+}
+
+uint32_t uvgrtp::rtp::get_rtp_ts() const {
+    return rtp_ts_;
 }
 
 rtp_error_t uvgrtp::rtp::packet_handler(ssize_t size, void *packet, int rce_flags, uvgrtp::frame::rtp_frame **out)
