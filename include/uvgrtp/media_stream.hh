@@ -10,9 +10,9 @@
 #ifndef _WIN32
 #include <sys/socket.h>
 #include <netinet/in.h>
-#endif
+#else
 #include <ws2ipdef.h>
-
+#endif
 namespace uvgrtp {
 
     // forward declarations

@@ -244,13 +244,9 @@ std::string uvgrtp::socket::get_socket_path_string() const
 std::string uvgrtp::socket::sockaddr_to_string(const sockaddr_in& addr) const
 {
     // tyhjennä turhat "ipv6 supportit" pois
+    int addr_len = INET6_ADDRSTRLEN;
     char* c_string = new char[INET_ADDRSTRLEN];
     memset(c_string, 0, INET_ADDRSTRLEN);
-
-    if (addr.sin_family == AF_INET6)
-    {
-        addr_len = INET6_ADDRSTRLEN;
-    }
 
     char* addr_string = new char[addr_len];
     memset(addr_string, 0, addr_len);
@@ -316,16 +312,17 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, sockaddr_in6& addr6, boo
 
 #ifndef _WIN32
     if (ipv6) {
-        nsend = ::sendto(socket_, buf, buf_len, send_flags, (const struct sockaddr*)&addr6, sizeof(addr6)));
+        nsend = ::sendto(socket_, buf, buf_len, send_flags, (const struct sockaddr*)&addr6, sizeof(addr6));
     }
     else {
-        nsend = ::sendto(socket_, buf, buf_len, send_flags, (const struct sockaddr*)&addr, sizeof(addr)));
+        nsend = ::sendto(socket_, buf, buf_len, send_flags, (const struct sockaddr*)&addr, sizeof(addr));
     }
-    if ((nsend == -1) {
+    if (nsend == -1) {
         UVG_LOG_ERROR("Failed to send data: %s", strerror(errno));
 
-        if (bytes_sent)
+        if (bytes_sent) {
             *bytes_sent = -1;
+        }
         return RTP_SEND_ERROR;
     }
 #else
@@ -353,8 +350,9 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, sockaddr_in6& addr6, boo
     nsend = sent_bytes;
 #endif
 
-    if (bytes_sent)
+    if (bytes_sent) {
         *bytes_sent = nsend;
+    }
 
 #ifndef NDEBUG
     ++sent_packets_;

@@ -49,7 +49,7 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic
     members_(0), senders_(0), rtcp_bandwidth_(0), reduced_minimum_(0),
     we_sent_(false), local_addr_(""), remote_addr_(""), local_port_(0), dst_port_(0),
     avg_rtcp_pkt_pize_(0), avg_rtcp_size_(64), rtcp_pkt_count_(0), rtcp_byte_count_(0),
-    rtcp_pkt_sent_count_(0), initial_(true), ssrc_(rtp->get_ssrc()),
+    rtcp_pkt_sent_count_(0), initial_(true), ssrc_(ssrc),
     num_receivers_(0),
     ipv6_(false),
     socket_address_({}),

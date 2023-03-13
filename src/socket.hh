@@ -202,7 +202,7 @@ namespace uvgrtp {
             rtp_error_t __sendtov(sockaddr_in& addr, sockaddr_in6& addr6, bool ipv6, buf_vec& buffers, int send_flags, int *bytes_sent);
             rtp_error_t __sendtov(sockaddr_in& addr, sockaddr_in6& addr6, bool ipv6, uvgrtp::pkt_vec& buffers, int send_flags, int *bytes_sent);
 
-            SOCKET socket_;
+            socket_t socket_;
             sockaddr_in remote_address_;
             sockaddr_in local_address_;
             sockaddr_in6 remote_ip6_address_;
