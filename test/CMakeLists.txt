@@ -12,6 +12,10 @@ target_sources(${PROJECT_NAME} PRIVATE
             test_4_formats.cpp
             test_5_srtp_zrtp.cpp
             test_6_scl_unit_test.cpp
+            test_7_rtp_ipv6.cpp
+            test_8_rtcp_ipv6.cpp
+            test_9_formats_ipv6.cpp
+            test_10_srtp_zrtp_ipv6.cpp
             test_common.hh
         )
 

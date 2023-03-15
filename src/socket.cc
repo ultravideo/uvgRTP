@@ -197,21 +197,6 @@ sockaddr_in6 uvgrtp::socket::create_ip6_sockaddr(unsigned host, short port) cons
 
 sockaddr_in6 uvgrtp::socket::create_ip6_sockaddr(std::string host, short port) const
 {
-
-    /*
-    struct addrinfo hints = { 0 }, *addr_i;
-    hints.ai_family = AF_INET6;
-    hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_protocol = IPPROTO_UDP;
-    std::string port_str = std::to_string(port);
-
-    int status = getaddrinfo(host.c_str(), port_str.c_str(), &hints, &addr_i);
-
-    // exit??
-    if (status != 0) {
-        UVG_LOG_ERROR("Invalid address");
-    }*/
-
     sockaddr_in6 addr;
     memset(&addr, 0, sizeof(addr));
 
@@ -403,7 +388,6 @@ rtp_error_t uvgrtp::socket::__sendtov(
         header_.msg_hdr.msg_namelen = sizeof(addr6);
     }
     else {
-        // mikä tämä void* on??
         header_.msg_hdr.msg_name       = (void *)&addr;
         header_.msg_hdr.msg_namelen    = sizeof(addr);
     }
@@ -412,7 +396,6 @@ rtp_error_t uvgrtp::socket::__sendtov(
     header_.msg_hdr.msg_control    = 0;
     header_.msg_hdr.msg_controllen = 0;
 
-    // MIKÄ TÄMÄ SENDMMSG ON???
     if (sendmmsg(socket_, &header_, 1, send_flags) < 0) {
         UVG_LOG_ERROR("Failed to send RTP frame: %s!", strerror(errno));
         set_bytes(bytes_sent, -1);
@@ -568,7 +551,6 @@ rtp_error_t uvgrtp::socket::__sendtov(
     ssize_t bptr  = buffers.size();
 
     while (bptr > npkts) {
-        // MIKÄ SENDMMSG
         if (sendmmsg(socket_, hptr, npkts, send_flags) < 0) {
             log_platform_error("sendmmsg(2) failed");
             return_value = RTP_SEND_ERROR;

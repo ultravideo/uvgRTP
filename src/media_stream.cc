@@ -98,10 +98,10 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     }
     if (res->ai_family == AF_INET6) {
         ipv6_ = true;
-        UVG_LOG_INFO("Using an IPv6 address");
+        UVG_LOG_DEBUG("Using an IPv6 address");
     }
     else {
-        UVG_LOG_INFO("Using an IPv4 address");
+        UVG_LOG_DEBUG("Using an IPv4 address");
     }
 
     // Initialize socket
