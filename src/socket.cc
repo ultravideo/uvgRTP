@@ -112,12 +112,7 @@ rtp_error_t uvgrtp::socket::bind(sockaddr_in& local_address)
 {
     local_address_ = local_address;
 
-    if (ipv6_) {
-        UVG_LOG_DEBUG("Binding to address %s", sockaddr_ip6_to_string(local_ip6_address_).c_str());
-    }
-    else {
-        UVG_LOG_DEBUG("Binding to address %s", sockaddr_to_string(local_address_).c_str());
-    }
+    UVG_LOG_DEBUG("Binding to address %s", sockaddr_to_string(local_address_).c_str());
 
     if (::bind(socket_, (struct sockaddr*)&local_address_, sizeof(local_address_)) < 0) {
 #ifdef _WIN32
@@ -135,8 +130,7 @@ rtp_error_t uvgrtp::socket::bind(sockaddr_in& local_address)
 rtp_error_t uvgrtp::socket::bind_ip6(sockaddr_in6& local_address)
 {
     local_ip6_address_ = local_address;
-
-    //UVG_LOG_DEBUG("Binding to address %s", sockaddr_to_string(local_address_).c_str());
+    UVG_LOG_DEBUG("Binding to address %s", sockaddr_ip6_to_string(local_ip6_address_).c_str());
 
     if (::bind(socket_, (struct sockaddr*)&local_ip6_address_, sizeof(local_ip6_address_)) < 0) {
 #ifdef _WIN32
@@ -181,6 +175,7 @@ sockaddr_in uvgrtp::socket::create_sockaddr(short family, std::string host, shor
     return addr;
 }
 
+// This function seems to not be currently used anywhere
 sockaddr_in6 uvgrtp::socket::create_ip6_sockaddr(unsigned host, short port) const
 {
 
@@ -228,8 +223,7 @@ std::string uvgrtp::socket::get_socket_path_string() const
 
 std::string uvgrtp::socket::sockaddr_to_string(const sockaddr_in& addr) const
 {
-    // tyhjennä turhat "ipv6 supportit" pois
-    int addr_len = INET6_ADDRSTRLEN;
+    int addr_len = INET_ADDRSTRLEN;
     char* c_string = new char[INET_ADDRSTRLEN];
     memset(c_string, 0, INET_ADDRSTRLEN);
 
@@ -254,7 +248,7 @@ std::string uvgrtp::socket::sockaddr_ip6_to_string(const sockaddr_in6& addr6) co
 {
     char* c_string = new char[INET6_ADDRSTRLEN];
     memset(c_string, 0, INET6_ADDRSTRLEN);
-    inet_ntop(AF_INET6, &addr6.sin6_addr, c_string, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET6, &addr6.sin6_addr, c_string, INET6_ADDRSTRLEN);
     std::string string(c_string);
     string.append(":" + std::to_string(ntohs(addr6.sin6_port)));
     delete[] c_string;
@@ -325,8 +319,12 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, sockaddr_in6& addr6, boo
     }
     if (result == -1) {
         win_get_last_error();
-        // FIX THIS
-        UVG_LOG_ERROR("Failed to send to %s", 1 /*sockaddr_to_string(addr).c_str()*/);
+        if (ipv6_) {
+            UVG_LOG_ERROR("Failed to send to %s", sockaddr_ip6_to_string(addr6).c_str());
+        }
+        else {
+            UVG_LOG_ERROR("Failed to send to %s", sockaddr_to_string(addr).c_str());
+        }
 
         if (bytes_sent)
             *bytes_sent = -1;

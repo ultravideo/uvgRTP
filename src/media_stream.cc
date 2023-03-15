@@ -83,15 +83,13 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     rtp_error_t ret = RTP_GENERIC_ERROR;
 
     // Use getaddrinfo() to determine whether we are using ipv4 or ipv6 addresses
-    int ret1;
-    struct addrinfo hint;
-    struct addrinfo* res = NULL;  
+    struct addrinfo hint, *res = NULL;  
     memset(&hint, '\0', sizeof(hint));
     hint.ai_family = PF_UNSPEC;
     hint.ai_flags = AI_NUMERICHOST;
 
-    if ((ret1 = getaddrinfo(local_address_.c_str(), NULL, &hint, &res)) != 0) {
-        if ((ret1 = getaddrinfo(remote_address_.c_str(), NULL, &hint, &res)) != 0) {
+    if (getaddrinfo(local_address_.c_str(), NULL, &hint, &res) != 0) {
+        if (getaddrinfo(remote_address_.c_str(), NULL, &hint, &res) != 0) {
             UVG_LOG_ERROR("Invalid IP address");
             return RTP_GENERIC_ERROR;
         }
@@ -116,7 +114,6 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     if (::ioctlsocket(socket_->get_raw_socket(), FIONBIO, (u_long *)&enabled) < 0)
         UVG_LOG_ERROR("Failed to make the socket non-blocking!");
 #endif
-    //TODO FIX THIS
 
     if (!(rce_flags_ & RCE_RECEIVE_ONLY) && remote_address_ != "" && dst_port_ != 0)
     {

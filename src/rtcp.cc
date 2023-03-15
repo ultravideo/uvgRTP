@@ -304,7 +304,7 @@ rtp_error_t uvgrtp::rtcp::stop()
     uvgrtp::rtcp::send_bye_packet({ *ssrc_.get()});
     if ((ret = this->generate_report()) != RTP_OK)
     {
-        UVG_LOG_ERROR("Failed to send RTCP report with BYE packet!");
+        UVG_LOG_DEBUG("Failed to send RTCP report with BYE packet!");
     }
 
     if (!active_)
@@ -352,7 +352,7 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp)
 
         if ((ret = rtcp->generate_report()) != RTP_OK && ret != RTP_NOT_READY)
         {
-            UVG_LOG_ERROR("Failed to send RTCP status report!");
+            UVG_LOG_INFO("Failed to send RTCP status report!");
         }
 
         //Here we check if there are any timed out sources
@@ -1750,7 +1750,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 {
     /* Check the participants_ map. If there is no other participants, don't send report */
     if (participants_.empty()) {
-        UVG_LOG_DEBUG("No other participants in this session. Report not sent.");
+        UVG_LOG_INFO("No other participants in this session. Report not sent.");
         return RTP_GENERIC_ERROR;
 
     }

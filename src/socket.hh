@@ -115,10 +115,7 @@ namespace uvgrtp {
             rtp_error_t sendto(pkt_vec& buffers, int send_flags, int *bytes_sent);
 
             /* Same as sendto() but the remote address given as parameter */
-            // mit‰s n‰ille tehd‰‰n???
-            // rtcp k‰ytt‰‰ t‰t‰, ei korjattu
             rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *buf, size_t buf_len, int send_flags);
-            // zrtp k‰ytt‰‰ t‰t‰, ei korjattu
             rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
             rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, buf_vec& buffers, int send_flags);
             rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, buf_vec& buffers, int send_flags, int *bytes_sent);
@@ -133,7 +130,6 @@ namespace uvgrtp {
              * Return RTP_INTERRUPTED if the call was interrupted due to timeout and set "bytes_sent" to 0
              * Return RTP_GENERIC_ERROR on error and set "bytes_sent" to -1 */
             rtp_error_t recv(uint8_t *buf, size_t buf_len, int recv_flags);
-            // used in poll
             rtp_error_t recv(uint8_t *buf, size_t buf_len, int recv_flags, int *bytes_read);
 
             /* Same as recvfrom(2), receives a message from remote
@@ -146,11 +142,10 @@ namespace uvgrtp {
              * Return RTP_GENERIC_ERROR on error and set "bytes_sent" to -1 */
             rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender, int *bytes_read);
             rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender);
-            // used in rec flow
             rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, int *bytes_read);
             rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags);
 
-            /* Create sockaddr_in object using the provided information
+            /* Create sockaddr_in (IPv4) object using the provided information
              * NOTE: "family" must be AF_INET */
             sockaddr_in create_sockaddr(short family, unsigned host, short port) const;
 
@@ -158,6 +153,7 @@ namespace uvgrtp {
              * NOTE: "family" must be AF_INET */
             sockaddr_in create_sockaddr(short family, std::string host, short port) const;
 
+            /* Create sockaddr_in6 (IPv6) object using the provided information */
             sockaddr_in6 create_ip6_sockaddr(unsigned host, short port) const;
             sockaddr_in6 create_ip6_sockaddr(std::string host, short port) const;
             sockaddr_in6 create_ip6_sockaddr_any(short src_port);
