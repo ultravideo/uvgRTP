@@ -8,13 +8,17 @@
 #include <thread>
 
 #ifdef _WIN32
+#include <Windows.h>
 #include <winsock2.h>
 #include <Ws2tcpip.h>
 #include <ws2def.h>
+#include <ws2ipdef.h>
 #else
 #include <unistd.h>
 #include <poll.h>
 #include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #endif
 
 #if defined(__MINGW32__) || defined(__MINGW64__)
@@ -29,10 +33,13 @@ using namespace mingw;
 
 #define WSABUF_SIZE 256
 
-uvgrtp::socket::socket(int rce_flags):
+uvgrtp::socket::socket(int rce_flags) :
     socket_(0),
     remote_address_(),
     local_address_(),
+    remote_ip6_address_(),
+    local_ip6_address_(),
+    ipv6_(false),
     rce_flags_(rce_flags),
 #ifdef _WIN32
     buffers_()
@@ -55,7 +62,12 @@ uvgrtp::socket::~socket()
 
 rtp_error_t uvgrtp::socket::init(short family, int type, int protocol)
 {
-    assert(family == AF_INET);
+    if (family == AF_INET6) {
+        ipv6_ = true;
+    }
+    else {
+       ipv6_ = false;
+    }
 
 #ifdef _WIN32
     if ((socket_ = ::socket(family, type, protocol)) == INVALID_SOCKET) {
@@ -115,6 +127,24 @@ rtp_error_t uvgrtp::socket::bind(sockaddr_in& local_address)
     return RTP_OK;
 }
 
+rtp_error_t uvgrtp::socket::bind_ip6(sockaddr_in6& local_address)
+{
+    local_ip6_address_ = local_address;
+    UVG_LOG_DEBUG("Binding to address %s", sockaddr_ip6_to_string(local_ip6_address_).c_str());
+
+    if (::bind(socket_, (struct sockaddr*)&local_ip6_address_, sizeof(local_ip6_address_)) < 0) {
+#ifdef _WIN32
+        win_get_last_error();
+#else
+        fprintf(stderr, "%s\n", strerror(errno));
+#endif
+        UVG_LOG_ERROR("Binding to port %u failed!", ntohs(local_address_.sin_port));
+        return RTP_BIND_ERROR;
+    }
+
+    return RTP_OK;
+}
+
 sockaddr_in uvgrtp::socket::create_sockaddr(short family, unsigned host, short port) const
 {
     assert(family == AF_INET);
@@ -145,19 +175,57 @@ sockaddr_in uvgrtp::socket::create_sockaddr(short family, std::string host, shor
     return addr;
 }
 
+// This function seems to not be currently used anywhere
+sockaddr_in6 uvgrtp::socket::create_ip6_sockaddr(unsigned host, short port) const
+{
+
+    sockaddr_in6 addr;
+    memset(&addr, 0, sizeof(addr));
+
+    addr.sin6_family = AF_INET6;
+    std::string host_str = std::to_string(host);
+    inet_pton(AF_INET6, host_str.c_str(), &addr.sin6_addr);
+    addr.sin6_port = htons((uint16_t)port);
+
+    return addr;
+}
+
+sockaddr_in6 uvgrtp::socket::create_ip6_sockaddr(std::string host, short port) const
+{
+    sockaddr_in6 addr;
+    memset(&addr, 0, sizeof(addr));
+
+    addr.sin6_family = AF_INET6;
+    inet_pton(AF_INET6, host.c_str(), &addr.sin6_addr);
+    addr.sin6_port = htons((uint16_t)port);
+
+    return addr;
+}
+
+sockaddr_in6 uvgrtp::socket::create_ip6_sockaddr_any(short src_port) {
+    sockaddr_in6 addr;
+    memset(&addr, 0, sizeof(addr));
+
+    addr.sin6_family = AF_INET6;
+    addr.sin6_addr = in6addr_any;
+    addr.sin6_port = htons(src_port);
+
+    return addr;
+}
+
 std::string uvgrtp::socket::get_socket_path_string() const
 {
+    if (ipv6_) {
+        return sockaddr_ip6_to_string(local_ip6_address_) + " -> " + sockaddr_ip6_to_string(remote_ip6_address_);
+    }
     return sockaddr_to_string(local_address_) + " -> " + sockaddr_to_string(remote_address_);
 }
 
 std::string uvgrtp::socket::sockaddr_to_string(const sockaddr_in& addr) const
 {
     int addr_len = INET_ADDRSTRLEN;
-
-    if (addr.sin_family == AF_INET6)
-    {
-        addr_len = INET6_ADDRSTRLEN;
-    }
+    char* c_string = new char[INET_ADDRSTRLEN];
+    memset(c_string, 0, INET_ADDRSTRLEN);
 
     char* addr_string = new char[addr_len];
     memset(addr_string, 0, addr_len);
@@ -176,9 +244,25 @@ std::string uvgrtp::socket::sockaddr_to_string(const sockaddr_in& addr) const
     return string;
 }
 
+std::string uvgrtp::socket::sockaddr_ip6_to_string(const sockaddr_in6& addr6) const
+{
+    char* c_string = new char[INET6_ADDRSTRLEN];
+    memset(c_string, 0, INET6_ADDRSTRLEN);
+    inet_ntop(AF_INET6, &addr6.sin6_addr, c_string, INET6_ADDRSTRLEN);
+    std::string string(c_string);
+    string.append(":" + std::to_string(ntohs(addr6.sin6_port)));
+    delete[] c_string;
+    return string;
+}
+
 void uvgrtp::socket::set_sockaddr(sockaddr_in addr)
 {
     remote_address_ = addr;
+}
+
+void uvgrtp::socket::set_sockaddr6(sockaddr_in6 addr)
+{
+    remote_ip6_address_ = addr;
 }
 
 socket_t& uvgrtp::socket::get_raw_socket()
@@ -201,16 +285,23 @@ rtp_error_t uvgrtp::socket::install_handler(void *arg, packet_handler_vec handle
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent)
+rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, sockaddr_in6& addr6, bool ipv6, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent)
 {
     int nsend = 0;
 
 #ifndef _WIN32
-    if ((nsend = ::sendto(socket_, buf, buf_len, send_flags, (const struct sockaddr *)&addr, sizeof(addr))) == -1) {
+    if (ipv6) {
+        nsend = ::sendto(socket_, buf, buf_len, send_flags, (const struct sockaddr*)&addr6, sizeof(addr6));
+    }
+    else {
+        nsend = ::sendto(socket_, buf, buf_len, send_flags, (const struct sockaddr*)&addr, sizeof(addr));
+    }
+    if (nsend == -1) {
         UVG_LOG_ERROR("Failed to send data: %s", strerror(errno));
 
-        if (bytes_sent)
+        if (bytes_sent) {
             *bytes_sent = -1;
+        }
         return RTP_SEND_ERROR;
     }
 #else
@@ -219,11 +310,21 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf
 
     data_buf.buf = (char *)buf;
     data_buf.len = (ULONG)buf_len;
-
-    if (WSASendTo(socket_, &data_buf, 1, &sent_bytes, send_flags, (const struct sockaddr *)&addr, sizeof(addr), nullptr, nullptr) == -1) {
+    int result = -1;
+    if (ipv6) {
+        result = WSASendTo(socket_, &data_buf, 1, &sent_bytes, send_flags, (const struct sockaddr*)&addr6, sizeof(addr6), nullptr, nullptr);
+    }
+    else {
+        result = WSASendTo(socket_, &data_buf, 1, &sent_bytes, send_flags, (const struct sockaddr*)&addr, sizeof(addr), nullptr, nullptr);
+    }
+    if (result == -1) {
         win_get_last_error();
-
-        UVG_LOG_ERROR("Failed to send to %s", sockaddr_to_string(addr).c_str());
+        if (ipv6_) {
+            UVG_LOG_ERROR("Failed to send to %s", sockaddr_ip6_to_string(addr6).c_str());
+        }
+        else {
+            UVG_LOG_ERROR("Failed to send to %s", sockaddr_to_string(addr).c_str());
+        }
 
         if (bytes_sent)
             *bytes_sent = -1;
@@ -232,8 +333,9 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf
     nsend = sent_bytes;
 #endif
 
-    if (bytes_sent)
+    if (bytes_sent) {
         *bytes_sent = nsend;
+    }
 
 #ifndef NDEBUG
     ++sent_packets_;
@@ -244,26 +346,28 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, uint8_t *buf, size_t buf
 
 rtp_error_t uvgrtp::socket::sendto(uint8_t *buf, size_t buf_len, int send_flags)
 {
-    return __sendto(remote_address_, buf, buf_len, send_flags, nullptr);
+    return __sendto(remote_address_, remote_ip6_address_, ipv6_, buf, buf_len, send_flags, nullptr);
 }
 
 rtp_error_t uvgrtp::socket::sendto(uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent)
 {
-    return __sendto(remote_address_, buf, buf_len, send_flags, bytes_sent);
+    return __sendto(remote_address_, remote_ip6_address_, ipv6_, buf, buf_len, send_flags, bytes_sent);
 }
 
-rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent)
+rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent)
 {
-    return __sendto(addr, buf, buf_len, send_flags, bytes_sent);
+    return __sendto(addr, addr6, ipv6_, buf, buf_len, send_flags, bytes_sent);
 }
 
-rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int send_flags)
+rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *buf, size_t buf_len, int send_flags)
 {
-    return __sendto(addr, buf, buf_len, send_flags, nullptr);
+    return __sendto(addr, addr6, ipv6_, buf, buf_len, send_flags, nullptr);
 }
 
 rtp_error_t uvgrtp::socket::__sendtov(
     sockaddr_in& addr,
+    sockaddr_in6& addr6,
+    bool ipv6,
     uvgrtp::buf_vec& buffers,
     int send_flags, int *bytes_sent
 )
@@ -277,9 +381,14 @@ rtp_error_t uvgrtp::socket::__sendtov(
 
         sent_bytes += buffers.at(i).first;
     }
-
-    header_.msg_hdr.msg_name       = (void *)&addr;
-    header_.msg_hdr.msg_namelen    = sizeof(addr);
+    if (ipv6) {
+        header_.msg_hdr.msg_name = (void*)&addr6;
+        header_.msg_hdr.msg_namelen = sizeof(addr6);
+    }
+    else {
+        header_.msg_hdr.msg_name       = (void *)&addr;
+        header_.msg_hdr.msg_namelen    = sizeof(addr);
+    }
     header_.msg_hdr.msg_iov        = chunks_;
     header_.msg_hdr.msg_iovlen     = buffers.size();
     header_.msg_hdr.msg_control    = 0;
@@ -305,12 +414,23 @@ rtp_error_t uvgrtp::socket::__sendtov(
         buffers_[i].len = (ULONG)buffers.at(i).first;
         buffers_[i].buf = (char *)buffers.at(i).second;
     }
-
-    if (WSASendTo(socket_, buffers_, (DWORD)buffers.size(), &sent_bytes, send_flags,
-                  (SOCKADDR *)&addr, sizeof(addr), nullptr, nullptr) == -1) {
+    int success = 0;
+    if (ipv6) {
+        success = WSASendTo(socket_, buffers_, (DWORD)buffers.size(), &sent_bytes, send_flags,
+            (SOCKADDR*)&addr6, sizeof(addr6), nullptr, nullptr);
+    }
+    else {
+        success = WSASendTo(socket_, buffers_, (DWORD)buffers.size(), &sent_bytes, send_flags,
+            (SOCKADDR*)&addr, sizeof(addr), nullptr, nullptr);
+    }
+    if (success != 0) {
         win_get_last_error();
-
-        UVG_LOG_ERROR("Failed to send to %s", sockaddr_to_string(addr).c_str());
+        if (ipv6_) {
+            UVG_LOG_ERROR("Failed to send to %s", sockaddr_ip6_to_string(addr6).c_str());
+        }
+        else {
+            UVG_LOG_ERROR("Failed to send to %s", sockaddr_to_string(addr).c_str());
+        }
 
         set_bytes(bytes_sent, -1);
         return RTP_SEND_ERROR;
@@ -338,7 +458,7 @@ rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int send_flags)
         }
     }
 
-    return __sendtov(remote_address_, buffers, send_flags, nullptr);
+    return __sendtov(remote_address_, remote_ip6_address_, ipv6_, buffers, send_flags, nullptr);
 }
 
 rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int send_flags, int *bytes_sent)
@@ -352,10 +472,10 @@ rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int send_flags, int *bytes_
         }
     }
 
-    return __sendtov(remote_address_, buffers, send_flags, bytes_sent);
+    return __sendtov(remote_address_, remote_ip6_address_, ipv6_, buffers, send_flags, bytes_sent);
 }
 
-rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, buf_vec& buffers, int send_flags)
+rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, sockaddr_in6& addr6, buf_vec& buffers, int send_flags)
 {
     rtp_error_t ret = RTP_OK;
 
@@ -365,12 +485,13 @@ rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, buf_vec& buffers, int send
             return ret;
         }
     }
-
-    return __sendtov(addr, buffers, send_flags, nullptr);
+    // buf_vec
+    return __sendtov(addr, addr6, ipv6_, buffers, send_flags, nullptr);
 }
 
 rtp_error_t uvgrtp::socket::sendto(
     sockaddr_in& addr,
+    sockaddr_in6 & addr6,
     buf_vec& buffers,
     int send_flags, int *bytes_sent
 )
@@ -383,12 +504,14 @@ rtp_error_t uvgrtp::socket::sendto(
             return ret;
         }
     }
-
-    return __sendtov(addr, buffers, send_flags, bytes_sent);
+    // buf_vec
+    return __sendtov(addr, addr6, ipv6_, buffers, send_flags, bytes_sent);
 }
 
 rtp_error_t uvgrtp::socket::__sendtov(
     sockaddr_in& addr,
+    sockaddr_in6& addr6,
+    bool ipv6,
     uvgrtp::pkt_vec& buffers,
     int send_flags, int *bytes_sent
 )
@@ -404,8 +527,14 @@ rtp_error_t uvgrtp::socket::__sendtov(
     for (size_t i = 0; i < buffers.size(); ++i) {
         headers[i].msg_hdr.msg_iov        = new struct iovec[buffers[i].size()];
         headers[i].msg_hdr.msg_iovlen     = buffers[i].size();
-        headers[i].msg_hdr.msg_name       = (void *)&addr;
-        headers[i].msg_hdr.msg_namelen    = sizeof(addr);
+        if (ipv6) {
+            headers[i].msg_hdr.msg_name = (void*)&addr6;
+            headers[i].msg_hdr.msg_namelen = sizeof(addr6);
+        }
+        else {
+            headers[i].msg_hdr.msg_name       = (void *)&addr;
+            headers[i].msg_hdr.msg_namelen    = sizeof(addr);
+        }
         headers[i].msg_hdr.msg_control    = 0;
         headers[i].msg_hdr.msg_controllen = 0;
 
@@ -466,18 +595,32 @@ rtp_error_t uvgrtp::socket::__sendtov(
 
 send_:
         DWORD sent_bytes_dw = 0;
-        ret = WSASendTo(
-            socket_,
-            wsa_bufs,
-            (DWORD)buffer.size(),
-            &sent_bytes_dw,
-            send_flags,
-            (SOCKADDR *)&addr,
-            sizeof(addr),
-            nullptr,
-            nullptr
-        );
-
+        if (ipv6) {
+            ret = WSASendTo(
+                socket_,
+                wsa_bufs,
+                (DWORD)buffer.size(),
+                &sent_bytes_dw,
+                send_flags,
+                (SOCKADDR*)&addr6,
+                sizeof(addr6),
+                nullptr,
+                nullptr
+            );
+        }
+        else {
+            ret = WSASendTo(
+                socket_,
+                wsa_bufs,
+                (DWORD)buffer.size(),
+                &sent_bytes_dw,
+                send_flags,
+                (SOCKADDR*)&addr,
+                sizeof(addr),
+                nullptr,
+                nullptr
+            );
+        }
         sent_bytes = sent_bytes_dw;
 
         if (ret == SOCKET_ERROR) {
@@ -492,8 +635,12 @@ send_:
             {
                 UVG_LOG_DEBUG("WSASendTo failed with error %li", error);
                 log_platform_error("WSASendTo() failed");
-
-                UVG_LOG_ERROR("Failed to send to %s", sockaddr_to_string(addr).c_str());
+                if (ipv6_) {
+                    UVG_LOG_ERROR("Failed to send to %s", sockaddr_ip6_to_string(addr6).c_str());
+                }
+                else {
+                    UVG_LOG_ERROR("Failed to send to %s", sockaddr_to_string(addr).c_str());
+                }
             }
 
             sent_bytes = -1;
@@ -523,8 +670,7 @@ rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int send_flags)
             }
         }
     }
-
-    return __sendtov(remote_address_, buffers, send_flags, nullptr);
+    return __sendtov(remote_address_, remote_ip6_address_, ipv6_, buffers, send_flags, nullptr);
 }
 
 rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int send_flags, int *bytes_sent)
@@ -539,11 +685,10 @@ rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int send_flags, int *bytes_
             }
         }
     }
-
-    return __sendtov(remote_address_, buffers, send_flags, bytes_sent);
+    return __sendtov(remote_address_, remote_ip6_address_, ipv6_, buffers, send_flags, bytes_sent);
 }
 
-rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int send_flags)
+rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, sockaddr_in6& addr6, pkt_vec& buffers, int send_flags)
 {
     rtp_error_t ret = RTP_OK;
 
@@ -555,11 +700,10 @@ rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int send
             }
         }
     }
-
-    return __sendtov(addr, buffers, send_flags, nullptr);
+    return __sendtov(addr, addr6, ipv6_, buffers, send_flags, nullptr);
 }
 
-rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int send_flags, int *bytes_sent)
+rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, sockaddr_in6& addr6, pkt_vec& buffers, int send_flags, int *bytes_sent)
 {
     rtp_error_t ret = RTP_OK;
 
@@ -571,8 +715,7 @@ rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, pkt_vec& buffers, int send
             }
         }
     }
-
-    return __sendtov(addr, buffers, send_flags, bytes_sent);
+    return __sendtov(addr, addr6, ipv6_, buffers, send_flags, bytes_sent);
 }
 
 rtp_error_t uvgrtp::socket::__recv(uint8_t *buf, size_t buf_len, int recv_flags, int *bytes_read)
@@ -694,6 +837,61 @@ rtp_error_t uvgrtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int recv_fl
     return RTP_OK;
 }
 
+rtp_error_t uvgrtp::socket::__recvfrom_ip6(uint8_t* buf, size_t buf_len, int recv_flags, sockaddr_in6* sender, int* bytes_read)
+{
+    socklen_t* len_ptr = nullptr;
+    socklen_t len = sizeof(sockaddr_in6);
+
+    if (sender)
+        len_ptr = &len;
+
+#ifndef _WIN32
+    int32_t ret = ::recvfrom(socket_, buf, buf_len, recv_flags, (struct sockaddr*)sender, len_ptr);
+
+    if (ret == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            set_bytes(bytes_read, 0);
+            return RTP_INTERRUPTED;
+        }
+        UVG_LOG_ERROR("recvfrom failed: %s", strerror(errno));
+
+        set_bytes(bytes_read, -1);
+        return RTP_GENERIC_ERROR;
+    }
+
+    set_bytes(bytes_read, ret);
+#else
+
+    (void)recv_flags;
+
+    WSABUF DataBuf;
+    DataBuf.len = (u_long)buf_len;
+    DataBuf.buf = (char*)buf;
+    DWORD bytes_received = 0;
+    DWORD d_recv_flags = 0;
+
+    int rc = ::WSARecvFrom(socket_, &DataBuf, 1, &bytes_received, &d_recv_flags, (SOCKADDR*)sender, (int*)len_ptr, NULL, NULL);
+
+    if (WSAGetLastError() == WSAEWOULDBLOCK)
+        return RTP_INTERRUPTED;
+
+    int err = 0;
+    if ((rc == SOCKET_ERROR) && (WSA_IO_PENDING != (err = WSAGetLastError()))) {
+        /* win_get_last_error(); */
+        set_bytes(bytes_read, -1);
+        return RTP_GENERIC_ERROR;
+    }
+
+    set_bytes(bytes_read, bytes_received);
+#endif
+
+#ifndef NDEBUG
+    ++received_packets_;
+#endif // !NDEBUG
+
+    return RTP_OK;
+}
+
 rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender, int *bytes_read)
 {
     return __recvfrom(buf, buf_len, recv_flags, sender, bytes_read);
@@ -701,6 +899,9 @@ rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int recv_flag
 
 rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, int *bytes_read)
 {
+    if (ipv6_) {
+        return __recvfrom_ip6(buf, buf_len, recv_flags, nullptr, bytes_read);
+    }
     return __recvfrom(buf, buf_len, recv_flags, nullptr, bytes_read);
 }
 

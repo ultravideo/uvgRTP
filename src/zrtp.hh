@@ -8,9 +8,13 @@
 #include <winsock2.h>
 #include <mswsock.h>
 #include <inaddr.h>
+#include <ws2ipdef.h>
+
 #else
 #include <netinet/ip.h>
 #include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #endif
 
 #include <mutex>
@@ -42,7 +46,7 @@ namespace uvgrtp {
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, bool perform_dh);
+            rtp_error_t init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, sockaddr_in6& addr6, bool perform_dh, bool ipv6);
 
             /* Get SRTP keys for the session that was just initialized
              *
@@ -85,13 +89,13 @@ namespace uvgrtp {
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr);
+            rtp_error_t init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, sockaddr_in6& addr6, bool ipv6);
 
             /* Initialize ZRTP session between us and remote using Multistream mode
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init_msm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr);
+            rtp_error_t init_msm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, sockaddr_in6& addr6);
 
             /* Generate zid for this ZRTP instance. ZID is a unique, 96-bit long ID */
             void generate_zid();
@@ -170,6 +174,7 @@ namespace uvgrtp {
             uint32_t ssrc_;
             std::shared_ptr<uvgrtp::socket> local_socket_;
             sockaddr_in remote_addr_;
+            sockaddr_in6 remote_ip6_addr_;
 
             /* Has the ZRTP connection been initialized using DH */
             bool initialized_;

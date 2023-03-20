@@ -3,13 +3,18 @@
 #include "uvgrtp/util.hh"
 
 #ifdef _WIN32
+#include <Windows.h>
 #include <winsock2.h>
 #include <mswsock.h>
 #include <inaddr.h>
+#include <ws2ipdef.h>
+#include <WS2tcpip.h>
 #else
 #include <netinet/ip.h>
 #include <arpa/inet.h>
 #include <sys/uio.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #endif
 
 #include <vector>
@@ -83,6 +88,7 @@ namespace uvgrtp {
              * Return RTP_BIND_ERROR if the bind failed */
             rtp_error_t bind(short family, unsigned host, short port);
             rtp_error_t bind(sockaddr_in& local_address);
+            rtp_error_t bind_ip6(sockaddr_in6& local_address);
 
             /* Same as setsockopt(2), used to manipulate the underlying socket object
              *
@@ -100,6 +106,7 @@ namespace uvgrtp {
              *
              * Return RTP_OK on success and write the amount of bytes sent to "bytes_sent"
              * Return RTP_SEND_ERROR on error and set "bytes_sent" to -1 */
+            // nämä done
             rtp_error_t sendto(uint8_t *buf, size_t buf_len, int send_flags);
             rtp_error_t sendto(uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
             rtp_error_t sendto(buf_vec& buffers, int send_flags);
@@ -108,12 +115,12 @@ namespace uvgrtp {
             rtp_error_t sendto(pkt_vec& buffers, int send_flags, int *bytes_sent);
 
             /* Same as sendto() but the remote address given as parameter */
-            rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int send_flags);
-            rtp_error_t sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
-            rtp_error_t sendto(sockaddr_in& addr, buf_vec& buffers, int send_flags);
-            rtp_error_t sendto(sockaddr_in& addr, buf_vec& buffers, int send_flags, int *bytes_sent);
-            rtp_error_t sendto(sockaddr_in& addr, pkt_vec& buffers, int send_flags);
-            rtp_error_t sendto(sockaddr_in& addr, pkt_vec& buffers, int send_flags, int *bytes_sent);
+            rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *buf, size_t buf_len, int send_flags);
+            rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
+            rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, buf_vec& buffers, int send_flags);
+            rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, buf_vec& buffers, int send_flags, int *bytes_sent);
+            rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, pkt_vec& buffers, int send_flags);
+            rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, pkt_vec& buffers, int send_flags, int *bytes_sent);
 
             /* Same as recv(2), receives a message from socket (remote address not known)
              *
@@ -138,7 +145,7 @@ namespace uvgrtp {
             rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, int *bytes_read);
             rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags);
 
-            /* Create sockaddr_in object using the provided information
+            /* Create sockaddr_in (IPv4) object using the provided information
              * NOTE: "family" must be AF_INET */
             sockaddr_in create_sockaddr(short family, unsigned host, short port) const;
 
@@ -146,9 +153,16 @@ namespace uvgrtp {
              * NOTE: "family" must be AF_INET */
             sockaddr_in create_sockaddr(short family, std::string host, short port) const;
 
+            /* Create sockaddr_in6 (IPv6) object using the provided information */
+            sockaddr_in6 create_ip6_sockaddr(unsigned host, short port) const;
+            sockaddr_in6 create_ip6_sockaddr(std::string host, short port) const;
+            sockaddr_in6 create_ip6_sockaddr_any(short src_port);
+
+
             std::string get_socket_path_string() const;
 
             std::string sockaddr_to_string(const sockaddr_in& addr) const;
+            std::string sockaddr_ip6_to_string(const sockaddr_in6& addr6) const;
 
             /* Get reference to the actual socket object */
             socket_t& get_raw_socket();
@@ -157,6 +171,7 @@ namespace uvgrtp {
              * This is used when calling send() */
             void set_sockaddr(sockaddr_in addr);
 
+            void set_sockaddr6(sockaddr_in6 addr);
             /* Get the out address for the socket if it exists */
             sockaddr_in& get_out_address();
 
@@ -172,17 +187,24 @@ namespace uvgrtp {
         private:
 
             /* helper function for sending UPD packets, see documentation for sendto() above */
-            rtp_error_t __sendto(sockaddr_in& addr, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
+            rtp_error_t __sendto(sockaddr_in& addr, sockaddr_in6& addr6, bool ipv6, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
+
             rtp_error_t __recv(uint8_t *buf, size_t buf_len, int recv_flags, int *bytes_read);
+
+            rtp_error_t __recvfrom_ip6(uint8_t* buf, size_t buf_len, int recv_flags, sockaddr_in6* sender, int* bytes_read);
             rtp_error_t __recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender, int *bytes_read);
 
             /* __sendtov() does the same as __sendto but it combines multiple buffers into one frame and sends them */
-            rtp_error_t __sendtov(sockaddr_in& addr, buf_vec& buffers, int send_flags, int *bytes_sent);
-            rtp_error_t __sendtov(sockaddr_in& addr, uvgrtp::pkt_vec& buffers, int send_flags, int *bytes_sent);
+            rtp_error_t __sendtov(sockaddr_in& addr, sockaddr_in6& addr6, bool ipv6, buf_vec& buffers, int send_flags, int *bytes_sent);
+            rtp_error_t __sendtov(sockaddr_in& addr, sockaddr_in6& addr6, bool ipv6, uvgrtp::pkt_vec& buffers, int send_flags, int *bytes_sent);
 
             socket_t socket_;
             sockaddr_in remote_address_;
             sockaddr_in local_address_;
+            sockaddr_in6 remote_ip6_address_;
+            sockaddr_in6 local_ip6_address_;
+            bool ipv6_;
+
             int rce_flags_;
 
             /* __sendto() calls these handlers in order before sending the packet */

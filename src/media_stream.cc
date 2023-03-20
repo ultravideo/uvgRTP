@@ -17,13 +17,21 @@
 #include "srtp/srtp.hh"
 #include "formats/media.hh"
 #include "global.hh"
+#ifdef _WIN32
+#include <Ws2tcpip.h>
+#else
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#endif
 
 #include <cstring>
 #include <errno.h>
 
-uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr, 
-    std::string local_addr, uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, 
-    int rce_flags):
+uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
+    std::string local_addr, uint16_t src_port, uint16_t dst_port, rtp_format_t fmt,
+    int rce_flags) :
     key_(uvgrtp::random::generate_32()),
     srtp_(nullptr),
     srtcp_(nullptr),
@@ -31,10 +39,12 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     rtp_(nullptr),
     rtcp_(nullptr),
     remote_sockaddr_(),
+    remote_sockaddr_ip6_(),
     remote_address_(remote_addr),
     local_address_(local_addr),
     src_port_(src_port),
     dst_port_(dst_port),
+    ipv6_(false),
     fmt_(fmt),
     rce_flags_(rce_flags),
     initialized_(false),
@@ -70,9 +80,32 @@ uvgrtp::media_stream::~media_stream()
 
 rtp_error_t uvgrtp::media_stream::init_connection()
 {
-    rtp_error_t ret = RTP_OK;
-    if ((ret = socket_->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK)
+    rtp_error_t ret = RTP_GENERIC_ERROR;
+
+    // Use getaddrinfo() to determine whether we are using ipv4 or ipv6 addresses
+    struct addrinfo hint, *res = NULL;  
+    memset(&hint, '\0', sizeof(hint));
+    hint.ai_family = PF_UNSPEC;
+    hint.ai_flags = AI_NUMERICHOST;
+
+    if (getaddrinfo(local_address_.c_str(), NULL, &hint, &res) != 0) {
+        if (getaddrinfo(remote_address_.c_str(), NULL, &hint, &res) != 0) {
+            UVG_LOG_ERROR("Invalid IP address");
+            return RTP_GENERIC_ERROR;
+        }
+    }
+    if (res->ai_family == AF_INET6) {
+        ipv6_ = true;
+        UVG_LOG_DEBUG("Using an IPv6 address");
+    }
+    else {
+        UVG_LOG_DEBUG("Using an IPv4 address");
+    }
+
+    // Initialize socket
+    if ((ret = socket_->init(res->ai_family, SOCK_DGRAM, 0)) != RTP_OK) {
         return ret;
+    }
 
 #ifdef _WIN32
     /* Make the socket non-blocking */
@@ -82,13 +115,17 @@ rtp_error_t uvgrtp::media_stream::init_connection()
         UVG_LOG_ERROR("Failed to make the socket non-blocking!");
 #endif
 
-    short int family = AF_INET;
-
     if (!(rce_flags_ & RCE_RECEIVE_ONLY) && remote_address_ != "" && dst_port_ != 0)
     {
         // no reason to fail sending even if binding fails so we set remote address first
-        remote_sockaddr_ = socket_->create_sockaddr(family, remote_address_, dst_port_);
-        socket_->set_sockaddr(remote_sockaddr_);
+        if (ipv6_) {
+            remote_sockaddr_ip6_ = socket_->create_ip6_sockaddr(remote_address_, dst_port_);
+            socket_->set_sockaddr6(remote_sockaddr_ip6_);
+        }
+        else {
+            remote_sockaddr_ = socket_->create_sockaddr(AF_INET, remote_address_, dst_port_);
+            socket_->set_sockaddr(remote_sockaddr_);
+        } 
     }
     else
     {
@@ -98,9 +135,16 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     if (!(rce_flags_ & RCE_SEND_ONLY))
     {
         if (local_address_ != "" && src_port_ != 0) {
-            sockaddr_in bind_addr = socket_->create_sockaddr(family, local_address_, src_port_);
+            if (ipv6_) {
+                sockaddr_in6 bind_addr6 = socket_->create_ip6_sockaddr(local_address_, src_port_);
+                ret = socket_->bind_ip6(bind_addr6);
+            }
+            else {
+                sockaddr_in bind_addr = socket_->create_sockaddr(AF_INET, local_address_, src_port_);
+                ret = socket_->bind(bind_addr);
+            }
 
-            if ((ret = socket_->bind(bind_addr)) != RTP_OK)
+            if (ret != RTP_OK)
             {
                 log_platform_error("bind(2) failed");
                 return ret;
@@ -108,7 +152,14 @@ rtp_error_t uvgrtp::media_stream::init_connection()
         }
         else if (src_port_ != 0)
         {
-            if ((ret = socket_->bind(family, INADDR_ANY, src_port_)) != RTP_OK)
+            if (ipv6_) {
+                sockaddr_in6 ip6_any = socket_->create_ip6_sockaddr_any(src_port_);
+                ret = socket_->bind_ip6(ip6_any);
+            }
+            else {
+                ret = socket_->bind(AF_INET, INADDR_ANY, src_port_);
+            }
+            if (ret != RTP_OK)
             {
                 log_platform_error("bind(2) to any failed");
                 return ret;
@@ -250,11 +301,14 @@ rtp_error_t uvgrtp::media_stream::init()
         UVG_LOG_ERROR("Failed to initialize the underlying socket");
         return free_resources(RTP_GENERIC_ERROR);
     }
-
+    
     reception_flow_ = std::unique_ptr<uvgrtp::reception_flow> (new uvgrtp::reception_flow());
 
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_, ssrc_));
     rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, ssrc_, cname_, rce_flags_));
+    if (ipv6_) {
+        rtcp_->set_ipv6(true);
+    }
 
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
 
@@ -294,7 +348,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
     }
 
     rtp_error_t ret = RTP_OK;
-    if ((ret = zrtp->init(rtp_->get_ssrc(), socket_, remote_sockaddr_, perform_dh)) != RTP_OK) {
+    if ((ret = zrtp->init(rtp_->get_ssrc(), socket_, remote_sockaddr_, remote_sockaddr_ip6_, perform_dh, ipv6_)) != RTP_OK) {
         UVG_LOG_WARN("Failed to initialize ZRTP for media stream!");
         return free_resources(ret);
     }
@@ -310,7 +364,9 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
     zrtp->dh_has_finished(); // only after the DH stream has gotten its keys, do we let non-DH stream perform ZRTP
 
     rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, ssrc_, cname_, srtcp_, rce_flags_));
-
+    if (ipv6_) {
+        rtcp_->set_ipv6(true);
+    }
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
     socket_->install_handler(srtp_.get(), srtp_->send_packet_handler);
 
@@ -703,7 +759,7 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             break;
         }
         case RCC_SESSION_BANDWIDTH: {
-            bandwidth_ = value;
+            bandwidth_ = (uint32_t)value;
             // TODO: Is there a max value for bandwidth?
             if (value <= 0) {
                 UVG_LOG_WARN("Bandwidth cannot be negative");
@@ -746,6 +802,10 @@ uint32_t uvgrtp::media_stream::get_ssrc() const
     }
 
     return *ssrc_.get();
+}
+
+bool uvgrtp::media_stream::get_ipv6() const {
+    return ipv6_;
 }
 
 rtp_error_t uvgrtp::media_stream::init_srtp_with_zrtp(int rce_flags, int type, std::shared_ptr<uvgrtp::base_srtp> srtp,

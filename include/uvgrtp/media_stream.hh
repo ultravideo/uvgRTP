@@ -10,8 +10,9 @@
 #ifndef _WIN32
 #include <sys/socket.h>
 #include <netinet/in.h>
+#else
+#include <ws2ipdef.h>
 #endif
-
 namespace uvgrtp {
 
     // forward declarations
@@ -351,6 +352,8 @@ namespace uvgrtp {
              */
             uint32_t get_ssrc() const;
 
+            bool get_ipv6() const;
+
         private:
             /* Initialize the connection by initializing the socket
              * and binding ourselves to specified interface and creating
@@ -384,10 +387,12 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::rtcp>   rtcp_;
 
             sockaddr_in remote_sockaddr_;
+            sockaddr_in6 remote_sockaddr_ip6_;
             std::string remote_address_;
             std::string local_address_;
             uint16_t src_port_;
             uint16_t dst_port_;
+            bool ipv6_;
             rtp_format_t fmt_;
 
             /* Media context config */

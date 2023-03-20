@@ -4,6 +4,13 @@
 #include "util.hh"
 #include "frame.hh"
 
+#ifdef _WIN32
+#include <ws2ipdef.h>
+#else
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
+
 #include <bitset>
 #include <map>
 #include <thread>
@@ -222,6 +229,8 @@ namespace uvgrtp {
 
             /* Getter for interval_ms_, which is calculated by set_session_bandwidth */
             uint32_t get_rtcp_interval_ms() const;
+
+            void set_ipv6(bool set);
 
             /* Set RTCP packet transmission interval in milliseconds
             *
@@ -597,9 +606,11 @@ namespace uvgrtp {
 
             std::map<uint32_t, std::unique_ptr<rtcp_participant>> participants_;
             uint8_t num_receivers_; // maximum is 32 at the moment (5 bits)
+            bool ipv6_;
 
             /* Address of the socket that we are sending data to */
-            sockaddr_in socket_address_ = {};
+            sockaddr_in socket_address_;
+            sockaddr_in6 socket_address_ipv6_;
 
 
             /* Map for keeping track of sources for timeouts

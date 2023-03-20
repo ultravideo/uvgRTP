@@ -6,6 +6,12 @@
 #include "debug.hh"
 
 #include <string>
+#ifdef _WIN32
+#include <ws2ipdef.h>
+#else
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
 
 uvgrtp::zrtp_msg::zrtp_message::zrtp_message():
     frame_(nullptr),
@@ -26,11 +32,10 @@ uvgrtp::zrtp_msg::zrtp_message::~zrtp_message()
         (void)uvgrtp::frame::dealloc_frame((uvgrtp::frame::zrtp_frame*)rframe_);
 }
 
-rtp_error_t uvgrtp::zrtp_msg::zrtp_message::send_msg(std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr)
+rtp_error_t uvgrtp::zrtp_msg::zrtp_message::send_msg(std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, sockaddr_in6& addr6)
 {
     rtp_error_t ret;
-
-    if ((ret = socket->sendto(addr, (uint8_t *)frame_, len_, 0, nullptr)) != RTP_OK)
+    if ((ret = socket->sendto(addr, addr6, (uint8_t*)frame_, len_, 0, nullptr)) != RTP_OK)
         log_platform_error("Failed to send ZRTP message");
 
     return ret;
