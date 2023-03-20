@@ -304,7 +304,7 @@ rtp_error_t uvgrtp::media_stream::init()
     
     reception_flow_ = std::unique_ptr<uvgrtp::reception_flow> (new uvgrtp::reception_flow());
 
-    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_, ssrc_));
+    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_, ssrc_, ipv6_));
     rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, ssrc_, cname_, rce_flags_));
 
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
@@ -324,7 +324,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
 
     reception_flow_ = std::unique_ptr<uvgrtp::reception_flow> (new uvgrtp::reception_flow());
 
-    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_, ssrc_));
+    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_, ssrc_, ipv6_));
 
     bool perform_dh = !(rce_flags_ & RCE_ZRTP_MULTISTREAM_MODE);
     if (!perform_dh)
@@ -392,7 +392,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     reception_flow_ = std::unique_ptr<uvgrtp::reception_flow> (new uvgrtp::reception_flow());
 
-    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_, ssrc_));
+    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_, ssrc_, ipv6_));
 
     srtp_ = std::shared_ptr<uvgrtp::srtp> (new uvgrtp::srtp(rce_flags_));
 
@@ -450,7 +450,12 @@ rtp_error_t uvgrtp::media_stream::start_components()
     }
 
     if (rce_flags_ & RCE_SRTP_AUTHENTICATE_RTP)
-        rtp_->set_payload_size(MAX_IPV4_MEDIA_PAYLOAD - UVG_AUTH_TAG_LENGTH);
+        if (ipv6_) {
+            rtp_->set_payload_size(MAX_IPV6_MEDIA_PAYLOAD - UVG_AUTH_TAG_LENGTH);
+        }
+        else {
+            rtp_->set_payload_size(MAX_IPV4_MEDIA_PAYLOAD - UVG_AUTH_TAG_LENGTH);
+        }
 
     initialized_ = true;
     return reception_flow_->start(socket_, rce_flags_);

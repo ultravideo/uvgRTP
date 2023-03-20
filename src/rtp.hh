@@ -16,7 +16,7 @@ namespace uvgrtp {
 
     class rtp {
         public:
-            rtp(rtp_format_t fmt, std::shared_ptr<std::atomic<std::uint32_t>> ssrc);
+            rtp(rtp_format_t fmt, std::shared_ptr<std::atomic<std::uint32_t>> ssrc, bool ipv6);
             ~rtp();
 
             uint32_t     get_ssrc()          const;

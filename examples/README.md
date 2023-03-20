@@ -29,6 +29,7 @@ or 2) specify both remote and local addresses:
 ```
 uvgrtp::session *sess = ctx.create_session("10.10.10.2", "10.10.10.3");
 ```
+Mixing IPv4 and IPv6 addresses is not possible.
 
 ### Step 3: Create media_stream
 

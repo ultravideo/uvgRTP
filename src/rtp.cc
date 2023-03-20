@@ -18,7 +18,7 @@
 
 #define INVALID_TS UINT64_MAX
 
-uvgrtp::rtp::rtp(rtp_format_t fmt, std::shared_ptr<std::atomic<std::uint32_t>> ssrc):
+uvgrtp::rtp::rtp(rtp_format_t fmt, std::shared_ptr<std::atomic<std::uint32_t>> ssrc, bool ipv6):
     ssrc_(ssrc),
     ts_(uvgrtp::random::generate_32()),
     seq_(uvgrtp::random::generate_32() & 0xffff),
@@ -31,10 +31,16 @@ uvgrtp::rtp::rtp(rtp_format_t fmt, std::shared_ptr<std::atomic<std::uint32_t>> s
     timestamp_(INVALID_TS),
     sampling_ntp_(0),
     rtp_ts_(0),
-    payload_size_(MAX_IPV4_MEDIA_PAYLOAD),
     delay_(PKT_MAX_DELAY_MS)
 {
+    if (ipv6) {
+        payload_size_ = MAX_IPV6_MEDIA_PAYLOAD;
+    }
+    else {
+        payload_size_ = MAX_IPV4_MEDIA_PAYLOAD;
+    }
     set_default_clock_rate(fmt);
+
 }
 
 uvgrtp::rtp::~rtp()
