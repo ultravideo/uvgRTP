@@ -230,8 +230,6 @@ namespace uvgrtp {
             /* Getter for interval_ms_, which is calculated by set_session_bandwidth */
             uint32_t get_rtcp_interval_ms() const;
 
-            void set_ipv6(bool set);
-
             /* Set RTCP packet transmission interval in milliseconds
             *
             * Return RTP_OK if interval was set successfully
@@ -253,7 +251,7 @@ namespace uvgrtp {
             *  These are used when adding new participants and creating sockets for them */
 
             rtp_error_t set_network_addresses(std::string local_addr, std::string remote_addr,
-                uint16_t local_port, uint16_t dst_port);
+                uint16_t local_port, uint16_t dst_port, bool ipv6);
 
             /* Return SSRCs of all participants */
             std::vector<uint32_t> get_participants() const;

@@ -2036,17 +2036,14 @@ uint32_t uvgrtp::rtcp::get_rtcp_interval_ms() const
     return interval_ms_.load();
 }
 
-void uvgrtp::rtcp::set_ipv6(bool set) {
-    ipv6_ = set;
-}
-
 rtp_error_t uvgrtp::rtcp::set_network_addresses(std::string local_addr, std::string remote_addr,
-    uint16_t local_port, uint16_t dst_port)
+    uint16_t local_port, uint16_t dst_port, bool ipv6)
 {
     local_addr_ = local_addr;
     remote_addr_ = remote_addr;
     local_port_ = local_port;
     dst_port_ = dst_port;
+    ipv6_ = ipv6;
 
     return RTP_OK;
 }

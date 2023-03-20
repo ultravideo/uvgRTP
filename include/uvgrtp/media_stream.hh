@@ -352,8 +352,6 @@ namespace uvgrtp {
              */
             uint32_t get_ssrc() const;
 
-            bool get_ipv6() const;
-
         private:
             /* Initialize the connection by initializing the socket
              * and binding ourselves to specified interface and creating
