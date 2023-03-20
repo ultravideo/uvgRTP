@@ -21,7 +21,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">uvgRTP<span id="projectnumber">&#160;2.2.0</span>
+   <div id="projectname">uvgRTP<span id="projectnumber">&#160;2.3.0</span>
    </div>
    <div id="projectbrief">An open-source library for RTP/SRTP media delivery</div>
   </td>
@@ -89,157 +89,160 @@ $(function() {
 <div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="preprocessor">#ifndef _WIN32</span></div>
 <div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#include &lt;sys/socket.h&gt;</span></div>
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="preprocessor">#include &lt;netinet/in.h&gt;</span></div>
-<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span> </div>
-<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="keyword">namespace </span>uvgrtp {</div>
-<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span> </div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>    <span class="comment">// forward declarations</span></div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>    <span class="keyword">class </span>rtp;</div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>    <span class="keyword">class </span>rtcp;</div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span> </div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>    <span class="keyword">class </span>zrtp;</div>
-<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>    <span class="keyword">class </span>base_srtp;</div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>    <span class="keyword">class </span>srtp;</div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>    <span class="keyword">class </span>srtcp;</div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span> </div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>    <span class="keyword">class </span>reception_flow;</div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>    <span class="keyword">class </span>holepuncher;</div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>    <span class="keyword">class </span>socket;</div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span> </div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>    <span class="keyword">namespace </span>frame {</div>
-<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>        <span class="keyword">struct </span>rtp_frame;</div>
-<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>    }</div>
-<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span> </div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>    <span class="keyword">namespace </span>formats {</div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>        <span class="keyword">class </span>media;</div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>    }</div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span> </div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html">   49</a></span>    <span class="keyword">class </span><a class="code hl_class" href="classuvgrtp_1_1media__stream.html">media_stream</a> {</div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>        <span class="keyword">public</span>:</div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>            <a class="code hl_class" href="classuvgrtp_1_1media__stream.html">media_stream</a>(std::string cname, std::string remote_addr, std::string local_addr, uint16_t src_port, uint16_t dst_port,</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>                rtp_format_t fmt, <span class="keywordtype">int</span> rce_flags);</div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>            <a class="code hl_class" href="classuvgrtp_1_1media__stream.html">~media_stream</a>();</div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span> </div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>            <span class="comment">/* Initialize traditional RTP session</span></div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span><span class="comment">             * Allocate Connection/Reader/Writer objects and initialize them</span></div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span><span class="comment">             *</span></div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span><span class="comment">             * Return RTP_OK on success</span></div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span><span class="comment">             * Return RTP_MEMORY_ERROR if allocation failed</span></div>
-<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span><span class="comment">             *</span></div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span><span class="comment">             * Other error return codes are defined in {conn,writer,reader}.hh */</span></div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>            rtp_error_t init();</div>
-<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span> </div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>            <span class="comment">/* Initialize Secure RTP session</span></div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span><span class="comment">             * Allocate Connection/Reader/Writer objects and initialize them</span></div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span><span class="comment">             *</span></div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span><span class="comment">             * Return RTP_OK on success</span></div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="comment">             * Return RTP_MEMORY_ERROR if allocation failed</span></div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span><span class="comment">             *</span></div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="comment">             * TODO document all error codes!</span></div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="comment">             *</span></div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="comment">             * Other error return codes are defined in {conn,writer,reader,srtp}.hh */</span></div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>            rtp_error_t init(std::shared_ptr&lt;uvgrtp::zrtp&gt; zrtp);</div>
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span> </div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a0950a91bd645cbf842d8218ae4171aed">   93</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a0950a91bd645cbf842d8218ae4171aed">add_srtp_ctx</a>(uint8_t *key, uint8_t *salt);</div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span> </div>
-<div class="line"><a id="l00117" name="l00117"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a157e9973d92b65e82914d4028690c770">  117</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a157e9973d92b65e82914d4028690c770">push_frame</a>(uint8_t *data, <span class="keywordtype">size_t</span> data_len, <span class="keywordtype">int</span> rtp_flags);</div>
-<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span> </div>
-<div class="line"><a id="l00141" name="l00141"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a068a0963e06f789b4e4310a45cbe4409">  141</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a068a0963e06f789b4e4310a45cbe4409">push_frame</a>(std::unique_ptr&lt;uint8_t[]&gt; data, <span class="keywordtype">size_t</span> data_len, <span class="keywordtype">int</span> rtp_flags);</div>
-<div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span> </div>
-<div class="line"><a id="l00172" name="l00172"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#ac0cb1cf34b639c9ba71b047b3ba26d22">  172</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#ac0cb1cf34b639c9ba71b047b3ba26d22">push_frame</a>(uint8_t *data, <span class="keywordtype">size_t</span> data_len, uint32_t ts, <span class="keywordtype">int</span> rtp_flags);</div>
-<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span> </div>
-<div class="line"><a id="l00206" name="l00206"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a5577c57f1bdd5b888aa4e8c4f939eba7">  206</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a5577c57f1bdd5b888aa4e8c4f939eba7">push_frame</a>(uint8_t* data, <span class="keywordtype">size_t</span> data_len, uint32_t ts, uint64_t ntp_ts, <span class="keywordtype">int</span> rtp_flags);</div>
-<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span> </div>
-<div class="line"><a id="l00237" name="l00237"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#abe9099254c6bf16f255f5f50441ec9d2">  237</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#abe9099254c6bf16f255f5f50441ec9d2">push_frame</a>(std::unique_ptr&lt;uint8_t[]&gt; data, <span class="keywordtype">size_t</span> data_len, uint32_t ts, <span class="keywordtype">int</span> rtp_flags);</div>
-<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span> </div>
-<div class="line"><a id="l00271" name="l00271"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a56d2a209b2647d0f3ee7948e8cf45438">  271</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a56d2a209b2647d0f3ee7948e8cf45438">push_frame</a>(std::unique_ptr&lt;uint8_t[]&gt; data, <span class="keywordtype">size_t</span> data_len, uint32_t ts, uint64_t ntp_ts, <span class="keywordtype">int</span> rtp_flags);</div>
-<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span> </div>
-<div class="line"><a id="l00281" name="l00281"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#ab0c854a4c36572f91008a8e1e49e38bb">  281</a></span>            <a class="code hl_struct" href="structuvgrtp_1_1frame_1_1rtp__frame.html">uvgrtp::frame::rtp_frame</a> *<a class="code hl_function" href="classuvgrtp_1_1media__stream.html#ab0c854a4c36572f91008a8e1e49e38bb">pull_frame</a>();</div>
-<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span> </div>
-<div class="line"><a id="l00293" name="l00293"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a466067ad9924a52530c62c53c1b397b4">  293</a></span>            <a class="code hl_struct" href="structuvgrtp_1_1frame_1_1rtp__frame.html">uvgrtp::frame::rtp_frame</a> *<a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a466067ad9924a52530c62c53c1b397b4">pull_frame</a>(<span class="keywordtype">size_t</span> timeout_ms);</div>
-<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span> </div>
-<div class="line"><a id="l00313" name="l00313"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a74a558b23866976e52c5903996544a27">  313</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a74a558b23866976e52c5903996544a27">install_receive_hook</a>(<span class="keywordtype">void</span> *arg, <span class="keywordtype">void</span> (*hook)(<span class="keywordtype">void</span> *, <a class="code hl_struct" href="structuvgrtp_1_1frame_1_1rtp__frame.html">uvgrtp::frame::rtp_frame</a> *));</div>
-<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span> </div>
-<div class="line"><a id="l00324" name="l00324"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a2cee4fe3bf423ec317b4a3eacc136238">  324</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a2cee4fe3bf423ec317b4a3eacc136238">configure_ctx</a>(<span class="keywordtype">int</span> rcc_flag, ssize_t value);</div>
-<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span> </div>
-<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span> </div>
-<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span>            <span class="comment">/* Get unique key of the media stream</span></div>
-<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span><span class="comment">             * Used by session to index media streams */</span></div>
-<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>            uint32_t get_key() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span> </div>
-<div class="line"><a id="l00344" name="l00344"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#ab339f15d5a852beacd901b7b78e887ea">  344</a></span>            <a class="code hl_class" href="classuvgrtp_1_1rtcp.html">uvgrtp::rtcp</a> *<a class="code hl_function" href="classuvgrtp_1_1media__stream.html#ab339f15d5a852beacd901b7b78e887ea">get_rtcp</a>();</div>
-<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span> </div>
-<div class="line"><a id="l00352" name="l00352"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a8796cb34e0e6c61af8cabd13dd6793b5">  352</a></span>            uint32_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a8796cb34e0e6c61af8cabd13dd6793b5">get_ssrc</a>() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span> </div>
-<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>        <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span>            <span class="comment">/* Initialize the connection by initializing the socket</span></div>
-<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span><span class="comment">             * and binding ourselves to specified interface and creating</span></div>
-<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span><span class="comment">             * an outgoing address */</span></div>
-<div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>            rtp_error_t init_connection();</div>
-<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span> </div>
-<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>            <span class="comment">/* Create the media object for the stream */</span></div>
-<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>            rtp_error_t create_media(rtp_format_t fmt);</div>
-<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span> </div>
-<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>            <span class="comment">/* free all allocated resources */</span></div>
-<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>            rtp_error_t free_resources(rtp_error_t ret);</div>
-<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span> </div>
-<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span>            rtp_error_t init_srtp_with_zrtp(<span class="keywordtype">int</span> rce_flags, <span class="keywordtype">int</span> type, std::shared_ptr&lt;uvgrtp::base_srtp&gt; srtp,</div>
-<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>                                            std::shared_ptr&lt;uvgrtp::zrtp&gt; zrtp);</div>
-<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span> </div>
-<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>            rtp_error_t start_components();</div>
-<div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span> </div>
-<div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span>            uint32_t get_default_bandwidth_kbps(rtp_format_t fmt);</div>
-<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span> </div>
-<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span>            <span class="keywordtype">bool</span> check_pull_preconditions();</div>
-<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>            rtp_error_t check_push_preconditions(<span class="keywordtype">int</span> rtp_flags, <span class="keywordtype">bool</span> smart_pointer);</div>
-<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span> </div>
-<div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>            <span class="keyword">inline</span> uint8_t* copy_frame(uint8_t* original, <span class="keywordtype">size_t</span> data_len);</div>
-<div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span> </div>
-<div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span>            uint32_t key_;</div>
-<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span> </div>
-<div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span>            std::shared_ptr&lt;uvgrtp::srtp&gt;   srtp_;</div>
-<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>            std::shared_ptr&lt;uvgrtp::srtcp&gt;  srtcp_;</div>
-<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span>            std::shared_ptr&lt;uvgrtp::socket&gt; socket_;</div>
-<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span>            std::shared_ptr&lt;uvgrtp::rtp&gt;    rtp_;</div>
-<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span>            std::shared_ptr&lt;uvgrtp::rtcp&gt;   rtcp_;</div>
-<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span> </div>
-<div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>            sockaddr_in remote_sockaddr_;</div>
-<div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span>            std::string remote_address_;</div>
-<div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span>            std::string local_address_;</div>
-<div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span>            uint16_t src_port_;</div>
-<div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span>            uint16_t dst_port_;</div>
-<div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span>            rtp_format_t fmt_;</div>
-<div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span> </div>
-<div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span>            <span class="comment">/* Media context config */</span></div>
-<div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span>            <span class="keywordtype">int</span> rce_flags_ = 0;</div>
+<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="preprocessor">#else</span></div>
+<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="preprocessor">#include &lt;ws2ipdef.h&gt;</span></div>
+<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="keyword">namespace </span>uvgrtp {</div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span> </div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>    <span class="comment">// forward declarations</span></div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>    <span class="keyword">class </span>rtp;</div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>    <span class="keyword">class </span>rtcp;</div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span> </div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>    <span class="keyword">class </span>zrtp;</div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>    <span class="keyword">class </span>base_srtp;</div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>    <span class="keyword">class </span>srtp;</div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>    <span class="keyword">class </span>srtcp;</div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span> </div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>    <span class="keyword">class </span>reception_flow;</div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>    <span class="keyword">class </span>holepuncher;</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>    <span class="keyword">class </span>socket;</div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span> </div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>    <span class="keyword">namespace </span>frame {</div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>        <span class="keyword">struct </span>rtp_frame;</div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>    }</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span> </div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>    <span class="keyword">namespace </span>formats {</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>        <span class="keyword">class </span>media;</div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>    }</div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span> </div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html">   50</a></span>    <span class="keyword">class </span><a class="code hl_class" href="classuvgrtp_1_1media__stream.html">media_stream</a> {</div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>        <span class="keyword">public</span>:</div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>            <a class="code hl_class" href="classuvgrtp_1_1media__stream.html">media_stream</a>(std::string cname, std::string remote_addr, std::string local_addr, uint16_t src_port, uint16_t dst_port,</div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>                rtp_format_t fmt, <span class="keywordtype">int</span> rce_flags);</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>            <a class="code hl_class" href="classuvgrtp_1_1media__stream.html">~media_stream</a>();</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span> </div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>            <span class="comment">/* Initialize traditional RTP session</span></div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span><span class="comment">             * Allocate Connection/Reader/Writer objects and initialize them</span></div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span><span class="comment">             *</span></div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span><span class="comment">             * Return RTP_OK on success</span></div>
+<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span><span class="comment">             * Return RTP_MEMORY_ERROR if allocation failed</span></div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span><span class="comment">             *</span></div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span><span class="comment">             * Other error return codes are defined in {conn,writer,reader}.hh */</span></div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>            rtp_error_t init();</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span> </div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>            <span class="comment">/* Initialize Secure RTP session</span></div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span><span class="comment">             * Allocate Connection/Reader/Writer objects and initialize them</span></div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span><span class="comment">             *</span></div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="comment">             * Return RTP_OK on success</span></div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span><span class="comment">             * Return RTP_MEMORY_ERROR if allocation failed</span></div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="comment">             *</span></div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="comment">             * TODO document all error codes!</span></div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="comment">             *</span></div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span><span class="comment">             * Other error return codes are defined in {conn,writer,reader,srtp}.hh */</span></div>
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>            rtp_error_t init(std::shared_ptr&lt;uvgrtp::zrtp&gt; zrtp);</div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span> </div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a0950a91bd645cbf842d8218ae4171aed">   94</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a0950a91bd645cbf842d8218ae4171aed">add_srtp_ctx</a>(uint8_t *key, uint8_t *salt);</div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span> </div>
+<div class="line"><a id="l00118" name="l00118"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a157e9973d92b65e82914d4028690c770">  118</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a157e9973d92b65e82914d4028690c770">push_frame</a>(uint8_t *data, <span class="keywordtype">size_t</span> data_len, <span class="keywordtype">int</span> rtp_flags);</div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span> </div>
+<div class="line"><a id="l00142" name="l00142"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a068a0963e06f789b4e4310a45cbe4409">  142</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a068a0963e06f789b4e4310a45cbe4409">push_frame</a>(std::unique_ptr&lt;uint8_t[]&gt; data, <span class="keywordtype">size_t</span> data_len, <span class="keywordtype">int</span> rtp_flags);</div>
+<div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span> </div>
+<div class="line"><a id="l00173" name="l00173"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#ac0cb1cf34b639c9ba71b047b3ba26d22">  173</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#ac0cb1cf34b639c9ba71b047b3ba26d22">push_frame</a>(uint8_t *data, <span class="keywordtype">size_t</span> data_len, uint32_t ts, <span class="keywordtype">int</span> rtp_flags);</div>
+<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span> </div>
+<div class="line"><a id="l00207" name="l00207"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a5577c57f1bdd5b888aa4e8c4f939eba7">  207</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a5577c57f1bdd5b888aa4e8c4f939eba7">push_frame</a>(uint8_t* data, <span class="keywordtype">size_t</span> data_len, uint32_t ts, uint64_t ntp_ts, <span class="keywordtype">int</span> rtp_flags);</div>
+<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span> </div>
+<div class="line"><a id="l00238" name="l00238"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#abe9099254c6bf16f255f5f50441ec9d2">  238</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#abe9099254c6bf16f255f5f50441ec9d2">push_frame</a>(std::unique_ptr&lt;uint8_t[]&gt; data, <span class="keywordtype">size_t</span> data_len, uint32_t ts, <span class="keywordtype">int</span> rtp_flags);</div>
+<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span> </div>
+<div class="line"><a id="l00272" name="l00272"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a56d2a209b2647d0f3ee7948e8cf45438">  272</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a56d2a209b2647d0f3ee7948e8cf45438">push_frame</a>(std::unique_ptr&lt;uint8_t[]&gt; data, <span class="keywordtype">size_t</span> data_len, uint32_t ts, uint64_t ntp_ts, <span class="keywordtype">int</span> rtp_flags);</div>
+<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span> </div>
+<div class="line"><a id="l00282" name="l00282"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#ab0c854a4c36572f91008a8e1e49e38bb">  282</a></span>            <a class="code hl_struct" href="structuvgrtp_1_1frame_1_1rtp__frame.html">uvgrtp::frame::rtp_frame</a> *<a class="code hl_function" href="classuvgrtp_1_1media__stream.html#ab0c854a4c36572f91008a8e1e49e38bb">pull_frame</a>();</div>
+<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span> </div>
+<div class="line"><a id="l00294" name="l00294"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a466067ad9924a52530c62c53c1b397b4">  294</a></span>            <a class="code hl_struct" href="structuvgrtp_1_1frame_1_1rtp__frame.html">uvgrtp::frame::rtp_frame</a> *<a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a466067ad9924a52530c62c53c1b397b4">pull_frame</a>(<span class="keywordtype">size_t</span> timeout_ms);</div>
+<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span> </div>
+<div class="line"><a id="l00314" name="l00314"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a74a558b23866976e52c5903996544a27">  314</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a74a558b23866976e52c5903996544a27">install_receive_hook</a>(<span class="keywordtype">void</span> *arg, <span class="keywordtype">void</span> (*hook)(<span class="keywordtype">void</span> *, <a class="code hl_struct" href="structuvgrtp_1_1frame_1_1rtp__frame.html">uvgrtp::frame::rtp_frame</a> *));</div>
+<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span> </div>
+<div class="line"><a id="l00325" name="l00325"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a2cee4fe3bf423ec317b4a3eacc136238">  325</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a2cee4fe3bf423ec317b4a3eacc136238">configure_ctx</a>(<span class="keywordtype">int</span> rcc_flag, ssize_t value);</div>
+<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span> </div>
+<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span> </div>
+<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>            <span class="comment">/* Get unique key of the media stream</span></div>
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span><span class="comment">             * Used by session to index media streams */</span></div>
+<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>            uint32_t get_key() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span> </div>
+<div class="line"><a id="l00345" name="l00345"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#ab339f15d5a852beacd901b7b78e887ea">  345</a></span>            <a class="code hl_class" href="classuvgrtp_1_1rtcp.html">uvgrtp::rtcp</a> *<a class="code hl_function" href="classuvgrtp_1_1media__stream.html#ab339f15d5a852beacd901b7b78e887ea">get_rtcp</a>();</div>
+<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span> </div>
+<div class="line"><a id="l00353" name="l00353"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1media__stream.html#a8796cb34e0e6c61af8cabd13dd6793b5">  353</a></span>            uint32_t <a class="code hl_function" href="classuvgrtp_1_1media__stream.html#a8796cb34e0e6c61af8cabd13dd6793b5">get_ssrc</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span> </div>
+<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span>        <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>            <span class="comment">/* Initialize the connection by initializing the socket</span></div>
+<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span><span class="comment">             * and binding ourselves to specified interface and creating</span></div>
+<div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span><span class="comment">             * an outgoing address */</span></div>
+<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>            rtp_error_t init_connection();</div>
+<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span> </div>
+<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>            <span class="comment">/* Create the media object for the stream */</span></div>
+<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>            rtp_error_t create_media(rtp_format_t fmt);</div>
+<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span> </div>
+<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>            <span class="comment">/* free all allocated resources */</span></div>
+<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>            rtp_error_t free_resources(rtp_error_t ret);</div>
+<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span> </div>
+<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>            rtp_error_t init_srtp_with_zrtp(<span class="keywordtype">int</span> rce_flags, <span class="keywordtype">int</span> type, std::shared_ptr&lt;uvgrtp::base_srtp&gt; srtp,</div>
+<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>                                            std::shared_ptr&lt;uvgrtp::zrtp&gt; zrtp);</div>
+<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span> </div>
+<div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span>            rtp_error_t start_components();</div>
+<div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span> </div>
+<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span>            uint32_t get_default_bandwidth_kbps(rtp_format_t fmt);</div>
+<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span> </div>
+<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>            <span class="keywordtype">bool</span> check_pull_preconditions();</div>
+<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>            rtp_error_t check_push_preconditions(<span class="keywordtype">int</span> rtp_flags, <span class="keywordtype">bool</span> smart_pointer);</div>
+<div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span> </div>
+<div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span>            <span class="keyword">inline</span> uint8_t* copy_frame(uint8_t* original, <span class="keywordtype">size_t</span> data_len);</div>
+<div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span> </div>
+<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span>            uint32_t key_;</div>
+<div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span> </div>
+<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>            std::shared_ptr&lt;uvgrtp::srtp&gt;   srtp_;</div>
+<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span>            std::shared_ptr&lt;uvgrtp::srtcp&gt;  srtcp_;</div>
+<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span>            std::shared_ptr&lt;uvgrtp::socket&gt; socket_;</div>
+<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span>            std::shared_ptr&lt;uvgrtp::rtp&gt;    rtp_;</div>
+<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span>            std::shared_ptr&lt;uvgrtp::rtcp&gt;   rtcp_;</div>
+<div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span> </div>
+<div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span>            sockaddr_in remote_sockaddr_;</div>
+<div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span>            sockaddr_in6 remote_sockaddr_ip6_;</div>
+<div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span>            std::string remote_address_;</div>
+<div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span>            std::string local_address_;</div>
+<div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span>            uint16_t src_port_;</div>
+<div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span>            uint16_t dst_port_;</div>
+<div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span>            <span class="keywordtype">bool</span> ipv6_;</div>
+<div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span>            rtp_format_t fmt_;</div>
 <div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span> </div>
-<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span>            <span class="comment">/* Has the media stream been initialized */</span></div>
-<div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span>            <span class="keywordtype">bool</span> initialized_;</div>
+<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span>            <span class="comment">/* Media context config */</span></div>
+<div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span>            <span class="keywordtype">int</span> rce_flags_ = 0;</div>
 <div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span> </div>
-<div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span>            <span class="comment">/* Primary handler keys for the RTP reception flow */</span></div>
-<div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span>            uint32_t rtp_handler_key_;</div>
-<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span>            uint32_t zrtp_handler_key_;</div>
-<div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span> </div>
-<div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span>            <span class="comment">/* RTP packet reception flow. Dispatches packets to other components */</span></div>
-<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span>            std::unique_ptr&lt;uvgrtp::reception_flow&gt; reception_flow_;</div>
+<div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span>            <span class="comment">/* Has the media stream been initialized */</span></div>
+<div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span>            <span class="keywordtype">bool</span> initialized_;</div>
+<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span> </div>
+<div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span>            <span class="comment">/* Primary handler keys for the RTP reception flow */</span></div>
+<div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span>            uint32_t rtp_handler_key_;</div>
+<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span>            uint32_t zrtp_handler_key_;</div>
 <div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span> </div>
-<div class="line"><a id="l00406" name="l00406"></a><span class="lineno">  406</span>            <span class="comment">/* Media object associated with this media stream. */</span></div>
-<div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span>            std::unique_ptr&lt;uvgrtp::formats::media&gt; media_;</div>
+<div class="line"><a id="l00406" name="l00406"></a><span class="lineno">  406</span>            <span class="comment">/* RTP packet reception flow. Dispatches packets to other components */</span></div>
+<div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span>            std::unique_ptr&lt;uvgrtp::reception_flow&gt; reception_flow_;</div>
 <div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span> </div>
-<div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span>            <span class="comment">/* Thread that keeps the holepunched connection open for unidirectional streams */</span></div>
-<div class="line"><a id="l00410" name="l00410"></a><span class="lineno">  410</span>            std::unique_ptr&lt;uvgrtp::holepuncher&gt; holepuncher_;</div>
+<div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span>            <span class="comment">/* Media object associated with this media stream. */</span></div>
+<div class="line"><a id="l00410" name="l00410"></a><span class="lineno">  410</span>            std::unique_ptr&lt;uvgrtp::formats::media&gt; media_;</div>
 <div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span> </div>
-<div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span>            std::string cname_;</div>
-<div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span> </div>
-<div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span>            ssize_t fps_numerator_ = 30;</div>
-<div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span>            ssize_t fps_denominator_ = 1;</div>
-<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span>            uint32_t bandwidth_ = 0;</div>
-<div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span>            std::shared_ptr&lt;std::atomic&lt;std::uint32_t&gt;&gt; ssrc_;</div>
-<div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span>    };</div>
-<div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span>}</div>
-<div class="line"><a id="l00420" name="l00420"></a><span class="lineno">  420</span> </div>
-<div class="line"><a id="l00421" name="l00421"></a><span class="lineno">  421</span><span class="keyword">namespace </span>uvg_rtp = uvgrtp;</div>
-<div class="ttc" id="aclassuvgrtp_1_1media__stream_html"><div class="ttname"><a href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a></div><div class="ttdoc">The media_stream is an entity which represents one RTP stream.</div><div class="ttdef"><b>Definition:</b> <a href="media__stream_8hh_source.html#l00049">media_stream.hh:49</a></div></div>
+<div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span>            <span class="comment">/* Thread that keeps the holepunched connection open for unidirectional streams */</span></div>
+<div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span>            std::unique_ptr&lt;uvgrtp::holepuncher&gt; holepuncher_;</div>
+<div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span> </div>
+<div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span>            std::string cname_;</div>
+<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span> </div>
+<div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span>            ssize_t fps_numerator_ = 30;</div>
+<div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span>            ssize_t fps_denominator_ = 1;</div>
+<div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span>            uint32_t bandwidth_ = 0;</div>
+<div class="line"><a id="l00420" name="l00420"></a><span class="lineno">  420</span>            std::shared_ptr&lt;std::atomic&lt;std::uint32_t&gt;&gt; ssrc_;</div>
+<div class="line"><a id="l00421" name="l00421"></a><span class="lineno">  421</span>    };</div>
+<div class="line"><a id="l00422" name="l00422"></a><span class="lineno">  422</span>}</div>
+<div class="line"><a id="l00423" name="l00423"></a><span class="lineno">  423</span> </div>
+<div class="line"><a id="l00424" name="l00424"></a><span class="lineno">  424</span><span class="keyword">namespace </span>uvg_rtp = uvgrtp;</div>
+<div class="ttc" id="aclassuvgrtp_1_1media__stream_html"><div class="ttname"><a href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a></div><div class="ttdoc">The media_stream is an entity which represents one RTP stream.</div><div class="ttdef"><b>Definition:</b> <a href="media__stream_8hh_source.html#l00050">media_stream.hh:50</a></div></div>
 <div class="ttc" id="aclassuvgrtp_1_1media__stream_html_a068a0963e06f789b4e4310a45cbe4409"><div class="ttname"><a href="classuvgrtp_1_1media__stream.html#a068a0963e06f789b4e4310a45cbe4409">uvgrtp::media_stream::push_frame</a></div><div class="ttdeci">rtp_error_t push_frame(std::unique_ptr&lt; uint8_t[]&gt; data, size_t data_len, int rtp_flags)</div><div class="ttdoc">Send data to remote participant with a custom timestamp.</div></div>
 <div class="ttc" id="aclassuvgrtp_1_1media__stream_html_a0950a91bd645cbf842d8218ae4171aed"><div class="ttname"><a href="classuvgrtp_1_1media__stream.html#a0950a91bd645cbf842d8218ae4171aed">uvgrtp::media_stream::add_srtp_ctx</a></div><div class="ttdeci">rtp_error_t add_srtp_ctx(uint8_t *key, uint8_t *salt)</div><div class="ttdoc">Add keying information for user-managed SRTP session.</div></div>
 <div class="ttc" id="aclassuvgrtp_1_1media__stream_html_a157e9973d92b65e82914d4028690c770"><div class="ttname"><a href="classuvgrtp_1_1media__stream.html#a157e9973d92b65e82914d4028690c770">uvgrtp::media_stream::push_frame</a></div><div class="ttdeci">rtp_error_t push_frame(uint8_t *data, size_t data_len, int rtp_flags)</div><div class="ttdoc">Send data to remote participant with a custom timestamp.</div></div>
@@ -253,7 +256,7 @@ $(function() {
 <div class="ttc" id="aclassuvgrtp_1_1media__stream_html_ab339f15d5a852beacd901b7b78e887ea"><div class="ttname"><a href="classuvgrtp_1_1media__stream.html#ab339f15d5a852beacd901b7b78e887ea">uvgrtp::media_stream::get_rtcp</a></div><div class="ttdeci">uvgrtp::rtcp * get_rtcp()</div><div class="ttdoc">Get pointer to the RTCP object of the media stream.</div></div>
 <div class="ttc" id="aclassuvgrtp_1_1media__stream_html_abe9099254c6bf16f255f5f50441ec9d2"><div class="ttname"><a href="classuvgrtp_1_1media__stream.html#abe9099254c6bf16f255f5f50441ec9d2">uvgrtp::media_stream::push_frame</a></div><div class="ttdeci">rtp_error_t push_frame(std::unique_ptr&lt; uint8_t[]&gt; data, size_t data_len, uint32_t ts, int rtp_flags)</div><div class="ttdoc">Send data to remote participant with a custom timestamp.</div></div>
 <div class="ttc" id="aclassuvgrtp_1_1media__stream_html_ac0cb1cf34b639c9ba71b047b3ba26d22"><div class="ttname"><a href="classuvgrtp_1_1media__stream.html#ac0cb1cf34b639c9ba71b047b3ba26d22">uvgrtp::media_stream::push_frame</a></div><div class="ttdeci">rtp_error_t push_frame(uint8_t *data, size_t data_len, uint32_t ts, int rtp_flags)</div><div class="ttdoc">Send data to remote participant with a custom timestamp.</div></div>
-<div class="ttc" id="aclassuvgrtp_1_1rtcp_html"><div class="ttname"><a href="classuvgrtp_1_1rtcp.html">uvgrtp::rtcp</a></div><div class="ttdoc">RTCP instance handles all incoming and outgoing RTCP traffic, including report generation.</div><div class="ttdef"><b>Definition:</b> <a href="rtcp_8hh_source.html#l00111">rtcp.hh:111</a></div></div>
+<div class="ttc" id="aclassuvgrtp_1_1rtcp_html"><div class="ttname"><a href="classuvgrtp_1_1rtcp.html">uvgrtp::rtcp</a></div><div class="ttdoc">RTCP instance handles all incoming and outgoing RTCP traffic, including report generation.</div><div class="ttdef"><b>Definition:</b> <a href="rtcp_8hh_source.html#l00118">rtcp.hh:118</a></div></div>
 <div class="ttc" id="astructuvgrtp_1_1frame_1_1rtp__frame_html"><div class="ttname"><a href="structuvgrtp_1_1frame_1_1rtp__frame.html">uvgrtp::frame::rtp_frame</a></div><div class="ttdoc">See RFC 3550 section 5</div><div class="ttdef"><b>Definition:</b> <a href="frame_8hh_source.html#l00053">frame.hh:53</a></div></div>
 <div class="ttc" id="autil_8hh_html"><div class="ttname"><a href="util_8hh.html">util.hh</a></div></div>
 </div><!-- fragment --></div><!-- contents -->

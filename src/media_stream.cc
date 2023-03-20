@@ -449,13 +449,14 @@ rtp_error_t uvgrtp::media_stream::start_components()
         }
     }
 
-    if (rce_flags_ & RCE_SRTP_AUTHENTICATE_RTP)
+    if (rce_flags_ & RCE_SRTP_AUTHENTICATE_RTP) {
         if (ipv6_) {
             rtp_->set_payload_size(MAX_IPV6_MEDIA_PAYLOAD - UVG_AUTH_TAG_LENGTH);
         }
         else {
             rtp_->set_payload_size(MAX_IPV4_MEDIA_PAYLOAD - UVG_AUTH_TAG_LENGTH);
         }
+    }
 
     initialized_ = true;
     return reception_flow_->start(socket_, rce_flags_);

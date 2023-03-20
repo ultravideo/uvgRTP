@@ -21,7 +21,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">uvgRTP<span id="projectnumber">&#160;2.2.0</span>
+   <div id="projectname">uvgRTP<span id="projectnumber">&#160;2.3.0</span>
    </div>
    <div id="projectbrief">An open-source library for RTP/SRTP media delivery</div>
   </td>
@@ -127,6 +127,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a8796cb34e0e6c61af8cabd13dd6793b5"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1media__stream.html#a8796cb34e0e6c61af8cabd13dd6793b5">get_ssrc</a> () const</td></tr>
 <tr class="memdesc:a8796cb34e0e6c61af8cabd13dd6793b5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get SSRC identifier. You can use the SSRC value for example to find the report block belonging to this <a class="el" href="classuvgrtp_1_1media__stream.html" title="The media_stream is an entity which represents one RTP stream.">media_stream</a> in RTCP sender/receiver report.  <br /></td></tr>
 <tr class="separator:a8796cb34e0e6c61af8cabd13dd6793b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a13b543a64861d06fc74c87aa51d1dbe9"><td class="memItemLeft" align="right" valign="top"><a id="a13b543a64861d06fc74c87aa51d1dbe9" name="a13b543a64861d06fc74c87aa51d1dbe9"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>get_ipv6</b> () const</td></tr>
+<tr class="separator:a13b543a64861d06fc74c87aa51d1dbe9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The <a class="el" href="classuvgrtp_1_1media__stream.html" title="The media_stream is an entity which represents one RTP stream.">media_stream</a> is an entity which represents one RTP stream. </p>
@@ -134,7 +137,7 @@ Public Member Functions</h2></td></tr>
 <p>If RCE_RTCP was given when creating <a class="el" href="classuvgrtp_1_1media__stream.html" title="The media_stream is an entity which represents one RTP stream.">media_stream</a>, you can get the <a class="el" href="classuvgrtp_1_1rtcp.html" title="RTCP instance handles all incoming and outgoing RTCP traffic, including report generation.">uvgrtp::rtcp</a> object with <a class="el" href="classuvgrtp_1_1media__stream.html#ab339f15d5a852beacd901b7b78e887ea" title="Get pointer to the RTCP object of the media stream.">get_rtcp()</a>-function.</p>
 <p><a class="el" href="classuvgrtp_1_1media__stream.html" title="The media_stream is an entity which represents one RTP stream.">media_stream</a> corresponds to one RTP session in <a href="https://www.rfc-editor.org/rfc/rfc3550">RFC 3550</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="media__stream_8hh_source.html#l00049">49</a> of file <a class="el" href="media__stream_8hh_source.html">media_stream.hh</a>.</p>
+<p class="definition">Definition at line <a class="el" href="media__stream_8hh_source.html#l00050">50</a> of file <a class="el" href="media__stream_8hh_source.html">media_stream.hh</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a0950a91bd645cbf842d8218ae4171aed" name="a0950a91bd645cbf842d8218ae4171aed"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0950a91bd645cbf842d8218ae4171aed">&#9670;&#160;</a></span>add_srtp_ctx()</h2>
