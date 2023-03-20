@@ -145,6 +145,29 @@ rtp_error_t uvgrtp::socket::bind_ip6(sockaddr_in6& local_address)
     return RTP_OK;
 }
 
+int uvgrtp::socket::check_family(std::string addr) 
+{
+    // Use getaddrinfo() to determine whether we are using ipv4 or ipv6 addresses
+    struct addrinfo hint, * res = NULL;
+    memset(&hint, '\0', sizeof(hint));
+    hint.ai_family = PF_UNSPEC;
+    hint.ai_flags = AI_NUMERICHOST;
+
+    if (getaddrinfo(addr.c_str(), NULL, &hint, &res) != 0) {
+        UVG_LOG_ERROR("Invalid IP address");
+        return RTP_GENERIC_ERROR;
+    }
+    if (res->ai_family == AF_INET6) {
+        UVG_LOG_DEBUG("Using an IPv6 address");
+        return 2;
+    }
+    else {
+        UVG_LOG_DEBUG("Using an IPv4 address");
+        return 1;
+    }
+    return -1;
+}
+
 sockaddr_in uvgrtp::socket::create_sockaddr(short family, unsigned host, short port) const
 {
     assert(family == AF_INET);

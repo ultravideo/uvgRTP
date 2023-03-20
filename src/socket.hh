@@ -76,7 +76,6 @@ namespace uvgrtp {
 
             /* Create socket using "family", "type" and "protocol"
              *
-             * NOTE: Only family AF_INET (ie. IPv4) is supported
              *
              * Return RTP_OK on success
              * return RTP_SOCKET_ERROR if creating the socket failed */
@@ -89,6 +88,13 @@ namespace uvgrtp {
             rtp_error_t bind(short family, unsigned host, short port);
             rtp_error_t bind(sockaddr_in& local_address);
             rtp_error_t bind_ip6(sockaddr_in6& local_address);
+
+            /* Check if the given address is IPv4 or IPv6
+             *
+             * Return 1 for IPv4
+             * Return 2 for IPv6
+             * return -1 for error */
+            int check_family(std::string addr);
 
             /* Same as setsockopt(2), used to manipulate the underlying socket object
              *

@@ -49,6 +49,24 @@ uvgrtp::context::context()
     uvgrtp::random::init();
 }
 
+uvgrtp::context::context(std::string local_address)
+{
+    UVG_LOG_INFO("uvgRTP version: %s", uvgrtp::get_version().c_str());
+
+    cname_ = uvgrtp::context::generate_cname();
+
+#ifdef _WIN32
+    WSADATA wsd;
+    int rc;
+
+    if ((rc = WSAStartup(MAKEWORD(2, 2), &wsd)) != 0)
+        log_platform_error("WSAStartup() failed");
+#endif
+
+    uvgrtp::random::init();
+    local_address_ = local_address;
+}
+
 uvgrtp::context::~context()
 {
 #ifdef _WIN32

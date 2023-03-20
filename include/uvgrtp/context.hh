@@ -24,6 +24,12 @@ namespace uvgrtp {
             context();
 
             /**
+             * \brief RTP context constructor for using a single socket
+             *
+             */
+            context(std::string local_address);
+
+            /**
              * \brief RTP context destructor
              *
              * \details This does not destroy active sessions. They must be destroyed manually
@@ -91,6 +97,7 @@ namespace uvgrtp {
 
             /* CNAME is the same for all connections */
             std::string cname_;
+            std::string local_address_;
         };
 }
 

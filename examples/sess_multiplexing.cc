@@ -26,7 +26,7 @@ int main(void)
     std::cout << "Starting uvgRTP RTP sending example" << std::endl;
 
     /* To use the library, one must create a global RTP context object */
-    uvgrtp::context ctx;
+    uvgrtp::context ctx(ADDR);
 
     // A session represents
     uvgrtp::session* sess = ctx.create_session(ADDR, ADDR);
