@@ -155,7 +155,7 @@ The second way of handling key-management of SRTP is to do it outside uvgRTP. To
 
 ## MTU size
 
-The default MTU size of uvgRTP has been set to 1492 to account for 8 bytes of unknown overhead. uvgRTP assumes the presence of an UDP header and IP header in addition an RTP header which are taken into account when fragmenting frames. If your application is expected to work through tunneling such as VPN which adds additional headers on top of packets, you may need to lower the MTU size to avoid IP level fragmentation. Some networks also allow for a higher MTU size in which case you can increase this.
+The default MTU size of uvgRTP has been set to 1492 to account for 8 bytes of unknown overhead. uvgRTP assumes the presence of an UDP header and IP header in addition an RTP header which are taken into account when fragmenting frames. If your application is expected to work through tunneling such as VPN or IP tunneling which adds additional headers on top of packets, you may need to lower the MTU size to avoid IP level fragmentation. Some networks also allow for a higher MTU size in which case you can increase this.
 
 ## uvgRTP video reception behavior with packet loss
 

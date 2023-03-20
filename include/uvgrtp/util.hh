@@ -334,7 +334,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
 
     /** Set a maximum value for the Ethernet frame size assumed by uvgRTP.
      *
-     * Default is 1492, from this IPv4 and UDP, and RTP headers
+     * Default is 1492, from this IP and UDP, and RTP headers
      * are removed, giving a payload size of 1452 bytes.
      *
      * If application wishes to use small UDP datagram,

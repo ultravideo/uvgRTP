@@ -34,7 +34,7 @@ namespace uvgrtp {
             /**
              * \brief Create a new RTP session
              *
-             * \param address IPv4 address of the remote participant
+             * \param address IP address of the remote participant
              *
              * \return RTP session object
              *
@@ -51,8 +51,8 @@ namespace uvgrtp {
              * should bind itself to. If you are using uvgRTP for unidirectional streaming,
              * please take a look at @ref RCE_HOLEPUNCH_KEEPALIVE
              *
-             * \param remote_addr IPv4 address of the remote participant
-             * \param local_addr  IPv4 address of a local interface
+             * \param remote_addr IP address of the remote participant
+             * \param local_addr  IP address of a local interface
              *
              * \return RTP session object
              *
