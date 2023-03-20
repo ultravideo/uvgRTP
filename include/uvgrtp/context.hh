@@ -34,7 +34,7 @@ namespace uvgrtp {
             /**
              * \brief Create a new RTP session
              *
-             * \param address IPv4 address of the remote participant
+             * \param address IPv4 or IPv6 address of the remote participant
              *
              * \return RTP session object
              *
