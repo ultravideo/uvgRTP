@@ -8,7 +8,7 @@ constexpr uint16_t REMOTE_PORT = 9202;
 
 constexpr uint16_t PAYLOAD_LEN = 256;
 constexpr uint16_t FRAME_RATE = 30;
-constexpr uint32_t EXAMPLE_RUN_TIME_S = 14;
+constexpr uint32_t EXAMPLE_RUN_TIME_S = 4;
 constexpr int SEND_TEST_PACKETS = FRAME_RATE * EXAMPLE_RUN_TIME_S;
 constexpr int PACKET_INTERVAL_MS = 1000 / FRAME_RATE;
 
@@ -32,13 +32,13 @@ TEST(RTCPTests, rtcp) {
     uvgrtp::media_stream* local_stream = nullptr;
     if (local_session)
     {
-        local_stream = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
+        local_stream = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, flags);
     }
 
     uvgrtp::media_stream* remote_stream = nullptr;
     if (remote_session)
     {
-        remote_stream = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
+        remote_stream = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_H265, flags);
     }
 
     EXPECT_NE(nullptr, remote_stream);
@@ -76,12 +76,14 @@ TEST(RTCPTests, rtcp_app) {
     if (local_session)
     {
         local_stream = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
+        local_stream->configure_ctx(RCC_SESSION_BANDWIDTH, 3000);
     }
 
     uvgrtp::media_stream* remote_stream = nullptr;
     if (remote_session)
     {
         remote_stream = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
+        remote_stream->configure_ctx(RCC_SESSION_BANDWIDTH, 3000);
     }
 
     EXPECT_NE(nullptr, remote_stream);
@@ -121,12 +123,16 @@ TEST(RTCP_reopen_receiver, rtcp) {
     if (local_session)
     {
         local_stream = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
+        local_stream->configure_ctx(RCC_SESSION_BANDWIDTH, 3000);
+
     }
 
     uvgrtp::media_stream* remote_stream = nullptr;
     if (remote_session)
     {
         remote_stream = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
+        remote_stream->configure_ctx(RCC_SESSION_BANDWIDTH, 3000);
+
     }
 
     EXPECT_NE(nullptr, remote_stream);
@@ -155,6 +161,7 @@ TEST(RTCP_reopen_receiver, rtcp) {
             std::cout << "Closing and reopening receiver for testing purposes" << std::endl;
             remote_session->destroy_stream(remote_stream);
             remote_stream = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
+            remote_stream->configure_ctx(RCC_SESSION_BANDWIDTH, 3000);
             EXPECT_NE(nullptr, remote_stream);
         }
 
