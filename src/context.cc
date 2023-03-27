@@ -6,7 +6,6 @@
 #include "crypto.hh"
 #include "debug.hh"
 #include "hostname.hh"
-#include "random.hh"
 
 #include <cstdlib>
 #include <cstring>
@@ -45,8 +44,6 @@ uvgrtp::context::context()
     if ((rc = WSAStartup(MAKEWORD(2, 2), &wsd)) != 0)
         log_platform_error("WSAStartup() failed");
 #endif
-
-    uvgrtp::random::init();
 }
 
 uvgrtp::context::~context()
