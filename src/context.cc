@@ -49,7 +49,7 @@ uvgrtp::context::context()
     uvgrtp::random::init();
 }
 
-uvgrtp::context::context(std::string local_address)
+uvgrtp::context::context(std::string local_address, uint8_t local_port)
 {
     UVG_LOG_INFO("uvgRTP version: %s", uvgrtp::get_version().c_str());
 
@@ -65,6 +65,7 @@ uvgrtp::context::context(std::string local_address)
 
     uvgrtp::random::init();
     local_address_ = local_address;
+    local_port_ = local_port;
 }
 
 uvgrtp::context::~context()

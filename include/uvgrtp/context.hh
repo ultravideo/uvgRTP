@@ -4,6 +4,12 @@
 
 #include <map>
 #include <string>
+#ifdef _WIN32
+#include <ws2ipdef.h>
+#else
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
 
 
 namespace uvgrtp {
@@ -25,9 +31,12 @@ namespace uvgrtp {
 
             /**
              * \brief RTP context constructor for using a single socket
+             * 
+             * * \param address local IPv4 or IPv6 address
+             * * \param address local port
              *
              */
-            context(std::string local_address);
+            context(std::string local_address, uint8_t local_port);
 
             /**
              * \brief RTP context destructor
@@ -98,6 +107,9 @@ namespace uvgrtp {
             /* CNAME is the same for all connections */
             std::string cname_;
             std::string local_address_;
+            uint8_t local_port_;
+            sockaddr_in local_sockaddr_;
+            sockaddr_in6 local_sockaddr_ip6_;
         };
 }
 

@@ -23,7 +23,7 @@ constexpr auto   END_WAIT = std::chrono::seconds(5);
 
 int main(void)
 {
-    std::cout << "Starting uvgRTP RTP sending example" << std::endl;
+    std::cout << "Starting uvgRTP session multiplexing into single socket example" << std::endl;
 
     /* To use the library, one must create a global RTP context object */
     uvgrtp::context ctx(ADDR);
