@@ -63,7 +63,7 @@ namespace uvgrtp {
             uvgrtp::media_stream *create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags);
 
             // socket factory, add docs
-            uvgrtp::media_stream* create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags, uvgrtp::socketfactory sf);
+            uvgrtp::media_stream* create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags);
 
             /**
              * \brief Create a unidirectional media_stream for an RTP session
