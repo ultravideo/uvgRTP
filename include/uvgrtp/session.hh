@@ -12,6 +12,7 @@ namespace uvgrtp {
 
     class media_stream;
     class zrtp;
+    class socketfactory;
 
     /** \brief Provides ZRTP synchronization and can be used to create uvgrtp::media_stream objects
      *
@@ -60,6 +61,9 @@ namespace uvgrtp {
              * \retval nullptr                On failure, see print and 
              */
             uvgrtp::media_stream *create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags);
+
+            // socket factory, add docs
+            uvgrtp::media_stream* create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags, uvgrtp::socketfactory sf);
 
             /**
              * \brief Create a unidirectional media_stream for an RTP session
