@@ -51,7 +51,7 @@ namespace uvgrtp {
         public:
             /// \cond DO_NOT_DOCUMENT
             media_stream(std::string cname, std::string remote_addr, std::string local_addr, uint16_t src_port, uint16_t dst_port,
-                rtp_format_t fmt, int rce_flags);
+                rtp_format_t fmt, int rce_flags, bool single_soc, std::shared_ptr<uvgrtp::socket> socptr);
             ~media_stream();
 
             /* Initialize traditional RTP session
@@ -392,6 +392,8 @@ namespace uvgrtp {
             uint16_t dst_port_;
             bool ipv6_;
             rtp_format_t fmt_;
+
+            bool single_soc_;
 
             /* Media context config */
             int rce_flags_ = 0;

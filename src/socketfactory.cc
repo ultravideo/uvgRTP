@@ -9,23 +9,23 @@
 #include <netinet/in.h>
 #endif
 
-uvgrtp::socketfactory::socketfactory() :
+uvgrtp::socketfactory::socketfactory(int rce_flags) :
+    rce_flags_(rce_flags),
     local_address_(""),
     local_port_(),
     ipv6_(false),
-    socket_(std::shared_ptr<uvgrtp::socket>(new uvgrtp::socket(RCE_NO_FLAGS)))
+    socket_(std::shared_ptr<uvgrtp::socket>(new uvgrtp::socket(rce_flags))),
+    local_bound_(false)
 {}
 
 uvgrtp::socketfactory::~socketfactory()
 {}
 
-rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr, uint16_t local_port)
+rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr)
 {
     rtp_error_t ret = RTP_GENERIC_ERROR;
 
     local_address_ = local_addr;
-    local_port_ = local_port;
-
     // check IP address family and initialize the socket
     struct addrinfo hint, * res = NULL;
     memset(&hint, '\0', sizeof(hint));
@@ -47,7 +47,39 @@ rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr, u
     /* Make the socket non-blocking */
     int enabled = 1;
 
-    if (::ioctlsocket(socket_->get_raw_socket(), FIONBIO, (u_long*)&enabled) < 0)
+    if (::ioctlsocket(socket_->get_raw_socket(), FIONBIO, (u_long*)&enabled) < 0) {
+        return RTP_GENERIC_ERROR;
+    }
 #endif
 
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::socketfactory::bind_local_socket(uint16_t local_port)
+{
+    rtp_error_t ret;
+    local_port_ = local_port;
+
+    if (ipv6_) {
+        sockaddr_in6 bind_addr6 = socket_->create_ip6_sockaddr(local_address_, local_port_);
+        ret = socket_->bind_ip6(bind_addr6);
+    }
+    else {
+        sockaddr_in bind_addr = socket_->create_sockaddr(AF_INET, local_address_, local_port_);
+        ret = socket_->bind(bind_addr);
+    }
+    if (ret == RTP_OK) {
+        local_bound_ = true;
+    }
+    return ret;
+}
+
+bool uvgrtp::socketfactory::get_local_bound() const
+{
+    return local_bound_;
+}
+
+std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::get_socket_ptr() const
+{
+    return socket_;
 }
