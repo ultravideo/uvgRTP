@@ -19,6 +19,8 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <sys/types.h>
+#include <netdb.h>
 #endif
 
 #if defined(__MINGW32__) || defined(__MINGW64__)
