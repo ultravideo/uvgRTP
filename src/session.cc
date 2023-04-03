@@ -165,7 +165,8 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
 
 uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags)
 {
-    uvgrtp::socketfactory socketfac;
+    uvgrtp::socketfactory sf;
+    sf.set_local_interface(local_address_, src_port);
     if (rce_flags & RCE_OBSOLETE) {
         UVG_LOG_WARN("You are using a flag that has either been removed or has been enabled by default. Consider updating RCE flags");
     }
