@@ -27,6 +27,7 @@ namespace uvgrtp {
     class reception_flow;
     class holepuncher;
     class socket;
+    class socketfactory;
 
     namespace frame {
         struct rtp_frame;
@@ -51,7 +52,7 @@ namespace uvgrtp {
         public:
             /// \cond DO_NOT_DOCUMENT
             media_stream(std::string cname, std::string remote_addr, std::string local_addr, uint16_t src_port, uint16_t dst_port,
-                rtp_format_t fmt, int rce_flags);
+                rtp_format_t fmt, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags);
             ~media_stream();
 
             /* Initialize traditional RTP session
@@ -384,6 +385,8 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::socket> socket_;
             std::shared_ptr<uvgrtp::rtp>    rtp_;
             std::shared_ptr<uvgrtp::rtcp>   rtcp_;
+
+            std::shared_ptr<uvgrtp::socketfactory> sfp_;
 
             sockaddr_in remote_sockaddr_;
             sockaddr_in6 remote_sockaddr_ip6_;
