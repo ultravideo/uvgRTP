@@ -3,6 +3,7 @@
 #include "uvgrtp/util.hh"
 #include <string>
 #include <memory>
+#include <vector>
 
 namespace uvgrtp {
 
@@ -26,6 +27,7 @@ namespace uvgrtp {
             bool ipv6_;
             std::shared_ptr<uvgrtp::socket> socket_;
             bool local_bound_;
+            std::vector<uint16_t> used_ports_;
 
     };
 }

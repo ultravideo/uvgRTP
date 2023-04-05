@@ -8,6 +8,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #endif
+#include <algorithm>
 
 uvgrtp::socketfactory::socketfactory(int rce_flags) :
     rce_flags_(rce_flags),
@@ -15,7 +16,8 @@ uvgrtp::socketfactory::socketfactory(int rce_flags) :
     local_port_(),
     ipv6_(false),
     socket_(std::shared_ptr<uvgrtp::socket>(new uvgrtp::socket(rce_flags))),
-    local_bound_(false)
+    local_bound_(false),
+    used_ports_({})
 {}
 
 uvgrtp::socketfactory::~socketfactory()
@@ -57,20 +59,23 @@ rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr)
 
 rtp_error_t uvgrtp::socketfactory::bind_local_socket(uint16_t local_port)
 {
-    rtp_error_t ret;
-    local_port_ = local_port;
-
-    if (ipv6_) {
-        sockaddr_in6 bind_addr6 = socket_->create_ip6_sockaddr(local_address_, local_port_);
-        ret = socket_->bind_ip6(bind_addr6);
+    rtp_error_t ret = RTP_OK;
+    
+    if (std::find(used_ports_.begin(), used_ports_.end(), local_port) == used_ports_.end()) {
+        if (ipv6_) {
+            sockaddr_in6 bind_addr6 = socket_->create_ip6_sockaddr(local_address_, local_port);
+            ret = socket_->bind_ip6(bind_addr6);
+        }
+        else {
+            sockaddr_in bind_addr = socket_->create_sockaddr(AF_INET, local_address_, local_port);
+            ret = socket_->bind(bind_addr);
+        }
+        if (ret == RTP_OK) {
+            used_ports_.push_back(local_port);
+            local_bound_ = true;
+        }
     }
-    else {
-        sockaddr_in bind_addr = socket_->create_sockaddr(AF_INET, local_address_, local_port_);
-        ret = socket_->bind(bind_addr);
-    }
-    if (ret == RTP_OK) {
-        local_bound_ = true;
-    }
+    // = local_port;
     return ret;
 }
 

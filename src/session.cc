@@ -30,6 +30,19 @@ uvgrtp::session::session(std::string cname, std::string remote_addr, std::string
     sf_->set_local_interface(local_addr);
 }
 
+uvgrtp::session::session(std::string cname, std::string remote_addr, std::string local_addr, std::shared_ptr<uvgrtp::socketfactory> sfp) :
+#ifdef __RTP_CRYPTO__
+    zrtp_(new uvgrtp::zrtp()),
+#endif
+    generic_address_(""),
+    remote_address_(remote_addr),
+    local_address_(local_addr),
+    cname_(cname),
+    sf_(sfp)
+{
+    sf_->set_local_interface(local_addr);
+}
+
 uvgrtp::session::~session()
 {
     for (auto&i : streams_) {
