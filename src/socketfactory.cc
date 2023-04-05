@@ -53,7 +53,7 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket()
         }
     }
     else {
-        if ((ret = socket->init(AF_INET6, SOCK_DGRAM, 0)) != RTP_OK) {
+        if ((ret = socket->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK) {
             return nullptr;
         }
     }
@@ -76,7 +76,7 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket()
 
 rtp_error_t uvgrtp::socketfactory::bind_socket(std::shared_ptr<uvgrtp::socket> soc, uint16_t port)
 {
-    rtp_error_t ret = RTP_GENERIC_ERROR;
+    rtp_error_t ret = RTP_OK;
     if (std::find(used_ports_.begin(), used_ports_.end(), port) == used_ports_.end()) {
 
         if (ipv6_) {
@@ -97,7 +97,7 @@ rtp_error_t uvgrtp::socketfactory::bind_socket(std::shared_ptr<uvgrtp::socket> s
 
 rtp_error_t uvgrtp::socketfactory::bind_socket_anyip(std::shared_ptr<uvgrtp::socket> soc, uint16_t port)
 {
-    rtp_error_t ret = RTP_GENERIC_ERROR;
+    rtp_error_t ret = RTP_OK;
     if (std::find(used_ports_.begin(), used_ports_.end(), port) == used_ports_.end()) {
 
         if (ipv6_) {

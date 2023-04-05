@@ -7,14 +7,15 @@
 #include "debug.hh"
 
 
-uvgrtp::session::session(std::string cname, std::string addr) :
+uvgrtp::session::session(std::string cname, std::string addr, std::shared_ptr<uvgrtp::socketfactory> sfp) :
 #ifdef __RTP_CRYPTO__
     zrtp_(new uvgrtp::zrtp()),
 #endif
     generic_address_(addr),
     remote_address_(""),
     local_address_(""),
-    cname_(cname)
+    cname_(cname),
+    sf_(sfp)
 {}
 
 uvgrtp::session::session(std::string cname, std::string remote_addr, std::string local_addr, std::shared_ptr<uvgrtp::socketfactory> sfp):
@@ -42,6 +43,7 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t port, rtp_format_t
 {
     if (rce_flags & RCE_RECEIVE_ONLY)
     {
+        sf_->set_local_interface(generic_address_);
         return create_stream(port, 0, fmt, rce_flags);
     }
     else if (rce_flags & RCE_SEND_ONLY)

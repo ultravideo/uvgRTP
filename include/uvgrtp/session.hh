@@ -27,7 +27,7 @@ namespace uvgrtp {
     class session {
         public:
             /// \cond DO_NOT_DOCUMENT
-            session(std::string cname, std::string addr);
+            session(std::string cname, std::string addr, std::shared_ptr<uvgrtp::socketfactory> sfp);
             session(std::string cname, std::string remote_addr, std::string local_addr, std::shared_ptr<uvgrtp::socketfactory> sfp);
             ~session();
             /// \endcond

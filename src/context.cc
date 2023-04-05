@@ -66,7 +66,7 @@ uvgrtp::session *uvgrtp::context::create_session(std::string address)
         return nullptr;
     }
 
-    return new uvgrtp::session(get_cname(), address);
+    return new uvgrtp::session(get_cname(), address, sfp_);
 }
 
 uvgrtp::session* uvgrtp::context::create_session(std::string remote_addr, std::string local_addr)
@@ -76,7 +76,6 @@ uvgrtp::session* uvgrtp::context::create_session(std::string remote_addr, std::s
         UVG_LOG_ERROR("Please specify at least one address for create_session");
         return nullptr;
     }
-    sfp_ = std::make_shared<uvgrtp::socketfactory>(0);
     return new uvgrtp::session(get_cname(), remote_addr, local_addr, sfp_);
 }
 
