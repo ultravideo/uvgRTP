@@ -796,6 +796,11 @@ uint32_t uvgrtp::media_stream::get_key() const
     return key_;
 }
 
+bool uvgrtp::media_stream::is_single_socket() const
+{
+    return single_soc_;
+}
+
 uvgrtp::rtcp *uvgrtp::media_stream::get_rtcp()
 {
     return rtcp_.get();
