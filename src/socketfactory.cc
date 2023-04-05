@@ -43,7 +43,7 @@ rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr)
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::socketfactory::create_new_socket(uint16_t local_port)
+std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(uint16_t local_port)
 {
     rtp_error_t ret = RTP_OK;
     if (std::find(used_ports_.begin(), used_ports_.end(), local_port) == used_ports_.end()) {
@@ -51,12 +51,12 @@ rtp_error_t uvgrtp::socketfactory::create_new_socket(uint16_t local_port)
 
         if (ipv6_) {
             if ((ret = socket->init(AF_INET6, SOCK_DGRAM, 0)) != RTP_OK) {
-                return ret;
+                return nullptr;
             }
         }
         else {
             if ((ret = socket->init(AF_INET6, SOCK_DGRAM, 0)) != RTP_OK) {
-                return ret;
+                return nullptr;
             }
         }
 #ifdef _WIN32
@@ -64,7 +64,7 @@ rtp_error_t uvgrtp::socketfactory::create_new_socket(uint16_t local_port)
         int enabled = 1;
 
         if (::ioctlsocket(socket->get_raw_socket(), FIONBIO, (u_long*)&enabled) < 0) {
-            return RTP_GENERIC_ERROR;
+            return nullptr;
         }
 #endif
         used_sockets_.push_back(socket);
@@ -80,10 +80,11 @@ rtp_error_t uvgrtp::socketfactory::create_new_socket(uint16_t local_port)
         }
         if (ret == RTP_OK) {
             used_ports_.push_back(local_port);
+            return socket;
         }
     }
     
-    return ret;
+    return nullptr;
 }
 
 bool uvgrtp::socketfactory::get_local_bound() const

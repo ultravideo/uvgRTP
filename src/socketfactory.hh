@@ -15,7 +15,7 @@ namespace uvgrtp {
             ~socketfactory();
 
             rtp_error_t set_local_interface(std::string local_addr);
-            rtp_error_t create_new_socket(uint16_t local_port);
+            std::shared_ptr<uvgrtp::socket> create_new_socket(uint16_t local_port);
 
             bool get_local_bound() const;
             std::shared_ptr<uvgrtp::socket> get_socket_ptr() const;
