@@ -31,11 +31,11 @@
 
 uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     std::string local_addr, uint16_t src_port, uint16_t dst_port, rtp_format_t fmt,
-    int rce_flags, bool single_soc, std::shared_ptr<uvgrtp::socket> socptr) :
+    int rce_flags) :
     key_(uvgrtp::random::generate_32()),
     srtp_(nullptr),
     srtcp_(nullptr),
-    socket_(socptr),
+    socket_(nullptr),
     rtp_(nullptr),
     rtcp_(nullptr),
     remote_sockaddr_(),
@@ -46,7 +46,6 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     dst_port_(dst_port),
     ipv6_(false),
     fmt_(fmt),
-    single_soc_(single_soc),
     rce_flags_(rce_flags),
     initialized_(false),
     rtp_handler_key_(0),
@@ -83,41 +82,41 @@ rtp_error_t uvgrtp::media_stream::init_connection()
 {
     rtp_error_t ret = RTP_GENERIC_ERROR;
 
-    if (!single_soc_) {
-        // Use getaddrinfo() to determine whether we are using ipv4 or ipv6 addresses
-        struct addrinfo hint, * res = NULL;
-        memset(&hint, '\0', sizeof(hint));
-        hint.ai_family = PF_UNSPEC;
-        hint.ai_flags = AI_NUMERICHOST;
 
-        if (getaddrinfo(local_address_.c_str(), NULL, &hint, &res) != 0) {
-            if (getaddrinfo(remote_address_.c_str(), NULL, &hint, &res) != 0) {
-                UVG_LOG_ERROR("Invalid IP address");
-                return RTP_GENERIC_ERROR;
-            }
-        }
-        if (res->ai_family == AF_INET6) {
-            ipv6_ = true;
-            UVG_LOG_DEBUG("Using an IPv6 address");
-        }
-        else {
-            UVG_LOG_DEBUG("Using an IPv4 address");
-        }
+    // Use getaddrinfo() to determine whether we are using ipv4 or ipv6 addresses
+    struct addrinfo hint, * res = NULL;
+    memset(&hint, '\0', sizeof(hint));
+    hint.ai_family = PF_UNSPEC;
+    hint.ai_flags = AI_NUMERICHOST;
 
-        // Initialize socket
-        if ((ret = socket_->init(res->ai_family, SOCK_DGRAM, 0)) != RTP_OK) {
-            return ret;
+    if (getaddrinfo(local_address_.c_str(), NULL, &hint, &res) != 0) {
+        if (getaddrinfo(remote_address_.c_str(), NULL, &hint, &res) != 0) {
+            UVG_LOG_ERROR("Invalid IP address");
+            return RTP_GENERIC_ERROR;
         }
+    }
+    if (res->ai_family == AF_INET6) {
+        ipv6_ = true;
+        UVG_LOG_DEBUG("Using an IPv6 address");
+    }
+    else {
+        UVG_LOG_DEBUG("Using an IPv4 address");
+    }
+
+    // Initialize socket
+    if ((ret = socket_->init(res->ai_family, SOCK_DGRAM, 0)) != RTP_OK) {
+        return ret;
+    }
 
 #ifdef _WIN32
-        /* Make the socket non-blocking */
-        int enabled = 1;
+    /* Make the socket non-blocking */
+    int enabled = 1;
 
-        if (::ioctlsocket(socket_->get_raw_socket(), FIONBIO, (u_long*)&enabled) < 0)
-            UVG_LOG_ERROR("Failed to make the socket non-blocking!");
+    if (::ioctlsocket(socket_->get_raw_socket(), FIONBIO, (u_long*)&enabled) < 0)
+        UVG_LOG_ERROR("Failed to make the socket non-blocking!");
 #endif
 
-    }
+    
     if (!(rce_flags_ & RCE_RECEIVE_ONLY) && remote_address_ != "" && dst_port_ != 0)
     {
         // no reason to fail sending even if binding fails so we set remote address first
@@ -135,10 +134,7 @@ rtp_error_t uvgrtp::media_stream::init_connection()
         UVG_LOG_INFO("Sending disabled for this stream");
     }
     
-    if (single_soc_) {
-        UVG_LOG_INFO("Using a single socket for receiving");
-    }
-    else if (!(rce_flags_ & RCE_SEND_ONLY))
+    if (!(rce_flags_ & RCE_SEND_ONLY))
     {
         if (local_address_ != "" && src_port_ != 0) {
             if (ipv6_) {
@@ -794,11 +790,6 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
 uint32_t uvgrtp::media_stream::get_key() const
 {
     return key_;
-}
-
-bool uvgrtp::media_stream::is_single_socket() const
-{
-    return single_soc_;
 }
 
 uvgrtp::rtcp *uvgrtp::media_stream::get_rtcp()
