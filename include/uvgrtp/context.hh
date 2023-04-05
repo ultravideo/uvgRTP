@@ -63,9 +63,6 @@ namespace uvgrtp {
              */
             uvgrtp::session *create_session(std::string remote_addr, std::string local_addr);
 
-            uvgrtp::session* create_session(std::string remote_addr, std::string local_addr, bool sfp);
-
-
             /**
              * \brief Destroy RTP session and all of its media streams
              *

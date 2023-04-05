@@ -15,19 +15,19 @@ namespace uvgrtp {
             ~socketfactory();
 
             rtp_error_t set_local_interface(std::string local_addr);
-            rtp_error_t bind_local_socket(uint16_t local_port);
+            rtp_error_t create_new_socket(uint16_t local_port);
 
             bool get_local_bound() const;
             std::shared_ptr<uvgrtp::socket> get_socket_ptr() const;
 
         private:
+
             int rce_flags_;
             std::string local_address_;
-            uint16_t local_port_;
-            bool ipv6_;
-            std::shared_ptr<uvgrtp::socket> socket_;
-            bool local_bound_;
             std::vector<uint16_t> used_ports_;
+            bool ipv6_;
+            std::vector<std::shared_ptr<uvgrtp::socket>> used_sockets_;
+            bool local_bound_;
 
     };
 }

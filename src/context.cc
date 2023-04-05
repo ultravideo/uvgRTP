@@ -80,19 +80,15 @@ uvgrtp::session *uvgrtp::context::create_session(std::string remote_addr, std::s
     return new uvgrtp::session(get_cname(), remote_addr, local_addr);
 }
 
-uvgrtp::session* uvgrtp::context::create_session(std::string remote_addr, std::string local_addr, bool sfp)
+uvgrtp::session* uvgrtp::context::create_session(std::string remote_addr, std::string local_addr)
 {
     if (remote_addr == "" && local_addr == "")
     {
         UVG_LOG_ERROR("Please specify at least one address for create_session");
         return nullptr;
     }
-    if (sfp == true) {
-        return new uvgrtp::session(get_cname(), remote_addr, local_addr, sfp_);
-    }
-    else {
-        return nullptr;
-    }
+    sfp_ = std::make_shared<uvgrtp::socketfactory>(0);
+    return new uvgrtp::session(get_cname(), remote_addr, local_addr, sfp_);
 }
 
 rtp_error_t uvgrtp::context::destroy_session(uvgrtp::session *session)
