@@ -9,6 +9,7 @@
 #include <netinet/in.h>
 #endif
 #include <algorithm>
+#include <cstring>
 
 uvgrtp::socketfactory::socketfactory(int rce_flags) :
     rce_flags_(rce_flags),
@@ -23,7 +24,7 @@ uvgrtp::socketfactory::~socketfactory()
 
 rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr)
 {
-    rtp_error_t ret;
+    //rtp_error_t ret;
 
     local_address_ = local_addr;
     // check IP address family
