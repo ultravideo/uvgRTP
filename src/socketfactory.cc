@@ -1,5 +1,7 @@
 #include "socketfactory.hh"
 #include "socket.hh"
+#include "uvgrtp/frame.hh"
+
 #ifdef _WIN32
 #include <Ws2tcpip.h>
 #else
@@ -16,7 +18,9 @@ uvgrtp::socketfactory::socketfactory(int rce_flags) :
     local_address_(""),
     used_ports_({}),
     ipv6_(false),
-    used_sockets_({})
+    used_sockets_({}),
+    recv_hook_arg_(nullptr),
+    recv_hook_(nullptr)
 {}
 
 uvgrtp::socketfactory::~socketfactory()
@@ -114,6 +118,20 @@ rtp_error_t uvgrtp::socketfactory::bind_socket_anyip(std::shared_ptr<uvgrtp::soc
         }
     }
     return ret;
+}
+
+rtp_error_t uvgrtp::socketfactory::install_receive_hook(
+    void* arg,
+    void (*hook)(void*, uvgrtp::frame::rtp_frame*)
+)
+{
+    if (!hook)
+        return RTP_INVALID_VALUE;
+
+    recv_hook_ = hook;
+    recv_hook_arg_ = arg;
+
+    return RTP_OK;
 }
 
 
