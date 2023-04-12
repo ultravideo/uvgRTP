@@ -54,12 +54,15 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     zrtp_handler_key_(0),
     reception_flow_(nullptr),
     media_(nullptr),
-    holepuncher_(std::unique_ptr<uvgrtp::holepuncher>(new uvgrtp::holepuncher(socket_))),
+    holepuncher_(nullptr),
     cname_(cname),
     fps_numerator_(30),
     fps_denominator_(1),
     ssrc_(std::make_shared<std::atomic<std::uint32_t>>(uvgrtp::random::generate_32()))
-{}
+{
+    socket_ = sfp_->create_new_socket();
+    holepuncher_ = std::unique_ptr<uvgrtp::holepuncher>(new uvgrtp::holepuncher(socket_));
+}
 
 uvgrtp::media_stream::~media_stream()
 {
@@ -85,8 +88,6 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     rtp_error_t ret = RTP_GENERIC_ERROR;
 
     ipv6_ = sfp_->get_ipv6();
-
-    socket_ = sfp_->create_new_socket();
 
     if (!(rce_flags_ & RCE_RECEIVE_ONLY) && remote_address_ != "" && dst_port_ != 0)
     {

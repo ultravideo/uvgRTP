@@ -16,7 +16,9 @@ uvgrtp::session::session(std::string cname, std::string addr, std::shared_ptr<uv
     local_address_(""),
     cname_(cname),
     sf_(sfp)
-{}
+{
+    sf_->set_local_interface(generic_address_);
+}
 
 uvgrtp::session::session(std::string cname, std::string remote_addr, std::string local_addr, std::shared_ptr<uvgrtp::socketfactory> sfp):
 #ifdef __RTP_CRYPTO__
@@ -43,7 +45,6 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t port, rtp_format_t
 {
     if (rce_flags & RCE_RECEIVE_ONLY)
     {
-        sf_->set_local_interface(generic_address_);
         return create_stream(port, 0, fmt, rce_flags);
     }
     else if (rce_flags & RCE_SEND_ONLY)
