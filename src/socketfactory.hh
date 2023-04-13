@@ -6,13 +6,20 @@
 #include <memory>
 #include <vector>
 #include <functional>
-
+#include <map>
 
 namespace uvgrtp {
 
+    typedef void (*recv_hook)(void* arg, uvgrtp::frame::rtp_frame* frame);
+
+    struct receive_pkt_hook {
+        void* arg = nullptr;
+        recv_hook hook = nullptr;
+    };
+    /*
     namespace frame {
         struct rtp_frame;
-    }
+    }*/
 
     class socket;
 
@@ -34,7 +41,7 @@ namespace uvgrtp {
             rtp_error_t install_aux_handler_cpp(uint32_t key,
                 std::function<rtp_error_t(int, uvgrtp::frame::rtp_frame**)> handler,
                 std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter);
-            rtp_error_t install_receive_hook(void* arg, void (*hook)(void*, uvgrtp::frame::rtp_frame*));
+            rtp_error_t install_receive_hook(void* arg, void (*hook)(void*, uvgrtp::frame::rtp_frame*), uint32_t ssrc);
 
             rtp_error_t start(std::shared_ptr<uvgrtp::socket> socket, int rce_flags);
             uvgrtp::frame::rtp_frame* pull_frame();
@@ -43,6 +50,7 @@ namespace uvgrtp {
 
             std::shared_ptr<uvgrtp::socket> get_socket_ptr() const;
             bool get_ipv6() const;
+            bool is_port_in_use(uint16_t port) const;
 
         private:
             void rcvr(std::shared_ptr<uvgrtp::socket> socket);
@@ -59,6 +67,7 @@ namespace uvgrtp {
             std::deque<uvgrtp::frame::rtp_frame*> frames_;
             std::mutex frames_mtx_;
             std::mutex wait_mtx_; // for waking up the processing thread (read)
+            std::mutex socket_mutex_;
 
             int rce_flags_;
             std::string local_address_;
@@ -66,12 +75,16 @@ namespace uvgrtp {
             bool ipv6_;
             std::vector<std::shared_ptr<uvgrtp::socket>> used_sockets_;
 
-            void* recv_hook_arg_;
-            void (*recv_hook_)(void* arg, uvgrtp::frame::rtp_frame* frame);
+           //void* recv_hook_arg_;
+            //void (*recv_hook_)(void* arg, uvgrtp::frame::rtp_frame* frame);
+            std::map<uint32_t, receive_pkt_hook> hooks_;
+
             std::unordered_map<uint32_t, packet_handlers> packet_handlers_;
             bool should_stop_;
             std::unique_ptr<std::thread> receiver_;
             std::unique_ptr<std::thread> processor_;
+            std::vector< std::unique_ptr<std::thread>> receivers_;
+            std::vector< std::unique_ptr<std::thread>> processors_;
 
             struct Buffer
             {

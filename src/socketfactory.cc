@@ -21,6 +21,7 @@
 #endif
 #include <algorithm>
 #include <cstring>
+#include <iterator>
 
 constexpr size_t DEFAULT_INITIAL_BUFFER_SIZE = 4194304;
 
@@ -31,11 +32,12 @@ uvgrtp::socketfactory::socketfactory(int rce_flags) :
     used_ports_({}),
     ipv6_(false),
     used_sockets_({}),
-    recv_hook_arg_(nullptr),
-    recv_hook_(nullptr),
+    hooks_({}),
     packet_handlers_({}),
     should_stop_(true),
     receiver_(nullptr),
+    receivers_(),
+    processors_(),
     ring_buffer_(),
     ring_read_index_(-1), // invalid first index that will increase to a valid one
     last_ring_write_index_(-1),
@@ -67,14 +69,20 @@ rtp_error_t uvgrtp::socketfactory::stop()
 {
     should_stop_ = true;
     process_cond_.notify_all();
-    /*
+    
     for (auto r = receivers_.begin(); r != receivers_.end(); ++r) {
         if (*r != nullptr && r->get()->joinable())
         {
             r->get()->join();
         }
-    }*/
-
+    }
+    for (auto p = processors_.begin(); p != processors_.end(); ++p) {
+        if (*p != nullptr && p->get()->joinable())
+        {
+            p->get()->join();
+        }
+    }
+    /*
     if (receiver_ != nullptr && receiver_->joinable())
     {
         receiver_->join();
@@ -82,8 +90,7 @@ rtp_error_t uvgrtp::socketfactory::stop()
     if (processor_ != nullptr && processor_->joinable())
     {
         processor_->join();
-    }
-    
+    }*/
 
     clear_frames();
 
@@ -136,7 +143,9 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket()
 #endif
 
     if (ret == RTP_OK) {
+        socket_mutex_.lock();
         used_sockets_.push_back(socket);
+        socket_mutex_.unlock();
         return socket;
     }
     
@@ -146,8 +155,7 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket()
 rtp_error_t uvgrtp::socketfactory::bind_socket(std::shared_ptr<uvgrtp::socket> soc, uint16_t port)
 {
     rtp_error_t ret = RTP_OK;
-    if (std::find(used_ports_.begin(), used_ports_.end(), port) == used_ports_.end()) {
-
+    if (is_port_in_use(port) == false) {
         if (ipv6_) {
             sockaddr_in6 bind_addr6 = soc->create_ip6_sockaddr(local_address_, port);
             ret = soc->bind_ip6(bind_addr6);
@@ -186,14 +194,20 @@ rtp_error_t uvgrtp::socketfactory::bind_socket_anyip(std::shared_ptr<uvgrtp::soc
 
 rtp_error_t uvgrtp::socketfactory::install_receive_hook(
     void* arg,
-    void (*hook)(void*, uvgrtp::frame::rtp_frame*)
+    void (*hook)(void*, uvgrtp::frame::rtp_frame*),
+    uint32_t ssrc
 )
 {
-    if (!hook)
+    if (!hook) {
         return RTP_INVALID_VALUE;
+    }
 
-    recv_hook_ = hook;
-    recv_hook_arg_ = arg;
+    if(hooks_.count(ssrc) == 0) {
+        receive_pkt_hook new_hook = { arg, hook };
+        hooks_[ssrc] = new_hook;
+    }
+    //recv_hook_ = hook;
+    //recv_hook_arg_ = arg;
 
     return RTP_OK;
 }
@@ -255,30 +269,30 @@ rtp_error_t uvgrtp::socketfactory::start(std::shared_ptr<uvgrtp::socket> socket,
     should_stop_ = false;
 
     UVG_LOG_DEBUG("Creating receiving threads and setting priorities");
-    processor_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::socketfactory::process_packet, this, rce_flags));
-    receiver_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::socketfactory::rcvr, this, socket));
+    std::unique_ptr<std::thread> receiver = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::socketfactory::rcvr, this, socket));
+    std::unique_ptr<std::thread> processor = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::socketfactory::process_packet, this, rce_flags));
 
     // set receiver thread priority to maximum
 #ifndef WIN32
     struct sched_param params;
     params.sched_priority = sched_get_priority_max(SCHED_FIFO);
-    pthread_setschedparam(receiver_->native_handle(), SCHED_FIFO, &params);
+    pthread_setschedparam(receiver->native_handle(), SCHED_FIFO, &params);
     params.sched_priority = sched_get_priority_max(SCHED_FIFO) - 1;
-    pthread_setschedparam(processor_->native_handle(), SCHED_FIFO, &params);
+    pthread_setschedparam(processor->native_handle(), SCHED_FIFO, &params);
 #else
 
-    SetThreadPriority(receiver_->native_handle(), REALTIME_PRIORITY_CLASS);
-    SetThreadPriority(processor_->native_handle(), ABOVE_NORMAL_PRIORITY_CLASS);
+    SetThreadPriority(receiver->native_handle(), REALTIME_PRIORITY_CLASS);
+    SetThreadPriority(processor->native_handle(), ABOVE_NORMAL_PRIORITY_CLASS);
 
 #endif
-    //receivers_.push_back(std::move(receiver));
-    //processors_.push_back(std::move(processor));
+    receivers_.push_back(std::move(receiver));
+    processors_.push_back(std::move(processor));
     return RTP_ERROR::RTP_OK;
 }
 
 std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::get_socket_ptr() const
 {
-    return nullptr;
+    return used_sockets_.at(0);
 }
 
 bool uvgrtp::socketfactory::get_ipv6() const
@@ -286,88 +300,102 @@ bool uvgrtp::socketfactory::get_ipv6() const
     return ipv6_;
 }
 
+bool uvgrtp::socketfactory::is_port_in_use(uint16_t port) const
+{
+    if (std::find(used_ports_.begin(), used_ports_.end(), port) == used_ports_.end()) {
+        return false;
+    }
+    return true;
+}
+
 void uvgrtp::socketfactory::rcvr(std::shared_ptr<uvgrtp::socket> socket)
 {
+    //int n = 0;
+
     int read_packets = 0;
-
     while (!should_stop_) {
-
-        // First we wait using poll until there is data in the socket
-
-#ifdef _WIN32
-        LPWSAPOLLFD pfds = new pollfd();
-#else
-        pollfd* pfds = new pollfd();
-#endif
-
-        size_t read_fds = socket->get_raw_socket();
-        pfds->fd = read_fds;
-        pfds->events = POLLIN;
-
-        // exits after this time if no data has been received to check whether we should exit
-        int timeout_ms = 100;
+        //socket_mutex_.lock();
+        //for (auto s = used_sockets_.begin(); s != used_sockets_.end(); ++s) {
+            //std::shared_ptr<uvgrtp::socket> socket = *s;
+            // First we wait using poll until there is data in the socket
 
 #ifdef _WIN32
-        if (WSAPoll(pfds, 1, timeout_ms) < 0) {
+            LPWSAPOLLFD pfds = new pollfd();
 #else
-        if (poll(pfds, 1, timeout_ms) < 0) {
+            pollfd* pfds = new pollfd();
 #endif
-            UVG_LOG_ERROR("poll(2) failed");
+
+            size_t read_fds = socket->get_raw_socket();
+            pfds->fd = read_fds;
+            pfds->events = POLLIN;
+
+            // exits after this time if no data has been received to check whether we should exit
+            int timeout_ms = 100;
+
+#ifdef _WIN32
+            if (WSAPoll(pfds, 1, timeout_ms) < 0) {
+#else
+            if (poll(pfds, 1, timeout_ms) < 0) {
+#endif
+                UVG_LOG_ERROR("poll(2) failed");
+                if (pfds)
+                {
+                    delete pfds;
+                    pfds = nullptr;
+                }
+                break;
+            }
+
+            if (pfds->revents & POLLIN) {
+
+                // we write as many packets as socket has in the buffer
+                while (!should_stop_)
+                {
+                    ssize_t next_write_index = next_buffer_location(last_ring_write_index_);
+
+                    //increase_buffer_size(next_write_index);
+
+                    rtp_error_t ret = RTP_OK;
+
+                    // get the potential packet
+                    ret = socket->recvfrom(ring_buffer_[next_write_index].data, payload_size_,
+                        MSG_DONTWAIT, &ring_buffer_[next_write_index].read);
+
+                    if (ret == RTP_INTERRUPTED)
+                    {
+                        break;
+                    }
+                    else if (ring_buffer_[next_write_index].read == 0)
+                    {
+                        UVG_LOG_WARN("Failed to read anything from socket");
+                        break;
+                    }
+                    else if (ret != RTP_OK) {
+                        UVG_LOG_ERROR("recvfrom(2) failed! Reception flow cannot continue %d!", ret);
+                        should_stop_ = true;
+                        break;
+                    }
+
+                    ++read_packets;
+
+                    // finally we update the ring buffer so processing (reading) knows that there is a new frame
+                    last_ring_write_index_ = next_write_index;
+                }
+
+                // start processing the packets by waking the processing thread
+                process_cond_.notify_one();
+            }
+
             if (pfds)
             {
                 delete pfds;
                 pfds = nullptr;
             }
-            break;
-        }
-
-        if (pfds->revents & POLLIN) {
-
-            // we write as many packets as socket has in the buffer
-            while (!should_stop_)
-            {
-                ssize_t next_write_index = next_buffer_location(last_ring_write_index_);
-
-                //increase_buffer_size(next_write_index);
-
-                rtp_error_t ret = RTP_OK;
-
-                // get the potential packet
-                ret = socket->recvfrom(ring_buffer_[next_write_index].data, payload_size_,
-                    MSG_DONTWAIT, &ring_buffer_[next_write_index].read);
-
-                if (ret == RTP_INTERRUPTED)
-                {
-                    break;
-                }
-                else if (ring_buffer_[next_write_index].read == 0)
-                {
-                    UVG_LOG_WARN("Failed to read anything from socket");
-                    break;
-                }
-                else if (ret != RTP_OK) {
-                    UVG_LOG_ERROR("recvfrom(2) failed! Reception flow cannot continue %d!", ret);
-                    should_stop_ = true;
-                    break;
-                }
-
-                ++read_packets;
-
-                // finally we update the ring buffer so processing (reading) knows that there is a new frame
-                last_ring_write_index_ = next_write_index;
-            }
-
-            // start processing the packets by waking the processing thread
-            process_cond_.notify_one();
-        }
-
-        if (pfds)
-        {
-            delete pfds;
-            pfds = nullptr;
-        }
-        }
-
+           // ++n;
+       // }
+       // UVG_LOG_DEBUG("Packets from socket read");
+        //socket_mutex_.unlock();
+    }
     UVG_LOG_DEBUG("Total read packets from buffer: %li", read_packets);
 }
 
@@ -619,8 +647,13 @@ void uvgrtp::socketfactory::destroy_ring_buffer()
 
 void uvgrtp::socketfactory::return_frame(uvgrtp::frame::rtp_frame* frame)
 {
-    if (recv_hook_) {
-        recv_hook_(recv_hook_arg_, frame);
+    uint32_t ssrc = frame->header.ssrc;
+    if(hooks_.count(ssrc) > 0) {
+
+        receive_pkt_hook pkt_hook = hooks_[ssrc];
+        recv_hook hook = pkt_hook.hook;
+        void* arg = pkt_hook.arg;
+        hook(arg, frame);
     }
     else {
         frames_mtx_.lock();

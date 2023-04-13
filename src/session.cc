@@ -18,6 +18,7 @@ uvgrtp::session::session(std::string cname, std::string addr, std::shared_ptr<uv
     sf_(sfp)
 {
     sf_->set_local_interface(generic_address_);
+  //  sf_->create_new_socket();
 }
 
 uvgrtp::session::session(std::string cname, std::string remote_addr, std::string local_addr, std::shared_ptr<uvgrtp::socketfactory> sfp):
@@ -31,6 +32,7 @@ uvgrtp::session::session(std::string cname, std::string remote_addr, std::string
     sf_(sfp)
 {
     sf_->set_local_interface(local_addr);
+   // sf_->create_new_socket();
 }
 
 uvgrtp::session::~session()

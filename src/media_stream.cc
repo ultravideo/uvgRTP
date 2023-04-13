@@ -60,8 +60,9 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     fps_denominator_(1),
     ssrc_(std::make_shared<std::atomic<std::uint32_t>>(uvgrtp::random::generate_32()))
 {
-    socket_ = sfp_->create_new_socket();
-    holepuncher_ = std::unique_ptr<uvgrtp::holepuncher>(new uvgrtp::holepuncher(socket_));
+    //socket_ = sfp_->create_new_socket();
+    //holepuncher_ = std::unique_ptr<uvgrtp::holepuncher>(new uvgrtp::holepuncher(socket_));
+
 }
 
 uvgrtp::media_stream::~media_stream()
@@ -91,8 +92,23 @@ uvgrtp::media_stream::~media_stream()
 rtp_error_t uvgrtp::media_stream::init_connection()
 {
     rtp_error_t ret = RTP_GENERIC_ERROR;
-
     ipv6_ = sfp_->get_ipv6();
+
+    
+    if (src_port_ != 0 && !sfp_->is_port_in_use(src_port_)) {
+        socket_ = sfp_->create_new_socket();
+    }
+    else {
+        if (sfp_->get_socket_ptr() == nullptr) {
+            socket_ = sfp_->create_new_socket();
+        }
+        else {
+            socket_ = sfp_->get_socket_ptr();
+        }
+    }
+    sfp_->start(socket_, 0);
+    holepuncher_ = std::unique_ptr<uvgrtp::holepuncher>(new uvgrtp::holepuncher(socket_));
+
 
     if (!(rce_flags_ & RCE_RECEIVE_ONLY) && remote_address_ != "" && dst_port_ != 0)
     {
@@ -426,7 +442,8 @@ rtp_error_t uvgrtp::media_stream::start_components()
 
     initialized_ = true;
     //return reception_flow_->start(socket_, rce_flags_);
-    return sfp_->start(socket_, rce_flags_);
+    //return sfp_->start(rce_flags_);
+    return RTP_OK;
 }
 
 rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int rtp_flags)
@@ -629,7 +646,8 @@ rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(v
     if (!hook)
         return RTP_INVALID_VALUE;
     //reception_flow_
-    sfp_->install_receive_hook(arg, hook);
+    // PLACEHOLDER -------- IMPLEMENTS THIS: should be the remote ssrc
+    sfp_->install_receive_hook(arg, hook, ssrc_.get()->load());
 
     return RTP_OK;
 }
