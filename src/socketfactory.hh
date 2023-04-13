@@ -37,6 +37,8 @@ namespace uvgrtp {
             rtp_error_t install_receive_hook(void* arg, void (*hook)(void*, uvgrtp::frame::rtp_frame*));
 
             rtp_error_t start(std::shared_ptr<uvgrtp::socket> socket, int rce_flags);
+            uvgrtp::frame::rtp_frame* pull_frame();
+            uvgrtp::frame::rtp_frame* pull_frame(ssize_t timeout_ms);
 
 
             std::shared_ptr<uvgrtp::socket> get_socket_ptr() const;
@@ -44,13 +46,19 @@ namespace uvgrtp {
 
         private:
             void rcvr(std::shared_ptr<uvgrtp::socket> socket);
+            void process_packet(int rce_flags);
+            void call_aux_handlers(uint32_t key, int rce_flags, uvgrtp::frame::rtp_frame** frame);
+
+
             inline ssize_t next_buffer_location(ssize_t current_location);
             void create_ring_buffer();
             void destroy_ring_buffer();
             void clear_frames();
+            void return_frame(uvgrtp::frame::rtp_frame* frame);
 
             std::deque<uvgrtp::frame::rtp_frame*> frames_;
             std::mutex frames_mtx_;
+            std::mutex wait_mtx_; // for waking up the processing thread (read)
 
             int rce_flags_;
             std::string local_address_;
@@ -63,7 +71,7 @@ namespace uvgrtp {
             std::unordered_map<uint32_t, packet_handlers> packet_handlers_;
             bool should_stop_;
             std::unique_ptr<std::thread> receiver_;
-            //std::unique_ptr<std::thread> processor_;
+            std::unique_ptr<std::thread> processor_;
 
             struct Buffer
             {

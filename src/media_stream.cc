@@ -559,7 +559,9 @@ uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame()
         return nullptr;
     }
 
-    return reception_flow_->pull_frame();
+    // reception_flow_->pull_frame();
+    return sfp_->pull_frame();
+
 }
 
 uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame(size_t timeout_ms)
@@ -568,7 +570,9 @@ uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame(size_t timeout_ms)
         return nullptr;
     }
 
-    return reception_flow_->pull_frame(timeout_ms);
+    //return reception_flow_->pull_frame(timeout_ms);
+    return sfp_->pull_frame(timeout_ms);
+
 }
 
 bool uvgrtp::media_stream::check_pull_preconditions()

@@ -67,11 +67,23 @@ rtp_error_t uvgrtp::socketfactory::stop()
 {
     should_stop_ = true;
     process_cond_.notify_all();
+    /*
+    for (auto r = receivers_.begin(); r != receivers_.end(); ++r) {
+        if (*r != nullptr && r->get()->joinable())
+        {
+            r->get()->join();
+        }
+    }*/
 
     if (receiver_ != nullptr && receiver_->joinable())
     {
         receiver_->join();
     }
+    if (processor_ != nullptr && processor_->joinable())
+    {
+        processor_->join();
+    }
+    
 
     clear_frames();
 
@@ -242,8 +254,8 @@ rtp_error_t uvgrtp::socketfactory::start(std::shared_ptr<uvgrtp::socket> socket,
 {
     should_stop_ = false;
 
-    //UVG_LOG_DEBUG("Creating receiving threads and setting priorities");
-    //processor_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::socketfactory::process_packet, this, rce_flags));
+    UVG_LOG_DEBUG("Creating receiving threads and setting priorities");
+    processor_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::socketfactory::process_packet, this, rce_flags));
     receiver_ = std::unique_ptr<std::thread>(new std::thread(&uvgrtp::socketfactory::rcvr, this, socket));
 
     // set receiver thread priority to maximum
@@ -251,15 +263,16 @@ rtp_error_t uvgrtp::socketfactory::start(std::shared_ptr<uvgrtp::socket> socket,
     struct sched_param params;
     params.sched_priority = sched_get_priority_max(SCHED_FIFO);
     pthread_setschedparam(receiver_->native_handle(), SCHED_FIFO, &params);
-    //params.sched_priority = sched_get_priority_max(SCHED_FIFO) - 1;
-    //pthread_setschedparam(processor_->native_handle(), SCHED_FIFO, &params);
+    params.sched_priority = sched_get_priority_max(SCHED_FIFO) - 1;
+    pthread_setschedparam(processor_->native_handle(), SCHED_FIFO, &params);
 #else
 
     SetThreadPriority(receiver_->native_handle(), REALTIME_PRIORITY_CLASS);
-    //SetThreadPriority(processor_->native_handle(), ABOVE_NORMAL_PRIORITY_CLASS);
+    SetThreadPriority(processor_->native_handle(), ABOVE_NORMAL_PRIORITY_CLASS);
 
 #endif
-
+    //receivers_.push_back(std::move(receiver));
+    //processors_.push_back(std::move(processor));
     return RTP_ERROR::RTP_OK;
 }
 
@@ -299,7 +312,7 @@ void uvgrtp::socketfactory::rcvr(std::shared_ptr<uvgrtp::socket> socket)
 #else
         if (poll(pfds, 1, timeout_ms) < 0) {
 #endif
-            //UVG_LOG_ERROR("poll(2) failed");
+            UVG_LOG_ERROR("poll(2) failed");
             if (pfds)
             {
                 delete pfds;
@@ -329,11 +342,11 @@ void uvgrtp::socketfactory::rcvr(std::shared_ptr<uvgrtp::socket> socket)
                 }
                 else if (ring_buffer_[next_write_index].read == 0)
                 {
-                    //UVG_LOG_WARN("Failed to read anything from socket");
+                    UVG_LOG_WARN("Failed to read anything from socket");
                     break;
                 }
                 else if (ret != RTP_OK) {
-                    //UVG_LOG_ERROR("recvfrom(2) failed! Reception flow cannot continue %d!", ret);
+                    UVG_LOG_ERROR("recvfrom(2) failed! Reception flow cannot continue %d!", ret);
                     should_stop_ = true;
                     break;
                 }
@@ -356,6 +369,215 @@ void uvgrtp::socketfactory::rcvr(std::shared_ptr<uvgrtp::socket> socket)
         }
 
     UVG_LOG_DEBUG("Total read packets from buffer: %li", read_packets);
+}
+
+void uvgrtp::socketfactory::process_packet(int rce_flags)
+{
+    std::unique_lock<std::mutex> lk(wait_mtx_);
+
+    int processed_packets = 0;
+
+    while (!should_stop_)
+    {
+        // go to sleep waiting for something to process
+        process_cond_.wait(lk);
+
+        if (should_stop_)
+        {
+            break;
+        }
+
+        // process all available reads in one go
+        while (ring_read_index_ != last_ring_write_index_)
+        {
+            // first update the read location
+            ring_read_index_ = next_buffer_location(ring_read_index_);
+
+            if (ring_buffer_[ring_read_index_].read > 0)
+            {
+                rtp_error_t ret = RTP_OK;
+
+                // process the ring buffer location through all the handlers
+                for (auto& handler : packet_handlers_) {
+                    uvgrtp::frame::rtp_frame* frame = nullptr;
+
+                    // Here we don't lock ring mutex because the chaging is only done above. 
+                    // NOTE: If there is a need for multiple processing threads, the read should be guarded
+                    switch ((ret = (*handler.second.primary)(ring_buffer_[ring_read_index_].read,
+                        ring_buffer_[ring_read_index_].data, rce_flags, &frame))) {
+                    case RTP_OK:
+                    {
+                        // packet was handled successfully
+                        break;
+                    }
+                    case RTP_PKT_NOT_HANDLED:
+                    {
+                        // packet was not handled by this primary handlers, proceed to the next one
+                        continue;
+                        /* packet was handled by the primary handler
+                         * and should be dispatched to the auxiliary handler(s) */
+                    }
+                    case RTP_PKT_MODIFIED:
+                    {
+                        call_aux_handlers(handler.first, rce_flags, &frame);
+                        break;
+                    }
+                    case RTP_GENERIC_ERROR:
+                    {
+                        UVG_LOG_DEBUG("Error in handling of received packet!");
+                        break;
+                    }
+                    default:
+                    {
+                        UVG_LOG_ERROR("Unknown error code from packet handler: %d", ret);
+                        break;
+                    }
+                    }
+                }
+
+                // to make sure we don't process this packet again
+                ring_buffer_[ring_read_index_].read = 0;
+                ++processed_packets;
+            }
+            else
+            {
+#ifndef NDEBUG 
+#ifndef __RTP_SILENT__
+                ssize_t write = last_ring_write_index_;
+                ssize_t read = ring_read_index_;
+                UVG_LOG_DEBUG("Found invalid frame in read buffer: %li. R: %lli, W: %lli",
+                    ring_buffer_[ring_read_index_].read, read, write);
+#endif
+#endif
+            }
+        }
+    }
+
+    UVG_LOG_DEBUG("Total processed packets: %li", processed_packets);
+}
+
+void uvgrtp::socketfactory::call_aux_handlers(uint32_t key, int rce_flags, uvgrtp::frame::rtp_frame** frame)
+{
+    rtp_error_t ret;
+    for (auto& aux : packet_handlers_[key].auxiliary) {
+        switch ((ret = (*aux.handler)(aux.arg, rce_flags, frame))) {
+            /* packet was handled successfully */
+        case RTP_OK:
+            break;
+
+        case RTP_MULTIPLE_PKTS_READY:
+        {
+            while ((*aux.getter)(aux.arg, frame) == RTP_PKT_READY)
+                return_frame(*frame);
+        }
+        break;
+
+        case RTP_PKT_READY:
+            return_frame(*frame);
+            break;
+
+            /* packet was not handled or only partially handled by the handler
+             * proceed to the next handler */
+        case RTP_PKT_NOT_HANDLED:
+        case RTP_PKT_MODIFIED:
+            continue;
+
+        case RTP_GENERIC_ERROR:
+            // too many prints with this in case of minor errors
+            //UVG_LOG_DEBUG("Error in auxiliary handling of received packet!");
+            break;
+
+        default:
+            UVG_LOG_ERROR("Unknown error code from packet handler: %d", ret);
+            break;
+        }
+    }
+
+    for (auto& aux : packet_handlers_[key].auxiliary_cpp) {
+        switch ((ret = aux.handler(rce_flags, frame))) {
+
+        case RTP_OK: /* packet was handled successfully */
+        {
+            break;
+        }
+        case RTP_MULTIPLE_PKTS_READY:
+        {
+            while (aux.getter(frame) == RTP_PKT_READY)
+                return_frame(*frame);
+
+            break;
+        }
+        case RTP_PKT_READY:
+        {
+            return_frame(*frame);
+            break;
+        }
+
+        /* packet was not handled or only partially handled by the handler
+         * proceed to the next handler */
+        case RTP_PKT_NOT_HANDLED:
+        {
+            continue;
+        }
+        case RTP_PKT_MODIFIED:
+        {
+            continue;
+        }
+
+        case RTP_GENERIC_ERROR:
+        {
+            // too many prints with this in case of minor errors
+            //UVG_LOG_DEBUG("Error in auxiliary handling of received packet (cpp)!");
+            break;
+        }
+
+        default:
+        {
+            UVG_LOG_ERROR("Unknown error code from packet handler: %d", ret);
+            break;
+        }
+        }
+    }
+}
+
+uvgrtp::frame::rtp_frame* uvgrtp::socketfactory::pull_frame()
+{
+    while (frames_.empty() && !should_stop_)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+
+    if (should_stop_)
+        return nullptr;
+
+    frames_mtx_.lock();
+    auto frame = frames_.front();
+    frames_.erase(frames_.begin());
+    frames_mtx_.unlock();
+
+    return frame;
+}
+
+uvgrtp::frame::rtp_frame* uvgrtp::socketfactory::pull_frame(ssize_t timeout_ms)
+{
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+    while (frames_.empty() &&
+        !should_stop_ &&
+        timeout_ms > std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_time).count())
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    if (should_stop_ || frames_.empty())
+        return nullptr;
+
+    frames_mtx_.lock();
+    auto frame = frames_.front();
+    frames_.pop_front();
+    frames_mtx_.unlock();
+
+    return frame;
 }
 
 ssize_t uvgrtp::socketfactory::next_buffer_location(ssize_t current_location)
@@ -393,4 +615,16 @@ void uvgrtp::socketfactory::destroy_ring_buffer()
         }
     }
     ring_buffer_.clear();
+}
+
+void uvgrtp::socketfactory::return_frame(uvgrtp::frame::rtp_frame* frame)
+{
+    if (recv_hook_) {
+        recv_hook_(recv_hook_arg_, frame);
+    }
+    else {
+        frames_mtx_.lock();
+        frames_.push_back(frame);
+        frames_mtx_.unlock();
+    }
 }
