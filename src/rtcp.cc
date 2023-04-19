@@ -757,7 +757,7 @@ rtp_error_t uvgrtp::rtcp::install_app_hook(std::function<void(std::unique_ptr<uv
 
 uvgrtp::frame::rtcp_sender_report* uvgrtp::rtcp::get_sender_packet(uint32_t ssrc)
 {
-    std::lock_guard prtcp_lock(participants_mutex_);
+    std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
     if (participants_.find(ssrc) == participants_.end())
     {
         return nullptr;
@@ -773,7 +773,7 @@ uvgrtp::frame::rtcp_sender_report* uvgrtp::rtcp::get_sender_packet(uint32_t ssrc
 
 uvgrtp::frame::rtcp_receiver_report* uvgrtp::rtcp::get_receiver_packet(uint32_t ssrc)
 {
-    std::lock_guard prtcp_lock(participants_mutex_);
+    std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
     if (participants_.find(ssrc) == participants_.end())
     {
         return nullptr;
@@ -789,7 +789,7 @@ uvgrtp::frame::rtcp_receiver_report* uvgrtp::rtcp::get_receiver_packet(uint32_t 
 
 uvgrtp::frame::rtcp_sdes_packet* uvgrtp::rtcp::get_sdes_packet(uint32_t ssrc)
 {
-    std::lock_guard prtcp_lock(participants_mutex_);
+    std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
     if (participants_.find(ssrc) == participants_.end())
     {
         return nullptr;
@@ -805,7 +805,7 @@ uvgrtp::frame::rtcp_sdes_packet* uvgrtp::rtcp::get_sdes_packet(uint32_t ssrc)
 
 uvgrtp::frame::rtcp_app_packet* uvgrtp::rtcp::get_app_packet(uint32_t ssrc)
 {
-    std::lock_guard prtcp_lock(participants_mutex_);
+    std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
     if (participants_.find(ssrc) == participants_.end())
     {
         return nullptr;
@@ -826,7 +826,7 @@ std::vector<uint32_t> uvgrtp::rtcp::get_participants() const
 
     for (auto& i : participants_)
     {
-        std::lock_guard prtcp_lock(participants_mutex_);
+        std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
         ssrcs.push_back(i.first);
     }
 
@@ -883,7 +883,7 @@ void uvgrtp::rtcp::zero_stats(uvgrtp::receiver_statistics *stats)
 
 bool uvgrtp::rtcp::is_participant(uint32_t ssrc) const
 {
-    std::lock_guard prtcp_lock(participants_mutex_);
+    std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
     return participants_.find(ssrc) != participants_.end();
 }
 
@@ -977,7 +977,7 @@ rtp_error_t uvgrtp::rtcp::update_sender_stats(size_t pkt_size)
 
 rtp_error_t uvgrtp::rtcp::init_participant_seq(uint32_t ssrc, uint16_t base_seq)
 {
-    std::lock_guard prtcp_lock(participants_mutex_);
+    std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
     if (participants_.find(ssrc) == participants_.end())
     {
         return RTP_NOT_FOUND;
@@ -992,7 +992,7 @@ rtp_error_t uvgrtp::rtcp::init_participant_seq(uint32_t ssrc, uint16_t base_seq)
 
 rtp_error_t uvgrtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
 {
-    std::unique_lock prtcp_lock(participants_mutex_);
+    std::unique_lock<std::mutex> prtcp_lock(participants_mutex_);
     if (participants_.find(ssrc) == participants_.end())
     {
         UVG_LOG_ERROR("Did not find participant SSRC when updating seq");
@@ -1054,7 +1054,7 @@ rtp_error_t uvgrtp::rtcp::update_participant_seq(uint32_t ssrc, uint16_t seq)
 
 rtp_error_t uvgrtp::rtcp::reset_rtcp_state(uint32_t ssrc)
 {
-    std::lock_guard prtcp_lock(participants_mutex_);
+    std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
     if (participants_.find(ssrc) != participants_.end())
     {
         return RTP_SSRC_COLLISION;
@@ -1067,13 +1067,13 @@ rtp_error_t uvgrtp::rtcp::reset_rtcp_state(uint32_t ssrc)
 
 bool uvgrtp::rtcp::collision_detected(uint32_t ssrc) const
 {
-    std::lock_guard prtcp_lock(participants_mutex_);
+    std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
     return participants_.find(ssrc) == participants_.end();
 }
 
 void uvgrtp::rtcp::update_session_statistics(const uvgrtp::frame::rtp_frame *frame)
 {
-    std::lock_guard prtcp_lock(participants_mutex_);
+    std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
     participants_[frame->header.ssrc]->stats.received_rtp_packet = true;
 
     participants_[frame->header.ssrc]->stats.received_pkts  += 1;
@@ -1406,7 +1406,7 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* buffer, size_t&
         rr_hook_u_(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report>(frame));
     }
     else {
-        std::lock_guard prtcp_lock(participants_mutex_);
+        std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
         /* Deallocate previous frame from the buffer if it exists, it's going to get overwritten */
         if (participants_[frame->ssrc]->rr_frame)
         {
@@ -1460,7 +1460,7 @@ rtp_error_t uvgrtp::rtcp::handle_sender_report_packet(uint8_t* buffer, size_t& r
         sr_hook_u_(std::unique_ptr<uvgrtp::frame::rtcp_sender_report>(frame));
     }
     else {
-        std::lock_guard prtcp_lock(participants_mutex_);
+        std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
         /* Deallocate previous frame from the buffer if it exists, it's going to get overwritten */
         if (participants_[frame->ssrc]->sr_frame)
         {
@@ -1528,7 +1528,7 @@ rtp_error_t uvgrtp::rtcp::handle_sdes_packet(uint8_t* packet, size_t& read_ptr, 
     } else if (sdes_hook_u_) {
         sdes_hook_u_(std::unique_ptr<uvgrtp::frame::rtcp_sdes_packet>(frame));
     } else {
-        std::lock_guard prtcp_lock(participants_mutex_);
+        std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
         // Deallocate previous frame from the buffer if it exists, it's going to get overwritten
         if (participants_[sender_ssrc]->sdes_frame)
         {
@@ -1626,7 +1626,7 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t& read_ptr,
     } else if (app_hook_u_) {
         app_hook_u_(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>(frame));
     } else {
-        std::lock_guard prtcp_lock(participants_mutex_);
+        std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
         if (participants_[frame->ssrc]->app_frame)
         {
             delete[] participants_[frame->ssrc]->app_frame->payload;
@@ -1661,7 +1661,7 @@ rtp_error_t uvgrtp::rtcp::send_rtcp_packet_to_participants(uint8_t* frame, uint3
 
     if (rtcp_socket_ != nullptr)
     {
-        std::lock_guard prtcp_lock(participants_mutex_);
+        std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
         if ((ret = rtcp_socket_->sendto(socket_address_, socket_address_ipv6_, frame, frame_size, 0)) != RTP_OK)
         {
             UVG_LOG_ERROR("Sending rtcp packet with sendto() failed!");
@@ -1765,7 +1765,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
     bool bye_packet = !bye_ssrcs_.empty();
 
     // Unique lock unlocks when exiting the scope
-    std::unique_lock prtcp_lock(participants_mutex_);
+    std::unique_lock<std::mutex> prtcp_lock(participants_mutex_);
     uint8_t reports = 0;
     for (auto& p : participants_)
     {
@@ -1777,10 +1777,11 @@ rtp_error_t uvgrtp::rtcp::generate_report()
     std::vector< std::shared_ptr<rtcp_app_packet>> outgoing_apps_;
     if (hooked_app_) {
         std::lock_guard<std::mutex> grd(send_app_mutex_);
-        for (auto& [name, hook] : outgoing_app_hooks_) {
-            uint32_t p_len = 0; 
-            uint8_t subtype = 0; 
-            
+        for (auto& p : outgoing_app_hooks_) {
+            uint32_t p_len = 0;
+            uint8_t subtype = 0;
+            std::string name = p.first;
+            auto hook = p.second;
             std::unique_ptr<uint8_t[]> pload = hook(subtype, p_len);
             if (p_len > 0 && sizeof(pload.get()) != 0) {
                 std::shared_ptr<rtcp_app_packet> app_pkt = std::make_shared<rtcp_app_packet>(name.data(), subtype, p_len, std::move(pload));
@@ -1872,8 +1873,13 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 
             /* Calculate number of packets lost */
             uint32_t lost = expected - p.second->stats.received_pkts;
-            lost = std::clamp(lost, uint32_t(8388607), uint32_t(8388608));
-
+            // clamp lost at 0x7fffff for positive loss and 0x800000 for negative loss
+            if (lost > 8388608) {
+                lost = 8388608;
+            }
+            else if (lost < 8388607) {
+                lost = 8388607;
+            }
             uint32_t expected_interval = expected - p.second->stats.expected_prior;
             p.second->stats.expected_prior = expected;
             uint32_t received_interval = p.second->stats.received_pkts - p.second->stats.received_prior;
