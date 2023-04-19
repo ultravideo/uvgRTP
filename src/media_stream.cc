@@ -623,6 +623,12 @@ rtp_error_t uvgrtp::media_stream::check_push_preconditions(int rtp_flags, bool s
         UVG_LOG_WARN("Detected an obsolete RTP flag, consider updating your flags");
     }
 
+    if (rce_flags_ & RCE_RECEIVE_ONLY)
+    {
+        UVG_LOG_WARN("Stream is designated as RECEIVE ONLY");
+        return RTP_GENERIC_ERROR;
+    }
+
     if (smart_pointer && (rtp_flags & RTP_COPY))
     {
         UVG_LOG_ERROR("Copying a smart pointer does not make sense since the original would be lost");
@@ -649,7 +655,7 @@ rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(v
         return RTP_INVALID_VALUE;
     //reception_flow_
     // PLACEHOLDER -------- IMPLEMENTS THIS: should be the remote ssrc
-    sfp_->install_receive_hook(arg, hook, ssrc_.get()->load());
+    sfp_->install_receive_hook(arg, hook, remote_ssrc_.get()->load());
 
     return RTP_OK;
 }

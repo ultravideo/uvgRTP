@@ -292,7 +292,10 @@ rtp_error_t uvgrtp::socketfactory::start(std::shared_ptr<uvgrtp::socket> socket,
 
 std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::get_socket_ptr() const
 {
-    return used_sockets_.at(0);
+    if (!used_sockets_.empty()) {
+        return used_sockets_.at(0);
+    }
+    return nullptr;
 }
 
 bool uvgrtp::socketfactory::get_ipv6() const
