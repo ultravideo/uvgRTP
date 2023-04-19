@@ -41,6 +41,11 @@ namespace uvgrtp {
             rtp_error_t install_aux_handler_cpp(uint32_t key,
                 std::function<rtp_error_t(int, uvgrtp::frame::rtp_frame**)> handler,
                 std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter);
+
+            // SSRC 0 is reserved for universal receive hook
+            rtp_error_t install_universal_receive_hook(void* arg, void (*hook)(void*, uvgrtp::frame::rtp_frame*));
+
+
             rtp_error_t install_receive_hook(void* arg, void (*hook)(void*, uvgrtp::frame::rtp_frame*), uint32_t ssrc);
 
             rtp_error_t start(std::shared_ptr<uvgrtp::socket> socket, int rce_flags);
@@ -78,6 +83,7 @@ namespace uvgrtp {
            //void* recv_hook_arg_;
             //void (*recv_hook_)(void* arg, uvgrtp::frame::rtp_frame* frame);
             std::map<uint32_t, receive_pkt_hook> hooks_;
+            bool universal_hook_set_;
 
             std::unordered_map<uint32_t, packet_handlers> packet_handlers_;
             bool should_stop_;

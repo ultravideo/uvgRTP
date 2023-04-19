@@ -396,6 +396,7 @@ namespace uvgrtp {
             uint16_t dst_port_;
             bool ipv6_;
             rtp_format_t fmt_;
+            bool new_socket_;
 
             /* Media context config */
             int rce_flags_ = 0;

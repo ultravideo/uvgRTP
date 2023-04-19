@@ -33,6 +33,7 @@ uvgrtp::socketfactory::socketfactory(int rce_flags) :
     ipv6_(false),
     used_sockets_({}),
     hooks_({}),
+    universal_hook_set_(false),
     packet_handlers_({}),
     should_stop_(true),
     receiver_(nullptr),
@@ -205,6 +206,26 @@ rtp_error_t uvgrtp::socketfactory::install_receive_hook(
     if(hooks_.count(ssrc) == 0) {
         receive_pkt_hook new_hook = { arg, hook };
         hooks_[ssrc] = new_hook;
+    }
+    //recv_hook_ = hook;
+    //recv_hook_arg_ = arg;
+
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::socketfactory::install_universal_receive_hook(
+    void* arg,
+    void (*hook)(void*, uvgrtp::frame::rtp_frame*)
+)
+{
+    if (!hook) {
+        return RTP_INVALID_VALUE;
+    }
+    // tämä ssrc on sitten se meidän eli vastaanottajan pään media streamin ssrc
+    if (!universal_hook_set_) {
+        receive_pkt_hook new_hook = { arg, hook };
+        hooks_[0] = new_hook;
+        universal_hook_set_ = true;
     }
     //recv_hook_ = hook;
     //recv_hook_arg_ = arg;
@@ -651,8 +672,15 @@ void uvgrtp::socketfactory::destroy_ring_buffer()
 void uvgrtp::socketfactory::return_frame(uvgrtp::frame::rtp_frame* frame)
 {
     uint32_t ssrc = frame->header.ssrc;
+    if (universal_hook_set_) {
+        // if universal hook is set, first call it
+        receive_pkt_hook pkt_hook = hooks_[0];
+        recv_hook hook = pkt_hook.hook;
+        void* arg = pkt_hook.arg;
+        hook(arg, frame);
+    }
     if(hooks_.count(ssrc) > 0) {
-
+        // then call the hook that is assigned to receive from this remote ssrc
         receive_pkt_hook pkt_hook = hooks_[ssrc];
         recv_hook hook = pkt_hook.hook;
         void* arg = pkt_hook.arg;
