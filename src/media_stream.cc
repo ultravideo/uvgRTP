@@ -58,7 +58,8 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     cname_(cname),
     fps_numerator_(30),
     fps_denominator_(1),
-    ssrc_(std::make_shared<std::atomic<std::uint32_t>>(uvgrtp::random::generate_32()))
+    ssrc_(std::make_shared<std::atomic<std::uint32_t>>(uvgrtp::random::generate_32())),
+    remote_ssrc_(std::make_shared<std::atomic<std::uint32_t>>(uvgrtp::random::generate_32()))
 {
     //socket_ = sfp_->create_new_socket();
     //holepuncher_ = std::unique_ptr<uvgrtp::holepuncher>(new uvgrtp::holepuncher(socket_));
@@ -766,6 +767,13 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
                 return RTP_INVALID_VALUE;
 
             *ssrc_ = (uint32_t)value;
+            break;
+        }
+        case RCC_REMOTE_SSRC: {
+            if (value <= 0 || value > (ssize_t)UINT32_MAX)
+                return RTP_INVALID_VALUE;
+
+            *remote_ssrc_ = (uint32_t)value;
             break;
         }
         default:

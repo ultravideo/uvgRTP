@@ -422,6 +422,7 @@ namespace uvgrtp {
             ssize_t fps_denominator_ = 1;
             uint32_t bandwidth_ = 0;
             std::shared_ptr<std::atomic<std::uint32_t>> ssrc_;
+            std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc_;
     };
 }
 
