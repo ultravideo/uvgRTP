@@ -201,7 +201,7 @@ rtp_error_t uvgrtp::socketfactory::install_receive_hook(
     if (!hook) {
         return RTP_INVALID_VALUE;
     }
-
+    // t‰m‰ ssrc on sitten se meid‰n eli vastaanottajan p‰‰n media streamin ssrc
     if(hooks_.count(ssrc) == 0) {
         receive_pkt_hook new_hook = { arg, hook };
         hooks_[ssrc] = new_hook;

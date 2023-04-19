@@ -97,16 +97,17 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     
     if (src_port_ != 0 && !sfp_->is_port_in_use(src_port_)) {
         socket_ = sfp_->create_new_socket();
+        sfp_->start(socket_, 0);
     }
     else {
         if (sfp_->get_socket_ptr() == nullptr) {
             socket_ = sfp_->create_new_socket();
+            sfp_->start(socket_, 0);
         }
         else {
             socket_ = sfp_->get_socket_ptr();
         }
     }
-    sfp_->start(socket_, 0);
     holepuncher_ = std::unique_ptr<uvgrtp::holepuncher>(new uvgrtp::holepuncher(socket_));
 
 
