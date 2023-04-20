@@ -108,23 +108,70 @@ rtp_error_t uvgrtp::socket::bind(short family, unsigned host, short port)
     return bind(local_address_);
 }
 
+static bool is_multicast(sockaddr_in& local_address)
+{
+    // Multicast addresses ranges from 224.0.0.0 to 239.255.255.255 (0xE0000000 to 0xEFFFFFFF)
+    auto addr = local_address.sin_addr.s_addr;
+    return (ntohl(addr) & 0xF0000000) == 0xE0000000;
+}
+
 rtp_error_t uvgrtp::socket::bind(sockaddr_in& local_address)
 {
     local_address_ = local_address;
 
     UVG_LOG_DEBUG("Binding to address %s", sockaddr_to_string(local_address_).c_str());
 
-    if (::bind(socket_, (struct sockaddr*)&local_address_, sizeof(local_address_)) < 0) {
+    if (!::is_multicast(local_address_)) {
+        // Regular address
+        if (::bind(socket_, (struct sockaddr*)&local_address_, sizeof(local_address_)) < 0) {
 #ifdef _WIN32
-        win_get_last_error();
+            win_get_last_error();
 #else
-        fprintf(stderr, "%s\n", strerror(errno));
+            fprintf(stderr, "%s\n", strerror(errno));
 #endif
-        UVG_LOG_ERROR("Binding to port %u failed!", ntohs(local_address_.sin_port));
-        return RTP_BIND_ERROR;
+            UVG_LOG_ERROR("Binding to port %u failed!", ntohs(local_address_.sin_port));
+            return RTP_BIND_ERROR;
+        }
+    } else {
+        // Multicast address
+        // Bind with empty address
+        auto bind_addr_in = local_address_;
+        bind_addr_in.sin_addr.s_addr = htonl(INADDR_ANY);
+
+        if (::bind(socket_, (struct sockaddr*)&bind_addr_in, sizeof(bind_addr_in)) < 0) {
+#ifdef _WIN32
+            win_get_last_error();
+#else
+            fprintf(stderr, "%s\n", strerror(errno));
+#endif
+            UVG_LOG_ERROR("Binding to port %u failed!", ntohs(bind_addr_in.sin_port));
+            return RTP_BIND_ERROR;
+        }
+
+        // Join multicast membership
+        struct ip_mreq mreq{};
+        mreq.imr_multiaddr.s_addr = local_address_.sin_addr.s_addr;
+        mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+
+        if (::setsockopt(socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq)) < 0) {
+#ifdef _WIN32
+            win_get_last_error();
+#else
+            fprintf(stderr, "%s\n", strerror(errno));
+#endif
+            UVG_LOG_ERROR("Multicast join failed!");
+            return RTP_BIND_ERROR;
+        }
     }
 
     return RTP_OK;
+}
+
+static bool is_multicast(sockaddr_in6& local_address)
+{
+    // Multicast IP addresses have their first byte equals to 0xFF
+    auto addr = local_address.sin6_addr.s6_addr;
+    return addr[0] == 0xFF;
 }
 
 rtp_error_t uvgrtp::socket::bind_ip6(sockaddr_in6& local_address)
@@ -132,14 +179,45 @@ rtp_error_t uvgrtp::socket::bind_ip6(sockaddr_in6& local_address)
     local_ip6_address_ = local_address;
     UVG_LOG_DEBUG("Binding to address %s", sockaddr_ip6_to_string(local_ip6_address_).c_str());
 
-    if (::bind(socket_, (struct sockaddr*)&local_ip6_address_, sizeof(local_ip6_address_)) < 0) {
+    if (!::is_multicast(local_ip6_address_)) {
+        if (::bind(socket_, (struct sockaddr*)&local_ip6_address_, sizeof(local_ip6_address_)) < 0) {
+    #ifdef _WIN32
+            win_get_last_error();
+    #else
+            fprintf(stderr, "%s\n", strerror(errno));
+    #endif
+            UVG_LOG_ERROR("Binding to port %u failed!", ntohs(local_ip6_address_.sin6_port));
+            return RTP_BIND_ERROR;
+        }
+    } else {
+        // Multicast address
+        // Bind with empty address
+        auto bind_addr_in = local_ip6_address_;
+        bind_addr_in.sin6_addr = in6addr_any;
+
+        if (::bind(socket_, (struct sockaddr*)&bind_addr_in, sizeof(bind_addr_in)) < 0) {
 #ifdef _WIN32
-        win_get_last_error();
+            win_get_last_error();
 #else
-        fprintf(stderr, "%s\n", strerror(errno));
+            fprintf(stderr, "%s\n", strerror(errno));
 #endif
-        UVG_LOG_ERROR("Binding to port %u failed!", ntohs(local_address_.sin_port));
-        return RTP_BIND_ERROR;
+            UVG_LOG_ERROR("Binding to port %u failed!", ntohs(bind_addr_in.sin6_port));
+            return RTP_BIND_ERROR;
+        }
+
+        // Join multicast membership
+        struct ipv6_mreq mreq{};
+        memcpy(&mreq.ipv6mr_multiaddr, &local_ip6_address_.sin6_addr, sizeof(mreq.ipv6mr_multiaddr));
+
+        if (::setsockopt(socket_, IPPROTO_IPV6, IPV6_JOIN_GROUP, (char*)&mreq, sizeof(mreq)) < 0) {
+#ifdef _WIN32
+            win_get_last_error();
+#else
+            fprintf(stderr, "%s\n", strerror(errno));
+#endif
+            UVG_LOG_ERROR("Multicast join failed!");
+            return RTP_BIND_ERROR;
+        }
     }
 
     return RTP_OK;

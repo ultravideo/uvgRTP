@@ -9,6 +9,8 @@ constexpr uint16_t SEND_PORT = 9300;
 constexpr char REMOTE_ADDRESS[] = "::1";
 constexpr uint16_t RECEIVE_PORT = 9400;
 
+constexpr char MULTICAST_INTERFACE[] = "FF02:0:0:0:0:0:0:0";
+
 // RTCP TEST PARAMETERS
 constexpr uint16_t PAYLOAD_LEN = 256;
 constexpr uint16_t FRAME_RATE = 30;
@@ -528,4 +530,34 @@ void zrtp_receive_func6(uvgrtp::session* receiver_session, int sender_port, int 
     }
 
     cleanup_ms(receiver_session, recv);
+}
+
+TEST(RTPTests_ip6, rtp_multicast_ip6)
+{
+    // Tests installing a hook to uvgRTP
+    std::cout << "Starting IPv6 RTP hook test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(MULTICAST_INTERFACE, MULTICAST_INTERFACE);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    int flags = RCE_FRAGMENT_GENERIC;
+    if (sess)
+    {
+        sender = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_GENERIC, flags);
+        receiver = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
+    }
+
+    int test_packets = 10;
+    std::vector<size_t> sizes = { 1000, 2000 };
+    for (size_t& size : sizes)
+    {
+        std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
+        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, RTP_NO_FLAGS);
+    }
+
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
 }
