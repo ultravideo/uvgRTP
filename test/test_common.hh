@@ -14,6 +14,11 @@ inline std::unique_ptr<uint8_t[]> create_test_packet(rtp_format_t format, uint8_
 inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets, size_t size,
     uvgrtp::session* sess, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver, int rtp_flags, int framerate = 25);
 
+inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets, size_t size,
+    uvgrtp::session* sess,
+    uvgrtp::media_stream* sender, std::vector<uvgrtp::media_stream*> const& receiver,
+    int rtp_flags, int framerate = 25);
+
 inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size, 
     uvgrtp::session* sess, uvgrtp::media_stream* sender,
     int packets, int packet_interval_ms, bool print_progress, int rtp_flags, bool send_app = false);
@@ -205,6 +210,41 @@ inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets
 
         tester->gotAll();
         delete tester;
+    }
+}
+
+inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets, size_t size,
+    uvgrtp::session* sess, uvgrtp::media_stream* sender,
+    std::vector<uvgrtp::media_stream*> const& receivers,
+    int rtp_flags, int framerate)
+{
+    EXPECT_NE(nullptr, sess);
+    EXPECT_NE(nullptr, sender);
+
+    if (sess && sender)
+    {
+        std::vector<Test_receiver> testers(receivers.size(), { packets });
+
+        int interval_ms = 1000 / framerate;
+
+        for (auto i = 0; i < receivers.size(); ++i) {
+            auto receiver = receivers[i];
+
+            EXPECT_NE(nullptr, receiver);
+
+            if (!receiver) return;
+
+            add_hook(&testers[i], receiver, rtp_receive_hook);
+        }
+
+        // to increase the likelyhood that receiver thread is ready to receive
+        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+
+        send_packets(std::move(test_packet), size, sess, sender, packets, interval_ms, false, rtp_flags);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50 + size / 500));
+
+        for (auto& tester : testers) tester.gotAll();
     }
 }
 

@@ -134,6 +134,18 @@ rtp_error_t uvgrtp::socket::bind(sockaddr_in& local_address)
         }
     } else {
         // Multicast address
+        // Reuse address to enabled receiving the same stream multiple times
+        const int enable = 1;
+        if (::setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (const char*)&enable, sizeof(int)) < 0) {
+#ifdef _WIN32
+            win_get_last_error();
+#else
+            fprintf(stderr, "%s\n", strerror(errno));
+#endif
+
+            UVG_LOG_ERROR("Reuse address failed!");
+        }
+
         // Bind with empty address
         auto bind_addr_in = local_address_;
         bind_addr_in.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -191,6 +203,18 @@ rtp_error_t uvgrtp::socket::bind_ip6(sockaddr_in6& local_address)
         }
     } else {
         // Multicast address
+        // Reuse address to enabled receiving the same stream multiple times
+        const int enable = 1;
+        if (::setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (const char*)&enable, sizeof(int)) < 0) {
+#ifdef _WIN32
+            win_get_last_error();
+#else
+            fprintf(stderr, "%s\n", strerror(errno));
+#endif
+
+            UVG_LOG_ERROR("Reuse address failed!");
+        }
+
         // Bind with empty address
         auto bind_addr_in = local_ip6_address_;
         bind_addr_in.sin6_addr = in6addr_any;
