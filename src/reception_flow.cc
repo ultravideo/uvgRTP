@@ -24,13 +24,13 @@
 constexpr size_t DEFAULT_INITIAL_BUFFER_SIZE = 4194304;
 
 uvgrtp::reception_flow::reception_flow() :
-    recv_hook_arg_(nullptr),
-    recv_hook_(nullptr),
+    hooks_({}),
     should_stop_(true),
     receiver_(nullptr),
     ring_buffer_(),
     ring_read_index_(-1), // invalid first index that will increase to a valid one
     last_ring_write_index_(-1),
+    socket_(),
     buffer_size_kbytes_(DEFAULT_INITIAL_BUFFER_SIZE),
     payload_size_(MAX_IPV4_PAYLOAD)
 {
@@ -39,6 +39,7 @@ uvgrtp::reception_flow::reception_flow() :
 
 uvgrtp::reception_flow::~reception_flow()
 {
+    hooks_.clear();
     destroy_ring_buffer();
     clear_frames();
 }
@@ -145,14 +146,23 @@ rtp_error_t uvgrtp::reception_flow::stop()
 
 rtp_error_t uvgrtp::reception_flow::install_receive_hook(
     void *arg,
-    void (*hook)(void *, uvgrtp::frame::rtp_frame *)
+    void (*hook)(void *, uvgrtp::frame::rtp_frame *),
+    uint32_t ssrc
 )
 {
     if (!hook)
         return RTP_INVALID_VALUE;
 
-    recv_hook_     = hook;
-    recv_hook_arg_ = arg;
+    // ssrc 0 is for universal hook
+    if (hooks_.find(ssrc) == hooks_.end()) {
+        receive_pkt_hook new_hook = { arg, hook };
+        hooks_[ssrc] = new_hook;
+    }
+    else {
+        UVG_LOG_ERROR("Hook already exists");
+    }
+    //recv_hook_     = hook;
+    //recv_hook_arg_ = arg;
 
     return RTP_OK;
 }
@@ -251,13 +261,33 @@ rtp_error_t uvgrtp::reception_flow::install_aux_handler_cpp(uint32_t key,
 
 void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
 {
+    uint32_t ssrc = frame->header.ssrc;
+    // korvaa tämä booleanilla, single socket tms
+    if (hooks_.find(0) != hooks_.end()) {
+        receive_pkt_hook pkt_hook = hooks_[0];
+        recv_hook hook = pkt_hook.hook;
+        void* arg = pkt_hook.arg;
+        hook(arg, frame);
+    }
+    if (hooks_.find(ssrc) != hooks_.end()) {
+        receive_pkt_hook pkt_hook = hooks_[ssrc];
+        recv_hook hook = pkt_hook.hook;
+        void* arg = pkt_hook.arg;
+        hook(arg, frame);
+    }
+    else {
+        frames_mtx_.lock();
+        frames_.push_back(frame);
+        frames_mtx_.unlock();
+    }
+    /*
     if (recv_hook_) {
         recv_hook_(recv_hook_arg_, frame);
     } else {
         frames_mtx_.lock();
         frames_.push_back(frame);
         frames_mtx_.unlock();
-    }
+    }*/
 }
 
 void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int rce_flags, uvgrtp::frame::rtp_frame **frame)

@@ -11,6 +11,7 @@
 #include <condition_variable>
 #include <atomic>
 #include <deque>
+#include <map>
 
 namespace uvgrtp {
 
@@ -19,6 +20,13 @@ namespace uvgrtp {
     }
 
     class socket;
+
+    typedef void (*recv_hook)(void* arg, uvgrtp::frame::rtp_frame* frame);
+
+    struct receive_pkt_hook {
+        void* arg = nullptr;
+        recv_hook hook = nullptr;
+    };
 
     typedef rtp_error_t (*packet_handler)(ssize_t, void *, int, uvgrtp::frame::rtp_frame **);
     typedef rtp_error_t (*packet_handler_aux)(void *, int, uvgrtp::frame::rtp_frame **);
@@ -121,7 +129,7 @@ namespace uvgrtp {
              *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "hook" is nullptr */
-            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *));
+            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *), uint32_t ssrc);
 
             /* Start the RTP reception flow. Start querying for received packets and processing them.
              *
@@ -179,8 +187,11 @@ namespace uvgrtp {
             std::deque<uvgrtp::frame::rtp_frame *> frames_;
             std::mutex frames_mtx_;
 
-            void *recv_hook_arg_;
-            void (*recv_hook_)(void *arg, uvgrtp::frame::rtp_frame *frame);
+            //void *recv_hook_arg_;
+            //void (*recv_hook_)(void *arg, uvgrtp::frame::rtp_frame *frame);
+
+            std::map<uint32_t, receive_pkt_hook> hooks_;
+
 
             bool should_stop_;
 
@@ -194,7 +205,7 @@ namespace uvgrtp {
             };
 
             std::vector<Buffer> ring_buffer_;
-
+            std::mutex ring_mutex_;
             // these uphold the ring buffer details
             std::atomic<ssize_t> ring_read_index_;
             std::atomic<ssize_t> last_ring_write_index_;
@@ -202,6 +213,7 @@ namespace uvgrtp {
             std::mutex wait_mtx_; // for waking up the processing thread (read)
 
             std::condition_variable process_cond_;
+            std::shared_ptr<uvgrtp::socket> socket_;
 
             ssize_t buffer_size_kbytes_;
             size_t payload_size_;

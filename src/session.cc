@@ -41,6 +41,7 @@ uvgrtp::session::~session()
         (void)destroy_stream(i.second);
     }
     streams_.clear();
+    sf_ = nullptr;
 }
 
 uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t port, rtp_format_t fmt, int rce_flags)

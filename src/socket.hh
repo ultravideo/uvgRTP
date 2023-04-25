@@ -112,7 +112,6 @@ namespace uvgrtp {
              *
              * Return RTP_OK on success and write the amount of bytes sent to "bytes_sent"
              * Return RTP_SEND_ERROR on error and set "bytes_sent" to -1 */
-            // nämä done
             rtp_error_t sendto(uint8_t *buf, size_t buf_len, int send_flags);
             rtp_error_t sendto(uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
             rtp_error_t sendto(buf_vec& buffers, int send_flags);
