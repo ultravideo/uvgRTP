@@ -25,6 +25,7 @@ constexpr size_t DEFAULT_INITIAL_BUFFER_SIZE = 4194304;
 
 uvgrtp::reception_flow::reception_flow() :
     hooks_({}),
+    handler_mapping_({}),
     should_stop_(true),
     receiver_(nullptr),
     ring_buffer_(),
@@ -160,6 +161,9 @@ rtp_error_t uvgrtp::reception_flow::install_receive_hook(
     }
     else {
         UVG_LOG_ERROR("Hook already exists");
+        receive_pkt_hook new_hook = { arg, hook };
+        hooks_.erase(ssrc);
+        hooks_.insert({ssrc, new_hook});
     }
     //recv_hook_     = hook;
     //recv_hook_arg_ = arg;
@@ -295,6 +299,21 @@ void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int rce_flags, uvgr
     rtp_error_t ret;
 
     for (auto& aux : packet_handlers_[key].auxiliary) {
+
+        auto fr = *frame;
+        uint32_t pkt_ssrc = fr->header.ssrc;
+        uint32_t current_ssrc = handler_mapping_[key];
+        bool auxh = false;
+        if (current_ssrc == pkt_ssrc) {
+            auxh = true;
+        }
+        else if (current_ssrc == 0) {
+            auxh = true;
+        }
+        else {
+            continue;
+        }
+
         switch ((ret = (*aux.handler)(aux.arg, rce_flags, frame))) {
             /* packet was handled successfully */
             case RTP_OK:
@@ -489,6 +508,26 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                 // process the ring buffer location through all the handlers
                 for (auto& handler : packet_handlers_) {
                     uvgrtp::frame::rtp_frame* frame = nullptr;
+                    frame = (uvgrtp::frame::rtp_frame*)ring_buffer_[ring_read_index_].data;
+
+                    uint8_t* ptr = (uint8_t*)ring_buffer_[ring_read_index_].data;
+                    uint32_t nhssrc = ntohl(*(uint32_t*)&ptr[8]);
+                    uint32_t hnssrc = (uint32_t)ptr[8];
+
+                    uint32_t current_ssrc = handler_mapping_[handler.first];
+                    bool reth = false;
+                    if (current_ssrc == hnssrc || current_ssrc == nhssrc|| current_ssrc == frame->header.ssrc) {
+                        reth = true;
+                    }
+                    else if (current_ssrc == 0) {
+                        reth = true;
+
+                    }
+                    else {
+
+                        continue;
+                    }
+                    frame = nullptr;
 
                     // Here we don't lock ring mutex because the chaging is only done above. 
                     // NOTE: If there is a need for multiple processing threads, the read should be guarded
@@ -582,4 +621,14 @@ void uvgrtp::reception_flow::increase_buffer_size(ssize_t next_write_index)
         // this works, because we have just added increase amount of spaces
         ring_read_index_ += increase;
     }
+}
+
+bool uvgrtp::reception_flow::map_handler_key(uint32_t key, uint32_t remote_ssrc)
+{
+    bool ret = false;
+    if (handler_mapping_.find(key) == handler_mapping_.end()) {
+        handler_mapping_[key] = remote_ssrc;
+        ret = true;
+    }
+    return ret;
 }

@@ -49,6 +49,7 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     ipv6_(false),
     fmt_(fmt),
     new_socket_(false),
+    hooked_(false),
     rce_flags_(rce_flags),
     initialized_(false),
     rtp_handler_key_(0),
@@ -62,9 +63,6 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     ssrc_(std::make_shared<std::atomic<std::uint32_t>>(uvgrtp::random::generate_32())),
     remote_ssrc_(std::make_shared<std::atomic<std::uint32_t>>(0))
 {
-    //socket_ = sfp_->create_new_socket();
-    //holepuncher_ = std::unique_ptr<uvgrtp::holepuncher>(new uvgrtp::holepuncher(socket_));
-
 }
 
 uvgrtp::media_stream::~media_stream()
@@ -293,6 +291,8 @@ rtp_error_t uvgrtp::media_stream::init()
 
     rtp_handler_key_ = reception_flow_->install_handler(rtp_->packet_handler);
 
+    reception_flow_->map_handler_key(rtp_handler_key_, remote_ssrc_.get()->load());
+
     reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_.get(), rtcp_->recv_packet_handler, nullptr);
 
     return start_components();
@@ -334,6 +334,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
     rtp_error_t ret = RTP_OK;
     if ((ret = zrtp->init(rtp_->get_ssrc(), socket_, remote_sockaddr_, remote_sockaddr_ip6_, perform_dh, ipv6_)) != RTP_OK) {
         UVG_LOG_WARN("Failed to initialize ZRTP for media stream!");
+        // TÄMÄ FAILAA, koska ei handlereita?? korjaus: siirrä handlerit tän eteen
         return free_resources(ret);
     }
 
@@ -355,6 +356,9 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
     rtp_handler_key_  = reception_flow_->install_handler(rtp_->packet_handler);
     zrtp_handler_key_ = reception_flow_->install_handler(zrtp->packet_handler);
 
+    reception_flow_->map_handler_key(rtp_handler_key_, remote_ssrc_.get()->load());
+    reception_flow_->map_handler_key(zrtp_handler_key_, remote_ssrc_.get()->load());
+    
     reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_.get(), rtcp_->recv_packet_handler, nullptr);
     reception_flow_->install_aux_handler(rtp_handler_key_, srtp_.get(), srtp_->recv_packet_handler, nullptr);
     return start_components();
@@ -655,12 +659,16 @@ rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(v
     if (!hook) {
         return RTP_INVALID_VALUE;
     }
-
+    if (hooked_) {
+        return RTP_OK;
+    }
     if (remote_ssrc_.get()->load() == 0) {
         return reception_flow_->install_receive_hook(arg, hook, 0);
+        hooked_ = true;
     }
     else {
         return reception_flow_->install_receive_hook(arg, hook, remote_ssrc_.get()->load());
+        hooked_ = true;
     }
 }
 
