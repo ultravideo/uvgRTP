@@ -10,6 +10,7 @@
 #include "debug.hh"
 #include "srtp/srtcp.hh"
 #include "rtcp_packets.hh"
+#include "socketfactory.hh"
 
 #include "global.hh"
 
@@ -43,7 +44,8 @@ constexpr int ESTIMATED_MAX_RECEPTION_TIME_MS = 10;
 
 const uint32_t MAX_SUPPORTED_PARTICIPANTS = 31;
 
-uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::string cname, int rce_flags):
+uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::string cname,
+    std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags) :
     rce_flags_(rce_flags), our_role_(RECEIVER),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0), reduced_minimum_(0),
@@ -66,12 +68,14 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic
     sdes_hook_u_(nullptr),
     app_hook_f_(nullptr),
     app_hook_u_(nullptr),
+    sfp_(sfp),
     active_(false),
     interval_ms_(DEFAULT_RTCP_INTERVAL_MS),
     rtp_ptr_(rtp),
     ourItems_(),
     bye_ssrcs_(false),
     hooked_app_(false),
+    new_socket_(false),
     mtu_size_(MAX_IPV4_PAYLOAD)
 {
     clock_rate_   = rtp->get_clock_rate();
@@ -107,8 +111,8 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic
 }
 
 uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::string cname,
-    std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags):
-    rtcp(rtp, ssrc, cname, rce_flags)
+    std::shared_ptr<uvgrtp::socketfactory> sfp, std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags):
+    rtcp(rtp, ssrc, cname, sfp, rce_flags)
 {
     srtcp_ = srtcp;
 }
@@ -199,9 +203,24 @@ void uvgrtp::rtcp::free_participant(std::unique_ptr<rtcp_participant> participan
 rtp_error_t uvgrtp::rtcp::start()
 {
     active_ = true;
-    rtcp_socket_ = std::unique_ptr<uvgrtp::socket>(new uvgrtp::socket(0));
+    ipv6_ = sfp_->get_ipv6();
+    
+    // Source port is given and is not in use -> create new socket
+    if (local_port_ != 0 && !sfp_->is_port_in_use(local_port_)) {
+        rtcp_socket_ = sfp_->create_new_socket();
+        new_socket_ = true;
+    }
+    // Source port is in use -> fetch the existing socket
+    else {
+        rtcp_socket_ = sfp_->get_socket_ptr(local_port_);
+        if (!rtcp_socket_) {
+            rtcp_socket_ = sfp_->create_new_socket();
+            new_socket_ = true;
+        }
+    }
+    //rtcp_socket_ = std::unique_ptr<uvgrtp::socket>(new uvgrtp::socket(0));
     rtp_error_t ret = RTP_OK;
-    if (ipv6_) {
+    /*if (ipv6_) {
         ret = rtcp_socket_->init(AF_INET6, SOCK_DGRAM, 0);
     }
     else {
@@ -210,16 +229,16 @@ rtp_error_t uvgrtp::rtcp::start()
     if (ret != RTP_OK) {
         return ret;
     }
-
+    
     int enable = 1;
 
     if ((ret = rtcp_socket_->setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char*)&enable, sizeof(int))) != RTP_OK)
     {
         return ret;
     }
-
+    
 #ifdef _WIN32
-    /* Make the socket non-blocking */
+    // Make the socket non-blocking 
     int enabled = 1;
 
     if (::ioctlsocket(rtcp_socket_->get_raw_socket(), FIONBIO, (u_long*)&enabled) < 0)
@@ -227,6 +246,8 @@ rtp_error_t uvgrtp::rtcp::start()
         UVG_LOG_ERROR("Failed to make the socket non-blocking!");
     }
 #endif
+    
+    */
 
     /* Set read timeout (5s for now)
      *
@@ -244,19 +265,9 @@ rtp_error_t uvgrtp::rtcp::start()
     if (local_addr_ != "")
     {
         UVG_LOG_INFO("Binding RTCP to port %s:%d", local_addr_.c_str(), local_port_);
-        if (ipv6_) {
-            sockaddr_in6 bind_addr6 = rtcp_socket_->create_ip6_sockaddr(local_addr_, local_port_);
-            if ((ret = rtcp_socket_->bind_ip6(bind_addr6)) != RTP_OK)
-            {
-                return ret;
-            }
-        }
-        else {
-            sockaddr_in bind_addr = rtcp_socket_->create_sockaddr(AF_INET, local_addr_, local_port_);
-            if ((ret = rtcp_socket_->bind(bind_addr)) != RTP_OK)
-            {
-                return ret;
-            }
+        if ((ret = sfp_->bind_socket(rtcp_socket_, local_port_)) != RTP_OK) {
+            log_platform_error("bind(2) failed");
+            return ret;
         }
     }
     else
@@ -264,19 +275,9 @@ rtp_error_t uvgrtp::rtcp::start()
         
         UVG_LOG_WARN("No local address provided, binding RTCP to INADDR_ANY");
         UVG_LOG_INFO("Binding RTCP to port %s:%d", local_addr_.c_str(), local_port_);
-        if (ipv6_) {
-            sockaddr_in6 bind_addr6 = rtcp_socket_->create_ip6_sockaddr_any(local_port_);
-            if ((ret = rtcp_socket_->bind_ip6(bind_addr6)) != RTP_OK)
-            {
-                return ret;
-            }
-        }
-        else {
-            sockaddr_in bind_addr = rtcp_socket_->create_sockaddr(AF_INET, INADDR_ANY, local_port_);
-            if ((ret = rtcp_socket_->bind(bind_addr)) != RTP_OK)
-            {
-                return ret;
-            }
+        if ((ret = sfp_->bind_socket_anyip(rtcp_socket_, local_port_)) != RTP_OK) {
+            log_platform_error("bind(2) to any failed");
+            return ret;
         }
     }
     if (ipv6_) {
