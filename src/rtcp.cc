@@ -2025,7 +2025,12 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
 {
     packet_mutex_.lock();
 
-    std::unique_ptr<uint8_t[]> pl = std::make_unique<uint8_t[]>(*payload);
+    std::unique_ptr<uint8_t[]> pl = std::make_unique<uint8_t[]>(payload_len);
+
+    for (auto c = 0; c < payload_len; ++c) {
+        pl[c] = payload[c];
+    }
+
     if (!app_packets_[name].empty())
     {
         UVG_LOG_DEBUG("Adding a new APP packet for sending when %llu packets are waiting to be sent",

@@ -271,6 +271,7 @@ void app_hook(uvgrtp::frame::rtcp_app_packet* frame)
     size_t payload_len = size_t(frame->header.length - 2)*4;
     std::string payload = std::string((char*)frame->payload, payload_len);
     std::string name = std::string((char*)frame->name, 4);
+    uint8_t subtype = uint8_t(frame->header.pkt_subtype);
 
     std::cout << std::endl << "APP frame! ----------" << std::endl;
     std::cout << "ssrc: " << frame->ssrc << std::endl;
@@ -278,6 +279,10 @@ void app_hook(uvgrtp::frame::rtcp_app_packet* frame)
     std::cout << "Calculated payload length " << payload_len << std::endl;
     std::cout << "Payload length field "      << frame->payload_len << std::endl;
 
+    EXPECT_EQ(name, "Test");
+    EXPECT_EQ(payload, "ABCD");
+    EXPECT_EQ(payload_len, 4);
+    EXPECT_EQ(subtype, 1);
 
     if (payload_len > 0)
     {
