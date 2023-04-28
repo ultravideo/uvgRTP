@@ -2027,7 +2027,7 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
 
     std::unique_ptr<uint8_t[]> pl = std::make_unique<uint8_t[]>(payload_len);
 
-    for (auto c = 0; c < payload_len; ++c) {
+    for (uint32_t c = 0; c < payload_len; ++c) {
         pl[c] = payload[c];
     }
 
