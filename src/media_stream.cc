@@ -376,11 +376,17 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         UVG_LOG_ERROR("Failed to initialize the underlying socket");
         return free_resources(RTP_GENERIC_ERROR);
     }
+    if (!new_socket_) {
+        reception_flow_ = sfp_->get_reception_flow_ptr(socket_);
+    }
+    else {
+        reception_flow_ = sfp_->install_reception_flow(socket_);
+    }
 
     if ((rce_flags_ & srtp_rce_flags) != srtp_rce_flags)
         return free_resources(RTP_NOT_SUPPORTED);
 
-    reception_flow_ = std::unique_ptr<uvgrtp::reception_flow> (new uvgrtp::reception_flow());
+    //reception_flow_ = std::unique_ptr<uvgrtp::reception_flow> (new uvgrtp::reception_flow());
 
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_, ssrc_, ipv6_));
 
@@ -405,9 +411,26 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     socket_->install_handler(srtp_.get(), srtp_->send_packet_handler);
 
     rtp_handler_key_ = reception_flow_->install_handler(rtp_->packet_handler);
+    reception_flow_->map_handler_key(rtp_handler_key_, remote_ssrc_);
 
     reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_.get(), rtcp_->recv_packet_handler, nullptr);
     reception_flow_->install_aux_handler(rtp_handler_key_, srtp_.get(), srtp_->recv_packet_handler, nullptr);
+
+    return start_components();
+}
+
+rtp_error_t uvgrtp::media_stream::add_zrtp_ctx()
+{
+    if (init_connection() != RTP_OK) {
+        log_platform_error("Failed to initialize the underlying socket");
+        return RTP_GENERIC_ERROR;
+    }
+    if (!new_socket_) {
+        reception_flow_ = sfp_->get_reception_flow_ptr(socket_);
+    }
+    else {
+        reception_flow_ = sfp_->install_reception_flow(socket_);
+    }
 
     return start_components();
 }
@@ -674,12 +697,27 @@ rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(v
 
 rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
 {
+    rtp_error_t ret = RTP_OK;
+
+    if (rcc_flag == RCC_SSRC) {
+        if (value <= 0 || value > (ssize_t)UINT32_MAX)
+            return RTP_INVALID_VALUE;
+
+        *ssrc_ = (uint32_t)value;
+        return ret;
+    }
+    else if (rcc_flag == RCC_REMOTE_SSRC) {
+        if (value <= 0 || value > (ssize_t)UINT32_MAX)
+            return RTP_INVALID_VALUE;
+
+        *remote_ssrc_ = (uint32_t)value;
+        return ret;
+    }
+
     if (!initialized_) {
         UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
     }
-
-    rtp_error_t ret = RTP_OK;
 
     switch (rcc_flag) {
         case RCC_UDP_SND_BUF_SIZE: {
