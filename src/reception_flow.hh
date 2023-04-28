@@ -156,7 +156,7 @@ namespace uvgrtp {
 
             void set_buffer_size(const ssize_t& value);
             void set_payload_size(const size_t& value);
-            bool map_handler_key(uint32_t key, uint32_t remote_ssrc);
+            bool map_handler_key(uint32_t key, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
            
         private:
             /* RTP packet receiver thread */
@@ -193,7 +193,7 @@ namespace uvgrtp {
 
             std::map<uint32_t, receive_pkt_hook> hooks_;
             // Map handler keys to media streams remote ssrcs
-            std::map<uint32_t, uint32_t> handler_mapping_;
+            std::map<uint32_t, std::shared_ptr<std::atomic<std::uint32_t>>> handler_mapping_;
 
             std::mutex flow_mutex_;
             bool should_stop_;

@@ -302,7 +302,7 @@ void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int rce_flags, uvgr
 
         auto fr = *frame;
         uint32_t pkt_ssrc = fr->header.ssrc;
-        uint32_t current_ssrc = handler_mapping_[key];
+        uint32_t current_ssrc = handler_mapping_[key].get()->load();
         bool auxh = false;
         if (current_ssrc == pkt_ssrc) {
             auxh = true;
@@ -514,13 +514,16 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     uint32_t nhssrc = ntohl(*(uint32_t*)&ptr[8]);
                     uint32_t hnssrc = (uint32_t)ptr[8];
 
-                    uint32_t current_ssrc = handler_mapping_[handler.first];
+                    uint32_t current_ssrc = handler_mapping_[handler.first].get()->load();
                     bool reth = false;
                     if (current_ssrc == hnssrc || current_ssrc == nhssrc|| current_ssrc == frame->header.ssrc) {
                         reth = true;
+                        UVG_LOG_INFO("Hook ssrc %d", current_ssrc);
+
                     }
                     else if (current_ssrc == 0) {
                         reth = true;
+                        UVG_LOG_INFO("Hook ssrc 0");
 
                     }
                     else {
@@ -623,7 +626,7 @@ void uvgrtp::reception_flow::increase_buffer_size(ssize_t next_write_index)
     }
 }
 
-bool uvgrtp::reception_flow::map_handler_key(uint32_t key, uint32_t remote_ssrc)
+bool uvgrtp::reception_flow::map_handler_key(uint32_t key, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
 {
     bool ret = false;
     if (handler_mapping_.find(key) == handler_mapping_.end()) {
