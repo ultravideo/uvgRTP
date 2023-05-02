@@ -15,11 +15,17 @@ project(uvgrtp
 
 include(GNUInstallDirs)
 
-include(cmake/FindDependencies.cmake)
-include(cmake/Versioning.cmake)
+
 option(DISABLE_CRYPTO "Do not build uvgRTP with crypto enabled" OFF)
 option(DISABLE_PRINTS "Do not print anything from uvgRTP" OFF)
 option(DISABLE_WERROR "Ignore compiler warnings" OFF)
+
+option(UVGRTP_DISABLE_TESTS    "Do not build unit tests" OFF)
+option(UVGRTP_DISABLE_EXAMPLES "Do not build examples" OFF)
+
+include(cmake/FindDependencies.cmake)
+include(cmake/Versioning.cmake)
+
 
 add_library(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -236,8 +242,13 @@ if(APPLE)
     target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Security")
 endif()
 
-add_subdirectory(examples EXCLUDE_FROM_ALL)
-add_subdirectory(test EXCLUDE_FROM_ALL)
+if (NOT UVGRTP_DISABLE_EXAMPLES)
+    add_subdirectory(examples EXCLUDE_FROM_ALL)
+endif()
+
+if (NOT UVGRTP_DISABLE_TESTS)
+    add_subdirectory(test EXCLUDE_FROM_ALL)
+endif()
 
 #
 # Install

@@ -120,6 +120,14 @@ cmake -DDISABLE_WERROR=1 ..
 
 Creation of an issue on Github that describes these warnings is also appreciated.
 
+## Not building examples or tests
+
+By default, uvgRTP configures both examples and tests as additional targets to build. If this is undesirable, you can disable their configuration with following CMake parameters:
+
+```
+cmake -DUVGRTP_DISABLE_TESTS=1 -UVGRTP_DISABLE_EXAMPLES=1 ..
+```
+
 ## Release commit (for devs)
 
 The release commit can be specified in CMake. This slightly changes how the version is printed. This feature is mostly useful for distributing release versions. Use the following command:
