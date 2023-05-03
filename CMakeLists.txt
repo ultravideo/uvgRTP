@@ -18,7 +18,7 @@ include(GNUInstallDirs)
 
 option(UVGRTP_DISABLE_CRYPTO "Do not build uvgRTP with crypto enabled" OFF)
 option(UVGRTP_DISABLE_PRINTS "Do not print anything from uvgRTP" OFF)
-option(UVGRTP_DISABLE_WERROR "Ignore compiler warnings" OFF)
+option(UVGRTP_DISABLE_WERROR "Ignore compiler warnings" ON)
 
 option(UVGRTP_DISABLE_TESTS    "Do not build unit tests" OFF)
 option(UVGRTP_DISABLE_EXAMPLES "Do not build examples" OFF)
