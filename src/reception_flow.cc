@@ -160,7 +160,7 @@ rtp_error_t uvgrtp::reception_flow::install_receive_hook(
         hooks_[ssrc] = new_hook;
     }
     else {
-        UVG_LOG_ERROR("Hook already exists");
+        UVG_LOG_INFO("Replacing existing hook");
         receive_pkt_hook new_hook = { arg, hook };
         hooks_.erase(ssrc);
         hooks_.insert({ssrc, new_hook});
@@ -273,7 +273,7 @@ void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
         void* arg = pkt_hook.arg;
         hook(arg, frame);
     }
-    if (hooks_.find(ssrc) != hooks_.end()) {
+    else if (hooks_.find(ssrc) != hooks_.end()) {
         receive_pkt_hook pkt_hook = hooks_[ssrc];
         recv_hook hook = pkt_hook.hook;
         void* arg = pkt_hook.arg;

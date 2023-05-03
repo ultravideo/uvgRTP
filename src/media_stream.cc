@@ -418,8 +418,6 @@ rtp_error_t uvgrtp::media_stream::add_zrtp_ctx()
     if ((ret = init_srtp_with_zrtp(rce_flags_, SRTCP, srtcp_, zrtp_)) != RTP_OK)
         return free_resources(ret);
 
-    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, ssrc_, cname_, srtcp_, rce_flags_));
-
     UVG_LOG_DEBUG("DH negotiation finished!");
 
     rtcp_ = std::shared_ptr<uvgrtp::rtcp>(new uvgrtp::rtcp(rtp_, ssrc_, cname_, sfp_, srtcp_, rce_flags_));
@@ -684,17 +682,8 @@ rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(v
     if (!hook) {
         return RTP_INVALID_VALUE;
     }
-    if (hooked_) {
-        return RTP_OK;
-    }
-    if (remote_ssrc_.get()->load() == 0) {
-        hooked_ = true;
-        return reception_flow_->install_receive_hook(arg, hook, 0);
-    }
-    else {
-        hooked_ = true;
-        return reception_flow_->install_receive_hook(arg, hook, remote_ssrc_.get()->load());
-    }
+    hooked_ = true;
+    return reception_flow_->install_receive_hook(arg, hook, remote_ssrc_.get()->load());
 }
 
 rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
