@@ -15,11 +15,37 @@ project(uvgrtp
 
 include(GNUInstallDirs)
 
-include(cmake/FindDependencies.cmake)
-include(cmake/Versioning.cmake)
+
+option(UVGRTP_DISABLE_CRYPTO "Do not build uvgRTP with crypto enabled" OFF)
+option(UVGRTP_DISABLE_PRINTS "Do not print anything from uvgRTP" OFF)
+option(UVGRTP_DISABLE_WERROR "Ignore compiler warnings" ON)
+
+option(UVGRTP_DISABLE_TESTS    "Do not build unit tests" OFF)
+option(UVGRTP_DISABLE_EXAMPLES "Do not build examples" OFF)
+option(UVGRTP_DOWNLOAD_CRYPTO  "Download headers for Crypto++ if they are missing" OFF)
+
+option(UVGRTP_RELEASE_COMMIT "Explicitly say that this is a release version in version prints" OFF)
+
+# obsolete, do not use
 option(DISABLE_CRYPTO "Do not build uvgRTP with crypto enabled" OFF)
 option(DISABLE_PRINTS "Do not print anything from uvgRTP" OFF)
 option(DISABLE_WERROR "Ignore compiler warnings" OFF)
+
+# offer some backwards compatibility for old flags
+if (DISABLE_CRYPTO)
+    set(UVGRTP_DISABLE_CRYPTO ON)
+endif()
+if (DISABLE_PRINTS)
+    set(UVGRTP_DISABLE_PRINTS ON)
+endif()
+if (DISABLE_WERROR)
+    set(UVGRTP_DISABLE_WERROR ON)
+endif()
+
+
+include(cmake/FindDependencies.cmake)
+include(cmake/Versioning.cmake)
+
 
 add_library(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -163,19 +189,19 @@ endif()
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /Zc:__cplusplus /W4)
 else()
-    if (DISABLE_WERROR)
+    if (UVGRTP_DISABLE_WERROR)
         target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
     else ()
         target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
     endif()
 endif()
 
-if (DISABLE_CRYPTO)
+if (UVGRTP_DISABLE_CRYPTO)
     list(APPEND UVGRTP_CXX_FLAGS "-D__RTP_NO_CRYPTO__")
     target_compile_definitions(${PROJECT_NAME} PRIVATE __RTP_NO_CRYPTO__)
 endif()
 
-if (DISABLE_PRINTS)
+if (UVGRTP_DISABLE_PRINTS)
     list(APPEND UVGRTP_CXX_FLAGS "-D__RTP_SILENT__")
     target_compile_definitions(${PROJECT_NAME} PRIVATE __RTP_SILENT__)
 endif()
@@ -213,14 +239,11 @@ if (UNIX)
         endif(NOT DEFINED ENV{PKG_CONFIG_PATH})
 
         # Find crypto++
-        if(NOT DISABLE_CRYPTO)
+        if(NOT UVGRTP_DISABLE_CRYPTO)
             pkg_search_module(CRYPTOPP libcrypto++ cryptopp)
             if(CRYPTOPP_FOUND)
               list(APPEND UVGRTP_CXX_FLAGS ${CRYPTOPP_CFLAGS_OTHER})
               list(APPEND UVGRTP_LINKER_FLAGS ${CRYPTOPP_LDFLAGS})
-            else()
-              message("libcrypto++ not found. Encryption will be disabled")
-              list(APPEND UVGRTP_CXX_FLAGS "-D__RTP_NO_CRYPTO__")
             endif()
         endif()
 
@@ -234,12 +257,27 @@ if (UNIX)
     endif(PkgConfig_FOUND)
 endif (UNIX)
 
+if (NOT CRYPTOPP_FOUND AND UVGRTP_DOWNLOAD_CRYPTO)
+  include(cmake/CryptoHeaders.cmake)
+  list(APPEND UVGRTP_CXX_FLAGS ${CRYPTOPP_CFLAGS_OTHER})
+  list(APPEND UVGRTP_LINKER_FLAGS ${CRYPTOPP_LDFLAGS})
+elseif(NOT CRYPTOPP_FOUND AND UNIX)
+  # In Visual Studio, we want to leave user the option to add Crypto++ headers manually
+  message("libcrypto++ not found. Encryption will be disabled")
+  list(APPEND UVGRTP_CXX_FLAGS "-D__RTP_NO_CRYPTO__")
+endif()
+
 if(APPLE)
     target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Security")
 endif()
 
-add_subdirectory(examples EXCLUDE_FROM_ALL)
-add_subdirectory(test EXCLUDE_FROM_ALL)
+if (NOT UVGRTP_DISABLE_EXAMPLES)
+    add_subdirectory(examples EXCLUDE_FROM_ALL)
+endif()
+
+if (NOT UVGRTP_DISABLE_TESTS)
+    add_subdirectory(test EXCLUDE_FROM_ALL)
+endif()
 
 #
 # Install

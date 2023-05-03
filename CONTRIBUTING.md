@@ -10,6 +10,7 @@ When issuing a pull request (PR) to uvgRTP. Please consider the following aspect
 ### PR code
 - Should compile both on with newest GCC, MinGW and MSVC. We can help with testing if needed.
 - Try to avoid code duplication
+- Try to avoid unnecessary compiler warnings
 
 ### Version history
 - Try to keep commits small and limited to improving one specific aspect of uvgRTP

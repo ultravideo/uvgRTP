@@ -30,7 +30,7 @@ target_sources(sync_sender       PRIVATE sync_sender.cc)
 target_sources(sync_receiver     PRIVATE sync_receiver.cc)
 
 # set crypto++ to be linked in examples if available
-if (NOT DISABLE_CRYPTO AND CRYPTOPP_FOUND)
+if (NOT UVGRTP_DISABLE_CRYPTO AND CRYPTOPP_FOUND)
     if(MSVC)
         set(CRYPTOPP_LIB_NAME "cryptlib")
     else()
