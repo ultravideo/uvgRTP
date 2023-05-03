@@ -131,7 +131,7 @@ uvgrtp::rtcp::~rtcp()
 
 void uvgrtp::rtcp::cleanup_participants()
 {
-    UVG_LOG_DEBUG("Removing all participants");
+    UVG_LOG_DEBUG("Removing all RTCP participants");
 
     participants_mutex_.lock();
     /* free all receiver statistic structs */

@@ -372,6 +372,8 @@ namespace uvgrtp {
              */
             uint32_t get_ssrc() const;
 
+            bool start_receiving();
+
         private:
             /* Initialize the connection by initializing the socket
              * and binding ourselves to specified interface and creating
@@ -403,6 +405,7 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::socket> socket_;
             std::shared_ptr<uvgrtp::rtp>    rtp_;
             std::shared_ptr<uvgrtp::rtcp>   rtcp_;
+            std::shared_ptr<uvgrtp::zrtp>   zrtp_;
 
             std::shared_ptr<uvgrtp::socketfactory> sfp_;
 
