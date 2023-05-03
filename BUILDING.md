@@ -28,7 +28,7 @@ cmake ..
 
 Alternatively, if you want to disable Crypto++, use command:
 ```
-cmake -DDISABLE_CRYPTO=1 ..
+cmake -DUVGRTP_DISABLE_CRYPTO=1 ..
 ```
 
 If you are using MinGW for your compilation, add the generate parameter the generate the MinGW build configuration:
@@ -107,7 +107,7 @@ You can also use `pkg-config` to get the flags.
 It is possible to silence all prints coming from uvgRTP by enabling following parameter:
 
 ```
-cmake -DDISABLE_PRINTS=1 ..
+cmake -DUVGRTP_DISABLE_PRINTS=1 ..
 ```
 
 ## Allow compiler warnings by disabling Werror
@@ -115,16 +115,24 @@ cmake -DDISABLE_PRINTS=1 ..
 If the compiler warnings are causing your build to fail without you making any modifications, you may use this option to disable the `-Werror`-flag:
 
 ```
-cmake -DDISABLE_WERROR=1 ..
+cmake -DUVGRTP_DISABLE_WERROR=1 ..
 ```
 
 Creation of an issue on Github that describes these warnings is also appreciated.
+
+## Not building examples or tests
+
+By default, uvgRTP configures both examples and tests as additional targets to build. If this is undesirable, you can disable their configuration with following CMake parameters:
+
+```
+cmake -DUVGRTP_DISABLE_TESTS=1 -DUVGRTP_DISABLE_EXAMPLES=1 ..
+```
 
 ## Release commit (for devs)
 
 The release commit can be specified in CMake. This slightly changes how the version is printed. This feature is mostly useful for distributing release versions. Use the following command:
 
 ```
-cmake -DRELEASE_COMMIT=1 ..
+cmake -DUVGRTP_RELEASE_COMMIT=1 ..
 ```
 
