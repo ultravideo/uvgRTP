@@ -418,7 +418,7 @@ rtp_error_t uvgrtp::media_stream::add_zrtp_ctx()
     if ((ret = init_srtp_with_zrtp(rce_flags_, SRTCP, srtcp_, zrtp_)) != RTP_OK)
         return free_resources(ret);
 
-    zrtp_->dh_has_finished(); // only after the DH stream has gotten its keys, do we let non-DH stream perform ZRTP
+    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, ssrc_, cname_, srtcp_, rce_flags_));
 
     UVG_LOG_DEBUG("DH negotiation finished!");
 

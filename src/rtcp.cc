@@ -218,15 +218,10 @@ rtp_error_t uvgrtp::rtcp::start()
             new_socket_ = true;
         }
     }
+
     rtp_error_t ret = RTP_OK;
 
-    int enable = 1;
 
-    if ((ret = rtcp_socket_->setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char*)&enable, sizeof(int))) != RTP_OK)
-    {
-        return ret;
-    }
-    
     /* Set read timeout (5s for now)
      *
      * This means that the socket is listened for 5s at a time and after the timeout,
