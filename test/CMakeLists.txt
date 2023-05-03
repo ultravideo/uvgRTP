@@ -19,7 +19,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../src>)
 
 # set crypto++ to be linked in tests if available
-if (NOT DISABLE_CRYPTO AND CRYPTOPP_FOUND)
+if (NOT UVGRTP_DISABLE_CRYPTO AND CRYPTOPP_FOUND)
     if(MSVC)
         set(CRYPTOPP_LIB_NAME "cryptlib")
     else()

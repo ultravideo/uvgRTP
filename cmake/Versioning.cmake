@@ -17,8 +17,7 @@ if(uvgrtp_GIT_HASH)
     SET(uvgrtp_GIT_HASH "${uvgrtp_GIT_HASH}")
 endif()
 
-option(RELEASE_COMMIT "Create a release version" OFF)
-if(RELEASE_COMMIT)
+if(UVGRTP_RELEASE_COMMIT)
     set (LIBRARY_VERSION ${PROJECT_VERSION})
 elseif(uvgrtp_GIT_HASH)
     set (LIBRARY_VERSION ${PROJECT_VERSION} + "-" + ${uvgrtp_GIT_HASH})
@@ -36,7 +35,7 @@ target_include_directories(${PROJECT_NAME}_version
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
         )
 
-if (RELEASE_COMMIT)
+if (UVGRTP_RELEASE_COMMIT)
     target_compile_definitions(${PROJECT_NAME}_version PRIVATE RTP_RELEASE_COMMIT)
 endif()
 

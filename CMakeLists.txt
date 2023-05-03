@@ -16,13 +16,32 @@ project(uvgrtp
 include(GNUInstallDirs)
 
 
-option(DISABLE_CRYPTO "Do not build uvgRTP with crypto enabled" OFF)
-option(DISABLE_PRINTS "Do not print anything from uvgRTP" OFF)
-option(DISABLE_WERROR "Ignore compiler warnings" OFF)
+option(UVGRTP_DISABLE_CRYPTO "Do not build uvgRTP with crypto enabled" OFF)
+option(UVGRTP_DISABLE_PRINTS "Do not print anything from uvgRTP" OFF)
+option(UVGRTP_DISABLE_WERROR "Ignore compiler warnings" OFF)
 
 option(UVGRTP_DISABLE_TESTS    "Do not build unit tests" OFF)
 option(UVGRTP_DISABLE_EXAMPLES "Do not build examples" OFF)
 option(UVGRTP_DOWNLOAD_CRYPTO  "Download headers for Crypto++ if they are missing" OFF)
+
+option(UVGRTP_RELEASE_COMMIT "Explicitly say that this is a release version in version prints" OFF)
+
+# obsolete, do not use
+option(DISABLE_CRYPTO "Do not build uvgRTP with crypto enabled" OFF)
+option(DISABLE_PRINTS "Do not print anything from uvgRTP" OFF)
+option(DISABLE_WERROR "Ignore compiler warnings" OFF)
+
+# offer some backwards compatibility for old flags
+if (DISABLE_CRYPTO)
+    set(UVGRTP_DISABLE_CRYPTO ON)
+endif()
+if (DISABLE_PRINTS)
+    set(UVGRTP_DISABLE_PRINTS ON)
+endif()
+if (DISABLE_WERROR)
+    set(UVGRTP_DISABLE_WERROR ON)
+endif()
+
 
 include(cmake/FindDependencies.cmake)
 include(cmake/Versioning.cmake)
@@ -168,19 +187,19 @@ endif()
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /Zc:__cplusplus /W4)
 else()
-    if (DISABLE_WERROR)
+    if (UVGRTP_DISABLE_WERROR)
         target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
     else ()
         target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
     endif()
 endif()
 
-if (DISABLE_CRYPTO)
+if (UVGRTP_DISABLE_CRYPTO)
     list(APPEND UVGRTP_CXX_FLAGS "-D__RTP_NO_CRYPTO__")
     target_compile_definitions(${PROJECT_NAME} PRIVATE __RTP_NO_CRYPTO__)
 endif()
 
-if (DISABLE_PRINTS)
+if (UVGRTP_DISABLE_PRINTS)
     list(APPEND UVGRTP_CXX_FLAGS "-D__RTP_SILENT__")
     target_compile_definitions(${PROJECT_NAME} PRIVATE __RTP_SILENT__)
 endif()
@@ -218,7 +237,7 @@ if (UNIX)
         endif(NOT DEFINED ENV{PKG_CONFIG_PATH})
 
         # Find crypto++
-        if(NOT DISABLE_CRYPTO)
+        if(NOT UVGRTP_DISABLE_CRYPTO)
             pkg_search_module(CRYPTOPP libcrypto++ cryptopp)
             if(CRYPTOPP_FOUND)
               list(APPEND UVGRTP_CXX_FLAGS ${CRYPTOPP_CFLAGS_OTHER})
