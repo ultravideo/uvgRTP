@@ -173,4 +173,4 @@ None of these parameters will however help if you are sending more data than the
 
 ## Using uvgRTP RTCP for Congestion Control
 
-When RTCP is enabled in uvgRTP (using `RCE_RTCP`), the fields in [rtcp_report_block](../include/uvgrtp/frame.hh#L106) can be used to estimate the available network bandwidth. Report blocks are sent by all media_stream entities receiving data and can be included in both Sender Reports (when sending and receiving) and Receiver Reports (when only receiving). There exists several algorithms for congestion control, but they are outside the scope of uvgRTP.
+When RTCP is enabled in uvgRTP (using `RCE_RTCP`); fraction, lost and jitter fields in [rtcp_report_block](../include/uvgrtp/frame.hh#L106) can be used to detect network congestion. Report blocks are sent by all media_stream entities receiving data and can be included in both Sender Reports (when sending and receiving) and Receiver Reports (when only receiving). There exists several algorithms for congestion control, but they are outside the scope of uvgRTP.
