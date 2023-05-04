@@ -110,15 +110,14 @@ It is possible to silence all prints coming from uvgRTP by enabling following pa
 cmake -DUVGRTP_DISABLE_PRINTS=1 ..
 ```
 
-## Allow compiler warnings by disabling Werror
+## Disallow compiler warnings by enabling Werror flag
 
-If the compiler warnings are causing your build to fail without you making any modifications, you may use this option to disable the `-Werror`-flag:
+`-Werror`-flag is disabled by default, but you can enable it by disabling the following flag:
 
 ```
-cmake -DUVGRTP_DISABLE_WERROR=1 ..
+cmake -DUVGRTP_DISABLE_WERROR=0 ..
 ```
-
-Creation of an issue on Github that describes these warnings is also appreciated.
+This is recommended before making a pull request.
 
 ## Not building examples or tests
 
