@@ -518,12 +518,12 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     bool reth = false;
                     if (current_ssrc == hnssrc || current_ssrc == nhssrc|| current_ssrc == frame->header.ssrc) {
                         reth = true;
-                        UVG_LOG_INFO("Hook ssrc %d", current_ssrc);
+                        //UVG_LOG_INFO("Hook ssrc %d", current_ssrc);
 
                     }
                     else if (current_ssrc == 0) {
                         reth = true;
-                        UVG_LOG_INFO("Hook ssrc 0");
+                        //UVG_LOG_INFO("Hook ssrc 0");
 
                     }
                     else {

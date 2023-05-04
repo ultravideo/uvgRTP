@@ -45,14 +45,14 @@ constexpr int ESTIMATED_MAX_RECEPTION_TIME_MS = 10;
 
 const uint32_t MAX_SUPPORTED_PARTICIPANTS = 31;
 
-uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::string cname,
-    std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags) :
+uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::shared_ptr<std::atomic<uint32_t>> remote_ssrc,
+    std::string cname, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags) :
     rce_flags_(rce_flags), our_role_(RECEIVER),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0), reduced_minimum_(0),
     we_sent_(false), local_addr_(""), remote_addr_(""), local_port_(0), dst_port_(0),
     avg_rtcp_pkt_pize_(0), avg_rtcp_size_(64), rtcp_pkt_count_(0), rtcp_byte_count_(0),
-    rtcp_pkt_sent_count_(0), initial_(true), ssrc_(ssrc),
+    rtcp_pkt_sent_count_(0), initial_(true), ssrc_(ssrc), remote_ssrc_(remote_ssrc),
     num_receivers_(0),
     ipv6_(false),
     socket_address_({}),
@@ -112,9 +112,9 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic
     }
 }
 
-uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::string cname,
-    std::shared_ptr<uvgrtp::socketfactory> sfp, std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags):
-    rtcp(rtp, ssrc, cname, sfp, rce_flags)
+uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::shared_ptr<std::atomic<uint32_t>> remote_ssrc,
+    std::string cname, std::shared_ptr<uvgrtp::socketfactory> sfp, std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags):
+    rtcp(rtp, ssrc, remote_ssrc, cname, sfp, rce_flags)
 {
     srtcp_ = srtcp;
 }
@@ -212,8 +212,10 @@ rtp_error_t uvgrtp::rtcp::start()
         rtcp_socket_ = sfp_->create_new_socket();
         new_socket_ = true;
         rtcp_reader_ = std::shared_ptr<uvgrtp::rtcp_reader>(new uvgrtp::rtcp_reader(sfp_));
+        rtcp_reader_->set_socket(rtcp_socket_);
+        rtcp_reader_->map_ssrc_to_rtcp(remote_ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
+        sfp_->map_port_to_rtcp_reader(local_port_, rtcp_reader_);
 
-        rtcp_reader_->map_ssrc_to_rtcp(ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
     }
     // Source port is in use -> fetch the existing socket
     else {
@@ -223,11 +225,16 @@ rtp_error_t uvgrtp::rtcp::start()
             rtcp_socket_ = sfp_->create_new_socket();
             new_socket_ = true;
             rtcp_reader_ = std::shared_ptr<uvgrtp::rtcp_reader>(new uvgrtp::rtcp_reader(sfp_));
-            rtcp_reader_->map_ssrc_to_rtcp(ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
+            rtcp_reader_->set_socket(rtcp_socket_);
+            rtcp_reader_->map_ssrc_to_rtcp(remote_ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
+            sfp_->map_port_to_rtcp_reader(local_port_, rtcp_reader_);
         }
         // Otherwise use the given existing socket
+
         rtcp_reader_ = sfp_->get_rtcp_reader(local_port_);
-        rtcp_reader_->map_ssrc_to_rtcp(ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
+        rtcp_socket_ = sfp_->get_socket_ptr(local_port_);
+        rtcp_reader_->set_socket(rtcp_socket_);
+        rtcp_reader_->map_ssrc_to_rtcp(remote_ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
     }
 
     rtp_error_t ret = RTP_OK;
@@ -271,7 +278,10 @@ rtp_error_t uvgrtp::rtcp::start()
         socket_address_ = rtcp_socket_->create_sockaddr(AF_INET, remote_addr_, dst_port_);
     }
     report_generator_.reset(new std::thread(rtcp_runner, this));
-    report_reader_.reset(new std::thread(rtcp_report_reader, this));
+    //report_reader_.reset(new std::thread(rtcp_report_reader, this));
+    if (new_socket_) {
+        rtcp_reader_->start();
+    }
 
     return RTP_OK;
 }

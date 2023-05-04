@@ -120,10 +120,10 @@ namespace uvgrtp {
     class rtcp {
         public:
             /// \cond DO_NOT_DOCUMENT
-            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic<std::uint32_t>> ssrc, std::string cname,
-                std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags);
-            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic<std::uint32_t>> ssrc, std::string cname,
-                std::shared_ptr<uvgrtp::socketfactory> sfp, std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags);
+            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic<std::uint32_t>> ssrc, std::shared_ptr<std::atomic<uint32_t>> remote_ssrc,
+                std::string cname, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags);
+            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic<std::uint32_t>> ssrc, std::shared_ptr<std::atomic<uint32_t>> remote_ssrc,
+                std::string cname, std::shared_ptr<uvgrtp::socketfactory> sfp, std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags);
             ~rtcp();
 
             /* start the RTCP runner thread
@@ -596,6 +596,9 @@ namespace uvgrtp {
 
             /* Copy of our own current SSRC */
             std::shared_ptr<std::atomic_uint> ssrc_;
+
+            /* Copy of the remote streams SSRC */
+            std::shared_ptr<std::atomic<uint32_t>> remote_ssrc_;
 
             /* NTP timestamp associated with initial RTP timestamp (aka t = 0) */
             uint64_t clock_start_;
