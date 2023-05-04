@@ -86,8 +86,6 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic
     rtp_ts_start_ = 0;
 
     report_generator_   = nullptr;
-    report_reader_ = nullptr;
-
     srtcp_        = nullptr;
     members_ = 1;
 
@@ -220,20 +218,14 @@ rtp_error_t uvgrtp::rtcp::start()
     // Source port is in use -> fetch the existing socket
     else {
         rtcp_socket_ = sfp_->get_socket_ptr(local_port_);
-        // If socket still is null, create a new one
         if (!rtcp_socket_) {
-            rtcp_socket_ = sfp_->create_new_socket();
-            new_socket_ = true;
-            rtcp_reader_ = std::shared_ptr<uvgrtp::rtcp_reader>(new uvgrtp::rtcp_reader(sfp_));
-            rtcp_reader_->set_socket(rtcp_socket_);
-            rtcp_reader_->map_ssrc_to_rtcp(remote_ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
-            sfp_->map_port_to_rtcp_reader(local_port_, rtcp_reader_);
+            // This should not ever happen. However if it does, you could just create a new socket like above
+            UVG_LOG_ERROR("No RTCP socket found");
+            return RTP_GENERIC_ERROR;
         }
-        // Otherwise use the given existing socket
-
         rtcp_reader_ = sfp_->get_rtcp_reader(local_port_);
         rtcp_socket_ = sfp_->get_socket_ptr(local_port_);
-        rtcp_reader_->set_socket(rtcp_socket_);
+        //rtcp_reader_->set_socket(rtcp_socket_);
         rtcp_reader_->map_ssrc_to_rtcp(remote_ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
     }
 
@@ -309,16 +301,14 @@ rtp_error_t uvgrtp::rtcp::stop()
     }
 
     active_ = false;
+    if (new_socket_) {
+        rtcp_reader_->stop();
+    }
 
     if (report_generator_ && report_generator_->joinable())
     {
         UVG_LOG_DEBUG("Waiting for RTCP loop to exit");
         report_generator_->join();
-    }
-    if (report_reader_ && report_reader_->joinable())
-    {
-        UVG_LOG_DEBUG("Waiting for RTCP reader to exit");
-        report_reader_->join();
     }
 
     rtcp_socket_.reset();
@@ -380,39 +370,6 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp)
     }
     UVG_LOG_DEBUG("Exited RTCP loop");
 }
-
-void uvgrtp::rtcp::rtcp_report_reader(rtcp* rtcp) {
-
-    UVG_LOG_INFO("RTCP report reader created!");
-    std::unique_ptr<uint8_t[]> buffer = std::unique_ptr<uint8_t[]>(new uint8_t[MAX_PACKET]);
-
-    rtp_error_t ret = RTP_OK;
-    int max_poll_timeout_ms = 100;
-
-
-    while (rtcp->is_active()) {
-        int nread = 0;
-
-        std::vector<std::shared_ptr<uvgrtp::socket>> temp = {};
-        temp.push_back(rtcp->get_socket());
-
-        ret = uvgrtp::poll::poll(temp, buffer.get(), MAX_PACKET, max_poll_timeout_ms, &nread);
-
-        if (ret == RTP_OK && nread > 0)
-        {
-            (void)rtcp->handle_incoming_packet(buffer.get(), (size_t)nread);
-        }
-        else if (ret == RTP_INTERRUPTED) {
-            /* do nothing */
-        }
-        else {
-            UVG_LOG_ERROR("poll failed, %d", ret);
-            break; // TODO the sockets should be manages so that this is not needed
-        }
-    }
-    UVG_LOG_DEBUG("Exited RTCP report reader loop");
-}
-
 
 rtp_error_t uvgrtp::rtcp::set_sdes_items(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items)
 {
