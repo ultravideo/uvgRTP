@@ -226,7 +226,8 @@ rtp_error_t uvgrtp::rtcp::start()
             rtcp_reader_->map_ssrc_to_rtcp(ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
         }
         // Otherwise use the given existing socket
-
+        rtcp_reader_ = sfp_->get_rtcp_reader(local_port_);
+        rtcp_reader_->map_ssrc_to_rtcp(ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
     }
 
     rtp_error_t ret = RTP_OK;

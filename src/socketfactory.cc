@@ -32,6 +32,7 @@ uvgrtp::socketfactory::socketfactory(int rce_flags) :
     ipv6_(false),
     used_sockets_({}),
     reception_flows_({}),
+    rtcp_readers_to_ports_({}),
     should_stop_(true)
 {
 }
@@ -163,6 +164,22 @@ std::shared_ptr<uvgrtp::reception_flow> uvgrtp::socketfactory::get_reception_flo
     for (const auto& ptr : reception_flows_) {
         if (ptr.second == socket) {
             return ptr.first;
+        }
+    }
+    return nullptr;
+}
+
+rtp_error_t uvgrtp::socketfactory::map_port_to_rtcp_reader(uint16_t port, std::shared_ptr <uvgrtp::rtcp_reader> reader)
+{
+    rtcp_readers_to_ports_[reader] = port;
+    return RTP_OK;
+}
+
+std::shared_ptr <uvgrtp::rtcp_reader> uvgrtp::socketfactory::get_rtcp_reader(uint16_t port)
+{
+    for (auto& p : rtcp_readers_to_ports_) {
+        if (p.second == port) {
+            return p.first;
         }
     }
     return nullptr;
