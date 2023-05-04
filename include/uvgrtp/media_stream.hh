@@ -95,24 +95,6 @@ namespace uvgrtp {
             rtp_error_t add_srtp_ctx(uint8_t *key, uint8_t *salt);
 
             /**
-             *
-             * \brief Add keying information for user-managed SRTP session
-             *
-             * \details For user-managed SRTP session (flag RCE_SRTP_KMNGMNT_USER),
-             * the media stream is not started until SRTP key has been added and all calls
-             * to push_frame() will fail.
-             *
-             * \param key SRTP master key, default is 128-bit long
-             * \param salt 112-bit long salt
-             *
-             * \return RTP error code
-             *
-             * \retval  RTP_OK On success
-             * \retval  RTP_INVALID_VALUE If key or salt is invalid
-             * \retval  RTP_NOT_SUPPORTED If user-managed SRTP was not specified in create_stream() */
-            rtp_error_t add_zrtp_ctx();
-
-            /**
              * \brief Send data to remote participant with a custom timestamp
              *
              * \details If so specified either by the selected media format and/or given
@@ -372,8 +354,6 @@ namespace uvgrtp {
              */
             uint32_t get_ssrc() const;
 
-            bool start_receiving();
-
         private:
             /* Initialize the connection by initializing the socket
              * and binding ourselves to specified interface and creating
@@ -405,7 +385,6 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::socket> socket_;
             std::shared_ptr<uvgrtp::rtp>    rtp_;
             std::shared_ptr<uvgrtp::rtcp>   rtcp_;
-            std::shared_ptr<uvgrtp::zrtp>   zrtp_;
 
             std::shared_ptr<uvgrtp::socketfactory> sfp_;
 
