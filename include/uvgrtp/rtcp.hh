@@ -27,6 +27,7 @@ namespace uvgrtp {
     class srtcp;
     class socket;
     class socketfactory;
+    class rtcp_reader;
 
     typedef std::vector<std::pair<size_t, uint8_t*>> buf_vec; // also defined in socket.hh
 
@@ -653,6 +654,7 @@ namespace uvgrtp {
             std::unique_ptr<std::thread> report_reader_;
             std::shared_ptr<uvgrtp::socket> rtcp_socket_;
             std::shared_ptr<uvgrtp::socketfactory> sfp_;
+            std::shared_ptr<uvgrtp::rtcp_reader> rtcp_reader_;
 
             bool is_active() const
             {

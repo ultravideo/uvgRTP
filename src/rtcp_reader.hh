@@ -14,6 +14,8 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <functional>
+
 
 namespace uvgrtp {
     class socketfactory;
@@ -25,14 +27,20 @@ namespace uvgrtp {
         public: 
             rtcp_reader(std::shared_ptr<uvgrtp::socketfactory> sfp);
             ~rtcp_reader();
+            rtp_error_t start();
+            rtp_error_t stop();
+
             void rtcp_report_reader();
             bool set_socket(std::shared_ptr<uvgrtp::socket> socket);
+            bool map_ssrc_to_rtcp(std::shared_ptr<std::atomic<uint32_t>> ssrc, std::shared_ptr<uvgrtp::rtcp> rtcp);
 
         private:
             bool active_;
             std::shared_ptr<uvgrtp::socketfactory> sfp_;
             std::shared_ptr<uvgrtp::socket> socket_;
-            std::map<uint32_t, std::shared_ptr<uvgrtp::rtcp>> rtcps_map_;
+            std::map<std::shared_ptr<std::atomic<uint32_t>>, std::shared_ptr<uvgrtp::rtcp>> rtcps_map_;
+            std::unique_ptr<std::thread> report_reader_;
+
     };
 
 

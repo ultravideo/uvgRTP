@@ -11,6 +11,7 @@
 #include "srtp/srtcp.hh"
 #include "rtcp_packets.hh"
 #include "socketfactory.hh"
+#include "rtcp_reader.hh"
 
 #include "global.hh"
 
@@ -69,6 +70,7 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic
     app_hook_f_(nullptr),
     app_hook_u_(nullptr),
     sfp_(sfp),
+    rtcp_reader_(nullptr),
     active_(false),
     interval_ms_(DEFAULT_RTCP_INTERVAL_MS),
     rtp_ptr_(rtp),
@@ -209,14 +211,22 @@ rtp_error_t uvgrtp::rtcp::start()
     if (local_port_ != 0 && !sfp_->is_port_in_use(local_port_)) {
         rtcp_socket_ = sfp_->create_new_socket();
         new_socket_ = true;
+        rtcp_reader_ = std::shared_ptr<uvgrtp::rtcp_reader>(new uvgrtp::rtcp_reader(sfp_));
+
+        rtcp_reader_->map_ssrc_to_rtcp(ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
     }
     // Source port is in use -> fetch the existing socket
     else {
         rtcp_socket_ = sfp_->get_socket_ptr(local_port_);
+        // If socket still is null, create a new one
         if (!rtcp_socket_) {
             rtcp_socket_ = sfp_->create_new_socket();
             new_socket_ = true;
+            rtcp_reader_ = std::shared_ptr<uvgrtp::rtcp_reader>(new uvgrtp::rtcp_reader(sfp_));
+            rtcp_reader_->map_ssrc_to_rtcp(ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
         }
+        // Otherwise use the given existing socket
+
     }
 
     rtp_error_t ret = RTP_OK;

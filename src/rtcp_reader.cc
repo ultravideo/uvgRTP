@@ -25,11 +25,27 @@ uvgrtp::rtcp_reader::rtcp_reader(std::shared_ptr<uvgrtp::socketfactory> sfp) :
     socket_(nullptr),
     rtcps_map_({})
 {
-
+    report_reader_ = nullptr;
 }
 
 uvgrtp::rtcp_reader::~rtcp_reader()
 {
+}
+
+rtp_error_t uvgrtp::rtcp_reader::start()
+{
+    report_reader_.reset(new std::thread(rtcp_report_reader, this));
+
+}
+
+rtp_error_t uvgrtp::rtcp_reader::stop()
+{
+    if (report_reader_ && report_reader_->joinable())
+    {
+        UVG_LOG_DEBUG("Waiting for RTCP reader to exit");
+        report_reader_->join();
+    }
+
 }
 
 void uvgrtp::rtcp_reader::rtcp_report_reader() {
@@ -39,7 +55,6 @@ void uvgrtp::rtcp_reader::rtcp_report_reader() {
 
     rtp_error_t ret = RTP_OK;
     int max_poll_timeout_ms = 100;
-
 
     while (active_) {
         int nread = 0;
@@ -53,11 +68,11 @@ void uvgrtp::rtcp_reader::rtcp_report_reader() {
         {
             uint32_t sender_ssrc = ntohl(*(uint32_t*)&buffer.get()[0 + RTCP_HEADER_SIZE]);
             for (auto& p : rtcps_map_) {
-                if (sender_ssrc == p.first) {
+                if (sender_ssrc == p.first.get()->load()) {
                     std::shared_ptr<uvgrtp::rtcp> rtcp_ptr = p.second;
                     (void)rtcp_ptr->handle_incoming_packet(buffer.get(), (size_t)nread);
                 }
-           
+            
             }
         }
         else if (ret == RTP_INTERRUPTED) {
@@ -74,5 +89,11 @@ void uvgrtp::rtcp_reader::rtcp_report_reader() {
 bool uvgrtp::rtcp_reader::set_socket(std::shared_ptr<uvgrtp::socket> socket)
 {
     socket_ = socket;
+    return true;
+}
+
+bool uvgrtp::rtcp_reader::map_ssrc_to_rtcp(std::shared_ptr<std::atomic<uint32_t>> ssrc, std::shared_ptr<uvgrtp::rtcp> rtcp)
+{
+    rtcps_map_[ssrc] = rtcp;
     return true;
 }
