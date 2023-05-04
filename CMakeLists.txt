@@ -22,6 +22,8 @@ option(UVGRTP_DISABLE_WERROR "Ignore compiler warnings" ON)
 
 option(UVGRTP_DISABLE_TESTS    "Do not build unit tests" OFF)
 option(UVGRTP_DISABLE_EXAMPLES "Do not build examples" OFF)
+option(UVGRTP_DISABLE_INSTALL  "Do not install anything from uvgRTP" OFF)
+
 option(UVGRTP_DOWNLOAD_CRYPTO  "Download headers for Crypto++ if they are missing" OFF)
 
 option(UVGRTP_RELEASE_COMMIT "Explicitly say that this is a release version in version prints" OFF)
@@ -249,7 +251,9 @@ if (UNIX)
         string(REPLACE ";" " " UVGRTP_CXX_FLAGS "${UVGRTP_CXX_FLAGS}")
         string(REPLACE ";" " " UVGRTP_LINKER_FLAGS "${UVGRTP_LINKER_FLAGS}")
         configure_file("cmake/uvgrtp.pc.in" "uvgrtp.pc" @ONLY)
-        install(FILES ${CMAKE_CURRENT_BINARY_DIR}/uvgrtp.pc DESTINATION ${PKG_CONFIG_PATH}/)
+        if (NOT UVGRTP_DISABLE_INSTALL)
+            install(FILES ${CMAKE_CURRENT_BINARY_DIR}/uvgrtp.pc DESTINATION ${PKG_CONFIG_PATH}/)
+        endif()
     else()
         message("pkg-config not found. Not generating pc file")
     endif(PkgConfig_FOUND)
@@ -277,72 +281,71 @@ if (NOT UVGRTP_DISABLE_TESTS)
     add_subdirectory(test EXCLUDE_FROM_ALL)
 endif()
 
-#
-# Install
-#
-# Define install target, install libraries and archives (static libraries) to "<prefix>/..."
+if (NOT UVGRTP_DISABLE_INSTALL)
+    # Install
+    #
+    # Define install target, install libraries and archives (static libraries) to "<prefix>/..."
+    install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_version EXPORT ${PROJECT_NAME}Targets
+            LIBRARY
+                DESTINATION ${CMAKE_INSTALL_LIBDIR}
+                COMPONENT ${PROJECT_NAME}_Runtime
+            ARCHIVE
+                DESTINATION ${CMAKE_INSTALL_LIBDIR}
+                COMPONENT ${PROJECT_NAME}_Runtime
+            RUNTIME
+                DESTINATION ${CMAKE_INSTALL_BINDIR}
+                COMPONENT ${PROJECT_NAME}_Runtime)
 
-install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_version EXPORT ${PROJECT_NAME}Targets
-        LIBRARY
-            DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            COMPONENT ${PROJECT_NAME}_Runtime
-        ARCHIVE
-            DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            COMPONENT ${PROJECT_NAME}_Runtime
-        RUNTIME
-            DESTINATION ${CMAKE_INSTALL_BINDIR}
-            COMPONENT ${PROJECT_NAME}_Runtime)
+    #Copy all header files to the <prefix>/include/uvgrtp directory
+    file(GLOB DEPLOY_FILES_AND_DIRS "${CMAKE_SOURCE_DIR}/include/uvgrtp/*")
+    install(FILES ${DEPLOY_FILES_AND_DIRS}
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/
+            COMPONENT ${PROJECT_NAME}_Develop)
 
-#Copy all header files to the <prefix>/include/uvgrtp directory
-file(GLOB DEPLOY_FILES_AND_DIRS "${CMAKE_SOURCE_DIR}/include/uvgrtp/*")
-install(FILES ${DEPLOY_FILES_AND_DIRS}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/
-        COMPONENT ${PROJECT_NAME}_Develop)
+    #Create a File representing the current library version
+    include(CMakePackageConfigHelpers)
+    write_basic_package_version_file(
+            "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
+            COMPATIBILITY SameMajorVersion
+    )
 
-#Create a File representing the current library version
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
-        COMPATIBILITY SameMajorVersion
-)
+    #Create a Targets file representing exported targets (for usage within the build tree)
+    export(EXPORT ${PROJECT_NAME}Targets
+            FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake"
+            NAMESPACE ${PROJECT_NAME}::
+            )
 
-#Create a Targets file representing exported targets (for usage within the build tree)
-export(EXPORT ${PROJECT_NAME}Targets
-        FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake"
-        NAMESPACE ${PROJECT_NAME}::
-        )
+    #Copy "cmake/uvgrtpConfig.cmake" to "${CMAKE_CURRENT_BINARY_DIR}/uvgrtp/uvgrtpConfig.cmake"
+    configure_file(cmake/${PROJECT_NAME}Config.cmake
+            "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
+            COPYONLY
+            )
 
-#Copy "cmake/uvgrtpConfig.cmake" to "${CMAKE_CURRENT_BINARY_DIR}/uvgrtp/uvgrtpConfig.cmake"
-configure_file(cmake/${PROJECT_NAME}Config.cmake
-        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
-        COPYONLY
-        )
+    #Copy "cmake/uvgrtpMacros.cmake" to "${CMAKE_CURRENT_BINARY_DIR}/uvgrtp/uvgrtpMacros.cmake"
+    configure_file(cmake/${PROJECT_NAME}Macros.cmake
+            "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Macros.cmake"
+            COPYONLY
+            )
 
-#Copy "cmake/uvgrtpMacros.cmake" to "${CMAKE_CURRENT_BINARY_DIR}/uvgrtp/uvgrtpMacros.cmake"
-configure_file(cmake/${PROJECT_NAME}Macros.cmake
-        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Macros.cmake"
-        COPYONLY
-        )
+    #
+    # Adding target to installing cmake package
+    #
+    set(ConfigPackageLocation lib/cmake/${PROJECT_NAME})
+    install(EXPORT ${PROJECT_NAME}Targets
+            FILE ${PROJECT_NAME}Targets.cmake
+            NAMESPACE ${PROJECT_NAME}::
+            DESTINATION ${ConfigPackageLocation}
+            )
 
-#
-# Adding target to installing cmake package
-#
-set(ConfigPackageLocation lib/cmake/${PROJECT_NAME})
-install(EXPORT ${PROJECT_NAME}Targets
-        FILE ${PROJECT_NAME}Targets.cmake
-        NAMESPACE ${PROJECT_NAME}::
-        DESTINATION ${ConfigPackageLocation}
-        )
+    install(FILES cmake/${PROJECT_NAME}Config.cmake cmake/${PROJECT_NAME}Macros.cmake
+            "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
+            DESTINATION ${ConfigPackageLocation}
+            COMPONENT uvgRTPMain
+    )
 
-install(FILES cmake/${PROJECT_NAME}Config.cmake cmake/${PROJECT_NAME}Macros.cmake
-        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
-        DESTINATION ${ConfigPackageLocation}
-        COMPONENT uvgRTPMain
-)
-
-#
-# Packaging
-#
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    add_subdirectory(packaging)
+    # Packaging
+    #
+    if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+        add_subdirectory(packaging)
+    endif()
 endif()
