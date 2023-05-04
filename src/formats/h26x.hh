@@ -10,6 +10,12 @@
 #include <deque>
 #include <memory>
 #include <set>
+#ifdef _WIN32
+#include <mswsock.h>
+#include <ws2ipdef.h>
+#else
+#include <netinet/in.h>
+#endif
 
 namespace uvgrtp {
 
@@ -109,6 +115,12 @@ namespace uvgrtp {
                  * Return RTP_GENERIC_ERROR if the packet was corrupted in some way */
                 rtp_error_t packet_handler(int rce_flags, frame::rtp_frame** frame);
 
+                /// \cond DO_NOT_DOCUMENT
+
+                rtp_error_t set_remote_addr(sockaddr_in& addr, sockaddr_in6& addr6);
+
+                /// \endcond
+
             protected:
 
                 /* Handles small packets. May support aggregate packets or not*/
@@ -182,6 +194,9 @@ namespace uvgrtp {
             uvgrtp::clock::hrc::hrc_t last_garbage_collection_;
 
             bool discard_until_key_frame_ = true;
+
+            sockaddr_in remote_sockaddr_;
+            sockaddr_in6 remote_sockaddr_ip6_;
         };
     }
 }

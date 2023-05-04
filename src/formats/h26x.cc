@@ -97,7 +97,9 @@ uvgrtp::formats::h26x::h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_
     completed_ts_(),
     rtp_ctx_(rtp),
     last_garbage_collection_(uvgrtp::clock::hrc::now()),
-    discard_until_key_frame_(true)
+    discard_until_key_frame_(true),
+    remote_sockaddr_({}),
+    remote_sockaddr_ip6_({})
 {}
 
 uvgrtp::formats::h26x::~h26x()
@@ -382,7 +384,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(uint8_t* data, size_t data_l
     }
 
     // actually send the packets
-    ret = fqueue_->flush_queue();
+    ret = fqueue_->flush_queue(remote_sockaddr_, remote_sockaddr_ip6_);
     clear_aggregation_info();
 
     return ret;
@@ -738,6 +740,14 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::
     garbage_collect_lost_frames(rtp_ctx_->get_pkt_max_delay());
     return RTP_OK; // no frame was completed, but everything went ok for this fragment
 }
+
+rtp_error_t uvgrtp::formats::h26x::set_remote_addr(sockaddr_in& addr, sockaddr_in6& addr6)
+{
+    remote_sockaddr_ = addr;
+    remote_sockaddr_ip6_ = addr6;
+    return RTP_OK;
+}
+
 
 void uvgrtp::formats::h26x::garbage_collect_lost_frames(size_t timout)
 {

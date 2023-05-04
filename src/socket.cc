@@ -37,9 +37,7 @@ using namespace mingw;
 
 uvgrtp::socket::socket(int rce_flags) :
     socket_(0),
-    remote_address_(),
     local_address_(),
-    remote_ip6_address_(),
     local_ip6_address_(),
     ipv6_(false),
     rce_flags_(rce_flags),
@@ -341,11 +339,12 @@ sockaddr_in6 uvgrtp::socket::create_ip6_sockaddr_any(short src_port) {
 }
 
 std::string uvgrtp::socket::get_socket_path_string() const
-{
-    if (ipv6_) {
+{   
+    /*if (ipv6_) {
         return sockaddr_ip6_to_string(local_ip6_address_) + " -> " + sockaddr_ip6_to_string(remote_ip6_address_);
     }
-    return sockaddr_to_string(local_address_) + " -> " + sockaddr_to_string(remote_address_);
+    return sockaddr_to_string(local_address_) + " -> " + sockaddr_to_string(remote_address_);*/
+    return "Not implemented";
 }
 
 std::string uvgrtp::socket::sockaddr_to_string(const sockaddr_in& addr) const
@@ -380,16 +379,6 @@ std::string uvgrtp::socket::sockaddr_ip6_to_string(const sockaddr_in6& addr6) co
     string.append(":" + std::to_string(ntohs(addr6.sin6_port)));
     delete[] c_string;
     return string;
-}
-
-void uvgrtp::socket::set_sockaddr(sockaddr_in addr)
-{
-    remote_address_ = addr;
-}
-
-void uvgrtp::socket::set_sockaddr6(sockaddr_in6 addr)
-{
-    remote_ip6_address_ = addr;
 }
 
 socket_t& uvgrtp::socket::get_raw_socket()
@@ -469,16 +458,6 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, sockaddr_in6& addr6, boo
 #endif // !NDEBUG
 
     return RTP_OK;
-}
-
-rtp_error_t uvgrtp::socket::sendto(uint8_t *buf, size_t buf_len, int send_flags)
-{
-    return __sendto(remote_address_, remote_ip6_address_, ipv6_, buf, buf_len, send_flags, nullptr);
-}
-
-rtp_error_t uvgrtp::socket::sendto(uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent)
-{
-    return __sendto(remote_address_, remote_ip6_address_, ipv6_, buf, buf_len, send_flags, bytes_sent);
 }
 
 rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent)
@@ -572,34 +551,6 @@ rtp_error_t uvgrtp::socket::__sendtov(
 
     set_bytes(bytes_sent, sent_bytes);
     return RTP_OK;
-}
-
-rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int send_flags)
-{
-    rtp_error_t ret = RTP_OK;
-
-    for (auto& handler : vec_handlers_) {
-        if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
-            UVG_LOG_ERROR("Malformed packet");
-            return ret;
-        }
-    }
-
-    return __sendtov(remote_address_, remote_ip6_address_, ipv6_, buffers, send_flags, nullptr);
-}
-
-rtp_error_t uvgrtp::socket::sendto(buf_vec& buffers, int send_flags, int *bytes_sent)
-{
-    rtp_error_t ret = RTP_OK;
-
-    for (auto& handler : vec_handlers_) {
-        if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
-            UVG_LOG_ERROR("Malformed packet");
-            return ret;
-        }
-    }
-
-    return __sendtov(remote_address_, remote_ip6_address_, ipv6_, buffers, send_flags, bytes_sent);
 }
 
 rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, sockaddr_in6& addr6, buf_vec& buffers, int send_flags)
@@ -783,36 +734,6 @@ send_:
 
     set_bytes(bytes_sent, sent_bytes);
     return return_value;
-}
-
-rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int send_flags)
-{
-    rtp_error_t ret = RTP_OK;
-
-    for (auto& buffer : buffers) {
-        for (auto& handler : vec_handlers_) {
-            if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
-                UVG_LOG_ERROR("Malformed packet");
-                return ret;
-            }
-        }
-    }
-    return __sendtov(remote_address_, remote_ip6_address_, ipv6_, buffers, send_flags, nullptr);
-}
-
-rtp_error_t uvgrtp::socket::sendto(pkt_vec& buffers, int send_flags, int *bytes_sent)
-{
-    rtp_error_t ret = RTP_OK;
-
-    for (auto& buffer : buffers) {
-        for (auto& handler : vec_handlers_) {
-            if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
-                UVG_LOG_ERROR("Malformed packet");
-                return ret;
-            }
-        }
-    }
-    return __sendtov(remote_address_, remote_ip6_address_, ipv6_, buffers, send_flags, bytes_sent);
 }
 
 rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, sockaddr_in6& addr6, pkt_vec& buffers, int send_flags)
@@ -1040,9 +961,4 @@ rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int recv_flag
 rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int recv_flags)
 {
     return __recvfrom(buf, buf_len, recv_flags, nullptr, nullptr);
-}
-
-sockaddr_in& uvgrtp::socket::get_out_address()
-{
-    return remote_address_;
 }

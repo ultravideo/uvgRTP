@@ -102,9 +102,10 @@ namespace uvgrtp {
              * Return RTP_GENERIC_ERROR if setsockopt failed */
             rtp_error_t setsockopt(int level, int optname, const void *optval, socklen_t optlen);
 
-            /* Same as send(2), send message to remote with send_flags
-             * This function uses the internal addr_ object as remote address so it MUST be set
-             *
+            /* Same as send(2), send message to the given address with send_flags
+             * It is required to give at least one type of address: sockaddr_in or sockaddr_in6. It is possible
+             * to give both and the function wil pick the correct one to use
+             * 
              * It is possible to combine multiple buffers and send them as one RTP frame by calling
              * the sendto() with a vector containing the buffers and their lengths
              *
@@ -112,14 +113,7 @@ namespace uvgrtp {
              *
              * Return RTP_OK on success and write the amount of bytes sent to "bytes_sent"
              * Return RTP_SEND_ERROR on error and set "bytes_sent" to -1 */
-            rtp_error_t sendto(uint8_t *buf, size_t buf_len, int send_flags);
-            rtp_error_t sendto(uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
-            rtp_error_t sendto(buf_vec& buffers, int send_flags);
-            rtp_error_t sendto(buf_vec& buffers, int send_flags, int *bytes_sent);
-            rtp_error_t sendto(pkt_vec& buffers, int send_flags);
-            rtp_error_t sendto(pkt_vec& buffers, int send_flags, int *bytes_sent);
 
-            /* Same as sendto() but the remote address given as parameter */
             rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *buf, size_t buf_len, int send_flags);
             rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
             rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, buf_vec& buffers, int send_flags);
@@ -172,14 +166,6 @@ namespace uvgrtp {
             /* Get reference to the actual socket object */
             socket_t& get_raw_socket();
 
-            /* Initialize the private "addr_" object with "addr"
-             * This is used when calling send() */
-            void set_sockaddr(sockaddr_in addr);
-
-            void set_sockaddr6(sockaddr_in6 addr);
-            /* Get the out address for the socket if it exists */
-            sockaddr_in& get_out_address();
-
             /* Install a packet handler for vector-based send operations.
              *
              * This handler allows the caller to inject extra functionality to the send operation
@@ -204,9 +190,9 @@ namespace uvgrtp {
             rtp_error_t __sendtov(sockaddr_in& addr, sockaddr_in6& addr6, bool ipv6, uvgrtp::pkt_vec& buffers, int send_flags, int *bytes_sent);
 
             socket_t socket_;
-            sockaddr_in remote_address_;
+            //sockaddr_in remote_address_;
             sockaddr_in local_address_;
-            sockaddr_in6 remote_ip6_address_;
+            //sockaddr_in6 remote_ip6_address_;
             sockaddr_in6 local_ip6_address_;
             bool ipv6_;
 

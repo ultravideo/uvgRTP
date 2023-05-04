@@ -397,7 +397,6 @@ namespace uvgrtp {
             bool ipv6_;
             rtp_format_t fmt_;
             bool new_socket_;
-            bool hooked_;
 
             /* Media context config */
             int rce_flags_ = 0;

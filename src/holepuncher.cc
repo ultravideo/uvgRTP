@@ -11,6 +11,8 @@
 uvgrtp::holepuncher::holepuncher(std::shared_ptr<uvgrtp::socket> socket):
     socket_(socket),
     last_dgram_sent_(0),
+    remote_sockaddr_({}),
+    remote_sockaddr_ip6_({}),
     active_(false)
 {}
 
@@ -36,6 +38,14 @@ rtp_error_t uvgrtp::holepuncher::stop()
     return RTP_OK;
 }
 
+rtp_error_t uvgrtp::holepuncher::set_remote_address(sockaddr_in& addr, sockaddr_in6& addr6)
+{
+    remote_sockaddr_ = addr;
+    remote_sockaddr_ip6_ = addr6;
+    return RTP_OK;
+}
+
+
 void uvgrtp::holepuncher::notify()
 {
     last_dgram_sent_ = uvgrtp::clock::ntp::now();
@@ -54,7 +64,7 @@ void uvgrtp::holepuncher::keepalive()
 
         UVG_LOG_DEBUG("Sending keep-alive");
         uint8_t payload = 0x00;
-        socket_->sendto(&payload, 1, 0);
+        socket_->sendto(remote_sockaddr_, remote_sockaddr_ip6_, &payload, 1, 0);
         last_dgram_sent_ = uvgrtp::clock::ntp::now();
     }
     UVG_LOG_DEBUG("Stopping holepuncher");

@@ -49,7 +49,6 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     ipv6_(false),
     fmt_(fmt),
     new_socket_(false),
-    hooked_(false),
     rce_flags_(rce_flags),
     initialized_(false),
     rtp_handler_key_(0),
@@ -115,12 +114,11 @@ rtp_error_t uvgrtp::media_stream::init_connection()
         // no reason to fail sending even if binding fails so we set remote address first
         if (ipv6_) {
             remote_sockaddr_ip6_ = socket_->create_ip6_sockaddr(remote_address_, dst_port_);
-            socket_->set_sockaddr6(remote_sockaddr_ip6_);
         }
         else {
             remote_sockaddr_ = socket_->create_sockaddr(AF_INET, remote_address_, dst_port_);
-            socket_->set_sockaddr(remote_sockaddr_);
-        } 
+        }
+        holepuncher_->set_remote_address(remote_sockaddr_, remote_sockaddr_ip6_);
     }
     else
     {
@@ -177,6 +175,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         case RTP_FORMAT_H264:
         {
             uvgrtp::formats::h264* format_264 = new uvgrtp::formats::h264(socket_, rtp_, rce_flags_);
+            format_264->set_remote_addr(remote_sockaddr_, remote_sockaddr_ip6_);
             reception_flow_->install_aux_handler_cpp(
                 rtp_handler_key_,
                 std::bind(&uvgrtp::formats::h264::packet_handler, format_264, std::placeholders::_1, std::placeholders::_2),
@@ -187,6 +186,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         case RTP_FORMAT_H265:
         {
             uvgrtp::formats::h265* format_265 = new uvgrtp::formats::h265(socket_, rtp_, rce_flags_);
+            format_265->set_remote_addr(remote_sockaddr_, remote_sockaddr_ip6_);
             reception_flow_->install_aux_handler_cpp(
                 rtp_handler_key_,
                 std::bind(&uvgrtp::formats::h265::packet_handler, format_265, std::placeholders::_1, std::placeholders::_2),
@@ -197,6 +197,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         case RTP_FORMAT_H266:
         {
             uvgrtp::formats::h266* format_266 = new uvgrtp::formats::h266(socket_, rtp_, rce_flags_);
+            format_266->set_remote_addr(remote_sockaddr_, remote_sockaddr_ip6_);
             reception_flow_->install_aux_handler_cpp(
                 rtp_handler_key_,
                 std::bind(&uvgrtp::formats::h266::packet_handler, format_266, std::placeholders::_1, std::placeholders::_2),
@@ -475,11 +476,11 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int
         {
             data = copy_frame(data, data_len);
             std::unique_ptr<uint8_t[]> data_copy(data);
-            ret = media_->push_frame(std::move(data_copy), data_len, rtp_flags);
+            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data_copy), data_len, rtp_flags);
         }
         else
         {
-            ret = media_->push_frame(data, data_len, rtp_flags);
+            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, data, data_len, rtp_flags);
         }
     }
 
@@ -495,7 +496,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
             holepuncher_->notify();
 
         // making a copy of a smart pointer does not make sense
-        ret = media_->push_frame(std::move(data), data_len, rtp_flags);
+        ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data), data_len, rtp_flags);
     }
 
     return ret;
@@ -514,11 +515,11 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, uin
         {
             data = copy_frame(data, data_len);
             std::unique_ptr<uint8_t[]> data_copy(data);
-            ret = media_->push_frame(std::move(data_copy), data_len, rtp_flags);
+            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data_copy), data_len, rtp_flags);
         }
         else
         {
-            ret = media_->push_frame(data, data_len, rtp_flags);
+            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, data, data_len, rtp_flags);
         }
         rtp_->set_timestamp(INVALID_TS);
     }
@@ -540,11 +541,11 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t* data, size_t data_len, uin
         {
             data = copy_frame(data, data_len);
             std::unique_ptr<uint8_t[]> data_copy(data);
-            ret = media_->push_frame(std::move(data_copy), data_len, rtp_flags);
+            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data_copy), data_len, rtp_flags);
         }
         else
         {
-            ret = media_->push_frame(data, data_len, rtp_flags);
+            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, data, data_len, rtp_flags);
         }
         rtp_->set_timestamp(INVALID_TS);
     }
@@ -562,7 +563,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
 
         // making a copy of a smart pointer does not make sense
         rtp_->set_timestamp(ts);
-        ret = media_->push_frame(std::move(data), data_len, rtp_flags);
+        ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data), data_len, rtp_flags);
         rtp_->set_timestamp(INVALID_TS);
     }
 
@@ -580,7 +581,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
         // making a copy of a smart pointer does not make sense
         rtp_->set_timestamp(ts);
         rtp_->set_sampling_ntp(ntp_ts);
-        ret = media_->push_frame(std::move(data), data_len, rtp_flags);
+        ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data), data_len, rtp_flags);
         rtp_->set_timestamp(INVALID_TS);
     }
 
@@ -667,7 +668,6 @@ rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(v
     if (!hook) {
         return RTP_INVALID_VALUE;
     }
-    hooked_ = true;
     return reception_flow_->install_receive_hook(arg, hook, remote_ssrc_.get()->load());
 }
 
