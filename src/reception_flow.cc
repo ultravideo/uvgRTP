@@ -154,19 +154,17 @@ rtp_error_t uvgrtp::reception_flow::install_receive_hook(
     if (!hook)
         return RTP_INVALID_VALUE;
 
-    // ssrc 0 is for universal hook
+    // ssrc 0 is used when streams are not multiplexed into a single socket
     if (hooks_.find(ssrc) == hooks_.end()) {
         receive_pkt_hook new_hook = { arg, hook };
         hooks_[ssrc] = new_hook;
     }
     else {
-        UVG_LOG_INFO("Replacing existing hook");
+        //UVG_LOG_INFO("Replacing existing hook");
         receive_pkt_hook new_hook = { arg, hook };
         hooks_.erase(ssrc);
         hooks_.insert({ssrc, new_hook});
     }
-    //recv_hook_     = hook;
-    //recv_hook_arg_ = arg;
 
     return RTP_OK;
 }

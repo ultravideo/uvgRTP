@@ -175,7 +175,6 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         case RTP_FORMAT_H264:
         {
             uvgrtp::formats::h264* format_264 = new uvgrtp::formats::h264(socket_, rtp_, rce_flags_);
-            format_264->set_remote_addr(remote_sockaddr_, remote_sockaddr_ip6_);
             reception_flow_->install_aux_handler_cpp(
                 rtp_handler_key_,
                 std::bind(&uvgrtp::formats::h264::packet_handler, format_264, std::placeholders::_1, std::placeholders::_2),
@@ -186,7 +185,6 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         case RTP_FORMAT_H265:
         {
             uvgrtp::formats::h265* format_265 = new uvgrtp::formats::h265(socket_, rtp_, rce_flags_);
-            format_265->set_remote_addr(remote_sockaddr_, remote_sockaddr_ip6_);
             reception_flow_->install_aux_handler_cpp(
                 rtp_handler_key_,
                 std::bind(&uvgrtp::formats::h265::packet_handler, format_265, std::placeholders::_1, std::placeholders::_2),
@@ -197,7 +195,6 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         case RTP_FORMAT_H266:
         {
             uvgrtp::formats::h266* format_266 = new uvgrtp::formats::h266(socket_, rtp_, rce_flags_);
-            format_266->set_remote_addr(remote_sockaddr_, remote_sockaddr_ip6_);
             reception_flow_->install_aux_handler_cpp(
                 rtp_handler_key_,
                 std::bind(&uvgrtp::formats::h266::packet_handler, format_266, std::placeholders::_1, std::placeholders::_2),

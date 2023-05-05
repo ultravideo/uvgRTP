@@ -86,7 +86,7 @@ namespace uvgrtp {
                  *
                  * Return RTP_OK on success
                  * Return RTP_INVALID_VALUE if one of the parameters is invalid */
-                rtp_error_t push_media_frame(uint8_t *data, size_t data_len, int rtp_flags);
+                rtp_error_t push_media_frame(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *data, size_t data_len, int rtp_flags);
 
                 /* If the packet handler must return more than one frame, it can install a frame getter
                  * that is called by the auxiliary handler caller if packet_handler() returns RTP_MULTIPLE_PKTS_READY
@@ -114,12 +114,6 @@ namespace uvgrtp {
                  * Return RTP_PKT_MODIFIED if the packet was modified but should be forwarded to other handlers
                  * Return RTP_GENERIC_ERROR if the packet was corrupted in some way */
                 rtp_error_t packet_handler(int rce_flags, frame::rtp_frame** frame);
-
-                /// \cond DO_NOT_DOCUMENT
-
-                rtp_error_t set_remote_addr(sockaddr_in& addr, sockaddr_in6& addr6);
-
-                /// \endcond
 
             protected:
 
@@ -194,9 +188,6 @@ namespace uvgrtp {
             uvgrtp::clock::hrc::hrc_t last_garbage_collection_;
 
             bool discard_until_key_frame_ = true;
-
-            sockaddr_in remote_sockaddr_;
-            sockaddr_in6 remote_sockaddr_ip6_;
         };
     }
 }
