@@ -8,7 +8,7 @@
 #include <unordered_set>
 
 #ifdef _WIN32
-#include <mswsock.h>
+#include <ws2def.h>
 #include <ws2ipdef.h>
 #else
 #include <netinet/in.h>

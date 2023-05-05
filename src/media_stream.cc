@@ -458,7 +458,7 @@ rtp_error_t uvgrtp::media_stream::start_components()
 
     initialized_ = true;
     if (new_socket_) {
-        return reception_flow_->start(socket_, 0);
+        return reception_flow_->start(socket_, rce_flags_);
     }
 
     return RTP_OK;
