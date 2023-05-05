@@ -267,14 +267,14 @@ void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
 {
     uint32_t ssrc = frame->header.ssrc;
     // korvaa tämä booleanilla, single socket tms
-    if (hooks_.find(0) != hooks_.end()) {
-        receive_pkt_hook pkt_hook = hooks_[0];
+    if (hooks_.find(ssrc) != hooks_.end()) {
+        receive_pkt_hook pkt_hook = hooks_[ssrc];
         recv_hook hook = pkt_hook.hook;
         void* arg = pkt_hook.arg;
         hook(arg, frame);
     }
-    else if (hooks_.find(ssrc) != hooks_.end()) {
-        receive_pkt_hook pkt_hook = hooks_[ssrc];
+    else if (hooks_.find(0) != hooks_.end()) {
+        receive_pkt_hook pkt_hook = hooks_[0];
         recv_hook hook = pkt_hook.hook;
         void* arg = pkt_hook.arg;
         hook(arg, frame);
@@ -523,7 +523,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     }
                     else if (current_ssrc == 0) {
                         reth = true;
-                        //UVG_LOG_INFO("Hook ssrc 0");
+                        //UVG_LOG_INFO("Default hook ssrc 0");
 
                     }
                     else {
