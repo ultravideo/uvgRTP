@@ -14,8 +14,11 @@
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
+#include <ws2def.h>
+#include <ws2ipdef.h>
 #else
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <cassert>
 #include <cstring>
 #endif

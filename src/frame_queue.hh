@@ -11,6 +11,13 @@
 #include <vector>
 #include <mutex>
 
+#ifdef _WIN32
+#include <ws2def.h>
+#include <ws2ipdef.h>
+#else
+#include <netinet/in.h>
+#endif
+
 // TODO: get these from socket?
 const int MAX_MSG_COUNT   = 5000;
 const int MAX_QUEUED_MSGS =  10;

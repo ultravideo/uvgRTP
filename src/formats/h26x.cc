@@ -14,7 +14,11 @@
 #include <queue>
 
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include <ws2def.h>
+#include <ws2ipdef.h>
+#else
+#include <netinet/in.h>
 #include <sys/socket.h>
 #endif
 
