@@ -441,3 +441,67 @@ TEST(FormatTests, h266_fragmentation)
     cleanup_ms(sess, receiver);
     cleanup_sess(ctx, sess);
 }
+
+TEST(FormatTests, h264_multiplex)
+{
+    // Test multiplexing two RTP streams into a single socket, format H264 fragmentation
+    std::cout << "Starting H264 fragmentation multiplexing test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* receiver_sess = ctx.create_session(LOCAL_ADDRESS);
+    uvgrtp::session* sender_sess = ctx.create_session(LOCAL_ADDRESS);
+
+    uvgrtp::media_stream* sender1 = nullptr;
+    uvgrtp::media_stream* receiver1 = nullptr;
+    uvgrtp::media_stream* sender2 = nullptr;
+    uvgrtp::media_stream* receiver2 = nullptr;
+
+    int flags = RCE_FRAGMENT_GENERIC;
+    if (sender_sess)
+    {
+        sender1 = sender_sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H264, flags);
+        sender1->configure_ctx(RCC_SSRC, 11);
+        sender1->configure_ctx(RCC_REMOTE_SSRC, 22);
+        sender2 = sender_sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H264, flags);
+        sender2->configure_ctx(RCC_SSRC, 33);
+        sender2->configure_ctx(RCC_REMOTE_SSRC, 44);
+    }
+    if (receiver_sess)
+    {
+        receiver1 = receiver_sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H264, flags);
+        receiver1->configure_ctx(RCC_SSRC, 22);
+        receiver1->configure_ctx(RCC_REMOTE_SSRC, 11);
+        receiver2 = receiver_sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H264, flags);
+        receiver2->configure_ctx(RCC_SSRC, 44);
+        receiver2->configure_ctx(RCC_REMOTE_SSRC, 33);
+    }
+
+    // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
+    std::vector<size_t> test_sizes = std::vector<size_t>(13);
+    std::iota(test_sizes.begin(), test_sizes.end(), 1443);
+    test_sizes.insert(test_sizes.end(), { 1501,
+        1446 * 2 - 1,
+        1446 * 2,
+        1446 * 2 + 1,
+        5000, 7500, 10000, 25000, 50000 });
+
+    int rtp_flags = RTP_NO_FLAGS;
+    int nal_type = 5;
+    rtp_format_t format = RTP_FORMAT_H264;
+    int test_runs = 10;
+
+    for (auto& size : test_sizes)
+    {
+        std::unique_ptr<uint8_t[]> intra_frame1 = create_test_packet(format, nal_type, true, size, rtp_flags);
+        std::unique_ptr<uint8_t[]> intra_frame2 = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame1), test_runs, size, sender_sess, sender1, receiver1, rtp_flags);
+        test_packet_size(std::move(intra_frame2), test_runs, size, sender_sess, sender2, receiver2, rtp_flags);
+    }
+
+    cleanup_ms(sender_sess, sender1);
+    cleanup_ms(sender_sess, sender2);
+    cleanup_ms(receiver_sess, receiver1);
+    cleanup_ms(receiver_sess, receiver2);
+    cleanup_sess(ctx, sender_sess);
+    cleanup_sess(ctx, receiver_sess);
+
+}
