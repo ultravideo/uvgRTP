@@ -108,7 +108,7 @@ rtp_error_t uvgrtp::socket::bind(short family, unsigned host, short port)
     return bind(local_address_);
 }
 
-static bool is_multicast(sockaddr_in& local_address)
+bool uvgrtp::socket::is_multicast(sockaddr_in& local_address)
 {
     // Multicast addresses ranges from 224.0.0.0 to 239.255.255.255 (0xE0000000 to 0xEFFFFFFF)
     auto addr = local_address.sin_addr.s_addr;
@@ -121,7 +121,7 @@ rtp_error_t uvgrtp::socket::bind(sockaddr_in& local_address)
 
     UVG_LOG_DEBUG("Binding to address %s", sockaddr_to_string(local_address_).c_str());
 
-    if (!::is_multicast(local_address_)) {
+    if (!uvgrtp::socket::is_multicast(local_address_)) {
         // Regular address
         if (::bind(socket_, (struct sockaddr*)&local_address_, sizeof(local_address_)) < 0) {
 #ifdef _WIN32
@@ -179,7 +179,7 @@ rtp_error_t uvgrtp::socket::bind(sockaddr_in& local_address)
     return RTP_OK;
 }
 
-static bool is_multicast(sockaddr_in6& local_address)
+bool uvgrtp::socket::is_multicast(sockaddr_in6& local_address)
 {
     // Multicast IP addresses have their first byte equals to 0xFF
     auto addr = local_address.sin6_addr.s6_addr;
@@ -191,7 +191,7 @@ rtp_error_t uvgrtp::socket::bind_ip6(sockaddr_in6& local_address)
     local_ip6_address_ = local_address;
     UVG_LOG_DEBUG("Binding to address %s", sockaddr_ip6_to_string(local_ip6_address_).c_str());
 
-    if (!::is_multicast(local_ip6_address_)) {
+    if (!uvgrtp::socket::is_multicast(local_ip6_address_)) {
         if (::bind(socket_, (struct sockaddr*)&local_ip6_address_, sizeof(local_ip6_address_)) < 0) {
     #ifdef _WIN32
             win_get_last_error();

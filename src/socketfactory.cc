@@ -105,20 +105,38 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket()
 rtp_error_t uvgrtp::socketfactory::bind_socket(std::shared_ptr<uvgrtp::socket> soc, uint16_t port)
 {
     rtp_error_t ret = RTP_OK;
-    if (!is_port_in_use(port)) {
-        if (ipv6_) {
-            sockaddr_in6 bind_addr6 = soc->create_ip6_sockaddr(local_address_, port);
+    sockaddr_in6 bind_addr6;
+    sockaddr_in bind_addr;
+
+    // First check if the address is a multicast address. If the address is a multicast address, several
+    // streams can bind to the same port
+    // If it is a regular address and you want to multiplex several streams into a single socket, one 
+    // bind is enough
+    if (ipv6_) {
+        bind_addr6 = soc->create_ip6_sockaddr(local_address_, port);
+        if (uvgrtp::socket::is_multicast(bind_addr6)) {
+            UVG_LOG_INFO("The used address %s is a multicast address", local_address_.c_str());
             ret = soc->bind_ip6(bind_addr6);
         }
-        else {
-            sockaddr_in bind_addr = soc->create_sockaddr(AF_INET, local_address_, port);
-            ret = soc->bind(bind_addr);
-        }
-        if (ret == RTP_OK) {
-            used_ports_.insert({ port, soc });
-            return RTP_OK;
+        else if (!is_port_in_use(port)) {
+            ret = soc->bind_ip6(bind_addr6);
         }
     }
+    else {
+        bind_addr = soc->create_sockaddr(AF_INET, local_address_, port);
+        if (uvgrtp::socket::is_multicast(bind_addr)) {
+            UVG_LOG_INFO("The used address %s is a multicast address", local_address_.c_str());
+            ret = soc->bind(bind_addr);
+        }
+        else if (!is_port_in_use(port)) {
+            ret = soc->bind(bind_addr);
+        }
+    }
+    if (ret == RTP_OK) {
+        used_ports_.insert({ port, soc });
+        return RTP_OK;
+    }
+
     return ret;
 }
 

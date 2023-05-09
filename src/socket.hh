@@ -175,6 +175,10 @@ namespace uvgrtp {
              * "arg" is an optional parameter that can be passed to the handler when it's called */
             rtp_error_t install_handler(void *arg, packet_handler_vec handler);
 
+            static bool is_multicast(sockaddr_in& local_address);
+            static bool is_multicast(sockaddr_in6& local_address);
+
+
         private:
 
             /* helper function for sending UPD packets, see documentation for sendto() above */
