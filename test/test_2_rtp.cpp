@@ -447,3 +447,55 @@ TEST(RTPTests, rtp_multicast_multiple)
     for (auto receiver: receivers) cleanup_ms(sess, receiver);
     cleanup_sess(ctx, sess);
 }
+
+TEST(RTPTests, rtp_multiplex)
+{
+    // Test multiplexing two RTP streams into a single socket
+    std::cout << "Starting RTP multiplexing test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* receiver_sess = ctx.create_session(REMOTE_ADDRESS);
+    uvgrtp::session* sender_sess = ctx.create_session(REMOTE_ADDRESS);
+
+    uvgrtp::media_stream* sender1 = nullptr;
+    uvgrtp::media_stream* receiver1 = nullptr;
+    uvgrtp::media_stream* sender2 = nullptr;
+    uvgrtp::media_stream* receiver2 = nullptr;
+
+    int flags = RCE_FRAGMENT_GENERIC;
+    if (sender_sess)
+    {
+        sender1 = sender_sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_GENERIC, flags);
+        sender1->configure_ctx(RCC_SSRC, 11);
+        sender1->configure_ctx(RCC_REMOTE_SSRC, 22);
+        sender2 = sender_sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_GENERIC, flags);
+        sender2->configure_ctx(RCC_SSRC, 33);
+        sender2->configure_ctx(RCC_REMOTE_SSRC, 44);
+    }
+    if (receiver_sess)
+    {
+        receiver1 = receiver_sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
+        receiver1->configure_ctx(RCC_SSRC, 22);
+        receiver1->configure_ctx(RCC_REMOTE_SSRC, 11);
+        receiver2 = receiver_sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
+        receiver2->configure_ctx(RCC_SSRC, 44);
+        receiver2->configure_ctx(RCC_REMOTE_SSRC, 33);
+    }
+
+    int test_packets = 10;
+    std::vector<size_t> sizes = { 1000, 2000 };
+    for (size_t& size : sizes)
+    {
+        std::unique_ptr<uint8_t[]> test_frame1 = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
+        std::unique_ptr<uint8_t[]> test_frame2 = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
+        test_packet_size(std::move(test_frame1), test_packets, size, sender_sess, sender1, receiver1, RTP_NO_FLAGS);
+        test_packet_size(std::move(test_frame2), test_packets, size, sender_sess, sender2, receiver2, RTP_NO_FLAGS);
+    }
+
+    cleanup_ms(sender_sess, sender1);
+    cleanup_ms(sender_sess, sender2);
+    cleanup_ms(receiver_sess, receiver1);
+    cleanup_ms(receiver_sess, receiver2);
+    cleanup_sess(ctx, sender_sess);
+    cleanup_sess(ctx, receiver_sess);
+
+}
