@@ -19,6 +19,12 @@ void app_hook(uvgrtp::frame::rtcp_app_packet* frame);
 void cleanup(uvgrtp::context& ctx, uvgrtp::session* local_session, uvgrtp::session* remote_session,
     uvgrtp::media_stream* send, uvgrtp::media_stream* receive);
 
+// Receiver and sender hooks for socket multiplexing test
+void m_r_hook1(uvgrtp::frame::rtcp_receiver_report* frame);
+void m_r_hook2(uvgrtp::frame::rtcp_receiver_report* frame);
+void m_s_hook1(uvgrtp::frame::rtcp_sender_report* frame);
+void m_s_hook2(uvgrtp::frame::rtcp_sender_report* frame);
+
 TEST(RTCPTests, rtcp) {
     std::cout << "Starting uvgRTP RTCP tests" << std::endl;
 
@@ -203,6 +209,99 @@ TEST(RTCP_double_bind_test, rtcp) {
 
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
 }
+
+TEST(RTCPTests, rtcp_multiplex)
+{
+    // Test multiplexing two RTP streams into a single socket with RTCP enabled.
+    // RTCP will bind to RTP socket + 1
+    std::cout << "Starting RTCP socket multiplexing test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* receiver_sess = ctx.create_session(LOCAL_INTERFACE, REMOTE_ADDRESS);
+    uvgrtp::session* sender_sess = ctx.create_session(REMOTE_ADDRESS, LOCAL_INTERFACE);
+
+    uvgrtp::media_stream* sender1 = nullptr;
+    uvgrtp::media_stream* receiver1 = nullptr;
+    uvgrtp::media_stream* sender2 = nullptr;
+    uvgrtp::media_stream* receiver2 = nullptr;
+
+    int flags = RCE_FRAGMENT_GENERIC | RCE_RTCP;
+    if (sender_sess)
+    {
+        sender1 = sender_sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
+        sender1->configure_ctx(RCC_SSRC, 11);
+        sender1->configure_ctx(RCC_REMOTE_SSRC, 22);
+        sender2 = sender_sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
+        sender2->configure_ctx(RCC_SSRC, 33);
+        sender2->configure_ctx(RCC_REMOTE_SSRC, 44);
+    }
+    if (sender1 && sender2)
+    {
+        EXPECT_EQ(RTP_OK, sender1->get_rtcp()->install_receiver_hook(m_r_hook1));
+        EXPECT_EQ(RTP_OK, sender2->get_rtcp()->install_receiver_hook(m_r_hook2));
+    }
+    if (receiver_sess)
+    {
+        receiver1 = receiver_sess->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
+        receiver1->configure_ctx(RCC_SSRC, 22);
+        receiver1->configure_ctx(RCC_REMOTE_SSRC, 11);
+        receiver2 = receiver_sess->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
+        receiver2->configure_ctx(RCC_SSRC, 44);
+        receiver2->configure_ctx(RCC_REMOTE_SSRC, 33);
+    }
+    if (receiver1 && receiver2)
+    {
+        EXPECT_EQ(RTP_OK, receiver1->get_rtcp()->install_sender_hook(m_s_hook1));
+        EXPECT_EQ(RTP_OK, receiver2->get_rtcp()->install_sender_hook(m_s_hook2));
+    }
+
+    int test_packets = 10;
+    std::vector<size_t> sizes = { 1000, 2000 };
+    for (size_t& size : sizes)
+    {
+        std::unique_ptr<uint8_t[]> test_frame1 = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
+        std::unique_ptr<uint8_t[]> test_frame2 = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
+        send_packets(std::move(test_frame1), PAYLOAD_LEN, sender_sess, sender1, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
+        send_packets(std::move(test_frame2), PAYLOAD_LEN, sender_sess, sender2, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
+    }
+
+    cleanup_ms(sender_sess, sender1);
+    cleanup_ms(sender_sess, sender2);
+    cleanup_ms(receiver_sess, receiver1);
+    cleanup_ms(receiver_sess, receiver2);
+    cleanup_sess(ctx, sender_sess);
+    cleanup_sess(ctx, receiver_sess);
+
+}
+
+void m_r_hook1(uvgrtp::frame::rtcp_receiver_report* frame)
+{
+    //Hook for stream Sender1 ssrc 11 
+    std::cout << std::endl << "Sender1 received RTCP receiver report from " << frame->ssrc << std::endl;
+    EXPECT_EQ(frame->ssrc, 22);
+    delete frame;
+}
+void m_r_hook2(uvgrtp::frame::rtcp_receiver_report* frame)
+{
+    //Hook for stream Sender2 ssrc 33 
+    std::cout << std::endl << "Sender2 received RTCP receiver report from " << frame->ssrc << std::endl;
+    EXPECT_EQ(frame->ssrc, 44);
+    delete frame;
+}
+void m_s_hook1(uvgrtp::frame::rtcp_sender_report* frame)
+{
+    //Hook for stream Receiver1 ssrc 22 
+    std::cout << std::endl << "Receiver1 received RTCP sender report from " << frame->ssrc << std::endl;
+    EXPECT_EQ(frame->ssrc, 11);
+    delete frame;
+}
+void m_s_hook2(uvgrtp::frame::rtcp_sender_report* frame)
+{
+    //Hook for stream Receiver2 ssrc 44 
+    std::cout << std::endl << "Receiver2 received RTCP sender report from " << frame->ssrc << std::endl;
+    EXPECT_EQ(frame->ssrc, 33);
+    delete frame;
+}
+
 
 void receiver_hook(uvgrtp::frame::rtcp_receiver_report* frame)
 {
