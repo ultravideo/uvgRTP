@@ -71,10 +71,11 @@ uvgrtp::media_stream::~media_stream()
     {
         reception_flow_->stop();
     }
+    /*
     if (sfp_)
     {
         sfp_->stop();
-    }
+    }*/
 
     // TODO: I would take a close look at what happens when pull_frame is called
     // and media stream is destroyed. Note that this is the only way to stop pull
@@ -93,30 +94,55 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     rtp_error_t ret = RTP_GENERIC_ERROR;
     ipv6_ = sfp_->get_ipv6();
 
+    // First check if the given address is a multicast address. If it is, it automatically gets its own socket,
+    // regardless of any socket multiplexing measures
+    sockaddr_in6 multicast_sockaddr6_;
+    sockaddr_in multicast_sockaddr_;
+    bool multicast = false;
+
+    if (ipv6_ && src_port_ != 0 && local_address_ != "") {
+        multicast_sockaddr6_ = uvgrtp::socket::create_ip6_sockaddr(local_address_, src_port_);
+        if (uvgrtp::socket::is_multicast(multicast_sockaddr6_)) {
+            socket_ = sfp_->create_new_socket();
+            new_socket_ = true;
+            multicast = true;
+        }
+    }
+    else if (src_port_ != 0 && local_address_ != "") {
+        multicast_sockaddr_ = uvgrtp::socket::create_sockaddr(AF_INET, local_address_, src_port_);
+        if (uvgrtp::socket::is_multicast(multicast_sockaddr_)) {
+            socket_ = sfp_->create_new_socket();
+            new_socket_ = true;
+            multicast = true;
+        }
+    }
+
+    // If the given local address is not a multicast address, either create a new socket or fetch the existing
+    // socket if socket multiplexing is used
     // Source port is given and is not in use -> create new socket
-    if (src_port_ != 0 && !sfp_->is_port_in_use(src_port_)) {
+    if (!multicast && src_port_ != 0 && !sfp_->is_port_in_use(src_port_)) {
         socket_ = sfp_->create_new_socket();
         new_socket_ = true;
     }
     // Source port is in use -> fetch the existing socket
-    else {
+    else if (!multicast) {
         socket_ = sfp_->get_socket_ptr(src_port_);
         if (!socket_) {
             socket_ = sfp_->create_new_socket();
             new_socket_ = true;
         }
     }
-    holepuncher_ = std::unique_ptr<uvgrtp::holepuncher>(new uvgrtp::holepuncher(socket_));
 
+    holepuncher_ = std::unique_ptr<uvgrtp::holepuncher>(new uvgrtp::holepuncher(socket_));
 
     if (!(rce_flags_ & RCE_RECEIVE_ONLY) && remote_address_ != "" && dst_port_ != 0)
     {
         // no reason to fail sending even if binding fails so we set remote address first
         if (ipv6_) {
-            remote_sockaddr_ip6_ = socket_->create_ip6_sockaddr(remote_address_, dst_port_);
+            remote_sockaddr_ip6_ = uvgrtp::socket::create_ip6_sockaddr(remote_address_, dst_port_);
         }
         else {
-            remote_sockaddr_ = socket_->create_sockaddr(AF_INET, remote_address_, dst_port_);
+            remote_sockaddr_ = uvgrtp::socket::create_sockaddr(AF_INET, remote_address_, dst_port_);
         }
         holepuncher_->set_remote_address(remote_sockaddr_, remote_sockaddr_ip6_);
     }

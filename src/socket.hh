@@ -146,16 +146,16 @@ namespace uvgrtp {
 
             /* Create sockaddr_in (IPv4) object using the provided information
              * NOTE: "family" must be AF_INET */
-            sockaddr_in create_sockaddr(short family, unsigned host, short port) const;
+            static sockaddr_in create_sockaddr(short family, unsigned host, short port);
 
             /* Create sockaddr_in object using the provided information
              * NOTE: "family" must be AF_INET */
-            sockaddr_in create_sockaddr(short family, std::string host, short port) const;
+            static sockaddr_in create_sockaddr(short family, std::string host, short port);
 
             /* Create sockaddr_in6 (IPv6) object using the provided information */
-            sockaddr_in6 create_ip6_sockaddr(unsigned host, short port) const;
-            sockaddr_in6 create_ip6_sockaddr(std::string host, short port) const;
-            sockaddr_in6 create_ip6_sockaddr_any(short src_port);
+            static sockaddr_in6 create_ip6_sockaddr(unsigned host, short port);
+            static sockaddr_in6 create_ip6_sockaddr(std::string host, short port);
+            static sockaddr_in6 create_ip6_sockaddr_any(short src_port);
 
 
             std::string get_socket_path_string() const;

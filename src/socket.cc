@@ -270,7 +270,7 @@ int uvgrtp::socket::check_family(std::string addr)
     return -1;
 }
 
-sockaddr_in uvgrtp::socket::create_sockaddr(short family, unsigned host, short port) const
+sockaddr_in uvgrtp::socket::create_sockaddr(short family, unsigned host, short port)
 {
     assert(family == AF_INET);
 
@@ -285,7 +285,7 @@ sockaddr_in uvgrtp::socket::create_sockaddr(short family, unsigned host, short p
     return addr;
 }
 
-sockaddr_in uvgrtp::socket::create_sockaddr(short family, std::string host, short port) const
+sockaddr_in uvgrtp::socket::create_sockaddr(short family, std::string host, short port)
 {
     assert(family == AF_INET);
 
@@ -301,7 +301,7 @@ sockaddr_in uvgrtp::socket::create_sockaddr(short family, std::string host, shor
 }
 
 // This function seems to not be currently used anywhere
-sockaddr_in6 uvgrtp::socket::create_ip6_sockaddr(unsigned host, short port) const
+sockaddr_in6 uvgrtp::socket::create_ip6_sockaddr(unsigned host, short port)
 {
 
     sockaddr_in6 addr;
@@ -315,7 +315,7 @@ sockaddr_in6 uvgrtp::socket::create_ip6_sockaddr(unsigned host, short port) cons
     return addr;
 }
 
-sockaddr_in6 uvgrtp::socket::create_ip6_sockaddr(std::string host, short port) const
+sockaddr_in6 uvgrtp::socket::create_ip6_sockaddr(std::string host, short port)
 {
     sockaddr_in6 addr;
     memset(&addr, 0, sizeof(addr));
