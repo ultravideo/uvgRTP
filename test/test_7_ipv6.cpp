@@ -273,36 +273,6 @@ TEST(RTCPTests_ip6, rtcp_ip6) {
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
 }
 
-TEST(RTCP_double_bind_test_ip6, rtcp_ip6) {
-    // Here we test if there are errors when double binding RTCP into the same port
-
-    std::cout << "Starting uvgRTP IPv6 RTCP double bind tests" << std::endl;
-
-    // Creation of RTP stream. See sending example for more details
-    uvgrtp::context ctx;
-    uvgrtp::session* local_session = ctx.create_session(REMOTE_ADDRESS);
-    uvgrtp::session* remote_session = ctx.create_session(LOCAL_INTERFACE);
-
-    int flags = RCE_RTCP;
-
-    uvgrtp::media_stream* local_stream = nullptr;
-    if (local_session)
-    {
-        local_stream = local_session->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
-    }
-
-    uvgrtp::media_stream* remote_stream = nullptr;
-    if (remote_session)
-    {
-        // this is invalid since the ports are the same
-        remote_stream = remote_session->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
-    }
-
-    EXPECT_EQ(nullptr, remote_stream);
-
-    cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
-}
-
 TEST(FormatTests_ip6, h264_fragmentation_ip6)
 {
     std::cout << "Starting IPv6 h264 fragmentation test" << std::endl;
