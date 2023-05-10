@@ -26,7 +26,6 @@ namespace uvgrtp {
             rtp_error_t bind_socket(std::shared_ptr<uvgrtp::socket> soc, uint16_t port);
             rtp_error_t bind_socket_anyip(std::shared_ptr<uvgrtp::socket> soc, uint16_t port);
 
-            std::shared_ptr<uvgrtp::reception_flow> install_reception_flow(std::shared_ptr<uvgrtp::socket> socket);
             std::shared_ptr<uvgrtp::socket> get_socket_ptr(uint16_t port) const;
             std::shared_ptr<uvgrtp::reception_flow> get_reception_flow_ptr(std::shared_ptr<uvgrtp::socket> socket) const;
             rtp_error_t map_port_to_rtcp_reader(uint16_t port, std::shared_ptr <uvgrtp::rtcp_reader> reader);
@@ -39,9 +38,8 @@ namespace uvgrtp {
             /// \endcond
 
         private:
-            
-            std::mutex socket_mutex_;
 
+            std::mutex socket_mutex_;
             int rce_flags_;
             std::string local_address_;
             std::map<uint16_t, std::shared_ptr<uvgrtp::socket>> used_ports_;

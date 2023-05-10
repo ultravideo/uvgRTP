@@ -96,7 +96,9 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket()
         socket_mutex_.lock();
         used_sockets_.push_back(socket);
         socket_mutex_.unlock();
-        install_reception_flow(socket);
+        std::shared_ptr<uvgrtp::reception_flow> flow = std::shared_ptr<uvgrtp::reception_flow>(new uvgrtp::reception_flow());
+        std::pair pair = std::make_pair(flow, socket);
+        reception_flows_.insert(pair);
         return socket;
     }
     
@@ -159,14 +161,6 @@ rtp_error_t uvgrtp::socketfactory::bind_socket_anyip(std::shared_ptr<uvgrtp::soc
         }
     }
     return ret;
-}
-
-std::shared_ptr<uvgrtp::reception_flow> uvgrtp::socketfactory::install_reception_flow(std::shared_ptr<uvgrtp::socket> socket)
-{
-    std::shared_ptr<uvgrtp::reception_flow> flow = std::shared_ptr<uvgrtp::reception_flow>(new uvgrtp::reception_flow());
-    std::pair pair = std::make_pair(flow, socket);
-    reception_flows_.insert(pair);
-    return flow;
 }
 
 std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::get_socket_ptr(uint16_t port) const

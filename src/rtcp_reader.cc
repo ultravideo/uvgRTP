@@ -109,13 +109,18 @@ bool uvgrtp::rtcp_reader::map_ssrc_to_rtcp(std::shared_ptr<std::atomic<uint32_t>
 
 int uvgrtp::rtcp_reader::clear_rtcp_from_reader(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
 {
-    map_mutex_.lock();
-    if (rtcps_map_.find(remote_ssrc) != rtcps_map_.end()) {
-        rtcps_map_.erase(remote_ssrc);
-    }
-    map_mutex_.unlock();
-    if (rtcps_map_.empty()) {
+    if (rtcps_map_.find(remote_ssrc) != rtcps_map_.end() && rtcps_map_.size() == 1) {
         return 1;
     }
     return 0;
+    /*
+    map_mutex_.lock();
+    if (rtcps_map_.find(remote_ssrc) != rtcps_map_.end()) {
+        //rtcps_map_.erase(remote_ssrc);
+    }
+    map_mutex_.unlock();/
+    if (rtcps_map_.empty()) {
+        return 1;
+    }
+    return 0;*/
 }
