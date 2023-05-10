@@ -400,6 +400,13 @@ namespace uvgrtp {
              */
             rtp_error_t remove_all_hooks();
 
+            /**
+             * \brief Remove a hook for sending APP packets
+             *             *
+             * \param app_name name of the APP packet hook. Max 4 chars
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE if hook with given app_name was not found
+            */
             rtp_error_t remove_send_app_hook(std::string app_name);
 
             /// \cond DO_NOT_DOCUMENT
