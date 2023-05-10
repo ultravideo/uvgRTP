@@ -15,7 +15,19 @@ namespace uvgrtp {
     class rtcp_reader;
 
     /* This class keeps track of all the sockets that uvgRTP is using. 
-     * the "out" parameter because at that point it already contains all needed information. */
+     * Each socket will have either a reception_flow or an rtcp_reader depending on what the socket
+     * is used for. It is possible to multiplex several media streams into a single socket, and the 
+     * reception_flow of the socket will distribute packets to the correct receiving stream based on the
+     * SSRCs on the packets. 
+     * *Attention* : If you multiplex multiple media streams into a single socket, you *must* set their 
+     * REMOTE SSRCs via the RCC_REMOTE_SSRC context flag.
+     * The reception_flow looks at the SOURCE SSRC on the received packet and then checks, which local
+     * stream is supposed to receive packets from this remote source.
+     * If you have a separate socket for every stream, this does not need to be taken into account
+     * This is also true for RTCP: the rtcp_reader will distribute received packets depending on the 
+     * SSRCs in the packets
+     */
+    // TODO: currently RTCP sockets get both a reception_flow and an rtcp_reader. This is not necessary
 
     class socketfactory {
 

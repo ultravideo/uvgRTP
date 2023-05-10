@@ -154,11 +154,23 @@ namespace uvgrtp {
             uvgrtp::frame::rtp_frame *pull_frame();
             uvgrtp::frame::rtp_frame *pull_frame(ssize_t timeout_ms);
 
+            /* Map a packet handler key to a REMOTE SSRC of a stream
+             *
+             * Return true if a handler with the given key exists in the reception_flow -> mapping succesful
+             * Return false if there is no handler with this key -> no mapping is done */
+            bool map_handler_key(uint32_t key, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
+
+            /* Clear the packet handlers associated with this handler key from the reception_flow
+             * Also clear the hooks associated with this remote_ssrc
+             * 
+             * Return 1 if the hooks and handlers were cleared and there is no hooks or handlers left in
+             * this reception_flow -> the flow can be safely deleted if wanted
+             * Return 0 if the hooks and handlers were removed but there is still others left in this reception_flow */
+            int clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, uint32_t handler_key);
+
             /// \cond DO_NOT_DOCUMENT
             void set_buffer_size(const ssize_t& value);
             void set_payload_size(const size_t& value);
-            bool map_handler_key(uint32_t key, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
-            int clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, uint32_t handler_key);
             /// \endcond
 
         private:

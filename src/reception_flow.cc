@@ -633,12 +633,11 @@ void uvgrtp::reception_flow::increase_buffer_size(ssize_t next_write_index)
 
 bool uvgrtp::reception_flow::map_handler_key(uint32_t key, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
 {
-    bool ret = false;
     if (handler_mapping_.find(key) == handler_mapping_.end()) {
         handler_mapping_[key] = remote_ssrc;
-        ret = true;
+        return true;
     }
-    return ret;
+    return false;
 }
 
 int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, uint32_t handler_key)
