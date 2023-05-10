@@ -74,10 +74,17 @@ namespace uvgrtp {
              * Return pointer to RTCP reader */
             std::shared_ptr <uvgrtp::rtcp_reader> get_rtcp_reader(uint16_t port);
 
+            /* Clear all receiver modules from the given socket + port combo
+             *
+             * Param socket socket to be cleared
+             * Param port port to be cleared
+             * Param flow that will be cleared from the socket
+             * true on success */
+            bool clear_port(uint16_t port, std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::reception_flow> flow);
+
             /// \cond DO_NOT_DOCUMENT
             bool get_ipv6() const;
             bool is_port_in_use(uint16_t port) const;
-            bool clear_port(uint16_t port, std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::reception_flow> flow);
             /// \endcond
 
         private:

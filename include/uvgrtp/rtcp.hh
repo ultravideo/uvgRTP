@@ -678,10 +678,7 @@ namespace uvgrtp {
             std::map<std::string, std::deque<rtcp_app_packet>> app_packets_; // sent one at a time per name
             // APPs for hook
             std::multimap<std::string, std::function <std::unique_ptr<uint8_t[]>(uint8_t& subtype, uint32_t& payload_len)>> outgoing_app_hooks_;
-            
             bool hooked_app_;
-            bool new_socket_;
-
 
             uvgrtp::frame::rtcp_sdes_item cnameItem_;
             char cname_[255];

@@ -469,7 +469,7 @@ rtp_error_t uvgrtp::media_stream::start_components()
                 rtcp_socket = sfp_->create_new_socket();
                 rtcp_reader = sfp_->install_rtcp_reader(rtcp_port);
 
-                rtcp_reader->set_socket(rtcp_socket, rtcp_port);
+                rtcp_reader->set_socket(rtcp_socket);
                 rtcp_->set_socket(rtcp_socket);
                 rtcp_reader->map_ssrc_to_rtcp(remote_ssrc_, rtcp_);
             }

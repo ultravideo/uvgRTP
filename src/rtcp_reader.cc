@@ -97,21 +97,21 @@ void uvgrtp::rtcp_reader::rtcp_report_reader() {
     UVG_LOG_DEBUG("Exited RTCP report reader loop");
 }
 
-bool uvgrtp::rtcp_reader::set_socket(std::shared_ptr<uvgrtp::socket> socket, uint16_t port)
+rtp_error_t uvgrtp::rtcp_reader::set_socket(std::shared_ptr<uvgrtp::socket> socket)
 {
     socket_ = socket;
-    return true;
+    return RTP_OK;
 }
 
-bool uvgrtp::rtcp_reader::map_ssrc_to_rtcp(std::shared_ptr<std::atomic<uint32_t>> ssrc, std::shared_ptr<uvgrtp::rtcp> rtcp)
+rtp_error_t uvgrtp::rtcp_reader::map_ssrc_to_rtcp(std::shared_ptr<std::atomic<uint32_t>> ssrc, std::shared_ptr<uvgrtp::rtcp> rtcp)
 {
     map_mutex_.lock();
     rtcps_map_[ssrc] = rtcp;
     map_mutex_.unlock();
-    return true;
+    return RTP_OK;
 }
 
-int uvgrtp::rtcp_reader::clear_rtcp_from_reader(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, uint16_t port)
+int uvgrtp::rtcp_reader::clear_rtcp_from_reader(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
 {    
     map_mutex_.lock();
     if (rtcps_map_.find(remote_ssrc) != rtcps_map_.end()) {

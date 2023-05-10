@@ -77,7 +77,6 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic
     ourItems_(),
     bye_ssrcs_(false),
     hooked_app_(false),
-    new_socket_(false),
     mtu_size_(MAX_IPV4_PAYLOAD)
 {
     clock_rate_   = rtp->get_clock_rate();
@@ -204,31 +203,9 @@ rtp_error_t uvgrtp::rtcp::start()
 {
     active_ = true;
     ipv6_ = sfp_->get_ipv6();
-    /*
-    // Source port is given and is not in use -> create new socket
-    if (local_port_ != 0 && !sfp_->is_port_in_use(local_port_)) {
-        rtcp_socket_ = sfp_->create_new_socket();
-        new_socket_ = true;
-        rtcp_reader_ = sfp_->install_rtcp_reader(local_port_);
-        rtcp_reader_->set_socket(rtcp_socket_, local_port_);
-        rtcp_reader_->map_ssrc_to_rtcp(remote_ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
-    }
-    // Source port is in use -> fetch the existing socket
-    else {
-        rtcp_socket_ = sfp_->get_socket_ptr(local_port_);
-        if (!rtcp_socket_) {
-            // This should not ever happen. However if it does, you could just create a new socket like above
-            UVG_LOG_ERROR("No RTCP socket found");
-            return RTP_GENERIC_ERROR;
-        }
-        rtcp_reader_ = sfp_->get_rtcp_reader(local_port_);
-        rtcp_socket_ = sfp_->get_socket_ptr(local_port_);
-        rtcp_reader_->map_ssrc_to_rtcp(remote_ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
-    }
-    */
+
     rtcp_reader_ = sfp_->get_rtcp_reader(local_port_);
     rtp_error_t ret = RTP_OK;
-
 
     /* Set read timeout (5s for now)
      *
@@ -301,7 +278,7 @@ rtp_error_t uvgrtp::rtcp::stop()
         report_generator_->join();
     }
 
-    if (rtcp_reader_ && rtcp_reader_->clear_rtcp_from_reader(remote_ssrc_, local_port_ == 1)) {
+    if (rtcp_reader_ && rtcp_reader_->clear_rtcp_from_reader(remote_ssrc_) == 1) {
         sfp_->clear_port(local_port_, rtcp_socket_, nullptr);
     }
     return ret;
