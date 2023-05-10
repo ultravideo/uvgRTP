@@ -856,6 +856,60 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
     return ret;
 }
 
+int uvgrtp::media_stream::get_configuration_value(int rcc_flag)
+{
+    int ret = -2;
+
+    if (rcc_flag == RCC_SSRC) {
+        return ssrc_.get()->load();
+    }
+    else if (rcc_flag == RCC_REMOTE_SSRC) {
+        return remote_ssrc_.get()->load();
+    }
+
+    if (!initialized_) {
+        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        return RTP_NOT_INITIALIZED;
+    }
+
+    switch (rcc_flag) {
+        case RCC_UDP_SND_BUF_SIZE: {
+            return -3;
+        }
+        case RCC_UDP_RCV_BUF_SIZE: {
+            return -3;
+        }
+        case RCC_RING_BUFFER_SIZE: {
+            return -3;
+        }
+        case RCC_PKT_MAX_DELAY: {
+            return -3;
+        }
+        case RCC_DYN_PAYLOAD_TYPE: {
+            return -3;
+        }
+        case RCC_CLOCK_RATE: {
+            return -3;
+        }
+        case RCC_MTU_SIZE: {
+            return -3;
+        }
+        case RCC_FPS_NUMERATOR: {
+            return fps_numerator_;
+        }
+        case RCC_FPS_DENOMINATOR: {
+            return fps_denominator_;
+        }
+        case RCC_SESSION_BANDWIDTH: {
+            return bandwidth_;
+        }
+        default:
+            return -1;
+    }
+
+    return ret;
+}
+
 uint32_t uvgrtp::media_stream::get_key() const
 {
     return key_;

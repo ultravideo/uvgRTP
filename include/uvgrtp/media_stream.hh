@@ -326,6 +326,18 @@ namespace uvgrtp {
              */
             rtp_error_t configure_ctx(int rcc_flag, ssize_t value);
 
+            /**
+             * \brief Get the values for set configuration flags, see ::RTP_CTX_CONFIGURATION_FLAGS for more details
+             *
+             * \return Value of the configuration flag
+             *
+             * \retval int value on success
+             * \retval -1 if the provided configuration flag does not exist
+             * \retval -2 on error
+             * \retval -3 not implemented
+             */
+            int get_configuration_value(int rcc_flag);
+
             /// \cond DO_NOT_DOCUMENT
 
             /* Get unique key of the media stream
