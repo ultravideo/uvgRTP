@@ -223,6 +223,7 @@ namespace uvgrtp {
 
             ssize_t buffer_size_kbytes_;
             size_t payload_size_;
+            bool active_;
     };
 }
 

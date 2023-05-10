@@ -204,16 +204,14 @@ rtp_error_t uvgrtp::rtcp::start()
 {
     active_ = true;
     ipv6_ = sfp_->get_ipv6();
-    
+    /*
     // Source port is given and is not in use -> create new socket
     if (local_port_ != 0 && !sfp_->is_port_in_use(local_port_)) {
         rtcp_socket_ = sfp_->create_new_socket();
         new_socket_ = true;
-        rtcp_reader_ = std::shared_ptr<uvgrtp::rtcp_reader>(new uvgrtp::rtcp_reader(sfp_));
+        rtcp_reader_ = sfp_->install_rtcp_reader(local_port_);
         rtcp_reader_->set_socket(rtcp_socket_, local_port_);
         rtcp_reader_->map_ssrc_to_rtcp(remote_ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
-        sfp_->map_port_to_rtcp_reader(local_port_, rtcp_reader_);
-
     }
     // Source port is in use -> fetch the existing socket
     else {
@@ -225,10 +223,10 @@ rtp_error_t uvgrtp::rtcp::start()
         }
         rtcp_reader_ = sfp_->get_rtcp_reader(local_port_);
         rtcp_socket_ = sfp_->get_socket_ptr(local_port_);
-        //rtcp_reader_->set_socket(rtcp_socket_);
         rtcp_reader_->map_ssrc_to_rtcp(remote_ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
     }
-
+    */
+    rtcp_reader_ = sfp_->get_rtcp_reader(local_port_);
     rtp_error_t ret = RTP_OK;
 
 
@@ -270,10 +268,7 @@ rtp_error_t uvgrtp::rtcp::start()
         socket_address_ = uvgrtp::socket::create_sockaddr(AF_INET, remote_addr_, dst_port_);
     }
     report_generator_.reset(new std::thread(rtcp_runner, this));
-    //report_reader_.reset(new std::thread(rtcp_report_reader, this));
-    if (new_socket_) {
-        rtcp_reader_->start();
-    }
+    rtcp_reader_->start();
 
     return RTP_OK;
 }
@@ -299,7 +294,6 @@ rtp_error_t uvgrtp::rtcp::stop()
         cleanup_participants();
         return RTP_OK;
     }
-
     active_ = false;
     if (report_generator_ && report_generator_->joinable())
     {
@@ -307,12 +301,8 @@ rtp_error_t uvgrtp::rtcp::stop()
         report_generator_->join();
     }
 
-    if ((rtcp_reader_->clear_rtcp_from_reader(remote_ssrc_)) == 1) {
-        rtcp_reader_->stop();
-        if (sfp_ && local_port_ != 0) {
-            sfp_->clear_port(local_port_, rtcp_socket_, nullptr);
-            rtcp_socket_.reset();
-        }
+    if (rtcp_reader_ && rtcp_reader_->clear_rtcp_from_reader(remote_ssrc_, local_port_ == 1)) {
+        sfp_->clear_port(local_port_, rtcp_socket_, nullptr);
     }
     return ret;
 }
@@ -2131,4 +2121,9 @@ double uvgrtp::rtcp::rtcp_interval(int members, int senders,
 void uvgrtp::rtcp::set_payload_size(size_t mtu_size)
 {
     mtu_size_ = mtu_size;
+}
+
+void uvgrtp::rtcp::set_socket(std::shared_ptr<uvgrtp::socket> socket)
+{
+    rtcp_socket_ = socket;
 }

@@ -28,6 +28,7 @@ namespace uvgrtp {
     class holepuncher;
     class socket;
     class socketfactory;
+    class rtcp_reader;
 
     namespace frame {
         struct rtp_frame;

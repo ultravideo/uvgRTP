@@ -412,6 +412,8 @@ namespace uvgrtp {
             /* Update RTCP-related sender statistics */
             rtp_error_t update_sender_stats(size_t pkt_size);
 
+            void set_socket(std::shared_ptr<uvgrtp::socket> socket);
+
             /* Update RTCP-related receiver statistics */
             static rtp_error_t recv_packet_handler(void *arg, int rce_flags, frame::rtp_frame **out);
 

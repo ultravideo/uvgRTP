@@ -14,6 +14,9 @@ namespace uvgrtp {
     class reception_flow;
     class rtcp_reader;
 
+    /* This class keeps track of all the sockets that uvgRTP is using. 
+     * the "out" parameter because at that point it already contains all needed information. */
+
     class socketfactory {
 
         public:
@@ -21,14 +24,54 @@ namespace uvgrtp {
             ~socketfactory();
             rtp_error_t stop();
 
+            /* Set the local addres for socketfactory.
+             * 
+             * Param local_addr local IPv4 or IPv6 address
+             * Return RTP OK on success */
             rtp_error_t set_local_interface(std::string local_addr);
+
+            /* Create a new socket. Depending on if the local address was IPv4 or IPv6, the socket
+             * will use the correct IP version
+             *
+             * Return the created socket on success, nullptr otherwise */
             std::shared_ptr<uvgrtp::socket> create_new_socket();
+
+            /* Bind socket to the local IP address and given port
+             * 
+             * Param soc pointer to socket
+             * Param port port to bind into
+             * Return RTP OK on success */
             rtp_error_t bind_socket(std::shared_ptr<uvgrtp::socket> soc, uint16_t port);
+
+            /* Bind socket any address and given port
+             *
+             * Param soc pointer to socket
+             * Param port port to bind into
+             * Return RTP OK on success */
             rtp_error_t bind_socket_anyip(std::shared_ptr<uvgrtp::socket> soc, uint16_t port);
 
+            /* Get the socket bound to the given port
+             *
+             * Param port socket with wanted port
+             * Return pointer to socket on success, nullptr otherwise */
             std::shared_ptr<uvgrtp::socket> get_socket_ptr(uint16_t port) const;
+
+            /* Get reception flow matching the given socket
+             *
+             * Param socket socket matching the wanted reception_flow
+             * Return pointer to reception_flow on success, nullptr otherwise */
             std::shared_ptr<uvgrtp::reception_flow> get_reception_flow_ptr(std::shared_ptr<uvgrtp::socket> socket) const;
-            rtp_error_t map_port_to_rtcp_reader(uint16_t port, std::shared_ptr <uvgrtp::rtcp_reader> reader);
+            
+            /* Install an RTCP reader and map it to the given port
+             *
+             * Param port port to map the created RTCP reader into
+             * Return pointer to created RTCP reader */
+            std::shared_ptr<uvgrtp::rtcp_reader> install_rtcp_reader(uint16_t port);
+
+            /* Get a pointer to the RTCP reader matching the given port
+             *
+             * Param port into which the wanted RTCP reader is mapped into
+             * Return pointer to RTCP reader */
             std::shared_ptr <uvgrtp::rtcp_reader> get_rtcp_reader(uint16_t port);
 
             /// \cond DO_NOT_DOCUMENT

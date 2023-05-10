@@ -33,7 +33,8 @@ uvgrtp::reception_flow::reception_flow() :
     last_ring_write_index_(-1),
     socket_(),
     buffer_size_kbytes_(DEFAULT_INITIAL_BUFFER_SIZE),
-    payload_size_(MAX_IPV4_PAYLOAD)
+    payload_size_(MAX_IPV4_PAYLOAD),
+    active_(false)
 {
     create_ring_buffer();
 }
@@ -102,6 +103,9 @@ void uvgrtp::reception_flow::set_payload_size(const size_t& value)
 
 rtp_error_t uvgrtp::reception_flow::start(std::shared_ptr<uvgrtp::socket> socket, int rce_flags)
 {
+    if (active_) {
+        return RTP_OK;
+    }
     should_stop_ = false;
 
     UVG_LOG_DEBUG("Creating receiving threads and setting priorities");
@@ -121,12 +125,15 @@ rtp_error_t uvgrtp::reception_flow::start(std::shared_ptr<uvgrtp::socket> socket
     SetThreadPriority(processor_->native_handle(), ABOVE_NORMAL_PRIORITY_CLASS);
 
 #endif
-
+    active_ = true;
     return RTP_ERROR::RTP_OK;
 }
 
 rtp_error_t uvgrtp::reception_flow::stop()
 {
+    if (!active_) {
+        return RTP_OK;
+    }
     should_stop_ = true;
     process_cond_.notify_all();
 
@@ -141,6 +148,7 @@ rtp_error_t uvgrtp::reception_flow::stop()
     }
 
     clear_frames();
+    active_ = false;
 
     return RTP_OK;
 }

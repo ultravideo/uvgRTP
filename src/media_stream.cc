@@ -10,6 +10,7 @@
 #include "rtp.hh"
 #include "zrtp.hh"
 #include "socket.hh"
+#include "rtcp_reader.hh"
 
 #include "holepuncher.hh"
 #include "reception_flow.hh"
@@ -451,7 +452,34 @@ rtp_error_t uvgrtp::media_stream::start_components()
             rtcp_->add_initial_participant(rtp_->get_clock_rate());
             bandwidth_ = get_default_bandwidth_kbps(fmt_);
             rtcp_->set_session_bandwidth(bandwidth_);
+
+            // Source port is given and is not in use -> create new socket
+            uint16_t rtcp_port = src_port_ + 1;
+            std::shared_ptr<uvgrtp::socket> rtcp_socket;
+            if (!sfp_->is_port_in_use(rtcp_port)) {
+                rtcp_socket = sfp_->create_new_socket();
+                auto rtcp_reader = sfp_->install_rtcp_reader(rtcp_port);
+                //new_socket_ = true;
+                rtcp_reader->set_socket(rtcp_socket, rtcp_port);
+                rtcp_->set_socket(rtcp_socket);
+                rtcp_reader->map_ssrc_to_rtcp(remote_ssrc_, rtcp_);
+            }
+            // Source port is in use -> fetch the existing socket
+            else {
+                rtcp_socket = sfp_->get_socket_ptr(rtcp_port);
+                if (!rtcp_socket) {
+                    // This should not ever happen. However if it does, you could just create a new socket like above
+                    UVG_LOG_ERROR("No RTCP socket found");
+                    return RTP_GENERIC_ERROR;
+                }
+                rtcp_->set_socket(rtcp_socket);
+                auto rtcp_reader = sfp_->get_rtcp_reader(rtcp_port);
+                //rtcp_socket = sfp_->get_socket_ptr(rtcp_port);
+                rtcp_reader->map_ssrc_to_rtcp(remote_ssrc_, rtcp_);
+            }
+
             rtcp_->start();
+
         }
     }
 
@@ -465,11 +493,7 @@ rtp_error_t uvgrtp::media_stream::start_components()
     }
 
     initialized_ = true;
-    if (new_socket_) {
-        return reception_flow_->start(socket_, rce_flags_);
-    }
-
-    return RTP_OK;
+    return reception_flow_->start(socket_, rce_flags_);
 }
 
 rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int rtp_flags)

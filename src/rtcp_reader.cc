@@ -19,9 +19,8 @@
 
 const int MAX_PACKET = 65536;
 
-uvgrtp::rtcp_reader::rtcp_reader(std::shared_ptr<uvgrtp::socketfactory> sfp) :
+uvgrtp::rtcp_reader::rtcp_reader() :
     active_(false),
-    sfp_(sfp),
     socket_(nullptr),
     rtcps_map_({})
 {
@@ -37,6 +36,9 @@ uvgrtp::rtcp_reader::~rtcp_reader()
 
 rtp_error_t uvgrtp::rtcp_reader::start()
 {
+    if (active_) {
+        return RTP_OK;
+    }
     report_reader_.reset(new std::thread(&uvgrtp::rtcp_reader::rtcp_report_reader, this));
     active_ = true;
     return RTP_OK;
@@ -103,24 +105,22 @@ bool uvgrtp::rtcp_reader::set_socket(std::shared_ptr<uvgrtp::socket> socket, uin
 
 bool uvgrtp::rtcp_reader::map_ssrc_to_rtcp(std::shared_ptr<std::atomic<uint32_t>> ssrc, std::shared_ptr<uvgrtp::rtcp> rtcp)
 {
+    map_mutex_.lock();
     rtcps_map_[ssrc] = rtcp;
+    map_mutex_.unlock();
     return true;
 }
 
-int uvgrtp::rtcp_reader::clear_rtcp_from_reader(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
-{
-    if (rtcps_map_.find(remote_ssrc) != rtcps_map_.end() && rtcps_map_.size() == 1) {
+int uvgrtp::rtcp_reader::clear_rtcp_from_reader(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, uint16_t port)
+{    
+    map_mutex_.lock();
+    if (rtcps_map_.find(remote_ssrc) != rtcps_map_.end()) {
+        rtcps_map_.erase(remote_ssrc);
+    }
+    map_mutex_.unlock();
+    if (rtcps_map_.empty()) {
+        stop();
         return 1;
     }
     return 0;
-    /*
-    map_mutex_.lock();
-    if (rtcps_map_.find(remote_ssrc) != rtcps_map_.end()) {
-        //rtcps_map_.erase(remote_ssrc);
-    }
-    map_mutex_.unlock();/
-    if (rtcps_map_.empty()) {
-        return 1;
-    }
-    return 0;*/
 }
