@@ -96,6 +96,7 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket()
         socket_mutex_.lock();
         used_sockets_.push_back(socket);
         socket_mutex_.unlock();
+        install_reception_flow(socket);
         return socket;
     }
     
@@ -212,6 +213,22 @@ bool uvgrtp::socketfactory::is_port_in_use(uint16_t port) const
 {
     if (used_ports_.find(port) == used_ports_.end()) {
         return false;
+    }
+    return true;
+}
+
+bool uvgrtp::socketfactory::clear_port(uint16_t port, std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::reception_flow> flow)
+{
+    if (used_ports_.find(port) != used_ports_.end()) {
+        used_ports_.erase(port);
+    }
+    auto it = std::find(used_sockets_.begin(), used_sockets_.end(), socket);
+    if (it != used_sockets_.end()) {
+        used_sockets_.erase(it);
+    }
+
+    if (reception_flows_.find(flow) != reception_flows_.end()) {
+        reception_flows_.erase(flow);
     }
     return true;
 }

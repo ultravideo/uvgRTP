@@ -210,7 +210,7 @@ rtp_error_t uvgrtp::rtcp::start()
         rtcp_socket_ = sfp_->create_new_socket();
         new_socket_ = true;
         rtcp_reader_ = std::shared_ptr<uvgrtp::rtcp_reader>(new uvgrtp::rtcp_reader(sfp_));
-        rtcp_reader_->set_socket(rtcp_socket_);
+        rtcp_reader_->set_socket(rtcp_socket_, local_port_);
         rtcp_reader_->map_ssrc_to_rtcp(remote_ssrc_, std::shared_ptr<uvgrtp::rtcp>(this));
         sfp_->map_port_to_rtcp_reader(local_port_, rtcp_reader_);
 
@@ -301,17 +301,18 @@ rtp_error_t uvgrtp::rtcp::stop()
     }
 
     active_ = false;
-    if (new_socket_) {
-        rtcp_reader_->stop();
-    }
-
     if (report_generator_ && report_generator_->joinable())
     {
         UVG_LOG_DEBUG("Waiting for RTCP loop to exit");
         report_generator_->join();
     }
 
-    rtcp_socket_.reset();
+    if ((rtcp_reader_->clear_rtcp_from_reader(remote_ssrc_)) == 1) {
+        rtcp_reader_->stop();
+        if (sfp_ && local_port_ != 0) {
+            sfp_->clear_port(local_port_, rtcp_socket_, nullptr);
+        }
+    }
     return ret;
 }
 

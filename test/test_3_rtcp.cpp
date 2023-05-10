@@ -38,13 +38,13 @@ TEST(RTCPTests, rtcp) {
     uvgrtp::media_stream* local_stream = nullptr;
     if (local_session)
     {
-        local_stream = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, flags);
+        local_stream = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
     }
 
     uvgrtp::media_stream* remote_stream = nullptr;
     if (remote_session)
     {
-        remote_stream = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_H265, flags);
+        remote_stream = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
     }
 
     EXPECT_NE(nullptr, remote_stream);

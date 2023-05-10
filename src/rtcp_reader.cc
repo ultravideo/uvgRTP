@@ -4,7 +4,7 @@
 #include "rtcp_packets.hh"
 #include "poll.hh"
 #include "uvgrtp/rtcp.hh"
-
+#include "socketfactory.hh"
 #include "socket.hh"
 #include "global.hh"
 #include "debug.hh"
@@ -30,6 +30,9 @@ uvgrtp::rtcp_reader::rtcp_reader(std::shared_ptr<uvgrtp::socketfactory> sfp) :
 
 uvgrtp::rtcp_reader::~rtcp_reader()
 {
+    if(active_) {
+        stop();
+    }
 }
 
 rtp_error_t uvgrtp::rtcp_reader::start()
@@ -69,6 +72,7 @@ void uvgrtp::rtcp_reader::rtcp_report_reader() {
         if (ret == RTP_OK && nread > 0)
         {
             uint32_t sender_ssrc = ntohl(*(uint32_t*)&buffer.get()[0 + RTCP_HEADER_SIZE]);
+            map_mutex_.lock();
             for (auto& p : rtcps_map_) {
                 std::shared_ptr<uvgrtp::rtcp> rtcp_ptr = p.second;
                 if (sender_ssrc == p.first.get()->load()) {
@@ -78,6 +82,7 @@ void uvgrtp::rtcp_reader::rtcp_report_reader() {
                     (void)rtcp_ptr->handle_incoming_packet(buffer.get(), (size_t)nread);
                 }
             }
+            map_mutex_.unlock();
         }
         else if (ret == RTP_INTERRUPTED) {
             /* do nothing */
@@ -90,7 +95,7 @@ void uvgrtp::rtcp_reader::rtcp_report_reader() {
     UVG_LOG_DEBUG("Exited RTCP report reader loop");
 }
 
-bool uvgrtp::rtcp_reader::set_socket(std::shared_ptr<uvgrtp::socket> socket)
+bool uvgrtp::rtcp_reader::set_socket(std::shared_ptr<uvgrtp::socket> socket, uint16_t port)
 {
     socket_ = socket;
     return true;
@@ -100,4 +105,17 @@ bool uvgrtp::rtcp_reader::map_ssrc_to_rtcp(std::shared_ptr<std::atomic<uint32_t>
 {
     rtcps_map_[ssrc] = rtcp;
     return true;
+}
+
+int uvgrtp::rtcp_reader::clear_rtcp_from_reader(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
+{
+    map_mutex_.lock();
+    if (rtcps_map_.find(remote_ssrc) != rtcps_map_.end()) {
+        rtcps_map_.erase(remote_ssrc);
+    }
+    map_mutex_.unlock();
+    if (rtcps_map_.empty()) {
+        return 1;
+    }
+    return 0;
 }

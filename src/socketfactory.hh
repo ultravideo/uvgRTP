@@ -32,8 +32,11 @@ namespace uvgrtp {
             rtp_error_t map_port_to_rtcp_reader(uint16_t port, std::shared_ptr <uvgrtp::rtcp_reader> reader);
             std::shared_ptr <uvgrtp::rtcp_reader> get_rtcp_reader(uint16_t port);
 
+            /// \cond DO_NOT_DOCUMENT
             bool get_ipv6() const;
             bool is_port_in_use(uint16_t port) const;
+            bool clear_port(uint16_t port, std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::reception_flow> flow);
+            /// \endcond
 
         private:
             

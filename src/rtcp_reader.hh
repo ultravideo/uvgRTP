@@ -16,6 +16,7 @@
 #include <map>
 #include <thread>
 #include <functional>
+#include <mutex>
 
 
 namespace uvgrtp {
@@ -32,9 +33,10 @@ namespace uvgrtp {
             rtp_error_t stop();
 
             void rtcp_report_reader();
-            bool set_socket(std::shared_ptr<uvgrtp::socket> socket);
+            bool set_socket(std::shared_ptr<uvgrtp::socket> socket, uint16_t port);
             // Map REMOTE ssrc to rtcp
             bool map_ssrc_to_rtcp(std::shared_ptr<std::atomic<uint32_t>> ssrc, std::shared_ptr<uvgrtp::rtcp> rtcp);
+            int clear_rtcp_from_reader(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
         private:
             bool active_;
@@ -42,7 +44,7 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::socket> socket_;
             std::map<std::shared_ptr<std::atomic<uint32_t>>, std::shared_ptr<uvgrtp::rtcp>> rtcps_map_;
             std::unique_ptr<std::thread> report_reader_;
-
+            std::mutex map_mutex_;
     };
 
 

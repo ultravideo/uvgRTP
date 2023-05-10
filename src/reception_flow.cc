@@ -160,7 +160,6 @@ rtp_error_t uvgrtp::reception_flow::install_receive_hook(
         hooks_[ssrc] = new_hook;
     }
     else {
-        //UVG_LOG_INFO("Replacing existing hook");
         receive_pkt_hook new_hook = { arg, hook };
         hooks_.erase(ssrc);
         hooks_.insert({ssrc, new_hook});
@@ -632,4 +631,24 @@ bool uvgrtp::reception_flow::map_handler_key(uint32_t key, std::shared_ptr<std::
         ret = true;
     }
     return ret;
+}
+
+int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, uint32_t handler_key)
+{
+    // Clear all the data structures
+    if (hooks_.find(remote_ssrc.get()->load()) != hooks_.end()) {
+        hooks_.erase(remote_ssrc.get()->load());
+    }
+    if (packet_handlers_.find(handler_key) != packet_handlers_.end()) {
+        packet_handlers_.erase(handler_key);
+    }
+    if (handler_mapping_.find(handler_key) != handler_mapping_.end()) {
+        handler_mapping_.erase(handler_key);
+    }
+    // If all the data structures are empty, return 1 which means that there is no streams left for this reception_flow
+    // and it can be safely deleted
+    if (hooks_.empty() && packet_handlers_.empty() && handler_mapping_.empty()) {
+        return 1;
+    }
+    return 0;
 }

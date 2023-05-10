@@ -66,17 +66,6 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
 
 uvgrtp::media_stream::~media_stream()
 {
-    
-    if (reception_flow_)
-    {
-        reception_flow_->stop();
-    }
-    /*
-    if (sfp_)
-    {
-        sfp_->stop();
-    }*/
-
     // TODO: I would take a close look at what happens when pull_frame is called
     // and media stream is destroyed. Note that this is the only way to stop pull
     // frame without waiting
@@ -84,6 +73,16 @@ uvgrtp::media_stream::~media_stream()
     if ((rce_flags_ & RCE_RTCP) && rtcp_)
     {
         rtcp_->stop();
+    }
+    // Clear this media stream from the reception_flow
+    if (reception_flow_ && zrtp_handler_key_ != 0) {
+        reception_flow_->clear_stream_from_flow(remote_ssrc_, zrtp_handler_key_);
+    }
+    if ( reception_flow_ && (reception_flow_->clear_stream_from_flow(remote_ssrc_, rtp_handler_key_)) == 1) {
+        reception_flow_->stop();
+        if (sfp_) {
+            sfp_->clear_port(src_port_, socket_, reception_flow_);
+        }
     }
 
     (void)free_resources(RTP_OK);
@@ -94,7 +93,7 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     rtp_error_t ret = RTP_GENERIC_ERROR;
     ipv6_ = sfp_->get_ipv6();
 
-    // First check if the given address is a multicast address. If it is, it automatically gets its own socket,
+    // First check if the given local address is a multicast address. If it is, the streams automatically gets its own socket,
     // regardless of any socket multiplexing measures
     sockaddr_in6 multicast_sockaddr6_;
     sockaddr_in multicast_sockaddr_;
@@ -301,12 +300,7 @@ rtp_error_t uvgrtp::media_stream::init()
         return free_resources(RTP_GENERIC_ERROR);
     }
     
-    if (!new_socket_) {
-        reception_flow_ = sfp_->get_reception_flow_ptr(socket_);
-    }
-    else {
-        reception_flow_ = sfp_->install_reception_flow(socket_);
-    }
+    reception_flow_ = sfp_->get_reception_flow_ptr(socket_);
 
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_, ssrc_, ipv6_));
     rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, ssrc_, remote_ssrc_, cname_, sfp_, rce_flags_));
@@ -328,12 +322,8 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
         log_platform_error("Failed to initialize the underlying socket");
         return RTP_GENERIC_ERROR;
     }
-    if (!new_socket_) {
-        reception_flow_ = sfp_->get_reception_flow_ptr(socket_);
-    }
-    else {
-        reception_flow_ = sfp_->install_reception_flow(socket_);
-    }
+
+    reception_flow_ = sfp_->get_reception_flow_ptr(socket_);
 
     rtp_ = std::shared_ptr<uvgrtp::rtp>(new uvgrtp::rtp(fmt_, ssrc_, ipv6_));
 
@@ -400,12 +390,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         UVG_LOG_ERROR("Failed to initialize the underlying socket");
         return free_resources(RTP_GENERIC_ERROR);
     }
-    if (!new_socket_) {
-        reception_flow_ = sfp_->get_reception_flow_ptr(socket_);
-    }
-    else {
-        reception_flow_ = sfp_->install_reception_flow(socket_);
-    }
+    reception_flow_ = sfp_->get_reception_flow_ptr(socket_);
 
     if ((rce_flags_ & srtp_rce_flags) != srtp_rce_flags)
         return free_resources(RTP_NOT_SUPPORTED);

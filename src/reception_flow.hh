@@ -154,10 +154,13 @@ namespace uvgrtp {
             uvgrtp::frame::rtp_frame *pull_frame();
             uvgrtp::frame::rtp_frame *pull_frame(ssize_t timeout_ms);
 
+            /// \cond DO_NOT_DOCUMENT
             void set_buffer_size(const ssize_t& value);
             void set_payload_size(const size_t& value);
             bool map_handler_key(uint32_t key, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
-           
+            int clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, uint32_t handler_key);
+            /// \endcond
+
         private:
             /* RTP packet receiver thread */
             void receiver(std::shared_ptr<uvgrtp::socket> socket);
