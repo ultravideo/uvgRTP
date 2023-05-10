@@ -169,7 +169,7 @@ namespace uvgrtp {
             /**
              * \brief Send an RTCP APP packet
              *
-             * \param name Name of the APP item, e.g., EMAIL or PHONE
+             * \param name Name of the APP item, e.g., STAT, must have a length of four ASCII characters
              * \param subtype Subtype of the APP item
              * \param payload_len Length of the payload
              * \param payload Payload
