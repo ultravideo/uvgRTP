@@ -231,18 +231,12 @@ namespace uvgrtp {
             /* Update various session statistics */
             void update_session_statistics(const uvgrtp::frame::rtp_frame *frame);
 
-            /* Getter for interval_ms_, which is calculated by set_session_bandwidth */
+            /* Getter for interval_ms_, which is calculated by set_session_bandwidth
+             * Be aware that this interval is frequently re-calculated in rtcp_runner() */
             uint32_t get_rtcp_interval_ms() const;
 
-            /* Set RTCP packet transmission interval in milliseconds
-            *
-            * Return RTP_OK if interval was set successfully
-            * Return RTP_INVALID_VALUE if new interval is invalid */
-            rtp_error_t set_rtcp_interval_ms(int32_t new_interval);
-
             /* Set total bandwidth for this session, called at the start 
-            *  If you want to set the interval manually later, use
-            *  set_rtcp_interval_ms() function */
+            *  This affects the RTCP packet transmission interval */
             void set_session_bandwidth(uint32_t kbps);
 
             std::shared_ptr<uvgrtp::socket> get_socket() const;

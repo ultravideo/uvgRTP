@@ -333,8 +333,6 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp)
             true, (double)rtcp->avg_rtcp_size_, true, true);
         current_interval_ms = (uint32_t)round(1000 * interval_s);
 
-        rtcp->set_rtcp_interval_ms(current_interval_ms);
-
         std::this_thread::sleep_for(std::chrono::milliseconds(current_interval_ms));
     }
     UVG_LOG_DEBUG("Exited RTCP loop");
@@ -1978,18 +1976,6 @@ rtp_error_t uvgrtp::rtcp::set_network_addresses(std::string local_addr, std::str
     ipv6_ = ipv6;
 
     return RTP_OK;
-}
-
-rtp_error_t uvgrtp::rtcp::set_rtcp_interval_ms(int32_t new_interval) {
-    if (new_interval < 0) {
-        UVG_LOG_WARN("Interval cannot be negative");
-        return RTP_INVALID_VALUE;
-    }
-    interval_ms_ = new_interval;
-
-
-    return RTP_OK;
-
 }
 
 std::shared_ptr<uvgrtp::socket> uvgrtp::rtcp::get_socket() const{
