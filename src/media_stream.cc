@@ -103,7 +103,7 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     if (ipv6_ && src_port_ != 0 && local_address_ != "") {
         multicast_sockaddr6_ = uvgrtp::socket::create_ip6_sockaddr(local_address_, src_port_);
         if (uvgrtp::socket::is_multicast(multicast_sockaddr6_)) {
-            socket_ = sfp_->create_new_socket();
+            socket_ = sfp_->create_new_socket(2);
             new_socket_ = true;
             multicast = true;
         }
@@ -111,7 +111,7 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     else if (src_port_ != 0 && local_address_ != "") {
         multicast_sockaddr_ = uvgrtp::socket::create_sockaddr(AF_INET, local_address_, src_port_);
         if (uvgrtp::socket::is_multicast(multicast_sockaddr_)) {
-            socket_ = sfp_->create_new_socket();
+            socket_ = sfp_->create_new_socket(2);
             new_socket_ = true;
             multicast = true;
         }
@@ -121,14 +121,14 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     // socket if socket multiplexing is used
     // Source port is given and is not in use -> create new socket
     if (!multicast && src_port_ != 0 && !sfp_->is_port_in_use(src_port_)) {
-        socket_ = sfp_->create_new_socket();
+        socket_ = sfp_->create_new_socket(2);
         new_socket_ = true;
     }
     // Source port is in use -> fetch the existing socket
     else if (!multicast) {
         socket_ = sfp_->get_socket_ptr(src_port_);
         if (!socket_) {
-            socket_ = sfp_->create_new_socket();
+            socket_ = sfp_->create_new_socket(2);
             new_socket_ = true;
         }
     }
@@ -466,7 +466,7 @@ rtp_error_t uvgrtp::media_stream::start_components()
             //    any socket multiplexing, it will be 0 by default
 
             if (!sfp_->is_port_in_use(rtcp_port)) {
-                rtcp_socket = sfp_->create_new_socket();
+                rtcp_socket = sfp_->create_new_socket(1);
                 rtcp_reader = sfp_->install_rtcp_reader(rtcp_port);
 
                 rtcp_reader->set_socket(rtcp_socket);

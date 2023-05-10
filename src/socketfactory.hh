@@ -27,7 +27,6 @@ namespace uvgrtp {
      * This is also true for RTCP: the rtcp_reader will distribute received packets depending on the 
      * SSRCs in the packets
      */
-    // TODO: currently RTCP sockets get both a reception_flow and an rtcp_reader. This is not necessary
 
     class socketfactory {
 
@@ -45,8 +44,9 @@ namespace uvgrtp {
             /* Create a new socket. Depending on if the local address was IPv4 or IPv6, the socket
              * will use the correct IP version
              *
+             * Param type 1 RTCP socket, 2 for any other type of a socket
              * Return the created socket on success, nullptr otherwise */
-            std::shared_ptr<uvgrtp::socket> create_new_socket();
+            std::shared_ptr<uvgrtp::socket> create_new_socket(int type);
 
             /* Bind socket to the local IP address and given port
              * 
