@@ -580,6 +580,9 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
 
                     uint32_t current_ssrc = handler_mapping_[handler.first].get()->load();
                     bool found = false;
+                    // this looks so weird because the ssrc field in RTP packets is in different byte order 
+                    // than in SRTP packets, so we have to check many different possibilities
+                    // TODO: fix the byte order...
                     if (current_ssrc == hnssrc || current_ssrc == nhssrc|| current_ssrc == frame->header.ssrc) {
                         found = true;
                     }

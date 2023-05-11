@@ -135,9 +135,9 @@ rtp_error_t uvgrtp::media_stream::init_connection()
         }
     }
 
-    holepuncher_ = std::unique_ptr<uvgrtp::holepuncher>(new uvgrtp::holepuncher(socket_));
 
-    if (!(rce_flags_ & RCE_RECEIVE_ONLY) && remote_address_ != "" && dst_port_ != 0)
+    //if (!(rce_flags_ & RCE_RECEIVE_ONLY) && remote_address_ != "" && dst_port_ != 0)
+    if (remote_address_ != "" && dst_port_ != 0)
     {
         // no reason to fail sending even if binding fails so we set remote address first
         if (ipv6_) {
@@ -146,10 +146,10 @@ rtp_error_t uvgrtp::media_stream::init_connection()
         else {
             remote_sockaddr_ = uvgrtp::socket::create_sockaddr(AF_INET, remote_address_, dst_port_);
         }
+        holepuncher_ = std::unique_ptr<uvgrtp::holepuncher>(new uvgrtp::holepuncher(socket_));
         holepuncher_->set_remote_address(remote_sockaddr_, remote_sockaddr_ip6_);
     }
-    else
-    {
+    if (rce_flags_ & RCE_RECEIVE_ONLY) {
         UVG_LOG_INFO("Sending disabled for this stream");
     }
     
