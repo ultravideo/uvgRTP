@@ -226,7 +226,7 @@ if (UNIX)
     endif()
 
     # Try finding if pkg-config installed in the system
-    find_package(PkgConfig REQUIRED)
+    find_package(PkgConfig)
     if(PkgConfig_FOUND)
         list(APPEND UVGRTP_LINKER_FLAGS "-luvgrtp")
         if(CMAKE_USE_PTHREADS_INIT AND NOT CMAKE_HAVE_LIBC_PTHREAD)
