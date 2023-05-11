@@ -84,7 +84,7 @@ uvgrtp::media_stream::~media_stream()
     if ( reception_flow_ && (reception_flow_->clear_stream_from_flow(remote_ssrc_, rtp_handler_key_)) == 1) {
         reception_flow_->stop();
         if (sfp_) {
-            sfp_->clear_port(src_port_, socket_, reception_flow_);
+            sfp_->clear_port(src_port_, socket_);
         }
     }
 

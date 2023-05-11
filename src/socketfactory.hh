@@ -92,7 +92,7 @@ namespace uvgrtp {
              * Param port port to be cleared
              * Param flow that will be cleared from the socket
              * true on success */
-            bool clear_port(uint16_t port, std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::reception_flow> flow);
+            bool clear_port(uint16_t port, std::shared_ptr<uvgrtp::socket> socket);
 
             /// \cond DO_NOT_DOCUMENT
             bool get_ipv6() const;

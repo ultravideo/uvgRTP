@@ -366,14 +366,15 @@ void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int rce_flags, uvgr
         auto fr = *frame;
         uint32_t pkt_ssrc = fr->header.ssrc;
         uint32_t current_ssrc = handler_mapping_[key].get()->load();
-        bool auxh = false;
+        bool found = false;
         if (current_ssrc == pkt_ssrc) {
-            auxh = true;
+            found = true;
         }
         else if (current_ssrc == 0) {
-            auxh = true;
+            found = true;
         }
-        else {
+        if (!found) {
+            // No SSRC match found, skip this handler
             continue;
         }
 
@@ -578,21 +579,18 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     uint32_t hnssrc = (uint32_t)ptr[8];
 
                     uint32_t current_ssrc = handler_mapping_[handler.first].get()->load();
-                    bool reth = false;
+                    bool found = false;
                     if (current_ssrc == hnssrc || current_ssrc == nhssrc|| current_ssrc == frame->header.ssrc) {
-                        reth = true;
-                        //UVG_LOG_INFO("Hook ssrc %d", current_ssrc);
-
+                        found = true;
                     }
                     else if (current_ssrc == 0) {
-                        reth = true;
-                        //UVG_LOG_INFO("Default hook ssrc 0");
-
+                        found = true;
                     }
-                    else {
-
+                    if (!found) {
+                        // No SSRC match found, skip this handler
                         continue;
                     }
+
                     frame = nullptr;
 
                     // Here we don't lock ring mutex because the chaging is only done above. 

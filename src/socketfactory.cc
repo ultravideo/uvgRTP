@@ -216,7 +216,7 @@ bool uvgrtp::socketfactory::is_port_in_use(uint16_t port) const
     return true;
 }
 
-bool uvgrtp::socketfactory::clear_port(uint16_t port, std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::reception_flow> flow)
+bool uvgrtp::socketfactory::clear_port(uint16_t port, std::shared_ptr<uvgrtp::socket> socket)
 {
     if (port && used_ports_.find(port) != used_ports_.end()) {
         used_ports_.erase(port);

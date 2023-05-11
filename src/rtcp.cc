@@ -279,7 +279,7 @@ rtp_error_t uvgrtp::rtcp::stop()
     }
 
     if (rtcp_reader_ && rtcp_reader_->clear_rtcp_from_reader(remote_ssrc_) == 1) {
-        sfp_->clear_port(local_port_, rtcp_socket_, nullptr);
+        sfp_->clear_port(local_port_, rtcp_socket_);
     }
     return ret;
 }
