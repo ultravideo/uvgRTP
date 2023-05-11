@@ -231,7 +231,9 @@ TEST(RTCPTests, rtcp_multiplex)
     uvgrtp::media_stream* sender2 = nullptr;
     uvgrtp::media_stream* receiver2 = nullptr;
     
+    // 1 for RRs, 2 for SRs
     received1 = 0;
+    received2 = 0;
 
     int flags = RCE_FRAGMENT_GENERIC | RCE_RTCP;
     if (sender_sess)
@@ -272,7 +274,8 @@ TEST(RTCPTests, rtcp_multiplex)
         send_packets(std::move(test_frame1), PAYLOAD_LEN, sender_sess, sender1, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
         send_packets(std::move(test_frame2), PAYLOAD_LEN, sender_sess, sender2, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
     }
-
+    std::cout << "Receivers received " << received2 << " sender reports" << std::endl;
+    std::cout << "Senders received " << received1 << " receiver reports" << std::endl;
     cleanup_ms(sender_sess, sender1);
     cleanup_ms(sender_sess, sender2);
     cleanup_ms(receiver_sess, receiver1);
