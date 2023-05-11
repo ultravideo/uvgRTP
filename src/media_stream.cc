@@ -634,7 +634,9 @@ uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame()
     if (!check_pull_preconditions()) {
         return nullptr;
     }
-
+    if (remote_ssrc_.get()->load() != 0) {
+        return reception_flow_->pull_frame(remote_ssrc_);
+    }
     return reception_flow_->pull_frame();
 
 }

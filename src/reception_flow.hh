@@ -148,11 +148,13 @@ namespace uvgrtp {
              * If "timeout" is given, pull_frame() will block only for however long
              * that value tells it to.
              * If no frame is received within that time period, pull_frame() returns nullptr
+             * If remote SSRC is given, only pull frames that come from a source with this ssrc
              *
              * Return pointer to RTP frame on success
              * Return nullptr if operation timed out or an error occurred */
             uvgrtp::frame::rtp_frame *pull_frame();
             uvgrtp::frame::rtp_frame *pull_frame(ssize_t timeout_ms);
+            uvgrtp::frame::rtp_frame* pull_frame(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
             /* Map a packet handler key to a REMOTE SSRC of a stream
              *

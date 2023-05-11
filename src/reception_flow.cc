@@ -216,6 +216,31 @@ uvgrtp::frame::rtp_frame *uvgrtp::reception_flow::pull_frame(ssize_t timeout_ms)
     return frame;
 }
 
+uvgrtp::frame::rtp_frame* uvgrtp::reception_flow::pull_frame(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
+{
+    while (frames_.empty() && !should_stop_)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+
+    if (should_stop_)
+        return nullptr;
+
+    // Check if the source ssrc in the frame matches the remote ssrc that we want to pull frames from
+    bool found_frame = false;
+    frames_mtx_.lock();
+    auto frame = frames_.front();
+    if (frame->header.ssrc == remote_ssrc.get()->load()) {
+        frames_.erase(frames_.begin());
+        found_frame = true;
+    }
+    frames_mtx_.unlock();
+    if (found_frame) {
+        return frame;
+    }
+    return nullptr;
+}
+
 uint32_t uvgrtp::reception_flow::install_handler(uvgrtp::packet_handler handler)
 {
     uint32_t key;
