@@ -327,14 +327,13 @@ namespace uvgrtp {
             rtp_error_t configure_ctx(int rcc_flag, ssize_t value);
 
             /**
-             * \brief Get the values for set configuration flags, see ::RTP_CTX_CONFIGURATION_FLAGS for more details
+             * \brief Get the values associated with configuration flags, see ::RTP_CTX_CONFIGURATION_FLAGS for more details
              *
              * \return Value of the configuration flag
              *
              * \retval int value on success
              * \retval -1 if the provided configuration flag does not exist
-             * \retval -2 on error
-             * \retval -3 not implemented
+             * \retval -2 if the flag is not set
              */
             int get_configuration_value(int rcc_flag);
 
@@ -437,6 +436,11 @@ namespace uvgrtp {
             uint32_t bandwidth_ = 0;
             std::shared_ptr<std::atomic<std::uint32_t>> ssrc_;
             std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc_;
+
+            // Save values associated with context flags, to be returned with get_configuration_value
+            // Values are initialized to -2, which means value not set
+            int snd_buf_size_;
+            int rcv_buf_size_;
     };
 }
 

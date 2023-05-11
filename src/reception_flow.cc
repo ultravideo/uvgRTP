@@ -95,6 +95,11 @@ void uvgrtp::reception_flow::set_buffer_size(const ssize_t& value)
     create_ring_buffer();
 }
 
+ssize_t uvgrtp::reception_flow::get_buffer_size() const
+{
+    return buffer_size_kbytes_;
+}
+
 void uvgrtp::reception_flow::set_payload_size(const size_t& value)
 {
     payload_size_ = value;

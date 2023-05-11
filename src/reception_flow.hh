@@ -173,6 +173,7 @@ namespace uvgrtp {
 
             /// \cond DO_NOT_DOCUMENT
             void set_buffer_size(const ssize_t& value);
+            ssize_t get_buffer_size() const;
             void set_payload_size(const size_t& value);
             /// \endcond
 

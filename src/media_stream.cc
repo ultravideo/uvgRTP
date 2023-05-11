@@ -61,7 +61,9 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     fps_numerator_(30),
     fps_denominator_(1),
     ssrc_(std::make_shared<std::atomic<std::uint32_t>>(uvgrtp::random::generate_32())),
-    remote_ssrc_(std::make_shared<std::atomic<std::uint32_t>>(0))
+    remote_ssrc_(std::make_shared<std::atomic<std::uint32_t>>(0)),
+    snd_buf_size_(-2),
+    rcv_buf_size_(-2)
 {
 }
 
@@ -748,6 +750,7 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
                 return RTP_INVALID_VALUE;
 
             int buf_size = (int)value;
+            snd_buf_size_ = buf_size;
             ret = socket_->setsockopt(SOL_SOCKET, SO_SNDBUF, (const char*)&buf_size, sizeof(int));
             break;
         }
@@ -756,6 +759,7 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
                 return RTP_INVALID_VALUE;
 
             int buf_size = (int)value;
+            rcv_buf_size_ = buf_size;
             ret = socket_->setsockopt(SOL_SOCKET, SO_RCVBUF, (const char*)&buf_size, sizeof(int));
             break;
         }
@@ -880,25 +884,25 @@ int uvgrtp::media_stream::get_configuration_value(int rcc_flag)
 
     switch (rcc_flag) {
         case RCC_UDP_SND_BUF_SIZE: {
-            return -3;
+            return snd_buf_size_;
         }
         case RCC_UDP_RCV_BUF_SIZE: {
-            return -3;
+            return rcv_buf_size_;
         }
         case RCC_RING_BUFFER_SIZE: {
-            return -3;
+            return (int)reception_flow_->get_buffer_size();
         }
         case RCC_PKT_MAX_DELAY: {
-            return -3;
+            return (int)rtp_->get_pkt_max_delay();
         }
         case RCC_DYN_PAYLOAD_TYPE: {
-            return -3;
+            return (int)rtp_->get_dynamic_payload();
         }
         case RCC_CLOCK_RATE: {
-            return -3;
+            return (int)rtp_->get_clock_rate();
         }
         case RCC_MTU_SIZE: {
-            return -3;
+            return (int)rtp_->get_payload_size();
         }
         case RCC_FPS_NUMERATOR: {
             return fps_numerator_;
