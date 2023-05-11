@@ -155,6 +155,7 @@ namespace uvgrtp {
             uvgrtp::frame::rtp_frame *pull_frame();
             uvgrtp::frame::rtp_frame *pull_frame(ssize_t timeout_ms);
             uvgrtp::frame::rtp_frame* pull_frame(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
+            uvgrtp::frame::rtp_frame* pull_frame(ssize_t timeout_ms, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
             /* Map a packet handler key to a REMOTE SSRC of a stream
              *

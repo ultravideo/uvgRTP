@@ -634,6 +634,7 @@ uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame()
     if (!check_pull_preconditions()) {
         return nullptr;
     }
+    // If the remote_ssrc is set, only pull frames that come from this ssrc
     if (remote_ssrc_.get()->load() != 0) {
         return reception_flow_->pull_frame(remote_ssrc_);
     }
@@ -646,7 +647,10 @@ uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame(size_t timeout_ms)
     if (!check_pull_preconditions()) {
         return nullptr;
     }
-
+    // If the remote_ssrc is set, only pull frames that come from this ssrc
+    if (remote_ssrc_.get()->load() != 0) {
+        return reception_flow_->pull_frame(timeout_ms, remote_ssrc_);
+    }
     return reception_flow_->pull_frame(timeout_ms);
 
 }

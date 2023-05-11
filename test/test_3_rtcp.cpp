@@ -25,6 +25,12 @@ void m_r_hook2(uvgrtp::frame::rtcp_receiver_report* frame);
 void m_s_hook1(uvgrtp::frame::rtcp_sender_report* frame);
 void m_s_hook2(uvgrtp::frame::rtcp_sender_report* frame);
 
+// these are used to check if enough packets were received at the end of a test
+static int received1;
+static int received2;
+static int received3;
+static int received4;
+
 TEST(RTCPTests, rtcp) {
     std::cout << "Starting uvgRTP RTCP tests" << std::endl;
 
@@ -34,6 +40,10 @@ TEST(RTCPTests, rtcp) {
     uvgrtp::session* remote_session = ctx.create_session(LOCAL_INTERFACE);
 
     int flags = RCE_RTCP;
+
+    // received1 is receiver reports, received2 sender reports
+    received1 = 0;
+    received2 = 0;
 
     uvgrtp::media_stream* local_stream = nullptr;
     if (local_session)
@@ -65,7 +75,12 @@ TEST(RTCPTests, rtcp) {
     memset(test_frame.get(), 'b', PAYLOAD_LEN);
     send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
 
+
+
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
+    std::cout << "Received RRs: " << received1 << ", received SRs: " << received2 << std::endl;
+    EXPECT_TRUE(received1 > 0);
+    EXPECT_TRUE(received2 > 0);
 }
 
 TEST(RTCPTests, rtcp_app) {
@@ -77,6 +92,7 @@ TEST(RTCPTests, rtcp_app) {
     uvgrtp::session* remote_session = ctx.create_session(LOCAL_INTERFACE);
 
     int flags = RCE_RTCP;
+    received1 = 0;
 
     uvgrtp::media_stream* local_stream = nullptr;
     if (local_session)
@@ -113,6 +129,9 @@ TEST(RTCPTests, rtcp_app) {
     send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS, true);
 
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
+
+    std::cout << "Received APP packets: " << received1 << std::endl;
+    EXPECT_TRUE(received1 > 0);
 }
 
 TEST(RTCP_reopen_receiver, rtcp) {
@@ -124,6 +143,9 @@ TEST(RTCP_reopen_receiver, rtcp) {
     uvgrtp::session* remote_session = ctx.create_session(LOCAL_INTERFACE);
 
     int flags = RCE_RTCP;
+
+    received1 = 0;
+    received2 = 0;
 
     uvgrtp::media_stream* local_stream = nullptr;
     if (local_session)
@@ -162,12 +184,23 @@ TEST(RTCP_reopen_receiver, rtcp) {
         send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS/2, 
             PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
 
+        std::cout << "Before reopen, received RRs: " << received1 << ", received SRs: " << received2 << std::endl;
+        EXPECT_TRUE(received1 > 0);
+        EXPECT_TRUE(received2 > 0);
+        received1 = 0;
+        received2 = 0;
+
         if (remote_stream)
         {
             std::cout << "Closing and reopening receiver for testing purposes" << std::endl;
             remote_session->destroy_stream(remote_stream);
             remote_stream = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
             remote_stream->configure_ctx(RCC_SESSION_BANDWIDTH, 3000);
+            if (remote_stream)
+            {
+                EXPECT_EQ(RTP_OK, remote_stream->get_rtcp()->install_sender_hook(sender_hook));
+                EXPECT_EQ(RTP_OK, remote_stream->get_rtcp()->install_sdes_hook(sdes_hook));
+            }
             EXPECT_NE(nullptr, remote_stream);
         }
 
@@ -175,6 +208,10 @@ TEST(RTCP_reopen_receiver, rtcp) {
         memset(test_frame.get(), 'b', PAYLOAD_LEN);
         send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS / 2, 
             PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
+
+        std::cout << "After reopen, received RRs: " << received1 << ", received SRs: " << received2 << std::endl;
+        EXPECT_TRUE(received1 > 0);
+        EXPECT_TRUE(received2 > 0);
     }
 
     cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
@@ -193,6 +230,8 @@ TEST(RTCPTests, rtcp_multiplex)
     uvgrtp::media_stream* receiver1 = nullptr;
     uvgrtp::media_stream* sender2 = nullptr;
     uvgrtp::media_stream* receiver2 = nullptr;
+    
+    received1 = 0;
 
     int flags = RCE_FRAGMENT_GENERIC | RCE_RTCP;
     if (sender_sess)
@@ -248,6 +287,7 @@ void m_r_hook1(uvgrtp::frame::rtcp_receiver_report* frame)
     //Hook for stream Sender1 ssrc 11 
     std::cout << std::endl << "Sender1 received RTCP receiver report from " << frame->ssrc << std::endl;
     EXPECT_EQ(frame->ssrc, 22);
+    ++received1;
     delete frame;
 }
 void m_r_hook2(uvgrtp::frame::rtcp_receiver_report* frame)
@@ -255,6 +295,7 @@ void m_r_hook2(uvgrtp::frame::rtcp_receiver_report* frame)
     //Hook for stream Sender2 ssrc 33 
     std::cout << std::endl << "Sender2 received RTCP receiver report from " << frame->ssrc << std::endl;
     EXPECT_EQ(frame->ssrc, 44);
+    ++received2;
     delete frame;
 }
 void m_s_hook1(uvgrtp::frame::rtcp_sender_report* frame)
@@ -262,6 +303,7 @@ void m_s_hook1(uvgrtp::frame::rtcp_sender_report* frame)
     //Hook for stream Receiver1 ssrc 22 
     std::cout << std::endl << "Receiver1 received RTCP sender report from " << frame->ssrc << std::endl;
     EXPECT_EQ(frame->ssrc, 11);
+    ++received3;
     delete frame;
 }
 void m_s_hook2(uvgrtp::frame::rtcp_sender_report* frame)
@@ -269,12 +311,14 @@ void m_s_hook2(uvgrtp::frame::rtcp_sender_report* frame)
     //Hook for stream Receiver2 ssrc 44 
     std::cout << std::endl << "Receiver2 received RTCP sender report from " << frame->ssrc << std::endl;
     EXPECT_EQ(frame->ssrc, 33);
+    ++received4;
     delete frame;
 }
 
 
 void receiver_hook(uvgrtp::frame::rtcp_receiver_report* frame)
 {
+    ++received1;
     std::cout << std::endl << "RTCP receiver report! ----------" << std::endl;
 
     for (auto& block : frame->report_blocks)
@@ -294,6 +338,7 @@ void receiver_hook(uvgrtp::frame::rtcp_receiver_report* frame)
 
 void sender_hook(uvgrtp::frame::rtcp_sender_report* frame)
 {
+    ++received2;
     std::cout << std::endl << "RTCP sender report! ----------" << std::endl;
     std::cout << "NTP msw: " << frame->sender_info.ntp_msw << std::endl;
     std::cout << "NTP lsw: " << frame->sender_info.ntp_lsw << std::endl;
@@ -337,6 +382,7 @@ void sdes_hook(uvgrtp::frame::rtcp_sdes_packet* frame)
 
 void app_hook(uvgrtp::frame::rtcp_app_packet* frame)
 {
+    ++received1;
     size_t payload_len = size_t(frame->header.length - 2)*4;
     std::string payload = std::string((char*)frame->payload, payload_len);
     std::string name = std::string((char*)frame->name, 4);
