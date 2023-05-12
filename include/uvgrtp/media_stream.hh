@@ -273,6 +273,10 @@ namespace uvgrtp {
              */
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, uint64_t ntp_ts, int rtp_flags);
 
+            rtp_error_t send_user_packet(uint8_t* data, uint32_t payload_size,
+                std::string remote_address, uint16_t port);
+            rtp_error_t install_user_hook(void* arg, void (*hook)(void*, uint8_t* payload));
+
             /**
              * \brief Poll a frame indefinitely from the media stream object
              *
@@ -371,6 +375,8 @@ namespace uvgrtp {
              * and binding ourselves to specified interface and creating
              * an outgoing address */
             rtp_error_t init_connection();
+
+            static rtp_error_t user_pkt_handler(void* arg, int rce_flags, uint8_t* ptr, uint32_t size);
 
             /* Create the media object for the stream */
             rtp_error_t create_media(rtp_format_t fmt);

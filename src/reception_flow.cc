@@ -28,6 +28,8 @@ uvgrtp::reception_flow::reception_flow() :
     handler_mapping_({}),
     should_stop_(true),
     receiver_(nullptr),
+    user_hook_arg_(nullptr),
+    user_hook_(nullptr),
     ring_buffer_(),
     ring_read_index_(-1), // invalid first index that will increase to a valid one
     last_ring_write_index_(-1),
@@ -357,7 +359,29 @@ void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
     }*/
 }
 
-void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int rce_flags, uvgrtp::frame::rtp_frame **frame)
+rtp_error_t uvgrtp::reception_flow::install_user_hook(void* arg, void (*hook)(void*, uint8_t* payload))
+{
+    if (!hook)
+        return RTP_INVALID_VALUE;
+
+    user_hook_ = hook;
+    user_hook_arg_ = arg;
+
+    return RTP_OK;
+}
+
+void uvgrtp::reception_flow::return_user_pkt(uint8_t* pkt)
+{
+    UVG_LOG_DEBUG("Received user packet");
+    if (user_hook_) {
+        user_hook_(user_hook_arg_, pkt);
+    }
+    else {
+        UVG_LOG_DEBUG("No user hook installed");
+    }
+}
+
+void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int rce_flags, uvgrtp::frame::rtp_frame **frame, uint8_t* ptr)
 {
     rtp_error_t ret;
 
@@ -614,7 +638,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         }
                         case RTP_PKT_MODIFIED:
                         {
-                            call_aux_handlers(handler.first, rce_flags, &frame);
+                            call_aux_handlers(handler.first, rce_flags, &frame, ptr);
                             break;
                         }
                         case RTP_GENERIC_ERROR:

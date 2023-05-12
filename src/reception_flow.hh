@@ -22,6 +22,7 @@ namespace uvgrtp {
     class socket;
 
     typedef void (*recv_hook)(void* arg, uvgrtp::frame::rtp_frame* frame);
+    typedef void (*user_hook)(void* arg, uint8_t* payload, uint32_t payload_size);
 
     struct receive_pkt_hook {
         void* arg = nullptr;
@@ -175,6 +176,7 @@ namespace uvgrtp {
             void set_buffer_size(const ssize_t& value);
             ssize_t get_buffer_size() const;
             void set_payload_size(const size_t& value);
+            rtp_error_t install_user_hook(void* arg, void (*hook)(void*, uint8_t* payload));
             /// \endcond
 
         private:
@@ -187,8 +189,10 @@ namespace uvgrtp {
             /* Return a processed RTP frame to user either through frame queue or receive hook */
             void return_frame(uvgrtp::frame::rtp_frame *frame);
 
+            void return_user_pkt(uint8_t* pkt);
+
             /* Call auxiliary handlers of a primary handler */
-            void call_aux_handlers(uint32_t key, int rce_flags, uvgrtp::frame::rtp_frame **frame);
+            void call_aux_handlers(uint32_t key, int rce_flags, uvgrtp::frame::rtp_frame **frame, uint8_t* ptr);
 
             inline void increase_buffer_size(ssize_t next_write_index);
 
@@ -225,6 +229,9 @@ namespace uvgrtp {
                 uint8_t* data;
                 int read;
             };
+
+            void* user_hook_arg_;
+            void (*user_hook_)(void* arg, uint8_t* payload);
 
             std::vector<Buffer> ring_buffer_;
             std::mutex ring_mutex_;

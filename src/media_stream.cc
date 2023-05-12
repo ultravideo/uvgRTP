@@ -631,6 +631,45 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
     return ret;
 }
 
+rtp_error_t uvgrtp::media_stream::send_user_packet(uint8_t* data, uint32_t payload_size,
+    std::string remote_address, uint16_t port)
+{
+    sockaddr_in6 addr6;
+    sockaddr_in addr;
+    if (ipv6_) {
+        addr6 = uvgrtp::socket::create_ip6_sockaddr(remote_address, port);
+    }
+    else {
+        addr = uvgrtp::socket::create_sockaddr(AF_INET, remote_address, port);
+    }
+    UVG_LOG_DEBUG("Sending user packet");
+    return socket_->sendto(addr, addr6, data, payload_size, 0);
+}
+
+rtp_error_t uvgrtp::media_stream::user_pkt_handler(void* arg, int rce_flags, uint8_t* ptr, uint32_t size)
+{
+    (void)rce_flags;
+
+    // This is the packets final destination
+    UVG_LOG_DEBUG("media stream pkt handler!");
+
+    return RTP_PKT_READY;
+}
+
+rtp_error_t uvgrtp::media_stream::install_user_hook(void* arg, void (*hook)(void*, uint8_t* payload))
+{
+    if (!initialized_) {
+        UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+        return RTP_NOT_INITIALIZED;
+    }
+
+    if (!hook)
+        return RTP_INVALID_VALUE;
+
+    return reception_flow_->install_user_hook(arg, hook);;
+
+}
+
 uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame()
 {
     if (!check_pull_preconditions()) {
