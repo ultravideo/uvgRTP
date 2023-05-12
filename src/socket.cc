@@ -940,8 +940,12 @@ rtp_error_t uvgrtp::socket::__recvfrom_ip6(uint8_t* buf, size_t buf_len, int rec
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender, int *bytes_read)
+rtp_error_t uvgrtp::socket::recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender,
+    sockaddr_in6 *sender6, int *bytes_read)
 {
+    if (ipv6_) {
+        return __recvfrom_ip6(buf, buf_len, recv_flags, sender6, bytes_read);
+    }
     return __recvfrom(buf, buf_len, recv_flags, sender, bytes_read);
 }
 

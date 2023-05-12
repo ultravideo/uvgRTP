@@ -20,10 +20,16 @@
 #endif
 
 #include <cstring>
+#ifdef _WIN32
+#include <ws2ipdef.h>
+#else
+#include <netinet/ip.h>
+#include <sys/socket.h>
+#endif
 
 constexpr size_t DEFAULT_INITIAL_BUFFER_SIZE = 4194304;
 
-uvgrtp::reception_flow::reception_flow() :
+uvgrtp::reception_flow::reception_flow(bool ipv6) :
     hooks_({}),
     handler_mapping_({}),
     should_stop_(true),
@@ -36,7 +42,8 @@ uvgrtp::reception_flow::reception_flow() :
     socket_(),
     buffer_size_kbytes_(DEFAULT_INITIAL_BUFFER_SIZE),
     payload_size_(MAX_IPV4_PAYLOAD),
-    active_(false)
+    active_(false),
+    ipv6_(ipv6)
 {
     create_ring_buffer();
 }
@@ -373,6 +380,10 @@ rtp_error_t uvgrtp::reception_flow::install_user_hook(void* arg, void (*hook)(vo
 void uvgrtp::reception_flow::return_user_pkt(uint8_t* pkt)
 {
     UVG_LOG_DEBUG("Received user packet");
+    if (!pkt) {
+        UVG_LOG_DEBUG("User packet empty");
+        return;
+    }
     if (user_hook_) {
         user_hook_(user_hook_arg_, pkt);
     }
@@ -527,10 +538,13 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
                 //increase_buffer_size(next_write_index);
 
                 rtp_error_t ret = RTP_OK;
-
+                sockaddr_in sender = {};
+                sockaddr_in6 sender6 = {};
+                
                 // get the potential packet
                 ret = socket->recvfrom(ring_buffer_[next_write_index].data, payload_size_,
-                    MSG_DONTWAIT, &ring_buffer_[next_write_index].read);
+                    MSG_DONTWAIT, &sender, &sender6, &ring_buffer_[next_write_index].read);
+
 
                 if (ret == RTP_INTERRUPTED)
                 {
@@ -548,7 +562,8 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
                 }
 
                 ++read_packets;
-
+                ring_buffer_[next_write_index].from6 = sender6;
+                ring_buffer_[next_write_index].from = sender;
                 // finally we update the ring buffer so processing (reading) knows that there is a new frame
                 last_ring_write_index_ = next_write_index;
             }
@@ -613,6 +628,9 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     else if (current_ssrc == 0) {
                         found = true;
                     }
+                    else {
+                        return_user_pkt(ptr);
+                    }
                     if (!found) {
                         // No SSRC match found, skip this handler
                         continue;
@@ -632,6 +650,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         case RTP_PKT_NOT_HANDLED:
                         {
                             // packet was not handled by this primary handlers, proceed to the next one
+                            return_user_pkt(ptr);
                             continue;
                             /* packet was handled by the primary handler
                              * and should be dispatched to the auxiliary handler(s) */

@@ -139,7 +139,8 @@ namespace uvgrtp {
              * Return RTP_OK on success and write the amount of bytes sent to "bytes_sent"
              * Return RTP_INTERRUPTED if the call was interrupted due to timeout and set "bytes_sent" to 0
              * Return RTP_GENERIC_ERROR on error and set "bytes_sent" to -1 */
-            rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender, int *bytes_read);
+            rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender,
+                sockaddr_in6 *sender6, int *bytes_read);
             rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender);
             rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, int *bytes_read);
             rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags);

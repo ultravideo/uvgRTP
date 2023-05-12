@@ -646,16 +646,6 @@ rtp_error_t uvgrtp::media_stream::send_user_packet(uint8_t* data, uint32_t paylo
     return socket_->sendto(addr, addr6, data, payload_size, 0);
 }
 
-rtp_error_t uvgrtp::media_stream::user_pkt_handler(void* arg, int rce_flags, uint8_t* ptr, uint32_t size)
-{
-    (void)rce_flags;
-
-    // This is the packets final destination
-    UVG_LOG_DEBUG("media stream pkt handler!");
-
-    return RTP_PKT_READY;
-}
-
 rtp_error_t uvgrtp::media_stream::install_user_hook(void* arg, void (*hook)(void*, uint8_t* payload))
 {
     if (!initialized_) {
@@ -944,13 +934,13 @@ int uvgrtp::media_stream::get_configuration_value(int rcc_flag)
             return (int)rtp_->get_payload_size();
         }
         case RCC_FPS_NUMERATOR: {
-            return fps_numerator_;
+            return (int)fps_numerator_;
         }
         case RCC_FPS_DENOMINATOR: {
-            return fps_denominator_;
+            return (int)fps_denominator_;
         }
         case RCC_SESSION_BANDWIDTH: {
-            return bandwidth_;
+            return (int)bandwidth_;
         }
         default:
             return -1;

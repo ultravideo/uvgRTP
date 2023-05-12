@@ -376,8 +376,6 @@ namespace uvgrtp {
              * an outgoing address */
             rtp_error_t init_connection();
 
-            static rtp_error_t user_pkt_handler(void* arg, int rce_flags, uint8_t* ptr, uint32_t size);
-
             /* Create the media object for the stream */
             rtp_error_t create_media(rtp_format_t fmt);
 

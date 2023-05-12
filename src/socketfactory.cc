@@ -99,7 +99,7 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int typ
 
         // If the socket is a type 2 (non-RTCP) socket, install a reception_flow
         if (type == 2) {
-            std::shared_ptr<uvgrtp::reception_flow> flow = std::shared_ptr<uvgrtp::reception_flow>(new uvgrtp::reception_flow());
+            std::shared_ptr<uvgrtp::reception_flow> flow = std::shared_ptr<uvgrtp::reception_flow>(new uvgrtp::reception_flow(ipv6_));
             std::pair pair = std::make_pair(flow, socket);
             reception_flows_.insert(pair);
         }

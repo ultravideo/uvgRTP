@@ -13,6 +13,13 @@
 #include <deque>
 #include <map>
 
+#ifdef _WIN32
+#include <ws2ipdef.h>
+#else
+#include <netinet/ip.h>
+#include <sys/socket.h>
+#endif
+
 namespace uvgrtp {
 
     namespace frame {
@@ -91,7 +98,7 @@ namespace uvgrtp {
 
     class reception_flow{
         public:
-            reception_flow();
+            reception_flow(bool ipv6);
             ~reception_flow();
 
             /* Install a primary handler for an incoming UDP datagram
@@ -224,10 +231,13 @@ namespace uvgrtp {
             std::unique_ptr<std::thread> receiver_;
             std::unique_ptr<std::thread> processor_;
 
+            // from is the address that this packet came from
             struct Buffer
             {
                 uint8_t* data;
                 int read;
+                sockaddr_in6 from6;
+                sockaddr_in from;
             };
 
             void* user_hook_arg_;
@@ -247,6 +257,7 @@ namespace uvgrtp {
             ssize_t buffer_size_kbytes_;
             size_t payload_size_;
             bool active_;
+            bool ipv6_;
     };
 }
 
