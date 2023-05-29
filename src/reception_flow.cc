@@ -170,21 +170,21 @@ rtp_error_t uvgrtp::reception_flow::stop()
 rtp_error_t uvgrtp::reception_flow::install_receive_hook(
     void *arg,
     void (*hook)(void *, uvgrtp::frame::rtp_frame *),
-    uint32_t ssrc
+    std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc
 )
 {
     if (!hook)
         return RTP_INVALID_VALUE;
 
     // ssrc 0 is used when streams are not multiplexed into a single socket
-    if (hooks_.find(ssrc) == hooks_.end()) {
+    if (hooks_.find(remote_ssrc) == hooks_.end()) {
         receive_pkt_hook new_hook = { arg, hook };
-        hooks_[ssrc] = new_hook;
+        hooks_[remote_ssrc] = new_hook;
     }
     else {
         receive_pkt_hook new_hook = { arg, hook };
-        hooks_.erase(ssrc);
-        hooks_.insert({ssrc, new_hook});
+        hooks_.erase(remote_ssrc);
+        hooks_.insert({remote_ssrc, new_hook});
     }
 
     return RTP_OK;
@@ -338,32 +338,33 @@ rtp_error_t uvgrtp::reception_flow::install_aux_handler_cpp(uint32_t key,
 void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
 {
     uint32_t ssrc = frame->header.ssrc;
-    // korvaa tämä booleanilla, single socket tms
-    if (hooks_.find(ssrc) != hooks_.end()) {
-        receive_pkt_hook pkt_hook = hooks_[ssrc];
-        recv_hook hook = pkt_hook.hook;
-        void* arg = pkt_hook.arg;
-        hook(arg, frame);
+
+    // 1. Check if there exists a hook that this ssrc belongs to
+    // 2. If not, check if there is a "universal hook"
+    // 3. If neither is found, push the frame to the queue
+
+    bool found = false;
+    for (auto it = hooks_.begin(); it != hooks_.end(); ++it) {
+        if (it->first.get()->load() == ssrc) {
+            receive_pkt_hook pkt_hook = it->second;
+            recv_hook hook = pkt_hook.hook;
+            void* arg = pkt_hook.arg;
+            hook(arg, frame);
+            found = true;
+        }
+        else if (it->first.get()->load() == 0) {
+            receive_pkt_hook pkt_hook = it->second;
+            recv_hook hook = pkt_hook.hook;
+            void* arg = pkt_hook.arg;
+            hook(arg, frame);
+            found = true;
+        }
     }
-    else if (hooks_.find(0) != hooks_.end()) {
-        receive_pkt_hook pkt_hook = hooks_[0];
-        recv_hook hook = pkt_hook.hook;
-        void* arg = pkt_hook.arg;
-        hook(arg, frame);
-    }
-    else {
+    if (!found) {
         frames_mtx_.lock();
         frames_.push_back(frame);
         frames_mtx_.unlock();
     }
-    /*
-    if (recv_hook_) {
-        recv_hook_(recv_hook_arg_, frame);
-    } else {
-        frames_mtx_.lock();
-        frames_.push_back(frame);
-        frames_mtx_.unlock();
-    }*/
 }
 
 rtp_error_t uvgrtp::reception_flow::install_user_hook(void* arg, void (*hook)(void*, uint8_t* payload))
@@ -756,8 +757,8 @@ bool uvgrtp::reception_flow::map_handler_key(uint32_t key, std::shared_ptr<std::
 int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, uint32_t handler_key)
 {
     // Clear all the data structures
-    if (hooks_.find(remote_ssrc.get()->load()) != hooks_.end()) {
-        hooks_.erase(remote_ssrc.get()->load());
+    if (hooks_.find(remote_ssrc) != hooks_.end()) {
+        hooks_.erase(remote_ssrc);
     }
     if (packet_handlers_.find(handler_key) != packet_handlers_.end()) {
         packet_handlers_.erase(handler_key);

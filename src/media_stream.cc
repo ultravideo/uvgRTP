@@ -746,7 +746,7 @@ rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(v
     if (!hook) {
         return RTP_INVALID_VALUE;
     }
-    return reception_flow_->install_receive_hook(arg, hook, remote_ssrc_.get()->load());
+    return reception_flow_->install_receive_hook(arg, hook, remote_ssrc_);
 }
 
 rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)

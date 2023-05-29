@@ -137,7 +137,7 @@ namespace uvgrtp {
              *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "hook" is nullptr */
-            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *), uint32_t ssrc);
+            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *), std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
             /* Start the RTP reception flow. Start querying for received packets and processing them.
              *
@@ -221,7 +221,7 @@ namespace uvgrtp {
             //void *recv_hook_arg_;
             //void (*recv_hook_)(void *arg, uvgrtp::frame::rtp_frame *frame);
 
-            std::map<uint32_t, receive_pkt_hook> hooks_;
+            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, receive_pkt_hook> hooks_;
             // Map handler keys to media streams remote ssrcs
             std::map<uint32_t, std::shared_ptr<std::atomic<std::uint32_t>>> handler_mapping_;
 
