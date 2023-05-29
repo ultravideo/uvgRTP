@@ -45,6 +45,10 @@ rtp_error_t uvgrtp::base_srtp::derive_key(int label, size_t key_size,
 
     input[7] ^= label;
 
+    /* SRTP in uvgRTP uses ECB encryption for encrypting the session keys. For encrypting SRTP payloads, AES CTR mode is used.
+     * ECB encryption is fine for encrypting short messages. However, using a different encryption method for
+     * encrypting the keys too might be a more secure solution and should be explored. */
+
     uvgrtp::crypto::aes::ecb ecb(key, key_size); // srtp_ctx_->n_e);
     ecb.encrypt(ks, input, UVG_IV_LENGTH);
 
