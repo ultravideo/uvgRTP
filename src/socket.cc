@@ -347,7 +347,7 @@ std::string uvgrtp::socket::get_socket_path_string() const
     return "Not implemented";
 }
 
-std::string uvgrtp::socket::sockaddr_to_string(const sockaddr_in& addr) const
+std::string uvgrtp::socket::sockaddr_to_string(const sockaddr_in& addr)
 {
     int addr_len = INET_ADDRSTRLEN;
     char* c_string = new char[INET_ADDRSTRLEN];
@@ -370,7 +370,7 @@ std::string uvgrtp::socket::sockaddr_to_string(const sockaddr_in& addr) const
     return string;
 }
 
-std::string uvgrtp::socket::sockaddr_ip6_to_string(const sockaddr_in6& addr6) const
+std::string uvgrtp::socket::sockaddr_ip6_to_string(const sockaddr_in6& addr6)
 {
     char* c_string = new char[INET6_ADDRSTRLEN];
     memset(c_string, 0, INET6_ADDRSTRLEN);

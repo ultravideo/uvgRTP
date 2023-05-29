@@ -161,8 +161,8 @@ namespace uvgrtp {
 
             std::string get_socket_path_string() const;
 
-            std::string sockaddr_to_string(const sockaddr_in& addr) const;
-            std::string sockaddr_ip6_to_string(const sockaddr_in6& addr6) const;
+            static std::string sockaddr_to_string(const sockaddr_in& addr);
+            static std::string sockaddr_ip6_to_string(const sockaddr_in6& addr6);
 
             /* Get reference to the actual socket object */
             socket_t& get_raw_socket();

@@ -704,10 +704,10 @@ rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
 {
     rtp_error_t ret = RTP_OK;
     if (ipv6) {
-        UVG_LOG_DEBUG("Starting ZRTP Diffie-Hellman negotiation with %s", socket->sockaddr_ip6_to_string(addr6).c_str());
+        UVG_LOG_DEBUG("Starting ZRTP Diffie-Hellman negotiation with %s", uvgrtp::socket::sockaddr_ip6_to_string(addr6).c_str());
     }
     else {
-        UVG_LOG_DEBUG("Starting ZRTP Diffie-Hellman negotiation with %s", socket->sockaddr_to_string(addr).c_str());
+        UVG_LOG_DEBUG("Starting ZRTP Diffie-Hellman negotiation with %s", uvgrtp::socket::sockaddr_to_string(addr).c_str());
     }
 
     /* TODO: set all fields initially to zero */

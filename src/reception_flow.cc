@@ -562,6 +562,7 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
                 }
 
                 ++read_packets;
+                // Save the IP adderss that this packet came from into the buffer
                 ring_buffer_[next_write_index].from6 = sender6;
                 ring_buffer_[next_write_index].from = sender;
                 // finally we update the ring buffer so processing (reading) knows that there is a new frame
@@ -612,6 +613,8 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                 for (auto& handler : packet_handlers_) {
                     uvgrtp::frame::rtp_frame* frame = nullptr;
                     frame = (uvgrtp::frame::rtp_frame*)ring_buffer_[ring_read_index_].data;
+                    sockaddr_in from = ring_buffer_[ring_read_index_].from;
+                    sockaddr_in6 from6 = ring_buffer_[ring_read_index_].from6;
 
                     uint8_t* ptr = (uint8_t*)ring_buffer_[ring_read_index_].data;
                     uint32_t nhssrc = ntohl(*(uint32_t*)&ptr[8]);
@@ -628,9 +631,9 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     else if (current_ssrc == 0) {
                         found = true;
                     }
-                    else {
-                        return_user_pkt(ptr);
-                    }
+                    //else {
+                    //    return_user_pkt(ptr);
+                    //}
                     if (!found) {
                         // No SSRC match found, skip this handler
                         continue;
@@ -650,6 +653,14 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         case RTP_PKT_NOT_HANDLED:
                         {
                             // packet was not handled by this primary handlers, proceed to the next one
+                            std::string from_str;
+                            if (ipv6_) {
+                                from_str = uvgrtp::socket::sockaddr_ip6_to_string(from6);
+                            }
+                            else {
+                                from_str = uvgrtp::socket::sockaddr_to_string(from);
+                            }
+                            UVG_LOG_DEBUG("User packet from ip: %s", from_str.c_str());
                             return_user_pkt(ptr);
                             continue;
                             /* packet was handled by the primary handler

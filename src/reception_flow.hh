@@ -231,7 +231,7 @@ namespace uvgrtp {
             std::unique_ptr<std::thread> receiver_;
             std::unique_ptr<std::thread> processor_;
 
-            // from is the address that this packet came from
+            // from/from6 is the IP address that this packet came from
             struct Buffer
             {
                 uint8_t* data;
