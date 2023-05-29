@@ -630,7 +630,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
 
     return ret;
 }
-
+/* ----------- User packets not yet supported -----------
 rtp_error_t uvgrtp::media_stream::send_user_packet(uint8_t* data, uint32_t payload_size,
     std::string remote_address, uint16_t port)
 {
@@ -658,7 +658,7 @@ rtp_error_t uvgrtp::media_stream::install_user_hook(void* arg, void (*hook)(void
 
     return reception_flow_->install_user_hook(arg, hook);;
 
-}
+}*/
 
 uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame()
 {

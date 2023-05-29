@@ -34,8 +34,8 @@ uvgrtp::reception_flow::reception_flow(bool ipv6) :
     handler_mapping_({}),
     should_stop_(true),
     receiver_(nullptr),
-    user_hook_arg_(nullptr),
-    user_hook_(nullptr),
+    //user_hook_arg_(nullptr),
+    //user_hook_(nullptr),
     ring_buffer_(),
     ring_read_index_(-1), // invalid first index that will increase to a valid one
     last_ring_write_index_(-1),
@@ -366,7 +366,7 @@ void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
         frames_mtx_.unlock();
     }
 }
-
+/* ----------- User packets not yet supported -----------
 rtp_error_t uvgrtp::reception_flow::install_user_hook(void* arg, void (*hook)(void*, uint8_t* payload))
 {
     if (!hook)
@@ -391,9 +391,9 @@ void uvgrtp::reception_flow::return_user_pkt(uint8_t* pkt)
     else {
         UVG_LOG_DEBUG("No user hook installed");
     }
-}
+}*/
 
-void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int rce_flags, uvgrtp::frame::rtp_frame **frame, uint8_t* ptr)
+void uvgrtp::reception_flow::call_aux_handlers(uint32_t key, int rce_flags, uvgrtp::frame::rtp_frame **frame)
 {
     rtp_error_t ret;
 
@@ -632,9 +632,6 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     else if (current_ssrc == 0) {
                         found = true;
                     }
-                    //else {
-                    //    return_user_pkt(ptr);
-                    //}
                     if (!found) {
                         // No SSRC match found, skip this handler
                         continue;
@@ -653,7 +650,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         }
                         case RTP_PKT_NOT_HANDLED:
                         {
-                            // packet was not handled by this primary handlers, proceed to the next one
+                            /* ----------- User packets not yet supported -----------
                             std::string from_str;
                             if (ipv6_) {
                                 from_str = uvgrtp::socket::sockaddr_ip6_to_string(from6);
@@ -663,13 +660,16 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                             }
                             UVG_LOG_DEBUG("User packet from ip: %s", from_str.c_str());
                             return_user_pkt(ptr);
+                            */
+
+                            // packet was not handled by this primary handlers, proceed to the next one
                             continue;
                             /* packet was handled by the primary handler
                              * and should be dispatched to the auxiliary handler(s) */
                         }
                         case RTP_PKT_MODIFIED:
                         {
-                            call_aux_handlers(handler.first, rce_flags, &frame, ptr);
+                            call_aux_handlers(handler.first, rce_flags, &frame);
                             break;
                         }
                         case RTP_GENERIC_ERROR:
