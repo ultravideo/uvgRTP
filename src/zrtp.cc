@@ -375,36 +375,26 @@ rtp_error_t uvgrtp::zrtp::begin_session()
     auto hello      = uvgrtp::zrtp_msg::hello(session_);
     auto hello_ack  = uvgrtp::zrtp_msg::hello_ack();
     bool hello_recv = false;
-    //int rto         = 50;
 
     uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
     int interval = 50;
     int i = 1;
     
-    //for (int i = 0; i < 20; ++i) {
     while (true) {
         long int next_sendslot = i * interval;
-        long int run_time = uvgrtp::clock::hrc::diff_now(start);
+        long int run_time = (long int)uvgrtp::clock::hrc::diff_now(start);
         long int diff_ms = next_sendslot - run_time;
-        //UVG_LOG_DEBUG("next_sendslot %i", next_sendslot);
-        //UVG_LOG_DEBUG("run_time %i", run_time);
-        //UVG_LOG_DEBUG("diff_ms %i", diff_ms);
-        UVG_LOG_DEBUG("interval %i", interval);
         int type = 0;
         int poll_timeout = (int)diff_ms;
 
         if (diff_ms < 0) {
             UVG_LOG_DEBUG("Sending ZRTP hello # %i", i);
-            
             if (hello.send_msg(local_socket_, remote_addr_, remote_ip6_addr_) != RTP_OK) {
                 UVG_LOG_ERROR("Failed to send Hello message");
             }
             ++i;
-
         }
         else if (receiver_.recv_msg(local_socket_, poll_timeout, 0, type) == RTP_OK) {
-            UVG_LOG_DEBUG("run time %i", run_time);
-
             /* We received something interesting, either Hello message from remote in which case
                 * we need to send HelloACK message back and keep sending our Hello until HelloACK is received,
                 * or HelloACK message which means we can stop sending our  */
@@ -418,7 +408,7 @@ rtp_error_t uvgrtp::zrtp::begin_session()
                     hello_recv = true;
 
                     /* Copy interesting information from receiver's
-                        * message buffer to remote capabilities struct for later use */
+                     * message buffer to remote capabilities struct for later use */
                     hello.parse_msg(receiver_, session_);
 
                     if (session_.capabilities.version != ZRTP_VERSION) {
@@ -442,9 +432,8 @@ rtp_error_t uvgrtp::zrtp::begin_session()
                         hello_recv = false;
                     }
                 }
-
                 /* We received ACK for our Hello message.
-                    * Make sure we've received Hello message also before exiting */
+                 * Make sure we've received Hello message also before exiting */
             }
             else if (type == ZRTP_FT_HELLO_ACK) {
 
@@ -471,11 +460,9 @@ rtp_error_t uvgrtp::zrtp::begin_session()
                 interval *= 2;
             }
         }
-
         if (i > 20) {
             break;
         }
-        
     }
 
     /* Hello timed out, perhaps remote did not answer at all or it has an incompatible ZRTP version in use. */
@@ -492,7 +479,6 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
     session_.sas_type           = B32;
 
     int type        = 0;
-    int rto         = 0;
     auto commit     = uvgrtp::zrtp_msg::commit(session_);
 
     /* First check if remote has already sent the message.
@@ -509,13 +495,23 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
      * This assumption may prove to be false if remote also sends Commit message
      * and Commit contention is resolved in their favor. */
     session_.role = INITIATOR;
-    rto           = 150;
 
-    for (int i = 0; i < 10; ++i) {
-        if (commit.send_msg(local_socket_, remote_addr_, remote_ip6_addr_) != RTP_OK) {
-            UVG_LOG_ERROR("Failed to send Commit message!");
+    uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
+    int interval = 150;
+    int i = 1;
+    while (true) {
+        long int next_sendslot = i * interval;
+        long int run_time = (long int)uvgrtp::clock::hrc::diff_now(start);
+        long int diff_ms = next_sendslot - run_time;
+        int poll_timeout = (int)diff_ms;
+
+        if (diff_ms < 0) {
+            if (commit.send_msg(local_socket_, remote_addr_, remote_ip6_addr_) != RTP_OK) {
+                UVG_LOG_ERROR("Failed to send Commit message!");
+            }
+            ++i;
         }
-        else if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
+        else if (receiver_.recv_msg(local_socket_, poll_timeout, 0, type) == RTP_OK) {
 
             /* As per RFC 6189, if both parties have sent Commit message and the mode is DH,
              * hvi shall determine who is the initiator (the party with larger hvi is initiator) */
@@ -534,11 +530,17 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
                 return RTP_OK;
             }
         }
-
-        if (rto < 1200)
-            rto *= 2;
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(diff_ms));
+            if (interval < 1200) {
+                interval *= 2;
+            }
+        }
+        if (i > 10) {
+            break;
+        }
     }
-
     /* Remote didn't send us any messages, it can be considered dead
      * and ZRTP cannot thus continue any further */
     return RTP_TIMEOUT;
