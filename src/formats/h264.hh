@@ -58,6 +58,11 @@ namespace uvgrtp {
                 /* Clear aggregation buffers */
                 virtual void clear_aggregation_info();
 
+                // Constructs aggregate packets
+                virtual rtp_error_t add_aggregate_packet(uint8_t* data, size_t data_len);
+
+                rtp_error_t handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size, int rce_flags);
+
                 // constructs h264 RTP header with correct values
                 virtual rtp_error_t fu_division(uint8_t* data, size_t data_len, size_t payload_size);
 

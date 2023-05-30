@@ -93,6 +93,14 @@ void uvgrtp::formats::h264::clear_aggregation_info()
     aggr_pkt_info_.aggr_pkt.clear();
 }
 
+rtp_error_t uvgrtp::formats::h264::add_aggregate_packet(uint8_t* data, size_t data_len)
+{
+    /* If there is more data coming in (possibly another small packet)
+     * create entry to "aggr_pkt_info_" to construct an aggregation packet */
+    aggr_pkt_info_.nalus.push_back(std::make_pair(data_len, data));
+    return RTP_OK;
+}
+
 rtp_error_t uvgrtp::formats::h264::finalize_aggregation_pkt()
 {
     rtp_error_t ret = RTP_OK;
@@ -137,6 +145,12 @@ rtp_error_t uvgrtp::formats::h264::finalize_aggregation_pkt()
     }
 
     return ret;
+}
+
+rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_frame** out,
+    uint8_t payload_header_size, int rce_flags)
+
+    return RTP_MULTIPLE_PKTS_READY;
 }
 
 rtp_error_t uvgrtp::formats::h264::fu_division(uint8_t* data, size_t data_len, size_t payload_size)
