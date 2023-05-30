@@ -495,10 +495,10 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
      * This assumption may prove to be false if remote also sends Commit message
      * and Commit contention is resolved in their favor. */
     session_.role = INITIATOR;
-
     uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
     int interval = 150;
     int i = 1;
+
     while (true) {
         long int next_sendslot = i * interval;
         long int run_time = (long int)uvgrtp::clock::hrc::diff_now(start);
@@ -549,15 +549,24 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
 rtp_error_t uvgrtp::zrtp::dh_part1()
 {
     auto dhpart     = uvgrtp::zrtp_msg::dh_key_exchange(session_, 1);
-    int rto      = 150;
     int type        = 0;
+    uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
+    int interval = 150;
+    int i = 1;
 
-    for (int i = 0; i < 10; ++i) {
-        if (dhpart.send_msg(local_socket_, remote_addr_, remote_ip6_addr_) != RTP_OK) {
-            UVG_LOG_ERROR("Failed to send DHPart1 Message!");
+    while (true) {
+        long int next_sendslot = i * interval;
+        long int run_time = (long int)uvgrtp::clock::hrc::diff_now(start);
+        long int diff_ms = next_sendslot - run_time;
+        int poll_timeout = (int)diff_ms;
+
+        if (diff_ms < 0) {
+            if (dhpart.send_msg(local_socket_, remote_addr_, remote_ip6_addr_) != RTP_OK) {
+                UVG_LOG_ERROR("Failed to send DHPart1 Message!");
+            }
+            ++i;
         }
-
-        if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
+        if (receiver_.recv_msg(local_socket_, poll_timeout, 0, type) == RTP_OK) {
             if (type == ZRTP_FT_DH_PART2) {
                 if (dhpart.parse_msg(receiver_, session_) != RTP_OK) {
                     UVG_LOG_ERROR("Failed to parse DHPart2 Message!");
@@ -572,9 +581,16 @@ rtp_error_t uvgrtp::zrtp::dh_part1()
                 return RTP_OK;
             }
         }
-
-        if (rto < 1200)
-            rto *= 2;
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(diff_ms));
+            if (interval < 1200) {
+                interval *= 2;
+            }
+        }
+        if (i > 10) {
+            break;
+        }
     }
 
     return RTP_TIMEOUT;
@@ -583,7 +599,6 @@ rtp_error_t uvgrtp::zrtp::dh_part1()
 rtp_error_t uvgrtp::zrtp::dh_part2()
 {
     int type        = 0;
-    int rto      = 150;
     rtp_error_t ret = RTP_OK;
     auto dhpart     = uvgrtp::zrtp_msg::dh_key_exchange(session_, 2);
 
@@ -596,23 +611,40 @@ rtp_error_t uvgrtp::zrtp::dh_part2()
      * Now we must generate shared secrets (DHResult, total_hash, and s0) */
     generate_shared_secrets_dh();
 
-    for (int i = 0; i < 10; ++i) {
-        if ((ret = dhpart.send_msg(local_socket_, remote_addr_, remote_ip6_addr_)) != RTP_OK) {
-            UVG_LOG_ERROR("Failed to send DHPart2 Message!");
-            return ret;
-        }
+    uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
+    int interval = 150;
+    int i = 1;
 
-        if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
+    while (true) {
+        long int next_sendslot = i * interval;
+        long int run_time = (long int)uvgrtp::clock::hrc::diff_now(start);
+        long int diff_ms = next_sendslot - run_time;
+        int poll_timeout = (int)diff_ms;
+
+        if (diff_ms < 0) {
+            if ((ret = dhpart.send_msg(local_socket_, remote_addr_, remote_ip6_addr_)) != RTP_OK) {
+                UVG_LOG_ERROR("Failed to send DHPart2 Message!");
+                return ret;
+            }
+            ++i;
+        }
+        if (receiver_.recv_msg(local_socket_, poll_timeout, 0, type) == RTP_OK) {
             if (type == ZRTP_FT_CONFIRM1) {
                 UVG_LOG_DEBUG("Confirm1 Message received");
                 return RTP_OK;
             }
         }
-
-        if (rto < 1200)
-            rto *= 2;
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(diff_ms));
+            if (interval < 1200) {
+                interval *= 2;
+            }
+        }
+        if (i > 10) {
+            break;
+        }
     }
-
     return RTP_TIMEOUT;
 }
 
@@ -620,15 +652,24 @@ rtp_error_t uvgrtp::zrtp::responder_finalize_session()
 {
     auto confirm    = uvgrtp::zrtp_msg::confirm(session_, 1);
     auto confack    = uvgrtp::zrtp_msg::confack(session_);
-    int rto         = 150;
     int type        = 0;
+    uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
+    int interval = 150;
+    int i = 1;
 
-    for (int i = 0; i < 10; ++i) {
-        if (confirm.send_msg(local_socket_, remote_addr_, remote_ip6_addr_) != RTP_OK) {
-            UVG_LOG_ERROR("Failed to send Confirm1 Message!");
+    while (true) {
+        long int next_sendslot = i * interval;
+        long int run_time = (long int)uvgrtp::clock::hrc::diff_now(start);
+        long int diff_ms = next_sendslot - run_time;
+        int poll_timeout = (int)diff_ms;
+
+        if (diff_ms < 0) {
+            if (confirm.send_msg(local_socket_, remote_addr_, remote_ip6_addr_) != RTP_OK) {
+                UVG_LOG_ERROR("Failed to send Confirm1 Message!");
+            }
+            ++i;
         }
-
-        if (receiver_.recv_msg(local_socket_, rto, 0, type) == RTP_OK) {
+        if (receiver_.recv_msg(local_socket_, poll_timeout, 0, type) == RTP_OK) {
             if (type == ZRTP_FT_CONFIRM2) {
                 if (confirm.parse_msg(receiver_, session_) != RTP_OK) {
                     UVG_LOG_ERROR("Failed to parse Confirm2 Message!");
@@ -646,9 +687,16 @@ rtp_error_t uvgrtp::zrtp::responder_finalize_session()
                 return RTP_OK;
             }
         }
-
-        if (rto < 1200)
-            rto *= 2;
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(diff_ms));
+            if (interval < 1200) {
+                interval *= 2;
+            }
+        }
+        if (i > 10) {
+            break;
+        }
     }
 
     return RTP_TIMEOUT;
