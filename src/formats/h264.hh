@@ -24,7 +24,8 @@ namespace uvgrtp {
         enum H264_NAL_TYPES {
             H264_NON_IDR = 1,
             H264_IDR = 5,
-            H264_PKT_AGGR = 24,
+            H264_STAP_A = 24,
+            H264_STAP_B   = 25,
             H264_PKT_FRAG = 28
         };
 
@@ -60,8 +61,6 @@ namespace uvgrtp {
 
                 // Constructs aggregate packets
                 virtual rtp_error_t add_aggregate_packet(uint8_t* data, size_t data_len);
-
-                rtp_error_t handle_aggregation_packet(uvgrtp::frame::rtp_frame** out, uint8_t nal_header_size, int rce_flags);
 
                 // constructs h264 RTP header with correct values
                 virtual rtp_error_t fu_division(uint8_t* data, size_t data_len, size_t payload_size);

@@ -30,7 +30,8 @@ namespace uvgrtp {
             FT_START = 1, /* frame contains a fragment with S bit set */
             FT_MIDDLE = 2, /* frame is fragment but not S or E fragment */
             FT_END = 3, /* frame contains a fragment with E bit set */
-            FT_AGGR = 4  /* aggregation packet */
+            FT_AGGR = 4,  /* aggregation packet (without DON) */
+            FT_STAP_B = 5 /* aggregation packet, H264 STAP-B, RFC 6184 5.7.1 */
         };
 
         enum class NAL_TYPE {

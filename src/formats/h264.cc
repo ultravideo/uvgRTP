@@ -50,8 +50,11 @@ uvgrtp::formats::FRAG_TYPE uvgrtp::formats::h264::get_fragment_type(uvgrtp::fram
     bool first_frag = frame->payload[1] & 0x80;
     bool last_frag = frame->payload[1] & 0x40;
 
-    if ((frame->payload[0] & 0x1f) == uvgrtp::formats::H264_PKT_AGGR)
-        return uvgrtp::formats::FRAG_TYPE::FT_AGGR;
+    if ((frame->payload[0] & 0x1f) == uvgrtp::formats::H264_STAP_A)
+        return uvgrtp::formats::FRAG_TYPE::FT_AGGR;     // STAP-A packet, RFC 6184 5.7.1
+
+    if ((frame->payload[0] & 0x1f) == uvgrtp::formats::H264_STAP_B)
+        return uvgrtp::formats::FRAG_TYPE::FT_STAP_B; // STAP-B packet, RFC 6184 5.7.1
 
     if ((frame->payload[0] & 0x1f) != uvgrtp::formats::H264_PKT_FRAG)
         return uvgrtp::formats::FRAG_TYPE::FT_NOT_FRAG; // Single NAL unit
@@ -118,7 +121,7 @@ rtp_error_t uvgrtp::formats::h264::finalize_aggregation_pkt()
 
     /* create header for the packet and craft the aggregation packet
      * according to the format defined in RFC 6184 */
-    aggr_pkt_info_.fu_indicator[0] = (0 << 7) | ((nri & 0x3) << 5) | H264_PKT_AGGR;
+    aggr_pkt_info_.fu_indicator[0] = (0 << 7) | ((nri & 0x3) << 5) | H264_STAP_A;
 
     aggr_pkt_info_.aggr_pkt.push_back(
         std::make_pair(HEADER_SIZE_H264_FU, aggr_pkt_info_.fu_indicator)
@@ -145,12 +148,6 @@ rtp_error_t uvgrtp::formats::h264::finalize_aggregation_pkt()
     }
 
     return ret;
-}
-
-rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_frame** out,
-    uint8_t payload_header_size, int rce_flags)
-
-    return RTP_MULTIPLE_PKTS_READY;
 }
 
 rtp_error_t uvgrtp::formats::h264::fu_division(uint8_t* data, size_t data_len, size_t payload_size)
