@@ -629,8 +629,11 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::
         return handle_aggregation_packet(out, get_payload_header_size(), rce_flags);
     }
     else if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_STAP_B) {
-        /* handle H264 STAP-B packet, RFC 6184 5.7.1
-         * payload_header_size + 2 comes from DON field in STAP-B packets being 16 bits long*/
+        // handle H264 STAP-B packet, RFC 6184 5.7.1
+        // DON is made up of the 16 bits after STAP-B header
+        uint16_t don = ((uint16_t)frame->payload[1] << 8) | frame->payload[2];
+
+        // payload_header_size + 2 comes from DON field in STAP-B packets being 16 bits long
         return handle_aggregation_packet(out, get_payload_header_size()+2, rce_flags);
     }
     else if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_NOT_FRAG) { // Single NAL unit
