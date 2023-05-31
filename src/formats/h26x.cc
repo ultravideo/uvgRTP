@@ -625,13 +625,12 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::
 
     
     if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_AGGR) {
-        UVG_LOG_DEBUG("STAP-A packet received");
         // handle aggregate packets (packets with multiple NAL units in them)
         return handle_aggregation_packet(out, get_payload_header_size(), rce_flags);
     }
-    if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_STAP_B) {
-        UVG_LOG_DEBUG("STAP-B packet received");
-        // handle H264 STAP-B packet, RFC 6184 5.7.1
+    else if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_STAP_B) {
+        /* handle H264 STAP-B packet, RFC 6184 5.7.1
+         * payload_header_size + 2 comes from DON field in STAP-B packets being 16 bits long*/
         return handle_aggregation_packet(out, get_payload_header_size()+2, rce_flags);
     }
     else if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_NOT_FRAG) { // Single NAL unit
