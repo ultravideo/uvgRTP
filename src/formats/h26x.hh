@@ -174,8 +174,14 @@ namespace uvgrtp {
             rtp_error_t reconstruction(uvgrtp::frame::rtp_frame** out,
                 int rce_flags, uint32_t frame_timestamp, const uint8_t sizeof_fu_headers);
 
+            bool is_duplicate_frame(uint32_t timestamp, uint16_t seq_num);
+
             std::deque<uvgrtp::frame::rtp_frame*> queued_;
             std::unordered_map<uint32_t, h26x_info_t> frames_;
+
+            // Save received RTP timestamps and sequence numbers, used to check for duplicates in is_duplicate_frame()
+            std::deque<uint32_t> received_timestamps_;
+            std::deque<uint16_t> received_seq_nums_;
 
             // Holds all possible fragments in sequence number order
             std::vector<uvgrtp::frame::rtp_frame*> fragments_;

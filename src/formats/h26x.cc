@@ -12,6 +12,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <queue>
+#include <algorithm>
 
 
 #ifdef _WIN32
@@ -44,6 +45,10 @@ constexpr int GARBAGE_COLLECTION_INTERVAL_MS = 100;
 
 // any value less than 30 minutes is ok here, since that is how long it takes to go through all timestamps
 constexpr int TIME_TO_KEEP_TRACK_OF_PREVIOUS_FRAMES_MS = 5000;
+
+// how many RTP timestamps and sequence numbers get saved for duplicate detection
+constexpr int RECEIVED_TIMESTAMPS = 5000;
+constexpr int RECEIVED_SEQ_NUMBERS = UINT16_MAX / 2;
 
 static inline uint8_t determine_start_prefix_precense(uint32_t value, bool& additional_byte)
 {
@@ -96,6 +101,8 @@ uvgrtp::formats::h26x::h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_
     media(socket, rtp, rce_flags),
     queued_(), 
     frames_(), 
+    received_timestamps_(),
+    received_seq_nums_(),
     fragments_(UINT16_MAX + 1, nullptr),
     dropped_ts_(),
     completed_ts_(),
@@ -601,6 +608,30 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_
     return RTP_MULTIPLE_PKTS_READY;
 }
 
+bool uvgrtp::formats::h26x::is_duplicate_frame(uint32_t timestamp, uint16_t seq_num)
+{
+    UVG_LOG_DEBUG("ts: %u, seq num: %u, ts storage size: %i, seq storage size %i", timestamp, seq_num, received_timestamps_.size(), received_seq_nums_.size());
+    if (std::binary_search(received_timestamps_.begin(), received_timestamps_.end(), timestamp)) {
+
+        UVG_LOG_DEBUG("duplicate rtp ts received, checking seq num");
+        if (std::binary_search(received_seq_nums_.begin(), received_seq_nums_.end(), seq_num)) {
+
+            UVG_LOG_DEBUG("duplicate seq num received, discarding frame");
+            return true;
+        }
+    }
+
+    received_timestamps_.push_back(timestamp);
+    if (received_timestamps_.size() > RECEIVED_TIMESTAMPS) {
+        received_timestamps_.pop_front();
+    }
+    received_seq_nums_.push_back(seq_num);
+    if (received_seq_nums_.size() > RECEIVED_SEQ_NUMBERS) {
+        received_seq_nums_.pop_front();
+    }
+    return false;
+}
+
 rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::rtp_frame** out)
 {
     uvgrtp::frame::rtp_frame* frame = *out;
@@ -629,9 +660,10 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::
         return handle_aggregation_packet(out, get_payload_header_size(), rce_flags);
     }
     else if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_STAP_B) {
-        // handle H264 STAP-B packet, RFC 6184 5.7.1
-        // DON is made up of the 16 bits after STAP-B header
-        uint16_t don = ((uint16_t)frame->payload[1] << 8) | frame->payload[2];
+        // Handle H264 STAP-B packet, RFC 6184 5.7.1
+        // DON is made up of the 16 bits after STAP-B header.
+        // Commented out to prevent werrors, DON is not currently used anywhere.
+        /* uint16_t don = ((uint16_t)frame->payload[1] << 8) | frame->payload[2]; */
 
         // payload_header_size + 2 comes from DON field in STAP-B packets being 16 bits long
         return handle_aggregation_packet(out, get_payload_header_size()+2, rce_flags);
@@ -643,6 +675,10 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::
         // TODO: We should detect duplicate packets, but there are legitimate situations
         //  where single NAL units have same timestamps
         //completed_ts_[frame->header.timestamp] = std::chrono::high_resolution_clock::now();
+
+        if (is_duplicate_frame(frame->header.timestamp, frame->header.seq)) {
+            return RTP_GENERIC_ERROR;
+        }
 
         // nothing special needs to be done, just possibly add start codes back
         prepend_start_code(rce_flags, out);
