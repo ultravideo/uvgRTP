@@ -46,8 +46,8 @@ constexpr int GARBAGE_COLLECTION_INTERVAL_MS = 100;
 // any value less than 30 minutes is ok here, since that is how long it takes to go through all timestamps
 constexpr int TIME_TO_KEEP_TRACK_OF_PREVIOUS_FRAMES_MS = 5000;
 
-// how many RTP timestamps and sequence numbers get saved for duplicate detection
-constexpr int RECEIVED_TIMESTAMPS = 5000;
+// how many RTP frames and sequence numbers get saved for duplicate detection
+constexpr int RECEIVED_FRAMES = 5000;
 constexpr int RECEIVED_SEQ_NUMBERS = UINT16_MAX / 2;
 
 static inline uint8_t determine_start_prefix_precense(uint32_t value, bool& additional_byte)
@@ -101,6 +101,7 @@ uvgrtp::formats::h26x::h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_
     media(socket, rtp, rce_flags),
     queued_(), 
     frames_(), 
+    received_frames_(),
     received_timestamps_(),
     received_seq_nums_(),
     fragments_(UINT16_MAX + 1, nullptr),
@@ -610,24 +611,29 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_
 
 bool uvgrtp::formats::h26x::is_duplicate_frame(uint32_t timestamp, uint16_t seq_num)
 {
-    UVG_LOG_DEBUG("ts: %u, seq num: %u, ts storage size: %i, seq storage size %i", timestamp, seq_num, received_timestamps_.size(), received_seq_nums_.size());
-    if (std::binary_search(received_timestamps_.begin(), received_timestamps_.end(), timestamp)) {
+    //UVG_LOG_DEBUG("ts: %u, seq num: %u, ts storage size: %i, seq storage size %i", timestamp, seq_num, received_timestamps_.size(), received_seq_nums_.size());
+    if (received_timestamps_.find(timestamp) != received_timestamps_.end()) {
 
-        UVG_LOG_DEBUG("duplicate rtp ts received, checking seq num");
-        if (std::binary_search(received_seq_nums_.begin(), received_seq_nums_.end(), seq_num)) {
+        //UVG_LOG_DEBUG("duplicate rtp ts received, checking seq num");
+        if (received_seq_nums_.find(seq_num) != received_seq_nums_.end()) {
 
-            UVG_LOG_DEBUG("duplicate seq num received, discarding frame");
+            //UVG_LOG_DEBUG("duplicate seq num received, discarding frame");
             return true;
         }
     }
+    pkt_stats stats = {timestamp, seq_num};
 
-    received_timestamps_.push_back(timestamp);
-    if (received_timestamps_.size() > RECEIVED_TIMESTAMPS) {
-        received_timestamps_.pop_front();
-    }
-    received_seq_nums_.push_back(seq_num);
-    if (received_seq_nums_.size() > RECEIVED_SEQ_NUMBERS) {
-        received_seq_nums_.pop_front();
+    received_timestamps_.insert(timestamp);
+    received_seq_nums_.insert(seq_num);
+    received_frames_.push_back(stats);
+
+    if (received_frames_.size() > RECEIVED_FRAMES) {
+        received_timestamps_.erase(received_frames_.front().ts);
+
+        if (received_seq_nums_.size() > RECEIVED_SEQ_NUMBERS) {
+            received_seq_nums_.erase(received_frames_.front().seq);
+        }
+        received_frames_.pop_front();
     }
     return false;
 }
@@ -635,6 +641,10 @@ bool uvgrtp::formats::h26x::is_duplicate_frame(uint32_t timestamp, uint16_t seq_
 rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::rtp_frame** out)
 {
     uvgrtp::frame::rtp_frame* frame = *out;
+
+    if (is_duplicate_frame(frame->header.timestamp, frame->header.seq)) {
+        return RTP_GENERIC_ERROR;
+    }
 
     // aggregate, start, middle, end or single NAL
     uvgrtp::formats::FRAG_TYPE frag_type = get_fragment_type(frame); 
@@ -654,7 +664,6 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::
         return RTP_GENERIC_ERROR;
     }
 
-    
     if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_AGGR) {
         // handle aggregate packets (packets with multiple NAL units in them)
         return handle_aggregation_packet(out, get_payload_header_size(), rce_flags);
@@ -675,10 +684,6 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::
         // TODO: We should detect duplicate packets, but there are legitimate situations
         //  where single NAL units have same timestamps
         //completed_ts_[frame->header.timestamp] = std::chrono::high_resolution_clock::now();
-
-        if (is_duplicate_frame(frame->header.timestamp, frame->header.seq)) {
-            return RTP_GENERIC_ERROR;
-        }
 
         // nothing special needs to be done, just possibly add start codes back
         prepend_start_code(rce_flags, out);

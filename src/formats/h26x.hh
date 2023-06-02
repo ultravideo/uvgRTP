@@ -10,6 +10,7 @@
 #include <deque>
 #include <memory>
 #include <set>
+#include <unordered_set>
 #ifdef _WIN32
 #include <ws2def.h>
 #include <ws2ipdef.h>
@@ -179,9 +180,14 @@ namespace uvgrtp {
             std::deque<uvgrtp::frame::rtp_frame*> queued_;
             std::unordered_map<uint32_t, h26x_info_t> frames_;
 
-            // Save received RTP timestamps and sequence numbers, used to check for duplicates in is_duplicate_frame()
-            std::deque<uint32_t> received_timestamps_;
-            std::deque<uint16_t> received_seq_nums_;
+            // Save received RTP frame stats, used to check for duplicates in is_duplicate_frame()
+            struct pkt_stats {
+                uint32_t ts;
+                uint16_t seq;
+            };
+            std::deque<pkt_stats> received_frames_;
+            std::unordered_set<uint32_t> received_timestamps_;
+            std::unordered_set<uint16_t> received_seq_nums_;
 
             // Holds all possible fragments in sequence number order
             std::vector<uvgrtp::frame::rtp_frame*> fragments_;
