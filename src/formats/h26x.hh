@@ -10,6 +10,7 @@
 #include <deque>
 #include <memory>
 #include <set>
+#include <unordered_set>
 #ifdef _WIN32
 #include <ws2def.h>
 #include <ws2ipdef.h>
@@ -30,7 +31,8 @@ namespace uvgrtp {
             FT_START = 1, /* frame contains a fragment with S bit set */
             FT_MIDDLE = 2, /* frame is fragment but not S or E fragment */
             FT_END = 3, /* frame contains a fragment with E bit set */
-            FT_AGGR = 4  /* aggregation packet */
+            FT_AGGR = 4,  /* aggregation packet (without DON) */
+            FT_STAP_B = 5 /* aggregation packet, H264 STAP-B, RFC 6184 5.7.1 */
         };
 
         enum class NAL_TYPE {
@@ -173,8 +175,19 @@ namespace uvgrtp {
             rtp_error_t reconstruction(uvgrtp::frame::rtp_frame** out,
                 int rce_flags, uint32_t frame_timestamp, const uint8_t sizeof_fu_headers);
 
+            bool is_duplicate_frame(uint32_t timestamp, uint16_t seq_num);
+
             std::deque<uvgrtp::frame::rtp_frame*> queued_;
             std::unordered_map<uint32_t, h26x_info_t> frames_;
+
+            // Save received RTP frame stats, used to check for duplicates in is_duplicate_frame()
+            struct pkt_stats {
+                uint32_t ts;
+                uint16_t seq;
+            };
+            std::deque<pkt_stats> received_frames_;
+            std::unordered_set<uint32_t> received_timestamps_;
+            std::unordered_set<uint16_t> received_seq_nums_;
 
             // Holds all possible fragments in sequence number order
             std::vector<uvgrtp::frame::rtp_frame*> fragments_;

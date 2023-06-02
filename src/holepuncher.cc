@@ -55,7 +55,11 @@ void uvgrtp::holepuncher::keepalive()
 {
     UVG_LOG_DEBUG("Starting holepuncher");
 
-    // TODO: Make this follow https://datatracker.ietf.org/doc/html/rfc6263
+    /* RFC 6263 https://datatracker.ietf.org/doc/html/rfc6263
+     * The RFC above describes several methods of implementing keep-alive. One of them (described in section 4.1) is
+     * sending empty (0-Byte) packets, which is implemented here.
+     * Another method (section 4.3) is multiplexing RTCP and RTP packets into a single socket, which keeps the connection
+     * alive at all times with RTCP packets. This will be implemented into uvgRTP in the future. */
     while (active_) {
         if (uvgrtp::clock::ntp::diff_now(last_dgram_sent_) < THRESHOLD) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
