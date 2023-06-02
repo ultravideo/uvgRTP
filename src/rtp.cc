@@ -115,6 +115,10 @@ void uvgrtp::rtp::set_dynamic_payload(uint8_t payload)
 {
     payload_ = payload;
 }
+uint8_t uvgrtp::rtp::get_dynamic_payload() const
+{
+    return payload_;
+}
 
 void uvgrtp::rtp::inc_sequence()
 {

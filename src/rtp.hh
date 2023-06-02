@@ -34,6 +34,7 @@ namespace uvgrtp {
             void set_clock_rate(uint32_t rate);
 
             void set_dynamic_payload(uint8_t payload);
+            uint8_t get_dynamic_payload() const;
             void set_timestamp(uint64_t timestamp);
             void set_payload_size(size_t payload_size);
             void set_pkt_max_delay(size_t delay);

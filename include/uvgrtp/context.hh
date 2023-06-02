@@ -4,11 +4,13 @@
 
 #include <map>
 #include <string>
+#include <memory>
 
 
 namespace uvgrtp {
 
     class session;
+    class socketfactory;
 
     /**
      * \brief Provides CNAME isolation and can be used to create uvgrtp::session objects
@@ -91,6 +93,7 @@ namespace uvgrtp {
 
             /* CNAME is the same for all connections */
             std::string cname_;
+            std::shared_ptr<uvgrtp::socketfactory> sfp_;
         };
 }
 

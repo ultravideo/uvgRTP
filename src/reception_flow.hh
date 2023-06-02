@@ -11,6 +11,14 @@
 #include <condition_variable>
 #include <atomic>
 #include <deque>
+#include <map>
+
+#ifdef _WIN32
+#include <ws2ipdef.h>
+#else
+#include <netinet/ip.h>
+#include <sys/socket.h>
+#endif
 
 namespace uvgrtp {
 
@@ -19,6 +27,16 @@ namespace uvgrtp {
     }
 
     class socket;
+
+    typedef void (*recv_hook)(void* arg, uvgrtp::frame::rtp_frame* frame);
+
+    // Not yet supported
+    //typedef void (*user_hook)(void* arg, uint8_t* payload, uint32_t payload_size);
+
+    struct receive_pkt_hook {
+        void* arg = nullptr;
+        recv_hook hook = nullptr;
+    };
 
     typedef rtp_error_t (*packet_handler)(ssize_t, void *, int, uvgrtp::frame::rtp_frame **);
     typedef rtp_error_t (*packet_handler_aux)(void *, int, uvgrtp::frame::rtp_frame **);
@@ -82,7 +100,7 @@ namespace uvgrtp {
 
     class reception_flow{
         public:
-            reception_flow();
+            reception_flow(bool ipv6);
             ~reception_flow();
 
             /* Install a primary handler for an incoming UDP datagram
@@ -121,7 +139,7 @@ namespace uvgrtp {
              *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "hook" is nullptr */
-            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *));
+            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *), std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
             /* Start the RTP reception flow. Start querying for received packets and processing them.
              *
@@ -140,14 +158,37 @@ namespace uvgrtp {
              * If "timeout" is given, pull_frame() will block only for however long
              * that value tells it to.
              * If no frame is received within that time period, pull_frame() returns nullptr
+             * If remote SSRC is given, only pull frames that come from a source with this ssrc
              *
              * Return pointer to RTP frame on success
              * Return nullptr if operation timed out or an error occurred */
             uvgrtp::frame::rtp_frame *pull_frame();
             uvgrtp::frame::rtp_frame *pull_frame(ssize_t timeout_ms);
+            uvgrtp::frame::rtp_frame* pull_frame(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
+            uvgrtp::frame::rtp_frame* pull_frame(ssize_t timeout_ms, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
+            /* Map a packet handler key to a REMOTE SSRC of a stream
+             *
+             * Return true if a handler with the given key exists in the reception_flow -> mapping succesful
+             * Return false if there is no handler with this key -> no mapping is done */
+            bool map_handler_key(uint32_t key, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
+
+            /* Clear the packet handlers associated with this handler key from the reception_flow
+             * Also clear the hooks associated with this remote_ssrc
+             * 
+             * Return 1 if the hooks and handlers were cleared and there is no hooks or handlers left in
+             * this reception_flow -> the flow can be safely deleted if wanted
+             * Return 0 if the hooks and handlers were removed but there is still others left in this reception_flow */
+            int clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, uint32_t handler_key);
+
+            /// \cond DO_NOT_DOCUMENT
             void set_buffer_size(const ssize_t& value);
+            ssize_t get_buffer_size() const;
             void set_payload_size(const size_t& value);
+
+            // Not yet supported
+            //rtp_error_t install_user_hook(void* arg, void (*hook)(void*, uint8_t* payload));
+            /// \endcond
 
         private:
             /* RTP packet receiver thread */
@@ -158,6 +199,9 @@ namespace uvgrtp {
 
             /* Return a processed RTP frame to user either through frame queue or receive hook */
             void return_frame(uvgrtp::frame::rtp_frame *frame);
+
+            // Not yet supported
+            //void return_user_pkt(uint8_t* pkt);
 
             /* Call auxiliary handlers of a primary handler */
             void call_aux_handlers(uint32_t key, int rce_flags, uvgrtp::frame::rtp_frame **frame);
@@ -179,22 +223,34 @@ namespace uvgrtp {
             std::deque<uvgrtp::frame::rtp_frame *> frames_;
             std::mutex frames_mtx_;
 
-            void *recv_hook_arg_;
-            void (*recv_hook_)(void *arg, uvgrtp::frame::rtp_frame *frame);
+            //void *recv_hook_arg_;
+            //void (*recv_hook_)(void *arg, uvgrtp::frame::rtp_frame *frame);
 
+            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, receive_pkt_hook> hooks_;
+            // Map handler keys to media streams remote ssrcs
+            std::map<uint32_t, std::shared_ptr<std::atomic<std::uint32_t>>> handler_mapping_;
+
+            std::mutex flow_mutex_;
             bool should_stop_;
 
             std::unique_ptr<std::thread> receiver_;
             std::unique_ptr<std::thread> processor_;
 
+            // from/from6 is the IP address that this packet came from
             struct Buffer
             {
                 uint8_t* data;
                 int read;
+                sockaddr_in6 from6;
+                sockaddr_in from;
             };
 
-            std::vector<Buffer> ring_buffer_;
+            // Not yet supported
+            //void* user_hook_arg_;
+            //void (*user_hook_)(void* arg, uint8_t* payload);
 
+            std::vector<Buffer> ring_buffer_;
+            std::mutex ring_mutex_;
             // these uphold the ring buffer details
             std::atomic<ssize_t> ring_read_index_;
             std::atomic<ssize_t> last_ring_write_index_;
@@ -202,9 +258,12 @@ namespace uvgrtp {
             std::mutex wait_mtx_; // for waking up the processing thread (read)
 
             std::condition_variable process_cond_;
+            std::shared_ptr<uvgrtp::socket> socket_;
 
             ssize_t buffer_size_kbytes_;
             size_t payload_size_;
+            bool active_;
+            bool ipv6_;
     };
 }
 

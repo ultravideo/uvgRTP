@@ -96,6 +96,8 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/srtp/srtp.cc
         src/srtp/srtcp.cc
         src/wrapper_c.cc
+        src/socketfactory.cc
+        src/rtcp_reader.cc
         )
 
 source_group(src/srtp src/srtp/.*)
@@ -146,6 +148,8 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/srtp/base.hh
         src/srtp/srtp.hh
         src/srtp/srtcp.hh
+        src/socketfactory.hh
+        src/rtcp_reader.hh
 
         include/uvgrtp/util.hh
         include/uvgrtp/clock.hh

@@ -27,6 +27,8 @@ namespace uvgrtp {
     class reception_flow;
     class holepuncher;
     class socket;
+    class socketfactory;
+    class rtcp_reader;
 
     namespace frame {
         struct rtp_frame;
@@ -51,7 +53,7 @@ namespace uvgrtp {
         public:
             /// \cond DO_NOT_DOCUMENT
             media_stream(std::string cname, std::string remote_addr, std::string local_addr, uint16_t src_port, uint16_t dst_port,
-                rtp_format_t fmt, int rce_flags);
+                rtp_format_t fmt, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags);
             ~media_stream();
 
             /* Initialize traditional RTP session
@@ -271,6 +273,12 @@ namespace uvgrtp {
              */
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, uint64_t ntp_ts, int rtp_flags);
 
+            /* ----------- User packets not yet supported -----------
+            rtp_error_t send_user_packet(uint8_t* data, uint32_t payload_size,
+                std::string remote_address, uint16_t port);
+            rtp_error_t install_user_hook(void* arg, void (*hook)(void*, uint8_t* payload));
+            */
+
             /**
              * \brief Poll a frame indefinitely from the media stream object
              *
@@ -324,11 +332,23 @@ namespace uvgrtp {
              */
             rtp_error_t configure_ctx(int rcc_flag, ssize_t value);
 
+            /**
+             * \brief Get the values associated with configuration flags, see ::RTP_CTX_CONFIGURATION_FLAGS for more details
+             *
+             * \return Value of the configuration flag
+             *
+             * \retval int value on success
+             * \retval -1 if the provided configuration flag does not exist
+             * \retval -2 if the flag is not set
+             */
+            int get_configuration_value(int rcc_flag);
+
             /// \cond DO_NOT_DOCUMENT
 
             /* Get unique key of the media stream
              * Used by session to index media streams */
             uint32_t get_key() const;
+
             /// \endcond
 
             /**
@@ -384,6 +404,8 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::rtp>    rtp_;
             std::shared_ptr<uvgrtp::rtcp>   rtcp_;
 
+            std::shared_ptr<uvgrtp::socketfactory> sfp_;
+
             sockaddr_in remote_sockaddr_;
             sockaddr_in6 remote_sockaddr_ip6_;
             std::string remote_address_;
@@ -392,6 +414,7 @@ namespace uvgrtp {
             uint16_t dst_port_;
             bool ipv6_;
             rtp_format_t fmt_;
+            bool new_socket_;
 
             /* Media context config */
             int rce_flags_ = 0;
@@ -404,7 +427,7 @@ namespace uvgrtp {
             uint32_t zrtp_handler_key_;
 
             /* RTP packet reception flow. Dispatches packets to other components */
-            std::unique_ptr<uvgrtp::reception_flow> reception_flow_;
+            std::shared_ptr<uvgrtp::reception_flow> reception_flow_;
 
             /* Media object associated with this media stream. */
             std::unique_ptr<uvgrtp::formats::media> media_;
@@ -418,6 +441,12 @@ namespace uvgrtp {
             ssize_t fps_denominator_ = 1;
             uint32_t bandwidth_ = 0;
             std::shared_ptr<std::atomic<std::uint32_t>> ssrc_;
+            std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc_;
+
+            // Save values associated with context flags, to be returned with get_configuration_value
+            // Values are initialized to -2, which means value not set
+            int snd_buf_size_;
+            int rcv_buf_size_;
     };
 }
 

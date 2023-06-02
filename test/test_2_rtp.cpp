@@ -447,3 +447,196 @@ TEST(RTPTests, rtp_multicast_multiple)
     for (auto receiver: receivers) cleanup_ms(sess, receiver);
     cleanup_sess(ctx, sess);
 }
+
+TEST(RTPTests, rtp_multiplex)
+{
+    // Test multiplexing two RTP streams into a single socket
+    std::cout << "Starting RTP multiplexing test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* receiver_sess = ctx.create_session(REMOTE_ADDRESS);
+    uvgrtp::session* sender_sess = ctx.create_session(REMOTE_ADDRESS);
+
+    uvgrtp::media_stream* sender1 = nullptr;
+    uvgrtp::media_stream* receiver1 = nullptr;
+    uvgrtp::media_stream* sender2 = nullptr;
+    uvgrtp::media_stream* receiver2 = nullptr;
+
+    int flags = RCE_FRAGMENT_GENERIC;
+    if (sender_sess)
+    {
+        sender1 = sender_sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_GENERIC, flags);
+        sender1->configure_ctx(RCC_SSRC, 11);
+        sender1->configure_ctx(RCC_REMOTE_SSRC, 22);
+        sender2 = sender_sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_GENERIC, flags);
+        sender2->configure_ctx(RCC_SSRC, 33);
+        sender2->configure_ctx(RCC_REMOTE_SSRC, 44);
+    }
+    if (receiver_sess)
+    {
+        receiver1 = receiver_sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
+        receiver1->configure_ctx(RCC_SSRC, 22);
+        receiver1->configure_ctx(RCC_REMOTE_SSRC, 11);
+        receiver2 = receiver_sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
+        receiver2->configure_ctx(RCC_SSRC, 44);
+        receiver2->configure_ctx(RCC_REMOTE_SSRC, 33);
+    }
+
+    int test_packets = 10;
+    std::vector<size_t> sizes = { 1000, 2000 };
+    for (size_t& size : sizes)
+    {
+        std::unique_ptr<uint8_t[]> test_frame1 = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
+        std::unique_ptr<uint8_t[]> test_frame2 = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
+        test_packet_size(std::move(test_frame1), test_packets, size, sender_sess, sender1, receiver1, RTP_NO_FLAGS);
+        test_packet_size(std::move(test_frame2), test_packets, size, sender_sess, sender2, receiver2, RTP_NO_FLAGS);
+    }
+
+    cleanup_ms(sender_sess, sender1);
+    cleanup_ms(sender_sess, sender2);
+    cleanup_ms(receiver_sess, receiver1);
+    cleanup_ms(receiver_sess, receiver2);
+    cleanup_sess(ctx, sender_sess);
+    cleanup_sess(ctx, receiver_sess);
+}
+
+TEST(RTPTests, rtp_multiplex_poll)
+{
+    std::cout << "Starting RTP multiplexing via pull_frame test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* receiver_sess = ctx.create_session(REMOTE_ADDRESS);
+    uvgrtp::session* sender_sess = ctx.create_session(REMOTE_ADDRESS);
+
+    uvgrtp::media_stream* sender1 = nullptr;
+    uvgrtp::media_stream* receiver1 = nullptr;
+    uvgrtp::media_stream* sender2 = nullptr;
+    uvgrtp::media_stream* receiver2 = nullptr;
+
+    int flags = RCE_FRAGMENT_GENERIC;
+    if (sender_sess)
+    {
+        sender1 = sender_sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_GENERIC, flags);
+        sender1->configure_ctx(RCC_SSRC, 11);
+        sender2 = sender_sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_GENERIC, flags);
+        sender2->configure_ctx(RCC_SSRC, 22);
+    }
+    if (receiver_sess)
+    {
+        receiver1 = receiver_sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
+        receiver1->configure_ctx(RCC_REMOTE_SSRC, 11);
+        receiver2 = receiver_sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
+        receiver2->configure_ctx(RCC_REMOTE_SSRC, 22);
+    }
+
+    int test_packets = 10;
+
+    if (sender1 && sender2)
+    {
+        const int frame_size = 1500;
+        std::unique_ptr<uint8_t[]> test_frame1 = std::unique_ptr<uint8_t[]>(new uint8_t[frame_size]);
+        std::unique_ptr<uint8_t[]> test_frame2 = std::unique_ptr<uint8_t[]>(new uint8_t[frame_size]);
+        memset(test_frame1.get(), 'b', frame_size);
+        memset(test_frame2.get(), 'b', frame_size);
+        send_packets(std::move(test_frame1), frame_size, sender_sess, sender1, test_packets, 0, true, RTP_NO_FLAGS);
+        send_packets(std::move(test_frame2), frame_size, sender_sess, sender2, test_packets, 0, true, RTP_NO_FLAGS);
+
+        uvgrtp::frame::rtp_frame* received_frame1 = nullptr;
+        uvgrtp::frame::rtp_frame* received_frame2 = nullptr;
+
+        auto start = std::chrono::steady_clock::now();
+        rtp_errno = RTP_OK;
+
+        std::cout << "Start pulling data in both streams" << std::endl;
+
+        int received_packets_no_timeout1 = 0;
+        int received_packets_no_timeout2 = 0;
+        while (std::chrono::steady_clock::now() - start < std::chrono::seconds(1))
+        {
+            if (receiver1)
+            {
+                received_frame1 = receiver1->pull_frame(0);
+                EXPECT_EQ(RTP_OK, rtp_errno);
+            }
+            if (receiver2)
+            {
+                received_frame2 = receiver2->pull_frame(0);
+                EXPECT_EQ(RTP_OK, rtp_errno);
+            }
+            if (received_frame1)
+            {
+                ++received_packets_no_timeout1;
+                process_rtp_frame(received_frame1);
+            }
+            if (received_frame2)
+            {
+                ++received_packets_no_timeout2;
+                process_rtp_frame(received_frame2);
+            }
+        }
+
+        EXPECT_EQ(received_packets_no_timeout1, test_packets);
+        EXPECT_EQ(received_packets_no_timeout2, test_packets);
+        int received_packets_timout1 = 0;
+        int received_packets_timout2 = 0;
+
+        test_frame1 = std::unique_ptr<uint8_t[]>(new uint8_t[frame_size]);
+        test_frame2 = std::unique_ptr<uint8_t[]>(new uint8_t[frame_size]);
+        memset(test_frame1.get(), 'b', frame_size);
+        memset(test_frame2.get(), 'b', frame_size);
+        send_packets(std::move(test_frame1), frame_size, sender_sess, sender1, test_packets, 0, true, RTP_NO_FLAGS);
+        send_packets(std::move(test_frame2), frame_size, sender_sess, sender2, test_packets, 0, true, RTP_NO_FLAGS);
+
+        std::cout << "Start pulling data in both streams with 3 ms timout" << std::endl;
+
+        while (std::chrono::steady_clock::now() - start < std::chrono::seconds(2))
+        {
+            if (receiver1)
+            {
+                received_frame1 = receiver1->pull_frame(3);
+                EXPECT_EQ(RTP_OK, rtp_errno);
+            }
+            if (receiver2)
+            {
+                received_frame2 = receiver2->pull_frame(3);
+                EXPECT_EQ(RTP_OK, rtp_errno);
+            }
+
+            if (received_frame1)
+            {
+                ++received_packets_timout1;
+                process_rtp_frame(received_frame1);
+            }
+            if (received_frame2)
+            {
+                ++received_packets_timout2;
+                process_rtp_frame(received_frame2);
+            }
+        }
+
+        EXPECT_EQ(received_packets_timout1, test_packets);
+        EXPECT_EQ(received_packets_timout2, test_packets);
+
+        test_wait(10, receiver1);
+        test_wait(100, receiver1);
+        test_wait(500, receiver1);
+        test_wait(10, receiver2);
+        test_wait(100, receiver2);
+        test_wait(500, receiver2);
+
+        if (received_frame1) {
+            process_rtp_frame(received_frame1);
+        }
+        if (received_frame2) {
+            process_rtp_frame(received_frame2);
+        }
+
+    }
+
+    std::cout << "Finished pulling data" << std::endl;
+
+    cleanup_ms(sender_sess, sender1);
+    cleanup_ms(sender_sess, sender2);
+    cleanup_ms(receiver_sess, receiver1);
+    cleanup_ms(receiver_sess, receiver2);
+    cleanup_sess(ctx, sender_sess);
+    cleanup_sess(ctx, receiver_sess);
+}

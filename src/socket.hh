@@ -76,7 +76,6 @@ namespace uvgrtp {
 
             /* Create socket using "family", "type" and "protocol"
              *
-             * NOTE: Only family AF_INET (ie. IPv4) is supported
              *
              * Return RTP_OK on success
              * return RTP_SOCKET_ERROR if creating the socket failed */
@@ -90,15 +89,23 @@ namespace uvgrtp {
             rtp_error_t bind(sockaddr_in& local_address);
             rtp_error_t bind_ip6(sockaddr_in6& local_address);
 
+            /* Check if the given address is IPv4 or IPv6
+             *
+             * Return 1 for IPv4
+             * Return 2 for IPv6
+             * return -1 for error */
+            int check_family(std::string addr);
+
             /* Same as setsockopt(2), used to manipulate the underlying socket object
              *
              * Return RTP_OK on success
              * Return RTP_GENERIC_ERROR if setsockopt failed */
             rtp_error_t setsockopt(int level, int optname, const void *optval, socklen_t optlen);
 
-            /* Same as send(2), send message to remote with send_flags
-             * This function uses the internal addr_ object as remote address so it MUST be set
-             *
+            /* Same as send(2), send message to the given address with send_flags
+             * It is required to give at least one type of address: sockaddr_in or sockaddr_in6. It is possible
+             * to give both and the function wil pick the correct one to use
+             * 
              * It is possible to combine multiple buffers and send them as one RTP frame by calling
              * the sendto() with a vector containing the buffers and their lengths
              *
@@ -106,15 +113,7 @@ namespace uvgrtp {
              *
              * Return RTP_OK on success and write the amount of bytes sent to "bytes_sent"
              * Return RTP_SEND_ERROR on error and set "bytes_sent" to -1 */
-            // nämä done
-            rtp_error_t sendto(uint8_t *buf, size_t buf_len, int send_flags);
-            rtp_error_t sendto(uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
-            rtp_error_t sendto(buf_vec& buffers, int send_flags);
-            rtp_error_t sendto(buf_vec& buffers, int send_flags, int *bytes_sent);
-            rtp_error_t sendto(pkt_vec& buffers, int send_flags);
-            rtp_error_t sendto(pkt_vec& buffers, int send_flags, int *bytes_sent);
 
-            /* Same as sendto() but the remote address given as parameter */
             rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *buf, size_t buf_len, int send_flags);
             rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
             rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, buf_vec& buffers, int send_flags);
@@ -140,40 +139,33 @@ namespace uvgrtp {
              * Return RTP_OK on success and write the amount of bytes sent to "bytes_sent"
              * Return RTP_INTERRUPTED if the call was interrupted due to timeout and set "bytes_sent" to 0
              * Return RTP_GENERIC_ERROR on error and set "bytes_sent" to -1 */
-            rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender, int *bytes_read);
+            rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender,
+                sockaddr_in6 *sender6, int *bytes_read);
             rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender);
             rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, int *bytes_read);
             rtp_error_t recvfrom(uint8_t *buf, size_t buf_len, int recv_flags);
 
             /* Create sockaddr_in (IPv4) object using the provided information
              * NOTE: "family" must be AF_INET */
-            sockaddr_in create_sockaddr(short family, unsigned host, short port) const;
+            static sockaddr_in create_sockaddr(short family, unsigned host, short port);
 
             /* Create sockaddr_in object using the provided information
              * NOTE: "family" must be AF_INET */
-            sockaddr_in create_sockaddr(short family, std::string host, short port) const;
+            static sockaddr_in create_sockaddr(short family, std::string host, short port);
 
             /* Create sockaddr_in6 (IPv6) object using the provided information */
-            sockaddr_in6 create_ip6_sockaddr(unsigned host, short port) const;
-            sockaddr_in6 create_ip6_sockaddr(std::string host, short port) const;
-            sockaddr_in6 create_ip6_sockaddr_any(short src_port);
+            static sockaddr_in6 create_ip6_sockaddr(unsigned host, short port);
+            static sockaddr_in6 create_ip6_sockaddr(std::string host, short port);
+            static sockaddr_in6 create_ip6_sockaddr_any(short src_port);
 
 
             std::string get_socket_path_string() const;
 
-            std::string sockaddr_to_string(const sockaddr_in& addr) const;
-            std::string sockaddr_ip6_to_string(const sockaddr_in6& addr6) const;
+            static std::string sockaddr_to_string(const sockaddr_in& addr);
+            static std::string sockaddr_ip6_to_string(const sockaddr_in6& addr6);
 
             /* Get reference to the actual socket object */
             socket_t& get_raw_socket();
-
-            /* Initialize the private "addr_" object with "addr"
-             * This is used when calling send() */
-            void set_sockaddr(sockaddr_in addr);
-
-            void set_sockaddr6(sockaddr_in6 addr);
-            /* Get the out address for the socket if it exists */
-            sockaddr_in& get_out_address();
 
             /* Install a packet handler for vector-based send operations.
              *
@@ -183,6 +175,10 @@ namespace uvgrtp {
              *
              * "arg" is an optional parameter that can be passed to the handler when it's called */
             rtp_error_t install_handler(void *arg, packet_handler_vec handler);
+
+            static bool is_multicast(sockaddr_in& local_address);
+            static bool is_multicast(sockaddr_in6& local_address);
+
 
         private:
 
@@ -199,9 +195,9 @@ namespace uvgrtp {
             rtp_error_t __sendtov(sockaddr_in& addr, sockaddr_in6& addr6, bool ipv6, uvgrtp::pkt_vec& buffers, int send_flags, int *bytes_sent);
 
             socket_t socket_;
-            sockaddr_in remote_address_;
+            //sockaddr_in remote_address_;
             sockaddr_in local_address_;
-            sockaddr_in6 remote_ip6_address_;
+            //sockaddr_in6 remote_ip6_address_;
             sockaddr_in6 local_ip6_address_;
             bool ipv6_;
 

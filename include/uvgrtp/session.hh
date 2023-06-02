@@ -12,6 +12,7 @@ namespace uvgrtp {
 
     class media_stream;
     class zrtp;
+    class socketfactory;
 
     /** \brief Provides ZRTP synchronization and can be used to create uvgrtp::media_stream objects
      *
@@ -26,8 +27,8 @@ namespace uvgrtp {
     class session {
         public:
             /// \cond DO_NOT_DOCUMENT
-            session(std::string cname, std::string addr);
-            session(std::string cname, std::string remote_addr, std::string local_addr);
+            session(std::string cname, std::string addr, std::shared_ptr<uvgrtp::socketfactory> sfp);
+            session(std::string cname, std::string remote_addr, std::string local_addr, std::shared_ptr<uvgrtp::socketfactory> sfp);
             ~session();
             /// \endcond
 
@@ -123,6 +124,7 @@ namespace uvgrtp {
             std::mutex session_mtx_;
 
             std::string cname_;
+            std::shared_ptr<uvgrtp::socketfactory> sf_;
     };
 }
 

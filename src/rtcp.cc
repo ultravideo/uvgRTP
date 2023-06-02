@@ -10,6 +10,8 @@
 #include "debug.hh"
 #include "srtp/srtcp.hh"
 #include "rtcp_packets.hh"
+#include "socketfactory.hh"
+#include "rtcp_reader.hh"
 
 #include "global.hh"
 
@@ -43,13 +45,14 @@ constexpr int ESTIMATED_MAX_RECEPTION_TIME_MS = 10;
 
 const uint32_t MAX_SUPPORTED_PARTICIPANTS = 31;
 
-uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::string cname, int rce_flags):
+uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::shared_ptr<std::atomic<uint32_t>> remote_ssrc,
+    std::string cname, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags) :
     rce_flags_(rce_flags), our_role_(RECEIVER),
     tp_(0), tc_(0), tn_(0), pmembers_(0),
     members_(0), senders_(0), rtcp_bandwidth_(0), reduced_minimum_(0),
     we_sent_(false), local_addr_(""), remote_addr_(""), local_port_(0), dst_port_(0),
     avg_rtcp_pkt_pize_(0), avg_rtcp_size_(64), rtcp_pkt_count_(0), rtcp_byte_count_(0),
-    rtcp_pkt_sent_count_(0), initial_(true), ssrc_(ssrc),
+    rtcp_pkt_sent_count_(0), initial_(true), ssrc_(ssrc), remote_ssrc_(remote_ssrc),
     num_receivers_(0),
     ipv6_(false),
     socket_address_({}),
@@ -66,6 +69,8 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic
     sdes_hook_u_(nullptr),
     app_hook_f_(nullptr),
     app_hook_u_(nullptr),
+    sfp_(sfp),
+    rtcp_reader_(nullptr),
     active_(false),
     interval_ms_(DEFAULT_RTCP_INTERVAL_MS),
     rtp_ptr_(rtp),
@@ -80,8 +85,6 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic
     rtp_ts_start_ = 0;
 
     report_generator_   = nullptr;
-    report_reader_ = nullptr;
-
     srtcp_        = nullptr;
     members_ = 1;
 
@@ -106,9 +109,9 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic
     }
 }
 
-uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::string cname,
-    std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags):
-    rtcp(rtp, ssrc, cname, rce_flags)
+uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::shared_ptr<std::atomic<uint32_t>> remote_ssrc,
+    std::string cname, std::shared_ptr<uvgrtp::socketfactory> sfp, std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags):
+    rtcp(rtp, ssrc, remote_ssrc, cname, sfp, rce_flags)
 {
     srtcp_ = srtcp;
 }
@@ -127,7 +130,7 @@ uvgrtp::rtcp::~rtcp()
 
 void uvgrtp::rtcp::cleanup_participants()
 {
-    UVG_LOG_DEBUG("Removing all participants");
+    UVG_LOG_DEBUG("Removing all RTCP participants");
 
     participants_mutex_.lock();
     /* free all receiver statistic structs */
@@ -199,34 +202,10 @@ void uvgrtp::rtcp::free_participant(std::unique_ptr<rtcp_participant> participan
 rtp_error_t uvgrtp::rtcp::start()
 {
     active_ = true;
-    rtcp_socket_ = std::unique_ptr<uvgrtp::socket>(new uvgrtp::socket(0));
+    ipv6_ = sfp_->get_ipv6();
+
+    rtcp_reader_ = sfp_->get_rtcp_reader(local_port_);
     rtp_error_t ret = RTP_OK;
-    if (ipv6_) {
-        ret = rtcp_socket_->init(AF_INET6, SOCK_DGRAM, 0);
-    }
-    else {
-        ret = rtcp_socket_->init(AF_INET, SOCK_DGRAM, 0);
-    }
-    if (ret != RTP_OK) {
-        return ret;
-    }
-
-    int enable = 1;
-
-    if ((ret = rtcp_socket_->setsockopt(SOL_SOCKET, SO_REUSEADDR, (const char*)&enable, sizeof(int))) != RTP_OK)
-    {
-        return ret;
-    }
-
-#ifdef _WIN32
-    /* Make the socket non-blocking */
-    int enabled = 1;
-
-    if (::ioctlsocket(rtcp_socket_->get_raw_socket(), FIONBIO, (u_long*)&enabled) < 0)
-    {
-        UVG_LOG_ERROR("Failed to make the socket non-blocking!");
-    }
-#endif
 
     /* Set read timeout (5s for now)
      *
@@ -244,19 +223,9 @@ rtp_error_t uvgrtp::rtcp::start()
     if (local_addr_ != "")
     {
         UVG_LOG_INFO("Binding RTCP to port %s:%d", local_addr_.c_str(), local_port_);
-        if (ipv6_) {
-            sockaddr_in6 bind_addr6 = rtcp_socket_->create_ip6_sockaddr(local_addr_, local_port_);
-            if ((ret = rtcp_socket_->bind_ip6(bind_addr6)) != RTP_OK)
-            {
-                return ret;
-            }
-        }
-        else {
-            sockaddr_in bind_addr = rtcp_socket_->create_sockaddr(AF_INET, local_addr_, local_port_);
-            if ((ret = rtcp_socket_->bind(bind_addr)) != RTP_OK)
-            {
-                return ret;
-            }
+        if ((ret = sfp_->bind_socket(rtcp_socket_, local_port_)) != RTP_OK) {
+            log_platform_error("bind(2) failed");
+            return ret;
         }
     }
     else
@@ -264,29 +233,19 @@ rtp_error_t uvgrtp::rtcp::start()
         
         UVG_LOG_WARN("No local address provided, binding RTCP to INADDR_ANY");
         UVG_LOG_INFO("Binding RTCP to port %s:%d", local_addr_.c_str(), local_port_);
-        if (ipv6_) {
-            sockaddr_in6 bind_addr6 = rtcp_socket_->create_ip6_sockaddr_any(local_port_);
-            if ((ret = rtcp_socket_->bind_ip6(bind_addr6)) != RTP_OK)
-            {
-                return ret;
-            }
-        }
-        else {
-            sockaddr_in bind_addr = rtcp_socket_->create_sockaddr(AF_INET, INADDR_ANY, local_port_);
-            if ((ret = rtcp_socket_->bind(bind_addr)) != RTP_OK)
-            {
-                return ret;
-            }
+        if ((ret = sfp_->bind_socket_anyip(rtcp_socket_, local_port_)) != RTP_OK) {
+            log_platform_error("bind(2) to any failed");
+            return ret;
         }
     }
     if (ipv6_) {
-        socket_address_ipv6_ = rtcp_socket_->create_ip6_sockaddr(remote_addr_, dst_port_);
+        socket_address_ipv6_ = uvgrtp::socket::create_ip6_sockaddr(remote_addr_, dst_port_);
     }
     else {
-        socket_address_ = rtcp_socket_->create_sockaddr(AF_INET, remote_addr_, dst_port_);
+        socket_address_ = uvgrtp::socket::create_sockaddr(AF_INET, remote_addr_, dst_port_);
     }
     report_generator_.reset(new std::thread(rtcp_runner, this));
-    report_reader_.reset(new std::thread(rtcp_report_reader, this));
+    rtcp_reader_->start();
 
     return RTP_OK;
 }
@@ -312,21 +271,16 @@ rtp_error_t uvgrtp::rtcp::stop()
         cleanup_participants();
         return RTP_OK;
     }
-
     active_ = false;
-
     if (report_generator_ && report_generator_->joinable())
     {
         UVG_LOG_DEBUG("Waiting for RTCP loop to exit");
         report_generator_->join();
     }
-    if (report_reader_ && report_reader_->joinable())
-    {
-        UVG_LOG_DEBUG("Waiting for RTCP reader to exit");
-        report_reader_->join();
-    }
 
-    rtcp_socket_.reset();
+    if (rtcp_reader_ && rtcp_reader_->clear_rtcp_from_reader(remote_ssrc_) == 1) {
+        sfp_->clear_port(local_port_, rtcp_socket_);
+    }
     return ret;
 }
 
@@ -379,45 +333,10 @@ void uvgrtp::rtcp::rtcp_runner(rtcp* rtcp)
             true, (double)rtcp->avg_rtcp_size_, true, true);
         current_interval_ms = (uint32_t)round(1000 * interval_s);
 
-        rtcp->set_rtcp_interval_ms(current_interval_ms);
-
         std::this_thread::sleep_for(std::chrono::milliseconds(current_interval_ms));
     }
     UVG_LOG_DEBUG("Exited RTCP loop");
 }
-
-void uvgrtp::rtcp::rtcp_report_reader(rtcp* rtcp) {
-
-    UVG_LOG_INFO("RTCP report reader created!");
-    std::unique_ptr<uint8_t[]> buffer = std::unique_ptr<uint8_t[]>(new uint8_t[MAX_PACKET]);
-
-    rtp_error_t ret = RTP_OK;
-    int max_poll_timeout_ms = 100;
-
-
-    while (rtcp->is_active()) {
-        int nread = 0;
-
-        std::vector<std::shared_ptr<uvgrtp::socket>> temp = {};
-        temp.push_back(rtcp->get_socket());
-
-        ret = uvgrtp::poll::poll(temp, buffer.get(), MAX_PACKET, max_poll_timeout_ms, &nread);
-
-        if (ret == RTP_OK && nread > 0)
-        {
-            (void)rtcp->handle_incoming_packet(buffer.get(), (size_t)nread);
-        }
-        else if (ret == RTP_INTERRUPTED) {
-            /* do nothing */
-        }
-        else {
-            UVG_LOG_ERROR("poll failed, %d", ret);
-            break; // TODO the sockets should be manages so that this is not needed
-        }
-    }
-    UVG_LOG_DEBUG("Exited RTCP report reader loop");
-}
-
 
 rtp_error_t uvgrtp::rtcp::set_sdes_items(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items)
 {
@@ -2059,18 +1978,6 @@ rtp_error_t uvgrtp::rtcp::set_network_addresses(std::string local_addr, std::str
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::rtcp::set_rtcp_interval_ms(int32_t new_interval) {
-    if (new_interval < 0) {
-        UVG_LOG_WARN("Interval cannot be negative");
-        return RTP_INVALID_VALUE;
-    }
-    interval_ms_ = new_interval;
-
-
-    return RTP_OK;
-
-}
-
 std::shared_ptr<uvgrtp::socket> uvgrtp::rtcp::get_socket() const{
     return rtcp_socket_;
 }
@@ -2177,4 +2084,9 @@ double uvgrtp::rtcp::rtcp_interval(int members, int senders,
 void uvgrtp::rtcp::set_payload_size(size_t mtu_size)
 {
     mtu_size_ = mtu_size;
+}
+
+void uvgrtp::rtcp::set_socket(std::shared_ptr<uvgrtp::socket> socket)
+{
+    rtcp_socket_ = socket;
 }

@@ -363,11 +363,17 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
      */
     RCC_FPS_DENOMINATOR  = 9,
 
-    /** Set the SSRC of the stream manually
+    /** Set the local SSRC of the stream manually
     *
-    * By default SSRC is generated randomly
+    * By default local SSRC is generated randomly
     */
     RCC_SSRC = 10,
+
+    /** Set the remote SSRC of the stream manually
+    *
+    * By default remote SSRC is generated randomly
+    */
+    RCC_REMOTE_SSRC = 11,
 
     /** Set bandwidth for the session
     * 
@@ -381,7 +387,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
     * Larger bandwidth values result in shorter RTCP intervals, and vice versa.
     * See RFC 3550 Appendix A.7 for further information on RTCP interval
     */
-    RCC_SESSION_BANDWIDTH = 11,
+    RCC_SESSION_BANDWIDTH = 12,
 
     /// \cond DO_NOT_DOCUMENT
     RCC_LAST

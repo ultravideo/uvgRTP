@@ -11,6 +11,13 @@
 #include <vector>
 #include <mutex>
 
+#ifdef _WIN32
+#include <ws2def.h>
+#include <ws2ipdef.h>
+#else
+#include <netinet/in.h>
+#endif
+
 // TODO: get these from socket?
 const int MAX_MSG_COUNT   = 5000;
 const int MAX_QUEUED_MSGS =  10;
@@ -106,7 +113,7 @@ namespace uvgrtp {
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "sender" is nullptr or message buffer is empty
              * return RTP_SEND_ERROR if send fails */
-            rtp_error_t flush_queue();
+            rtp_error_t flush_queue(sockaddr_in& addr, sockaddr_in6& addr6);
 
             /* Media may have extra headers (f.ex. NAL and FU headers for HEVC).
              * These headers must be valid until the message is sent (ie. they cannot be saved to

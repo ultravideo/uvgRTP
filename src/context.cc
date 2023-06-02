@@ -6,6 +6,7 @@
 #include "crypto.hh"
 #include "debug.hh"
 #include "hostname.hh"
+#include "socketfactory.hh"
 
 #include <cstdlib>
 #include <cstring>
@@ -36,6 +37,7 @@ uvgrtp::context::context()
     UVG_LOG_INFO("uvgRTP version: %s", uvgrtp::get_version().c_str());
 
     cname_  = uvgrtp::context::generate_cname();
+    sfp_ = std::make_shared<uvgrtp::socketfactory>(RCE_NO_FLAGS);
 
 #ifdef _WIN32
     WSADATA wsd;
@@ -61,18 +63,17 @@ uvgrtp::session *uvgrtp::context::create_session(std::string address)
         return nullptr;
     }
 
-    return new uvgrtp::session(get_cname(), address);
+    return new uvgrtp::session(get_cname(), address, sfp_);
 }
 
-uvgrtp::session *uvgrtp::context::create_session(std::string remote_addr, std::string local_addr)
+uvgrtp::session* uvgrtp::context::create_session(std::string remote_addr, std::string local_addr)
 {
     if (remote_addr == "" && local_addr == "")
     {
         UVG_LOG_ERROR("Please specify at least one address for create_session");
         return nullptr;
     }
-
-    return new uvgrtp::session(get_cname(), remote_addr, local_addr);
+    return new uvgrtp::session(get_cname(), remote_addr, local_addr, sfp_);
 }
 
 rtp_error_t uvgrtp::context::destroy_session(uvgrtp::session *session)

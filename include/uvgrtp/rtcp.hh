@@ -26,6 +26,8 @@ namespace uvgrtp {
     class rtp;
     class srtcp;
     class socket;
+    class socketfactory;
+    class rtcp_reader;
 
     typedef std::vector<std::pair<size_t, uint8_t*>> buf_vec; // also defined in socket.hh
 
@@ -118,8 +120,10 @@ namespace uvgrtp {
     class rtcp {
         public:
             /// \cond DO_NOT_DOCUMENT
-            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic<std::uint32_t>> ssrc, std::string cname, int rce_flags);
-            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic<std::uint32_t>> ssrc, std::string cname, std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags);
+            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic<std::uint32_t>> ssrc, std::shared_ptr<std::atomic<uint32_t>> remote_ssrc,
+                std::string cname, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags);
+            rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic<std::uint32_t>> ssrc, std::shared_ptr<std::atomic<uint32_t>> remote_ssrc,
+                std::string cname, std::shared_ptr<uvgrtp::socketfactory> sfp, std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags);
             ~rtcp();
 
             /* start the RTCP runner thread
@@ -165,7 +169,7 @@ namespace uvgrtp {
             /**
              * \brief Send an RTCP APP packet
              *
-             * \param name Name of the APP item, e.g., EMAIL or PHONE
+             * \param name Name of the APP item, e.g., STAT, must have a length of four ASCII characters
              * \param subtype Subtype of the APP item
              * \param payload_len Length of the payload
              * \param payload Payload
@@ -227,18 +231,12 @@ namespace uvgrtp {
             /* Update various session statistics */
             void update_session_statistics(const uvgrtp::frame::rtp_frame *frame);
 
-            /* Getter for interval_ms_, which is calculated by set_session_bandwidth */
+            /* Getter for interval_ms_, which is calculated by set_session_bandwidth
+             * Be aware that this interval is frequently re-calculated in rtcp_runner() */
             uint32_t get_rtcp_interval_ms() const;
 
-            /* Set RTCP packet transmission interval in milliseconds
-            *
-            * Return RTP_OK if interval was set successfully
-            * Return RTP_INVALID_VALUE if new interval is invalid */
-            rtp_error_t set_rtcp_interval_ms(int32_t new_interval);
-
             /* Set total bandwidth for this session, called at the start 
-            *  If you want to set the interval manually later, use
-            *  set_rtcp_interval_ms() function */
+            *  This affects the RTCP packet transmission interval */
             void set_session_bandwidth(uint32_t kbps);
 
             std::shared_ptr<uvgrtp::socket> get_socket() const;
@@ -402,11 +400,20 @@ namespace uvgrtp {
              */
             rtp_error_t remove_all_hooks();
 
+            /**
+             * \brief Remove a hook for sending APP packets
+             *             *
+             * \param app_name name of the APP packet hook. Max 4 chars
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE if hook with given app_name was not found
+            */
             rtp_error_t remove_send_app_hook(std::string app_name);
 
             /// \cond DO_NOT_DOCUMENT
             /* Update RTCP-related sender statistics */
             rtp_error_t update_sender_stats(size_t pkt_size);
+
+            void set_socket(std::shared_ptr<uvgrtp::socket> socket);
 
             /* Update RTCP-related receiver statistics */
             static rtp_error_t recv_packet_handler(void *arg, int rce_flags, frame::rtp_frame **out);
@@ -453,8 +460,6 @@ namespace uvgrtp {
                 uvgrtp::frame::rtcp_header& header);
 
             static void rtcp_runner(rtcp *rtcp);
-
-            static void rtcp_report_reader(rtcp *rtcp);
 
             /* when we start the RTCP instance, we don't know what the SSRC of the remote is
              * when an RTP packet is received, we must check if we've already received a packet
@@ -593,6 +598,9 @@ namespace uvgrtp {
             /* Copy of our own current SSRC */
             std::shared_ptr<std::atomic_uint> ssrc_;
 
+            /* Copy of the remote streams SSRC */
+            std::shared_ptr<std::atomic<uint32_t>> remote_ssrc_;
+
             /* NTP timestamp associated with initial RTP timestamp (aka t = 0) */
             uint64_t clock_start_;
 
@@ -647,8 +655,9 @@ namespace uvgrtp {
 			std::mutex send_app_mutex_;
 
             std::unique_ptr<std::thread> report_generator_;
-            std::unique_ptr<std::thread> report_reader_;
             std::shared_ptr<uvgrtp::socket> rtcp_socket_;
+            std::shared_ptr<uvgrtp::socketfactory> sfp_;
+            std::shared_ptr<uvgrtp::rtcp_reader> rtcp_reader_;
 
             bool is_active() const
             {
@@ -670,9 +679,7 @@ namespace uvgrtp {
             std::map<std::string, std::deque<rtcp_app_packet>> app_packets_; // sent one at a time per name
             // APPs for hook
             std::multimap<std::string, std::function <std::unique_ptr<uint8_t[]>(uint8_t& subtype, uint32_t& payload_len)>> outgoing_app_hooks_;
-            
             bool hooked_app_;
-
 
             uvgrtp::frame::rtcp_sdes_item cnameItem_;
             char cname_[255];

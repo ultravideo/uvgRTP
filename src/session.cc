@@ -1,38 +1,49 @@
 #include "uvgrtp/session.hh"
 
 #include "uvgrtp/media_stream.hh"
-
+#include "socketfactory.hh"
 #include "crypto.hh"
 #include "zrtp.hh"
 #include "debug.hh"
 
 
-uvgrtp::session::session(std::string cname, std::string addr) :
+uvgrtp::session::session(std::string cname, std::string addr, std::shared_ptr<uvgrtp::socketfactory> sfp) :
 #ifdef __RTP_CRYPTO__
     zrtp_(new uvgrtp::zrtp()),
 #endif
     generic_address_(addr),
     remote_address_(""),
     local_address_(""),
-    cname_(cname)
-{}
+    cname_(cname),
+    sf_(sfp)
+{
+    sf_->set_local_interface(generic_address_);
+}
 
-uvgrtp::session::session(std::string cname, std::string remote_addr, std::string local_addr):
+uvgrtp::session::session(std::string cname, std::string remote_addr, std::string local_addr, std::shared_ptr<uvgrtp::socketfactory> sfp):
 #ifdef __RTP_CRYPTO__
     zrtp_(new uvgrtp::zrtp()),
 #endif
     generic_address_(""),
     remote_address_(remote_addr),
     local_address_(local_addr),
-    cname_(cname)
-{}
+    cname_(cname),
+    sf_(sfp)
+{
+    sf_->set_local_interface(local_addr);
+}
 
 uvgrtp::session::~session()
 {
     for (auto&i : streams_) {
         (void)destroy_stream(i.second);
     }
+    if (sf_)
+    {
+        sf_->stop();
+    }
     streams_.clear();
+    sf_ = nullptr;
 }
 
 uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t port, rtp_format_t fmt, int rce_flags)
@@ -102,7 +113,7 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
     }
     
     uvgrtp::media_stream* stream =
-        new uvgrtp::media_stream(cname_, remote_address_, local_address_, src_port, dst_port, fmt, rce_flags);
+        new uvgrtp::media_stream(cname_, remote_address_, local_address_, src_port, dst_port, fmt, sf_, rce_flags);
 
     if (rce_flags & RCE_SRTP) {
         if (!uvgrtp::crypto::enabled()) {

@@ -378,9 +378,13 @@ rtp_error_t uvgrtp::zrtp::begin_session()
 
     for (int i = 0; i < 20; ++i) {
 
-        std::string path = local_socket_->get_socket_path_string();
+        // This was disabled when remote_addresses were removed from socket
+        // -> get_socket_path_to_string will need some changes, <--TODO
+        
+        //std::string path = local_socket_->get_socket_path_string();
+        //UVG_LOG_DEBUG("Sending ZRTP hello # %i, path: %s", i + 1, path.c_str());
+        UVG_LOG_DEBUG("Sending ZRTP hello # %i", i + 1);
 
-        UVG_LOG_DEBUG("Sending ZRTP hello # %i, path: %s", i + 1, path.c_str());
         int type = 0;
 
         if (hello.send_msg(local_socket_, remote_addr_, remote_ip6_addr_) != RTP_OK) {
@@ -700,10 +704,10 @@ rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
 {
     rtp_error_t ret = RTP_OK;
     if (ipv6) {
-        UVG_LOG_DEBUG("Starting ZRTP Diffie-Hellman negotiation with %s", socket->sockaddr_ip6_to_string(addr6).c_str());
+        UVG_LOG_DEBUG("Starting ZRTP Diffie-Hellman negotiation with %s", uvgrtp::socket::sockaddr_ip6_to_string(addr6).c_str());
     }
     else {
-        UVG_LOG_DEBUG("Starting ZRTP Diffie-Hellman negotiation with %s", socket->sockaddr_to_string(addr).c_str());
+        UVG_LOG_DEBUG("Starting ZRTP Diffie-Hellman negotiation with %s", uvgrtp::socket::sockaddr_to_string(addr).c_str());
     }
 
     /* TODO: set all fields initially to zero */
