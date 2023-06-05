@@ -19,5 +19,5 @@ if (Git_FOUND)
 
     include_directories(${cryptopp_SOURCE_DIR}/include)
 else()
-    message(WARNING, "Git not found, not downloading Crypto++ headers!)
+    message(WARNING, "Git not found, not downloading Crypto++ headers!")
 endif()
