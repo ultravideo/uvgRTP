@@ -46,9 +46,9 @@ constexpr int GARBAGE_COLLECTION_INTERVAL_MS = 100;
 // any value less than 30 minutes is ok here, since that is how long it takes to go through all timestamps
 constexpr int TIME_TO_KEEP_TRACK_OF_PREVIOUS_FRAMES_MS = 5000;
 
-// how many RTP frames and sequence numbers get saved for duplicate detection
-constexpr int RECEIVED_FRAMES = 5000;
-constexpr int RECEIVED_SEQ_NUMBERS = UINT16_MAX / 2;
+// how many RTP timestamps get saved for duplicate detection
+// there is 90 000 timestamps in one second -> 5 sec is 450 000
+constexpr int RECEIVED_FRAMES = 450000;
 
 static inline uint8_t determine_start_prefix_precense(uint32_t value, bool& additional_byte)
 {
@@ -102,8 +102,7 @@ uvgrtp::formats::h26x::h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_
     queued_(), 
     frames_(), 
     received_frames_(),
-    received_timestamps_(),
-    received_seq_nums_(),
+    received_info_(),
     fragments_(UINT16_MAX + 1, nullptr),
     dropped_ts_(),
     completed_ts_(),
@@ -611,28 +610,25 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_
 
 bool uvgrtp::formats::h26x::is_duplicate_frame(uint32_t timestamp, uint16_t seq_num)
 {
-    //UVG_LOG_DEBUG("ts: %u, seq num: %u, ts storage size: %i, seq storage size %i", timestamp, seq_num, received_timestamps_.size(), received_seq_nums_.size());
-    if (received_timestamps_.find(timestamp) != received_timestamps_.end()) {
-
-        //UVG_LOG_DEBUG("duplicate rtp ts received, checking seq num");
-        if (received_seq_nums_.find(seq_num) != received_seq_nums_.end()) {
-
-            //UVG_LOG_DEBUG("duplicate seq num received, discarding frame");
+    if (received_info_.find(timestamp) != received_info_.end()) {
+        if (std::find(received_info_.at(timestamp).begin(), received_info_.at(timestamp).end(), seq_num) != received_info_.at(timestamp).end()) {
+            UVG_LOG_WARN("duplicate ts and seq num received, discarding frame");
             return true;
         }
     }
     pkt_stats stats = {timestamp, seq_num};
 
-    received_timestamps_.insert(timestamp);
-    received_seq_nums_.insert(seq_num);
+    // Save the received ts and seq num
+    if (received_info_.find(timestamp) == received_info_.end()) {
+        received_info_.insert({timestamp, {seq_num}});
+    }
+    else {
+        received_info_.at(timestamp).push_back(seq_num);
+    }
     received_frames_.push_back(stats);
 
     if (received_frames_.size() > RECEIVED_FRAMES) {
-        received_timestamps_.erase(received_frames_.front().ts);
-
-        if (received_seq_nums_.size() > RECEIVED_SEQ_NUMBERS) {
-            received_seq_nums_.erase(received_frames_.front().seq);
-        }
+        received_info_.erase(received_frames_.front().ts);
         received_frames_.pop_front();
     }
     return false;
@@ -643,6 +639,8 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::
     uvgrtp::frame::rtp_frame* frame = *out;
 
     if (is_duplicate_frame(frame->header.timestamp, frame->header.seq)) {
+        (void)uvgrtp::frame::dealloc_frame(*out);
+        *out = nullptr;
         return RTP_GENERIC_ERROR;
     }
 

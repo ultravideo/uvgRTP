@@ -186,8 +186,7 @@ namespace uvgrtp {
                 uint16_t seq;
             };
             std::deque<pkt_stats> received_frames_;
-            std::unordered_set<uint32_t> received_timestamps_;
-            std::unordered_set<uint16_t> received_seq_nums_;
+            std::unordered_map<uint32_t, std::vector<uint16_t>> received_info_;
 
             // Holds all possible fragments in sequence number order
             std::vector<uvgrtp::frame::rtp_frame*> fragments_;
