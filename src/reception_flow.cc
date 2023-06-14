@@ -37,6 +37,11 @@ uvgrtp::reception_flow::reception_flow(bool ipv6) :
     receiver_(nullptr),
     //user_hook_arg_(nullptr),
     //user_hook_(nullptr),
+    rtp_handlers_({}),
+    rtcp_handlers_({}),
+    zrtp_handlers_({}),
+    srtp_handlers_({}),
+    srtcp_handlers_({}),
     ring_buffer_(),
     ring_read_index_(-1), // invalid first index that will increase to a valid one
     last_ring_write_index_(-1),
@@ -318,6 +323,39 @@ rtp_error_t uvgrtp::reception_flow::install_aux_handler(
     aux.handler = handler;
 
     packet_handlers_[key].auxiliary.push_back(aux);
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
+    packet_handler_new handler, std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter)
+{
+    handler_new pair = {handler, getter};
+    switch (type) {
+        case 1: {
+            rtp_handlers_[remote_ssrc] = { handler, getter };
+            break;
+        }
+        case 2: {
+            rtcp_handlers_[remote_ssrc] = { handler, getter };
+            break;
+        }
+        case 3: {
+            zrtp_handlers_[remote_ssrc] = { handler, getter };
+            break;
+        }
+        case 4: {
+            srtp_handlers_[remote_ssrc] = { handler, getter };
+            break;
+        }
+        case 5: {
+            srtcp_handlers_[remote_ssrc] = { handler, getter };
+            break;
+        }
+        default: {
+            UVG_LOG_ERROR("Invalid type, only types 1-5 are allowed");
+            break;
+        }
+    }
     return RTP_OK;
 }
 

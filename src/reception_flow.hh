@@ -124,6 +124,18 @@ namespace uvgrtp {
              * Return 0 "handler" is nullptr */
             uint32_t install_handler(packet_handler handler);
 
+            /*
+            handler types
+            1 rtp
+            2 rtcp
+            3 zrtp
+            4 srtp
+            5 srtcp
+            getter can be nullptr if there is no getter (for media handlers mostly)
+            */
+            rtp_error_t new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, 
+                packet_handler_new handler, std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter);
+
             /* Install auxiliary handler for the packet
              *
              * This handler is responsible for doing auxiliary operations on the packet
@@ -271,9 +283,9 @@ namespace uvgrtp {
             //void (*user_hook_)(void* arg, uint8_t* payload);
 
             // Map different types of handlers by remote SSRCs
+            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> rtp_handlers_;
             std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> rtcp_handlers_;
             std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> zrtp_handlers_;
-            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> rtp_handlers_;
 
             std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> srtp_handlers_;
             std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> srtcp_handlers_;
