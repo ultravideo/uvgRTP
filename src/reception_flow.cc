@@ -78,7 +78,7 @@ void uvgrtp::reception_flow::create_ring_buffer()
         uint8_t* data = new uint8_t[payload_size_];
         if (data)
         {
-            ring_buffer_.push_back({data, 0});
+            ring_buffer_.push_back({ data, 0, {}, {} });
         }
         else
         {
@@ -639,11 +639,13 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     }
 
                     frame = nullptr;
-                    // rtcp packet types 200 201 202 203 204
-                    uint8_t pt = (uint8_t)&ptr[1];
-                    UVG_LOG_DEBUG("Received frame with pt %u", pt);
-                    if (rce_flags & RCE_RTCP_MULTIPLEX) {
-                        if ((uint8_t)&ptr[1] >= 200 && (uint8_t)&ptr[1] <= 204) {
+
+                    if (rce_flags & RCE_RTCP_MUX) {
+                        // rtcp packet types 200 201 202 203 204
+                        uint8_t pt = (uint8_t)ptr[1];
+                        //UVG_LOG_DEBUG("Received frame with pt %u", pt);
+
+                        if (pt >= 200 && pt <= 204) {
                             rtcp_map_mutex_.lock();
                             for (auto& p : rtcps_map_) {
                                 std::shared_ptr<uvgrtp::rtcp> rtcp_ptr = p.second;
@@ -655,6 +657,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                                 }
                             }
                             rtcp_map_mutex_.unlock();
+                            break;
                         }
                     }
 

@@ -275,7 +275,7 @@ enum RTP_CTX_ENABLE_FLAGS {
     /** Paces the sending of frame fragments within frame interval (default 1/30 s) */
     RCE_PACE_FRAGMENT_SENDING       = 1 << 20,
 
-    RCE_RTCP_MULTIPLEX              = 1 << 21,
+    RCE_RTCP_MUX              = 1 << 21,
     
     /// \cond DO_NOT_DOCUMENT
     RCE_LAST                        = 1 << 21

@@ -203,7 +203,7 @@ rtp_error_t uvgrtp::rtcp::start()
 {
     active_ = true;
     ipv6_ = sfp_->get_ipv6();
-    if ((rce_flags_ & RCE_RTCP_MULTIPLEX)) {
+    if ((rce_flags_ & RCE_RTCP_MUX)) {
         if (ipv6_) {
             socket_address_ipv6_ = uvgrtp::socket::create_ip6_sockaddr(remote_addr_, dst_port_);
         }
