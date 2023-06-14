@@ -651,14 +651,14 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                      * 2. Magic Cookie is 0x5a525450                    -> ZRTP packet
                      * 3. Version is 2                                  -> RTP packet     (or SRTP)
                      * 4. Version is 00                                 -> Keep-Alive/Holepuncher
-                     * 5. None of the above match                       -> User packet
-                     */
+                     * 5. None of the above match                       -> User packet   */
 
                      /* -------------------- RTCP check -------------------- */
                     if (rce_flags & RCE_RTCP_MUX) {
                         uint8_t pt = (uint8_t)ptr[1];
                         //UVG_LOG_DEBUG("Received frame with pt %u", pt);
                         if (pt >= 200 && pt <= 204) {
+                            UVG_LOG_INFO("RTCP packet");
                             rtcp_map_mutex_.lock();
                             for (auto& p : rtcps_map_) {
                                 std::shared_ptr<uvgrtp::rtcp> rtcp_ptr = p.second;
@@ -675,28 +675,34 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     }
 
                     uint8_t version = (*(uint8_t*)&ptr[0] >> 6) & 0x3;
+
                     /* -------------------- ZRTP check --------------------------------- */
                     // Magic Cookie 0x5a525450
                     if (ntohl(*(uint32_t*)&ptr[4]) == 0x5a525450) {
                         // TODO: Add functionality
                         UVG_LOG_INFO("ZRTP packet");
+                        //break;
                     }
 
                     /* -------------------- RTP check ---------------------------------- */
                     else if (version == 0x2) {
                         // TODO: Add functionality
-                        UVG_LOG_INFO("RTP packet");
+                        //UVG_LOG_INFO("RTP packet");
+                        //break;
                     }
 
                     /* -------------------- Holepuncher check -------------------------- */
                     else if (version == 0x0) {
                         // No functionality needed
                         UVG_LOG_INFO("Holepuncher packet");
+                        //break;
                     }
+
                     /* -------------------- User packet -------------------------------- */
                     else {
                         // TODO: Add functionality
                         UVG_LOG_INFO("User packet");
+                        //break;
                     }
 
                     // Here we don't lock ring mutex because the chaging is only done above. 
