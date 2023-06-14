@@ -650,7 +650,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                      * 1. If RCE_RTCP_MUX && packet type is 200 - 204   -> RTCP packet    (or SRTCP)
                      * 2. Magic Cookie is 0x5a525450                    -> ZRTP packet
                      * 3. Version is 2                                  -> RTP packet     (or SRTP)
-                     * 4. Version is 00                                 -> Holepuncher
+                     * 4. Version is 00                                 -> Keep-Alive/Holepuncher
                      * 5. None of the above match                       -> User packet
                      */
 
@@ -674,18 +674,30 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         }
                     }
 
-                    /* -------------------- ZRTP check -------------------- */
+                    uint8_t version = (*(uint8_t*)&ptr[0] >> 6) & 0x3;
+                    /* -------------------- ZRTP check --------------------------------- */
+                    // Magic Cookie 0x5a525450
                     if (ntohl(*(uint32_t*)&ptr[4]) == 0x5a525450) {
                         // TODO: Add functionality
                         UVG_LOG_INFO("ZRTP packet");
                     }
 
-                    /* -------------------- RTP check -------------------- */
-                    uint8_t version = (*(uint8_t*)&ptr[0] >> 6) & 0x3;
-                    if (version == 0x2) {
+                    /* -------------------- RTP check ---------------------------------- */
+                    else if (version == 0x2) {
+                        // TODO: Add functionality
                         UVG_LOG_INFO("RTP packet");
                     }
 
+                    /* -------------------- Holepuncher check -------------------------- */
+                    else if (version == 0x0) {
+                        // No functionality needed
+                        UVG_LOG_INFO("Holepuncher packet");
+                    }
+                    /* -------------------- User packet -------------------------------- */
+                    else {
+                        // TODO: Add functionality
+                        UVG_LOG_INFO("User packet");
+                    }
 
                     // Here we don't lock ring mutex because the chaging is only done above. 
                     // NOTE: If there is a need for multiple processing threads, the read should be guarded
