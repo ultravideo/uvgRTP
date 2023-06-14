@@ -624,28 +624,28 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                 for (auto& handler : packet_handlers_) {
                     uvgrtp::frame::rtp_frame* frame = nullptr;
 
-                    sockaddr_in from = ring_buffer_[ring_read_index_].from;
-                    sockaddr_in6 from6 = ring_buffer_[ring_read_index_].from6;
+                    //sockaddr_in from = ring_buffer_[ring_read_index_].from;
+                    //sockaddr_in6 from6 = ring_buffer_[ring_read_index_].from6;
 
                     uint8_t* ptr = (uint8_t*)ring_buffer_[ring_read_index_].data;
-                    uint32_t nhssrc = ntohl(*(uint32_t*)&ptr[8]);
-                    uint32_t hnssrc = (uint32_t)ptr[8];
 
+                    /* -------------------- SSRC checks -------------------- */
+                    uint32_t packet_ssrc = ntohl((uint32_t)ptr[8]);
                     uint32_t current_ssrc = handler_mapping_[handler.first].get()->load();
                     bool found = false;
-                    // this looks so weird because the ssrc field in RTP packets is in different byte order 
-                    // than in SRTP packets, so we have to check many different possibilities
-                    // TODO: fix the byte order...
-                    if (current_ssrc == hnssrc || current_ssrc == nhssrc) {
+                    if (current_ssrc == packet_ssrc) {
+                        // Socket multiplexing, this handler is the correct one 
                         found = true;
                     }
                     else if (current_ssrc == 0) {
+                        // No socket multiplexing
                         found = true;
                     }
                     if (!found) {
                         // No SSRC match found, skip this handler
                         continue;
                     }
+                    /* -------------------- Protocol checks -------------------- */
 
                     if (rce_flags & RCE_RTCP_MUX) {
                         // rtcp packet types 200 201 202 203 204
