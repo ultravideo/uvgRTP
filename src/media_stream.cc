@@ -322,7 +322,19 @@ rtp_error_t uvgrtp::media_stream::init()
         reception_flow_->map_rtcp_to_rec(remote_ssrc_, rtcp_);
         rtcp_->set_socket(socket_);
     }
-
+    /*
+    reception_flow_->new_install_handler(
+        1,
+        remote_ssrc_,
+        std::bind(&uvgrtp::rtp::new_packet_handler, rtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+        nullptr);
+    reception_flow_->new_install_handler(
+        2,
+        remote_ssrc_,
+        std::bind(&uvgrtp::rtcp::new_recv_packet_handler, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+        nullptr
+    );*/
+        
     return start_components();
 }
 

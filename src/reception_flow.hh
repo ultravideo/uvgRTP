@@ -61,10 +61,10 @@ namespace uvgrtp {
     };
 
     // -----------new packet handlers
-    typedef rtp_error_t(*packet_handler_new)(void*, int, uint8_t*, size_t);
+    //typedef rtp_error_t(*packet_handler_new)(void*, int, uint8_t*, size_t);
 
     struct handler_new {
-        packet_handler_new handler = nullptr;
+        std::function<rtp_error_t(int, uint8_t*, size_t)> handler;
         std::function<rtp_error_t(uvgrtp::frame::rtp_frame ** out)> getter;
     };
 
@@ -130,11 +130,11 @@ namespace uvgrtp {
             2 rtcp
             3 zrtp
             4 srtp
-            5 srtcp
             getter can be nullptr if there is no getter (for media handlers mostly)
             */
             rtp_error_t new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, 
-                packet_handler_new handler, std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter);
+                std::function<rtp_error_t(int, uint8_t*, size_t)> handler,
+                std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter);
 
             /* Install auxiliary handler for the packet
              *
@@ -288,7 +288,6 @@ namespace uvgrtp {
             std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> zrtp_handlers_;
 
             std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> srtp_handlers_;
-            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> srtcp_handlers_;
 
             std::vector<Buffer> ring_buffer_;
             std::mutex ring_mutex_;

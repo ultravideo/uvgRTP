@@ -41,7 +41,6 @@ uvgrtp::reception_flow::reception_flow(bool ipv6) :
     rtcp_handlers_({}),
     zrtp_handlers_({}),
     srtp_handlers_({}),
-    srtcp_handlers_({}),
     ring_buffer_(),
     ring_read_index_(-1), // invalid first index that will increase to a valid one
     last_ring_write_index_(-1),
@@ -327,7 +326,8 @@ rtp_error_t uvgrtp::reception_flow::install_aux_handler(
 }
 
 rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
-    packet_handler_new handler, std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter)
+    std::function<rtp_error_t(int, uint8_t*, size_t)> handler,
+    std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter)
 {
     handler_new pair = {handler, getter};
     switch (type) {
@@ -345,10 +345,6 @@ rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_pt
         }
         case 4: {
             srtp_handlers_[remote_ssrc] = { handler, getter };
-            break;
-        }
-        case 5: {
-            srtcp_handlers_[remote_ssrc] = { handler, getter };
             break;
         }
         default: {
@@ -690,24 +686,17 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                      * 3. Version is 2                                  -> RTP packet     (or SRTP)
                      * 4. Version is 00                                 -> Keep-Alive/Holepuncher
                      * 5. None of the above match                       -> User packet   */
-
+                    rtp_error_t retval;
                      /* -------------------- RTCP check -------------------- */
                     if (rce_flags & RCE_RTCP_MUX) {
                         uint8_t pt = (uint8_t)ptr[1];
                         //UVG_LOG_DEBUG("Received frame with pt %u", pt);
                         if (pt >= 200 && pt <= 204) {
-                            UVG_LOG_INFO("RTCP packet");
-                            rtcp_map_mutex_.lock();
-                            for (auto& p : rtcps_map_) {
-                                std::shared_ptr<uvgrtp::rtcp> rtcp_ptr = p.second;
-                                if (current_ssrc == p.first.get()->load()) {
-                                    (void)rtcp_ptr->handle_incoming_packet(ring_buffer_[ring_read_index_].data, (size_t)ring_buffer_[ring_read_index_].read);
-                                }
-                                else if (p.first.get()->load() == 0) {
-                                    (void)rtcp_ptr->handle_incoming_packet(ring_buffer_[ring_read_index_].data, (size_t)ring_buffer_[ring_read_index_].read);
+                            for (auto& p : rtcp_handlers_) {
+                                if (p.first.get()->load() == current_ssrc) {
+                                    retval = p.second.handler(rce_flags, &ptr[0], (size_t)ring_buffer_[ring_read_index_].read);
                                 }
                             }
-                            rtcp_map_mutex_.unlock();
                             break;
                         }
                     }
