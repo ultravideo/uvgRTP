@@ -73,7 +73,7 @@ void uvgrtp::zrtp_msg::zrtp_message::set_zrtp_start(uvgrtp::zrtp_msg::zrtp_msg& 
     /* TODO: convert to network byte order */
     set_zrtp_start_base(start, msgblock);
 
-    start.header.ssrc = session.ssrc;
+    start.header.ssrc = htonl(session.ssrc);
     start.header.seq = session.seq++;
 }
 
