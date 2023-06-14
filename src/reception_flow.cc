@@ -697,14 +697,13 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         UVG_LOG_INFO("Holepuncher packet");
                         //break;
                     }
-
-                    /* -------------------- User packet -------------------------------- */
+                    /* THIS IS WRONG, BECAUSE USER PACKETS DONT HAVE SSRC!! fix
                     else {
                         // TODO: Add functionality
                         UVG_LOG_INFO("User packet");
                         //break;
                     }
-
+                    */
                     // Here we don't lock ring mutex because the chaging is only done above. 
                     // NOTE: If there is a need for multiple processing threads, the read should be guarded
                     switch ((ret = (*handler.second.primary)(ring_buffer_[ring_read_index_].read,
