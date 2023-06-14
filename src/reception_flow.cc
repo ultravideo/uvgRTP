@@ -630,7 +630,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     uint8_t* ptr = (uint8_t*)ring_buffer_[ring_read_index_].data;
 
                     /* -------------------- SSRC checks -------------------- */
-                    uint32_t packet_ssrc = ntohl((uint32_t)ptr[8]);
+                    uint32_t packet_ssrc = ntohl(*(uint32_t*)&ptr[8]);
                     uint32_t current_ssrc = handler_mapping_[handler.first].get()->load();
                     bool found = false;
                     if (current_ssrc == packet_ssrc) {
@@ -646,12 +646,18 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         continue;
                     }
                     /* -------------------- Protocol checks -------------------- */
+                    /* Checks in the following order:
+                     * 1. If RCE_RTCP_MUX && packet type is 200 - 204   -> RTCP packet    (or SRTCP)
+                     * 2. Magic Cookie is 0x5a525450                    -> ZRTP packet
+                     * 3. Version is 2                                  -> RTP packet     (or SRTP)
+                     * 4. Version is 00                                 -> Holepuncher
+                     * 5. None of the above match                       -> User packet
+                     */
 
+                     /* -------------------- RTCP check -------------------- */
                     if (rce_flags & RCE_RTCP_MUX) {
-                        // rtcp packet types 200 201 202 203 204
                         uint8_t pt = (uint8_t)ptr[1];
                         //UVG_LOG_DEBUG("Received frame with pt %u", pt);
-
                         if (pt >= 200 && pt <= 204) {
                             rtcp_map_mutex_.lock();
                             for (auto& p : rtcps_map_) {
