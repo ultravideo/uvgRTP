@@ -326,7 +326,7 @@ rtp_error_t uvgrtp::reception_flow::install_aux_handler(
 }
 
 rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
-    std::function<rtp_error_t(int, uint8_t*, size_t)> handler,
+    std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler,
     std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter)
 {
     handler_new pair = {handler, getter};
@@ -646,11 +646,12 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                 rtp_error_t ret = RTP_OK;
                 /* When processing a packet, the following checks are done
                  * 1. Check the SSRC of the packets. This field is in the same place for RTP, RTCP and ZRTP. (+ SRTP/SRTCP)
-                 * 2. Determine which protocol this packet belongs to. RTCP packets can be told apart from RTP packets via 
+                 * 2. If there is no SSRC match, this is a user packet.
+                 * 3. Determine which protocol this packet belongs to. RTCP packets can be told apart from RTP packets via 
                  *    bits 8-15. ZRTP packets can be told apart from others via their 2 first its being 0 and the Magic Cookie
                  *    field being 0x5a525450. Holepunching is not needed if RTCP is enabled. If not, holepuncher packets
                  *    contain 0x00 payload.
-                 * 3. After determining the correct protocol, hand out the packet to the correct handler if it exists.
+                 * 4. After determining the correct protocol, hand out the packet to the correct handler if it exists.
                  */
 
                 // zrtp headerit network byte orderissa, 32 bittiä pitkiä. rtp myös
@@ -677,6 +678,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     }
                     if (!found) {
                         // No SSRC match found, skip this handler
+                        // User pkt????
                         continue;
                     }
                     /* -------------------- Protocol checks -------------------- */
@@ -684,8 +686,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                      * 1. If RCE_RTCP_MUX && packet type is 200 - 204   -> RTCP packet    (or SRTCP)
                      * 2. Magic Cookie is 0x5a525450                    -> ZRTP packet
                      * 3. Version is 2                                  -> RTP packet     (or SRTP)
-                     * 4. Version is 00                                 -> Keep-Alive/Holepuncher
-                     * 5. None of the above match                       -> User packet   */
+                     * 4. Version is 00                                 -> Keep-Alive/Holepuncher */
                     rtp_error_t retval;
                      /* -------------------- RTCP check -------------------- */
                     if (rce_flags & RCE_RTCP_MUX) {
@@ -694,7 +695,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         if (pt >= 200 && pt <= 204) {
                             for (auto& p : rtcp_handlers_) {
                                 if (p.first.get()->load() == current_ssrc) {
-                                    retval = p.second.handler(rce_flags, &ptr[0], (size_t)ring_buffer_[ring_read_index_].read);
+                                    retval = p.second.handler(rce_flags, &ptr[0], (size_t)ring_buffer_[ring_read_index_].read, &frame);
                                 }
                             }
                             break;
@@ -713,24 +714,27 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
 
                     /* -------------------- RTP check ---------------------------------- */
                     else if (version == 0x2) {
-                        // TODO: Add functionality
-                        //UVG_LOG_INFO("RTP packet");
-                        //break;
+                        for (auto& p : rtp_handlers_) {
+                            if (p.first.get()->load() == current_ssrc) {
+                                retval = p.second.handler(rce_flags, &ptr[0], (size_t)ring_buffer_[ring_read_index_].read, &frame);
+                                if (retval == RTP_PKT_MODIFIED) {
+                                    // next handler???
+                                }
+                                else {
+                                    //error??
+                                }
+                            }
+                        }
+                        break;
                     }
 
                     /* -------------------- Holepuncher check -------------------------- */
-                    else if (version == 0x0) {
+                    else {
                         // No functionality needed
                         UVG_LOG_INFO("Holepuncher packet");
                         //break;
                     }
-                    /* THIS IS WRONG, BECAUSE USER PACKETS DONT HAVE SSRC!! fix
-                    else {
-                        // TODO: Add functionality
-                        UVG_LOG_INFO("User packet");
-                        //break;
-                    }
-                    */
+                    
                     // Here we don't lock ring mutex because the chaging is only done above. 
                     // NOTE: If there is a need for multiple processing threads, the read should be guarded
                     switch ((ret = (*handler.second.primary)(ring_buffer_[ring_read_index_].read,
@@ -753,11 +757,11 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                             UVG_LOG_DEBUG("User packet from ip: %s", from_str.c_str());
                             return_user_pkt(ptr);
                             */
-
+                    
                             // packet was not handled by this primary handlers, proceed to the next one
-                            continue;
+                            //continue;
                             /* packet was handled by the primary handler
-                             * and should be dispatched to the auxiliary handler(s) */
+                             * and should be dispatched to the auxiliary handler(s) 
                         }
                         case RTP_PKT_MODIFIED:
                         {
@@ -774,7 +778,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                             UVG_LOG_ERROR("Unknown error code from packet handler: %d", ret);
                             break;
                         }
-                    }
+                    }*/
                 }
 
                 // to make sure we don't process this packet again

@@ -326,7 +326,7 @@ rtp_error_t uvgrtp::media_stream::init()
     reception_flow_->new_install_handler(
         1,
         remote_ssrc_,
-        std::bind(&uvgrtp::rtp::new_packet_handler, rtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+        std::bind(&uvgrtp::rtp::new_packet_handler, rtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
         nullptr);
     reception_flow_->new_install_handler(
         2,

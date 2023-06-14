@@ -64,7 +64,7 @@ namespace uvgrtp {
     //typedef rtp_error_t(*packet_handler_new)(void*, int, uint8_t*, size_t);
 
     struct handler_new {
-        std::function<rtp_error_t(int, uint8_t*, size_t)> handler;
+        std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler;
         std::function<rtp_error_t(uvgrtp::frame::rtp_frame ** out)> getter;
     };
 
@@ -133,7 +133,7 @@ namespace uvgrtp {
             getter can be nullptr if there is no getter (for media handlers mostly)
             */
             rtp_error_t new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, 
-                std::function<rtp_error_t(int, uint8_t*, size_t)> handler,
+                std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler,
                 std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter);
 
             /* Install auxiliary handler for the packet
