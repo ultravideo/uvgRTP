@@ -610,11 +610,20 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
             if (ring_buffer_[ring_read_index_].read > 0)
             {
                 rtp_error_t ret = RTP_OK;
+                /* When processing a packet, the following checks are done
+                 * 1. Check the SSRC of the packets. This field is in the same place for RTP, RTCP and ZRTP. (+ SRTP/SRTCP)
+                 * 2. Determine which protocol this packet belongs to. RTCP packets can be told apart from RTP packets via 
+                 *    bits 8-15. ZRTP packets can be told apart from others via their 2 first its being 0 and the Magic Cookie
+                 *    field being 0x5a525450. Holepunching is not needed if RTCP is enabled. If not, holepuncher packets
+                 *    contain 0x00 payload.
+                 * 3. After determining the correct protocol, hand out the packet to the correct handler if it exists.
+                 */
 
+                // zrtp headerit network byte orderissa, 32 bittiä pitkiä. rtp myös
                 // process the ring buffer location through all the handlers
                 for (auto& handler : packet_handlers_) {
                     uvgrtp::frame::rtp_frame* frame = nullptr;
-                    frame = (uvgrtp::frame::rtp_frame*)ring_buffer_[ring_read_index_].data;
+
                     sockaddr_in from = ring_buffer_[ring_read_index_].from;
                     sockaddr_in6 from6 = ring_buffer_[ring_read_index_].from6;
 
@@ -627,7 +636,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     // this looks so weird because the ssrc field in RTP packets is in different byte order 
                     // than in SRTP packets, so we have to check many different possibilities
                     // TODO: fix the byte order...
-                    if (current_ssrc == hnssrc || current_ssrc == nhssrc|| current_ssrc == frame->header.ssrc) {
+                    if (current_ssrc == hnssrc || current_ssrc == nhssrc) {
                         found = true;
                     }
                     else if (current_ssrc == 0) {
@@ -637,8 +646,6 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         // No SSRC match found, skip this handler
                         continue;
                     }
-
-                    frame = nullptr;
 
                     if (rce_flags & RCE_RTCP_MUX) {
                         // rtcp packet types 200 201 202 203 204
