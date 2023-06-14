@@ -87,6 +87,9 @@ uvgrtp::media_stream::~media_stream()
             sfp_->clear_port(src_port_, socket_);
         }
     }
+    if (rce_flags_ & RCE_RTCP_MULTIPLEX) {
+        reception_flow_->clear_rtcp_from_rec(remote_ssrc_);
+    }
 
     (void)free_resources(RTP_OK);
 }
@@ -315,6 +318,10 @@ rtp_error_t uvgrtp::media_stream::init()
     reception_flow_->map_handler_key(rtp_handler_key_, remote_ssrc_);
 
     reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_.get(), rtcp_->recv_packet_handler, nullptr);
+    if (rce_flags_ & RCE_RTCP_MULTIPLEX) {
+        reception_flow_->map_rtcp_to_rec(remote_ssrc_, rtcp_);
+        rtcp_->set_socket(socket_);
+    }
 
     return start_components();
 }
@@ -377,7 +384,10 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
 
     reception_flow_->install_aux_handler(rtp_handler_key_, srtp_.get(), srtp_->recv_packet_handler, nullptr);
     reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_.get(), rtcp_->recv_packet_handler, nullptr);
-
+    if (rce_flags_ & RCE_RTCP_MULTIPLEX) {
+        reception_flow_->map_rtcp_to_rec(remote_ssrc_, rtcp_);
+        rtcp_->set_socket(socket_);
+    }
     return start_components();
 }
 
@@ -427,7 +437,10 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_.get(), rtcp_->recv_packet_handler, nullptr);
     reception_flow_->install_aux_handler(rtp_handler_key_, srtp_.get(), srtp_->recv_packet_handler, nullptr);
-
+    if (rce_flags_ & RCE_RTCP_MULTIPLEX) {
+        reception_flow_->map_rtcp_to_rec(remote_ssrc_, rtcp_);
+        rtcp_->set_socket(socket_);
+    }
     return start_components();
 }
 
@@ -450,7 +463,12 @@ rtp_error_t uvgrtp::media_stream::start_components()
         }
         else
         {
-            rtcp_->set_network_addresses(local_address_, remote_address_, src_port_ + 1, dst_port_ + 1, ipv6_);
+            if (!(rce_flags_ & RCE_RTCP_MULTIPLEX)) {
+                rtcp_->set_network_addresses(local_address_, remote_address_, src_port_ + 1, dst_port_ + 1, ipv6_);
+            }
+            else {
+                rtcp_->set_network_addresses(local_address_, remote_address_, src_port_, dst_port_, ipv6_);
+            }
             rtcp_->add_initial_participant(rtp_->get_clock_rate());
             bandwidth_ = get_default_bandwidth_kbps(fmt_);
             rtcp_->set_session_bandwidth(bandwidth_);
@@ -460,35 +478,37 @@ rtp_error_t uvgrtp::media_stream::start_components()
             std::shared_ptr<uvgrtp::socket> rtcp_socket;
             std::shared_ptr<uvgrtp::rtcp_reader> rtcp_reader;
 
+            if (!(rce_flags_ & RCE_RTCP_MULTIPLEX)) {
 
-            // Configure the socket for RTCP:
-            // 1. If RTCP port is not in use -> create new socket
-            // 2. Install an RTCP reader into socketfactory
-            // 3. In RTCP reader, map our RTCP object to the REMOTE ssrc of this stream. If we are not doing
-            //    any socket multiplexing, it will be 0 by default
+                // If RTCP is not multiplexed with RTP, configure the socket for RTCP:
+                // 1. If RTCP port is not in use -> create new socket
+                // 2. Install an RTCP reader into socketfactory
+                // 3. In RTCP reader, map our RTCP object to the REMOTE ssrc of this stream. If we are not doing
+                //    any socket multiplexing, it will be 0 by default
 
-            if (!sfp_->is_port_in_use(rtcp_port)) {
-                rtcp_socket = sfp_->create_new_socket(1);
-                rtcp_reader = sfp_->install_rtcp_reader(rtcp_port);
+                if (!sfp_->is_port_in_use(rtcp_port)) {
+                    rtcp_socket = sfp_->create_new_socket(1);
+                    rtcp_reader = sfp_->install_rtcp_reader(rtcp_port);
 
-                rtcp_reader->set_socket(rtcp_socket);
-                rtcp_->set_socket(rtcp_socket);
-                rtcp_reader->map_ssrc_to_rtcp(remote_ssrc_, rtcp_);
-            }
-            // 1. Source port is in use -> fetch the existing socket
-            // 2. Fetch the existing RTCP reader from socketfactory
-            // 3. In RTCP reader, map our RTCP object to the REMOTE ssrc of this stream. In this case, the remote
-            //    ssrc should be manually set to allow multiplexing
-            else {
-                rtcp_socket = sfp_->get_socket_ptr(rtcp_port);
-                if (!rtcp_socket) {
-                    // This should not ever happen. However if it does, you could just create a new socket like above
-                    UVG_LOG_ERROR("No RTCP socket found");
-                    return RTP_GENERIC_ERROR;
+                    rtcp_reader->set_socket(rtcp_socket);
+                    rtcp_->set_socket(rtcp_socket);
+                    rtcp_reader->map_ssrc_to_rtcp(remote_ssrc_, rtcp_);
                 }
-                rtcp_->set_socket(rtcp_socket);
-                rtcp_reader = sfp_->get_rtcp_reader(rtcp_port);
-                rtcp_reader->map_ssrc_to_rtcp(remote_ssrc_, rtcp_);
+                // 1. Source port is in use -> fetch the existing socket
+                // 2. Fetch the existing RTCP reader from socketfactory
+                // 3. In RTCP reader, map our RTCP object to the REMOTE ssrc of this stream. In this case, the remote
+                //    ssrc should be manually set to allow multiplexing
+                else {
+                    rtcp_socket = sfp_->get_socket_ptr(rtcp_port);
+                    if (!rtcp_socket) {
+                        // This should not ever happen. However if it does, you could just create a new socket like above
+                        UVG_LOG_ERROR("No RTCP socket found");
+                        return RTP_GENERIC_ERROR;
+                    }
+                    rtcp_->set_socket(rtcp_socket);
+                    rtcp_reader = sfp_->get_rtcp_reader(rtcp_port);
+                    rtcp_reader->map_ssrc_to_rtcp(remote_ssrc_, rtcp_);
+                }
             }
             rtcp_->start();
         }

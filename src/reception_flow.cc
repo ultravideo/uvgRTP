@@ -6,6 +6,7 @@
 #include "socket.hh"
 #include "debug.hh"
 #include "random.hh"
+#include "uvgrtp/rtcp.hh"
 
 #include "global.hh"
 
@@ -638,6 +639,24 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     }
 
                     frame = nullptr;
+                    // rtcp packet types 200 201 202 203 204
+                    uint8_t pt = (uint8_t)&ptr[1];
+                    UVG_LOG_DEBUG("Received frame with pt %u", pt);
+                    if (rce_flags & RCE_RTCP_MULTIPLEX) {
+                        if ((uint8_t)&ptr[1] >= 200 && (uint8_t)&ptr[1] <= 204) {
+                            rtcp_map_mutex_.lock();
+                            for (auto& p : rtcps_map_) {
+                                std::shared_ptr<uvgrtp::rtcp> rtcp_ptr = p.second;
+                                if (current_ssrc == p.first.get()->load()) {
+                                    (void)rtcp_ptr->handle_incoming_packet(ring_buffer_[ring_read_index_].data, (size_t)ring_buffer_[ring_read_index_].read);
+                                }
+                                else if (p.first.get()->load() == 0) {
+                                    (void)rtcp_ptr->handle_incoming_packet(ring_buffer_[ring_read_index_].data, (size_t)ring_buffer_[ring_read_index_].read);
+                                }
+                            }
+                            rtcp_map_mutex_.unlock();
+                        }
+                    }
 
                     // Here we don't lock ring mutex because the chaging is only done above. 
                     // NOTE: If there is a need for multiple processing threads, the read should be guarded
@@ -754,6 +773,18 @@ bool uvgrtp::reception_flow::map_handler_key(uint32_t key, std::shared_ptr<std::
     return false;
 }
 
+rtp_error_t uvgrtp::reception_flow::map_rtcp_to_rec(std::shared_ptr<std::atomic<uint32_t>> ssrc, std::shared_ptr<uvgrtp::rtcp> rtcp)
+{
+    rtp_error_t ret = RTP_GENERIC_ERROR;
+    rtcp_map_mutex_.lock();
+    if (rtcps_map_.find(ssrc) == rtcps_map_.end()) {
+        rtcps_map_[ssrc] = rtcp;
+        ret = RTP_OK;
+    }
+    rtcp_map_mutex_.unlock();
+    return ret;
+}
+
 int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, uint32_t handler_key)
 {
     // Clear all the data structures
@@ -772,4 +803,16 @@ int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<s
         return 1;
     }
     return 0;
+}
+
+rtp_error_t uvgrtp::reception_flow::clear_rtcp_from_rec(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
+{
+    rtp_error_t ret = RTP_GENERIC_ERROR;
+    rtcp_map_mutex_.lock();
+    if (rtcps_map_.find(remote_ssrc) != rtcps_map_.end()) {
+        rtcps_map_.erase(remote_ssrc);
+        ret = RTP_OK;
+    }
+    rtcp_map_mutex_.unlock();
+    return ret;
 }

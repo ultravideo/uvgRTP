@@ -27,6 +27,7 @@ namespace uvgrtp {
     }
 
     class socket;
+    class rtcp;
 
     typedef void (*recv_hook)(void* arg, uvgrtp::frame::rtp_frame* frame);
 
@@ -173,6 +174,15 @@ namespace uvgrtp {
              * Return false if there is no handler with this key -> no mapping is done */
             bool map_handler_key(uint32_t key, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
+            /* Map a new RTCP object into a remote SSRC
+             *
+             * Param ssrc SSRC of the REMOTE stream that the given RTCP will receive from
+             * Param rtcp RTCP object
+             * Return RTP_OK on success */
+            rtp_error_t map_rtcp_to_rec(std::shared_ptr<std::atomic<uint32_t>> ssrc, std::shared_ptr<uvgrtp::rtcp> rtcp);
+
+            rtp_error_t clear_rtcp_from_rec(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
+
             /* Clear the packet handlers associated with this handler key from the reception_flow
              * Also clear the hooks associated with this remote_ssrc
              * 
@@ -229,6 +239,9 @@ namespace uvgrtp {
             std::map<std::shared_ptr<std::atomic<std::uint32_t>>, receive_pkt_hook> hooks_;
             // Map handler keys to media streams remote ssrcs
             std::map<uint32_t, std::shared_ptr<std::atomic<std::uint32_t>>> handler_mapping_;
+
+            std::mutex rtcp_map_mutex_;
+            std::map<std::shared_ptr<std::atomic<uint32_t>>, std::shared_ptr<uvgrtp::rtcp>> rtcps_map_;
 
             std::mutex flow_mutex_;
             bool should_stop_;

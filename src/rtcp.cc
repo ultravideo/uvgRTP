@@ -203,6 +203,16 @@ rtp_error_t uvgrtp::rtcp::start()
 {
     active_ = true;
     ipv6_ = sfp_->get_ipv6();
+    if ((rce_flags_ & RCE_RTCP_MULTIPLEX)) {
+        if (ipv6_) {
+            socket_address_ipv6_ = uvgrtp::socket::create_ip6_sockaddr(remote_addr_, dst_port_);
+        }
+        else {
+            socket_address_ = uvgrtp::socket::create_sockaddr(AF_INET, remote_addr_, dst_port_);
+        }
+        report_generator_.reset(new std::thread(rtcp_runner, this));
+        return RTP_OK;
+    }
 
     rtcp_reader_ = sfp_->get_rtcp_reader(local_port_);
     rtp_error_t ret = RTP_OK;
