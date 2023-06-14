@@ -674,6 +674,13 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         }
                     }
 
+                    /* -------------------- ZRTP check -------------------- */
+
+                    if (ntohl((uint32_t)ptr[4]) == 0x5a525450) {
+                        // TODO: Add functionality
+                        UVG_LOG_INFO("ZRTP message");
+                    }
+
                     // Here we don't lock ring mutex because the chaging is only done above. 
                     // NOTE: If there is a need for multiple processing threads, the read should be guarded
                     switch ((ret = (*handler.second.primary)(ring_buffer_[ring_read_index_].read,

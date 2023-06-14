@@ -59,7 +59,7 @@ void uvgrtp::zrtp_msg::zrtp_message::set_zrtp_start_base(uvgrtp::zrtp_msg::zrtp_
     std::string msgblock)
 {
     start.header.version = 0;
-    start.header.magic = ZRTP_MAGIC;
+    start.header.magic = htonl(ZRTP_MAGIC);
     start.preamble = ZRTP_PREAMBLE;
     start.length = packet_to_header_len(len_);
     memcpy(&start.msgblock, msgblock.c_str(), 8);
