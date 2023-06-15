@@ -727,18 +727,6 @@ bool uvgrtp::reception_flow::map_handler_key(uint32_t key, std::shared_ptr<std::
     return false;
 }
 
-rtp_error_t uvgrtp::reception_flow::map_rtcp_to_rec(std::shared_ptr<std::atomic<uint32_t>> ssrc, std::shared_ptr<uvgrtp::rtcp> rtcp)
-{
-    rtp_error_t ret = RTP_GENERIC_ERROR;
-    rtcp_map_mutex_.lock();
-    if (rtcps_map_.find(ssrc) == rtcps_map_.end()) {
-        rtcps_map_[ssrc] = rtcp;
-        ret = RTP_OK;
-    }
-    rtcp_map_mutex_.unlock();
-    return ret;
-}
-
 int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, uint32_t handler_key)
 {
     // Clear all the data structures
