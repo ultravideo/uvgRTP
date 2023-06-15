@@ -244,9 +244,6 @@ namespace uvgrtp {
             // Not yet supported
             //void return_user_pkt(uint8_t* pkt);
 
-            /* Call auxiliary handlers of a primary handler */
-            void call_aux_handlers(uint32_t key, int rce_flags, uvgrtp::frame::rtp_frame **frame);
-
             inline void increase_buffer_size(ssize_t next_write_index);
 
             /* Primary handlers for the socket */
