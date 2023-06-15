@@ -39,41 +39,19 @@ namespace uvgrtp {
         recv_hook hook = nullptr;
     };
 
-    typedef rtp_error_t (*packet_handler)(ssize_t, void *, int, uvgrtp::frame::rtp_frame **);
-    typedef rtp_error_t (*packet_handler_aux)(void *, int, uvgrtp::frame::rtp_frame **);
     typedef rtp_error_t (*frame_getter)(void *, uvgrtp::frame::rtp_frame **);
 
-    struct auxiliary_handler {
-        void *arg = nullptr;
-        packet_handler_aux handler = nullptr;
-        frame_getter getter = nullptr;
-    };
-
-    struct auxiliary_handler_cpp {
-        std::function<rtp_error_t(int, uvgrtp::frame::rtp_frame** out)> handler;
-        std::function<rtp_error_t(uvgrtp::frame::rtp_frame** out)> getter;
-    };
-
-    struct packet_handlers {
-        packet_handler primary = nullptr;
-        std::vector<auxiliary_handler> auxiliary;
-        std::vector<auxiliary_handler_cpp> auxiliary_cpp;
-    };
-
-    // -----------new packet handlers
-    //typedef rtp_error_t(*packet_handler_new)(void*, int, uint8_t*, size_t);
-
-    struct renamethis_handler {
+    struct packet_handler {
         std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler;
         void* args = nullptr;
     };
     struct handler_new {
-        renamethis_handler handler_rtp;
-        renamethis_handler handler_rtcp;
-        renamethis_handler handler_zrtp;
-        renamethis_handler handler_srtp;
-        renamethis_handler handler_media;
-        renamethis_handler handler_rtcp_common;
+        packet_handler rtp;
+        packet_handler rtcp;
+        packet_handler zrtp;
+        packet_handler srtp;
+        packet_handler media;
+        packet_handler rtcp_common;
         std::function<rtp_error_t(uvgrtp::frame::rtp_frame ** out)> getter;
     };
 
