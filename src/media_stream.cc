@@ -315,8 +315,8 @@ rtp_error_t uvgrtp::media_stream::init()
     
     reception_flow_ = sfp_->get_reception_flow_ptr(socket_);
 
-    rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_, ssrc_, ipv6_));
-    rtcp_ = std::shared_ptr<uvgrtp::rtcp> (new uvgrtp::rtcp(rtp_, ssrc_, remote_ssrc_, cname_, sfp_, rce_flags_));
+    rtp_ = std::shared_ptr<uvgrtp::rtp>(new uvgrtp::rtp(fmt_, ssrc_, ipv6_));
+    rtcp_ = std::shared_ptr<uvgrtp::rtcp>(new uvgrtp::rtcp(rtp_, ssrc_, remote_ssrc_, cname_, sfp_, rce_flags_));
 
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
 
@@ -326,18 +326,19 @@ rtp_error_t uvgrtp::media_stream::init()
             std::placeholders::_4, std::placeholders::_5),
         nullptr);
 
-    if (rce_flags_ & RCE_RTCP_MUX) {
+    if (rce_flags_ & RCE_RTCP) {
         rtcp_->set_socket(socket_);
 
         reception_flow_->new_install_handler(
             6, remote_ssrc_,
             std::bind(&uvgrtp::rtcp::new_recv_packet_handler_common, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                std::placeholders::_4, std::placeholders::_5), rtcp_.get());
-
+            std::placeholders::_4, std::placeholders::_5), rtcp_.get());
+    }
+    if (rce_flags_ & RCE_RTCP_MUX) {
         reception_flow_->new_install_handler(
             2, remote_ssrc_,
             std::bind(&uvgrtp::rtcp::new_recv_packet_handler, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-            std::placeholders::_4, std::placeholders::_5), nullptr);
+                std::placeholders::_4, std::placeholders::_5), nullptr);
     }
 
     return start_components();
