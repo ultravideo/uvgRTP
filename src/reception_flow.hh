@@ -73,6 +73,7 @@ namespace uvgrtp {
         renamethis_handler handler_zrtp;
         renamethis_handler handler_srtp;
         renamethis_handler handler_media;
+        renamethis_handler handler_rtcp_common;
         std::function<rtp_error_t(uvgrtp::frame::rtp_frame ** out)> getter;
     };
 
@@ -139,6 +140,7 @@ namespace uvgrtp {
             3 zrtp
             4 srtp
             5 media
+            6 rtcp common
             getter can be nullptr if there is no getter (for media handlers mostly)
             */
             rtp_error_t new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, 

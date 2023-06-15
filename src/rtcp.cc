@@ -1033,10 +1033,14 @@ void uvgrtp::rtcp::update_session_statistics(const uvgrtp::frame::rtp_frame *fra
 
 rtp_error_t uvgrtp::rtcp::new_recv_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out)
 {
-    //UVG_LOG_INFO("RTCP packet handled from %u", remote_ssrc_.get()->load());
+    UVG_LOG_INFO("RTCP packet handled from %u", remote_ssrc_.get()->load());
     return handle_incoming_packet(read_ptr, size);
 }
 
+rtp_error_t uvgrtp::rtcp::new_recv_packet_handler_common(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out)
+{
+    return recv_packet_handler(args, rce_flags, out);
+}
 
 /* RTCP packet handler is responsible for doing two things:
  *

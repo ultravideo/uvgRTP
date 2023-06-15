@@ -418,6 +418,7 @@ namespace uvgrtp {
             /* Update RTCP-related receiver statistics */
             static rtp_error_t recv_packet_handler(void *arg, int rce_flags, frame::rtp_frame **out);
             rtp_error_t new_recv_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out);
+            rtp_error_t new_recv_packet_handler_common(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out);
 
             /* Update RTCP-related sender statistics */
             static rtp_error_t send_packet_handler_vec(void *arg, uvgrtp::buf_vec& buffers);

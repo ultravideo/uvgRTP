@@ -351,6 +351,11 @@ rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_pt
             NEW_packet_handlers_[remote_ssrc].handler_media.args = args;
             break;
         }
+        case 6: {
+            NEW_packet_handlers_[remote_ssrc].handler_rtcp_common.handler = handler;
+            NEW_packet_handlers_[remote_ssrc].handler_rtcp_common.args = args;
+            break;
+        }
         default: {
             UVG_LOG_ERROR("Invalid type, only types 1-5 are allowed");
             break;
@@ -617,7 +622,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                      /* -------------------- RTCP check -------------------- */
                     if (rce_flags & RCE_RTCP_MUX) {
                         uint8_t pt = (uint8_t)ptr[1];
-                        //UVG_LOG_DEBUG("Received frame with pt %u", pt);
+                        UVG_LOG_DEBUG("Received frame with pt %u", pt);
                         if (pt >= 200 && pt <= 204) {
                             retval = handlers->handler_rtcp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
                             break;
@@ -643,7 +648,10 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         if (retval == RTP_PKT_MODIFIED) {
                             retval = handlers->handler_rtp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
                         }
-
+                        // RTCP common handler
+                        if (rce_flags & RCE_RTCP) {
+                            retval = handlers->handler_rtcp_common.handler(handlers->handler_rtcp_common.args, rce_flags, &ptr[0], size, &frame);
+                        }
                         if (retval == RTP_PKT_MODIFIED) {
                             retval = handlers->handler_media.handler(handlers->handler_media.args, rce_flags, &ptr[0], size, &frame);
                             if (retval == RTP_PKT_READY) {
