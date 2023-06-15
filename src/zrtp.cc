@@ -36,7 +36,8 @@ uvgrtp::zrtp::zrtp():
     remote_ip6_addr_(),
     initialized_(false),
     receiver_(),
-    dh_finished_(false)
+    dh_finished_(false),
+    state_(0)
 {
     cctx_.sha256 = new uvgrtp::crypto::sha256;
     cctx_.dh     = new uvgrtp::crypto::dh;
@@ -966,6 +967,28 @@ rtp_error_t uvgrtp::zrtp::get_srtp_keys(
 
     return RTP_OK;
 }
+
+rtp_error_t uvgrtp::zrtp::new_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out)
+{
+    if (size < 0 || (uint32_t)size < sizeof(uvgrtp::zrtp_msg::zrtp_msg))
+    {
+        return RTP_PKT_NOT_HANDLED;
+    }
+
+    (void)args;
+    (void)rce_flags;
+    (void)out;
+
+    auto msg = (uvgrtp::zrtp_msg::zrtp_msg*)read_ptr;
+
+    /* not a ZRTP packet */
+    if (msg->header.version ||  msg->preamble != ZRTP_PREAMBLE) {
+        return RTP_PKT_NOT_HANDLED;
+    }
+
+
+}
+
 
 rtp_error_t uvgrtp::zrtp::packet_handler(ssize_t size, void *packet, int rce_flags, frame::rtp_frame **out)
 {

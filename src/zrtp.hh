@@ -73,6 +73,7 @@ namespace uvgrtp {
              * Return RTP_PKT_NOT_HANDLED if "buffer" does not contain a ZRTP message
              * Return RTP_GENERIC_ERROR if "buffer" contains an invalid ZRTP message */
             static rtp_error_t packet_handler(ssize_t size, void *packet, int rce_flags, frame::rtp_frame **out);
+            rtp_error_t new_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out);
 
             inline bool has_dh_finished() const
             {
@@ -192,6 +193,7 @@ namespace uvgrtp {
             std::mutex zrtp_mtx_;
 
             bool dh_finished_ = false;
+            int state_;
     };
 }
 

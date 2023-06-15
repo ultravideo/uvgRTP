@@ -370,6 +370,12 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
         }
     }
 
+    reception_flow_->new_install_handler(
+        1, remote_ssrc_,
+        std::bind(&uvgrtp::zrtp::new_packet_handler, zrtp, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+            std::placeholders::_4, std::placeholders::_5),
+        nullptr);
+
     rtp_error_t ret = RTP_OK;
     if ((ret = zrtp->init(rtp_->get_ssrc(), socket_, remote_sockaddr_, remote_sockaddr_ip6_, perform_dh, ipv6_)) != RTP_OK) {
         UVG_LOG_WARN("Failed to initialize ZRTP for media stream!");
