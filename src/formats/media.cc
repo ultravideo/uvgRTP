@@ -102,10 +102,10 @@ uvgrtp::formats::media_frame_info_t *uvgrtp::formats::media::get_media_frame_inf
 {
     return &minfo_;
 }
-rtp_error_t uvgrtp::formats::media::new_packet_handler(int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out)
+rtp_error_t uvgrtp::formats::media::new_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out)
 {
     UVG_LOG_ERROR("Missing args...........");
-    return packet_handler(nullptr, rce_flags, out);
+    return packet_handler(args, rce_flags, out);
 }
 
 rtp_error_t uvgrtp::formats::media::packet_handler(void *arg, int rce_flags, uvgrtp::frame::rtp_frame **out)

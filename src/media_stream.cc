@@ -206,30 +206,30 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         case RTP_FORMAT_H264:
         {
             uvgrtp::formats::h264* format_264 = new uvgrtp::formats::h264(socket_, rtp_, rce_flags_);
-            reception_flow_->new_install_handler(
-                5, remote_ssrc_,
-                std::bind(&uvgrtp::formats::h264::new_packet_handler, format_264, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-                std::bind(&uvgrtp::formats::h264::frame_getter, format_264, std::placeholders::_1));
+            reception_flow_->new_install_handler2(
+                remote_ssrc_,
+                std::bind(&uvgrtp::formats::h264::new_packet_handler, format_264, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+                std::bind(&uvgrtp::formats::h264::frame_getter, format_264, std::placeholders::_1), nullptr);
             media_.reset(format_264);
             break;
         }
         case RTP_FORMAT_H265:
         {
             uvgrtp::formats::h265* format_265 = new uvgrtp::formats::h265(socket_, rtp_, rce_flags_);
-            reception_flow_->new_install_handler(
-                5, remote_ssrc_,
-                std::bind(&uvgrtp::formats::h265::new_packet_handler, format_265, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-                std::bind(&uvgrtp::formats::h265::frame_getter, format_265, std::placeholders::_1));
+            reception_flow_->new_install_handler2(
+                remote_ssrc_,
+                std::bind(&uvgrtp::formats::h265::new_packet_handler, format_265, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+                std::bind(&uvgrtp::formats::h265::frame_getter, format_265, std::placeholders::_1), nullptr);
             media_.reset(format_265);
             break;
         }
         case RTP_FORMAT_H266:
         {
             uvgrtp::formats::h266* format_266 = new uvgrtp::formats::h266(socket_, rtp_, rce_flags_);
-            reception_flow_->new_install_handler(
-                5, remote_ssrc_,
-                std::bind(&uvgrtp::formats::h266::new_packet_handler, format_266, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-                std::bind(&uvgrtp::formats::h266::frame_getter, format_266, std::placeholders::_1));
+            reception_flow_->new_install_handler2(
+                remote_ssrc_,
+                std::bind(&uvgrtp::formats::h266::new_packet_handler, format_266, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+                std::bind(&uvgrtp::formats::h266::frame_getter, format_266, std::placeholders::_1), nullptr);
             media_.reset(format_266);
             break;
         }
@@ -259,10 +259,10 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         case RTP_FORMAT_VDVI:
         {
             media_ = std::unique_ptr<uvgrtp::formats::media>(new uvgrtp::formats::media(socket_, rtp_, rce_flags_));
-            reception_flow_->new_install_handler(
-                5, remote_ssrc_,
-                std::bind(&uvgrtp::formats::media::new_packet_handler, media_.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-                nullptr);
+            reception_flow_->new_install_handler2(
+                remote_ssrc_,
+                std::bind(&uvgrtp::formats::media::new_packet_handler, media_.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+                nullptr, media_->get_media_frame_info());
             break;
         }
         default:
@@ -320,17 +320,14 @@ rtp_error_t uvgrtp::media_stream::init()
     reception_flow_->new_install_handler(
         1,
         remote_ssrc_,
-        std::bind(&uvgrtp::rtp::new_packet_handler, rtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-        nullptr);
+        std::bind(&uvgrtp::rtp::new_packet_handler, rtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 
     if (rce_flags_ & RCE_RTCP_MUX) {
     rtcp_->set_socket(socket_);
     reception_flow_->new_install_handler(
         2,
         remote_ssrc_,
-        std::bind(&uvgrtp::rtcp::new_recv_packet_handler, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-        nullptr
-    );
+        std::bind(&uvgrtp::rtcp::new_recv_packet_handler, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     }
 
     return start_components();

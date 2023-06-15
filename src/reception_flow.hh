@@ -68,8 +68,9 @@ namespace uvgrtp {
         std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler_rtcp;
         std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler_zrtp;
         std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler_srtp;
-        std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler_media;
+        std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler_media;
         std::function<rtp_error_t(uvgrtp::frame::rtp_frame ** out)> getter;
+        void* args = nullptr;
     };
 
     /* This class handles the reception processing of received RTP packets. It 
@@ -134,12 +135,15 @@ namespace uvgrtp {
             2 rtcp
             3 zrtp
             4 srtp
-            5 media
             getter can be nullptr if there is no getter (for media handlers mostly)
             */
             rtp_error_t new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, 
-                std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler,
-                std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter);
+                std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler);
+
+            rtp_error_t new_install_handler2(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
+                std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler,
+                std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter,
+                void* args);
 
             /* Install auxiliary handler for the packet
              *

@@ -323,8 +323,7 @@ rtp_error_t uvgrtp::reception_flow::install_aux_handler(
 }
 
 rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
-    std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler,
-    std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter)
+    std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler)
 {
     switch (type) {
         case 1: {
@@ -343,16 +342,22 @@ rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_pt
             NEW_packet_handlers_[remote_ssrc].handler_srtp = handler;
             break;
         }
-        case 5: {
-            NEW_packet_handlers_[remote_ssrc].handler_media = handler;
-            break;
-        }
         default: {
             UVG_LOG_ERROR("Invalid type, only types 1-5 are allowed");
             break;
         }
     }
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::reception_flow::new_install_handler2(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
+    std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler,
+    std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter,
+    void* args)
+{
+    NEW_packet_handlers_[remote_ssrc].handler_media = handler;
     NEW_packet_handlers_[remote_ssrc].getter = getter;
+    NEW_packet_handlers_[remote_ssrc].args = args;
     return RTP_OK;
 }
 
@@ -720,7 +725,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         retval = handlers->handler_rtp(rce_flags, &ptr[0], size, &frame);
 
                         if (retval == RTP_PKT_MODIFIED) {
-                            retval = handlers->handler_media(rce_flags, &ptr[0], size, &frame);
+                            retval = handlers->handler_media(handlers->args, rce_flags, &ptr[0], size, &frame);
                             if (retval == RTP_PKT_READY) {
                                 return_frame(frame);
                                 break;

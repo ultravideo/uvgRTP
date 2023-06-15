@@ -68,7 +68,7 @@ namespace uvgrtp {
                  * Return RTP_PKT_MODIFIED if the packet was modified but should be forwarded to other handlers
                  * Return RTP_GENERIC_ERROR if the packet was corrupted in some way */
                 static rtp_error_t packet_handler(void *arg, int rce_flags, frame::rtp_frame **frame);
-                rtp_error_t new_packet_handler(int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out);
+                rtp_error_t new_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out);
 
                 /* Return pointer to the internal frame info structure which is relayed to packet handler */
                 media_frame_info_t *get_media_frame_info();
