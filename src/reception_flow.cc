@@ -712,7 +712,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     if (ntohl(*(uint32_t*)&ptr[4]) == 0x5a525450) {
                         // TODO: Add functionality
                         UVG_LOG_INFO("ZRTP packet");
-                        //break;
+                        break;
                     }
 
                     /* -------------------- RTP check ---------------------------------- */
@@ -725,7 +725,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                                 return_frame(frame);
                                 break;
                             }
-                            else if (retval == RTP_MULTIPLE_PKTS_READY) {
+                            else if (retval == RTP_MULTIPLE_PKTS_READY && handlers->getter != nullptr) {
                                 UVG_LOG_INFO("TODO:is this correct???");
                                 while (handlers->getter(&frame) == RTP_PKT_READY) {
                                     return_frame(frame);
@@ -740,7 +740,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     else {
                         // No functionality needed
                         UVG_LOG_INFO("Holepuncher packet");
-                        //break;
+                        break;
                     }
 
                }

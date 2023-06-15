@@ -259,13 +259,10 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
         case RTP_FORMAT_VDVI:
         {
             media_ = std::unique_ptr<uvgrtp::formats::media>(new uvgrtp::formats::media(socket_, rtp_, rce_flags_));
-            // TODO _______________________________
-            reception_flow_->install_aux_handler(
-                rtp_handler_key_,
-                media_->get_media_frame_info(),
-                media_->packet_handler,
-                nullptr
-            );
+            reception_flow_->new_install_handler(
+                5, remote_ssrc_,
+                std::bind(&uvgrtp::formats::media::new_packet_handler, media_.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+                nullptr);
             break;
         }
         default:
