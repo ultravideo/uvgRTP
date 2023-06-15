@@ -37,10 +37,7 @@ uvgrtp::reception_flow::reception_flow(bool ipv6) :
     receiver_(nullptr),
     //user_hook_arg_(nullptr),
     //user_hook_(nullptr),
-    rtp_handlers_({}),
-    rtcp_handlers_({}),
-    zrtp_handlers_({}),
-    srtp_handlers_({}),
+    NEW_packet_handlers_({}),
     ring_buffer_(),
     ring_read_index_(-1), // invalid first index that will increase to a valid one
     last_ring_write_index_(-1),
@@ -329,22 +326,25 @@ rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_pt
     std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler,
     std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter)
 {
-    handler_new pair = {handler, getter};
     switch (type) {
         case 1: {
-            rtp_handlers_[remote_ssrc] = { handler, getter };
+            NEW_packet_handlers_[remote_ssrc].handler_rtp = handler;
             break;
         }
         case 2: {
-            rtcp_handlers_[remote_ssrc] = { handler, getter };
+            NEW_packet_handlers_[remote_ssrc].handler_rtcp = handler;
             break;
         }
         case 3: {
-            zrtp_handlers_[remote_ssrc] = { handler, getter };
+            NEW_packet_handlers_[remote_ssrc].handler_zrtp = handler;
             break;
         }
         case 4: {
-            srtp_handlers_[remote_ssrc] = { handler, getter };
+            NEW_packet_handlers_[remote_ssrc].handler_srtp = handler;
+            break;
+        }
+        case 5: {
+            NEW_packet_handlers_[remote_ssrc].handler_media = handler;
             break;
         }
         default: {
@@ -352,6 +352,7 @@ rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_pt
             break;
         }
     }
+    NEW_packet_handlers_[remote_ssrc].getter = getter;
     return RTP_OK;
 }
 
@@ -656,7 +657,9 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
 
                 // zrtp headerit network byte orderissa, 32 bittiä pitkiä. rtp myös
                 // process the ring buffer location through all the handlers
-                for (auto& handler : packet_handlers_) {
+
+                for (auto& p : NEW_packet_handlers_) {
+
                     uvgrtp::frame::rtp_frame* frame = nullptr;
 
                     //sockaddr_in from = ring_buffer_[ring_read_index_].from;
@@ -666,7 +669,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
 
                     /* -------------------- SSRC checks -------------------- */
                     uint32_t packet_ssrc = ntohl(*(uint32_t*)&ptr[8]);
-                    uint32_t current_ssrc = handler_mapping_[handler.first].get()->load();
+                    uint32_t current_ssrc = p.first.get()->load();
                     bool found = false;
                     if (current_ssrc == packet_ssrc) {
                         // Socket multiplexing, this handler is the correct one 
@@ -681,6 +684,8 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         // User pkt????
                         continue;
                     }
+                    // Handler set is found
+                    handler_new* handlers = &p.second;
                     /* -------------------- Protocol checks -------------------- */
                     /* Checks in the following order:
                      * 1. If RCE_RTCP_MUX && packet type is 200 - 204   -> RTCP packet    (or SRTCP)
@@ -688,16 +693,14 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                      * 3. Version is 2                                  -> RTP packet     (or SRTP)
                      * 4. Version is 00                                 -> Keep-Alive/Holepuncher */
                     rtp_error_t retval;
+                    size_t size = (size_t)ring_buffer_[ring_read_index_].read;
+
                      /* -------------------- RTCP check -------------------- */
                     if (rce_flags & RCE_RTCP_MUX) {
                         uint8_t pt = (uint8_t)ptr[1];
                         //UVG_LOG_DEBUG("Received frame with pt %u", pt);
                         if (pt >= 200 && pt <= 204) {
-                            for (auto& p : rtcp_handlers_) {
-                                if (p.first.get()->load() == current_ssrc) {
-                                    retval = p.second.handler(rce_flags, &ptr[0], (size_t)ring_buffer_[ring_read_index_].read, &frame);
-                                }
-                            }
+                            retval = handlers->handler_rtcp(rce_flags, &ptr[0], size, &frame);
                             break;
                         }
                     }
@@ -714,15 +717,20 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
 
                     /* -------------------- RTP check ---------------------------------- */
                     else if (version == 0x2) {
-                        for (auto& p : rtp_handlers_) {
-                            if (p.first.get()->load() == current_ssrc) {
-                                retval = p.second.handler(rce_flags, &ptr[0], (size_t)ring_buffer_[ring_read_index_].read, &frame);
-                                if (retval == RTP_PKT_MODIFIED) {
-                                    // next handler???
+                        retval = handlers->handler_rtp(rce_flags, &ptr[0], size, &frame);
+
+                        if (retval == RTP_PKT_MODIFIED) {
+                            retval = handlers->handler_media(rce_flags, &ptr[0], size, &frame);
+                            if (retval == RTP_PKT_READY) {
+                                return_frame(frame);
+                                break;
+                            }
+                            else if (retval == RTP_MULTIPLE_PKTS_READY) {
+                                UVG_LOG_INFO("TODO:is this correct???");
+                                while (handlers->getter(&frame) == RTP_PKT_READY) {
+                                    return_frame(frame);
                                 }
-                                else {
-                                    //error??
-                                }
+                                break;
                             }
                         }
                         break;
@@ -734,52 +742,8 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         UVG_LOG_INFO("Holepuncher packet");
                         //break;
                     }
-                    
-                    // Here we don't lock ring mutex because the chaging is only done above. 
-                    // NOTE: If there is a need for multiple processing threads, the read should be guarded
-                    switch ((ret = (*handler.second.primary)(ring_buffer_[ring_read_index_].read,
-                        ring_buffer_[ring_read_index_].data, rce_flags, &frame))) {
-                        case RTP_OK:
-                        {
-                            // packet was handled successfully
-                            break;
-                        }
-                        case RTP_PKT_NOT_HANDLED:
-                        {
-                            /* ----------- User packets not yet supported -----------
-                            std::string from_str;
-                            if (ipv6_) {
-                                from_str = uvgrtp::socket::sockaddr_ip6_to_string(from6);
-                            }
-                            else {
-                                from_str = uvgrtp::socket::sockaddr_to_string(from);
-                            }
-                            UVG_LOG_DEBUG("User packet from ip: %s", from_str.c_str());
-                            return_user_pkt(ptr);
-                            */
-                    
-                            // packet was not handled by this primary handlers, proceed to the next one
-                            //continue;
-                            /* packet was handled by the primary handler
-                             * and should be dispatched to the auxiliary handler(s) 
-                        }
-                        case RTP_PKT_MODIFIED:
-                        {
-                            call_aux_handlers(handler.first, rce_flags, &frame);
-                            break;
-                        }
-                        case RTP_GENERIC_ERROR:
-                        {
-                            UVG_LOG_DEBUG("Error in handling of received packet!");
-                            break;
-                        }
-                        default:
-                        {
-                            UVG_LOG_ERROR("Unknown error code from packet handler: %d", ret);
-                            break;
-                        }
-                    }*/
-                }
+
+               }
 
                 // to make sure we don't process this packet again
                 ring_buffer_[ring_read_index_].read = 0;

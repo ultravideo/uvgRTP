@@ -64,7 +64,11 @@ namespace uvgrtp {
     //typedef rtp_error_t(*packet_handler_new)(void*, int, uint8_t*, size_t);
 
     struct handler_new {
-        std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler;
+        std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler_rtp;
+        std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler_rtcp;
+        std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler_zrtp;
+        std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler_srtp;
+        std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler_media;
         std::function<rtp_error_t(uvgrtp::frame::rtp_frame ** out)> getter;
     };
 
@@ -130,6 +134,7 @@ namespace uvgrtp {
             2 rtcp
             3 zrtp
             4 srtp
+            5 media
             getter can be nullptr if there is no getter (for media handlers mostly)
             */
             rtp_error_t new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, 
@@ -282,12 +287,8 @@ namespace uvgrtp {
             //void* user_hook_arg_;
             //void (*user_hook_)(void* arg, uint8_t* payload);
 
-            // Map different types of handlers by remote SSRCs
-            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> rtp_handlers_;
-            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> rtcp_handlers_;
-            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> zrtp_handlers_;
-
-            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> srtp_handlers_;
+            // Map different types of handlers by remote SSRC
+            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> NEW_packet_handlers_;
 
             std::vector<Buffer> ring_buffer_;
             std::mutex ring_mutex_;

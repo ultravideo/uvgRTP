@@ -633,6 +633,10 @@ bool uvgrtp::formats::h26x::is_duplicate_frame(uint32_t timestamp, uint16_t seq_
     }
     return false;
 }
+rtp_error_t uvgrtp::formats::h26x::new_packet_handler(int rce_flags, uint8_t* read_ptr, size_t size, uvgrtp::frame::rtp_frame** out)
+{
+    return packet_handler(rce_flags, out);
+}
 
 rtp_error_t uvgrtp::formats::h26x::packet_handler(int rce_flags, uvgrtp::frame::rtp_frame** out)
 {
