@@ -316,23 +316,23 @@ rtp_error_t uvgrtp::media_stream::init()
     reception_flow_->map_handler_key(rtp_handler_key_, remote_ssrc_);
 
     reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_.get(), rtcp_->recv_packet_handler, nullptr);
-    if (rce_flags_ & RCE_RTCP_MUX) {
-        reception_flow_->map_rtcp_to_rec(remote_ssrc_, rtcp_);
-        rtcp_->set_socket(socket_);
-    }
-    
+
     reception_flow_->new_install_handler(
         1,
         remote_ssrc_,
         std::bind(&uvgrtp::rtp::new_packet_handler, rtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-        nullptr);/*
+        nullptr);
+
+    if (rce_flags_ & RCE_RTCP_MUX) {
+    rtcp_->set_socket(socket_);
     reception_flow_->new_install_handler(
         2,
         remote_ssrc_,
         std::bind(&uvgrtp::rtcp::new_recv_packet_handler, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
         nullptr
-    );*/
-        
+    );
+    }
+
     return start_components();
 }
 
