@@ -62,8 +62,8 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     fps_denominator_(1),
     ssrc_(std::make_shared<std::atomic<std::uint32_t>>(uvgrtp::random::generate_32())),
     remote_ssrc_(std::make_shared<std::atomic<std::uint32_t>>(0)),
-    snd_buf_size_(-2),
-    rcv_buf_size_(-2)
+    snd_buf_size_(-1),
+    rcv_buf_size_(-1)
 {
 }
 
@@ -327,7 +327,6 @@ rtp_error_t uvgrtp::media_stream::init()
         nullptr);
 
     if (rce_flags_ & RCE_RTCP) {
-        rtcp_->set_socket(socket_);
 
         reception_flow_->new_install_handler(
             6, remote_ssrc_,
@@ -335,6 +334,7 @@ rtp_error_t uvgrtp::media_stream::init()
             std::placeholders::_4, std::placeholders::_5), rtcp_.get());
     }
     if (rce_flags_ & RCE_RTCP_MUX) {
+        rtcp_->set_socket(socket_);
         reception_flow_->new_install_handler(
             2, remote_ssrc_,
             std::bind(&uvgrtp::rtcp::new_recv_packet_handler, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
@@ -929,7 +929,7 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
 
 int uvgrtp::media_stream::get_configuration_value(int rcc_flag)
 {
-    int ret = -2;
+    int ret = -1;
 
     if (rcc_flag == RCC_SSRC) {
         return ssrc_.get()->load();
@@ -975,10 +975,8 @@ int uvgrtp::media_stream::get_configuration_value(int rcc_flag)
             return (int)bandwidth_;
         }
         default:
-            return -1;
+            ret = -1;
     }
-
-    return ret;
 }
 
 uint32_t uvgrtp::media_stream::get_key() const

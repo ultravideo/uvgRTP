@@ -338,8 +338,7 @@ namespace uvgrtp {
              * \return Value of the configuration flag
              *
              * \retval int value on success
-             * \retval -1 if the provided configuration flag does not exist
-             * \retval -2 if the flag is not set
+             * \retval -1 on error
              */
             int get_configuration_value(int rcc_flag);
 
