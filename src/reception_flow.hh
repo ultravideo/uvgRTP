@@ -145,6 +145,8 @@ namespace uvgrtp {
                 std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter,
                 void* args);
 
+            rtp_error_t new_remove_handlers(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
+
             /* Install auxiliary handler for the packet
              *
              * This handler is responsible for doing auxiliary operations on the packet

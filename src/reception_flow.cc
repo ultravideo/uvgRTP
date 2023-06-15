@@ -361,6 +361,16 @@ rtp_error_t uvgrtp::reception_flow::new_install_handler2(std::shared_ptr<std::at
     return RTP_OK;
 }
 
+rtp_error_t uvgrtp::reception_flow::new_remove_handlers(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
+{
+    int removed = NEW_packet_handlers_.erase(remote_ssrc);
+    if (removed == 1) {
+        return RTP_OK;
+    }
+    return RTP_INVALID_VALUE;
+}
+
+
 rtp_error_t uvgrtp::reception_flow::install_aux_handler_cpp(uint32_t key,
     std::function<rtp_error_t(int, uvgrtp::frame::rtp_frame**)> handler,
     std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter)
@@ -747,7 +757,6 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         UVG_LOG_INFO("Holepuncher packet");
                         break;
                     }
-
                }
 
                 // to make sure we don't process this packet again
