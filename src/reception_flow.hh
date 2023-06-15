@@ -121,18 +121,6 @@ namespace uvgrtp {
             reception_flow(bool ipv6);
             ~reception_flow();
 
-            /* Install a primary handler for an incoming UDP datagram
-             *
-             * This handler is responsible for creating an operable RTP packet
-             * that auxiliary handlers can work with.
-             *
-             * It is also responsible for validating the packet on a high level
-             * (ZRTP checksum/RTP version etc) before passing it onto other handlers.
-             *
-             * Return a key on success that differentiates primary packet handlers
-             * Return 0 "handler" is nullptr */
-            uint32_t install_handler(packet_handler handler);
-
             /*
             handler types
             1 rtp
@@ -151,26 +139,6 @@ namespace uvgrtp {
                 std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter);
 
             rtp_error_t new_remove_handlers(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
-
-            /* Install auxiliary handler for the packet
-             *
-             * This handler is responsible for doing auxiliary operations on the packet
-             * such as gathering sessions statistics data or decrypting the packet
-             * It is called only after the primary handler of the auxiliary handler is called
-             *
-             * "key" is used to specify for which primary handlers for "handler"
-             * An auxiliary handler can be installed to multiple primary handlers
-             *
-             * "arg" is an optional argument that is passed to the handler when it's called
-             * It can be null if the handler does not require additional data
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "handler" is nullptr or if "key" is not valid */
-            rtp_error_t install_aux_handler(uint32_t key, void *arg, packet_handler_aux handler, frame_getter getter);
-
-            rtp_error_t install_aux_handler_cpp(uint32_t key, 
-                std::function<rtp_error_t(int, uvgrtp::frame::rtp_frame**)> handler,
-                std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter);
 
             /* Install receive hook in reception flow
              *
@@ -204,14 +172,6 @@ namespace uvgrtp {
             uvgrtp::frame::rtp_frame* pull_frame(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
             uvgrtp::frame::rtp_frame* pull_frame(ssize_t timeout_ms, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
-            /* Map a packet handler key to a REMOTE SSRC of a stream
-             *
-             * Return true if a handler with the given key exists in the reception_flow -> mapping succesful
-             * Return false if there is no handler with this key -> no mapping is done */
-            bool map_handler_key(uint32_t key, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
-
-            rtp_error_t clear_rtcp_from_rec(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
-
             /* Clear the packet handlers associated with this handler key from the reception_flow
              * Also clear the hooks associated with this remote_ssrc
              * 
@@ -244,9 +204,6 @@ namespace uvgrtp {
 
             inline void increase_buffer_size(ssize_t next_write_index);
 
-            /* Primary handlers for the socket */
-            std::unordered_map<uint32_t, packet_handlers> packet_handlers_;
-
             inline ssize_t next_buffer_location(ssize_t current_location);
 
             void create_ring_buffer();
@@ -263,11 +220,6 @@ namespace uvgrtp {
             //void (*recv_hook_)(void *arg, uvgrtp::frame::rtp_frame *frame);
 
             std::map<std::shared_ptr<std::atomic<std::uint32_t>>, receive_pkt_hook> hooks_;
-            // Map handler keys to media streams remote ssrcs
-            std::map<uint32_t, std::shared_ptr<std::atomic<std::uint32_t>>> handler_mapping_;
-
-            std::mutex rtcp_map_mutex_;
-            std::map<std::shared_ptr<std::atomic<uint32_t>>, std::shared_ptr<uvgrtp::rtcp>> rtcps_map_;
 
             std::mutex flow_mutex_;
             bool should_stop_;

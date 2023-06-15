@@ -87,9 +87,6 @@ uvgrtp::media_stream::~media_stream()
             sfp_->clear_port(src_port_, socket_);
         }
     }
-    if (rce_flags_ & RCE_RTCP_MUX) {
-        reception_flow_->clear_rtcp_from_rec(remote_ssrc_);
-    }
 
     (void)free_resources(RTP_OK);
 }
@@ -323,12 +320,6 @@ rtp_error_t uvgrtp::media_stream::init()
 
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
 
-    rtp_handler_key_ = reception_flow_->install_handler(rtp_->packet_handler);
-
-    reception_flow_->map_handler_key(rtp_handler_key_, remote_ssrc_);
-
-    reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_.get(), rtcp_->recv_packet_handler, nullptr);
-
     reception_flow_->new_install_handler(
         1, remote_ssrc_,
         std::bind(&uvgrtp::rtp::new_packet_handler, rtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
@@ -402,14 +393,6 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
     socket_->install_handler(srtp_.get(), srtp_->send_packet_handler);
 
-    rtp_handler_key_ = reception_flow_->install_handler(rtp_->packet_handler);
-    zrtp_handler_key_ = reception_flow_->install_handler(zrtp->packet_handler);
-    
-    reception_flow_->map_handler_key(rtp_handler_key_, remote_ssrc_);
-    reception_flow_->map_handler_key(zrtp_handler_key_, remote_ssrc_);
-
-    reception_flow_->install_aux_handler(rtp_handler_key_, srtp_.get(), srtp_->recv_packet_handler, nullptr);
-    reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_.get(), rtcp_->recv_packet_handler, nullptr);
     if (rce_flags_ & RCE_RTCP_MUX) {
         rtcp_->set_socket(socket_);
     }

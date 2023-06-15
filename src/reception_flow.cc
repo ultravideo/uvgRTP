@@ -32,7 +32,6 @@ constexpr size_t DEFAULT_INITIAL_BUFFER_SIZE = 4194304;
 
 uvgrtp::reception_flow::reception_flow(bool ipv6) :
     hooks_({}),
-    handler_mapping_({}),
     should_stop_(true),
     receiver_(nullptr),
     //user_hook_arg_(nullptr),
@@ -285,43 +284,6 @@ uvgrtp::frame::rtp_frame* uvgrtp::reception_flow::pull_frame(ssize_t timeout_ms,
     return nullptr;
 }
 
-uint32_t uvgrtp::reception_flow::install_handler(uvgrtp::packet_handler handler)
-{
-    uint32_t key;
-
-    if (!handler)
-        return 0;
-
-    do {
-        key = uvgrtp::random::generate_32();
-    } while (!key || (packet_handlers_.find(key) != packet_handlers_.end()));
-
-    packet_handlers_[key].primary = handler;
-    return key;
-}
-
-rtp_error_t uvgrtp::reception_flow::install_aux_handler(
-    uint32_t key,
-    void *arg,
-    uvgrtp::packet_handler_aux handler,
-    uvgrtp::frame_getter getter
-)
-{
-    if (!handler)
-        return RTP_INVALID_VALUE;
-
-    if (packet_handlers_.find(key) == packet_handlers_.end())
-        return RTP_INVALID_VALUE;
-
-    auxiliary_handler aux;
-    aux.arg = arg;
-    aux.getter = getter;
-    aux.handler = handler;
-
-    packet_handlers_[key].auxiliary.push_back(aux);
-    return RTP_OK;
-}
-
 rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
     std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler, void* args)
 {
@@ -378,22 +340,6 @@ rtp_error_t uvgrtp::reception_flow::new_remove_handlers(std::shared_ptr<std::ato
         return RTP_OK;
     }
     return RTP_INVALID_VALUE;
-}
-
-
-rtp_error_t uvgrtp::reception_flow::install_aux_handler_cpp(uint32_t key,
-    std::function<rtp_error_t(int, uvgrtp::frame::rtp_frame**)> handler,
-    std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter)
-{
-    if (!handler)
-        return RTP_INVALID_VALUE;
-
-    if (packet_handlers_.find(key) == packet_handlers_.end())
-        return RTP_INVALID_VALUE;
-
-    auxiliary_handler_cpp ahc = {handler, getter};
-    packet_handlers_[key].auxiliary_cpp.push_back(ahc);
-    return RTP_OK;
 }
 
 void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
@@ -652,7 +598,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         if (rce_flags & RCE_RTCP) {
                             retval = handlers->handler_rtcp_common.handler(handlers->handler_rtcp_common.args, rce_flags, &ptr[0], size, &frame);
                         }
-                        if (retval == RTP_PKT_MODIFIED) {
+                        if (retval == RTP_PKT_MODIFIED || retval == RTP_PKT_NOT_HANDLED) {
                             retval = handlers->handler_media.handler(handlers->handler_media.args, rce_flags, &ptr[0], size, &frame);
                             if (retval == RTP_PKT_READY) {
                                 return_frame(frame);
@@ -737,43 +683,20 @@ void uvgrtp::reception_flow::increase_buffer_size(ssize_t next_write_index)
     }
 }
 
-bool uvgrtp::reception_flow::map_handler_key(uint32_t key, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
-{
-    if (handler_mapping_.find(key) == handler_mapping_.end()) {
-        handler_mapping_[key] = remote_ssrc;
-        return true;
-    }
-    return false;
-}
-
 int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, uint32_t handler_key)
 {
     // Clear all the data structures
     if (hooks_.find(remote_ssrc) != hooks_.end()) {
         hooks_.erase(remote_ssrc);
     }
-    if (packet_handlers_.find(handler_key) != packet_handlers_.end()) {
-        packet_handlers_.erase(handler_key);
+    if (NEW_packet_handlers_.find(remote_ssrc) != NEW_packet_handlers_.end()) {
+        NEW_packet_handlers_.erase(remote_ssrc);
     }
-    if (handler_mapping_.find(handler_key) != handler_mapping_.end()) {
-        handler_mapping_.erase(handler_key);
-    }
+
     // If all the data structures are empty, return 1 which means that there is no streams left for this reception_flow
     // and it can be safely deleted
-    if (hooks_.empty() && packet_handlers_.empty() && handler_mapping_.empty()) {
+    if (hooks_.empty() && NEW_packet_handlers_.empty()) {
         return 1;
     }
     return 0;
-}
-
-rtp_error_t uvgrtp::reception_flow::clear_rtcp_from_rec(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
-{
-    rtp_error_t ret = RTP_GENERIC_ERROR;
-    rtcp_map_mutex_.lock();
-    if (rtcps_map_.find(remote_ssrc) != rtcps_map_.end()) {
-        rtcps_map_.erase(remote_ssrc);
-        ret = RTP_OK;
-    }
-    rtcp_map_mutex_.unlock();
-    return ret;
 }
