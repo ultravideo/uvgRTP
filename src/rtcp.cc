@@ -1031,7 +1031,7 @@ void uvgrtp::rtcp::update_session_statistics(const uvgrtp::frame::rtp_frame *fra
         ((double)trans_difference - participants_[frame->header.ssrc]->stats.jitter);
 }
 
-rtp_error_t uvgrtp::rtcp::new_recv_packet_handler(int rce_flags, uint8_t* read_ptr, size_t size)
+rtp_error_t uvgrtp::rtcp::new_recv_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out)
 {
     //UVG_LOG_INFO("RTCP packet handled from %u", remote_ssrc_.get()->load());
     return handle_incoming_packet(read_ptr, size);

@@ -233,7 +233,7 @@ uint32_t uvgrtp::rtp::get_rtp_ts() const {
     return rtp_ts_;
 }
 
-rtp_error_t uvgrtp::rtp::new_packet_handler(int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out)
+rtp_error_t uvgrtp::rtp::new_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out)
 {
     return packet_handler(size, (void*)read_ptr, rce_flags, out);
 }

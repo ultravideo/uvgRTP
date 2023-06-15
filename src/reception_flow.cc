@@ -323,23 +323,32 @@ rtp_error_t uvgrtp::reception_flow::install_aux_handler(
 }
 
 rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
-    std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler)
+    std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler, void* args)
 {
     switch (type) {
         case 1: {
-            NEW_packet_handlers_[remote_ssrc].handler_rtp = handler;
+            NEW_packet_handlers_[remote_ssrc].handler_rtp.handler = handler;
+            NEW_packet_handlers_[remote_ssrc].handler_rtp.args = args;
             break;
         }
         case 2: {
-            NEW_packet_handlers_[remote_ssrc].handler_rtcp = handler;
+            NEW_packet_handlers_[remote_ssrc].handler_rtcp.handler = handler;
+            NEW_packet_handlers_[remote_ssrc].handler_rtcp.args = args;
             break;
         }
         case 3: {
-            NEW_packet_handlers_[remote_ssrc].handler_zrtp = handler;
+            NEW_packet_handlers_[remote_ssrc].handler_zrtp.handler = handler;
+            NEW_packet_handlers_[remote_ssrc].handler_zrtp.args = args;
             break;
         }
         case 4: {
-            NEW_packet_handlers_[remote_ssrc].handler_srtp = handler;
+            NEW_packet_handlers_[remote_ssrc].handler_srtp.handler = handler;
+            NEW_packet_handlers_[remote_ssrc].handler_srtp.args = args;
+            break;
+        }
+        case 5: {
+            NEW_packet_handlers_[remote_ssrc].handler_media.handler = handler;
+            NEW_packet_handlers_[remote_ssrc].handler_media.args = args;
             break;
         }
         default: {
@@ -350,14 +359,10 @@ rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_pt
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::reception_flow::new_install_handler2(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
-    std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler,
-    std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter,
-    void* args)
+rtp_error_t uvgrtp::reception_flow::new_install_getter(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
+    std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter)
 {
-    NEW_packet_handlers_[remote_ssrc].handler_media = handler;
     NEW_packet_handlers_[remote_ssrc].getter = getter;
-    NEW_packet_handlers_[remote_ssrc].args = args;
     return RTP_OK;
 }
 
@@ -614,7 +619,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         uint8_t pt = (uint8_t)ptr[1];
                         //UVG_LOG_DEBUG("Received frame with pt %u", pt);
                         if (pt >= 200 && pt <= 204) {
-                            retval = handlers->handler_rtcp(rce_flags, &ptr[0], size, &frame);
+                            retval = handlers->handler_rtcp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
                             break;
                         }
                     }
@@ -631,10 +636,16 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
 
                     /* -------------------- RTP check ---------------------------------- */
                     else if (version == 0x2) {
-                        retval = handlers->handler_rtp(rce_flags, &ptr[0], size, &frame);
+                        retval = RTP_PKT_MODIFIED;
+                        if (rce_flags & RCE_SRTP) {
+                            retval = handlers->handler_srtp.handler(handlers->handler_srtp.args, rce_flags, &ptr[0], size, &frame);
+                        }
+                        if (retval == RTP_PKT_MODIFIED) {
+                            retval = handlers->handler_rtp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
+                        }
 
                         if (retval == RTP_PKT_MODIFIED) {
-                            retval = handlers->handler_media(handlers->args, rce_flags, &ptr[0], size, &frame);
+                            retval = handlers->handler_media.handler(handlers->handler_media.args, rce_flags, &ptr[0], size, &frame);
                             if (retval == RTP_PKT_READY) {
                                 return_frame(frame);
                                 break;

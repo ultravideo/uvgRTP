@@ -63,14 +63,17 @@ namespace uvgrtp {
     // -----------new packet handlers
     //typedef rtp_error_t(*packet_handler_new)(void*, int, uint8_t*, size_t);
 
-    struct handler_new {
-        std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler_rtp;
-        std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler_rtcp;
-        std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler_zrtp;
-        std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler_srtp;
-        std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler_media;
-        std::function<rtp_error_t(uvgrtp::frame::rtp_frame ** out)> getter;
+    struct renamethis_handler {
+        std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler;
         void* args = nullptr;
+    };
+    struct handler_new {
+        renamethis_handler handler_rtp;
+        renamethis_handler handler_rtcp;
+        renamethis_handler handler_zrtp;
+        renamethis_handler handler_srtp;
+        renamethis_handler handler_media;
+        std::function<rtp_error_t(uvgrtp::frame::rtp_frame ** out)> getter;
     };
 
     /* This class handles the reception processing of received RTP packets. It 
@@ -135,15 +138,15 @@ namespace uvgrtp {
             2 rtcp
             3 zrtp
             4 srtp
+            5 media
             getter can be nullptr if there is no getter (for media handlers mostly)
             */
             rtp_error_t new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, 
-                std::function<rtp_error_t(int, uint8_t*, size_t, frame::rtp_frame** out)> handler);
-
-            rtp_error_t new_install_handler2(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
                 std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler,
-                std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter,
                 void* args);
+
+            rtp_error_t new_install_getter(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
+                std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter);
 
             rtp_error_t new_remove_handlers(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
