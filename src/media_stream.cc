@@ -78,10 +78,7 @@ uvgrtp::media_stream::~media_stream()
         rtcp_->stop();
     }
     // Clear this media stream from the reception_flow
-    if (reception_flow_ && zrtp_handler_key_ != 0) {
-        reception_flow_->clear_stream_from_flow(remote_ssrc_, zrtp_handler_key_);
-    }
-    if ( reception_flow_ && (reception_flow_->clear_stream_from_flow(remote_ssrc_, rtp_handler_key_)) == 1) {
+    if ( reception_flow_ && (reception_flow_->clear_stream_from_flow(remote_ssrc_)) == 1) {
         reception_flow_->stop();
         if (sfp_) {
             sfp_->clear_port(src_port_, socket_);
@@ -394,9 +391,27 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
     socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
     socket_->install_handler(srtp_.get(), srtp_->send_packet_handler);
 
+    reception_flow_->new_install_handler(
+        1, remote_ssrc_,
+        std::bind(&uvgrtp::rtp::new_packet_handler, rtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+            std::placeholders::_4, std::placeholders::_5),
+        nullptr);
+
+    if (rce_flags_ & RCE_RTCP) {
+
+        reception_flow_->new_install_handler(
+            6, remote_ssrc_,
+            std::bind(&uvgrtp::rtcp::new_recv_packet_handler_common, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                std::placeholders::_4, std::placeholders::_5), rtcp_.get());
+    }
     if (rce_flags_ & RCE_RTCP_MUX) {
         rtcp_->set_socket(socket_);
+        reception_flow_->new_install_handler(
+            2, remote_ssrc_,
+            std::bind(&uvgrtp::rtcp::new_recv_packet_handler, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                std::placeholders::_4, std::placeholders::_5), nullptr);
     }
+
     return start_components();
 }
 
@@ -416,8 +431,6 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     if ((rce_flags_ & srtp_rce_flags) != srtp_rce_flags)
         return free_resources(RTP_NOT_SUPPORTED);
-
-    //reception_flow_ = std::unique_ptr<uvgrtp::reception_flow> (new uvgrtp::reception_flow());
 
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_, ssrc_, ipv6_));
 

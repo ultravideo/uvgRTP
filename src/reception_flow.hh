@@ -119,7 +119,6 @@ namespace uvgrtp {
             rtp_error_t new_remove_handlers(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
             /* Install receive hook in reception flow
-             *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "hook" is nullptr */
             rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *), std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
@@ -150,13 +149,13 @@ namespace uvgrtp {
             uvgrtp::frame::rtp_frame* pull_frame(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
             uvgrtp::frame::rtp_frame* pull_frame(ssize_t timeout_ms, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
-            /* Clear the packet handlers associated with this handler key from the reception_flow
+            /* Clear the packet handlers associated with this REMOTE SSRC
              * Also clear the hooks associated with this remote_ssrc
              * 
              * Return 1 if the hooks and handlers were cleared and there is no hooks or handlers left in
              * this reception_flow -> the flow can be safely deleted if wanted
              * Return 0 if the hooks and handlers were removed but there is still others left in this reception_flow */
-            int clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, uint32_t handler_key);
+            int clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
             /// \cond DO_NOT_DOCUMENT
             void set_buffer_size(const ssize_t& value);

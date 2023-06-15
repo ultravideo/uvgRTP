@@ -688,7 +688,7 @@ void uvgrtp::reception_flow::increase_buffer_size(ssize_t next_write_index)
     }
 }
 
-int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, uint32_t handler_key)
+int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
 {
     // Clear all the data structures
     if (hooks_.find(remote_ssrc) != hooks_.end()) {
