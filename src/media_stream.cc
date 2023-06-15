@@ -397,6 +397,11 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
             std::placeholders::_4, std::placeholders::_5),
         nullptr);
 
+    reception_flow_->new_install_handler(
+        4, remote_ssrc_,
+        std::bind(&uvgrtp::srtp::new_recv_packet_handler, srtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+            std::placeholders::_4, std::placeholders::_5), srtp_.get());
+
     if (rce_flags_ & RCE_RTCP) {
 
         reception_flow_->new_install_handler(
@@ -1003,6 +1008,7 @@ int uvgrtp::media_stream::get_configuration_value(int rcc_flag)
         default:
             ret = -1;
     }
+    return -1;
 }
 
 uint32_t uvgrtp::media_stream::get_key() const
