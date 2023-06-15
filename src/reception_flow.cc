@@ -588,11 +588,11 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     /* -------------------- RTP check ---------------------------------- */
                     else if (version == 0x2) {
                         retval = RTP_PKT_MODIFIED;
-                        if (rce_flags & RCE_SRTP) {
+
+                        retval = handlers->handler_rtp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
+
+                        if (rce_flags & RCE_SRTP && retval == RTP_PKT_MODIFIED) {
                             retval = handlers->handler_srtp.handler(handlers->handler_srtp.args, rce_flags, &ptr[0], size, &frame);
-                        }
-                        if (retval == RTP_PKT_MODIFIED) {
-                            retval = handlers->handler_rtp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
                         }
                         // RTCP common handler
                         if (rce_flags & RCE_RTCP) {

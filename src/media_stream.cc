@@ -442,18 +442,31 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
     socket_->install_handler(srtp_.get(), srtp_->send_packet_handler);
 
     reception_flow_->new_install_handler(
+        1, remote_ssrc_,
+        std::bind(&uvgrtp::rtp::new_packet_handler, rtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+            std::placeholders::_4, std::placeholders::_5),
+        nullptr);
+
+    if (rce_flags_ & RCE_RTCP) {
+
+        reception_flow_->new_install_handler(
+            6, remote_ssrc_,
+            std::bind(&uvgrtp::rtcp::new_recv_packet_handler_common, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                std::placeholders::_4, std::placeholders::_5), rtcp_.get());
+    }
+    if (rce_flags_ & RCE_RTCP_MUX) {
+        rtcp_->set_socket(socket_);
+        reception_flow_->new_install_handler(
+            2, remote_ssrc_,
+            std::bind(&uvgrtp::rtcp::new_recv_packet_handler, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                std::placeholders::_4, std::placeholders::_5), nullptr);
+    }
+
+    reception_flow_->new_install_handler(
         4, remote_ssrc_,
         std::bind(&uvgrtp::srtp::new_recv_packet_handler, srtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
             std::placeholders::_4, std::placeholders::_5), srtp_.get());
 
-    //rtp_handler_key_ = reception_flow_->install_handler(rtp_->packet_handler);
-    //reception_flow_->map_handler_key(rtp_handler_key_, remote_ssrc_);
-
-    //reception_flow_->install_aux_handler(rtp_handler_key_, rtcp_.get(), rtcp_->recv_packet_handler, nullptr);
-    //reception_flow_->install_aux_handler(rtp_handler_key_, srtp_.get(), srtp_->recv_packet_handler, nullptr);
-    if (rce_flags_ & RCE_RTCP_MUX) {
-        rtcp_->set_socket(socket_);
-    }
     return start_components();
 }
 
