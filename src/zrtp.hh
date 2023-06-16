@@ -120,6 +120,7 @@ namespace uvgrtp {
             /* Derive new key using s0 as HMAC key */
             void derive_key(const char *label, uint32_t key_len, uint8_t *key);
 
+            rtp_error_t new_begin_session();
             /* Being the ZRTP session by sending a Hello message to remote,
              * and responding to remote's Hello message using HelloAck message
              *
@@ -194,6 +195,7 @@ namespace uvgrtp {
 
             bool dh_finished_ = false;
             int state_;
+            std::mutex state_mutex_;
     };
 }
 

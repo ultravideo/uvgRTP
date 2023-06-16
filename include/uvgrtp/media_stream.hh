@@ -76,7 +76,7 @@ namespace uvgrtp {
              * Other error return codes are defined in {conn,writer,reader,srtp}.hh */
             rtp_error_t init(std::shared_ptr<uvgrtp::zrtp> zrtp);
             /// \endcond
-
+            rtp_error_t add_zrtp_ctx();
             /**
              *
              * \brief Add keying information for user-managed SRTP session

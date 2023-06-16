@@ -324,7 +324,6 @@ rtp_error_t uvgrtp::media_stream::init()
         nullptr);
 
     if (rce_flags_ & RCE_RTCP) {
-
         reception_flow_->new_install_handler(
             6, remote_ssrc_,
             std::bind(&uvgrtp::rtcp::new_recv_packet_handler_common, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
@@ -336,6 +335,15 @@ rtp_error_t uvgrtp::media_stream::init()
             2, remote_ssrc_,
             std::bind(&uvgrtp::rtcp::new_recv_packet_handler, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
                 std::placeholders::_4, std::placeholders::_5), nullptr);
+    }
+    if (rce_flags_ & RCE_SRTP) {
+        srtp_ = std::shared_ptr<uvgrtp::srtp>(new uvgrtp::srtp(rce_flags_));
+        srtcp_ = std::shared_ptr<uvgrtp::srtcp>(new uvgrtp::srtcp());
+
+        reception_flow_->new_install_handler(
+            4, remote_ssrc_,
+            std::bind(&uvgrtp::srtp::new_recv_packet_handler, srtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                std::placeholders::_4, std::placeholders::_5), srtp_.get());
     }
 
     return start_components();
@@ -371,7 +379,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
     }
 
     reception_flow_->new_install_handler(
-        1, remote_ssrc_,
+        3, remote_ssrc_,
         std::bind(&uvgrtp::zrtp::new_packet_handler, zrtp, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
             std::placeholders::_4, std::placeholders::_5),
         nullptr);
@@ -425,7 +433,10 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
 
     return start_components();
 }
-
+rtp_error_t uvgrtp::media_stream::add_zrtp_ctx()
+{
+    return RTP_OK;
+}
 rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 {
     if (!key || !salt)
@@ -445,7 +456,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
 
     rtp_ = std::shared_ptr<uvgrtp::rtp> (new uvgrtp::rtp(fmt_, ssrc_, ipv6_));
 
-    srtp_ = std::shared_ptr<uvgrtp::srtp> (new uvgrtp::srtp(rce_flags_));
+    //srtp_ = std::shared_ptr<uvgrtp::srtp> (new uvgrtp::srtp(rce_flags_));
 
     // why are they local and remote key/salt the same?
     if ((ret = srtp_->init(SRTP, rce_flags_, key, key, salt, salt)) != RTP_OK) {
@@ -453,7 +464,7 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
         return free_resources(ret);
     }
 
-    srtcp_ = std::shared_ptr<uvgrtp::srtcp> (new uvgrtp::srtcp());
+//    srtcp_ = std::shared_ptr<uvgrtp::srtcp> (new uvgrtp::srtcp());
 
     if ((ret = srtcp_->init(SRTCP, rce_flags_, key, key, salt, salt)) != RTP_OK) {
         UVG_LOG_WARN("Failed to initialize SRTCP for media stream!");
@@ -485,12 +496,12 @@ rtp_error_t uvgrtp::media_stream::add_srtp_ctx(uint8_t *key, uint8_t *salt)
             std::bind(&uvgrtp::rtcp::new_recv_packet_handler, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
                 std::placeholders::_4, std::placeholders::_5), nullptr);
     }
-
+    /*
     reception_flow_->new_install_handler(
         4, remote_ssrc_,
         std::bind(&uvgrtp::srtp::new_recv_packet_handler, srtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
             std::placeholders::_4, std::placeholders::_5), srtp_.get());
-
+            */
     return start_components();
 }
 
