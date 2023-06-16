@@ -582,7 +582,8 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     // Magic Cookie 0x5a525450
                     if (ntohl(*(uint32_t*)&ptr[4]) == 0x5a525450) {
                         // TODO: Add functionality
-                        UVG_LOG_INFO("ZRTP packet");
+                        //UVG_LOG_INFO("ZRTP packet");
+                        retval = handlers->zrtp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
                         break;
                     }
 
