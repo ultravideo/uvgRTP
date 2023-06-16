@@ -152,7 +152,12 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
                 return nullptr;
             }
         } else if (rce_flags & RCE_SRTP_KMNGMNT_USER) {
-            UVG_LOG_DEBUG("SRTP with user-managed keys enabled, postpone initialization");
+            //UVG_LOG_DEBUG("SRTP with user-managed keys enabled, postpone initialization");
+            if (stream->init() != RTP_OK) {
+                UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), src_port, dst_port);
+                delete stream;
+                return nullptr;
+            }
         } else {
             UVG_LOG_ERROR("SRTP key management scheme not specified!");
             rtp_errno = RTP_INVALID_VALUE;

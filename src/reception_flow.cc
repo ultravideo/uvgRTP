@@ -31,6 +31,7 @@
 constexpr size_t DEFAULT_INITIAL_BUFFER_SIZE = 4194304;
 
 uvgrtp::reception_flow::reception_flow(bool ipv6) :
+    frames_({}),
     hooks_({}),
     should_stop_(true),
     receiver_(nullptr),

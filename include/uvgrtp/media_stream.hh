@@ -274,7 +274,7 @@ namespace uvgrtp {
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, uint64_t ntp_ts, int rtp_flags);
 
             /* ----------- User packets not yet supported -----------
-            rtp_error_t send_user_packet(uint8_t* data, uint32_t payload_size,
+            rtp_error_t push_user_frame(uint8_t* data, uint32_t payload_size,
                 std::string remote_address, uint16_t port);
             rtp_error_t install_user_hook(void* arg, void (*hook)(void*, uint8_t* payload));
             */
@@ -402,6 +402,7 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::socket> socket_;
             std::shared_ptr<uvgrtp::rtp>    rtp_;
             std::shared_ptr<uvgrtp::rtcp>   rtcp_;
+            std::shared_ptr<uvgrtp::zrtp>   zrtp_;
 
             std::shared_ptr<uvgrtp::socketfactory> sfp_;
 
@@ -420,10 +421,6 @@ namespace uvgrtp {
 
             /* Has the media stream been initialized */
             bool initialized_;
-
-            /* Primary handler keys for the RTP reception flow */
-            uint32_t rtp_handler_key_;
-            uint32_t zrtp_handler_key_;
 
             /* RTP packet reception flow. Dispatches packets to other components */
             std::shared_ptr<uvgrtp::reception_flow> reception_flow_;
