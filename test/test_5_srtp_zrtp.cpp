@@ -21,7 +21,7 @@ void zrtp_sender_func(uvgrtp::session* sender_session, int sender_port, int rece
 void zrtp_receive_func(uvgrtp::session* receiver_session, int sender_port, int receiver_port, unsigned int flags);
 
 void test_user_key(Key_length len);
-
+int received_packets;
 // User key management test
 
 TEST(EncryptionTests, srtp_user_key_128)
@@ -127,6 +127,7 @@ void user_receive_func(uint8_t *key, uint8_t salt[SALT_SIZE_BYTES], uint8_t key_
 
     /* Enable SRTP and let user manage keys */
     unsigned flags = RCE_SRTP | RCE_SRTP_KMNGMNT_USER;
+    received_packets = 0;
 
     if (key_size == 192)
     {
@@ -161,10 +162,14 @@ void user_receive_func(uint8_t *key, uint8_t salt[SALT_SIZE_BYTES], uint8_t key_
             frame = recv->pull_frame(10);
             if (frame)
             {
+                std::cout << "Received frame" << std::endl;
+                ++received_packets;
                 process_rtp_frame(frame);
             }
         }
     }
+    std::cout << received_packets << " / 10 packets received" << std::endl;
+    EXPECT_TRUE(received_packets > 5);
 
     cleanup_ms(receiver_session, recv);
     cleanup_sess(ctx, receiver_session);
@@ -183,11 +188,12 @@ TEST(EncryptionTests, zrtp)
         FAIL();
         return;
     }
-
+    
     uvgrtp::session* sender_session = ctx.create_session(RECEIVER_ADDRESS, SENDER_ADDRESS);
     uvgrtp::session* receiver_session = ctx.create_session(SENDER_ADDRESS, RECEIVER_ADDRESS);
 
     unsigned zrtp_flags = RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP;
+    received_packets = 0;
 
     std::unique_ptr<std::thread> sender_thread =
         std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT, RECEIVER_PORT, zrtp_flags));
@@ -204,6 +210,9 @@ TEST(EncryptionTests, zrtp)
     {
         receiver_thread->join();
     }
+
+    std::cout << received_packets << " / 10 packets received" << std::endl;
+    EXPECT_TRUE(received_packets > 5);
 
     cleanup_sess(ctx, sender_session);
     cleanup_sess(ctx, receiver_session);
@@ -224,6 +233,7 @@ TEST(EncryptionTests, zrtp_authenticate)
     uvgrtp::session* receiver_session = ctx.create_session(SENDER_ADDRESS, RECEIVER_ADDRESS);
 
     unsigned zrtp_flags = RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP_AUTHENTICATE_RTP;
+    received_packets = 0;
 
     std::unique_ptr<std::thread> sender_thread =
         std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT, RECEIVER_PORT, zrtp_flags));
@@ -240,6 +250,9 @@ TEST(EncryptionTests, zrtp_authenticate)
     {
         receiver_thread->join();
     }
+
+    std::cout << received_packets << " / 10 packets received" << std::endl;
+    EXPECT_TRUE(received_packets > 5);
 
     cleanup_sess(ctx, sender_session);
     cleanup_sess(ctx, receiver_session);
@@ -353,6 +366,8 @@ void zrtp_receive_func(uvgrtp::session* receiver_session, int sender_port, int r
             frame = recv->pull_frame(10);
             if (frame)
             {
+                std::cout << "Received frame" << std::endl;
+                ++received_packets;
                 process_rtp_frame(frame);
             }
         }
