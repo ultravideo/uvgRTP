@@ -164,7 +164,7 @@ namespace uvgrtp {
              *
              * Return RTP_OK if DHPart2 was successful
              * Return RTP_TIMEOUT if no message is received from remote before T2 expires */
-            rtp_error_t dh_part2();
+            rtp_error_t dh_part2(uvgrtp::zrtp_msg::dh_key_exchange* dh);
 
             /* Calculate all the shared secrets (f.ex. DHResult and ZRTP Session Keys) */
             rtp_error_t calculate_shared_secret();
@@ -205,8 +205,11 @@ namespace uvgrtp {
             uvgrtp::zrtp_msg::zrtp_confirm* conf1_;
             uvgrtp::zrtp_msg::zrtp_confirm* conf2_;
             uvgrtp::zrtp_msg::zrtp_confack* confack_;
-            int type_;
-            size_t len_;
+
+            size_t hello_len_;
+            size_t commit_len_;
+            size_t dh_len_;
+
             std::mutex state_mutex_;
             bool dh_finished_ = false;
 

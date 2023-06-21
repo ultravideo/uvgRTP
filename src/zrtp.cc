@@ -44,8 +44,9 @@ uvgrtp::zrtp::zrtp():
     conf1_(nullptr),
     conf2_(nullptr),
     confack_(nullptr),
-    type_(-1),
-    len_(0)
+    hello_len_(0),
+    commit_len_(0),
+    dh_len_(0)
 {
     cctx_.sha256 = new uvgrtp::crypto::sha256;
     cctx_.dh     = new uvgrtp::crypto::dh;
@@ -399,13 +400,14 @@ rtp_error_t uvgrtp::zrtp::begin_session()
         if (hello_ != nullptr) {
             UVG_LOG_DEBUG("Got ZRTP Hello. Sending Hello ACK");
             hello_ack.send_msg(local_socket_, remote_addr_, remote_ip6_addr_);
+            UVG_LOG_DEBUG("ZRTP HelloACK sent");
 
             if (!hello_recv) {
                 hello_recv = true;
 
                 /* Copy interesting information from receiver's
                     * message buffer to remote capabilities struct for later use */
-                hello.parse_msg(hello_, session_, len_);
+                hello.parse_msg(hello_, session_, hello_len_);
                 UVG_LOG_INFO("ZRTP Hello parsed");
                 if (session_.capabilities.version != ZRTP_VERSION) {
 
@@ -484,9 +486,8 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
     /* First check if remote has already sent the message.
      * If so, they are the initiator and we're the responder */
     if (commit_ != nullptr) {
-        commit.parse_msg(commit_, session_, len_);
+        commit.parse_msg(commit_, session_, commit_len_);
         session_.role = RESPONDER;
-        UVG_LOG_DEBUG("------1------------RESPONDER");
         return RTP_OK;
     }
 
@@ -498,28 +499,7 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
     int interval = 150;
     int i = 1;
 
-    while (true) {        
-        if (commit_) {
-
-            /* As per RFC 6189, if both parties have sent Commit message and the mode is DH,
-             * hvi shall determine who is the initiator (the party with larger hvi is initiator) */
-            commit.parse_msg(commit_, session_, len_);
-
-            /* Our hvi is smaller than remote's meaning we are the responder.
-                *
-                * Commit message must be ACKed with DHPart1 messages so we need exit,
-                * construct that message and sent it to remote */
-                
-            if (!are_we_initiator(session_.hash_ctx.o_hvi, session_.hash_ctx.r_hvi)) {
-                session_.role = RESPONDER;
-                UVG_LOG_DEBUG("------------------RESPONDER");
-                return RTP_OK;
-            }
-        }
-        if (dh1_ || conf1_) {
-            return RTP_OK;
-        }
-
+    while (true) {  
         long int next_sendslot = i * interval;
         long int run_time = (long int)uvgrtp::clock::hrc::diff_now(start);
         long int diff_ms = next_sendslot - run_time;
@@ -534,10 +514,27 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
             }
             ++i;
         }
-        else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        if (commit_) {
+            UVG_LOG_DEBUG("Commit found");
+            /* As per RFC 6189, if both parties have sent Commit message and the mode is DH,
+             * hvi shall determine who is the initiator (the party with larger hvi is initiator) */
+            commit.parse_msg(commit_, session_, commit_len_);
 
+            /* Our hvi is smaller than remote's meaning we are the responder.
+                *
+                * Commit message must be ACKed with DHPart1 messages so we need exit,
+                * construct that message and sent it to remote */
+                
+            if (!are_we_initiator(session_.hash_ctx.o_hvi, session_.hash_ctx.r_hvi)) {
+                session_.role = RESPONDER;
+                return RTP_OK;
+            }
         }
+        if (dh1_ || conf1_) {
+            return RTP_OK;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
         if (i > 10) {
             break;
         }
@@ -557,9 +554,11 @@ rtp_error_t uvgrtp::zrtp::dh_part1()
     while (true) {
 
         if (dh2_ != nullptr) {
-            if (dhpart.parse_msg(dh2_, session_, len_) != RTP_OK) {
+            UVG_LOG_DEBUG("DHPart2 found");
+
+            if (dhpart.parse_msg(dh2_, session_, dh_len_) != RTP_OK) {
                 UVG_LOG_ERROR("Failed to parse DHPart2 Message!");
-                continue;
+                return RTP_GENERIC_ERROR;
             }
             UVG_LOG_DEBUG("DHPart2 received and parse successfully!");
 
@@ -594,16 +593,16 @@ rtp_error_t uvgrtp::zrtp::dh_part1()
     return RTP_TIMEOUT;
 }
 
-rtp_error_t uvgrtp::zrtp::dh_part2()
+rtp_error_t uvgrtp::zrtp::dh_part2(uvgrtp::zrtp_msg::dh_key_exchange* dh)
 {
     rtp_error_t ret = RTP_OK;
-    auto dhpart = uvgrtp::zrtp_msg::dh_key_exchange(session_, 2);
+    auto dhpart = dh;//uvgrtp::zrtp_msg::dh_key_exchange(session_, 2);
 
-    if ((ret = dhpart.parse_msg(dh1_, session_, len_)) != RTP_OK) {
+    if ((ret = dhpart->parse_msg(dh1_, session_, dh_len_)) != RTP_OK) {
         UVG_LOG_ERROR("Failed to parse DHPart1 Message!");
         return ret;
     }
-
+    UVG_LOG_DEBUG("DHPart1 parsed");
     /* parse_msg() above extracted the public key of remote and saved it to session_.
      * Now we must generate shared secrets (DHResult, total_hash, and s0) */
     generate_shared_secrets_dh();
@@ -614,7 +613,7 @@ rtp_error_t uvgrtp::zrtp::dh_part2()
 
     while (true) {
         if (conf1_ != nullptr) {
-            UVG_LOG_DEBUG("Confirm1 Message received");
+            UVG_LOG_DEBUG("Confirm1 found");
             return RTP_OK;
         }
 
@@ -623,7 +622,7 @@ rtp_error_t uvgrtp::zrtp::dh_part2()
         long int diff_ms = next_sendslot - run_time;
 
         if (diff_ms < 0) {
-            if ((ret = dhpart.send_msg(local_socket_, remote_addr_, remote_ip6_addr_)) != RTP_OK) {
+            if ((ret = dhpart->send_msg(local_socket_, remote_addr_, remote_ip6_addr_)) != RTP_OK) {
                 UVG_LOG_ERROR("Failed to send DHPart2 Message!");
                 return ret;
             }
@@ -653,6 +652,8 @@ rtp_error_t uvgrtp::zrtp::responder_finalize_session()
 
     while (true) {
         if (conf2_ != nullptr) {
+            UVG_LOG_DEBUG("Confirm2 found");
+
             if (confirm.parse_msg(conf2_, session_) != RTP_OK) {
                 UVG_LOG_ERROR("Failed to parse Confirm2 Message!");
                 continue;
@@ -714,8 +715,9 @@ rtp_error_t uvgrtp::zrtp::initiator_finalize_session()
     }
 
     while (true) {
+
         if (confack_ != nullptr) {
-            UVG_LOG_DEBUG("Conf2ACK received successfully!");
+            UVG_LOG_DEBUG("ConfACK found");
             return RTP_OK;
         }
 
@@ -728,6 +730,7 @@ rtp_error_t uvgrtp::zrtp::initiator_finalize_session()
                 UVG_LOG_ERROR("Failed to send Confirm2 Message!");
                 return ret;
             }
+            UVG_LOG_DEBUG("ZRTP Confirm2 sent");
             ++i;
             if (interval < 1200) {
                 interval *= 2;
@@ -854,7 +857,7 @@ rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
     /* From this point on, the execution deviates because both parties have their own roles
      * and different message that they need to send in order to finalize the ZRTP connection */
     if (session_.role == INITIATOR) {
-        if ((ret = dh_part2()) != RTP_OK) {
+        if ((ret = dh_part2(&dh_msg)) != RTP_OK) {
             UVG_LOG_ERROR("Failed to perform Diffie-Hellman key exchange Part2");
             return ret;
         }
@@ -878,13 +881,6 @@ rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
     UVG_LOG_INFO("ZRTP has been initialized using DHMode");
     /* ZRTP has been initialized using DHMode */
     initialized_ = true;
-    /*
-    /* reset the timeout (no longer needed) 
-    struct timeval tv = { 0, 0 };
-
-    if (local_socket_->setsockopt(SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) != RTP_OK)
-        return RTP_GENERIC_ERROR;
-        */
     /* Session has been initialized successfully and SRTP can start */
     return RTP_OK;
 }
@@ -1000,7 +996,7 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_INVALID_VALUE;
             }
 
-            UVG_LOG_DEBUG("ZRTP Hello message received, verify CRC32!");
+            //UVG_LOG_DEBUG("ZRTP Hello message received, verify CRC32!");
             zrtp_hello* hello = (zrtp_hello*)msg;
 
             if (!uvgrtp::crypto::crc32::verify_crc32(read_ptr, size - 4, hello->crc)) {
@@ -1011,8 +1007,7 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_OK;
             }
             hello_ = hello;
-            type_ = ZRTP_FT_HELLO;
-            len_ = size;
+            hello_len_ = size;
             return RTP_OK;
         }
 
@@ -1025,7 +1020,7 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_INVALID_VALUE;
             }
 
-            UVG_LOG_DEBUG("ZRTP HelloACK message received, verify CRC32!");
+            //UVG_LOG_DEBUG("ZRTP HelloACK message received, verify CRC32!");
 
             zrtp_hello_ack* ha_msg = (zrtp_hello_ack*)msg;
 
@@ -1036,9 +1031,6 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_OK;
             }
             hello_ack_ = ha_msg;
-            type_ = ZRTP_FT_HELLO_ACK;
-            len_ = size;
-
             return RTP_OK;
         }
 
@@ -1052,7 +1044,7 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_INVALID_VALUE;
             }
 
-            UVG_LOG_DEBUG("ZRTP Commit message received, verify CRC32!");
+            //UVG_LOG_DEBUG("ZRTP Commit message received, verify CRC32!");
 
             zrtp_commit* commit = (zrtp_commit*)msg;
 
@@ -1064,9 +1056,7 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_OK;
             }
             commit_ = commit;
-            type_ = ZRTP_FT_COMMIT;
-            len_ = size;
-
+            commit_len_ = size;
             return RTP_OK;
         }
 
@@ -1079,7 +1069,7 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_INVALID_VALUE;
             }
 
-            UVG_LOG_DEBUG("ZRTP DH Part1 message received, verify CRC32!");
+            //UVG_LOG_DEBUG("ZRTP DH Part1 message received, verify CRC32!");
 
             zrtp_dh* dh = (zrtp_dh*)msg;
 
@@ -1091,9 +1081,7 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_OK;
             }
             dh1_ = dh;
-            type_ = ZRTP_FT_DH_PART1;
-            len_ = size;
-
+            dh_len_ = size;
             return RTP_OK;
         }
 
@@ -1106,7 +1094,7 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_INVALID_VALUE;
             }
 
-            UVG_LOG_DEBUG("ZRTP DH Part2 message received, verify CRC32!");
+            //UVG_LOG_DEBUG("ZRTP DH Part2 message received, verify CRC32!");
 
             zrtp_dh* dh = (zrtp_dh*)msg;
 
@@ -1118,9 +1106,7 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_OK;
             }
             dh2_ = dh;
-            type_ = ZRTP_FT_DH_PART2;
-            len_ = size;
-
+            dh_len_ = size;
             return RTP_OK;
         }
 
@@ -1133,7 +1119,7 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_INVALID_VALUE;
             }
             rtp_error_t ret = RTP_OK;
-            UVG_LOG_DEBUG("ZRTP Confirm1 message received, verify CRC32!");
+            //UVG_LOG_DEBUG("ZRTP Confirm1 message received, verify CRC32!");
 
             zrtp_confirm* dh = (zrtp_confirm*)msg;
 
@@ -1145,9 +1131,6 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_OK;
             }
             conf1_ = dh;
-            type_ = ZRTP_FT_CONFIRM1;
-            len_ = size;
-
             return RTP_OK;
         }
 
@@ -1160,7 +1143,7 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_INVALID_VALUE;
             }
 
-            UVG_LOG_DEBUG("ZRTP Confirm2 message received, verify CRC32!");
+            //UVG_LOG_DEBUG("ZRTP Confirm2 message received, verify CRC32!");
 
             zrtp_confirm* dh = (zrtp_confirm*)msg;
 
@@ -1172,9 +1155,6 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_OK;
             }
             conf2_ = dh;
-            type_ = ZRTP_FT_CONFIRM2;
-            len_ = size;
-
             return RTP_OK;
         }
 
@@ -1186,7 +1166,7 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_INVALID_VALUE;
             }
 
-            UVG_LOG_DEBUG("ZRTP Conf2 ACK message received, verify CRC32!");
+            //UVG_LOG_DEBUG("ZRTP Conf2 ACK message received, verify CRC32!");
 
             zrtp_confack* ca = (zrtp_confack*)msg;
 
@@ -1198,9 +1178,6 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_OK;
             }
             confack_ = ca;
-            type_ = ZRTP_FT_CONF2_ACK;
-            len_ = size;
-
             return RTP_OK;
         }
 
