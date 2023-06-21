@@ -2,7 +2,12 @@
 
 #include "zrtp/zrtp_receiver.hh"
 #include "zrtp/defines.hh"
-
+#include "zrtp/commit.hh"
+#include "zrtp/confack.hh"
+#include "zrtp/confirm.hh"
+#include "zrtp/dh_kxchng.hh"
+#include "zrtp/hello.hh"
+#include "zrtp/hello_ack.hh"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -64,7 +69,8 @@ namespace uvgrtp {
                 uint8_t *their_msalt, uint32_t tsalt_len
             );
 
-            /* ZRTP packet handler is used after ZRTP state initialization has finished
+            /* TODO REWRITE THIS 
+            ZRTP packet handler is used after ZRTP state initialization has finished
              * and media exchange has started. RTP reception flow gives the packet
              * to "zrtp_handler" which then checks whether the packet is a ZRTP packet
              * or not and processes it accordingly.
@@ -72,8 +78,7 @@ namespace uvgrtp {
              * Return RTP_OK on success
              * Return RTP_PKT_NOT_HANDLED if "buffer" does not contain a ZRTP message
              * Return RTP_GENERIC_ERROR if "buffer" contains an invalid ZRTP message */
-            static rtp_error_t packet_handler(ssize_t size, void *packet, int rce_flags, frame::rtp_frame **out);
-            rtp_error_t new_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out);
+            rtp_error_t packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out);
 
             inline bool has_dh_finished() const
             {
@@ -120,7 +125,6 @@ namespace uvgrtp {
             /* Derive new key using s0 as HMAC key */
             void derive_key(const char *label, uint32_t key_len, uint8_t *key);
 
-            rtp_error_t new_begin_session();
             /* Being the ZRTP session by sending a Hello message to remote,
              * and responding to remote's Hello message using HelloAck message
              *
@@ -193,9 +197,20 @@ namespace uvgrtp {
 
             std::mutex zrtp_mtx_;
 
-            bool dh_finished_ = false;
-            int state_;
+            uvgrtp::zrtp_msg::zrtp_hello* hello_;
+            uvgrtp::zrtp_msg::zrtp_hello_ack* hello_ack_;
+            uvgrtp::zrtp_msg::zrtp_commit* commit_;
+            uvgrtp::zrtp_msg::zrtp_dh* dh1_;
+            uvgrtp::zrtp_msg::zrtp_dh* dh2_;
+            uvgrtp::zrtp_msg::zrtp_confirm* conf1_;
+            uvgrtp::zrtp_msg::zrtp_confirm* conf2_;
+            uvgrtp::zrtp_msg::zrtp_confack* confack_;
+            int type_;
+            size_t len_;
             std::mutex state_mutex_;
+            bool dh_finished_ = false;
+
+
     };
 }
 

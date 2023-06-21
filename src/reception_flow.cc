@@ -581,9 +581,9 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     /* -------------------- ZRTP check --------------------------------- */
                     // Magic Cookie 0x5a525450
                     if (ntohl(*(uint32_t*)&ptr[4]) == 0x5a525450) {
-                        // TODO: Add functionality
-                        //UVG_LOG_INFO("ZRTP packet");
-                        retval = handlers->zrtp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
+                        if (handlers->zrtp.handler != nullptr) {
+                            retval = handlers->zrtp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
+                        }
                         break;
                     }
 
@@ -592,27 +592,38 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         retval = RTP_PKT_MODIFIED;
 
                         /* Create RTP header */
-                        retval = handlers->rtp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
+                        if (handlers->rtp.handler != nullptr) {
+                            retval = handlers->rtp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
+                        }
+                        else {
+                            UVG_LOG_INFO("RTP handler is null");
+                        }
 
                         /* If SRTP is enabled -> send through SRTP handler */
                         if (rce_flags & RCE_SRTP && retval == RTP_PKT_MODIFIED) {
-                            retval = handlers->srtp.handler(handlers->srtp.args, rce_flags, &ptr[0], size, &frame);
+                            if (handlers->srtp.handler != nullptr) {
+                                retval = handlers->srtp.handler(handlers->srtp.args, rce_flags, &ptr[0], size, &frame);
+                            }
                         }
                         /* Update RTCP session statistics */ 
                         if (rce_flags & RCE_RTCP) {
-                            retval = handlers->rtcp_common.handler(handlers->rtcp_common.args, rce_flags, &ptr[0], size, &frame);
+                            if (handlers->rtcp_common.handler != nullptr) {
+                                retval = handlers->rtcp_common.handler(handlers->rtcp_common.args, rce_flags, &ptr[0], size, &frame);
+                            }
                         }
                         
                         /* If packet is ok, hand over to media handler */
                         if (retval == RTP_PKT_MODIFIED || retval == RTP_PKT_NOT_HANDLED) {
-                            retval = handlers->media.handler(handlers->media.args, rce_flags, &ptr[0], size, &frame);
+                            if (handlers->media.handler && frame) {
+                                retval = handlers->media.handler(handlers->media.args, rce_flags, &ptr[0], size, &frame);
+                            }
                             /* Last, if one or more packets are ready, return them to the user */
                             if (retval == RTP_PKT_READY) {
                                 return_frame(frame);
                                 break;
                             }
                             else if (retval == RTP_MULTIPLE_PKTS_READY && handlers->getter != nullptr) {
-                                UVG_LOG_INFO("TODO:is this correct???");
+                                //UVG_LOG_INFO("TODO:is this correct???");
                                 while (handlers->getter(&frame) == RTP_PKT_READY) {
                                     return_frame(frame);
                                 }

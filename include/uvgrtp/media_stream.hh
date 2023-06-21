@@ -388,6 +388,8 @@ namespace uvgrtp {
 
             rtp_error_t start_components();
 
+            rtp_error_t install_packet_handlers();
+
             uint32_t get_default_bandwidth_kbps(rtp_format_t fmt);
 
             bool check_pull_preconditions();
