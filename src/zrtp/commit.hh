@@ -48,6 +48,7 @@ namespace uvgrtp {
                 ~commit();
 
                 /* TODO:  */
+                virtual rtp_error_t parse_msg(uvgrtp::zrtp_msg::zrtp_commit* commit, zrtp_session_t& session, size_t len);
                 virtual rtp_error_t parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session);
         };
     }
