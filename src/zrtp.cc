@@ -35,7 +35,6 @@ uvgrtp::zrtp::zrtp():
     remote_addr_(),
     remote_ip6_addr_(),
     initialized_(false),
-    receiver_(),
     hello_(nullptr),
     hello_ack_(nullptr),
     commit_(nullptr),

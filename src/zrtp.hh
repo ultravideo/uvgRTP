@@ -189,9 +189,6 @@ namespace uvgrtp {
             zrtp_capab_t capab_;
             zrtp_capab_t rcapab_;
 
-            /* ZRTP packet receiver */
-            uvgrtp::zrtp_msg::receiver receiver_;
-
             zrtp_crypto_ctx_t cctx_;
             zrtp_session_t session_;
 

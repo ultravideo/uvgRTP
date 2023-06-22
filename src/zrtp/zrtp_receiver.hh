@@ -14,6 +14,8 @@ namespace uvgrtp {
 
     namespace zrtp_msg {
 
+        /* NOTE: This class was deprecated when socket multiplexing was introduced.
+         * All reception is done in reception_flow class */
         class receiver {
             public:
                 receiver();
