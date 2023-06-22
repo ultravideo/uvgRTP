@@ -554,7 +554,8 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         // hand the packet over
                         // 
                         // TODO: User packet hook
-                        continue;
+                        UVG_LOG_DEBUG("Unidentified (user?) packet received");
+                        break;
                     }
                     // Handler set is found
                     handler_new* handlers = &p.second;

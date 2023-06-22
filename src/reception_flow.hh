@@ -57,42 +57,30 @@ namespace uvgrtp {
 
     /* This class handles the reception processing of received RTP packets. It 
      * utilizes function dispatching to other classes to achieve this.
-
-     * The point of reception flow is to provide isolation between different layers
-     * of uvgRTP. For example, HEVC handler should not concern itself with RTP packet validation
-     * because that should be a global operation done for all packets. Neither should Opus handler
-     * take SRTP-provided authentication tag into account when it is performing operations on
-     * the packet and ZRTP packets should not be relayed from media handler
-     * to ZRTP handler et cetera.
      *
-     * This can be achieved by having a global UDP packet handler for any packet type that validates
-     * all common stuff it can and then dispatches the validated packet to the correct layer using
-     * one of the installed handlers.
-     *
-     * If it's unclear as to which handler should be called, the packet is dispatched to all relevant
-     * handlers and a handler then returns RTP_OK/RTP_PKT_NOT_HANDLED based on whether the packet was handled.
-     *
-     * For example, if receiver detects an incoming ZRTP packet, that packet is immediately dispatched to the
-     * installed ZRTP handler if ZRTP has been enabled.
-     * Likewise, if RTP packet authentication has been enabled, processor validates the packet before passing
-     * it onto any other layer so all future work on the packet is not done in vain due to invalid data
-     *
-     * One piece of design choice that complicates the design of packet dispatcher a little is that the order
-     * of handlers is important. First handler must be ZRTP and then follows SRTP, RTP and finally media handlers.
-     * This requirement gives packet handler a clean and generic interface while giving a possibility to modify
-     * the packet in each of the called handlers if needed. For example SRTP handler verifies RTP authentication
-     * tag and decrypts the packet and RTP handler verifies the fields of the RTP packet and processes it into
-     * a more easily modifiable format for the media handler.
-     *
-     * If packet is modified by the handler but the frame is not ready to be returned to user,
-     * handler returns RTP_PKT_MODIFIED to indicate that it has modified the input buffer and that
-     * the packet should be passed onto other handlers.
-     *
-     * When packet is ready to be returned to user, "out" parameter of packet handler is set to point to
-     * the allocated frame that can be returned and return value of the packet handler is RTP_PKT_READY.
-     *
-     * If a handler receives a non-null "out", it can safely ignore "packet" and operate just on
-     * the "out" parameter because at that point it already contains all needed information. */
+     * Each socket has a reception flow for receiving and handling packets from the socket.
+     * Media streams then install packet handlers into reception flow. When installing
+     * a handler, a *REMOTE SSRC* is given. This SSRC is the source that this media stream
+     * wants to receive packets *from*.
+     
+     * When processing packets, reception flow looks at the source SSRC in the packet header
+     * and sends it to the handlers that want to receive from this remote source.
+     * Various checks are done on the packet, and the packet is determined to be either a 
+     * 1. RTCP packet
+     * 2. ZRTP packet
+     * 3. SRTP packet
+     * 4. RTP packet
+     * 5. Holepuncher packet
+     * 
+     * The packet is then sent to the correct handler of the correct media stream.
+     * When multiplexing several media streams into a single socket, SSRC is what 
+     * separates one stream from another. You can also give each media stream pair
+     * their own ports, which eliminates the need for SSRC checking. In this case
+     * the REMOTE SSRC will be 0 and all packets are given to the single media stream.
+     * 
+     * If there is no valid SSRC to be found in the received packet's header, the
+     * packet is assumed to be a user packet, in which case it is handed over to 
+     * a user packet handler, provided that there is one installed. */
 
     class reception_flow{
         public:
