@@ -548,11 +548,10 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     if (!found) {
                         /* -------------------- User packet -------------------- */
 
-                        // No valid SSRC found from the header. If there is a user packet hook installed,
-                        // hand the packet over
+                        // No valid SSRC found from the header.
                         // 
-                        // TODO: User packet hook
-                        UVG_LOG_DEBUG("Unidentified (user?) packet received");
+                        // TODO: if after all the other handlers there is no handler found only then it is a user packet
+                        //UVG_LOG_DEBUG("Unidentified (user?) packet received");
                         continue;
                     }
                     // Handler set is found
