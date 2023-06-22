@@ -336,7 +336,7 @@ rtp_error_t uvgrtp::reception_flow::new_install_getter(std::shared_ptr<std::atom
 
 rtp_error_t uvgrtp::reception_flow::new_remove_handlers(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
 {
-    int removed = packet_handlers_.erase(remote_ssrc);
+    size_t removed = packet_handlers_.erase(remote_ssrc);
     if (removed == 1) {
         return RTP_OK;
     }
@@ -515,8 +515,6 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
 
             if (ring_buffer_[ring_read_index_].read > 0)
             {
-                rtp_error_t ret = RTP_OK;
-
                 /* When processing a packet, the following checks are done
                  * 1. Check the SSRC of the packets. This field is in the same place for RTP, RTCP and ZRTP. (+ SRTP/SRTCP)
                  * 2. If there is no SSRC match, this is a user packet.
@@ -555,10 +553,10 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         // 
                         // TODO: User packet hook
                         UVG_LOG_DEBUG("Unidentified (user?) packet received");
-                        break;
+                        continue;
                     }
                     // Handler set is found
-                    handler_new* handlers = &p.second;
+                    handler* handlers = &p.second;
                     /* -------------------- Protocol checks -------------------- */
                     /* Checks in the following order:
                      * 1. If RCE_RTCP_MUX && packet type is 200 - 204   -> RTCP packet    (or SRTCP)

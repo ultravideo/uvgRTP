@@ -45,7 +45,7 @@ namespace uvgrtp {
         std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler;
         void* args = nullptr;
     };
-    struct handler_new {
+    struct handler {
         packet_handler rtp;
         packet_handler rtcp;
         packet_handler zrtp;
@@ -66,7 +66,7 @@ namespace uvgrtp {
      * When processing packets, reception flow looks at the source SSRC in the packet header
      * and sends it to the handlers that want to receive from this remote source.
      * Various checks are done on the packet, and the packet is determined to be either a 
-     * 1. RTCP packet
+     * 1. RTCP packet (if RCE_RTCP_MUX is enabled, otherwise RTCP uses its own socket)
      * 2. ZRTP packet
      * 3. SRTP packet
      * 4. RTP packet
@@ -206,7 +206,7 @@ namespace uvgrtp {
             //void (*user_hook_)(void* arg, uint8_t* payload);
 
             // Map different types of handlers by remote SSRC
-            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> packet_handlers_;
+            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler> packet_handlers_;
 
             std::vector<Buffer> ring_buffer_;
             std::mutex ring_mutex_;
