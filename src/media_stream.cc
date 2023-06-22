@@ -387,8 +387,6 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
                 return free_resources(RTP_TIMEOUT);
             }
         }
-        UVG_LOG_DEBUG("Starting multistream negotiation ----------");
-
     }
 
     ret = RTP_OK;
@@ -404,12 +402,8 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
         return free_resources(ret);
 
     zrtp->dh_has_finished(); // only after the DH stream has gotten its keys, do we let non-DH stream perform ZRTP
-    UVG_LOG_ERROR("ZRTP finished --------------");
     install_packet_handlers();
 
-    // Sleep is there to make sure that our last ZRTP messages get to their destination before any of our sent media
-    // packets do. This can happen if the media packets are routed via a faster route.
-    //std::this_thread::sleep_for(std::chrono::milliseconds(50));
     return RTP_OK;
 }
 

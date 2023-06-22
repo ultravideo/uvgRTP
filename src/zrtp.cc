@@ -437,7 +437,7 @@ rtp_error_t uvgrtp::zrtp::begin_session()
 
             if (hello_recv)
             {
-                UVG_LOG_DEBUG("Got Hello ACK! Ending Hello phase");
+                UVG_LOG_DEBUG("ZRTP Hello phase done");
                 return RTP_OK;
             }
             else
@@ -515,7 +515,6 @@ rtp_error_t uvgrtp::zrtp::init_session(int key_agreement)
             ++i;
         }
         if (commit_) {
-            UVG_LOG_DEBUG("Commit found");
             /* As per RFC 6189, if both parties have sent Commit message and the mode is DH,
              * hvi shall determine who is the initiator (the party with larger hvi is initiator) */
             commit.parse_msg(commit_, session_, commit_len_);
