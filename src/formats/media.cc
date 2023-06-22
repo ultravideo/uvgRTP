@@ -104,6 +104,9 @@ uvgrtp::formats::media_frame_info_t *uvgrtp::formats::media::get_media_frame_inf
 }
 rtp_error_t uvgrtp::formats::media::new_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out)
 {
+    (void)rce_flags;
+    (void)read_ptr;
+    (void)size;
     return packet_handler(args, rce_flags, out);
 }
 

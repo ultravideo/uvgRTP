@@ -1116,7 +1116,6 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 UVG_LOG_WARN("ZRTP Confirm1 length field is wrong");
                 return RTP_INVALID_VALUE;
             }
-            rtp_error_t ret = RTP_OK;
             //UVG_LOG_DEBUG("ZRTP Confirm1 message received, verify CRC32!");
 
             zrtp_confirm* dh = (zrtp_confirm*)msg;
