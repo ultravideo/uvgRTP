@@ -37,7 +37,7 @@ uvgrtp::reception_flow::reception_flow(bool ipv6) :
     receiver_(nullptr),
     //user_hook_arg_(nullptr),
     //user_hook_(nullptr),
-    NEW_packet_handlers_({}),
+    packet_handlers_({}),
     ring_buffer_(),
     ring_read_index_(-1), // invalid first index that will increase to a valid one
     last_ring_write_index_(-1),
@@ -290,33 +290,33 @@ rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_pt
 {
     switch (type) {
         case 1: {
-            NEW_packet_handlers_[remote_ssrc].rtp.handler = handler;
-            NEW_packet_handlers_[remote_ssrc].rtp.args = args;
+            packet_handlers_[remote_ssrc].rtp.handler = handler;
+            packet_handlers_[remote_ssrc].rtp.args = args;
             break;
         }
         case 2: {
-            NEW_packet_handlers_[remote_ssrc].rtcp.handler = handler;
-            NEW_packet_handlers_[remote_ssrc].rtcp.args = args;
+            packet_handlers_[remote_ssrc].rtcp.handler = handler;
+            packet_handlers_[remote_ssrc].rtcp.args = args;
             break;
         }
         case 3: {
-            NEW_packet_handlers_[remote_ssrc].zrtp.handler = handler;
-            NEW_packet_handlers_[remote_ssrc].zrtp.args = args;
+            packet_handlers_[remote_ssrc].zrtp.handler = handler;
+            packet_handlers_[remote_ssrc].zrtp.args = args;
             break;
         }
         case 4: {
-            NEW_packet_handlers_[remote_ssrc].srtp.handler = handler;
-            NEW_packet_handlers_[remote_ssrc].srtp.args = args;
+            packet_handlers_[remote_ssrc].srtp.handler = handler;
+            packet_handlers_[remote_ssrc].srtp.args = args;
             break;
         }
         case 5: {
-            NEW_packet_handlers_[remote_ssrc].media.handler = handler;
-            NEW_packet_handlers_[remote_ssrc].media.args = args;
+            packet_handlers_[remote_ssrc].media.handler = handler;
+            packet_handlers_[remote_ssrc].media.args = args;
             break;
         }
         case 6: {
-            NEW_packet_handlers_[remote_ssrc].rtcp_common.handler = handler;
-            NEW_packet_handlers_[remote_ssrc].rtcp_common.args = args;
+            packet_handlers_[remote_ssrc].rtcp_common.handler = handler;
+            packet_handlers_[remote_ssrc].rtcp_common.args = args;
             break;
         }
         default: {
@@ -330,13 +330,13 @@ rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_pt
 rtp_error_t uvgrtp::reception_flow::new_install_getter(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
     std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter)
 {
-    NEW_packet_handlers_[remote_ssrc].getter = getter;
+    packet_handlers_[remote_ssrc].getter = getter;
     return RTP_OK;
 }
 
 rtp_error_t uvgrtp::reception_flow::new_remove_handlers(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
 {
-    int removed = NEW_packet_handlers_.erase(remote_ssrc);
+    int removed = packet_handlers_.erase(remote_ssrc);
     if (removed == 1) {
         return RTP_OK;
     }
@@ -516,20 +516,17 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
             if (ring_buffer_[ring_read_index_].read > 0)
             {
                 rtp_error_t ret = RTP_OK;
+
                 /* When processing a packet, the following checks are done
                  * 1. Check the SSRC of the packets. This field is in the same place for RTP, RTCP and ZRTP. (+ SRTP/SRTCP)
                  * 2. If there is no SSRC match, this is a user packet.
                  * 3. Determine which protocol this packet belongs to. RTCP packets can be told apart from RTP packets via 
-                 *    bits 8-15. ZRTP packets can be told apart from others via their 2 first its being 0 and the Magic Cookie
-                 *    field being 0x5a525450. Holepunching is not needed if RTCP is enabled. If not, holepuncher packets
-                 *    contain 0x00 payload.
-                 * 4. After determining the correct protocol, hand out the packet to the correct handler if it exists.
-                 */
+                 *    bits 8-15. ZRTP packets can be told apart from others via their 2 first bits being 0 and the Magic Cookie
+                 *    field being 0x5a525450. Holepuncher packets contain 0x00 payload. However, holepunching is
+                 *    not needed if RTCP is enabled. 
+                 * 4. After determining the correct protocol, hand out the packet to the correct handler if it exists. */
 
-                // zrtp headerit network byte orderissa, 32 bittiä pitkiä. rtp myös
-                // process the ring buffer location through all the handlers
-
-                for (auto& p : NEW_packet_handlers_) {
+                for (auto& p : packet_handlers_) {
 
                     uvgrtp::frame::rtp_frame* frame = nullptr;
 
@@ -551,8 +548,12 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         found = true;
                     }
                     if (!found) {
-                        // No SSRC match found, skip this handler
-                        // User pkt????
+                        /* -------------------- User packet -------------------- */
+
+                        // No valid SSRC found from the header. If there is a user packet hook installed,
+                        // hand the packet over
+                        // 
+                        // TODO: User packet hook
                         continue;
                     }
                     // Handler set is found
@@ -713,13 +714,13 @@ int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<s
     if (hooks_.find(remote_ssrc) != hooks_.end()) {
         hooks_.erase(remote_ssrc);
     }
-    if (NEW_packet_handlers_.find(remote_ssrc) != NEW_packet_handlers_.end()) {
-        NEW_packet_handlers_.erase(remote_ssrc);
+    if (packet_handlers_.find(remote_ssrc) != packet_handlers_.end()) {
+        packet_handlers_.erase(remote_ssrc);
     }
 
     // If all the data structures are empty, return 1 which means that there is no streams left for this reception_flow
     // and it can be safely deleted
-    if (hooks_.empty() && NEW_packet_handlers_.empty()) {
+    if (hooks_.empty() && packet_handlers_.empty()) {
         return 1;
     }
     return 0;

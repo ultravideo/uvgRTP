@@ -218,7 +218,7 @@ namespace uvgrtp {
             //void (*user_hook_)(void* arg, uint8_t* payload);
 
             // Map different types of handlers by remote SSRC
-            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> NEW_packet_handlers_;
+            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler_new> packet_handlers_;
 
             std::vector<Buffer> ring_buffer_;
             std::mutex ring_mutex_;
