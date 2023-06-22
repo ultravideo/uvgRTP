@@ -407,7 +407,7 @@ rtp_error_t uvgrtp::zrtp::begin_session()
                 /* Copy interesting information from receiver's
                     * message buffer to remote capabilities struct for later use */
                 hello.parse_msg(hello_, session_, hello_len_);
-                UVG_LOG_INFO("ZRTP Hello parsed");
+                UVG_LOG_DEBUG("ZRTP Hello parsed");
                 if (session_.capabilities.version != ZRTP_VERSION) {
 
                     /* Section 4.1.1:

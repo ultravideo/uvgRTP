@@ -596,7 +596,11 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                             retval = handlers->rtp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
                         }
                         else {
-                            UVG_LOG_INFO("RTP handler is null");
+                            /* This should only happen when ZRTP is enabled. If the remote stream is done first, they start sending
+                             * media already before we have handled the last ZRTP ConfACK packet. This should not be a problem
+                             * as we only lose the first frame or a few at worst. If this causes issues, the sender
+                             * may, for example, sleep for 50 or so milliseconds to give us time to complete ZRTP. */
+                            UVG_LOG_DEBUG("RTP handler is not (yet?) installed");
                         }
 
                         /* If SRTP is enabled -> send through SRTP handler */
@@ -634,9 +638,11 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     }
 
                     /* -------------------- Holepuncher check -------------------------- */
-                    else {
-                        // No functionality needed
-                        UVG_LOG_INFO("Holepuncher packet");
+                    else if (version == 0x00) {
+                        /* In uvgRTP, holepuncher packets are packets with a payload of 0x00, as in RFC 6263 4.1
+                         * This can be changed to other alternatives specified in the RFC if current 
+                         * implementation causes problems with user packets. */ 
+                        UVG_LOG_DEBUG("Holepuncher packet");
                         break;
                     }
                }
