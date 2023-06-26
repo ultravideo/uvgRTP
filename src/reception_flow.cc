@@ -524,11 +524,10 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                  *    field being 0x5a525450. Holepuncher packets contain 0x00 payload. However, holepunching is
                  *    not needed if RTCP is enabled. 
                  * 4. After determining the correct protocol, hand out the packet to the correct handler if it exists. */
-
+                int i = 1;
                 for (auto& p : packet_handlers_) {
-                    int i = 0;
                     uvgrtp::frame::rtp_frame* frame = nullptr;
-
+                    ++i;
                     //sockaddr_in from = ring_buffer_[ring_read_index_].from;
                     //sockaddr_in6 from6 = ring_buffer_[ring_read_index_].from6;
 
@@ -575,7 +574,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
 
                     /* -------------------- Protocol checks -------------------- */
                     /* Checks in the following order:
-                     * 1. Version 0 and Magic Cookie is 0x5a525450                    -> ZRTP packet
+                     * 1. Version 0 and Magic Cookie is 0x5a525450      -> ZRTP packet
                      * 2. Version is 2                                  -> RTP packet     (or SRTP)
                      * 3. Version is 00                                 -> Keep-Alive/Holepuncher */
 
