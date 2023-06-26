@@ -516,8 +516,9 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
             if (ring_buffer_[ring_read_index_].read > 0)
             {
                 /* When processing a packet, the following checks are done
-                 * 1. Check the SSRC of the packets. This field is in the same place for RTP, RTCP and ZRTP. (+ SRTP/SRTCP)
-                 * 2. If there is no SSRC match, this is a user packet.
+                 * 1. Check the SSRC of the packets. This field is in the same place for RTP and ZRTP, octets 8-11. For RTCP, it is
+                 *    in octets 4-7
+                 * 2. If there is no SSRC match for any pf the handlers, this is a user packet.
                  * 3. Determine which protocol this packet belongs to. RTCP packets can be told apart from RTP packets via 
                  *    bits 8-15. ZRTP packets can be told apart from others via their 2 first bits being 0 and the Magic Cookie
                  *    field being 0x5a525450. Holepuncher packets contain 0x00 payload. However, holepunching is
@@ -525,7 +526,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                  * 4. After determining the correct protocol, hand out the packet to the correct handler if it exists. */
 
                 for (auto& p : packet_handlers_) {
-
+                    int i = 0;
                     uvgrtp::frame::rtp_frame* frame = nullptr;
 
                     //sockaddr_in from = ring_buffer_[ring_read_index_].from;
@@ -534,10 +535,26 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     uint8_t* ptr = (uint8_t*)ring_buffer_[ring_read_index_].data;
 
                     /* -------------------- SSRC checks -------------------- */
-                    uint32_t packet_ssrc = ntohl(*(uint32_t*)&ptr[8]);
+                    uint32_t rtp_ssrc = ntohl(*(uint32_t*)&ptr[8]);
+                    uint32_t rtcp_ssrc = ntohl(*(uint32_t*)&ptr[4]);
                     uint32_t current_ssrc = p.first.get()->load();
                     bool found = false;
-                    if (current_ssrc == packet_ssrc) {
+
+                    rtp_error_t retval;
+                    size_t size = (size_t)ring_buffer_[ring_read_index_].read;
+                    handler* handlers = &p.second;
+
+                    if (current_ssrc == rtcp_ssrc) {
+                        if (rce_flags & RCE_RTCP_MUX) {
+                            uint8_t pt = (uint8_t)ptr[1];
+                            UVG_LOG_DEBUG("Received frame with pt %u", pt);
+                            if (pt >= 200 && pt <= 204) {
+                                retval = handlers->rtcp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
+                                break;
+                            }
+                        }
+                    }
+                    else if (current_ssrc == rtp_ssrc) {
                         // Socket multiplexing, this handler is the correct one 
                         found = true;
                     }
@@ -551,29 +568,18 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         // No valid SSRC found from the header.
                         // 
                         // TODO: if after all the other handlers there is no handler found only then it is a user packet
-                        //UVG_LOG_DEBUG("Unidentified (user?) packet received");
+                        if (i == packet_handlers_.size()) {
+                            UVG_LOG_DEBUG("User packet");
+                        }
                         continue;
                     }
-                    // Handler set is found
-                    handler* handlers = &p.second;
+
                     /* -------------------- Protocol checks -------------------- */
                     /* Checks in the following order:
                      * 1. If RCE_RTCP_MUX && packet type is 200 - 204   -> RTCP packet    (or SRTCP)
                      * 2. Version 0 and Magic Cookie is 0x5a525450                    -> ZRTP packet
                      * 3. Version is 2                                  -> RTP packet     (or SRTP)
                      * 4. Version is 00                                 -> Keep-Alive/Holepuncher */
-                    rtp_error_t retval;
-                    size_t size = (size_t)ring_buffer_[ring_read_index_].read;
-
-                     /* -------------------- RTCP check -------------------- */
-                    if (rce_flags & RCE_RTCP_MUX) {
-                        uint8_t pt = (uint8_t)ptr[1];
-                        //UVG_LOG_DEBUG("Received frame with pt %u", pt);
-                        if (pt >= 200 && pt <= 204) {
-                            retval = handlers->rtcp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
-                            break;
-                        }
-                    }
 
                     uint8_t version = (*(uint8_t*)&ptr[0] >> 6) & 0x3;
 
