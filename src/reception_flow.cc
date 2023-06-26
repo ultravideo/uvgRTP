@@ -578,12 +578,14 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     uint8_t version = (*(uint8_t*)&ptr[0] >> 6) & 0x3;
 
                     /* -------------------- ZRTP check --------------------------------- */
-                    // Magic Cookie 0x5a525450
-                    if (ntohl(*(uint32_t*)&ptr[4]) == 0x5a525450) {
-                        if (handlers->zrtp.handler != nullptr) {
-                            retval = handlers->zrtp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
+                    if (rce_flags & RCE_SRTP_KMNGMNT_ZRTP) {
+                        // Magic Cookie 0x5a525450
+                        if (ntohl(*(uint32_t*)&ptr[4]) == 0x5a525450) {
+                            if (handlers->zrtp.handler != nullptr) {
+                                retval = handlers->zrtp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
+                            }
+                            break;
                         }
-                        break;
                     }
 
                     /* -------------------- RTP check ---------------------------------- */
@@ -626,7 +628,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                                 break;
                             }
                             else if (retval == RTP_MULTIPLE_PKTS_READY && handlers->getter != nullptr) {
-                                //UVG_LOG_INFO("TODO:is this correct???");
+                                UVG_LOG_INFO("TODO:is this correct???");
                                 while (handlers->getter(&frame) == RTP_PKT_READY) {
                                     return_frame(frame);
                                 }
