@@ -87,23 +87,23 @@ namespace uvgrtp {
             reception_flow(bool ipv6);
             ~reception_flow();
 
-            /*
-            handler types
-            1 rtp
-            2 rtcp
-            3 zrtp
-            4 srtp
-            5 media
-            6 rtcp common
-            getter can be nullptr if there is no getter (for media handlers mostly)
-            */
+            /* Install a new packet handler into the reception flow.
+            *  Types: Each handler type corresponds to an integerm, as follows:
+               1 RTP 
+               2 RTCP
+               3 ZRTP
+               4 SRTP
+               5 Media
+               6 RTCP common: Updates RTCP stats from RTP packets */
             rtp_error_t new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, 
                 std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler,
                 void* args);
 
+            /* Install a media getter. If multiple packets are ready, this is called. */
             rtp_error_t new_install_getter(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
                 std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter);
 
+            /* Remove all handlers associated with this SSRC */
             rtp_error_t new_remove_handlers(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
             /* Install receive hook in reception flow
