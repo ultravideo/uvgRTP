@@ -565,7 +565,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     if (!found) {
                         /* -------------------- No valid SSRC found from the header -------------------- */
 
-                        /*if after all the other handlers there is no handler found only then it is a user packet */
+                        /* If after looping through all the handlers there is no handler found, we assume this to be a user packet */
                         if (i == packet_handlers_.size()) {
                             UVG_LOG_DEBUG("User packet");
                         }
@@ -642,7 +642,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
 
                     /* -------------------- Holepuncher check -------------------------- */
                     else if (version == 0x00) {
-                        /* In uvgRTP, holepuncher packets are packets with a payload of 0x00, as in RFC 6263 4.1
+                        /* In uvgRTP, holepuncher packets are UDP packets with a payload of 0x00, as in RFC 6263 4.1
                          * This can be changed to other alternatives specified in the RFC if current 
                          * implementation causes problems with user packets. */ 
                         UVG_LOG_DEBUG("Holepuncher packet");
