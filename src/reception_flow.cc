@@ -547,7 +547,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     if (current_ssrc == rtcp_ssrc) {
                         if (rce_flags & RCE_RTCP_MUX) {
                             uint8_t pt = (uint8_t)ptr[1];
-                            UVG_LOG_DEBUG("Received frame with pt %u", pt);
+                            //UVG_LOG_DEBUG("Received frame with pt %u", pt);
                             if (pt >= 200 && pt <= 204) {
                                 retval = handlers->rtcp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
                                 break;

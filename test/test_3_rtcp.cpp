@@ -274,8 +274,14 @@ TEST(RTCPTests, rtcp_multiplex)
         send_packets(std::move(test_frame1), PAYLOAD_LEN, sender_sess, sender1, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
         send_packets(std::move(test_frame2), PAYLOAD_LEN, sender_sess, sender2, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
     }
-    std::cout << "Receivers received " << received2 << " sender reports" << std::endl;
-    std::cout << "Senders received " << received1 << " receiver reports" << std::endl;
+    std::cout << "Receiver 1 received " << received3 << " sender reports" << std::endl;
+    std::cout << "Receiver 2 received " << received4 << " sender reports" << std::endl;
+    std::cout << "Sender 1 received " << received1 << " receiver reports" << std::endl;
+    std::cout << "Sender 2 received " << received2 << " receiver reports" << std::endl;
+    ASSERT_TRUE(received1 > 0);
+    ASSERT_TRUE(received2 > 0);
+    ASSERT_TRUE(received3 > 0);
+    ASSERT_TRUE(received4 > 0);
     cleanup_ms(sender_sess, sender1);
     cleanup_ms(sender_sess, sender2);
     cleanup_ms(receiver_sess, receiver1);
