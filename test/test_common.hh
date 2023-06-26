@@ -202,11 +202,11 @@ inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets
         add_hook(tester, receiver, rtp_receive_hook);
 
         // to increase the likelyhood that receiver thread is ready to receive
-        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         send_packets(std::move(test_packet), size, sess, sender, packets, interval_ms, false, rtp_flags);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(150 + size/500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100 + size/500));
 
         tester->gotAll();
         delete tester;
