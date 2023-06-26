@@ -568,7 +568,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                      /* -------------------- RTCP check -------------------- */
                     if (rce_flags & RCE_RTCP_MUX) {
                         uint8_t pt = (uint8_t)ptr[1];
-                        UVG_LOG_DEBUG("Received frame with pt %u", pt);
+                        //UVG_LOG_DEBUG("Received frame with pt %u", pt);
                         if (pt >= 200 && pt <= 204) {
                             retval = handlers->rtcp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
                             break;
@@ -580,7 +580,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     /* -------------------- ZRTP check --------------------------------- */
                     if (rce_flags & RCE_SRTP_KMNGMNT_ZRTP) {
                         // Magic Cookie 0x5a525450
-                        if (ntohl(*(uint32_t*)&ptr[4]) == 0x5a525450) {
+                        if (version == 0x0 && ntohl(*(uint32_t*)&ptr[4]) == 0x5a525450) {
                             if (handlers->zrtp.handler != nullptr) {
                                 retval = handlers->zrtp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
                             }
@@ -589,7 +589,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     }
 
                     /* -------------------- RTP check ---------------------------------- */
-                    else if (version == 0x2) {
+                    if (version == 0x2) {
                         retval = RTP_PKT_MODIFIED;
 
                         /* Create RTP header */
@@ -628,7 +628,6 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                                 break;
                             }
                             else if (retval == RTP_MULTIPLE_PKTS_READY && handlers->getter != nullptr) {
-                                UVG_LOG_INFO("TODO:is this correct???");
                                 while (handlers->getter(&frame) == RTP_PKT_READY) {
                                     return_frame(frame);
                                 }
