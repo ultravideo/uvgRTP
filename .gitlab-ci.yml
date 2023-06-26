@@ -29,7 +29,7 @@ tests_with_crypto:
   script:
     - mkdir build && cd build
     - apt -y install libcrypto++-dev
-    - cmake ..
+    - cmake -DCMAKE_BUILD_TYPE=Debug ..
     - make
     - cd test
     - make
