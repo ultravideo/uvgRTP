@@ -100,5 +100,7 @@ rtp_error_t uvgrtp::zrtp_msg::commit::parse_msg(uvgrtp::zrtp_msg::zrtp_commit* c
 
 rtp_error_t uvgrtp::zrtp_msg::commit::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
+    (void)receiver;
+    (void)session;
     return RTP_OK;
 }

@@ -74,6 +74,8 @@ uvgrtp::zrtp_msg::confirm::~confirm()
 
 rtp_error_t uvgrtp::zrtp_msg::confirm::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
 {
+    (void)receiver;
+    (void)session;
     return RTP_OK;
 }
 
