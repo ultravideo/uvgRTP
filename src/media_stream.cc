@@ -316,7 +316,6 @@ rtp_error_t uvgrtp::media_stream::install_packet_handlers()
                 std::placeholders::_4, std::placeholders::_5), rtcp_.get());
         }
     if (rce_flags_ & RCE_RTCP_MUX) {
-            rtcp_->set_socket(socket_);
             reception_flow_->new_install_handler(
                 2, remote_ssrc_,
                 std::bind(&uvgrtp::rtcp::new_recv_packet_handler, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
@@ -466,6 +465,7 @@ rtp_error_t uvgrtp::media_stream::start_components()
             }
             else {
                 rtcp_->set_network_addresses(local_address_, remote_address_, src_port_, dst_port_, ipv6_);
+                rtcp_->set_socket(socket_);
             }
             rtcp_->add_initial_participant(rtp_->get_clock_rate());
             bandwidth_ = get_default_bandwidth_kbps(fmt_);

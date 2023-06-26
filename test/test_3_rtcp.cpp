@@ -348,6 +348,10 @@ TEST(RTCPTests, rtcp_multiplex2)
     std::cout << "Receiver 2 received " << received4 << " sender reports" << std::endl;
     std::cout << "Sender 1 received " << received1 << " receiver reports" << std::endl;
     std::cout << "Sender 2 received " << received2 << " receiver reports" << std::endl;
+    ASSERT_TRUE(received1 > 0);
+    ASSERT_TRUE(received2 > 0);
+    ASSERT_TRUE(received3 > 0);
+    ASSERT_TRUE(received4 > 0);
     cleanup_ms(sender_sess, sender1);
     cleanup_ms(sender_sess, sender2);
     cleanup_ms(receiver_sess, receiver1);

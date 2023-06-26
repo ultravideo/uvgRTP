@@ -559,7 +559,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     /* -------------------- Protocol checks -------------------- */
                     /* Checks in the following order:
                      * 1. If RCE_RTCP_MUX && packet type is 200 - 204   -> RTCP packet    (or SRTCP)
-                     * 2. Magic Cookie is 0x5a525450                    -> ZRTP packet
+                     * 2. Version 0 and Magic Cookie is 0x5a525450                    -> ZRTP packet
                      * 3. Version is 2                                  -> RTP packet     (or SRTP)
                      * 4. Version is 00                                 -> Keep-Alive/Holepuncher */
                     rtp_error_t retval;

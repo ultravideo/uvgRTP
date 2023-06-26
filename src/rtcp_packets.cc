@@ -84,7 +84,9 @@ bool uvgrtp::construct_rtcp_header(uint8_t* frame, size_t& ptr, size_t packet_si
 
 bool uvgrtp::construct_ssrc(uint8_t* frame, size_t& ptr, uint32_t ssrc)
 {
-    SET_NEXT_FIELD_32(frame, ptr, htonl(ssrc));
+    //SET_NEXT_FIELD_32(frame, ptr, htonl(ssrc)); This didnt work... why?
+    *(uint32_t*)&frame[8] = htonl(ssrc);
+
     return true;
 }
 
