@@ -326,7 +326,7 @@ rtp_error_t uvgrtp::media_stream::install_packet_handlers()
         socket_->install_handler(srtp_.get(), srtp_->send_packet_handler);
         reception_flow_->new_install_handler(
             4, remote_ssrc_,
-            std::bind(&uvgrtp::srtp::new_recv_packet_handler, srtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+            std::bind(&uvgrtp::srtp::recv_packet_handler, srtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
                 std::placeholders::_4, std::placeholders::_5), srtp_.get());
     }
     return RTP_OK;

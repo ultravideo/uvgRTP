@@ -46,16 +46,13 @@ rtp_error_t uvgrtp::srtp::encrypt(uint32_t ssrc, uint16_t seq, uint8_t *buffer, 
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::srtp::new_recv_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, uvgrtp::frame::rtp_frame** out)
-{
-    return recv_packet_handler(args, rce_flags, out);
-}
-
-rtp_error_t uvgrtp::srtp::recv_packet_handler(void *arg, int rce_flags, frame::rtp_frame **out)
+rtp_error_t uvgrtp::srtp::recv_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, uvgrtp::frame::rtp_frame** out)
 {
     (void)rce_flags;
+    (void)read_ptr;
+    (void)size;
 
-    auto srtp  = (uvgrtp::srtp *)arg;
+    auto srtp  = (uvgrtp::srtp *)args;
     auto remote_ctx   = srtp->get_remote_ctx();
     auto frame = *out;
 

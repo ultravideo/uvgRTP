@@ -14,8 +14,7 @@ namespace uvgrtp {
             ~srtp();
 
             /* Decrypt the payload of an RTP packet and verify authentication tag (if enabled) */
-            static rtp_error_t recv_packet_handler(void *arg, int rce_flags, frame::rtp_frame **out);
-            rtp_error_t new_recv_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, uvgrtp::frame::rtp_frame** out);
+            rtp_error_t recv_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, uvgrtp::frame::rtp_frame** out);
 
             /* Encrypt the payload of an RTP packet and add authentication tag (if enabled) */
             static rtp_error_t send_packet_handler(void *arg, buf_vec& buffers);
