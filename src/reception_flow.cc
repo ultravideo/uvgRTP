@@ -533,7 +533,6 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
 
                     uint8_t* ptr = (uint8_t*)ring_buffer_[ring_read_index_].data;
 
-                    /* -------------------- SSRC checks -------------------- */
                     uint32_t rtp_ssrc = ntohl(*(uint32_t*)&ptr[8]);
                     uint32_t current_ssrc = p.first.get()->load();
                     bool found = false;
