@@ -581,7 +581,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     uint8_t version = (*(uint8_t*)&ptr[0] >> 6) & 0x3;
 
                     /* -------------------- ZRTP check --------------------------------- */
-                    if (rce_flags & RCE_SRTP_KMNGMNT_ZRTP) {
+                   /* if (rce_flags & RCE_SRTP_KMNGMNT_ZRTP) {
                         // Magic Cookie 0x5a525450
                         if (version == 0x0 && ntohl(*(uint32_t*)&ptr[4]) == 0x5a525450) {
                             if (handlers->zrtp.handler != nullptr) {
@@ -589,7 +589,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                             }
                             break;
                         }
-                    }
+                    }*/
 
                     /* -------------------- RTP check ---------------------------------- */
                     if (version == 0x2) {

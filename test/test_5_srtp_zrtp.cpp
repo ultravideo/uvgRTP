@@ -106,7 +106,7 @@ void user_send_func(uint8_t* key, uint8_t salt[SALT_SIZE_BYTES], uint8_t key_siz
 
     EXPECT_NE(nullptr, sender_session);
     EXPECT_NE(nullptr, send);
-
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     if (sender_session && send)
     {
         int test_packets = 10;
