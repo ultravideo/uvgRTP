@@ -35,8 +35,8 @@ uvgrtp::reception_flow::reception_flow(bool ipv6) :
     hooks_({}),
     should_stop_(true),
     receiver_(nullptr),
-    //user_hook_arg_(nullptr),
-    //user_hook_(nullptr),
+    user_hook_arg_(nullptr),
+    user_hook_(nullptr),
     packet_handlers_({}),
     ring_buffer_(),
     ring_read_index_(-1), // invalid first index that will increase to a valid one
@@ -374,8 +374,7 @@ void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
         frames_mtx_.unlock();
     }
 }
-/* ----------- User packets not yet supported -----------
-rtp_error_t uvgrtp::reception_flow::install_user_hook(void* arg, void (*hook)(void*, uint8_t* payload))
+rtp_error_t uvgrtp::reception_flow::install_user_hook(void* arg, void (*hook)(void*, uint8_t* data, uint32_t len))
 {
     if (!hook)
         return RTP_INVALID_VALUE;
@@ -386,7 +385,7 @@ rtp_error_t uvgrtp::reception_flow::install_user_hook(void* arg, void (*hook)(vo
     return RTP_OK;
 }
 
-void uvgrtp::reception_flow::return_user_pkt(uint8_t* pkt)
+void uvgrtp::reception_flow::return_user_pkt(uint8_t* pkt, uint32_t len)
 {
     UVG_LOG_DEBUG("Received user packet");
     if (!pkt) {
@@ -394,12 +393,12 @@ void uvgrtp::reception_flow::return_user_pkt(uint8_t* pkt)
         return;
     }
     if (user_hook_) {
-        user_hook_(user_hook_arg_, pkt);
+        user_hook_(user_hook_arg_, pkt, len);
     }
     else {
         UVG_LOG_DEBUG("No user hook installed");
     }
-}*/
+}
 
 void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
 {
@@ -566,7 +565,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
 
                         /* If after looping through all the handlers there is no handler found, we assume this to be a user packet */
                         if (i == packet_handlers_.size()) {
-                            UVG_LOG_DEBUG("User packet");
+                            user_hook_(user_hook_arg_, &ptr[0], size);
                         }
                         continue;
                     }

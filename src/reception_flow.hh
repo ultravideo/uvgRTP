@@ -31,8 +31,7 @@ namespace uvgrtp {
 
     typedef void (*recv_hook)(void* arg, uvgrtp::frame::rtp_frame* frame);
 
-    // Not yet supported
-    //typedef void (*user_hook)(void* arg, uint8_t* payload, uint32_t payload_size);
+    typedef void (*user_hook)(void* arg, uint8_t* data, uint32_t len);
 
     struct receive_pkt_hook {
         void* arg = nullptr;
@@ -150,8 +149,7 @@ namespace uvgrtp {
             ssize_t get_buffer_size() const;
             void set_payload_size(const size_t& value);
 
-            // Not yet supported
-            //rtp_error_t install_user_hook(void* arg, void (*hook)(void*, uint8_t* payload));
+            rtp_error_t install_user_hook(void* arg, void (*hook)(void*, uint8_t* data, uint32_t len));
             /// \endcond
 
         private:
@@ -164,8 +162,7 @@ namespace uvgrtp {
             /* Return a processed RTP frame to user either through frame queue or receive hook */
             void return_frame(uvgrtp::frame::rtp_frame *frame);
 
-            // Not yet supported
-            //void return_user_pkt(uint8_t* pkt);
+            void return_user_pkt(uint8_t* pkt, uint32_t len);
 
             inline void increase_buffer_size(ssize_t next_write_index);
 
@@ -201,9 +198,8 @@ namespace uvgrtp {
                 sockaddr_in from;
             };
 
-            // Not yet supported
-            //void* user_hook_arg_;
-            //void (*user_hook_)(void* arg, uint8_t* payload);
+            void* user_hook_arg_;
+            void (*user_hook_)(void* arg, uint8_t* data, uint32_t len);
 
             // Map different types of handlers by remote SSRC
             std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler> packet_handlers_;
