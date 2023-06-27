@@ -325,7 +325,8 @@ void zrtp_sender_func(uvgrtp::session* sender_session, int sender_port, int rece
     {
         send = sender_session->create_stream(sender_port, receiver_port, RTP_FORMAT_GENERIC, flags);
     }
-
+    //Sleep for a bit so that the receiver is ready to receives
+    std::this_thread::sleep_for(std::chrono::milliseconds(50)); 
     auto start = std::chrono::steady_clock::now();
 
     uvgrtp::frame::rtp_frame* frame = nullptr;
