@@ -67,7 +67,7 @@ void uvgrtp::holepuncher::keepalive()
         }
 
         UVG_LOG_DEBUG("Sending keep-alive");
-        uint8_t payload = 0x00;
+        uint8_t payload = 0b11000000;
         socket_->sendto(remote_sockaddr_, remote_sockaddr_ip6_, &payload, 1, 0);
         last_dgram_sent_ = uvgrtp::clock::ntp::now();
     }

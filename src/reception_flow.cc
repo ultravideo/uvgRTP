@@ -531,6 +531,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                 uint32_t rtcp_ssrc = ntohl(*(uint32_t*)&ptr[4]);
                 size_t size = (size_t)ring_buffer_[ring_read_index_].read;
                 bool rtcp_pkt = false;
+                uint8_t version = (*(uint8_t*)&ptr[0] >> 6) & 0x3;
 
                 handler* handlers = nullptr;
                 for (auto& p : packet_handlers_) {
@@ -553,7 +554,6 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                 if (handlers != nullptr) {
                     /* SSRC match is found -> call handlers */
                     rtp_error_t retval;
-                    uint8_t version = (*(uint8_t*)&ptr[0] >> 6) & 0x3;
                     uvgrtp::frame::rtp_frame* frame = nullptr;
 
                     /* -------------------- Protocol checks -------------------- */
@@ -561,7 +561,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                      * 1. SSRC is in octets 4-7                         -> RTCP packet
                      * 2. Version 0 and Magic Cookie is 0x5a525450      -> ZRTP packet
                      * 3. Version is 2                                  -> RTP packet     (or SRTP)
-                     * 4. Empty packet                                  -> Keep-Alive/Holepuncher 
+                     * 4. Version is 3                                  -> Keep-Alive/Holepuncher 
                      * 5. Otherwise                                     -> User packet */
                     if (rtcp_pkt && (rce_flags & RCE_RTCP_MUX)) {
                         uint8_t pt = (uint8_t)ptr[1]; // Packet type
@@ -622,7 +622,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         }
                     }
                     /* No SSRC match found -> Holepuncher or user packet */
-                    else if (&ptr[0] == 0) {
+                    else if (version == 0x3) {
                         UVG_LOG_DEBUG("Holepuncher packet");
                     }
                     else {
@@ -631,7 +631,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                 }
                 else {
                     /* No SSRC match found -> Holepuncher or user packet */
-                    if (&ptr[0] == 0) {
+                    if (version == 0x3) {
                         UVG_LOG_DEBUG("Holepuncher packet");
                     }
                     else {
