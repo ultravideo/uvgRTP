@@ -66,7 +66,7 @@ namespace uvgrtp {
              *
              * Param port socket with wanted port
              * Return pointer to socket on success, nullptr otherwise */
-            std::shared_ptr<uvgrtp::socket> get_socket_ptr(uint16_t port) const;
+            std::shared_ptr<uvgrtp::socket> get_socket_ptr(uint16_t port);
 
             /* Get reception flow matching the given socket
              *
@@ -96,12 +96,13 @@ namespace uvgrtp {
 
             /// \cond DO_NOT_DOCUMENT
             bool get_ipv6() const;
-            bool is_port_in_use(uint16_t port) const;
+            bool is_port_in_use(uint16_t port);
             /// \endcond
 
         private:
 
             std::mutex socket_mutex_;
+            std::mutex ports_mutex_;
             int rce_flags_;
             std::string local_address_;
             std::map<uint16_t, std::shared_ptr<uvgrtp::socket>> used_ports_;

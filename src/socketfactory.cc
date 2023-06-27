@@ -119,6 +119,7 @@ rtp_error_t uvgrtp::socketfactory::bind_socket(std::shared_ptr<uvgrtp::socket> s
     // streams can bind to the same port
     // If it is a regular address and you want to multiplex several streams into a single socket, one 
     // bind is enough
+    ports_mutex_.lock();
     if (ipv6_) {
         bind_addr6 = uvgrtp::socket::create_ip6_sockaddr(local_address_, port);
         if (uvgrtp::socket::is_multicast(bind_addr6)) {
@@ -141,6 +142,7 @@ rtp_error_t uvgrtp::socketfactory::bind_socket(std::shared_ptr<uvgrtp::socket> s
     }
     if (ret == RTP_OK) {
         used_ports_.insert({ port, soc });
+        ports_mutex_.unlock();
         return RTP_OK;
     }
 
@@ -160,16 +162,20 @@ rtp_error_t uvgrtp::socketfactory::bind_socket_anyip(std::shared_ptr<uvgrtp::soc
             ret = soc->bind(AF_INET, INADDR_ANY, port);
         }
         if (ret == RTP_OK) {
+            ports_mutex_.lock();
             used_ports_.insert({ port, soc });
+            ports_mutex_.unlock();
             return RTP_OK;
         }
     }
     return ret;
 }
 
-std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::get_socket_ptr(uint16_t port) const
+std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::get_socket_ptr(uint16_t port)
 {
+    ports_mutex_.lock();
     const auto& ptr = used_ports_.find(port);
+    ports_mutex_.unlock();
     if (ptr != used_ports_.end()) {
         return ptr->second;
     }
@@ -208,7 +214,7 @@ bool uvgrtp::socketfactory::get_ipv6() const
     return ipv6_;
 }
 
-bool uvgrtp::socketfactory::is_port_in_use(uint16_t port) const
+bool uvgrtp::socketfactory::is_port_in_use(uint16_t port)
 {
     if (used_ports_.find(port) == used_ports_.end()) {
         return false;
@@ -218,20 +224,23 @@ bool uvgrtp::socketfactory::is_port_in_use(uint16_t port) const
 
 bool uvgrtp::socketfactory::clear_port(uint16_t port, std::shared_ptr<uvgrtp::socket> socket)
 {
+    ports_mutex_.lock();
     if (port && used_ports_.find(port) != used_ports_.end()) {
         used_ports_.erase(port);
     }
+    ports_mutex_.unlock();
     for (auto& p : rtcp_readers_to_ports_) {
         if (p.second == port) {
             rtcp_readers_to_ports_.erase(p.first);
             break;
         }
     }
+    socket_mutex_.lock();
     auto it = std::find(used_sockets_.begin(), used_sockets_.end(), socket);
     if (it != used_sockets_.end()) {
         used_sockets_.erase(it);
     }
-
+    socket_mutex_.unlock();
     for (auto& p : reception_flows_) {
         if (p.second == socket) {
             reception_flows_.erase(p.first);
