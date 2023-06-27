@@ -382,7 +382,7 @@ bool uvgrtp::zrtp::are_we_initiator(uint8_t *our_hvi, uint8_t *their_hvi)
 rtp_error_t uvgrtp::zrtp::begin_session()
 {
     auto hello = uvgrtp::zrtp_msg::hello(session_);
-    auto hello_ack = uvgrtp::zrtp_msg::hello_ack();
+    auto hello_ack = uvgrtp::zrtp_msg::hello_ack(session_);
     bool hello_recv = false;
 
     uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();

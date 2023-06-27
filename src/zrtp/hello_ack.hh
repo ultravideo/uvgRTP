@@ -28,7 +28,7 @@ namespace uvgrtp {
 
         class hello_ack : public zrtp_message {
             public:
-                hello_ack();
+                hello_ack(zrtp_session_t& session);
                 ~hello_ack();
 
                 virtual rtp_error_t parse_msg(uvgrtp::zrtp_msg::receiver& receiver,
