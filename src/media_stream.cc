@@ -473,49 +473,18 @@ rtp_error_t uvgrtp::media_stream::start_components()
             std::shared_ptr<uvgrtp::rtcp_reader> rtcp_reader;
 
             if (!(rce_flags_ & RCE_RTCP_MUX)) {
-                // TODO solve this mess
-                // 
-                // 
-                // If RTCP is not multiplexed with RTP, configure the socket for RTCP:
-                // 1. If RTCP port is not in use -> create new socket
-                // 2. Install an RTCP reader into socketfactory
-                // 3. In RTCP reader, map our RTCP object to the REMOTE ssrc of this stream. If we are not doing
-                //    any socket multiplexing, it will be 0 by default
+                
+                /* If RTCP is not multiplexed with RTP, configure the socket for RTCP:
+                1. Fetch the socket for RTCP
+                2. Get the RTCP reader from socketfactory. This was created automatically with the socket (type = 1)
+                3. In RTCP reader, map our RTCP object to the REMOTE ssrc of this stream. If we are not doing
+                   any socket multiplexing, it will be 0 by default */
+
                 rtcp_socket = sfp_->get_socket_ptr(1, rtcp_port);
                 rtcp_->set_socket(rtcp_socket);
                 rtcp_reader = sfp_->get_rtcp_reader(rtcp_port);
                 rtcp_reader->map_ssrc_to_rtcp(remote_ssrc_, rtcp_);
                 rtcp_reader->set_socket(rtcp_socket);
-
-
-                //if (!rtcp_socket) {
-                    //rtcp_socket = sfp_->create_new_socket(1, rtcp_port);
-                    //rtcp_reader = sfp_->install_rtcp_reader(rtcp_port);
-                    //rtcp_reader->set_socket(rtcp_socket);
-                //}
-                /*if (!sfp_->is_port_in_use(rtcp_port)) {
-                    rtcp_socket = sfp_->create_new_socket(1);
-                    rtcp_reader = sfp_->install_rtcp_reader(rtcp_port);
-
-                    rtcp_reader->set_socket(rtcp_socket);
-                    rtcp_->set_socket(rtcp_socket);
-                    rtcp_reader->map_ssrc_to_rtcp(remote_ssrc_, rtcp_);
-                }*/
-                // 1. Source port is in use -> fetch the existing socket
-                // 2. Fetch the existing RTCP reader from socketfactory
-                // 3. In RTCP reader, map our RTCP object to the REMOTE ssrc of this stream. In this case, the remote
-                //    ssrc should be manually set to allow multiplexing
-                /*else {
-                    //rtcp_socket = sfp_->get_socket_ptr(rtcp_port);
-                    if (!rtcp_socket) {
-                        // This should not ever happen. However if it does, you could just create a new socket like above
-                        UVG_LOG_ERROR("No RTCP socket found");
-                        return RTP_GENERIC_ERROR;
-                    }
-                    rtcp_->set_socket(rtcp_socket);
-                    rtcp_reader = sfp_->get_rtcp_reader(rtcp_port);
-                    rtcp_reader->map_ssrc_to_rtcp(remote_ssrc_, rtcp_);*/
-                //}
             }
             rtcp_->start();
         }
