@@ -966,7 +966,7 @@ int uvgrtp::media_stream::get_configuration_value(int rcc_flag)
         default:
             ret = -1;
     }
-    return -1;
+    return ret;
 }
 
 uint32_t uvgrtp::media_stream::get_key() const

@@ -698,7 +698,7 @@ void uvgrtp::reception_flow::increase_buffer_size(ssize_t next_write_index)
             ring_buffer_.size(), ring_buffer_.size() + increase);
         for (unsigned int i = 0; i < increase; ++i)
         {
-            ring_buffer_.insert(ring_buffer_.begin() + next_write_index, { new uint8_t[payload_size_] , -1 });
+            ring_buffer_.insert(ring_buffer_.begin() + next_write_index, { new uint8_t[payload_size_] , -1 , {}, {} });
         }
 
         // this works, because we have just added increase amount of spaces
@@ -713,7 +713,7 @@ int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<s
 
     // Clear all the data structures
     hooks_.erase(remote_ssrc);
-    packet_handlers_.erase(remote_ssrc;
+    packet_handlers_.erase(remote_ssrc);
     
     // If all the data structures are empty, return 1 which means that there is no streams left for this reception_flow
     // and it can be safely deleted
