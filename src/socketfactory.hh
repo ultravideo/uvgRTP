@@ -66,13 +66,13 @@ namespace uvgrtp {
              *
              * Param port socket with wanted port
              * Return pointer to socket on success, nullptr otherwise */
-            std::shared_ptr<uvgrtp::socket> get_socket_ptr(uint16_t port);
+            std::shared_ptr<uvgrtp::socket> get_socket_ptr(int type, uint16_t port);
 
             /* Get reception flow matching the given socket
              *
              * Param socket socket matching the wanted reception_flow
              * Return pointer to reception_flow on success, nullptr otherwise */
-            std::shared_ptr<uvgrtp::reception_flow> get_reception_flow_ptr(std::shared_ptr<uvgrtp::socket> socket) const;
+            std::shared_ptr<uvgrtp::reception_flow> get_reception_flow_ptr(std::shared_ptr<uvgrtp::socket> socket);
             
             /* Install an RTCP reader and map it to the given port
              *
@@ -103,6 +103,8 @@ namespace uvgrtp {
 
             std::mutex socket_mutex_;
             std::mutex ports_mutex_;
+            std::mutex flows_mutex_;
+
             int rce_flags_;
             std::string local_address_;
             std::map<uint16_t, std::shared_ptr<uvgrtp::socket>> used_ports_;

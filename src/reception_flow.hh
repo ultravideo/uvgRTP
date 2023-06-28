@@ -207,6 +207,9 @@ namespace uvgrtp {
             std::vector<Buffer> ring_buffer_;
             std::mutex handlers_mutex_;
             std::mutex ring_mutex_;
+            std::mutex active_mutex_;
+            std::mutex hooks_mutex_;
+
             // these uphold the ring buffer details
             std::atomic<ssize_t> ring_read_index_;
             std::atomic<ssize_t> last_ring_write_index_;

@@ -119,6 +119,7 @@ void uvgrtp::reception_flow::set_payload_size(const size_t& value)
 
 rtp_error_t uvgrtp::reception_flow::start(std::shared_ptr<uvgrtp::socket> socket, int rce_flags)
 {
+    std::lock_guard<std::mutex> lg(active_mutex_);
     if (active_) {
         return RTP_OK;
     }
@@ -146,7 +147,8 @@ rtp_error_t uvgrtp::reception_flow::start(std::shared_ptr<uvgrtp::socket> socket
 }
 
 rtp_error_t uvgrtp::reception_flow::stop()
-{
+{    
+    std::lock_guard<std::mutex> lg(active_mutex_);
     if (!active_) {
         return RTP_OK;
     }
@@ -165,7 +167,6 @@ rtp_error_t uvgrtp::reception_flow::stop()
 
     clear_frames();
     active_ = false;
-
     return RTP_OK;
 }
 
@@ -175,6 +176,7 @@ rtp_error_t uvgrtp::reception_flow::install_receive_hook(
     std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc
 )
 {
+    std::lock_guard<std::mutex> lg(hooks_mutex_);
     if (!hook)
         return RTP_INVALID_VALUE;
 
@@ -706,15 +708,13 @@ void uvgrtp::reception_flow::increase_buffer_size(ssize_t next_write_index)
 
 int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
 {
+    std::lock_guard<std::mutex> hndl_lg(handlers_mutex_);
+    std::lock_guard<std::mutex> hook_lg(hooks_mutex_);
+
     // Clear all the data structures
-    if (hooks_.find(remote_ssrc) != hooks_.end()) {
-        hooks_.erase(remote_ssrc);
-    }
-    handlers_mutex_.lock();
-    if (packet_handlers_.find(remote_ssrc) != packet_handlers_.end()) {
-        packet_handlers_.erase(remote_ssrc);
-    }
-    handlers_mutex_.unlock();
+    hooks_.erase(remote_ssrc);
+    packet_handlers_.erase(remote_ssrc;
+    
     // If all the data structures are empty, return 1 which means that there is no streams left for this reception_flow
     // and it can be safely deleted
     if (hooks_.empty() && packet_handlers_.empty()) {

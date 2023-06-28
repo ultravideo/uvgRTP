@@ -71,7 +71,9 @@ uvgrtp::media_stream::~media_stream()
     // TODO: I would take a close look at what happens when pull_frame is called
     // and media stream is destroyed. Note that this is the only way to stop pull
     // frame without waiting
-    socket_->remove_handler(ssrc_);
+    if (socket_) {
+        socket_->remove_handler(ssrc_);
+    }
 
     if ((rce_flags_ & RCE_RTCP) && rtcp_)
     {
@@ -124,12 +126,13 @@ rtp_error_t uvgrtp::media_stream::init_connection()
       //  new_socket_ = true;
     //}
     // Source port is in use -> fetch the existing socket
-    /*else */if (!multicast) {
-        socket_ = sfp_->get_socket_ptr(src_port_);
-        if (!socket_) {
+    /*else */
+    if (!multicast && src_port_ != 0) {
+        socket_ = sfp_->get_socket_ptr(2, src_port_);
+        /*if (!socket_) {
             socket_ = sfp_->create_new_socket(2, src_port_);
             new_socket_ = true;
-        }
+        }*/
     }
 
 
@@ -152,24 +155,13 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     
     if (!(rce_flags_ & RCE_SEND_ONLY))
     {
-        /*if (local_address_ != "" && src_port_ != 0) {
-            if ((ret = sfp_->bind_socket(socket_, src_port_)) != RTP_OK)
-            {
-                log_platform_error("bind(2) failed");
-                return ret;
-            }
-        }
-        else*/ if (src_port_ != 0)
+        if (local_address_ == "" && src_port_ != 0)
         {
             if ((ret = sfp_->bind_socket_anyip(socket_, src_port_)) != RTP_OK)
             {
                 log_platform_error("bind(2) to any failed");
                 return ret;
             }
-        }
-        else
-        {
-            UVG_LOG_INFO("Not binding, receiving is not possible");
         }
     }
     else
@@ -487,7 +479,7 @@ rtp_error_t uvgrtp::media_stream::start_components()
                 // 2. Install an RTCP reader into socketfactory
                 // 3. In RTCP reader, map our RTCP object to the REMOTE ssrc of this stream. If we are not doing
                 //    any socket multiplexing, it will be 0 by default
-                rtcp_socket = sfp_->get_socket_ptr(rtcp_port);
+                rtcp_socket = sfp_->get_socket_ptr(1, rtcp_port);
                 if (!rtcp_socket) {
                     rtcp_socket = sfp_->create_new_socket(1, rtcp_port);
                     rtcp_reader = sfp_->install_rtcp_reader(rtcp_port);

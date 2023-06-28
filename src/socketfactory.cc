@@ -70,7 +70,9 @@ rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr)
 
 std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int type, uint16_t port)
 {
-    std::lock_guard<std::mutex> lg(socket_mutex_);
+    //std::lock_guard<std::mutex> slg(socket_mutex_);
+    //std::lock_guard<std::mutex> flg(flows_mutex_);
+    //std::lock_guard<std::mutex> plg(ports_mutex_);
     rtp_error_t ret = RTP_OK;
     std::shared_ptr<uvgrtp::socket> socket = std::make_shared<uvgrtp::socket>(rce_flags_);
 
@@ -94,9 +96,7 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int typ
 #endif
 
     if (ret == RTP_OK) {
-        //socket_mutex_.lock();
         used_sockets_.push_back(socket);
-        //socket_mutex_.unlock();
         if (port != 0) {
             bind_socket(socket, port);
         }
@@ -123,7 +123,6 @@ rtp_error_t uvgrtp::socketfactory::bind_socket(std::shared_ptr<uvgrtp::socket> s
     // streams can bind to the same port
     // If it is a regular address and you want to multiplex several streams into a single socket, one 
     // bind is enough
-    ports_mutex_.lock();
     if (ipv6_) {
         bind_addr6 = uvgrtp::socket::create_ip6_sockaddr(local_address_, port);
         if (uvgrtp::socket::is_multicast(bind_addr6)) {
@@ -146,7 +145,6 @@ rtp_error_t uvgrtp::socketfactory::bind_socket(std::shared_ptr<uvgrtp::socket> s
     }
     if (ret == RTP_OK) {
         used_ports_.insert({ port, soc });
-        ports_mutex_.unlock();
         return RTP_OK;
     }
 
@@ -175,19 +173,21 @@ rtp_error_t uvgrtp::socketfactory::bind_socket_anyip(std::shared_ptr<uvgrtp::soc
     return ret;
 }
 
-std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::get_socket_ptr(uint16_t port)
+std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::get_socket_ptr(int type, uint16_t port)
 {
-    ports_mutex_.lock();
+    std::lock_guard<std::mutex> slg(socket_mutex_);
+    std::lock_guard<std::mutex> flg(flows_mutex_);
+    std::lock_guard<std::mutex> plg(ports_mutex_);
     const auto& ptr = used_ports_.find(port);
-    ports_mutex_.unlock();
     if (ptr != used_ports_.end()) {
         return ptr->second;
     }
-    return nullptr;
+    return create_new_socket(type, port);
 }
 
-std::shared_ptr<uvgrtp::reception_flow> uvgrtp::socketfactory::get_reception_flow_ptr(std::shared_ptr<uvgrtp::socket> socket) const
+std::shared_ptr<uvgrtp::reception_flow> uvgrtp::socketfactory::get_reception_flow_ptr(std::shared_ptr<uvgrtp::socket> socket) 
 {
+    std::lock_guard<std::mutex> lg(flows_mutex_);
     for (const auto& ptr : reception_flows_) {
         if (ptr.second == socket) {
             return ptr.first;
@@ -228,6 +228,7 @@ bool uvgrtp::socketfactory::is_port_in_use(uint16_t port)
 
 bool uvgrtp::socketfactory::clear_port(uint16_t port, std::shared_ptr<uvgrtp::socket> socket)
 {
+    // TODO: clean up this function
     ports_mutex_.lock();
     if (port && used_ports_.find(port) != used_ports_.end()) {
         used_ports_.erase(port);
@@ -245,11 +246,13 @@ bool uvgrtp::socketfactory::clear_port(uint16_t port, std::shared_ptr<uvgrtp::so
         used_sockets_.erase(it);
     }
     socket_mutex_.unlock();
+    flows_mutex_.lock();
     for (auto& p : reception_flows_) {
         if (p.second == socket) {
             reception_flows_.erase(p.first);
             break;
         }
     }
+    flows_mutex_.unlock();
     return true;
 }
