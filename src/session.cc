@@ -179,6 +179,131 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
     return stream;
 }
 
+uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t remote_port, uint16_t local_port, rtp_format_t fmt, int rce_flags,
+    uint32_t remote_ssrc, uint32_t local_ssrc)
+{
+    if (rce_flags & RCE_OBSOLETE) {
+        UVG_LOG_WARN("You are using a flag that has either been removed or has been enabled by default. Consider updating RCE flags");
+    }
+
+    if ((rce_flags & RCE_SEND_ONLY) && (rce_flags & RCE_RECEIVE_ONLY)) {
+        UVG_LOG_ERROR("Cannot both use RCE_SEND_ONLY and RCE_RECEIVE_ONLY!");
+        rtp_errno = RTP_NOT_SUPPORTED;
+        return nullptr;
+    }
+
+    // select which address the one address we got as a parameter is
+    if (generic_address_ != "")
+    {
+        if (rce_flags & RCE_RECEIVE_ONLY)
+        {
+            local_address_ = generic_address_;
+        }
+        else
+        {
+            remote_address_ = generic_address_;
+        }
+    }
+    else if ((rce_flags & RCE_RECEIVE_ONLY) && local_address_ == "")
+    {
+        UVG_LOG_ERROR("RCE_RECEIVE_ONLY requires local address!");
+        rtp_errno = RTP_INVALID_VALUE;
+        return  nullptr;
+    }
+    else if ((rce_flags & RCE_SEND_ONLY) && remote_address_ == "")
+    {
+        UVG_LOG_ERROR("RCE_SEND_ONLY requires remote address!");
+        rtp_errno = RTP_INVALID_VALUE;
+        return  nullptr;
+    }
+
+    if ((rce_flags & RCE_RECEIVE_ONLY) && local_port == 0)
+    {
+        UVG_LOG_ERROR("RCE_RECEIVE_ONLY requires source port!");
+        rtp_errno = RTP_INVALID_VALUE;
+        return  nullptr;
+    }
+
+    if ((rce_flags & RCE_SEND_ONLY) && remote_port == 0)
+    {
+        UVG_LOG_ERROR("RCE_SEND_ONLY requires destination port!");
+        rtp_errno = RTP_INVALID_VALUE;
+        return  nullptr;
+    }
+
+    uvgrtp::media_stream* stream =
+        new uvgrtp::media_stream(cname_, remote_address_, local_address_, local_port, remote_port, fmt, sf_, rce_flags);
+
+    stream->configure_ctx(RCC_SSRC, local_ssrc);
+    stream->configure_ctx(RCC_REMOTE_SSRC, remote_ssrc);
+
+    if (rce_flags & RCE_SRTP) {
+        if (!uvgrtp::crypto::enabled()) {
+            UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
+            delete stream;
+            rtp_errno = RTP_GENERIC_ERROR;
+            return nullptr;
+        }
+
+        if (rce_flags & RCE_SRTP_REPLAY_PROTECTION)
+            rce_flags |= RCE_SRTP_AUTHENTICATE_RTP;
+
+        if (rce_flags & RCE_SRTP_KMNGMNT_ZRTP) {
+
+            if (rce_flags & (RCE_SRTP_KEYSIZE_192 | RCE_SRTP_KEYSIZE_256)) {
+                UVG_LOG_ERROR("Only 128-bit keys are supported with ZRTP");
+                delete stream;
+                return nullptr;
+            }
+
+            if (!(rce_flags & RCE_ZRTP_DIFFIE_HELLMAN_MODE) &&
+                !(rce_flags & RCE_ZRTP_MULTISTREAM_MODE)) {
+                UVG_LOG_INFO("ZRTP mode not selected, using Diffie-Hellman mode");
+                rce_flags |= RCE_ZRTP_DIFFIE_HELLMAN_MODE;
+            }
+
+            session_mtx_.lock();
+            if (!zrtp_) {
+                zrtp_ = std::shared_ptr<uvgrtp::zrtp>(new uvgrtp::zrtp());
+            }
+            session_mtx_.unlock();
+
+            if (stream->init(zrtp_) != RTP_OK) {
+                UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), local_port, remote_port);
+                delete stream;
+                return nullptr;
+            }
+        }
+        else if (rce_flags & RCE_SRTP_KMNGMNT_USER) {
+            UVG_LOG_DEBUG("SRTP with user-managed keys enabled, postpone initialization");
+            if (stream->init() != RTP_OK) {
+                UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), local_port, remote_port);
+                delete stream;
+                return nullptr;
+            }
+        }
+        else {
+            UVG_LOG_ERROR("SRTP key management scheme not specified!");
+            rtp_errno = RTP_INVALID_VALUE;
+            delete stream;
+            return nullptr;
+        }
+    }
+    else {
+        if (stream->init() != RTP_OK) {
+            UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), local_port, remote_port);
+            delete stream;
+            return nullptr;
+        }
+    }
+
+    session_mtx_.lock();
+    streams_.insert(std::make_pair(stream->get_key(), stream));
+    session_mtx_.unlock();
+
+    return stream;
+}
+
 rtp_error_t uvgrtp::session::destroy_stream(uvgrtp::media_stream *stream)
 {
     if (!stream)
