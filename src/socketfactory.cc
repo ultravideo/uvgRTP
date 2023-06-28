@@ -107,6 +107,11 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int typ
             std::pair pair = std::make_pair(flow, socket);
             reception_flows_.insert(pair);
         }
+        else if (type == 1) {
+            // RTCP socket
+            std::shared_ptr<uvgrtp::rtcp_reader> reader = std::shared_ptr<uvgrtp::rtcp_reader>(new uvgrtp::rtcp_reader());
+            rtcp_readers_to_ports_[reader] = port;
+        }
         return socket;
     }
     
