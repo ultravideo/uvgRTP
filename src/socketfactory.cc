@@ -68,8 +68,9 @@ rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr)
     return RTP_OK;
 }
 
-std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int type)
+std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int type, uint16_t port)
 {
+    std::lock_guard<std::mutex> lg(socket_mutex_);
     rtp_error_t ret = RTP_OK;
     std::shared_ptr<uvgrtp::socket> socket = std::make_shared<uvgrtp::socket>(rce_flags_);
 
@@ -93,9 +94,12 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int typ
 #endif
 
     if (ret == RTP_OK) {
-        socket_mutex_.lock();
+        //socket_mutex_.lock();
         used_sockets_.push_back(socket);
-        socket_mutex_.unlock();
+        //socket_mutex_.unlock();
+        if (port != 0) {
+            bind_socket(socket, port);
+        }
 
         // If the socket is a type 2 (non-RTCP) socket, install a reception_flow
         if (type == 2) {

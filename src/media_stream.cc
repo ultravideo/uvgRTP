@@ -101,7 +101,7 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     if (ipv6_ && src_port_ != 0 && local_address_ != "") {
         multicast_sockaddr6_ = uvgrtp::socket::create_ip6_sockaddr(local_address_, src_port_);
         if (uvgrtp::socket::is_multicast(multicast_sockaddr6_)) {
-            socket_ = sfp_->create_new_socket(2);
+            socket_ = sfp_->create_new_socket(2, src_port_);
             new_socket_ = true;
             multicast = true;
         }
@@ -109,7 +109,7 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     else if (src_port_ != 0 && local_address_ != "") {
         multicast_sockaddr_ = uvgrtp::socket::create_sockaddr(AF_INET, local_address_, src_port_);
         if (uvgrtp::socket::is_multicast(multicast_sockaddr_)) {
-            socket_ = sfp_->create_new_socket(2);
+            socket_ = sfp_->create_new_socket(2, src_port_);
             new_socket_ = true;
             multicast = true;
         }
@@ -118,15 +118,15 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     // If the given local address is not a multicast address, either create a new socket or fetch the existing
     // socket if socket multiplexing is used
     // Source port is given and is not in use -> create new socket
-    if (!multicast && src_port_ != 0 && !sfp_->is_port_in_use(src_port_)) {
-        socket_ = sfp_->create_new_socket(2);
-        new_socket_ = true;
-    }
+    //if (!multicast && src_port_ != 0 && !sfp_->is_port_in_use(src_port_)) {
+       // socket_ = sfp_->create_new_socket(2, src_port_);
+      //  new_socket_ = true;
+    //}
     // Source port is in use -> fetch the existing socket
-    else if (!multicast) {
+    /*else */if (!multicast) {
         socket_ = sfp_->get_socket_ptr(src_port_);
         if (!socket_) {
-            socket_ = sfp_->create_new_socket(2);
+            socket_ = sfp_->create_new_socket(2, src_port_);
             new_socket_ = true;
         }
     }
@@ -339,6 +339,10 @@ rtp_error_t uvgrtp::media_stream::init()
     }
 
     reception_flow_ = sfp_->get_reception_flow_ptr(socket_);
+    if (!reception_flow_) {
+        UVG_LOG_ERROR("No reception flow found");
+        return RTP_GENERIC_ERROR;
+    }
 
     rtp_ = std::shared_ptr<uvgrtp::rtp>(new uvgrtp::rtp(fmt_, ssrc_, ipv6_));
     rtcp_ = std::shared_ptr<uvgrtp::rtcp>(new uvgrtp::rtcp(rtp_, ssrc_, remote_ssrc_, cname_, sfp_, rce_flags_));
@@ -484,7 +488,7 @@ rtp_error_t uvgrtp::media_stream::start_components()
                 //    any socket multiplexing, it will be 0 by default
                 rtcp_socket = sfp_->get_socket_ptr(rtcp_port);
                 if (!rtcp_socket) {
-                    rtcp_socket = sfp_->create_new_socket(1);
+                    rtcp_socket = sfp_->create_new_socket(1, rtcp_port);
                     rtcp_reader = sfp_->install_rtcp_reader(rtcp_port);
                     rtcp_reader->set_socket(rtcp_socket);
                     rtcp_->set_socket(rtcp_socket);

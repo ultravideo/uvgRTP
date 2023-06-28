@@ -46,7 +46,7 @@ namespace uvgrtp {
              *
              * Param type 1 RTCP socket, 2 for any other type of a socket
              * Return the created socket on success, nullptr otherwise */
-            std::shared_ptr<uvgrtp::socket> create_new_socket(int type);
+            std::shared_ptr<uvgrtp::socket> create_new_socket(int , uint16_t port);
 
             /* Bind socket to the local IP address and given port
              * 
