@@ -205,6 +205,7 @@ namespace uvgrtp {
             std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler> packet_handlers_;
 
             std::vector<Buffer> ring_buffer_;
+            std::mutex handlers_mutex_;
             std::mutex ring_mutex_;
             // these uphold the ring buffer details
             std::atomic<ssize_t> ring_read_index_;
