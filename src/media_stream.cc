@@ -71,6 +71,7 @@ uvgrtp::media_stream::~media_stream()
     // TODO: I would take a close look at what happens when pull_frame is called
     // and media stream is destroyed. Note that this is the only way to stop pull
     // frame without waiting
+    socket_->remove_handler(ssrc_);
 
     if ((rce_flags_ & RCE_RTCP) && rtcp_)
     {
@@ -151,14 +152,14 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     
     if (!(rce_flags_ & RCE_SEND_ONLY))
     {
-        if (local_address_ != "" && src_port_ != 0) {
+        /*if (local_address_ != "" && src_port_ != 0) {
             if ((ret = sfp_->bind_socket(socket_, src_port_)) != RTP_OK)
             {
                 log_platform_error("bind(2) failed");
                 return ret;
             }
         }
-        else if (src_port_ != 0)
+        else*/ if (src_port_ != 0)
         {
             if ((ret = sfp_->bind_socket_anyip(socket_, src_port_)) != RTP_OK)
             {
@@ -322,7 +323,7 @@ rtp_error_t uvgrtp::media_stream::install_packet_handlers()
                     std::placeholders::_4, std::placeholders::_5), nullptr);
         }
     if (rce_flags_ & RCE_SRTP) {
-        socket_->install_handler(srtp_.get(), srtp_->send_packet_handler);
+        socket_->install_handler(ssrc_, srtp_.get(), srtp_->send_packet_handler);
         reception_flow_->new_install_handler(
             4, remote_ssrc_,
             std::bind(&uvgrtp::srtp::recv_packet_handler, srtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
@@ -349,7 +350,7 @@ rtp_error_t uvgrtp::media_stream::init()
     srtp_ = std::shared_ptr<uvgrtp::srtp>(new uvgrtp::srtp(rce_flags_));
     srtcp_ = std::shared_ptr<uvgrtp::srtcp>(new uvgrtp::srtcp());
 
-    socket_->install_handler(rtcp_.get(), rtcp_->send_packet_handler_vec);
+    socket_->install_handler(ssrc_, rtcp_.get(), rtcp_->send_packet_handler_vec);
 
     /* If we are using ZRTP, we only install the ZRTP handler first. Rest of the handlers are installed after ZRTP is
        finished. If ZRTP is not enabled, we can install all the required handlers now */
