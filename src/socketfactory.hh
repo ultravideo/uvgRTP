@@ -101,9 +101,7 @@ namespace uvgrtp {
 
         private:
 
-            std::mutex socket_mutex_;
-            std::mutex ports_mutex_;
-            std::mutex flows_mutex_;
+            std::mutex conf_mutex_;
 
             int rce_flags_;
             std::string local_address_;

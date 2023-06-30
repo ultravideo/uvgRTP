@@ -156,6 +156,8 @@ rtp_error_t uvgrtp::socketfactory::bind_socket(std::shared_ptr<uvgrtp::socket> s
 rtp_error_t uvgrtp::socketfactory::bind_socket_anyip(std::shared_ptr<uvgrtp::socket> soc, uint16_t port)
 {
     rtp_error_t ret = RTP_OK;
+    std::lock_guard<std::mutex> lg(conf_mutex_);
+
     if (!is_port_in_use(port)) {
 
         if (ipv6_) {
@@ -166,9 +168,7 @@ rtp_error_t uvgrtp::socketfactory::bind_socket_anyip(std::shared_ptr<uvgrtp::soc
             ret = soc->bind(AF_INET, INADDR_ANY, port);
         }
         if (ret == RTP_OK) {
-            ports_mutex_.lock();
             used_ports_.insert({ port, soc });
-            ports_mutex_.unlock();
             return RTP_OK;
         }
     }
@@ -177,9 +177,7 @@ rtp_error_t uvgrtp::socketfactory::bind_socket_anyip(std::shared_ptr<uvgrtp::soc
 
 std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::get_socket_ptr(int type, uint16_t port)
 {
-    std::lock_guard<std::mutex> slg(socket_mutex_);
-    std::lock_guard<std::mutex> flg(flows_mutex_);
-    std::lock_guard<std::mutex> plg(ports_mutex_);
+    std::lock_guard<std::mutex> lg(conf_mutex_);
     const auto& ptr = used_ports_.find(port);
     if (ptr != used_ports_.end()) {
         return ptr->second;
@@ -189,7 +187,7 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::get_socket_ptr(int type, 
 
 std::shared_ptr<uvgrtp::reception_flow> uvgrtp::socketfactory::get_reception_flow_ptr(std::shared_ptr<uvgrtp::socket> socket) 
 {
-    std::lock_guard<std::mutex> lg(flows_mutex_);
+    std::lock_guard<std::mutex> lg(conf_mutex_);
     for (const auto& ptr : reception_flows_) {
         if (ptr.second == socket) {
             return ptr.first;
@@ -230,10 +228,7 @@ bool uvgrtp::socketfactory::is_port_in_use(uint16_t port)
 
 bool uvgrtp::socketfactory::clear_port(uint16_t port, std::shared_ptr<uvgrtp::socket> socket)
 {
-    // TODO: clean up this function
-    std::lock_guard<std::mutex> slg(socket_mutex_);
-    std::lock_guard<std::mutex> flg(flows_mutex_);
-    std::lock_guard<std::mutex> plg(ports_mutex_);
+    std::lock_guard<std::mutex> lg(conf_mutex_);
 
     if (port != 0) {
         used_ports_.erase(port);
