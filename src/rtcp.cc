@@ -287,10 +287,12 @@ rtp_error_t uvgrtp::rtcp::stop()
         UVG_LOG_DEBUG("Waiting for RTCP loop to exit");
         report_generator_->join();
     }
-
-    if (rtcp_reader_ && rtcp_reader_->clear_rtcp_from_reader(remote_ssrc_) == 1) {
-        sfp_->clear_port(local_port_, rtcp_socket_);
+    if (!(rce_flags_ & RCE_RTCP_MUX)) {
+        if (rtcp_reader_ && rtcp_reader_->clear_rtcp_from_reader(remote_ssrc_) == 1) {
+            sfp_->clear_port(local_port_, rtcp_socket_);
+        }
     }
+    
     return ret;
 }
 
