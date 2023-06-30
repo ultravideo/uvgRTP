@@ -537,9 +537,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                 //sockaddr_in6 from6 = ring_buffer_[ring_read_index_].from6;
                 uint32_t rtp_ssrc = ntohl(*(uint32_t*)&ptr[8]);
                 uint32_t rtcp_ssrc = ntohl(*(uint32_t*)&ptr[4]);
-                size_t size = (size_t)ring_buffer_[ring_read_index_].read;
                 bool rtcp_pkt = false;
-                uint8_t version = (*(uint8_t*)&ptr[0] >> 6) & 0x3;
 
                 handler* handlers = nullptr;
                 for (auto& p : packet_handlers_) {
@@ -559,6 +557,9 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         handlers = &p.second;
                     }
                 }
+                size_t size = (size_t)ring_buffer_[ring_read_index_].read;
+                uint8_t version = (*(uint8_t*)&ptr[0] >> 6) & 0x3;
+
                 if (handlers != nullptr) {
                     /* SSRC match is found -> call handlers */
                     rtp_error_t retval;
