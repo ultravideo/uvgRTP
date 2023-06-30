@@ -19,11 +19,12 @@ int recv_;
 
 void user_hook(void* arg, uint8_t* data, uint32_t len)
 {
+    EXPECT_EQ(len, 5);
     std::array<uint8_t, 5> recv_arr {data[0], data[1], data[2], data[3], data[4] };
     std::array<uint8_t, 5> expected_arr = {20,25,30,35,40};
     EXPECT_EQ(recv_arr, expected_arr);
     recv_++;
-    std::cout << "User frame received correctly" << std::endl;
+    std::cout << "User frame received correctly, size " << len << std::endl;
 }
 
 void test_wait(int time_ms, uvgrtp::media_stream* receiver)
