@@ -70,9 +70,6 @@ rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr)
 
 std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int type, uint16_t port)
 {
-    //std::lock_guard<std::mutex> slg(socket_mutex_);
-    //std::lock_guard<std::mutex> flg(flows_mutex_);
-    //std::lock_guard<std::mutex> plg(ports_mutex_);
     rtp_error_t ret = RTP_OK;
     std::shared_ptr<uvgrtp::socket> socket = std::make_shared<uvgrtp::socket>(rce_flags_);
 
@@ -234,30 +231,28 @@ bool uvgrtp::socketfactory::is_port_in_use(uint16_t port)
 bool uvgrtp::socketfactory::clear_port(uint16_t port, std::shared_ptr<uvgrtp::socket> socket)
 {
     // TODO: clean up this function
-    ports_mutex_.lock();
-    if (port && used_ports_.find(port) != used_ports_.end()) {
+    std::lock_guard<std::mutex> slg(socket_mutex_);
+    std::lock_guard<std::mutex> flg(flows_mutex_);
+    std::lock_guard<std::mutex> plg(ports_mutex_);
+
+    if (port != 0) {
         used_ports_.erase(port);
     }
-    ports_mutex_.unlock();
     for (auto& p : rtcp_readers_to_ports_) {
         if (p.second == port) {
             rtcp_readers_to_ports_.erase(p.first);
             break;
         }
     }
-    socket_mutex_.lock();
     auto it = std::find(used_sockets_.begin(), used_sockets_.end(), socket);
     if (it != used_sockets_.end()) {
         used_sockets_.erase(it);
     }
-    socket_mutex_.unlock();
-    flows_mutex_.lock();
     for (auto& p : reception_flows_) {
         if (p.second == socket) {
             reception_flows_.erase(p.first);
             break;
         }
     }
-    flows_mutex_.unlock();
     return true;
 }

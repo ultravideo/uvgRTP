@@ -65,7 +65,7 @@ namespace uvgrtp {
             /* Get the socket bound to the given port
              *
              * Param port socket with wanted port
-             * Return pointer to socket on success, nullptr otherwise */
+             * Return pointer to socket on success. If one does not exist, a new one is created */
             std::shared_ptr<uvgrtp::socket> get_socket_ptr(int type, uint16_t port);
 
             /* Get reception flow matching the given socket

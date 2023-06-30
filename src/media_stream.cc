@@ -127,12 +127,12 @@ rtp_error_t uvgrtp::media_stream::init_connection()
     //}
     // Source port is in use -> fetch the existing socket
     /*else */
-    if (!multicast && src_port_ != 0) {
+    if (!multicast) {
         socket_ = sfp_->get_socket_ptr(2, src_port_);
-        /*if (!socket_) {
-            socket_ = sfp_->create_new_socket(2, src_port_);
-            new_socket_ = true;
-        }*/
+        if (!socket_) {
+            UVG_LOG_DEBUG("No socket found");
+            return RTP_GENERIC_ERROR;
+        }
     }
 
 
