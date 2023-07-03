@@ -79,6 +79,7 @@ uvgrtp::media_stream::~media_stream()
     {
         rtcp_->stop();
     }
+    reception_flow_->remove_handlers(remote_ssrc_);
     // Clear this media stream from the reception_flow
     if ( reception_flow_ && (reception_flow_->clear_stream_from_flow(remote_ssrc_)) == 1) {
         reception_flow_->stop();

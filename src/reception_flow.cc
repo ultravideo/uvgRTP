@@ -343,8 +343,9 @@ rtp_error_t uvgrtp::reception_flow::new_install_getter(std::shared_ptr<std::atom
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::reception_flow::new_remove_handlers(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
+rtp_error_t uvgrtp::reception_flow::remove_handlers(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
 {
+    std::lock_guard<std::mutex> lg(handlers_mutex_);
     size_t removed = packet_handlers_.erase(remote_ssrc.get()->load());
     if (removed == 1) {
         return RTP_OK;

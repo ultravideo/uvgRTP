@@ -103,7 +103,7 @@ namespace uvgrtp {
                 std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter);
 
             /* Remove all handlers associated with this SSRC */
-            rtp_error_t new_remove_handlers(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
+            rtp_error_t remove_handlers(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
             /* Install receive hook in reception flow
              * Return RTP_OK on success
