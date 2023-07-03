@@ -292,36 +292,37 @@ uvgrtp::frame::rtp_frame* uvgrtp::reception_flow::pull_frame(ssize_t timeout_ms,
 rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
     std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler, void* args)
 {
+    uint32_t ssrc = remote_ssrc.get()->load();
     handlers_mutex_.lock();
     switch (type) {
         case 1: {
-            packet_handlers_[remote_ssrc].rtp.handler = handler;
-            packet_handlers_[remote_ssrc].rtp.args = args;
+            packet_handlers_[ssrc].rtp.handler = handler;
+            packet_handlers_[ssrc].rtp.args = args;
             break;
         }
         case 2: {
-            packet_handlers_[remote_ssrc].rtcp.handler = handler;
-            packet_handlers_[remote_ssrc].rtcp.args = args;
+            packet_handlers_[ssrc].rtcp.handler = handler;
+            packet_handlers_[ssrc].rtcp.args = args;
             break;
         }
         case 3: {
-            packet_handlers_[remote_ssrc].zrtp.handler = handler;
-            packet_handlers_[remote_ssrc].zrtp.args = args;
+            packet_handlers_[ssrc].zrtp.handler = handler;
+            packet_handlers_[ssrc].zrtp.args = args;
             break;
         }
         case 4: {
-            packet_handlers_[remote_ssrc].srtp.handler = handler;
-            packet_handlers_[remote_ssrc].srtp.args = args;
+            packet_handlers_[ssrc].srtp.handler = handler;
+            packet_handlers_[ssrc].srtp.args = args;
             break;
         }
         case 5: {
-            packet_handlers_[remote_ssrc].media.handler = handler;
-            packet_handlers_[remote_ssrc].media.args = args;
+            packet_handlers_[ssrc].media.handler = handler;
+            packet_handlers_[ssrc].media.args = args;
             break;
         }
         case 6: {
-            packet_handlers_[remote_ssrc].rtcp_common.handler = handler;
-            packet_handlers_[remote_ssrc].rtcp_common.args = args;
+            packet_handlers_[ssrc].rtcp_common.handler = handler;
+            packet_handlers_[ssrc].rtcp_common.args = args;
             break;
         }
         default: {
@@ -337,14 +338,14 @@ rtp_error_t uvgrtp::reception_flow::new_install_getter(std::shared_ptr<std::atom
     std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter)
 {
     handlers_mutex_.lock();
-    packet_handlers_[remote_ssrc].getter = getter;
+    packet_handlers_[remote_ssrc.get()->load() ].getter = getter;
     handlers_mutex_.unlock();
     return RTP_OK;
 }
 
 rtp_error_t uvgrtp::reception_flow::new_remove_handlers(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
 {
-    size_t removed = packet_handlers_.erase(remote_ssrc);
+    size_t removed = packet_handlers_.erase(remote_ssrc.get()->load());
     if (removed == 1) {
         return RTP_OK;
     }
@@ -540,22 +541,18 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                 bool rtcp_pkt = false;
 
                 handler* handlers = nullptr;
-                for (auto& p : packet_handlers_) {
-                    uint32_t current_ssrc = p.first.get()->load();
-
-                    if (current_ssrc == rtcp_ssrc) {
-                        /* Socket multiplexing: RTCP packet */
-                        handlers = &p.second;
-                        rtcp_pkt = true;
-                    }
-                    else if (current_ssrc == rtp_ssrc) {
-                        /* Socket multiplexing: RTP/ZRTP packet */
-                        handlers = &p.second;
-                    }
-                    else if (current_ssrc == 0) {
-                        /* No socket multiplexing: All packets are given to this handler */
-                        handlers = &p.second;
-                    }
+                if (packet_handlers_.find(rtcp_ssrc) != packet_handlers_.end()) {
+                    /* Socket multiplexing: RTCP packet */
+                    handlers = &packet_handlers_[rtcp_ssrc];
+                    rtcp_pkt = true;
+                }
+                else if (packet_handlers_.find(rtp_ssrc) != packet_handlers_.end()) {
+                    /* Socket multiplexing: RTP/ZRTP packet */
+                    handlers = &packet_handlers_[rtp_ssrc];
+                }
+                else if (packet_handlers_.find(0) != packet_handlers_.end()) {
+                    /* No socket multiplexing: All packets are given to this handler */
+                    handlers = &packet_handlers_[0];
                 }
                 size_t size = (size_t)ring_buffer_[ring_read_index_].read;
                 uint8_t version = (*(uint8_t*)&ptr[0] >> 6) & 0x3;
@@ -714,7 +711,7 @@ int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<s
 
     // Clear all the data structures
     hooks_.erase(remote_ssrc);
-    packet_handlers_.erase(remote_ssrc);
+    packet_handlers_.erase(remote_ssrc.get()->load());
     
     // If all the data structures are empty, return 1 which means that there is no streams left for this reception_flow
     // and it can be safely deleted
@@ -722,4 +719,14 @@ int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<s
         return 1;
     }
     return 0;
+}
+
+rtp_error_t uvgrtp::reception_flow::update_remote_ssrc(uint32_t old_remote_ssrc, uint32_t new_remote_ssrc)
+{
+    handlers_mutex_.lock();
+    handler handlers = packet_handlers_[old_remote_ssrc];
+    packet_handlers_.erase(old_remote_ssrc);
+    packet_handlers_.insert({new_remote_ssrc, handlers});
+    handlers_mutex_.unlock();
+    return RTP_OK;
 }

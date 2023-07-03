@@ -144,6 +144,11 @@ namespace uvgrtp {
              * Return 0 if the hooks and handlers were removed but there is still others left in this reception_flow */
             int clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
+            /* Update the remote SSRC linked to packet handlers and media hooks
+             * Used with media_stream.configure_ctx(RCC_REMOTE_SSRC, ---);
+             * Return RTP_OK on success */
+            rtp_error_t update_remote_ssrc(uint32_t old_remote_ssrc, uint32_t new_remote_ssrc);
+
             /// \cond DO_NOT_DOCUMENT
             void set_buffer_size(const ssize_t& value);
             ssize_t get_buffer_size() const;
@@ -202,7 +207,7 @@ namespace uvgrtp {
             void (*user_hook_)(void* arg, uint8_t* data, uint32_t len);
 
             // Map different types of handlers by remote SSRC
-            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, handler> packet_handlers_;
+            std::unordered_map<uint32_t, handler> packet_handlers_;
 
             std::vector<Buffer> ring_buffer_;
             std::mutex handlers_mutex_;

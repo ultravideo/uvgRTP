@@ -759,8 +759,11 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
     else if (rcc_flag == RCC_REMOTE_SSRC) {
         if (value <= 0 || value > (ssize_t)UINT32_MAX)
             return RTP_INVALID_VALUE;
-
+        if (reception_flow_) {
+            reception_flow_->update_remote_ssrc(remote_ssrc_.get()->load(), (uint32_t)value);
+        }
         *remote_ssrc_ = (uint32_t)value;
+        
         return ret;
     }
 
