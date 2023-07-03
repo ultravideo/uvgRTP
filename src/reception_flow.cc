@@ -289,7 +289,7 @@ uvgrtp::frame::rtp_frame* uvgrtp::reception_flow::pull_frame(ssize_t timeout_ms,
     return frame;
 }
 
-rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
+rtp_error_t uvgrtp::reception_flow::install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
     std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler, void* args)
 {
     uint32_t ssrc = remote_ssrc.get()->load();
@@ -334,7 +334,7 @@ rtp_error_t uvgrtp::reception_flow::new_install_handler(int type, std::shared_pt
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::reception_flow::new_install_getter(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
+rtp_error_t uvgrtp::reception_flow::install_getter(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
     std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter)
 {
     handlers_mutex_.lock();

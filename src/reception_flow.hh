@@ -94,12 +94,12 @@ namespace uvgrtp {
                4 SRTP
                5 Media
                6 RTCP common: Updates RTCP stats from RTP packets */
-            rtp_error_t new_install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, 
+            rtp_error_t install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, 
                 std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler,
                 void* args);
 
             /* Install a media getter. If multiple packets are ready, this is called. */
-            rtp_error_t new_install_getter(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
+            rtp_error_t install_getter(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
                 std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter);
 
             /* Remove all handlers associated with this SSRC */
