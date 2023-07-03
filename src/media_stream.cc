@@ -119,15 +119,7 @@ rtp_error_t uvgrtp::media_stream::init_connection()
         }
     }
 
-    // If the given local address is not a multicast address, either create a new socket or fetch the existing
-    // socket if socket multiplexing is used
-    // Source port is given and is not in use -> create new socket
-    //if (!multicast && src_port_ != 0 && !sfp_->is_port_in_use(src_port_)) {
-       // socket_ = sfp_->create_new_socket(2, src_port_);
-      //  new_socket_ = true;
-    //}
-    // Source port is in use -> fetch the existing socket
-    /*else */
+    /* If the given local address is not a multicast address, get the socket */
     if (!multicast) {
         socket_ = sfp_->get_socket_ptr(2, src_port_);
         if (!socket_) {
