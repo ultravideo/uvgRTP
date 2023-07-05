@@ -91,6 +91,7 @@ rtp_error_t uvgrtp::socket::init(short family, int type, int protocol)
 
 rtp_error_t uvgrtp::socket::setsockopt(int level, int optname, const void *optval, socklen_t optlen)
 {
+    std::lock_guard<std::mutex> lg(conf_mutex_);
     if (::setsockopt(socket_, level, optname, (const char *)optval, optlen) < 0) {
 
         //strerror(errno), depricated

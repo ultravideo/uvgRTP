@@ -210,6 +210,7 @@ namespace uvgrtp {
             int rce_flags_;
 
             std::mutex handlers_mutex_;
+            std::mutex conf_mutex_;
 
             /* __sendto() calls these handlers in order before sending the packet */
             std::multimap<std::shared_ptr<std::atomic<std::uint32_t>>, socket_packet_handler> buf_handlers_;
