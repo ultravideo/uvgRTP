@@ -199,8 +199,8 @@ namespace uvgrtp {
             {
                 uint8_t* data;
                 int read;
-                sockaddr_in6 from6;
-                sockaddr_in from;
+                //sockaddr_in6 from6;
+                //sockaddr_in from;
             };
 
             void* user_hook_arg_;

@@ -79,7 +79,7 @@ void uvgrtp::reception_flow::create_ring_buffer()
         uint8_t* data = new uint8_t[payload_size_];
         if (data)
         {
-            ring_buffer_.push_back({ data, 0, {}, {} });
+            ring_buffer_.push_back({ data, 0});
         }
         else
         {
@@ -456,12 +456,12 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
                 //increase_buffer_size(next_write_index);
 
                 rtp_error_t ret = RTP_OK;
-                sockaddr_in sender = {};
-                sockaddr_in6 sender6 = {};
+                //sockaddr_in sender = {};
+                //sockaddr_in6 sender6 = {};
                 
                 // get the potential packet
                 ret = socket->recvfrom(ring_buffer_[next_write_index].data, payload_size_,
-                    MSG_DONTWAIT, &sender, &sender6, &ring_buffer_[next_write_index].read);
+                    MSG_DONTWAIT, &ring_buffer_[next_write_index].read);
 
 
                 if (ret == RTP_INTERRUPTED)
@@ -481,8 +481,8 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
 
                 ++read_packets;
                 // Save the IP adderss that this packet came from into the buffer
-                ring_buffer_[next_write_index].from6 = sender6;
-                ring_buffer_[next_write_index].from = sender;
+                //ring_buffer_[next_write_index].from6 = sender6;
+                //ring_buffer_[next_write_index].from = sender;
                 // finally we update the ring buffer so processing (reading) knows that there is a new frame
                 last_ring_write_index_ = next_write_index;
             }
@@ -698,7 +698,7 @@ void uvgrtp::reception_flow::increase_buffer_size(ssize_t next_write_index)
             ring_buffer_.size(), ring_buffer_.size() + increase);
         for (unsigned int i = 0; i < increase; ++i)
         {
-            ring_buffer_.insert(ring_buffer_.begin() + next_write_index, { new uint8_t[payload_size_] , -1 , {}, {} });
+            ring_buffer_.insert(ring_buffer_.begin() + next_write_index, { new uint8_t[payload_size_] , -1 });
         }
 
         // this works, because we have just added increase amount of spaces
