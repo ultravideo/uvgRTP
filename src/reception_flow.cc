@@ -102,6 +102,7 @@ void uvgrtp::reception_flow::destroy_ring_buffer()
 
 void uvgrtp::reception_flow::set_buffer_size(const ssize_t& value)
 {
+    std::lock_guard<std::mutex> lg(ring_mutex_);
     buffer_size_kbytes_ = value;
     create_ring_buffer();
 }
