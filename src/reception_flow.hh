@@ -108,7 +108,7 @@ namespace uvgrtp {
             /* Install receive hook in reception flow
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "hook" is nullptr */
-            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *), std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
+            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *), uint32_t remote_ssrc);
 
             /* Start the RTP reception flow. Start querying for received packets and processing them.
              *
@@ -186,7 +186,7 @@ namespace uvgrtp {
             //void *recv_hook_arg_;
             //void (*recv_hook_)(void *arg, uvgrtp::frame::rtp_frame *frame);
 
-            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, receive_pkt_hook> hooks_;
+            std::unordered_map<uint32_t, receive_pkt_hook> hooks_;
 
             std::mutex flow_mutex_;
             bool should_stop_;

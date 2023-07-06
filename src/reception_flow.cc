@@ -174,7 +174,7 @@ rtp_error_t uvgrtp::reception_flow::stop()
 rtp_error_t uvgrtp::reception_flow::install_receive_hook(
     void *arg,
     void (*hook)(void *, uvgrtp::frame::rtp_frame *),
-    std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc
+    uint32_t remote_ssrc
 )
 {
     std::lock_guard<std::mutex> lg(hooks_mutex_);
@@ -362,24 +362,21 @@ void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
     // 2. If not, check if there is a "universal hook"
     // 3. If neither is found, push the frame to the queue
 
-    bool found = false;
-    for (auto it = hooks_.begin(); it != hooks_.end(); ++it) {
-        if (it->first.get()->load() == ssrc) {
-            receive_pkt_hook pkt_hook = it->second;
-            recv_hook hook = pkt_hook.hook;
-            void* arg = pkt_hook.arg;
-            hook(arg, frame);
-            found = true;
-        }
-        else if (it->first.get()->load() == 0) {
-            receive_pkt_hook pkt_hook = it->second;
-            recv_hook hook = pkt_hook.hook;
-            void* arg = pkt_hook.arg;
-            hook(arg, frame);
-            found = true;
-        }
+    if (hooks_.find(ssrc) != hooks_.end()) {
+        /* Socket multiplexing: Hook found */
+        receive_pkt_hook pkt_hook = hooks_[ssrc];
+        recv_hook hook = pkt_hook.hook;
+        void* arg = pkt_hook.arg;
+        hook(arg, frame);
     }
-    if (!found) {
+    else if (hooks_.find(0) != hooks_.end()) {
+        /* No socket multiplexing: All packets are given to this hook */
+        receive_pkt_hook pkt_hook = hooks_[0];
+        recv_hook hook = pkt_hook.hook;
+        void* arg = pkt_hook.arg;
+        hook(arg, frame);
+    }
+    else {
         frames_mtx_.lock();
         frames_.push_back(frame);
         frames_mtx_.unlock();
@@ -711,9 +708,10 @@ int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<s
     std::lock_guard<std::mutex> hndl_lg(handlers_mutex_);
     std::lock_guard<std::mutex> hook_lg(hooks_mutex_);
 
+    uint32_t ssrc = remote_ssrc.get()->load();
     // Clear all the data structures
-    hooks_.erase(remote_ssrc);
-    packet_handlers_.erase(remote_ssrc.get()->load());
+    hooks_.erase(ssrc);
+    packet_handlers_.erase(ssrc);
     
     // If all the data structures are empty, return 1 which means that there is no streams left for this reception_flow
     // and it can be safely deleted
@@ -725,10 +723,15 @@ int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<s
 
 rtp_error_t uvgrtp::reception_flow::update_remote_ssrc(uint32_t old_remote_ssrc, uint32_t new_remote_ssrc)
 {
-    handlers_mutex_.lock();
+    std::lock_guard<std::mutex> hlg(hooks_mutex_);
+    std::lock_guard<std::mutex> halg(handlers_mutex_);
+
     handler handlers = packet_handlers_[old_remote_ssrc];
     packet_handlers_.erase(old_remote_ssrc);
     packet_handlers_.insert({new_remote_ssrc, handlers});
-    handlers_mutex_.unlock();
+
+    receive_pkt_hook hook = hooks_[old_remote_ssrc];
+    hooks_.erase(old_remote_ssrc);
+    hooks_.insert({new_remote_ssrc, hook});
     return RTP_OK;
 }
