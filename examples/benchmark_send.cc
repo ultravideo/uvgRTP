@@ -18,12 +18,12 @@
 /* Linux only */
 
  // Network parameters of this example
-constexpr char SENDER_ADDRESS[] = "127.0.0.1";
+constexpr char SENDER_ADDRESS[] = "10.21.25.29";
 constexpr uint16_t SENDER_PORT = 8888;
-constexpr char RECEIVER_ADDRESS[] = "127.0.0.1";
+constexpr char RECEIVER_ADDRESS[] = "10.21.25.2";
 constexpr uint16_t RECEIVER_PORT = 8888;
 
-std::string FILENAME = "test.hevc";
+std::string FILENAME = "Beauty_3840x2160.hevc";
 std::string RESULT_FILE = "results.txt";
 
 // demonstration parameters of this example
@@ -73,7 +73,8 @@ int main(int argc, char **argv)
     std::vector<std::thread*> threads = {};
 
     for (int i = 0; i < THREADS; ++i) {
-        threads.push_back(new std::thread(sender_func, session, SENDER_PORT, RECEIVER_PORT, flags, FPS, i, mux));
+        threads.push_back(new std::thread(sender_func, session, SENDER_PORT, RECEIVER_PORT, flags, FPS, i, chunk_sizes,
+            mem, mux));
     }
 
     for (int i = 0; i < THREADS; ++i) {
@@ -97,7 +98,6 @@ int main(int argc, char **argv)
 void sender_func(uvgrtp::session* session, uint16_t sender_port, uint16_t receiver_port, int flags, int fps, int thread_num,
     std::vector<uint64_t> chunk_sizes, void* mem, int mux)
 {
-    uvgrtp::media_stream* send = nullptr;
     uint32_t local_ssrc = 10 + thread_num;
     uint16_t thread_recv_port = RECEIVER_PORT;
     uint16_t thread_send_port = SENDER_PORT;
@@ -117,6 +117,7 @@ void sender_func(uvgrtp::session* session, uint16_t sender_port, uint16_t receiv
     {
         std::cout << "Error creating media stream" << std::endl;
     }
+    std::cout << "Media stream created: " << thread_send_port << "->" << thread_recv_port << ", local ssrc: " << local_ssrc << std::endl;
     rtp_error_t ret = RTP_OK;
     size_t bytes_sent = 0;
     uint64_t current_frame = 0;

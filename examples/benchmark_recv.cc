@@ -16,11 +16,11 @@ struct thread_info {
 } *thread_info;
 
  // Network parameters of this example
-constexpr char SENDER_ADDRESS[] = "127.0.0.1";
+constexpr char SENDER_ADDRESS[] = "10.21.25.29";
 constexpr uint16_t SENDER_PORT = 8888;
 constexpr int TIMEOUT = 3000;
 
-constexpr char RECEIVER_ADDRESS[] = "127.0.0.1";
+constexpr char RECEIVER_ADDRESS[] = "10.21.25.2";
 constexpr uint16_t RECEIVER_PORT = 8888;
 
 constexpr int THREADS = 5;
@@ -76,7 +76,6 @@ int main(int argc, char** argv)
 
 void receiver_func(uvgrtp::session* session, uint16_t sender_port, uint16_t receiver_port, int flags, int thread_num, int mux)
 {
-    uvgrtp::media_stream* receive = nullptr;
     uint32_t remote_ssrc = 10 + thread_num;
     uint16_t thread_recv_port = RECEIVER_PORT;
     uint16_t thread_send_port = SENDER_PORT;
@@ -95,7 +94,7 @@ void receiver_func(uvgrtp::session* session, uint16_t sender_port, uint16_t rece
     {
         std::cout << "Error creating media stream" << std::endl;
     }
-
+    std::cout << "Media stream created: " << thread_send_port << "->" << thread_recv_port << ", rem ssrc: " << remote_ssrc << std::endl;
     int tid = thread_num / 2;
     if (recv->install_receive_hook(&tid, hook)) {
         std::chrono::high_resolution_clock::time_point last_received = std::chrono::high_resolution_clock::now();
@@ -103,8 +102,6 @@ void receiver_func(uvgrtp::session* session, uint16_t sender_port, uint16_t rece
         while (true) {
             if (last_received + std::chrono::milliseconds(TIMEOUT) <= std::chrono::high_resolution_clock::now())
             {
-                //std::cerr << "uvgRTP receiver timed out. No packets received for 2 s. Received "
-                //    << thread_info[tid].pkts << " frames in total" << std::endl;
                 write_receive_results_to_file(RESULT_FILE,
                     thread_info[tid].bytes, thread_info[tid].pkts,
                     std::chrono::duration_cast<std::chrono::milliseconds>(
