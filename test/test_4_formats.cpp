@@ -356,7 +356,7 @@ TEST(FormatTests, h266_single_nal_unit)
     cleanup_ms(sess, receiver);
     cleanup_sess(ctx, sess);
 }
-/*
+
 TEST(FormatTests, h265_large_fragment_pacing)
 {
     std::cout << "Starting h265 test" << std::endl;
@@ -402,7 +402,7 @@ TEST(FormatTests, h265_large_fragment_pacing)
     cleanup_ms(sess, receiver);
     cleanup_sess(ctx, sess);
 }
-*/
+
 TEST(FormatTests, h266_fragmentation)
 {
     std::cout << "Starting h266 fragmentation test" << std::endl;
