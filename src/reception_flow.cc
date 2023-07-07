@@ -182,15 +182,8 @@ rtp_error_t uvgrtp::reception_flow::install_receive_hook(
         return RTP_INVALID_VALUE;
 
     // ssrc 0 is used when streams are not multiplexed into a single socket
-    if (hooks_.find(remote_ssrc) == hooks_.end()) {
-        receive_pkt_hook new_hook = { arg, hook };
-        hooks_[remote_ssrc] = new_hook;
-    }
-    else {
-        receive_pkt_hook new_hook = { arg, hook };
-        hooks_.erase(remote_ssrc);
-        hooks_.insert({remote_ssrc, new_hook});
-    }
+    receive_pkt_hook new_hook = { arg, hook };
+    hooks_[remote_ssrc] = new_hook;
 
     return RTP_OK;
 }
@@ -204,10 +197,12 @@ uvgrtp::frame::rtp_frame *uvgrtp::reception_flow::pull_frame()
 
     if (should_stop_)
         return nullptr;
-
+    uvgrtp::frame::rtp_frame* frame = nullptr;
     frames_mtx_.lock();
-    auto frame = frames_.front();
-    frames_.erase(frames_.begin());
+    if (!frames_.empty()) {
+        frame = frames_.front();
+        frames_.erase(frames_.begin());
+    }
     frames_mtx_.unlock();
 
     return frame;
@@ -226,10 +221,12 @@ uvgrtp::frame::rtp_frame *uvgrtp::reception_flow::pull_frame(ssize_t timeout_ms)
 
     if (should_stop_ || frames_.empty())
         return nullptr;
-
+    uvgrtp::frame::rtp_frame* frame = nullptr;
     frames_mtx_.lock();
-    auto frame = frames_.front();
-    frames_.pop_front();
+    if (!frames_.empty()) {
+        frame = frames_.front();
+        frames_.pop_front();
+    }
     frames_mtx_.unlock();
 
     return frame;
@@ -725,13 +722,15 @@ rtp_error_t uvgrtp::reception_flow::update_remote_ssrc(uint32_t old_remote_ssrc,
 {
     std::lock_guard<std::mutex> hlg(hooks_mutex_);
     std::lock_guard<std::mutex> halg(handlers_mutex_);
-
-    handler handlers = packet_handlers_[old_remote_ssrc];
-    packet_handlers_.erase(old_remote_ssrc);
-    packet_handlers_.insert({new_remote_ssrc, handlers});
-
-    receive_pkt_hook hook = hooks_[old_remote_ssrc];
-    hooks_.erase(old_remote_ssrc);
-    hooks_.insert({new_remote_ssrc, hook});
+    if (packet_handlers_.find(old_remote_ssrc) != packet_handlers_.end()) {
+        handler handlers = packet_handlers_[old_remote_ssrc];
+        packet_handlers_.erase(old_remote_ssrc);
+        packet_handlers_.insert({new_remote_ssrc, handlers});
+    }
+    if (hooks_.find(old_remote_ssrc) != hooks_.end()) {
+        receive_pkt_hook hook = hooks_[old_remote_ssrc];
+        hooks_.erase(old_remote_ssrc);
+        hooks_.insert({new_remote_ssrc, hook});
+    }
     return RTP_OK;
 }
