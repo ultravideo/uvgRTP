@@ -458,7 +458,7 @@ void zrtp_receive_func(uvgrtp::session* receiver_session, int sender_port, int r
 
     if (recv)
     {
-        while (std::chrono::steady_clock::now() - start < EXAMPLE_DURATION_S)
+        while (std::chrono::steady_clock::now() - start < std::chrono::seconds(4))
         {
             frame = recv->pull_frame(10);
             if (frame)
