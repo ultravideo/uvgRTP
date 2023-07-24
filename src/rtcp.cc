@@ -1033,13 +1033,6 @@ void uvgrtp::rtcp::update_session_statistics(const uvgrtp::frame::rtp_frame *fra
         ((double)trans_difference - participants_[frame->header.ssrc]->stats.jitter);
 }
 
-rtp_error_t uvgrtp::rtcp::new_recv_packet_handler_common(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out)
-{
-    (void)size;
-    (void)read_ptr;
-    return recv_packet_handler(args, rce_flags, out);
-}
-
 /* RTCP packet handler is responsible for doing two things:
  *
  * - it checks whether the packet is coming from an existing user and if so,
@@ -1048,10 +1041,11 @@ rtp_error_t uvgrtp::rtcp::new_recv_packet_handler_common(void* args, int rce_fla
  *   have been received.
  * - it keeps track of participants' SSRCs and if a collision
  *   is detected, the RTP context is updated */
-rtp_error_t uvgrtp::rtcp::recv_packet_handler(void *arg, int rce_flags, frame::rtp_frame **out)
+rtp_error_t uvgrtp::rtcp::recv_packet_handler_common(void *arg, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame **out)
 {
     (void)rce_flags;
-
+    (void)size;
+    (void)read_ptr;
     // The validity of the header has been checked by previous handlers
 
     uvgrtp::frame::rtp_frame *frame = *out;
