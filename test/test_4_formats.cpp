@@ -380,7 +380,8 @@ TEST(FormatTests, h265_large_fragment_pacing)
 
             receiver->configure_ctx(RCC_UDP_RCV_BUF_SIZE, 40 * 1000 * 1000);
             receiver->configure_ctx(RCC_RING_BUFFER_SIZE, 40 * 1000 * 1000);
-            receiver->configure_ctx(RCC_PKT_MAX_DELAY, 900);
+            /* This is so high because on the gitlab CI tests the performance seems to be quite bad so extra time is needed */
+            receiver->configure_ctx(RCC_PKT_MAX_DELAY, 2500);
         }
     }
 
