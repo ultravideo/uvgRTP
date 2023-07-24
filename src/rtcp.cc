@@ -1033,15 +1033,6 @@ void uvgrtp::rtcp::update_session_statistics(const uvgrtp::frame::rtp_frame *fra
         ((double)trans_difference - participants_[frame->header.ssrc]->stats.jitter);
 }
 
-rtp_error_t uvgrtp::rtcp::new_recv_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out)
-{
-    //UVG_LOG_DEBUG("RTCP packet handled from %u", remote_ssrc_.get()->load());
-    (void)args;
-    (void)rce_flags;
-    (void)out;
-    return handle_incoming_packet(read_ptr, size);
-}
-
 rtp_error_t uvgrtp::rtcp::new_recv_packet_handler_common(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out)
 {
     (void)size;
@@ -1123,8 +1114,11 @@ size_t uvgrtp::rtcp::rtcp_length_in_bytes(uint16_t length)
     return (expanded_length + 1)* sizeof(uint32_t);
 }
 
-rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
+rtp_error_t uvgrtp::rtcp::handle_incoming_packet(void* args, int rce_flags, uint8_t* buffer, size_t size, frame::rtp_frame** out)
 {
+    (void)args;
+    (void)rce_flags;
+    (void)out;
     if (!buffer || !size)
     {
         return RTP_INVALID_VALUE;

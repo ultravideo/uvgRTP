@@ -144,7 +144,7 @@ namespace uvgrtp {
              * This function will call one of the above functions internally
              *
              * Return RTP_OK on success and RTP_ERROR on error */
-            rtp_error_t handle_incoming_packet(uint8_t *buffer, size_t size);
+            rtp_error_t handle_incoming_packet(void* args, int rce_flags, uint8_t* buffer, size_t size, frame::rtp_frame** out);
             /// \endcond
 
             /* Send "frame" to all participants
@@ -417,7 +417,6 @@ namespace uvgrtp {
 
             /* Update RTCP-related receiver statistics */
             static rtp_error_t recv_packet_handler(void *arg, int rce_flags, frame::rtp_frame **out);
-            rtp_error_t new_recv_packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out);
             rtp_error_t new_recv_packet_handler_common(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out);
 
             /* Update RTCP-related sender statistics */

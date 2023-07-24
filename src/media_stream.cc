@@ -308,7 +308,7 @@ rtp_error_t uvgrtp::media_stream::install_packet_handlers()
     if (rce_flags_ & RCE_RTCP_MUX) {
             reception_flow_->install_handler(
                 2, remote_ssrc_,
-                std::bind(&uvgrtp::rtcp::new_recv_packet_handler, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                std::bind(&uvgrtp::rtcp::handle_incoming_packet, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
                     std::placeholders::_4, std::placeholders::_5), nullptr);
         }
     if (rce_flags_ & RCE_SRTP) {
