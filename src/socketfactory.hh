@@ -33,7 +33,6 @@ namespace uvgrtp {
         public:
             socketfactory(int rce_flags);
             ~socketfactory();
-            rtp_error_t stop();
 
             /* Set the local addres for socketfactory.
              * 
@@ -110,9 +109,6 @@ namespace uvgrtp {
             std::vector<std::shared_ptr<uvgrtp::socket>> used_sockets_;
             std::map<std::shared_ptr<uvgrtp::reception_flow>, std::shared_ptr<uvgrtp::socket>> reception_flows_;
             std::map<std::shared_ptr<uvgrtp::rtcp_reader>, uint16_t> rtcp_readers_to_ports_;
-
-            bool should_stop_;
-
 
     };
 }

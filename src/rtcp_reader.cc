@@ -62,13 +62,11 @@ void uvgrtp::rtcp_reader::rtcp_report_reader() {
 
     rtp_error_t ret = RTP_OK;
     int max_poll_timeout_ms = 100;
+    std::vector<std::shared_ptr<uvgrtp::socket>> temp = {};
+    temp.push_back(socket_);
 
     while (active_) {
         int nread = 0;
-
-        std::vector<std::shared_ptr<uvgrtp::socket>> temp = {};
-        temp.push_back(socket_);
-
         ret = uvgrtp::poll::poll(temp, buffer.get(), MAX_PACKET, max_poll_timeout_ms, &nread);
 
         if (ret == RTP_OK && nread > 0)

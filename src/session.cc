@@ -38,10 +38,6 @@ uvgrtp::session::~session()
     for (auto&i : streams_) {
         (void)destroy_stream(i.second);
     }
-    if (sf_)
-    {
-        sf_->stop();
-    }
     streams_.clear();
     sf_ = nullptr;
 }

@@ -33,19 +33,12 @@ uvgrtp::socketfactory::socketfactory(int rce_flags) :
     ipv6_(false),
     used_sockets_({}),
     reception_flows_({}),
-    rtcp_readers_to_ports_({}),
-    should_stop_(true)
+    rtcp_readers_to_ports_({})
 {
 }
 
 uvgrtp::socketfactory::~socketfactory()
 {
-}
-
-rtp_error_t uvgrtp::socketfactory::stop()
-{
-    should_stop_ = true;
-    return RTP_OK;
 }
 
 rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr)
