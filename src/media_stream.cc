@@ -285,6 +285,10 @@ rtp_error_t uvgrtp::media_stream::free_resources(rtp_error_t ret)
     media_          = nullptr;
     socket_         = nullptr;
 
+    if (zrtp_) {
+        zrtp_->set_zrtp_busy(false);
+    }
+
     return ret;
 }
 
@@ -381,7 +385,20 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
             }
         }
     }
-
+    /* If ZRTP is already performing an MSM negotiation, wait for it to complete before starting a new one */
+    if (!perform_dh) {
+        auto start = std::chrono::system_clock::now();
+        while (zrtp_->is_zrtp_busy()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start).count() > 10)
+            {
+                UVG_LOG_ERROR("Giving up on MSM after 10 seconds");
+                return free_resources(RTP_TIMEOUT);
+            }
+        }
+    }
+    
+    zrtp_->set_zrtp_busy(true);
     ret = RTP_OK;
     if ((ret = zrtp->init(rtp_->get_ssrc(), socket_, remote_sockaddr_, remote_sockaddr_ip6_, perform_dh, ipv6_)) != RTP_OK) {
         UVG_LOG_WARN("Failed to initialize ZRTP for media stream!");
@@ -394,6 +411,7 @@ rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
     if ((ret = init_srtp_with_zrtp(rce_flags_, SRTCP, srtcp_, zrtp)) != RTP_OK)
         return free_resources(ret);
 
+    zrtp_->set_zrtp_busy(false);
     zrtp->dh_has_finished(); // only after the DH stream has gotten its keys, do we let non-DH stream perform ZRTP
     install_packet_handlers();
 

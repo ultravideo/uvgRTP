@@ -45,7 +45,8 @@ uvgrtp::zrtp::zrtp():
     confack_(nullptr),
     hello_len_(0),
     commit_len_(0),
-    dh_len_(0)
+    dh_len_(0),
+    zrtp_busy_(false)
 {
     cctx_.sha256 = new uvgrtp::crypto::sha256;
     cctx_.dh     = new uvgrtp::crypto::dh;
@@ -930,7 +931,6 @@ rtp_error_t uvgrtp::zrtp::init_msm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
             return ret;
         }
     }
-
     return RTP_OK;
 }
 

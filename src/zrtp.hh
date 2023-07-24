@@ -90,6 +90,15 @@ namespace uvgrtp {
                 dh_finished_ = true;
             }
 
+            inline bool is_zrtp_busy() const
+            {
+                return zrtp_busy_;
+            }
+            inline void set_zrtp_busy(bool status)
+            {
+                zrtp_busy_ = status;
+            }
+
         private:
             /* Initialize ZRTP session between us and remote using Diffie-Hellman Mode
              *
@@ -209,7 +218,7 @@ namespace uvgrtp {
 
             std::mutex state_mutex_;
             bool dh_finished_ = false;
-
+            bool zrtp_busy_;
 
     };
 }
