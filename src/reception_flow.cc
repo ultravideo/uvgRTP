@@ -554,7 +554,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                 uint8_t version = (*(uint8_t*)&ptr[0] >> 6) & 0x3;
 
                 if (handlers != nullptr) {
-                    /* SSRC match is found -> call handlers */
+                    /* SSRC match or SSRC 0 is found -> call handlers */
                     rtp_error_t retval;
                     uvgrtp::frame::rtp_frame* frame = nullptr;
 
@@ -587,10 +587,11 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                             retval = handlers->rtp.handler(nullptr, rce_flags, &ptr[0], size, &frame);
                         }
                         else {
-                            /* This should only happen when ZRTP is enabled. If the remote stream is done first, they start sending
+                            /* Received a packet but RTP handler is not installed.
+                             * This should only happen when ZRTP is enabled. If the remote stream is done first, they start sending
                              * media already before we have handled the last ZRTP ConfACK packet. This should not be a problem
                              * as we only lose the first frame or a few at worst. If this causes issues, the sender
-                             * may, for example, sleep for 50 or so milliseconds to give us time to complete ZRTP. */
+                             * may, for example, sleep for 50 or so milliseconds to give us time to complete ZRTP negotiation. */
                             UVG_LOG_DEBUG("RTP handler is not (yet?) installed");
                         }
 
