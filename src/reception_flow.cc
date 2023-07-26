@@ -38,6 +38,7 @@ uvgrtp::reception_flow::reception_flow(bool ipv6) :
     user_hook_arg_(nullptr),
     user_hook_(nullptr),
     packet_handlers_({}),
+    poll_timeout_ms_(100),
     ring_buffer_(),
     ring_read_index_(-1), // invalid first index that will increase to a valid one
     last_ring_write_index_(-1),
@@ -116,6 +117,16 @@ void uvgrtp::reception_flow::set_payload_size(const size_t& value)
 {
     payload_size_ = value;
     create_ring_buffer();
+}
+
+void uvgrtp::reception_flow::set_poll_timeout_ms(int timeout_ms)
+{
+    poll_timeout_ms_ = timeout_ms;
+}
+
+int uvgrtp::reception_flow::get_poll_timeout_ms()
+{
+    return poll_timeout_ms_;
 }
 
 rtp_error_t uvgrtp::reception_flow::start(std::shared_ptr<uvgrtp::socket> socket, int rce_flags)
@@ -423,13 +434,11 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
         pfds->fd = read_fds;
         pfds->events = POLLIN;
 
-        // exits after this time if no data has been received to check whether we should exit
-        int timeout_ms = 100; 
-
+        // exits after poll_timeout_ms_ time if no data has been received to check whether we should exit
 #ifdef _WIN32
-        if (WSAPoll(pfds, 1, timeout_ms) < 0) {
+        if (WSAPoll(pfds, 1, poll_timeout_ms_) < 0) {
 #else
-        if (poll(pfds, 1, timeout_ms) < 0) {
+        if (poll(pfds, 1, poll_timeout_ms_) < 0) {
 #endif
             UVG_LOG_ERROR("poll(2) failed");
             if (pfds)

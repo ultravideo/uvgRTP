@@ -391,6 +391,14 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
     */
     RCC_SESSION_BANDWIDTH = 12,
 
+    /** Set the timeout value for socket polling
+    * 
+    * Default value is 100 ms. If you are experiencing packet loss when receiving, you can try
+    * lowering this value down to 0. This will, however cause a busy loop in the receiver, so
+    * use with caution.
+    */
+    RCC_POLL_TIMEOUT       = 13,
+
     /// \cond DO_NOT_DOCUMENT
     RCC_LAST
     /// \endcond

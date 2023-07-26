@@ -153,6 +153,8 @@ namespace uvgrtp {
             void set_buffer_size(const ssize_t& value);
             ssize_t get_buffer_size() const;
             void set_payload_size(const size_t& value);
+            void set_poll_timeout_ms(int timeout_ms);
+            int get_poll_timeout_ms();
 
             rtp_error_t install_user_hook(void* arg, void (*hook)(void*, uint8_t* data, uint32_t len));
             /// \endcond
@@ -208,6 +210,8 @@ namespace uvgrtp {
 
             // Map different types of handlers by remote SSRC
             std::unordered_map<uint32_t, handler> packet_handlers_;
+
+            int poll_timeout_ms_;
 
             std::vector<Buffer> ring_buffer_;
             std::mutex handlers_mutex_;

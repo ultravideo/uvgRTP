@@ -777,6 +777,12 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
         
         return ret;
     }
+    else if (rcc_flag == RCC_POLL_TIMEOUT) {
+        if (reception_flow_) {
+            reception_flow_->set_poll_timeout_ms((int)value);
+        }
+        return ret;
+    }
 
     if (!initialized_) {
         UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
@@ -951,6 +957,9 @@ int uvgrtp::media_stream::get_configuration_value(int rcc_flag)
         }
         case RCC_SESSION_BANDWIDTH: {
             return (int)bandwidth_;
+        }
+        case RCC_POLL_TIMEOUT: {
+            return reception_flow_->get_poll_timeout_ms();
         }
         default:
             ret = -1;
