@@ -321,8 +321,9 @@ rtp_error_t uvgrtp::media_stream::install_packet_handlers()
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::media_stream::init()
+rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
 {
+    zrtp_ = zrtp;
     if (init_connection() != RTP_OK) {
         UVG_LOG_ERROR("Failed to initialize the underlying socket");
         return free_resources(RTP_GENERIC_ERROR);
@@ -343,7 +344,8 @@ rtp_error_t uvgrtp::media_stream::init()
 
     /* If we are using ZRTP, we only install the ZRTP handler first. Rest of the handlers are installed after ZRTP is
        finished. If ZRTP is not enabled, we can install all the required handlers now */
-    if ((rce_flags_ & RCE_SRTP_KMNGMNT_ZRTP) && zrtp_) {
+    if ((rce_flags_ & RCE_ZRTP_DIFFIE_HELLMAN_MODE || rce_flags_ & RCE_ZRTP_MULTISTREAM_MODE
+        || rce_flags_ & RCE_SRTP_KMNGMNT_ZRTP ) && zrtp_) {
         reception_flow_->install_handler(
             3, remote_ssrc_,
             std::bind(&uvgrtp::zrtp::packet_handler, zrtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
@@ -360,10 +362,10 @@ rtp_error_t uvgrtp::media_stream::init()
     return start_components();
 }
 
-rtp_error_t uvgrtp::media_stream::init(std::shared_ptr<uvgrtp::zrtp> zrtp)
+rtp_error_t uvgrtp::media_stream::init_auto_zrtp(std::shared_ptr<uvgrtp::zrtp> zrtp)
 {
     zrtp_ = zrtp;
-    rtp_error_t ret = init();
+    rtp_error_t ret = init(zrtp_);
     if (ret != RTP_OK) {
         UVG_LOG_ERROR("Failed to initialize media stream");
         return free_resources(ret);

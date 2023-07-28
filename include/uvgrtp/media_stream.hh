@@ -56,16 +56,16 @@ namespace uvgrtp {
                 rtp_format_t fmt, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags);
             ~media_stream();
 
-            /* Initialize traditional RTP session
+            /* Initialize traditional RTP session. ZRTP can be started via add_zrtp_ctx()
              * Allocate Connection/Reader/Writer objects and initialize them
              *
              * Return RTP_OK on success
              * Return RTP_MEMORY_ERROR if allocation failed
              *
              * Other error return codes are defined in {conn,writer,reader}.hh */
-            rtp_error_t init();
+            rtp_error_t init(std::shared_ptr<uvgrtp::zrtp> zrtp);
 
-            /* Initialize Secure RTP session
+            /* Initialize Secure RTP session with automatic ZRTP negotiation
              * Allocate Connection/Reader/Writer objects and initialize them
              *
              * Return RTP_OK on success
@@ -74,8 +74,9 @@ namespace uvgrtp {
              * TODO document all error codes!
              *
              * Other error return codes are defined in {conn,writer,reader,srtp}.hh */
-            rtp_error_t init(std::shared_ptr<uvgrtp::zrtp> zrtp);
+            rtp_error_t init_auto_zrtp(std::shared_ptr<uvgrtp::zrtp> zrtp);
             /// \endcond
+
             rtp_error_t add_zrtp_ctx();
             /**
              *
