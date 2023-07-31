@@ -203,6 +203,16 @@ rtp_error_t uvgrtp::rtcp::start()
 {
     active_ = true;
     ipv6_ = sfp_->get_ipv6();
+    if ((rce_flags_ & RCE_RTCP_MUX)) {
+        if (ipv6_) {
+            socket_address_ipv6_ = uvgrtp::socket::create_ip6_sockaddr(remote_addr_, dst_port_);
+        }
+        else {
+            socket_address_ = uvgrtp::socket::create_sockaddr(AF_INET, remote_addr_, dst_port_);
+        }
+        report_generator_.reset(new std::thread(rtcp_runner, this));
+        return RTP_OK;
+    }
 
     rtcp_reader_ = sfp_->get_rtcp_reader(local_port_);
     rtp_error_t ret = RTP_OK;
@@ -277,10 +287,12 @@ rtp_error_t uvgrtp::rtcp::stop()
         UVG_LOG_DEBUG("Waiting for RTCP loop to exit");
         report_generator_->join();
     }
-
-    if (rtcp_reader_ && rtcp_reader_->clear_rtcp_from_reader(remote_ssrc_) == 1) {
-        sfp_->clear_port(local_port_, rtcp_socket_);
+    if (!(rce_flags_ & RCE_RTCP_MUX)) {
+        if (rtcp_reader_ && rtcp_reader_->clear_rtcp_from_reader(remote_ssrc_) == 1) {
+            sfp_->clear_port(local_port_, rtcp_socket_);
+        }
     }
+    
     return ret;
 }
 
@@ -1029,10 +1041,11 @@ void uvgrtp::rtcp::update_session_statistics(const uvgrtp::frame::rtp_frame *fra
  *   have been received.
  * - it keeps track of participants' SSRCs and if a collision
  *   is detected, the RTP context is updated */
-rtp_error_t uvgrtp::rtcp::recv_packet_handler(void *arg, int rce_flags, frame::rtp_frame **out)
+rtp_error_t uvgrtp::rtcp::recv_packet_handler_common(void *arg, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame **out)
 {
     (void)rce_flags;
-
+    (void)size;
+    (void)read_ptr;
     // The validity of the header has been checked by previous handlers
 
     uvgrtp::frame::rtp_frame *frame = *out;
@@ -1095,8 +1108,11 @@ size_t uvgrtp::rtcp::rtcp_length_in_bytes(uint16_t length)
     return (expanded_length + 1)* sizeof(uint32_t);
 }
 
-rtp_error_t uvgrtp::rtcp::handle_incoming_packet(uint8_t *buffer, size_t size)
+rtp_error_t uvgrtp::rtcp::handle_incoming_packet(void* args, int rce_flags, uint8_t* buffer, size_t size, frame::rtp_frame** out)
 {
+    (void)args;
+    (void)rce_flags;
+    (void)out;
     if (!buffer || !size)
     {
         return RTP_INVALID_VALUE;

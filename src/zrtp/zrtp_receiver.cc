@@ -109,7 +109,7 @@ rtp_error_t uvgrtp::zrtp_msg::receiver::recv_msg(std::shared_ptr<uvgrtp::socket>
         return RTP_INVALID_VALUE;
     }
 
-    if (msg->header.magic != ZRTP_MAGIC) {
+    if (ntohl(msg->header.magic) != ZRTP_MAGIC) {
         UVG_LOG_WARN("Received invalid ZRTP magic");
         return RTP_INVALID_VALUE;
     }

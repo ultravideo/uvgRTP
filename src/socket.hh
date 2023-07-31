@@ -19,6 +19,10 @@
 
 #include <vector>
 #include <string>
+#include <atomic>
+#include <memory>
+#include <mutex>
+#include <map>
 
 #ifdef _WIN32
 typedef SOCKET socket_t;
@@ -174,7 +178,9 @@ namespace uvgrtp {
              * (such as collecting RTCP session statistics info or encrypting a packet)
              *
              * "arg" is an optional parameter that can be passed to the handler when it's called */
-            rtp_error_t install_handler(void *arg, packet_handler_vec handler);
+            rtp_error_t install_handler(std::shared_ptr<std::atomic<std::uint32_t>> local_ssrc, void *arg, packet_handler_vec handler);
+
+            rtp_error_t remove_handler(std::shared_ptr<std::atomic<std::uint32_t>> local_ssrc);
 
             static bool is_multicast(sockaddr_in& local_address);
             static bool is_multicast(sockaddr_in6& local_address);
@@ -203,11 +209,14 @@ namespace uvgrtp {
 
             int rce_flags_;
 
+            std::mutex handlers_mutex_;
+            std::mutex conf_mutex_;
+
             /* __sendto() calls these handlers in order before sending the packet */
-            std::vector<socket_packet_handler> buf_handlers_;
+            std::multimap<std::shared_ptr<std::atomic<std::uint32_t>>, socket_packet_handler> buf_handlers_;
 
             /* __sendtov() calls these handlers in order before sending the packet */
-            std::vector<socket_packet_handler> vec_handlers_;
+            std::multimap<std::shared_ptr<std::atomic<std::uint32_t>>, socket_packet_handler> vec_handlers_;
 
 #ifndef NDEBUG
             uint64_t sent_packets_ = 0;

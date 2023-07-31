@@ -62,26 +62,27 @@ void uvgrtp::rtcp_reader::rtcp_report_reader() {
 
     rtp_error_t ret = RTP_OK;
     int max_poll_timeout_ms = 100;
+    std::vector<std::shared_ptr<uvgrtp::socket>> temp = {};
+    temp.push_back(socket_);
 
     while (active_) {
         int nread = 0;
-
-        std::vector<std::shared_ptr<uvgrtp::socket>> temp = {};
-        temp.push_back(socket_);
-
         ret = uvgrtp::poll::poll(temp, buffer.get(), MAX_PACKET, max_poll_timeout_ms, &nread);
 
         if (ret == RTP_OK && nread > 0)
         {
             uint32_t sender_ssrc = ntohl(*(uint32_t*)&buffer.get()[0 + RTCP_HEADER_SIZE]);
             map_mutex_.lock();
-            for (auto& p : rtcps_map_) {
-                std::shared_ptr<uvgrtp::rtcp> rtcp_ptr = p.second;
-                if (sender_ssrc == p.first.get()->load()) {
-                    (void)rtcp_ptr->handle_incoming_packet(buffer.get(), (size_t)nread);
-                }
-                else if (p.first.get()->load() == 0) {
-                    (void)rtcp_ptr->handle_incoming_packet(buffer.get(), (size_t)nread);
+            if (rtcps_map_.size() == 1) {
+                auto& ptr = rtcps_map_.begin()->second;
+                (void)ptr->handle_incoming_packet(nullptr, 0, buffer.get(), (size_t)nread, nullptr);
+            }
+            else {
+                for (auto& p : rtcps_map_) {
+                    std::shared_ptr<uvgrtp::rtcp> rtcp_ptr = p.second;
+                    if (sender_ssrc == p.first.get()->load()) {
+                        (void)rtcp_ptr->handle_incoming_packet(nullptr, 0, buffer.get(), (size_t)nread, nullptr);
+                    }
                 }
             }
             map_mutex_.unlock();

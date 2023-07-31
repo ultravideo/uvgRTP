@@ -56,16 +56,16 @@ namespace uvgrtp {
                 rtp_format_t fmt, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags);
             ~media_stream();
 
-            /* Initialize traditional RTP session
+            /* Initialize traditional RTP session.
              * Allocate Connection/Reader/Writer objects and initialize them
              *
              * Return RTP_OK on success
              * Return RTP_MEMORY_ERROR if allocation failed
              *
              * Other error return codes are defined in {conn,writer,reader}.hh */
-            rtp_error_t init();
+            rtp_error_t init(std::shared_ptr<uvgrtp::zrtp> zrtp);
 
-            /* Initialize Secure RTP session
+            /* Initialize Secure RTP session with automatic ZRTP negotiation
              * Allocate Connection/Reader/Writer objects and initialize them
              *
              * Return RTP_OK on success
@@ -74,8 +74,25 @@ namespace uvgrtp {
              * TODO document all error codes!
              *
              * Other error return codes are defined in {conn,writer,reader,srtp}.hh */
-            rtp_error_t init(std::shared_ptr<uvgrtp::zrtp> zrtp);
+            rtp_error_t init_auto_zrtp(std::shared_ptr<uvgrtp::zrtp> zrtp);
             /// \endcond
+
+            /**
+             *
+             * \brief Start the ZRTP negotiation manually. 
+             *
+             * \details There is two ways to use ZRTP.
+             * 1. Use flags RCE_SRTP + RCE_SRTP_KMNGMNT_ZRTP + (RCE_ZRTP_DIFFIE_HELLMAN_MODE/RCE_ZRTP_MULTISTREAM_MODE)
+             *    to automatically start ZRTP negotiation when creating a media stream.
+             * 2. Use flags RCE_SRTP + (RCE_ZRTP_DIFFIE_HELLMAN_MODE/RCE_ZRTP_MULTISTREAM_MODE) and after creating
+             *    the media stream, call add_zrtp_ctx() to manually start the ZRTP negotiation
+             *
+             * \return RTP error code
+             *
+             * \retval  RTP_OK On success
+             * \retval  RTP_TIMEOUT if ZRTP timed out
+             * \retval  RTP_GENERIC_ERROR on other errors */
+            rtp_error_t add_zrtp_ctx();
 
             /**
              *
@@ -273,11 +290,44 @@ namespace uvgrtp {
              */
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, uint64_t ntp_ts, int rtp_flags);
 
-            /* ----------- User packets not yet supported -----------
-            rtp_error_t send_user_packet(uint8_t* data, uint32_t payload_size,
+            /**
+             * \brief Send a custom UDP packet to the specified address
+             *
+             * \details
+             *
+             * \param data Pointer to data the that should be sent
+             * \param len Length of data
+             * \param Remote_address IPv4 or IPv6 address of the remote participant
+             * \param port Port number of the remote participant
+             *
+             * \return RTP error code
+             *
+             * \retval  RTP_OK            On success
+             * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
+             * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
+             */
+            rtp_error_t push_user_frame(uint8_t* data, uint32_t len,
                 std::string remote_address, uint16_t port);
-            rtp_error_t install_user_hook(void* arg, void (*hook)(void*, uint8_t* payload));
-            */
+
+            /**
+             * \brief Asynchronous way of getting user frames
+             *
+             * \details When a user hook is installed, uvgRTP will notify
+             * the application when user frames are received.
+             *
+             * The hook should not be used for frame processing as it will block the receiver from
+             * reading more frames. Instead, it should only be used as an interface between uvgRTP and
+             * the calling application where the frame hand-off happens.
+             *
+             * \param arg Optional argument that is passed to the hook when it is called, can be set to nullptr
+             * \param hook Function pointer to the receive hook that uvgRTP should call
+             *
+             * \return RTP error code
+             *
+             * \retval RTP_OK On success
+             * \retval RTP_INVALID_VALUE If hook is nullptr */
+            rtp_error_t install_user_hook(void* arg, void (*hook)(void*, uint8_t* data, uint32_t len));
+            
 
             /**
              * \brief Poll a frame indefinitely from the media stream object
@@ -338,8 +388,7 @@ namespace uvgrtp {
              * \return Value of the configuration flag
              *
              * \retval int value on success
-             * \retval -1 if the provided configuration flag does not exist
-             * \retval -2 if the flag is not set
+             * \retval -1 on error
              */
             int get_configuration_value(int rcc_flag);
 
@@ -389,6 +438,8 @@ namespace uvgrtp {
 
             rtp_error_t start_components();
 
+            rtp_error_t install_packet_handlers();
+
             uint32_t get_default_bandwidth_kbps(rtp_format_t fmt);
 
             bool check_pull_preconditions();
@@ -403,6 +454,7 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::socket> socket_;
             std::shared_ptr<uvgrtp::rtp>    rtp_;
             std::shared_ptr<uvgrtp::rtcp>   rtcp_;
+            std::shared_ptr<uvgrtp::zrtp>   zrtp_;
 
             std::shared_ptr<uvgrtp::socketfactory> sfp_;
 
@@ -421,10 +473,6 @@ namespace uvgrtp {
 
             /* Has the media stream been initialized */
             bool initialized_;
-
-            /* Primary handler keys for the RTP reception flow */
-            uint32_t rtp_handler_key_;
-            uint32_t zrtp_handler_key_;
 
             /* RTP packet reception flow. Dispatches packets to other components */
             std::shared_ptr<uvgrtp::reception_flow> reception_flow_;

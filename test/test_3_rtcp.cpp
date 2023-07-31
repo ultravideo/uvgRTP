@@ -221,7 +221,7 @@ TEST(RTCPTests, rtcp_multiplex)
 {
     // Test multiplexing two RTP streams into a single socket with RTCP enabled.
     // RTCP will bind to RTP socket + 1
-    std::cout << "Starting RTCP socket multiplexing test" << std::endl;
+    std::cout << "Starting RTCP socket multiplexing test: RTP socket + 1" << std::endl;
     uvgrtp::context ctx;
     uvgrtp::session* receiver_sess = ctx.create_session(LOCAL_INTERFACE, REMOTE_ADDRESS);
     uvgrtp::session* sender_sess = ctx.create_session(REMOTE_ADDRESS, LOCAL_INTERFACE);
@@ -274,8 +274,90 @@ TEST(RTCPTests, rtcp_multiplex)
         send_packets(std::move(test_frame1), PAYLOAD_LEN, sender_sess, sender1, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
         send_packets(std::move(test_frame2), PAYLOAD_LEN, sender_sess, sender2, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
     }
-    std::cout << "Receivers received " << received2 << " sender reports" << std::endl;
-    std::cout << "Senders received " << received1 << " receiver reports" << std::endl;
+    std::cout << "Receiver 1 received " << received3 << " sender reports" << std::endl;
+    std::cout << "Receiver 2 received " << received4 << " sender reports" << std::endl;
+    std::cout << "Sender 1 received " << received1 << " receiver reports" << std::endl;
+    std::cout << "Sender 2 received " << received2 << " receiver reports" << std::endl;
+    ASSERT_TRUE(received1 > 0);
+    ASSERT_TRUE(received2 > 0);
+    ASSERT_TRUE(received3 > 0);
+    ASSERT_TRUE(received4 > 0);
+    cleanup_ms(sender_sess, sender1);
+    cleanup_ms(sender_sess, sender2);
+    cleanup_ms(receiver_sess, receiver1);
+    cleanup_ms(receiver_sess, receiver2);
+    cleanup_sess(ctx, sender_sess);
+    cleanup_sess(ctx, receiver_sess);
+
+}
+
+TEST(RTCPTests, rtcp_multiplex2)
+{
+    // Test multiplexing RTCP packets into the same socket as RTP media streams via RCE_RTCP_MUX flag
+    // RTCP will bind to RTP socket
+    std::cout << "Starting RTCP socket multiplexing test 2: RTP socket" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* receiver_sess = ctx.create_session(LOCAL_INTERFACE, REMOTE_ADDRESS);
+    uvgrtp::session* sender_sess = ctx.create_session(REMOTE_ADDRESS, LOCAL_INTERFACE);
+
+    uvgrtp::media_stream* sender1 = nullptr;
+    uvgrtp::media_stream* receiver1 = nullptr;
+    uvgrtp::media_stream* sender2 = nullptr;
+    uvgrtp::media_stream* receiver2 = nullptr;
+
+    // 1 for RRs, 2 for SRs
+    received1 = 0;
+    received2 = 0;
+    received3 = 0;
+    received4 = 0;
+
+    int flags = RCE_FRAGMENT_GENERIC | RCE_RTCP | RCE_RTCP_MUX;
+    if (sender_sess)
+    {
+        sender1 = sender_sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
+        sender1->configure_ctx(RCC_SSRC, 11);
+        sender1->configure_ctx(RCC_REMOTE_SSRC, 22);
+        sender2 = sender_sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
+        sender2->configure_ctx(RCC_SSRC, 33);
+        sender2->configure_ctx(RCC_REMOTE_SSRC, 44);
+    }
+    if (sender1 && sender2)
+    {
+        EXPECT_EQ(RTP_OK, sender1->get_rtcp()->install_receiver_hook(m_r_hook1));
+        EXPECT_EQ(RTP_OK, sender2->get_rtcp()->install_receiver_hook(m_r_hook2));
+    }
+    if (receiver_sess)
+    {
+        receiver1 = receiver_sess->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
+        receiver1->configure_ctx(RCC_SSRC, 22);
+        receiver1->configure_ctx(RCC_REMOTE_SSRC, 11);
+        receiver2 = receiver_sess->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
+        receiver2->configure_ctx(RCC_SSRC, 44);
+        receiver2->configure_ctx(RCC_REMOTE_SSRC, 33);
+    }
+    if (receiver1 && receiver2)
+    {
+        EXPECT_EQ(RTP_OK, receiver1->get_rtcp()->install_sender_hook(m_s_hook1));
+        EXPECT_EQ(RTP_OK, receiver2->get_rtcp()->install_sender_hook(m_s_hook2));
+    }
+
+    int test_packets = 10;
+    std::vector<size_t> sizes = { 1000, 2000 };
+    for (size_t& size : sizes)
+    {
+        std::unique_ptr<uint8_t[]> test_frame1 = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
+        std::unique_ptr<uint8_t[]> test_frame2 = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
+        send_packets(std::move(test_frame1), PAYLOAD_LEN, sender_sess, sender1, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
+        send_packets(std::move(test_frame2), PAYLOAD_LEN, sender_sess, sender2, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
+    }
+    std::cout << "Receiver 1 received " << received3 << " sender reports" << std::endl;
+    std::cout << "Receiver 2 received " << received4 << " sender reports" << std::endl;
+    std::cout << "Sender 1 received " << received1 << " receiver reports" << std::endl;
+    std::cout << "Sender 2 received " << received2 << " receiver reports" << std::endl;
+    ASSERT_TRUE(received1 > 0);
+    ASSERT_TRUE(received2 > 0);
+    ASSERT_TRUE(received3 > 0);
+    ASSERT_TRUE(received4 > 0);
     cleanup_ms(sender_sess, sender1);
     cleanup_ms(sender_sess, sender2);
     cleanup_ms(receiver_sess, receiver1);

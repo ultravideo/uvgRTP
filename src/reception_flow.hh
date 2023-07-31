@@ -27,119 +27,89 @@ namespace uvgrtp {
     }
 
     class socket;
+    class rtcp;
 
     typedef void (*recv_hook)(void* arg, uvgrtp::frame::rtp_frame* frame);
 
-    // Not yet supported
-    //typedef void (*user_hook)(void* arg, uint8_t* payload, uint32_t payload_size);
+    typedef void (*user_hook)(void* arg, uint8_t* data, uint32_t len);
 
     struct receive_pkt_hook {
         void* arg = nullptr;
         recv_hook hook = nullptr;
     };
 
-    typedef rtp_error_t (*packet_handler)(ssize_t, void *, int, uvgrtp::frame::rtp_frame **);
-    typedef rtp_error_t (*packet_handler_aux)(void *, int, uvgrtp::frame::rtp_frame **);
     typedef rtp_error_t (*frame_getter)(void *, uvgrtp::frame::rtp_frame **);
 
-    struct auxiliary_handler {
-        void *arg = nullptr;
-        packet_handler_aux handler = nullptr;
-        frame_getter getter = nullptr;
+    struct packet_handler {
+        std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler;
+        void* args = nullptr;
     };
-
-    struct auxiliary_handler_cpp {
-        std::function<rtp_error_t(int, uvgrtp::frame::rtp_frame** out)> handler;
-        std::function<rtp_error_t(uvgrtp::frame::rtp_frame** out)> getter;
-    };
-
-    struct packet_handlers {
-        packet_handler primary = nullptr;
-        std::vector<auxiliary_handler> auxiliary;
-        std::vector<auxiliary_handler_cpp> auxiliary_cpp;
+    struct handler {
+        packet_handler rtp;
+        packet_handler rtcp;
+        packet_handler zrtp;
+        packet_handler srtp;
+        packet_handler media;
+        packet_handler rtcp_common;
+        std::function<rtp_error_t(uvgrtp::frame::rtp_frame ** out)> getter;
     };
 
     /* This class handles the reception processing of received RTP packets. It 
      * utilizes function dispatching to other classes to achieve this.
-
-     * The point of reception flow is to provide isolation between different layers
-     * of uvgRTP. For example, HEVC handler should not concern itself with RTP packet validation
-     * because that should be a global operation done for all packets. Neither should Opus handler
-     * take SRTP-provided authentication tag into account when it is performing operations on
-     * the packet and ZRTP packets should not be relayed from media handler
-     * to ZRTP handler et cetera.
      *
-     * This can be achieved by having a global UDP packet handler for any packet type that validates
-     * all common stuff it can and then dispatches the validated packet to the correct layer using
-     * one of the installed handlers.
-     *
-     * If it's unclear as to which handler should be called, the packet is dispatched to all relevant
-     * handlers and a handler then returns RTP_OK/RTP_PKT_NOT_HANDLED based on whether the packet was handled.
-     *
-     * For example, if receiver detects an incoming ZRTP packet, that packet is immediately dispatched to the
-     * installed ZRTP handler if ZRTP has been enabled.
-     * Likewise, if RTP packet authentication has been enabled, processor validates the packet before passing
-     * it onto any other layer so all future work on the packet is not done in vain due to invalid data
-     *
-     * One piece of design choice that complicates the design of packet dispatcher a little is that the order
-     * of handlers is important. First handler must be ZRTP and then follows SRTP, RTP and finally media handlers.
-     * This requirement gives packet handler a clean and generic interface while giving a possibility to modify
-     * the packet in each of the called handlers if needed. For example SRTP handler verifies RTP authentication
-     * tag and decrypts the packet and RTP handler verifies the fields of the RTP packet and processes it into
-     * a more easily modifiable format for the media handler.
-     *
-     * If packet is modified by the handler but the frame is not ready to be returned to user,
-     * handler returns RTP_PKT_MODIFIED to indicate that it has modified the input buffer and that
-     * the packet should be passed onto other handlers.
-     *
-     * When packet is ready to be returned to user, "out" parameter of packet handler is set to point to
-     * the allocated frame that can be returned and return value of the packet handler is RTP_PKT_READY.
-     *
-     * If a handler receives a non-null "out", it can safely ignore "packet" and operate just on
-     * the "out" parameter because at that point it already contains all needed information. */
+     * Each socket has a reception flow for receiving and handling packets from the socket.
+     * Media streams then install packet handlers into reception flow. When installing
+     * a handler, a *REMOTE SSRC* is given. This SSRC is the source that this media stream
+     * wants to receive packets *from*.
+     
+     * When processing packets, reception flow looks at the source SSRC in the packet header
+     * and sends it to the handlers that want to receive from this remote source.
+     * Various checks are done on the packet, and the packet is determined to be either a 
+     * 1. RTCP packet (if RCE_RTCP_MUX is enabled, otherwise RTCP uses its own socket)
+     * 2. ZRTP packet
+     * 3. SRTP packet
+     * 4. RTP packet
+     * 5. Holepuncher packet
+     * 
+     * The packet is then sent to the correct handler of the correct media stream.
+     * When multiplexing several media streams into a single socket, SSRC is what 
+     * separates one stream from another. You can also give each media stream pair
+     * their own ports, which eliminates the need for SSRC checking. In this case
+     * each reception_flow object will have just a single set of packet handlers
+     * and all packets are given to these.
+     * 
+     * If there is no valid SSRC to be found in the received packet's header, the
+     * packet is assumed to be a user packet, in which case it is handed over to 
+     * a user packet handler, provided that there is one installed. */
 
     class reception_flow{
         public:
             reception_flow(bool ipv6);
             ~reception_flow();
 
-            /* Install a primary handler for an incoming UDP datagram
-             *
-             * This handler is responsible for creating an operable RTP packet
-             * that auxiliary handlers can work with.
-             *
-             * It is also responsible for validating the packet on a high level
-             * (ZRTP checksum/RTP version etc) before passing it onto other handlers.
-             *
-             * Return a key on success that differentiates primary packet handlers
-             * Return 0 "handler" is nullptr */
-            uint32_t install_handler(packet_handler handler);
+            /* Install a new packet handler into the reception flow.
+            *  Types: Each handler type corresponds to an integerm, as follows:
+               1 RTP 
+               2 RTCP
+               3 ZRTP
+               4 SRTP
+               5 Media
+               6 RTCP common: Updates RTCP stats from RTP packets */
+            rtp_error_t install_handler(int type, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, 
+                std::function<rtp_error_t(void*, int, uint8_t*, size_t, frame::rtp_frame** out)> handler,
+                void* args);
 
-            /* Install auxiliary handler for the packet
-             *
-             * This handler is responsible for doing auxiliary operations on the packet
-             * such as gathering sessions statistics data or decrypting the packet
-             * It is called only after the primary handler of the auxiliary handler is called
-             *
-             * "key" is used to specify for which primary handlers for "handler"
-             * An auxiliary handler can be installed to multiple primary handlers
-             *
-             * "arg" is an optional argument that is passed to the handler when it's called
-             * It can be null if the handler does not require additional data
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "handler" is nullptr or if "key" is not valid */
-            rtp_error_t install_aux_handler(uint32_t key, void *arg, packet_handler_aux handler, frame_getter getter);
-
-            rtp_error_t install_aux_handler_cpp(uint32_t key, 
-                std::function<rtp_error_t(int, uvgrtp::frame::rtp_frame**)> handler,
+            /* Install a media getter. If multiple packets are ready, this is called. */
+            rtp_error_t install_getter(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc,
                 std::function<rtp_error_t(uvgrtp::frame::rtp_frame**)> getter);
 
+            /* Remove all handlers associated with this SSRC */
+            rtp_error_t remove_handlers(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
+
             /* Install receive hook in reception flow
-             *
              * Return RTP_OK on success
              * Return RTP_INVALID_VALUE if "hook" is nullptr */
-            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *), std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
+            rtp_error_t install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *), uint32_t remote_ssrc);
 
             /* Start the RTP reception flow. Start querying for received packets and processing them.
              *
@@ -167,27 +137,27 @@ namespace uvgrtp {
             uvgrtp::frame::rtp_frame* pull_frame(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
             uvgrtp::frame::rtp_frame* pull_frame(ssize_t timeout_ms, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
 
-            /* Map a packet handler key to a REMOTE SSRC of a stream
-             *
-             * Return true if a handler with the given key exists in the reception_flow -> mapping succesful
-             * Return false if there is no handler with this key -> no mapping is done */
-            bool map_handler_key(uint32_t key, std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
-
-            /* Clear the packet handlers associated with this handler key from the reception_flow
+            /* Clear the packet handlers associated with this REMOTE SSRC
              * Also clear the hooks associated with this remote_ssrc
              * 
              * Return 1 if the hooks and handlers were cleared and there is no hooks or handlers left in
              * this reception_flow -> the flow can be safely deleted if wanted
              * Return 0 if the hooks and handlers were removed but there is still others left in this reception_flow */
-            int clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc, uint32_t handler_key);
+            int clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc);
+
+            /* Update the remote SSRC linked to packet handlers and media hooks
+             * Used with media_stream.configure_ctx(RCC_REMOTE_SSRC, ---);
+             * Return RTP_OK on success */
+            rtp_error_t update_remote_ssrc(uint32_t old_remote_ssrc, uint32_t new_remote_ssrc);
 
             /// \cond DO_NOT_DOCUMENT
             void set_buffer_size(const ssize_t& value);
             ssize_t get_buffer_size() const;
             void set_payload_size(const size_t& value);
+            void set_poll_timeout_ms(int timeout_ms);
+            int get_poll_timeout_ms();
 
-            // Not yet supported
-            //rtp_error_t install_user_hook(void* arg, void (*hook)(void*, uint8_t* payload));
+            rtp_error_t install_user_hook(void* arg, void (*hook)(void*, uint8_t* data, uint32_t len));
             /// \endcond
 
         private:
@@ -200,16 +170,9 @@ namespace uvgrtp {
             /* Return a processed RTP frame to user either through frame queue or receive hook */
             void return_frame(uvgrtp::frame::rtp_frame *frame);
 
-            // Not yet supported
-            //void return_user_pkt(uint8_t* pkt);
-
-            /* Call auxiliary handlers of a primary handler */
-            void call_aux_handlers(uint32_t key, int rce_flags, uvgrtp::frame::rtp_frame **frame);
+            void return_user_pkt(uint8_t* pkt, uint32_t len);
 
             inline void increase_buffer_size(ssize_t next_write_index);
-
-            /* Primary handlers for the socket */
-            std::unordered_map<uint32_t, packet_handlers> packet_handlers_;
 
             inline ssize_t next_buffer_location(ssize_t current_location);
 
@@ -226,9 +189,7 @@ namespace uvgrtp {
             //void *recv_hook_arg_;
             //void (*recv_hook_)(void *arg, uvgrtp::frame::rtp_frame *frame);
 
-            std::map<std::shared_ptr<std::atomic<std::uint32_t>>, receive_pkt_hook> hooks_;
-            // Map handler keys to media streams remote ssrcs
-            std::map<uint32_t, std::shared_ptr<std::atomic<std::uint32_t>>> handler_mapping_;
+            std::unordered_map<uint32_t, receive_pkt_hook> hooks_;
 
             std::mutex flow_mutex_;
             bool should_stop_;
@@ -241,16 +202,24 @@ namespace uvgrtp {
             {
                 uint8_t* data;
                 int read;
-                sockaddr_in6 from6;
-                sockaddr_in from;
+                //sockaddr_in6 from6;
+                //sockaddr_in from;
             };
 
-            // Not yet supported
-            //void* user_hook_arg_;
-            //void (*user_hook_)(void* arg, uint8_t* payload);
+            void* user_hook_arg_;
+            void (*user_hook_)(void* arg, uint8_t* data, uint32_t len);
+
+            // Map different types of handlers by remote SSRC
+            std::unordered_map<uint32_t, handler> packet_handlers_;
+
+            int poll_timeout_ms_;
 
             std::vector<Buffer> ring_buffer_;
+            std::mutex handlers_mutex_;
             std::mutex ring_mutex_;
+            std::mutex active_mutex_;
+            std::mutex hooks_mutex_;
+
             // these uphold the ring buffer details
             std::atomic<ssize_t> ring_read_index_;
             std::atomic<ssize_t> last_ring_write_index_;

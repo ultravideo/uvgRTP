@@ -95,18 +95,12 @@ uvgrtp::zrtp_msg::dh_key_exchange::dh_key_exchange(struct zrtp_dh *dh):
 uvgrtp::zrtp_msg::dh_key_exchange::~dh_key_exchange()
 {}
 
-rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
+rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::parse_msg(uvgrtp::zrtp_msg::zrtp_dh* dh, zrtp_session_t& session, size_t len)
 {
     UVG_LOG_DEBUG("Parsing DHPart1/DHPart2 message...");
 
-    ssize_t len = 0;
     allocate_rframe(sizeof(zrtp_dh));
-    if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
-        UVG_LOG_ERROR("Failed to get message from ZRTP receiver");
-        return RTP_INVALID_VALUE;
-    }
-
-    zrtp_dh *msg = (zrtp_dh *)rframe_;
+    zrtp_dh* msg = dh;
 
     memcpy(session.dh_ctx.remote_public, msg->pk, 384);
 
@@ -119,7 +113,7 @@ rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::parse_msg(uvgrtp::zrtp_msg::recei
     session.secrets.s3 = nullptr;
 
     /* Save the MAC value so we can check if later */
-    memcpy(&session.hash_ctx.r_mac[1],  &msg->mac,  8);
+    memcpy(&session.hash_ctx.r_mac[1], &msg->mac, 8);
     memcpy(&session.hash_ctx.r_hash[1], msg->hash, 32);
 
     if (session.r_msg.dh.second)
@@ -128,9 +122,16 @@ rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::parse_msg(uvgrtp::zrtp_msg::recei
     }
 
     /* Finally make a copy of the message and save it for later use */
-    session.r_msg.dh.first  = len;
-    session.r_msg.dh.second = (uvgrtp::zrtp_msg::zrtp_dh *)new uint8_t[len];
+    session.r_msg.dh.first = len;
+    session.r_msg.dh.second = (uvgrtp::zrtp_msg::zrtp_dh*)new uint8_t[len];
     memcpy(session.r_msg.dh.second, msg, len);
 
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
+{
+    (void)receiver;
+    (void)session;
     return RTP_OK;
 }

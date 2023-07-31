@@ -33,19 +33,12 @@ uvgrtp::socketfactory::socketfactory(int rce_flags) :
     ipv6_(false),
     used_sockets_({}),
     reception_flows_({}),
-    rtcp_readers_to_ports_({}),
-    should_stop_(true)
+    rtcp_readers_to_ports_({})
 {
 }
 
 uvgrtp::socketfactory::~socketfactory()
 {
-}
-
-rtp_error_t uvgrtp::socketfactory::stop()
-{
-    should_stop_ = true;
-    return RTP_OK;
 }
 
 rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr)
@@ -68,7 +61,7 @@ rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr)
     return RTP_OK;
 }
 
-std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int type)
+std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int type, uint16_t port)
 {
     rtp_error_t ret = RTP_OK;
     std::shared_ptr<uvgrtp::socket> socket = std::make_shared<uvgrtp::socket>(rce_flags_);
@@ -93,15 +86,21 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int typ
 #endif
 
     if (ret == RTP_OK) {
-        socket_mutex_.lock();
         used_sockets_.push_back(socket);
-        socket_mutex_.unlock();
+        if (port != 0) {
+            bind_socket(socket, port);
+        }
 
         // If the socket is a type 2 (non-RTCP) socket, install a reception_flow
         if (type == 2) {
             std::shared_ptr<uvgrtp::reception_flow> flow = std::shared_ptr<uvgrtp::reception_flow>(new uvgrtp::reception_flow(ipv6_));
             std::pair pair = std::make_pair(flow, socket);
             reception_flows_.insert(pair);
+        }
+        else if (type == 1) {
+            // RTCP socket
+            std::shared_ptr<uvgrtp::rtcp_reader> reader = std::shared_ptr<uvgrtp::rtcp_reader>(new uvgrtp::rtcp_reader());
+            rtcp_readers_to_ports_[reader] = port;
         }
         return socket;
     }
@@ -150,6 +149,8 @@ rtp_error_t uvgrtp::socketfactory::bind_socket(std::shared_ptr<uvgrtp::socket> s
 rtp_error_t uvgrtp::socketfactory::bind_socket_anyip(std::shared_ptr<uvgrtp::socket> soc, uint16_t port)
 {
     rtp_error_t ret = RTP_OK;
+    std::lock_guard<std::mutex> lg(conf_mutex_);
+
     if (!is_port_in_use(port)) {
 
         if (ipv6_) {
@@ -167,17 +168,19 @@ rtp_error_t uvgrtp::socketfactory::bind_socket_anyip(std::shared_ptr<uvgrtp::soc
     return ret;
 }
 
-std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::get_socket_ptr(uint16_t port) const
+std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::get_socket_ptr(int type, uint16_t port)
 {
+    std::lock_guard<std::mutex> lg(conf_mutex_);
     const auto& ptr = used_ports_.find(port);
     if (ptr != used_ports_.end()) {
         return ptr->second;
     }
-    return nullptr;
+    return create_new_socket(type, port);
 }
 
-std::shared_ptr<uvgrtp::reception_flow> uvgrtp::socketfactory::get_reception_flow_ptr(std::shared_ptr<uvgrtp::socket> socket) const
+std::shared_ptr<uvgrtp::reception_flow> uvgrtp::socketfactory::get_reception_flow_ptr(std::shared_ptr<uvgrtp::socket> socket) 
 {
+    std::lock_guard<std::mutex> lg(conf_mutex_);
     for (const auto& ptr : reception_flows_) {
         if (ptr.second == socket) {
             return ptr.first;
@@ -208,7 +211,7 @@ bool uvgrtp::socketfactory::get_ipv6() const
     return ipv6_;
 }
 
-bool uvgrtp::socketfactory::is_port_in_use(uint16_t port) const
+bool uvgrtp::socketfactory::is_port_in_use(uint16_t port)
 {
     if (used_ports_.find(port) == used_ports_.end()) {
         return false;
@@ -218,7 +221,9 @@ bool uvgrtp::socketfactory::is_port_in_use(uint16_t port) const
 
 bool uvgrtp::socketfactory::clear_port(uint16_t port, std::shared_ptr<uvgrtp::socket> socket)
 {
-    if (port && used_ports_.find(port) != used_ports_.end()) {
+    std::lock_guard<std::mutex> lg(conf_mutex_);
+
+    if (port != 0) {
         used_ports_.erase(port);
     }
     for (auto& p : rtcp_readers_to_ports_) {
@@ -231,7 +236,6 @@ bool uvgrtp::socketfactory::clear_port(uint16_t port, std::shared_ptr<uvgrtp::so
     if (it != used_sockets_.end()) {
         used_sockets_.erase(it);
     }
-
     for (auto& p : reception_flows_) {
         if (p.second == socket) {
             reception_flows_.erase(p.first);

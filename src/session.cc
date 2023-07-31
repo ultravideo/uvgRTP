@@ -38,10 +38,6 @@ uvgrtp::session::~session()
     for (auto&i : streams_) {
         (void)destroy_stream(i.second);
     }
-    if (sf_)
-    {
-        sf_->stop();
-    }
     streams_.clear();
     sf_ = nullptr;
 }
@@ -123,9 +119,24 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
             return nullptr;
         }
 
+        session_mtx_.lock();
+        if (!zrtp_) {
+            zrtp_ = std::shared_ptr<uvgrtp::zrtp>(new uvgrtp::zrtp());
+        }
+        session_mtx_.unlock();
+
         if (rce_flags & RCE_SRTP_REPLAY_PROTECTION)
             rce_flags |= RCE_SRTP_AUTHENTICATE_RTP;
 
+        /* With flags RCE_SRTP_KMNGMNT_ZRTP enabled, start ZRTP negotiation automatically.  NOTE! This only works when
+         * not doing socket multiplexing. 
+         * 
+         * More info on flags: When using ZRTP, you have the following options:
+         * 1. Use flags RCE_SRTP + RCE_SRTP_KMNGMNT_ZRTP + negotiation mode flag
+         *     -> This way ZRTP negotiation is started automatically
+         * 2. Use flags RCE_SRTP + negotiation mode flag
+         *     -> Use add_zrtp_ctx() function to start ZRTP negotiation manually
+         */
         if (rce_flags & RCE_SRTP_KMNGMNT_ZRTP) {
 
             if (rce_flags & (RCE_SRTP_KEYSIZE_192 | RCE_SRTP_KEYSIZE_256)) {
@@ -140,27 +151,28 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
                 rce_flags |= RCE_ZRTP_DIFFIE_HELLMAN_MODE;
             }
 
-            session_mtx_.lock();
-            if (!zrtp_) {
-                zrtp_ = std::shared_ptr<uvgrtp::zrtp> (new uvgrtp::zrtp());
-            }
-            session_mtx_.unlock();
-
-            if (stream->init(zrtp_) != RTP_OK) {
+            if (stream->init_auto_zrtp(zrtp_) != RTP_OK) {
                 UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), src_port, dst_port);
                 delete stream;
                 return nullptr;
             }
         } else if (rce_flags & RCE_SRTP_KMNGMNT_USER) {
             UVG_LOG_DEBUG("SRTP with user-managed keys enabled, postpone initialization");
+            if (stream->init(zrtp_) != RTP_OK) {
+                UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), src_port, dst_port);
+                delete stream;
+                return nullptr;
+            }
         } else {
             UVG_LOG_ERROR("SRTP key management scheme not specified!");
-            rtp_errno = RTP_INVALID_VALUE;
-            delete stream;
-            return nullptr;
+            if (stream->init(zrtp_) != RTP_OK) {
+                UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), src_port, dst_port);
+                delete stream;
+                return nullptr;
+            }
         }
     } else {
-        if (stream->init() != RTP_OK) {
+        if (stream->init(zrtp_) != RTP_OK) {
             UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), src_port, dst_port);
             delete stream;
             return nullptr;

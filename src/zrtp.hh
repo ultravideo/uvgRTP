@@ -2,7 +2,12 @@
 
 #include "zrtp/zrtp_receiver.hh"
 #include "zrtp/defines.hh"
-
+#include "zrtp/commit.hh"
+#include "zrtp/confack.hh"
+#include "zrtp/confirm.hh"
+#include "zrtp/dh_kxchng.hh"
+#include "zrtp/hello.hh"
+#include "zrtp/hello_ack.hh"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -64,15 +69,12 @@ namespace uvgrtp {
                 uint8_t *their_msalt, uint32_t tsalt_len
             );
 
-            /* ZRTP packet handler is used after ZRTP state initialization has finished
-             * and media exchange has started. RTP reception flow gives the packet
-             * to "zrtp_handler" which then checks whether the packet is a ZRTP packet
-             * or not and processes it accordingly.
+            /* Handler for ZRTP packets
              *
              * Return RTP_OK on success
              * Return RTP_PKT_NOT_HANDLED if "buffer" does not contain a ZRTP message
              * Return RTP_GENERIC_ERROR if "buffer" contains an invalid ZRTP message */
-            static rtp_error_t packet_handler(ssize_t size, void *packet, int rce_flags, frame::rtp_frame **out);
+            rtp_error_t packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out);
 
             inline bool has_dh_finished() const
             {
@@ -82,6 +84,15 @@ namespace uvgrtp {
             inline void dh_has_finished()
             {
                 dh_finished_ = true;
+            }
+
+            inline bool is_zrtp_busy() const
+            {
+                return zrtp_busy_;
+            }
+            inline void set_zrtp_busy(bool status)
+            {
+                zrtp_busy_ = status;
             }
 
         private:
@@ -158,7 +169,7 @@ namespace uvgrtp {
              *
              * Return RTP_OK if DHPart2 was successful
              * Return RTP_TIMEOUT if no message is received from remote before T2 expires */
-            rtp_error_t dh_part2();
+            rtp_error_t dh_part2(uvgrtp::zrtp_msg::dh_key_exchange* dh);
 
             /* Calculate all the shared secrets (f.ex. DHResult and ZRTP Session Keys) */
             rtp_error_t calculate_shared_secret();
@@ -183,15 +194,28 @@ namespace uvgrtp {
             zrtp_capab_t capab_;
             zrtp_capab_t rcapab_;
 
-            /* ZRTP packet receiver */
-            uvgrtp::zrtp_msg::receiver receiver_;
-
             zrtp_crypto_ctx_t cctx_;
             zrtp_session_t session_;
 
             std::mutex zrtp_mtx_;
 
+            uvgrtp::zrtp_msg::zrtp_hello* hello_;
+            uvgrtp::zrtp_msg::zrtp_hello_ack* hello_ack_;
+            uvgrtp::zrtp_msg::zrtp_commit* commit_;
+            uvgrtp::zrtp_msg::zrtp_dh* dh1_;
+            uvgrtp::zrtp_msg::zrtp_dh* dh2_;
+            uvgrtp::zrtp_msg::zrtp_confirm* conf1_;
+            uvgrtp::zrtp_msg::zrtp_confirm* conf2_;
+            uvgrtp::zrtp_msg::zrtp_confack* confack_;
+
+            size_t hello_len_;
+            size_t commit_len_;
+            size_t dh_len_;
+
+            std::mutex state_mutex_;
             bool dh_finished_ = false;
+            bool zrtp_busy_;
+
     };
 }
 

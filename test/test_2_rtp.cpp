@@ -1,5 +1,5 @@
 #include "test_common.hh"
-
+#include <array>
 
 /* TODO: 1) Test only sending, 2) test sending with different configuration, 3) test receiving with different configurations, and 
  * 4) test sending and receiving within same test while checking frame size */
@@ -13,6 +13,19 @@ constexpr uint16_t RECEIVE_PORT = 9302;
 
 void rtp_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 void process_rtp_frame(uvgrtp::frame::rtp_frame* frame);
+void user_hook(void* arg, uint8_t* data, uint32_t len);
+
+int recv_;
+
+void user_hook(void* arg, uint8_t* data, uint32_t len)
+{
+    EXPECT_EQ(len, 5);
+    std::array<uint8_t, 5> recv_arr {data[0], data[1], data[2], data[3], data[4] };
+    std::array<uint8_t, 5> expected_arr = {20,25,30,35,40};
+    EXPECT_EQ(recv_arr, expected_arr);
+    recv_++;
+    std::cout << "User frame received correctly, size " << len << std::endl;
+}
 
 void test_wait(int time_ms, uvgrtp::media_stream* receiver)
 {
@@ -639,4 +652,40 @@ TEST(RTPTests, rtp_multiplex_poll)
     cleanup_ms(receiver_sess, receiver2);
     cleanup_sess(ctx, sender_sess);
     cleanup_sess(ctx, receiver_sess);
+}
+
+TEST(RTPTests, uvgrtp_user_frames)
+{
+    // Tests sending and receiving custom UDP packets
+    std::cout << "Starting uvgRTP user frames test: Sending custom UDP packets" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(REMOTE_ADDRESS);
+
+    recv_ = 0;
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    int flags = RCE_FRAGMENT_GENERIC;
+    if (sess)
+    {
+        sender = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_GENERIC, flags);
+        receiver = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
+        EXPECT_EQ(RTP_OK, receiver->install_receive_hook(nullptr, rtp_receive_hook));
+        EXPECT_EQ(RTP_OK, receiver->install_user_hook(nullptr, user_hook));
+    }
+
+    int test_packets = 10;
+    std::vector<size_t> sizes = { 1000, 2000 };
+    for (size_t& size : sizes)
+    {
+        std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
+        send_packets(std::move(test_frame), size, sess, sender, 10, 30, true, RTP_NO_FLAGS, false, true);
+
+    }
+    EXPECT_TRUE(recv_ > 0);
+    std::cout << "Received " << recv_ << " user packets" << std::endl;
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
 }

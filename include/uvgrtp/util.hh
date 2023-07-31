@@ -274,6 +274,8 @@ enum RTP_CTX_ENABLE_FLAGS {
 
     /** Paces the sending of frame fragments within frame interval (default 1/30 s) */
     RCE_PACE_FRAGMENT_SENDING       = 1 << 20,
+
+    RCE_RTCP_MUX                    = 1 << 21,
     
     /// \cond DO_NOT_DOCUMENT
     RCE_LAST                        = 1 << 21
@@ -388,6 +390,14 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
     * See RFC 3550 Appendix A.7 for further information on RTCP interval
     */
     RCC_SESSION_BANDWIDTH = 12,
+
+    /** Set the timeout value for socket polling
+    * 
+    * Default value is 100 ms. If you are experiencing packet loss when receiving, you can try
+    * lowering this value down to 0. This will, however cause a busy loop in the receiver, so
+    * use with caution.
+    */
+    RCC_POLL_TIMEOUT       = 13,
 
     /// \cond DO_NOT_DOCUMENT
     RCC_LAST

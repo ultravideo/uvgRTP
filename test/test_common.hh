@@ -21,7 +21,7 @@ inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets
 
 inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size, 
     uvgrtp::session* sess, uvgrtp::media_stream* sender,
-    int packets, int packet_interval_ms, bool print_progress, int rtp_flags, bool send_app = false);
+    int packets, int packet_interval_ms, bool print_progress, int rtp_flags, bool send_app = false, bool user = false);
 
 inline void add_hook(Test_receiver* tester, uvgrtp::media_stream* receiver, 
     void (*hook)(void*, uvgrtp::frame::rtp_frame*));
@@ -94,7 +94,7 @@ inline std::unique_ptr<uint8_t[]> create_test_packet(rtp_format_t format, uint8_
 
 inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size, 
     uvgrtp::session* sess, uvgrtp::media_stream* sender,
-    int packets, int packet_interval_ms, bool print_progress, int rtp_flags, bool send_app)
+    int packets, int packet_interval_ms, bool print_progress, int rtp_flags, bool send_app, bool user)
 {
     EXPECT_NE(nullptr, sess);
     EXPECT_NE(nullptr, sender);
@@ -110,6 +110,12 @@ inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size,
             {
                 const char* data = "ABCD";
                 sender->get_rtcp()->send_app_packet("Test", 1, 4, (uint8_t*)data);
+            }
+            
+            if (i % 4 == 0 && user) {
+                uint8_t data[5] = {20, 25, 30, 35, 40};
+                uint8_t* ptr = &data[0];
+                sender->push_user_frame(ptr, 5, "127.0.0.1", 9300);
             }
 
             rtp_error_t ret = RTP_OK;
@@ -202,11 +208,11 @@ inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets
         add_hook(tester, receiver, rtp_receive_hook);
 
         // to increase the likelyhood that receiver thread is ready to receive
-        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         send_packets(std::move(test_packet), size, sess, sender, packets, interval_ms, false, rtp_flags);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(50 + size/500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100 + size/500));
 
         tester->gotAll();
         delete tester;

@@ -74,21 +74,16 @@ uvgrtp::zrtp_msg::hello::hello(zrtp_session_t& session):
 uvgrtp::zrtp_msg::hello::~hello()
 {}
 
-rtp_error_t uvgrtp::zrtp_msg::hello::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
+rtp_error_t uvgrtp::zrtp_msg::hello::parse_msg(uvgrtp::zrtp_msg::zrtp_hello* hello, zrtp_session_t& session, size_t len)
 {
-    ssize_t len = 0;
     allocate_rframe(sizeof(zrtp_hello) + 5 * 8);
-    if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
-        UVG_LOG_ERROR("Failed to get message from ZRTP receiver");
-        return RTP_INVALID_VALUE;
-    }
+    zrtp_hello* msg = hello;
 
-    zrtp_hello *msg = (zrtp_hello *)rframe_;
-
-    if (strncmp((const char *)&msg->version, ZRTP_VERSION, 4)) {
+    if (strncmp((const char*)&msg->version, ZRTP_VERSION, 4)) {
         UVG_LOG_ERROR("Invalid ZRTP version!");
         session.capabilities.version = 0;
-    } else {
+    }
+    else {
         session.capabilities.version = 110;
     }
 
@@ -101,7 +96,7 @@ rtp_error_t uvgrtp::zrtp_msg::hello::parse_msg(uvgrtp::zrtp_msg::receiver& recei
     session.capabilities.sas_types.push_back(B32);
 
     /* Save the MAC value so we can check if later */
-    memcpy(&session.hash_ctx.r_mac[3],  &msg->mac,  8);
+    memcpy(&session.hash_ctx.r_mac[3], &msg->mac, 8);
     memcpy(&session.hash_ctx.r_hash[3], msg->hash, 32);
 
     /* Save ZID */
@@ -113,9 +108,16 @@ rtp_error_t uvgrtp::zrtp_msg::hello::parse_msg(uvgrtp::zrtp_msg::receiver& recei
     }
 
     /* Finally make a copy of the message and save it for later use */
-    session.r_msg.hello.first  = len;
-    session.r_msg.hello.second = (uvgrtp::zrtp_msg::zrtp_hello *)new uint8_t[len];
+    session.r_msg.hello.first = len;
+    session.r_msg.hello.second = (uvgrtp::zrtp_msg::zrtp_hello*)new uint8_t[len];
     memcpy(session.r_msg.hello.second, msg, len);
 
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::zrtp_msg::hello::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
+{
+    (void)receiver;
+    (void)session;
     return RTP_OK;
 }

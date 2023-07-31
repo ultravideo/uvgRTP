@@ -33,7 +33,6 @@ namespace uvgrtp {
         public:
             socketfactory(int rce_flags);
             ~socketfactory();
-            rtp_error_t stop();
 
             /* Set the local addres for socketfactory.
              * 
@@ -46,7 +45,7 @@ namespace uvgrtp {
              *
              * Param type 1 RTCP socket, 2 for any other type of a socket
              * Return the created socket on success, nullptr otherwise */
-            std::shared_ptr<uvgrtp::socket> create_new_socket(int type);
+            std::shared_ptr<uvgrtp::socket> create_new_socket(int , uint16_t port);
 
             /* Bind socket to the local IP address and given port
              * 
@@ -65,14 +64,14 @@ namespace uvgrtp {
             /* Get the socket bound to the given port
              *
              * Param port socket with wanted port
-             * Return pointer to socket on success, nullptr otherwise */
-            std::shared_ptr<uvgrtp::socket> get_socket_ptr(uint16_t port) const;
+             * Return pointer to socket on success. If one does not exist, a new one is created */
+            std::shared_ptr<uvgrtp::socket> get_socket_ptr(int type, uint16_t port);
 
             /* Get reception flow matching the given socket
              *
              * Param socket socket matching the wanted reception_flow
              * Return pointer to reception_flow on success, nullptr otherwise */
-            std::shared_ptr<uvgrtp::reception_flow> get_reception_flow_ptr(std::shared_ptr<uvgrtp::socket> socket) const;
+            std::shared_ptr<uvgrtp::reception_flow> get_reception_flow_ptr(std::shared_ptr<uvgrtp::socket> socket);
             
             /* Install an RTCP reader and map it to the given port
              *
@@ -96,12 +95,13 @@ namespace uvgrtp {
 
             /// \cond DO_NOT_DOCUMENT
             bool get_ipv6() const;
-            bool is_port_in_use(uint16_t port) const;
+            bool is_port_in_use(uint16_t port);
             /// \endcond
 
         private:
 
-            std::mutex socket_mutex_;
+            std::mutex conf_mutex_;
+
             int rce_flags_;
             std::string local_address_;
             std::map<uint16_t, std::shared_ptr<uvgrtp::socket>> used_ports_;
@@ -109,9 +109,6 @@ namespace uvgrtp {
             std::vector<std::shared_ptr<uvgrtp::socket>> used_sockets_;
             std::map<std::shared_ptr<uvgrtp::reception_flow>, std::shared_ptr<uvgrtp::socket>> reception_flows_;
             std::map<std::shared_ptr<uvgrtp::rtcp_reader>, uint16_t> rtcp_readers_to_ports_;
-
-            bool should_stop_;
-
 
     };
 }

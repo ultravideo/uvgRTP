@@ -66,23 +66,15 @@ uvgrtp::zrtp_msg::commit::commit(zrtp_session_t& session):
 uvgrtp::zrtp_msg::commit::~commit()
 {}
 
-
-rtp_error_t uvgrtp::zrtp_msg::commit::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
+rtp_error_t uvgrtp::zrtp_msg::commit::parse_msg(uvgrtp::zrtp_msg::zrtp_commit* commit, zrtp_session_t& session, size_t len)
 {
-    ssize_t len = 0;
     allocate_rframe(sizeof(zrtp_commit));
+    zrtp_commit* msg = commit;
 
-    if ((len = receiver.get_msg(rframe_, rlen_)) < 0) {
-        UVG_LOG_ERROR("Failed to get message from ZRTP receiver");
-        return RTP_INVALID_VALUE;
-    }
-
-    zrtp_commit *msg = (zrtp_commit *)rframe_;
-
-    session.sas_type           = msg->sas_type;
-    session.hash_algo          = msg->hash_algo;
-    session.cipher_algo        = msg->cipher_algo;
-    session.auth_tag_type      = msg->auth_tag_type;
+    session.sas_type = msg->sas_type;
+    session.hash_algo = msg->hash_algo;
+    session.cipher_algo = msg->cipher_algo;
+    session.auth_tag_type = msg->auth_tag_type;
     session.key_agreement_type = msg->key_agreement_type;
 
     if (session.key_agreement_type == MULT)
@@ -90,7 +82,7 @@ rtp_error_t uvgrtp::zrtp_msg::commit::parse_msg(uvgrtp::zrtp_msg::receiver& rece
     else
         memcpy(session.hash_ctx.r_hvi, msg->hvi, 32);
 
-    memcpy(&session.hash_ctx.r_mac[2], &msg->mac,  8);
+    memcpy(&session.hash_ctx.r_mac[2], &msg->mac, 8);
     memcpy(session.hash_ctx.r_hash[2], msg->hash, 32);
 
     if (session.r_msg.commit.second)
@@ -99,9 +91,16 @@ rtp_error_t uvgrtp::zrtp_msg::commit::parse_msg(uvgrtp::zrtp_msg::receiver& rece
     }
 
     /* Finally make a copy of the message and save it for later use */
-    session.r_msg.commit.first  = len;
-    session.r_msg.commit.second = (uvgrtp::zrtp_msg::zrtp_commit *)new uint8_t[len];
+    session.r_msg.commit.first = len;
+    session.r_msg.commit.second = (uvgrtp::zrtp_msg::zrtp_commit*)new uint8_t[len];
     memcpy(session.r_msg.commit.second, msg, len);
 
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::zrtp_msg::commit::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
+{
+    (void)receiver;
+    (void)session;
     return RTP_OK;
 }

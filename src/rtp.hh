@@ -44,7 +44,7 @@ namespace uvgrtp {
             void update_sequence(uint8_t *buffer);
 
             /* Validates the RTP header pointed to by "packet" */
-            static rtp_error_t packet_handler(ssize_t size, void *packet, int rce_flags, frame::rtp_frame **out);
+            rtp_error_t packet_handler(void* args, int rce_flags, uint8_t* packet, size_t size, uvgrtp::frame::rtp_frame** out);
 
         private:
 

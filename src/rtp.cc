@@ -233,9 +233,10 @@ uint32_t uvgrtp::rtp::get_rtp_ts() const {
     return rtp_ts_;
 }
 
-rtp_error_t uvgrtp::rtp::packet_handler(ssize_t size, void *packet, int rce_flags, uvgrtp::frame::rtp_frame **out)
+rtp_error_t uvgrtp::rtp::packet_handler(void* args, int rce_flags, uint8_t* packet, size_t size, uvgrtp::frame::rtp_frame **out)
 {
     (void)rce_flags;
+    (void)args;
 
     /* not an RTP frame */
     if (size < 12)

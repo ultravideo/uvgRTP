@@ -91,6 +91,7 @@ rtp_error_t uvgrtp::socket::init(short family, int type, int protocol)
 
 rtp_error_t uvgrtp::socket::setsockopt(int level, int optname, const void *optval, socklen_t optlen)
 {
+    std::lock_guard<std::mutex> lg(conf_mutex_);
     if (::setsockopt(socket_, level, optname, (const char *)optval, optlen) < 0) {
 
         //strerror(errno), depricated
@@ -386,18 +387,28 @@ socket_t& uvgrtp::socket::get_raw_socket()
     return socket_;
 }
 
-rtp_error_t uvgrtp::socket::install_handler(void *arg, packet_handler_vec handler)
+rtp_error_t uvgrtp::socket::install_handler(std::shared_ptr<std::atomic<std::uint32_t>> local_ssrc, void* arg, packet_handler_vec handler)
 {
+    handlers_mutex_.lock();
     if (!handler)
         return RTP_INVALID_VALUE;
 
 
     socket_packet_handler hndlr;
-
     hndlr.arg = arg;
     hndlr.handler = handler;
-    vec_handlers_.push_back(hndlr);
+    vec_handlers_.insert({local_ssrc, hndlr});
+    handlers_mutex_.unlock();
 
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::socket::remove_handler(std::shared_ptr<std::atomic<std::uint32_t>> local_ssrc)
+
+{
+    handlers_mutex_.lock();
+    vec_handlers_.erase(local_ssrc);
+    handlers_mutex_.unlock();
     return RTP_OK;
 }
 
@@ -558,7 +569,8 @@ rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, sockaddr_in6& addr6, buf_v
     rtp_error_t ret = RTP_OK;
 
     for (auto& handler : vec_handlers_) {
-        if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
+        std::lock_guard<std::mutex> lg(handlers_mutex_);
+        if ((ret = (*handler.second.handler)(handler.second.arg, buffers)) != RTP_OK) {
             UVG_LOG_ERROR("Malformed packet");
             return ret;
         }
@@ -577,7 +589,7 @@ rtp_error_t uvgrtp::socket::sendto(
     rtp_error_t ret = RTP_OK;
 
     for (auto& handler : vec_handlers_) {
-        if ((ret = (*handler.handler)(handler.arg, buffers)) != RTP_OK) {
+        if ((ret = (*handler.second.handler)(handler.second.arg, buffers)) != RTP_OK) {
             UVG_LOG_ERROR("Malformed packet");
             return ret;
         }
@@ -739,10 +751,10 @@ send_:
 rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, sockaddr_in6& addr6, pkt_vec& buffers, int send_flags)
 {
     rtp_error_t ret = RTP_OK;
-
     for (auto& buffer : buffers) {
+        std::lock_guard<std::mutex> lg(handlers_mutex_);
         for (auto& handler : vec_handlers_) {
-            if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
+            if ((ret = (*handler.second.handler)(handler.second.arg, buffer)) != RTP_OK) {
                 UVG_LOG_ERROR("Malformed packet");
                 return ret;
             }
@@ -756,8 +768,9 @@ rtp_error_t uvgrtp::socket::sendto(sockaddr_in& addr, sockaddr_in6& addr6, pkt_v
     rtp_error_t ret = RTP_OK;
 
     for (auto& buffer : buffers) {
+        std::lock_guard<std::mutex> lg(handlers_mutex_);
         for (auto& handler : vec_handlers_) {
-            if ((ret = (*handler.handler)(handler.arg, buffer)) != RTP_OK) {
+            if ((ret = (*handler.second.handler)(handler.second.arg, buffer)) != RTP_OK) {
                 UVG_LOG_ERROR("Malformed packet");
                 return ret;
             }
