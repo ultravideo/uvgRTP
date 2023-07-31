@@ -160,7 +160,7 @@ namespace uvgrtp {
             /** \brief Size of the payload in bytes. Added by uvgRTP to help process the payload. */
             size_t payload_len = 0;
         };
-        /** \brief Feedback message. See RFC 5104 section 6.1 */
+        /** \brief Feedback message. See RFC 4585 section 6.1 */
         struct rtcp_fb_packet {
             struct rtcp_header header;
             uint32_t sender_ssrc = 0;

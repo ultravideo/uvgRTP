@@ -69,6 +69,7 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic
     sdes_hook_u_(nullptr),
     app_hook_f_(nullptr),
     app_hook_u_(nullptr),
+    fb_hook_u_(nullptr),
     sfp_(sfp),
     rtcp_reader_(nullptr),
     active_(false),
@@ -683,6 +684,19 @@ rtp_error_t uvgrtp::rtcp::install_app_hook(std::function<void(std::unique_ptr<uv
     app_hook_u_ = app_handler;
     app_mutex_.unlock();
 
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::rtcp::install_fb_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_fb_packet>)> fb_handler)
+{
+    if (!fb_handler)
+    {
+        return RTP_INVALID_VALUE;
+    }
+    fb_mutex_.lock();
+    fb_hook_u_ = fb_handler;
+    fb_mutex_.unlock();
+    
     return RTP_OK;
 }
 
@@ -1613,6 +1627,12 @@ rtp_error_t uvgrtp::rtcp::handle_fb_packet(uint8_t* packet, size_t& read_ptr,
     {
         frame->fci = nullptr;
     }
+    /* The last FB packet is not saved. If we want to do that, just save it in the participants_ map. */
+    fb_mutex_.lock();
+    if (fb_hook_u_) {
+        fb_hook_u_(std::unique_ptr<uvgrtp::frame::rtcp_fb_packet>(frame));
+    }
+    fb_mutex_.unlock();
     return RTP_OK;
 }
 

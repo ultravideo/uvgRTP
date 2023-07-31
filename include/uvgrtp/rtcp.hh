@@ -371,6 +371,18 @@ namespace uvgrtp {
              */
             rtp_error_t install_app_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
 
+            /**
+             * \brief Install an RTCP FB packet hook
+             *
+             * \details This function is called when an RTCP FB (RFC 4585 section 6.1) packet is received
+             *
+             * \param app_handler C++ function pointer to the hook
+             *
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If hook is nullptr
+             */
+            rtp_error_t install_fb_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_fb_packet>)> fb_handler);
+
             /// \cond DO_NOT_DOCUMENT
             // These have been replaced by functions with unique_ptr in them
             rtp_error_t install_sender_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_handler);
@@ -648,11 +660,13 @@ namespace uvgrtp {
             std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sdes_packet>)>     sdes_hook_u_;
             std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)>      app_hook_f_;
             std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>)>      app_hook_u_;
+            std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_fb_packet>)>       fb_hook_u_;
 
             std::mutex sr_mutex_;
             std::mutex rr_mutex_;
             std::mutex sdes_mutex_;
             std::mutex app_mutex_;
+            std::mutex fb_mutex_;
             mutable std::mutex participants_mutex_;
 			std::mutex send_app_mutex_;
 
