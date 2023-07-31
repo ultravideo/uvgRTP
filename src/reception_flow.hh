@@ -75,7 +75,8 @@ namespace uvgrtp {
      * When multiplexing several media streams into a single socket, SSRC is what 
      * separates one stream from another. You can also give each media stream pair
      * their own ports, which eliminates the need for SSRC checking. In this case
-     * the REMOTE SSRC will be 0 and all packets are given to the single media stream.
+     * each reception_flow object will have just a single set of packet handlers
+     * and all packets are given to these.
      * 
      * If there is no valid SSRC to be found in the received packet's header, the
      * packet is assumed to be a user packet, in which case it is handed over to 

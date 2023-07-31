@@ -192,7 +192,6 @@ rtp_error_t uvgrtp::reception_flow::install_receive_hook(
     if (!hook)
         return RTP_INVALID_VALUE;
 
-    // ssrc 0 is used when streams are not multiplexed into a single socket
     receive_pkt_hook new_hook = { arg, hook };
     hooks_[remote_ssrc] = new_hook;
 
@@ -366,8 +365,8 @@ void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
 {
     uint32_t ssrc = frame->header.ssrc;
 
-    // 1. Check if there exists a hook that this ssrc belongs to
-    // 2. If not, check if there is a "universal hook"
+    // 1. Check if there is only one hook installed -> no socket muxing
+    // 2. Multiple handlers -> check if there exists a hook that this ssrc belongs to
     // 3. If neither is found, push the frame to the queue
     if (hooks_.size() == 1) {
         /* No socket multiplexing: All packets are given to this hook */
@@ -528,14 +527,16 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
             if (ring_buffer_[ring_read_index_].read > 0)
             {
                 /* When processing a packet, the following checks are done
-                 * 1. Check the SSRC of the packets. This field is in the same place for RTP and ZRTP, octets 8-11. For RTCP, it is
+                 * 1. If there is only a single set of handlers installed, there is no socket multiplexing. All packets
+                 *    to to this handler
+                 * 2. Check the SSRC of the packets. This field is in the same place for RTP and ZRTP, octets 8-11. For RTCP, it is
                  *    in octets 4-7
-                 * 2. If there is no SSRC match for any of the handlers, this either a holepuncher or a user packet.
-                 * 3. SSRC match found -> Determine which protocol this packet belongs to. RTCP packets can be told apart from RTP packets via 
+                 * 3. If there is no SSRC match for any of the handlers, this either a holepuncher or a user packet.
+                 * 4. SSRC match found -> Determine which protocol this packet belongs to. RTCP packets can be told apart from RTP packets via 
                  *    bits 8-15. ZRTP packets can be told apart from others via their 2 first bits being 0 and the Magic Cookie
                  *    field being 0x5a525450. Holepuncher packets contain 0x00 payload. However, holepunching is
                  *    not needed if RTCP is enabled. 
-                 * 4. After determining the correct protocol, hand out the packet to the correct handler(s) if it exists. */
+                 * 5. After determining the correct protocol, hand out the packet to the correct handler(s) if it exists. */
                 
                 uint8_t* ptr = (uint8_t*)ring_buffer_[ring_read_index_].data;
                 //sockaddr_in from = ring_buffer_[ring_read_index_].from;

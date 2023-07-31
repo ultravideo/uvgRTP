@@ -680,7 +680,7 @@ uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame()
         return nullptr;
     }
     // If the remote_ssrc is set, only pull frames that come from this ssrc
-    if (remote_ssrc_.get()->load() != 0) {
+    if (remote_ssrc_.get()->load() != ssrc_.get()->load() + 1) {
         return reception_flow_->pull_frame(remote_ssrc_);
     }
     return reception_flow_->pull_frame();
