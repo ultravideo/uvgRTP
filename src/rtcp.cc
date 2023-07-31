@@ -1225,6 +1225,14 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(void* args, int rce_flags, uint
                 ret = handle_app_packet(buffer, read_ptr, packet_end, header);
                 break;
 
+            case uvgrtp::frame::RTCP_FT_RTPFB:
+                UVG_LOG_INFO("Received a transport-layer FB message");
+                break;
+
+            case uvgrtp::frame::RTCP_FT_PSFB:
+                UVG_LOG_INFO("Received a payload-specific FB message");
+                break;
+
             default:
                 UVG_LOG_WARN("Unknown packet received, type %d", header.pkt_type);
                 break;

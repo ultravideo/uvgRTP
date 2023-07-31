@@ -24,11 +24,13 @@ namespace uvgrtp {
     namespace frame {
 
         enum RTCP_FRAME_TYPE {
-            RTCP_FT_SR   = 200, /* Sender report */
-            RTCP_FT_RR   = 201, /* Receiver report */
-            RTCP_FT_SDES = 202, /* Source description */
-            RTCP_FT_BYE  = 203, /* Goodbye */
-            RTCP_FT_APP  = 204  /* Application-specific message */
+            RTCP_FT_SR    = 200, /* Sender report */
+            RTCP_FT_RR    = 201, /* Receiver report */
+            RTCP_FT_SDES  = 202, /* Source description */
+            RTCP_FT_BYE   = 203, /* Goodbye */
+            RTCP_FT_APP   = 204, /* Application-specific message */
+            RTCP_FT_RTPFB = 205, /* Transport layer FB message */
+            RTCP_FT_PSFB  = 206  /* Payload-specific FB message */
         };
 
         PACK(struct rtp_header {
