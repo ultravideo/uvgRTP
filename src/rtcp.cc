@@ -1589,12 +1589,30 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t& read_ptr,
 rtp_error_t uvgrtp::rtcp::handle_fb_packet(uint8_t* packet, size_t& read_ptr,
     size_t packet_end, uvgrtp::frame::rtcp_header& header)
 {
-    UVG_LOG_INFO("Received an RTCP FB message");
     auto frame = new uvgrtp::frame::rtcp_fb_packet;
     frame->header = header;
     read_ssrc(packet, read_ptr, frame->sender_ssrc);
-    read_ssrc(packet, read_ptr, frame->media_ssrc);
 
+    if (!is_participant(frame->sender_ssrc))
+    {
+        UVG_LOG_INFO("Got an RTCP FB packet from a previously unknown participant SSRC %lu", frame->sender_ssrc);
+        add_participant(frame->sender_ssrc);
+    }
+
+    // copy media ssrc and Feedback Control Information from network packet to RTCP structures
+    read_ssrc(packet, read_ptr, frame->media_ssrc);
+    frame->payload_len = packet_end - read_ptr;
+
+    if (frame->payload_len > 0)
+    {
+        // payload data is saved to fci
+        frame->fci = new uint8_t[frame->payload_len];
+        memcpy(frame->fci, &packet[read_ptr], frame->payload_len);
+    }
+    else
+    {
+        frame->fci = nullptr;
+    }
     return RTP_OK;
 }
 

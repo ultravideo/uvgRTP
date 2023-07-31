@@ -166,6 +166,8 @@ namespace uvgrtp {
             uint32_t sender_ssrc = 0;
             uint32_t media_ssrc = 0;
             uint8_t* fci = nullptr;
+            /** \brief Size of the payload in bytes. Added by uvgRTP to help process the payload. */
+            size_t payload_len = 0;
         };
 
         PACK(struct zrtp_frame {
