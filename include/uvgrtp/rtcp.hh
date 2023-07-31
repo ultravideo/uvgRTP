@@ -458,6 +458,8 @@ namespace uvgrtp {
                 uvgrtp::frame::rtcp_header& header);
             rtp_error_t handle_app_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
                 uvgrtp::frame::rtcp_header& header);
+            rtp_error_t handle_fb_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
+                uvgrtp::frame::rtcp_header& header);
 
             static void rtcp_runner(rtcp *rtcp);
 

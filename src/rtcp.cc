@@ -1226,11 +1226,11 @@ rtp_error_t uvgrtp::rtcp::handle_incoming_packet(void* args, int rce_flags, uint
                 break;
 
             case uvgrtp::frame::RTCP_FT_RTPFB:
-                UVG_LOG_INFO("Received a transport-layer FB message");
+                ret = handle_fb_packet(buffer, read_ptr, packet_end, header);
                 break;
 
             case uvgrtp::frame::RTCP_FT_PSFB:
-                UVG_LOG_INFO("Received a payload-specific FB message");
+                ret = handle_fb_packet(buffer, read_ptr, packet_end, header);
                 break;
 
             default:
@@ -1270,6 +1270,9 @@ void uvgrtp::rtcp::read_rtcp_header(const uint8_t* buffer, size_t& read_ptr, uvg
     if (header.pkt_type == uvgrtp::frame::RTCP_FT_APP)
     {
         header.pkt_subtype = buffer[read_ptr] & 0x1f;
+    }
+    else if (header.pkt_type == uvgrtp::frame::RTCP_FT_RTPFB || header.pkt_type == uvgrtp::frame::RTCP_FT_PSFB) {
+        header.fmt = buffer[read_ptr] & 0x1f;
     }
     else {
         header.count = buffer[read_ptr] & 0x1f;
@@ -1579,6 +1582,18 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t& read_ptr,
         participants_[frame->ssrc]->app_frame = frame;
     }
     app_mutex_.unlock();
+
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::rtcp::handle_fb_packet(uint8_t* packet, size_t& read_ptr,
+    size_t packet_end, uvgrtp::frame::rtcp_header& header)
+{
+    UVG_LOG_INFO("Received an RTCP FB message");
+    auto frame = new uvgrtp::frame::rtcp_fb_packet;
+    frame->header = header;
+    read_ssrc(packet, read_ptr, frame->sender_ssrc);
+    read_ssrc(packet, read_ptr, frame->media_ssrc);
 
     return RTP_OK;
 }

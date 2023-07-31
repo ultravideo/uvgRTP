@@ -84,6 +84,8 @@ namespace uvgrtp {
                 uint8_t count = 0;   
                 /** \brief Subtype in APP packets. Alternative to count */
                 uint8_t pkt_subtype; 
+                /** \brief Feedback message type (FMT), specified in RFC 5104 section 4.3. Alternative to count and pkt_subtype */
+                uint8_t fmt;
             };
             /** \brief Identifies the RTCP packet type */
             uint8_t pkt_type = 0;
@@ -157,6 +159,13 @@ namespace uvgrtp {
             uint8_t *payload = nullptr;
             /** \brief Size of the payload in bytes. Added by uvgRTP to help process the payload. */
             size_t payload_len = 0;
+        };
+        /** \brief Feedback message. See RFC 5104 section 6.1 */
+        struct rtcp_fb_packet {
+            struct rtcp_header header;
+            uint32_t sender_ssrc = 0;
+            uint32_t media_ssrc = 0;
+            uint8_t* fci = nullptr;
         };
 
         PACK(struct zrtp_frame {
