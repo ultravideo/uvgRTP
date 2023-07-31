@@ -128,10 +128,3 @@ rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::parse_msg(uvgrtp::zrtp_msg::zrtp_
 
     return RTP_OK;
 }
-
-rtp_error_t uvgrtp::zrtp_msg::dh_key_exchange::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
-{
-    (void)receiver;
-    (void)session;
-    return RTP_OK;
-}

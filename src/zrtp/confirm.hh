@@ -52,8 +52,6 @@ namespace uvgrtp {
                 confirm(zrtp_session_t& session, int part);
                 ~confirm();
 
-                /* TODO:  */
-                virtual rtp_error_t parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session);
                 virtual rtp_error_t parse_msg(uvgrtp::zrtp_msg::zrtp_confirm* confirm, zrtp_session_t& session);
         };
     }

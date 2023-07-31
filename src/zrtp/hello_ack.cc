@@ -24,14 +24,3 @@ uvgrtp::zrtp_msg::hello_ack::hello_ack(zrtp_session_t& session)
 
 uvgrtp::zrtp_msg::hello_ack::~hello_ack()
 {}
-
-rtp_error_t uvgrtp::zrtp_msg::hello_ack::parse_msg(uvgrtp::zrtp_msg::receiver& receiver,
-    zrtp_session_t& session)
-{
-    (void)receiver;
-    (void)session;
-
-    // TODO?
-
-    return RTP_OK;
-}

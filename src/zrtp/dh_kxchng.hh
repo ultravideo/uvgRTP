@@ -41,8 +41,6 @@ namespace uvgrtp {
                 dh_key_exchange(struct zrtp_dh *dh);
                 ~dh_key_exchange();
 
-                /* TODO:  */
-                virtual rtp_error_t parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session);
                 virtual rtp_error_t parse_msg(uvgrtp::zrtp_msg::zrtp_dh* dh, zrtp_session_t& session, size_t len);
 
         };

@@ -27,9 +27,6 @@ namespace uvgrtp {
 
             rtp_error_t send_msg(std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, sockaddr_in6& addr6);
 
-            virtual rtp_error_t parse_msg(uvgrtp::zrtp_msg::receiver& receiver,
-                zrtp_session_t& session) = 0;
-
             static ssize_t header_length_to_packet(uint16_t header_len);
             static uint16_t packet_to_header_len(ssize_t packet);
 

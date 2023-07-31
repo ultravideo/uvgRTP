@@ -72,13 +72,6 @@ uvgrtp::zrtp_msg::confirm::confirm(zrtp_session_t& session, int part):
 uvgrtp::zrtp_msg::confirm::~confirm()
 {}
 
-rtp_error_t uvgrtp::zrtp_msg::confirm::parse_msg(uvgrtp::zrtp_msg::receiver& receiver, zrtp_session_t& session)
-{
-    (void)receiver;
-    (void)session;
-    return RTP_OK;
-}
-
 rtp_error_t uvgrtp::zrtp_msg::confirm::parse_msg(uvgrtp::zrtp_msg::zrtp_confirm* confirm, zrtp_session_t& session)
 {
     allocate_rframe(sizeof(zrtp_confirm));
