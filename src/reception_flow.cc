@@ -369,17 +369,16 @@ void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
     // 1. Check if there exists a hook that this ssrc belongs to
     // 2. If not, check if there is a "universal hook"
     // 3. If neither is found, push the frame to the queue
-
-    if (hooks_.find(ssrc) != hooks_.end()) {
-        /* Socket multiplexing: Hook found */
-        receive_pkt_hook pkt_hook = hooks_[ssrc];
+    if (hooks_.size() == 1) {
+        /* No socket multiplexing: All packets are given to this hook */
+        receive_pkt_hook pkt_hook = hooks_.begin()->second;
         recv_hook hook = pkt_hook.hook;
         void* arg = pkt_hook.arg;
         hook(arg, frame);
     }
-    else if (hooks_.find(0) != hooks_.end()) {
-        /* No socket multiplexing: All packets are given to this hook */
-        receive_pkt_hook pkt_hook = hooks_[0];
+    else if (hooks_.find(ssrc) != hooks_.end()) {
+        /* Socket multiplexing: Hook found */
+        receive_pkt_hook pkt_hook = hooks_[ssrc];
         recv_hook hook = pkt_hook.hook;
         void* arg = pkt_hook.arg;
         hook(arg, frame);
@@ -546,7 +545,11 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                 bool rtcp_pkt = false;
 
                 handler* handlers = nullptr;
-                if (packet_handlers_.find(rtcp_ssrc) != packet_handlers_.end()) {
+                if (packet_handlers_.size() == 1) {
+                    /* No socket multiplexing: All packets are given to this handler */
+                    handlers = &packet_handlers_.begin()->second;
+                }
+                else if (packet_handlers_.find(rtcp_ssrc) != packet_handlers_.end()) {
                     /* Socket multiplexing: RTCP packet */
                     handlers = &packet_handlers_[rtcp_ssrc];
                     rtcp_pkt = true;
@@ -554,10 +557,6 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                 else if (packet_handlers_.find(rtp_ssrc) != packet_handlers_.end()) {
                     /* Socket multiplexing: RTP/ZRTP packet */
                     handlers = &packet_handlers_[rtp_ssrc];
-                }
-                else if (packet_handlers_.find(0) != packet_handlers_.end()) {
-                    /* No socket multiplexing: All packets are given to this handler */
-                    handlers = &packet_handlers_[0];
                 }
                 size_t size = (size_t)ring_buffer_[ring_read_index_].read;
                 uint8_t version = (*(uint8_t*)&ptr[0] >> 6) & 0x3;
@@ -712,9 +711,7 @@ void uvgrtp::reception_flow::increase_buffer_size(ssize_t next_write_index)
 
 int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
 {
-    std::lock_guard<std::mutex> hndl_lg(handlers_mutex_);
-    std::lock_guard<std::mutex> hook_lg(hooks_mutex_);
-
+    std::scoped_lock hlg(hooks_mutex_, handlers_mutex_);
     uint32_t ssrc = remote_ssrc.get()->load();
     // Clear all the data structures
     hooks_.erase(ssrc);
@@ -730,8 +727,7 @@ int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<s
 
 rtp_error_t uvgrtp::reception_flow::update_remote_ssrc(uint32_t old_remote_ssrc, uint32_t new_remote_ssrc)
 {
-    std::lock_guard<std::mutex> hlg(hooks_mutex_);
-    std::lock_guard<std::mutex> halg(handlers_mutex_);
+    std::scoped_lock hlg(hooks_mutex_, handlers_mutex_);
     if (packet_handlers_.find(old_remote_ssrc) != packet_handlers_.end()) {
         handler handlers = packet_handlers_[old_remote_ssrc];
         packet_handlers_.erase(old_remote_ssrc);

@@ -60,7 +60,7 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     fps_numerator_(30),
     fps_denominator_(1),
     ssrc_(std::make_shared<std::atomic<std::uint32_t>>(uvgrtp::random::generate_32())),
-    remote_ssrc_(std::make_shared<std::atomic<std::uint32_t>>(0)),
+    remote_ssrc_(std::make_shared<std::atomic<std::uint32_t>>(ssrc_.get()->load() + 1)),
     snd_buf_size_(-1),
     rcv_buf_size_(-1)
 {
@@ -422,6 +422,57 @@ rtp_error_t uvgrtp::media_stream::init_auto_zrtp(std::shared_ptr<uvgrtp::zrtp> z
 
 rtp_error_t uvgrtp::media_stream::add_zrtp_ctx()
 {
+    if (!zrtp_) {
+        UVG_LOG_ERROR("ZRTP not found, stream %i", ssrc_.get()->load());
+        return free_resources(RTP_GENERIC_ERROR);
+    }
+    bool perform_dh = !(rce_flags_ & RCE_ZRTP_MULTISTREAM_MODE);
+    if (!perform_dh)
+    {
+        UVG_LOG_DEBUG("Sleeping non-DH performing stream until DH has finished");
+        std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
+
+        while (!zrtp_->has_dh_finished())
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+            if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - tp).count() > 10)
+            {
+                UVG_LOG_ERROR("Giving up on DH after 10 seconds");
+                return free_resources(RTP_TIMEOUT);
+            }
+        }
+    }
+    /* If ZRTP is already performing an MSM negotiation, wait for it to complete before starting a new one */
+    if (!perform_dh) {
+        auto start = std::chrono::system_clock::now();
+        while (zrtp_->is_zrtp_busy()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start).count() > 10)
+            {
+                UVG_LOG_ERROR("Giving up on MSM after 10 seconds");
+                return free_resources(RTP_TIMEOUT);
+            }
+        }
+    }
+
+    zrtp_->set_zrtp_busy(true);
+    rtp_error_t ret = RTP_OK;
+    if ((ret = zrtp_->init(rtp_->get_ssrc(), socket_, remote_sockaddr_, remote_sockaddr_ip6_, perform_dh, ipv6_)) != RTP_OK) {
+        UVG_LOG_WARN("Failed to initialize ZRTP for media stream!");
+        return free_resources(ret);
+    }
+
+    if ((ret = init_srtp_with_zrtp(rce_flags_, SRTP, srtp_, zrtp_)) != RTP_OK)
+        return free_resources(ret);
+
+    if ((ret = init_srtp_with_zrtp(rce_flags_, SRTCP, srtcp_, zrtp_)) != RTP_OK)
+        return free_resources(ret);
+
+    zrtp_->set_zrtp_busy(false);
+    zrtp_->dh_has_finished(); // only after the DH stream has gotten its keys, do we let non-DH stream perform ZRTP
+    install_packet_handlers();
+
     return RTP_OK;
 }
 
@@ -688,7 +739,7 @@ uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame(size_t timeout_ms)
         return nullptr;
     }
     // If the remote_ssrc is set, only pull frames that come from this ssrc
-    if (remote_ssrc_.get()->load() != 0) {
+    if (remote_ssrc_.get()->load() != ssrc_.get()->load() + 1) {
         return reception_flow_->pull_frame(timeout_ms, remote_ssrc_);
     }
     return reception_flow_->pull_frame(timeout_ms);

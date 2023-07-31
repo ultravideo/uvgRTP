@@ -63,39 +63,6 @@ namespace uvgrtp {
             uvgrtp::media_stream *create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags);
 
             /**
-             * \brief Create a uni- or bidirectional media stream
-             *
-             * \details
-             *
-             * The created object is used for sending and/or receiving media, see documentation
-             * for uvgrtp::media_stream for more details.
-             *
-             * If both addresses were provided when uvgrtp::session was created, by default
-             * uvgRTP binds itself to local_addr:src_port and sends packets to remote_addr:dst_port.
-             *
-             * User can enable and disable functionality of media_stream by OR'ing (using |) RCE_* flags
-             * together and passing them using the rce_flags parameter. In rce_flags, the RCE_SEND_ONLY flag
-             * can be used to avoid binding and src_port is thus ignored. Correspondinly RCE_RECEIVE_ONLY flag
-             * means dst_port is ignored. Without either RCE_SEND_ONLY or RCE_RECEIVE_ONLY,
-             * and if only one address was provided for session that address is interpreted as remote_addr and
-             * binding happens to ANY:src_port.
-             *
-             * \param remote_port   Remote port where uvgRTP sends RTP packets
-             * \param local_port    Local port that uvgRTP listens to for incoming RTP packets
-             * \param fmt           Format of the media stream. see ::RTP_FORMAT for more details
-             * \param rce_flags     RTP context enable flags, see ::RTP_CTX_ENABLE_FLAGS for more details
-             * \param remote_ssrc   Remote SSRC that this stream will receive packets from     
-             * \param local_ssrc    Local SSRC that will be present in packets that ´this stream sends
-             *
-             * \return RTP media stream object
-             *
-             * \retval uvgrtp::media_stream*  On success
-             * \retval nullptr                On failure, see print and
-             */
-            uvgrtp::media_stream* create_stream(uint16_t remote_port, uint16_t local_port, rtp_format_t fmt, int rce_flags,
-                uint32_t remote_ssrc, uint32_t local_ssrc);
-
-            /**
              * \brief Create a unidirectional media_stream for an RTP session
              *
              * \details
