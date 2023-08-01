@@ -178,9 +178,15 @@ namespace uvgrtp {
             struct rtcp_header header;
             uint32_t sender_ssrc = 0;
             uint32_t media_ssrc = 0;
-            uint8_t* fci = nullptr;
+            std::vector<uint32_t> items;
             /** \brief Size of the payload in bytes. Added by uvgRTP to help process the payload. */
             size_t payload_len = 0;
+        };
+
+        /** \brief Full Intra Request (FIR), See RFC 5104 section 4.3.1 */
+        struct rtcp_fir_packet {
+            uint32_t ssrc = 0;
+            uint8_t seq = 0;
         };
 
         PACK(struct zrtp_frame {

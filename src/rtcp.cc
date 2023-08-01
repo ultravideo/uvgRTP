@@ -1616,20 +1616,45 @@ rtp_error_t uvgrtp::rtcp::handle_fb_packet(uint8_t* packet, size_t& read_ptr,
         UVG_LOG_INFO("Got an RTCP FB packet from a previously unknown participant SSRC %lu", frame->sender_ssrc);
         add_participant(frame->sender_ssrc);
     }
+    /* Payload-Specific Feedback Messages */
+    if (header.pkt_type == uvgrtp::frame::RTCP_FT_PSFB) {
+        /* Handle rest of the packet depending on the Feedback Message Type */
+        switch (header.fmt)
+        {
+            case uvgrtp::frame::RTCP_PSFB_PLI:
+                break;
 
-    // copy media ssrc and Feedback Control Information from network packet to RTCP structures
-    read_ssrc(packet, read_ptr, frame->media_ssrc);
-    frame->payload_len = packet_end - read_ptr;
+            case uvgrtp::frame::RTCP_PSFB_SLI:
+                break;
 
-    if (frame->payload_len > 0)
-    {
-        // payload data is saved to fci
-        frame->fci = new uint8_t[frame->payload_len];
-        memcpy(frame->fci, &packet[read_ptr], frame->payload_len);
+            case uvgrtp::frame::RTCP_PSFB_RPSI:
+                break;
+
+            case uvgrtp::frame::RTCP_PSFB_FIR:
+                break;
+
+            case uvgrtp::frame::RTCP_PSFB_TSTR:
+                break;
+
+            case uvgrtp::frame::RTCP_PSFB_AFB:
+                break;
+
+            default:
+                UVG_LOG_WARN("Unknown RTCP PSFB packet received, type %d", header.fmt);
+                break;
+        }
     }
-    else
-    {
-        frame->fci = nullptr;
+    /* Transport-layer Feedback Messages */
+    else {
+        switch (header.fmt)
+        {
+        case uvgrtp::frame::RTCP_RTPFB_NACK:
+            break;
+
+        default:
+            UVG_LOG_WARN("Unknown RTCP RTPFB packet received, type %d", header.fmt);
+            break;
+        }
     }
     /* The last FB packet is not saved. If we want to do that, just save it in the participants_ map. */
     fb_mutex_.lock();
