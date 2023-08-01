@@ -173,21 +173,45 @@ namespace uvgrtp {
             /** \brief Size of the payload in bytes. Added by uvgRTP to help process the payload. */
             size_t payload_len = 0;
         };
+
+        /** \brief Full Intra Request, See RFC 5104 section 4.3.1 */
+        struct rtcp_fir {
+            uint32_t ssrc = 0;
+            uint8_t seq = 0;
+        };
+        /** \brief Slice Loss Indication, See RFC 4585 section 6.3.2 */
+        struct rtcp_sli {
+            uint16_t first = 0;
+            uint16_t num = 0;
+            uint8_t picture_id = 0;
+        };
+        /** \brief Reference Picture Selection Indication, See RFC 4585 section 6.3.3 */
+        struct rtcp_rpsi {
+            uint8_t pb = 0;
+            uint8_t pt = 0;
+            uint8_t* str = nullptr;
+        };
+
+        /** \brief RTCP Feedback Control Information, See RFC 4585 section 6.1 */
+        struct rtcp_fb_fci {
+
+            union {
+                rtcp_fir fir;
+                rtcp_sli sli;
+                rtcp_rpsi rpsi;
+            };
+        };
+
         /** \brief Feedback message. See RFC 4585 section 6.1 */
         struct rtcp_fb_packet {
             struct rtcp_header header;
             uint32_t sender_ssrc = 0;
             uint32_t media_ssrc = 0;
-            std::vector<uint32_t> items;
+            std::vector<rtcp_fb_fci> items;
             /** \brief Size of the payload in bytes. Added by uvgRTP to help process the payload. */
             size_t payload_len = 0;
         };
 
-        /** \brief Full Intra Request (FIR), See RFC 5104 section 4.3.1 */
-        struct rtcp_fir_packet {
-            uint32_t ssrc = 0;
-            uint8_t seq = 0;
-        };
 
         PACK(struct zrtp_frame {
             uint8_t version:4;
