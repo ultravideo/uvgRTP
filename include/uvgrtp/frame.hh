@@ -33,6 +33,19 @@ namespace uvgrtp {
             RTCP_FT_PSFB  = 206  /* Payload-specific FB message */
         };
 
+        enum RTCP_PSFB_FMT {
+            RTCP_PSFB_PLI     = 1,  /* Picture Loss Indication (PLI), defined in RFC 4585 */
+            RTCP_PSFB_SLI     = 2,  /* Slice Loss Indication (SLI), defined in RFC 4585 */
+            RTCP_PSFB_RPSI    = 3,  /* Reference Picture Selection Indication (RPSI), defined in RFC 4585 */
+            RTCP_PSFB_FIR     = 4,  /* Full Intra Request (FIR), defined in RFC 5154 */
+            RTCP_PSFB_TSTR    = 5,  /* Temporal-Spatial Trade-off Request (TSTR), defined in RFC 5154 */
+            RTCP_PSFB_AFB     = 15  /* Application Layer FB (AFB), defined in RFC 4585 */
+        };
+
+        enum RTCP_RTPFB_FMT {
+            RTCP_RTPFB_NACK   = 1 /* Generic NACK, defined in RFC 4585 section 6.2 */
+        };
+
         PACK(struct rtp_header {
             uint8_t version:2;
             uint8_t padding:1;

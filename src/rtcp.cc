@@ -468,6 +468,10 @@ rtp_error_t uvgrtp::rtcp::remove_all_hooks()
     send_app_mutex_.unlock();
     hooked_app_ = false;
 
+    fb_mutex_.lock();
+    fb_hook_u_ = nullptr;
+    fb_mutex_.unlock();
+
     return RTP_OK;
 }
 
