@@ -290,44 +290,10 @@ namespace uvgrtp {
              */
             rtp_error_t push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, uint64_t ntp_ts, int rtp_flags);
 
-            /**
-             * \brief Send a custom UDP packet to the specified address
-             *
-             * \details
-             *
-             * \param data Pointer to data the that should be sent
-             * \param len Length of data
-             * \param Remote_address IPv4 or IPv6 address of the remote participant
-             * \param port Port number of the remote participant
-             *
-             * \return RTP error code
-             *
-             * \retval  RTP_OK            On success
-             * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
-             * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
-             */
-            rtp_error_t push_user_packet(uint8_t* data, uint32_t len);
-
-            /**
-             * \brief Asynchronous way of getting user frames
-             *
-             * \details When a user hook is installed, uvgRTP will notify
-             * the application when user frames are received.
-             *
-             * The hook should not be used for frame processing as it will block the receiver from
-             * reading more frames. Instead, it should only be used as an interface between uvgRTP and
-             * the calling application where the frame hand-off happens.
-             *
-             * \param arg Optional argument that is passed to the hook when it is called, can be set to nullptr
-             * \param hook Function pointer to the receive hook that uvgRTP should call
-             *
-             * \return RTP error code
-             *
-             * \retval RTP_OK On success
-             * \retval RTP_INVALID_VALUE If hook is nullptr */
-            rtp_error_t install_user_receive_hook(void* arg, void (*hook)(void*, uint8_t* data, uint32_t len));
+            // Disabled for now
+            //rtp_error_t push_user_packet(uint8_t* data, uint32_t len);
+            //rtp_error_t install_user_receive_hook(void* arg, void (*hook)(void*, uint8_t* data, uint32_t len));
             
-
             /**
              * \brief Poll a frame indefinitely from the media stream object
              *

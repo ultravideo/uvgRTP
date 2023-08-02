@@ -653,7 +653,7 @@ TEST(RTPTests, rtp_multiplex_poll)
     cleanup_sess(ctx, sender_sess);
     cleanup_sess(ctx, receiver_sess);
 }
-
+/* User packets disabled for now
 TEST(RTPTests, uvgrtp_user_frames)
 {
     // Tests sending and receiving custom UDP packets
@@ -688,4 +688,4 @@ TEST(RTPTests, uvgrtp_user_frames)
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
     cleanup_sess(ctx, sess);
-}
+}*/

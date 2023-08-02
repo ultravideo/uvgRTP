@@ -691,19 +691,6 @@ rtp_error_t uvgrtp::rtcp::install_app_hook(std::function<void(std::unique_ptr<uv
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::rtcp::install_fb_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_fb_packet>)> fb_handler)
-{
-    if (!fb_handler)
-    {
-        return RTP_INVALID_VALUE;
-    }
-    fb_mutex_.lock();
-    fb_hook_u_ = fb_handler;
-    fb_mutex_.unlock();
-    
-    return RTP_OK;
-}
-
 uvgrtp::frame::rtcp_sender_report* uvgrtp::rtcp::get_sender_packet(uint32_t ssrc)
 {
     std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);

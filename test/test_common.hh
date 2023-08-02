@@ -111,12 +111,12 @@ inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size,
                 const char* data = "ABCD";
                 sender->get_rtcp()->send_app_packet("Test", 1, 4, (uint8_t*)data);
             }
-            
+            /* User packets disabled for now
             if (i % 4 == 0 && user) {
                 uint8_t data[5] = {20, 25, 30, 35, 40};
                 uint8_t* ptr = &data[0];
                 sender->push_user_packet(ptr, 5);
-            }
+            }*/
 
             rtp_error_t ret = RTP_OK;
 

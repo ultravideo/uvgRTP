@@ -388,6 +388,7 @@ void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
         frames_mtx_.unlock();
     }
 }
+/* User packets disabled for now
 rtp_error_t uvgrtp::reception_flow::install_user_hook(void* arg, void (*hook)(void*, uint8_t* data, uint32_t len))
 {
     if (!hook)
@@ -413,7 +414,7 @@ void uvgrtp::reception_flow::return_user_pkt(uint8_t* pkt, uint32_t len)
         UVG_LOG_DEBUG("No user hook installed");
     }
 }
-
+*/
 void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
 {
     int read_packets = 0;
@@ -573,7 +574,7 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                      * 2. Version 0 and Magic Cookie is 0x5a525450      -> ZRTP packet
                      * 3. Version is 2                                  -> RTP packet     (or SRTP)
                      * 4. Version is 3                                  -> Keep-Alive/Holepuncher 
-                     * 5. Otherwise                                     -> User packet */
+                     * 5. Otherwise                                     -> User packet, DISABLED */
                     if (rtcp_pkt && (rce_flags & RCE_RTCP_MUX)) {
                         uint8_t pt = (uint8_t)ptr[1]; // Packet type
                         if (pt >= 200 && pt <= 204) {
@@ -637,18 +638,18 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                     else if (version == 0x3) {
                         UVG_LOG_DEBUG("Holepuncher packet");
                     }
-                    else {
+                    /* DISABLED else {
                         return_user_pkt(&ptr[0], (uint32_t)size);
-                    }
+                    }*/
                 }
                 else {
                     /* No SSRC match found -> Holepuncher or user packet */
                     if (version == 0x3) {
                         UVG_LOG_DEBUG("Holepuncher packet");
                     }
-                    else {
+                    /* DISABLED else {
                         return_user_pkt(&ptr[0], (uint32_t)size);
-                    }
+                    }*/
                 }
                 // to make sure we don't process this packet again
                 ring_buffer_[ring_read_index_].read = 0;

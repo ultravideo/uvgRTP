@@ -78,6 +78,7 @@ namespace uvgrtp {
      * each reception_flow object will have just a single set of packet handlers
      * and all packets are given to these.
      * 
+     * ---- NOTE: User packets disabled for now ----
      * If there is no valid SSRC to be found in the received packet's header, the
      * packet is assumed to be a user packet, in which case it is handed over to 
      * a user packet handler, provided that there is one installed. */
@@ -157,7 +158,7 @@ namespace uvgrtp {
             void set_poll_timeout_ms(int timeout_ms);
             int get_poll_timeout_ms();
 
-            rtp_error_t install_user_hook(void* arg, void (*hook)(void*, uint8_t* data, uint32_t len));
+            // DISABLED rtp_error_t install_user_hook(void* arg, void (*hook)(void*, uint8_t* data, uint32_t len));
             /// \endcond
 
         private:
@@ -170,7 +171,7 @@ namespace uvgrtp {
             /* Return a processed RTP frame to user either through frame queue or receive hook */
             void return_frame(uvgrtp::frame::rtp_frame *frame);
 
-            void return_user_pkt(uint8_t* pkt, uint32_t len);
+            //void return_user_pkt(uint8_t* pkt, uint32_t len);
 
             inline void increase_buffer_size(ssize_t next_write_index);
 

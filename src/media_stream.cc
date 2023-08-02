@@ -644,10 +644,10 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
 
     return ret;
 }
-
+/* Disabled for now
 rtp_error_t uvgrtp::media_stream::push_user_packet(uint8_t* data, uint32_t len)
 {
-    if (rce_flags_ && RCE_RECEIVE_ONLY) {
+    if (rce_flags_ & RCE_RECEIVE_ONLY) {
         UVG_LOG_WARN("Cannot send user packets from a RECEIVE_ONLY stream");
         return RTP_SEND_ERROR;
     }
@@ -675,7 +675,7 @@ rtp_error_t uvgrtp::media_stream::install_user_receive_hook(void* arg, void (*ho
 
     return reception_flow_->install_user_hook(arg, hook);;
 
-}
+}*/
 
 uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame()
 {
