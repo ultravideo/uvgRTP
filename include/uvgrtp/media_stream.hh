@@ -92,7 +92,7 @@ namespace uvgrtp {
              * \retval  RTP_OK On success
              * \retval  RTP_TIMEOUT if ZRTP timed out
              * \retval  RTP_GENERIC_ERROR on other errors */
-            rtp_error_t add_zrtp_ctx();
+            rtp_error_t start_zrtp();
 
             /**
              *

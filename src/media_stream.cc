@@ -370,11 +370,11 @@ rtp_error_t uvgrtp::media_stream::init_auto_zrtp(std::shared_ptr<uvgrtp::zrtp> z
         UVG_LOG_ERROR("Failed to initialize media stream");
         return free_resources(ret);
     }
-    ret = add_zrtp_ctx();
+    ret = start_zrtp();
     return ret;
 }
 
-rtp_error_t uvgrtp::media_stream::add_zrtp_ctx()
+rtp_error_t uvgrtp::media_stream::start_zrtp()
 {
     if (!zrtp_) {
         UVG_LOG_ERROR("ZRTP not found, stream %i", ssrc_.get()->load());
