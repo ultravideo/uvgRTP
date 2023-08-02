@@ -135,7 +135,7 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
          * 1. Use flags RCE_SRTP + RCE_SRTP_KMNGMNT_ZRTP + negotiation mode flag
          *     -> This way ZRTP negotiation is started automatically
          * 2. Use flags RCE_SRTP + negotiation mode flag
-         *     -> Use add_zrtp_ctx() function to start ZRTP negotiation manually
+         *     -> Use start_zrtp() function to start ZRTP negotiation manually
          */
         if (rce_flags & RCE_SRTP_KMNGMNT_ZRTP) {
 

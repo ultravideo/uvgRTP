@@ -115,7 +115,7 @@ inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size,
             if (i % 4 == 0 && user) {
                 uint8_t data[5] = {20, 25, 30, 35, 40};
                 uint8_t* ptr = &data[0];
-                sender->push_user_frame(ptr, 5, "127.0.0.1", 9300);
+                sender->push_user_packet(ptr, 5);
             }
 
             rtp_error_t ret = RTP_OK;

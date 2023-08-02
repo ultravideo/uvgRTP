@@ -417,7 +417,7 @@ void zrtp_sender_func(uvgrtp::session* sender_session, int sender_port, int rece
             send->configure_ctx(RCC_REMOTE_SSRC, 33);
             send->configure_ctx(RCC_SSRC, 44);
         }
-        send->add_zrtp_ctx();
+        send->start_zrtp();
         //send = sender_session->create_stream(sender_port, receiver_port, RTP_FORMAT_GENERIC, flags);
     }
     //Sleep for a bit so that the receiver is ready to receives
@@ -456,7 +456,7 @@ void zrtp_receive_func(uvgrtp::session* receiver_session, int sender_port, int r
             recv->configure_ctx(RCC_REMOTE_SSRC, 44);
             recv->configure_ctx(RCC_SSRC, 33);
         }
-        recv->add_zrtp_ctx();
+        recv->start_zrtp();
         //recv = receiver_session->create_stream(receiver_port, sender_port, RTP_FORMAT_GENERIC, flags);
     }
 

@@ -85,7 +85,7 @@ namespace uvgrtp {
              * 1. Use flags RCE_SRTP + RCE_SRTP_KMNGMNT_ZRTP + (RCE_ZRTP_DIFFIE_HELLMAN_MODE/RCE_ZRTP_MULTISTREAM_MODE)
              *    to automatically start ZRTP negotiation when creating a media stream.
              * 2. Use flags RCE_SRTP + (RCE_ZRTP_DIFFIE_HELLMAN_MODE/RCE_ZRTP_MULTISTREAM_MODE) and after creating
-             *    the media stream, call add_zrtp_ctx() to manually start the ZRTP negotiation
+             *    the media stream, call start_zrtp() to manually start the ZRTP negotiation
              *
              * \return RTP error code
              *
@@ -306,8 +306,7 @@ namespace uvgrtp {
              * \retval  RTP_SEND_ERROR    If uvgRTP failed to send the data to remote
              * \retval  RTP_GENERIC_ERROR If an unspecified error occurred
              */
-            rtp_error_t push_user_frame(uint8_t* data, uint32_t len,
-                std::string remote_address, uint16_t port);
+            rtp_error_t push_user_packet(uint8_t* data, uint32_t len);
 
             /**
              * \brief Asynchronous way of getting user frames
@@ -326,7 +325,7 @@ namespace uvgrtp {
              *
              * \retval RTP_OK On success
              * \retval RTP_INVALID_VALUE If hook is nullptr */
-            rtp_error_t install_user_hook(void* arg, void (*hook)(void*, uint8_t* data, uint32_t len));
+            rtp_error_t install_user_receive_hook(void* arg, void (*hook)(void*, uint8_t* data, uint32_t len));
             
 
             /**

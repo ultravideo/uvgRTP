@@ -645,22 +645,25 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
     return ret;
 }
 
-rtp_error_t uvgrtp::media_stream::push_user_frame(uint8_t* data, uint32_t len,
-    std::string remote_address, uint16_t port)
+rtp_error_t uvgrtp::media_stream::push_user_packet(uint8_t* data, uint32_t len)
 {
+    if (rce_flags_ && RCE_RECEIVE_ONLY) {
+        UVG_LOG_WARN("Cannot send user packets from a RECEIVE_ONLY stream");
+        return RTP_SEND_ERROR;
+    }
     sockaddr_in6 addr6;
     sockaddr_in addr;
     if (ipv6_) {
-        addr6 = uvgrtp::socket::create_ip6_sockaddr(remote_address, port);
+        addr6 = uvgrtp::socket::create_ip6_sockaddr(remote_address_, dst_port_);
     }
     else {
-        addr = uvgrtp::socket::create_sockaddr(AF_INET, remote_address, port);
+        addr = uvgrtp::socket::create_sockaddr(AF_INET, remote_address_, dst_port_);
     }
     UVG_LOG_DEBUG("Sending user packet");
     return socket_->sendto(addr, addr6, data, len, 0);
 }
 
-rtp_error_t uvgrtp::media_stream::install_user_hook(void* arg, void (*hook)(void*, uint8_t* payload, uint32_t len))
+rtp_error_t uvgrtp::media_stream::install_user_receive_hook(void* arg, void (*hook)(void*, uint8_t* payload, uint32_t len))
 {
     if (!initialized_) {
         UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");

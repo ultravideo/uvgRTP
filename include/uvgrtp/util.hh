@@ -278,7 +278,7 @@ enum RTP_CTX_ENABLE_FLAGS {
     RCE_RTCP_MUX                    = 1 << 21,
     
     /// \cond DO_NOT_DOCUMENT
-    RCE_LAST                        = 1 << 21
+    RCE_LAST                        = 1 << 22
    /// \endcond
 }; // maximum is 1 << 30 for int
 
@@ -394,7 +394,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
     /** Set the timeout value for socket polling
     * 
     * Default value is 100 ms. If you are experiencing packet loss when receiving, you can try
-    * lowering this value down to 0. This will, however cause a busy loop in the receiver, so
+    * lowering this value down to 0. This will, however cause increased CPU usage in the receiver, so
     * use with caution.
     */
     RCC_POLL_TIMEOUT       = 13,
