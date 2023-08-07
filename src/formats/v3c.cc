@@ -51,14 +51,15 @@ uint8_t uvgrtp::formats::v3c::get_start_code_range() const
 
 uvgrtp::formats::NAL_TYPE uvgrtp::formats::v3c::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
 {
-    uint8_t nal_type = frame->payload[2] & 0x3f;
-    /*
-    if (nal_type == H266_IDR_W_RADL)
+    //uint8_t nal_type = frame->payload[2] & 0x3f;
+    
+    // With V3C, Nal Layer ID (NLI) value 0 indicates an intra frame
+    uint8_t nal_layer_id = ((frame->payload[0] & 0b1) << 5) | (frame->payload[1] >> 3);
+    
+    if (nal_layer_id == 0)
         return uvgrtp::formats::NAL_TYPE::NT_INTRA;
-    else if (nal_type == H266_TRAIL_NUT)
-        return uvgrtp::formats::NAL_TYPE::NT_INTER;
-        */
-    return uvgrtp::formats::NAL_TYPE::NT_OTHER;
+        
+    return uvgrtp::formats::NAL_TYPE::NT_INTER;
 }
 
 uint8_t uvgrtp::formats::v3c::get_nal_type(uint8_t* data) const
