@@ -90,14 +90,23 @@ uvgrtp::formats::FRAG_TYPE uvgrtp::formats::v3c::get_fragment_type(uvgrtp::frame
 
 void uvgrtp::formats::v3c::get_nal_header_from_fu_headers(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload)
 {
-    uint8_t payload_header[2] = {
-        (uint8_t)((frame_payload[0])),
-        (uint8_t)((frame_payload[1] & 0x7) | ((frame_payload[2] & 0x3f) << 3))
-    };
+    /* construct the NAL header from fragment header of current fragment
 
+    V3C                             V3C FU
+    +---------------+---------------+---------------+
+    |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |F|    NUT    |    NLI    | TID |S|E|    FUT    |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-----------+
+
+    Erase the original NUT (Frag = 58) and replace it with the FUT. Rest of the header is not changed */
+    
+    uint8_t payload_header[2] = {
+        (uint8_t)((frame_payload[0] & 0x989681) | ((frame_payload[2] & 0x3f) << 1)),
+        (uint8_t)(frame_payload[1])
+    };
     std::memcpy(&complete_payload[fptr], payload_header, get_payload_header_size());
 }
-
 
 rtp_error_t uvgrtp::formats::v3c::fu_division(uint8_t* data, size_t data_len, size_t payload_size)
 {
