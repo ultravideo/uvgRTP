@@ -63,8 +63,7 @@ uvgrtp::formats::NAL_TYPE uvgrtp::formats::v3c::get_nal_type(uvgrtp::frame::rtp_
 
 uint8_t uvgrtp::formats::v3c::get_nal_type(uint8_t* data) const
 {
-    //return (data[1] >> 3) & 0x1f;
-    return data[0] & 0x10F447;
+    return (data[0] & 0x7f) << 1;
 }
 
 uvgrtp::formats::FRAG_TYPE uvgrtp::formats::v3c::get_fragment_type(uvgrtp::frame::rtp_frame* frame) const
@@ -73,7 +72,7 @@ uvgrtp::formats::FRAG_TYPE uvgrtp::formats::v3c::get_fragment_type(uvgrtp::frame
     bool first_frag = frame->payload[2] & 0x80;
     bool last_frag = frame->payload[2] & 0x40;
 
-    if ((frame->payload[1] >> 3) != uvgrtp::formats::V3C_PKT_FRAG)
+    if (((frame->payload[0] & 0x7f) >> 1) != uvgrtp::formats::V3C_PKT_FRAG)
         return uvgrtp::formats::FRAG_TYPE::FT_NOT_FRAG; // Single NAL unit
 
     if (first_frag && last_frag)
