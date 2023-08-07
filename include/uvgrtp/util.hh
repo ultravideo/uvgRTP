@@ -123,7 +123,8 @@ typedef enum RTP_FORMAT {
     // H263-1998 is unsupported in uvgRTP
     RTP_FORMAT_H264      = 106, ///< H.264/AVC, see RFC 6184
     RTP_FORMAT_H265      = 107, ///< H.265/HEVC, see RFC 7798
-    RTP_FORMAT_H266      = 108  ///< H.266/VVC
+    RTP_FORMAT_H266      = 108, ///< H.266/VVC
+    RTP_FORMAT_V3C       = 109  ///< V3C
     
 } rtp_format_t;
 

@@ -82,6 +82,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/formats/h264.cc
         src/formats/h265.cc
         src/formats/h266.cc
+        src/formats/v3c.cc
 
         src/zrtp/zrtp_receiver.cc
         src/zrtp/hello.cc
@@ -130,6 +131,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/formats/h265.hh
         src/formats/h266.hh
         src/formats/media.hh
+        src/formats/v3c.hh
 
         src/srtp/base.hh
         src/srtp/srtcp.hh
