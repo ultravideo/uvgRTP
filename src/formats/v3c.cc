@@ -100,9 +100,9 @@ void uvgrtp::formats::v3c::get_nal_header_from_fu_headers(size_t fptr, uint8_t* 
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-----------+
 
     Erase the original NUT (Frag = 58) and replace it with the FUT. Rest of the header is not changed */
-    
+    // 0x81 = 1000 0001
     uint8_t payload_header[2] = {
-        (uint8_t)((frame_payload[0] & 0x989681) | ((frame_payload[2] & 0x3f) << 1)),
+        (uint8_t)((frame_payload[0] & 0x81) | ((frame_payload[2] & 0x3f) << 1)),
         (uint8_t)(frame_payload[1])
     };
     std::memcpy(&complete_payload[fptr], payload_header, get_payload_header_size());
@@ -111,9 +111,9 @@ void uvgrtp::formats::v3c::get_nal_header_from_fu_headers(size_t fptr, uint8_t* 
 rtp_error_t uvgrtp::formats::v3c::fu_division(uint8_t* data, size_t data_len, size_t payload_size)
 {
     auto headers = (uvgrtp::formats::v3c_headers*)fqueue_->get_media_headers();
-
-    headers->payload_header[0] = data[0];
-    headers->payload_header[1] = (V3C_PKT_FRAG << 3) | (data[1] & 0x7);
+    // 0x81 = 1000 0001
+    headers->payload_header[0] = (V3C_PKT_FRAG << 1) | (data[0] & 0x81);
+    headers->payload_header[1] = data[1];
 
     initialize_fu_headers(get_nal_type(data), headers->fu_headers);
 
