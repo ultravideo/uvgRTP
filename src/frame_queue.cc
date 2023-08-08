@@ -3,6 +3,7 @@
 #include "formats/h264.hh"
 #include "formats/h265.hh"
 #include "formats/h266.hh"
+#include "formats/v3c.hh"
 
 #include "rtp.hh"
 #include "srtp/base.hh"
@@ -77,6 +78,9 @@ rtp_error_t uvgrtp::frame_queue::init_transaction()
             active_->media_headers = new uvgrtp::formats::h266_headers;
             break;
 
+        case RTP_FORMAT_V3C:
+            active_->media_headers = new uvgrtp::formats::v3c_headers;
+            break;
 
         default:
             break;

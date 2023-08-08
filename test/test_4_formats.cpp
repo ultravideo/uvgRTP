@@ -563,3 +563,47 @@ TEST(FormatTests, v3c_single_nal_unit)
     cleanup_ms(sess, receiver);
     cleanup_sess(ctx, sess);
 }
+TEST(FormatTests, v3c_fragmentation)
+{
+    std::cout << "Starting V3C fragmentation test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    if (sess)
+    {
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
+    }
+
+    std::vector<size_t> test_sizes = std::vector<size_t>(13);
+    std::iota(test_sizes.begin(), test_sizes.end(), 1443);
+    test_sizes.insert(test_sizes.end(), { 1501,
+        1446 * 2 - 1,
+        1446 * 2,
+        1446 * 2 + 1,
+        5000, 7500, 10000, 25000, 50000 });
+
+    // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
+    int rtp_flags = RTP_NO_H26X_SCL;
+    int nal_type = 5;
+    rtp_format_t format = RTP_FORMAT_V3C;
+    int test_runs = 10;
+
+    for (auto& size : test_sizes)
+    {
+        std::unique_ptr<uint8_t[]> intra_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
+        memset(intra_frame.get(), 'b', size);
+        uint8_t bytes[] = {
+            0b01000010, 0b00000001
+        };
+        bytes[0] = (nal_type << 1);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+    }
+
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
+}
