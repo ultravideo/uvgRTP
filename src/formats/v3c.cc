@@ -19,6 +19,14 @@
 #include <sys/socket.h>
 #endif
 
+/*
+    V3C                             V3C FU
+    +---------------+---------------+---------------+
+    |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |F|    NUT    |    NLI    | TID |S|E|    FUT    |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-----------+
+*/
 
 
 uvgrtp::formats::v3c::v3c(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int rce_flags) :
@@ -91,13 +99,6 @@ uvgrtp::formats::FRAG_TYPE uvgrtp::formats::v3c::get_fragment_type(uvgrtp::frame
 void uvgrtp::formats::v3c::get_nal_header_from_fu_headers(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload)
 {
     /* construct the NAL header from fragment header of current fragment
-
-    V3C                             V3C FU
-    +---------------+---------------+---------------+
-    |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |F|    NUT    |    NLI    | TID |S|E|    FUT    |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-----------+
 
     Erase the original NUT (Frag = 58) and replace it with the FUT. Rest of the header is not changed */
     // 0x81 = 1000 0001
