@@ -505,5 +505,61 @@ TEST(FormatTests, h264_multiplex)
     cleanup_ms(receiver_sess, receiver2);
     cleanup_sess(ctx, sender_sess);
     cleanup_sess(ctx, receiver_sess);
+}
 
+TEST(FormatTests, v3c_single_nal_unit)
+{
+    std::cout << "Starting V3C Single NAL unit test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    if (sess)
+    {
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
+    }
+
+    int rtp_flags = RTP_NO_H26X_SCL;
+    rtp_format_t format = RTP_FORMAT_V3C;
+    int test_runs = 5;
+    int size = 8;
+
+    std::cout << "Testing small NAL unit" << std::endl;
+    std::vector<size_t> test_sizes = std::vector<size_t>(16);
+    std::iota(test_sizes.begin(), test_sizes.end(), 6);
+
+    for (auto& size : test_sizes)
+    {
+        uint8_t bytes[] = {
+            0b00010000, 0b00000001
+        };
+        std::unique_ptr<uint8_t[]> intra_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
+        memset(intra_frame.get(), 'b', size);
+        memset(intra_frame.get(), *bytes, 2);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+    }
+
+    size = 35;
+
+    for (unsigned int nal_type = 0; nal_type <= 27; ++nal_type)
+    {
+        std::cout << "Testing V3C NAL type " << nal_type << std::endl;
+        std::unique_ptr<uint8_t[]> intra_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
+        memset(intra_frame.get(), 'b', size);
+        uint8_t bytes[] = {
+            0b01000010, 0b00000001
+        };
+        bytes[0] = (nal_type << 1);
+        memset(intra_frame.get(), *bytes, 2);
+
+        
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+    }
+
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
 }
