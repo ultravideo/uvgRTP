@@ -64,7 +64,7 @@ TEST(RTPTests_ip6, rtp_hook_ip6)
     for (size_t& size : sizes)
     {
         std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
-        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, RTP_NO_FLAGS);
+        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, RTP_NO_FLAGS, RTP_FORMAT_GENERIC);
     }
 
     cleanup_ms(sess, sender);
@@ -95,7 +95,7 @@ TEST(RTPTests_ip6, rtp_copy_ip6)
     {
         int rtp_flags = RTP_COPY;
         std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, rtp_flags);
-        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, rtp_flags);
+        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_GENERIC);
     }
 
     cleanup_ms(sess, sender);
@@ -125,7 +125,7 @@ TEST(RTPTests_ip6, rtp_holepuncher_ip6)
     for (size_t& size : sizes)
     {
         std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
-        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, RTP_NO_FLAGS);
+        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, RTP_NO_FLAGS, RTP_FORMAT_GENERIC);
     }
 
     cleanup_ms(sess, sender);
@@ -182,7 +182,7 @@ TEST(RTPTests_ip6, rtp_configuration_ip6)
     for (size_t& size : sizes)
     {
         std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
-        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, RTP_NO_FLAGS);
+        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, RTP_NO_FLAGS, RTP_FORMAT_GENERIC);
     }
 
     cleanup_ms(sess, sender);
@@ -218,7 +218,7 @@ TEST(RTPTests_ip6, rtp_send_receive_only_flags_ip6)
     for (size_t& size : sizes)
     {
         std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
-        test_packet_size(std::move(test_frame), test_packets, size, send_sess, sender, receiver, RTP_NO_FLAGS);
+        test_packet_size(std::move(test_frame), test_packets, size, send_sess, sender, receiver, RTP_NO_FLAGS, RTP_FORMAT_GENERIC);
     }
 
     cleanup_ms(send_sess, sender);
@@ -306,7 +306,7 @@ TEST(FormatTests_ip6, h264_fragmentation_ip6)
     for (auto& size : test_sizes)
     {
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H264);
     }
 
     cleanup_ms(sess, sender);
@@ -524,7 +524,7 @@ TEST(RTPTests_ip6, rtp_multicast_ip6)
     for (size_t& size : sizes)
     {
         std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
-        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, RTP_NO_FLAGS);
+        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, RTP_NO_FLAGS, RTP_FORMAT_H264);
     }
 
     cleanup_ms(sess, sender);
@@ -555,7 +555,7 @@ TEST(RTPTests_ip6, rtp_multicast_multiple_ip6)
     for (size_t& size : sizes)
     {
         std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
-        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receivers, RTP_NO_FLAGS);
+        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receivers, RTP_NO_FLAGS, RTP_FORMAT_GENERIC);
     }
 
     cleanup_ms(sess, sender);

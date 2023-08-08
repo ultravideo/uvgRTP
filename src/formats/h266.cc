@@ -90,6 +90,15 @@ uvgrtp::formats::FRAG_TYPE uvgrtp::formats::h266::get_fragment_type(uvgrtp::fram
 
 void uvgrtp::formats::h266::get_nal_header_from_fu_headers(size_t fptr, uint8_t* frame_payload, uint8_t* complete_payload)
 {
+    /*
+    H266
+         H266                            H266 FU
+        +---------------+---------------+---------------+
+        |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        |F|Z| LayerID   |  Type   | TID |S|E|P|  FuType |
+        +---------------+---------------+---------------+
+        */
     uint8_t payload_header[2] = {
         (uint8_t)((frame_payload[0])),
         (uint8_t)((frame_payload[1]&0x7)|((frame_payload[2] & 0x1f) << 3))

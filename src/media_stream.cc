@@ -5,6 +5,7 @@
 #include "formats/h264.hh"
 #include "formats/h265.hh"
 #include "formats/h266.hh"
+#include "formats/v3c.hh"
 #include "debug.hh"
 #include "random.hh"
 #include "rtp.hh"
@@ -222,6 +223,20 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
                 std::bind(&uvgrtp::formats::h266::frame_getter, format_266, std::placeholders::_1));
 
             media_.reset(format_266);
+            break;
+        }
+        case RTP_FORMAT_V3C:
+        {
+            uvgrtp::formats::v3c* format_v3c = new uvgrtp::formats::v3c(socket_, rtp_, rce_flags_);
+            reception_flow_->install_handler(
+                5, remote_ssrc_,
+                std::bind(&uvgrtp::formats::v3c::packet_handler, format_v3c, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                    std::placeholders::_4, std::placeholders::_5), nullptr
+            );
+            reception_flow_->install_getter(remote_ssrc_,
+                std::bind(&uvgrtp::formats::v3c::frame_getter, format_v3c, std::placeholders::_1));
+
+            media_.reset(format_v3c);
             break;
         }
         case RTP_FORMAT_OPUS:
