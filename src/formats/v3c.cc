@@ -64,7 +64,7 @@ uvgrtp::formats::NAL_TYPE uvgrtp::formats::v3c::get_nal_type(uvgrtp::frame::rtp_
 
 uint8_t uvgrtp::formats::v3c::get_nal_type(uint8_t* data) const
 {
-    return (data[0] & 0x7f) << 1;
+    return (data[0] >> 1) & 0x7f;
 }
 
 uvgrtp::formats::FRAG_TYPE uvgrtp::formats::v3c::get_fragment_type(uvgrtp::frame::rtp_frame* frame) const
