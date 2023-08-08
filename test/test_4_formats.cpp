@@ -39,14 +39,14 @@ TEST(FormatTests, h26x_flags)
     for (auto& size : test_sizes)
     {
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H265);
     }
 
     rtp_flags = RTP_NO_H26X_SCL;
     for (auto& size : test_sizes)
     {
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H265);
     }
 
     cleanup_ms(sess, sender);
@@ -82,7 +82,7 @@ TEST(FormatTests, h264_single_nal_unit)
     {
         int nal_type = 8;
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H264);
     }
         
     size = 35;
@@ -91,7 +91,7 @@ TEST(FormatTests, h264_single_nal_unit)
     {
         std::cout << "Testing H264 NAL type " << nal_type << std::endl;
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H264);
     }
 
     cleanup_ms(sess, sender);
@@ -132,7 +132,7 @@ TEST(FormatTests, h264_fragmentation)
     for (auto& size : test_sizes)
     {
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H264);
     }
 
     cleanup_ms(sess, sender);
@@ -168,7 +168,7 @@ TEST(FormatTests, h265_single_nal_unit)
     {
         int nal_type = 8;
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H265);
     }
 
     size = 35;
@@ -177,7 +177,7 @@ TEST(FormatTests, h265_single_nal_unit)
     {
         std::cout << "Testing H264 NAL type " << nal_type << std::endl;
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H265);
     }
 
     cleanup_ms(sess, sender);
@@ -217,7 +217,7 @@ TEST(FormatTests, h265_fragmentation)
     for (auto& size : test_sizes)
     {
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H265);
     }
 
     cleanup_ms(sess, sender);
@@ -259,7 +259,7 @@ TEST(FormatTests, h265_fps)
     for (auto& size : test_sizes)
     {
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, framerate);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H265, framerate);
     }
 
     cleanup_ms(sess, sender);
@@ -304,7 +304,7 @@ TEST(FormatTests, h265_small_fragment_pacing_fps)
     for (auto& size : test_sizes)
     {
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, framerate);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H265, framerate);
     }
 
     cleanup_ms(sess, sender);
@@ -340,7 +340,7 @@ TEST(FormatTests, h266_single_nal_unit)
     {
         int nal_type = 8;
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H266);
     }
 
     size = 35;
@@ -349,7 +349,7 @@ TEST(FormatTests, h266_single_nal_unit)
     {
         std::cout << "Testing H264 NAL type " << nal_type << std::endl;
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H266);
     }
 
     cleanup_ms(sess, sender);
@@ -396,7 +396,7 @@ TEST(FormatTests, h265_large_fragment_pacing)
     for (auto& size : test_sizes)
     {
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, framerate);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H265, framerate);
     }
 
     cleanup_ms(sess, sender);
@@ -436,7 +436,7 @@ TEST(FormatTests, h266_fragmentation)
     for (auto& size : test_sizes)
     {
         std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H266);
     }
 
     cleanup_ms(sess, sender);
@@ -495,8 +495,8 @@ TEST(FormatTests, h264_multiplex)
     {
         std::unique_ptr<uint8_t[]> intra_frame1 = create_test_packet(format, nal_type, true, size, rtp_flags);
         std::unique_ptr<uint8_t[]> intra_frame2 = create_test_packet(format, nal_type, true, size, rtp_flags);
-        test_packet_size(std::move(intra_frame1), test_runs, size, sender_sess, sender1, receiver1, rtp_flags);
-        test_packet_size(std::move(intra_frame2), test_runs, size, sender_sess, sender2, receiver2, rtp_flags);
+        test_packet_size(std::move(intra_frame1), test_runs, size, sender_sess, sender1, receiver1, rtp_flags, RTP_FORMAT_H264);
+        test_packet_size(std::move(intra_frame2), test_runs, size, sender_sess, sender2, receiver2, rtp_flags, RTP_FORMAT_H264);
     }
 
     cleanup_ms(sender_sess, sender1);
@@ -519,7 +519,7 @@ TEST(FormatTests, v3c_single_nal_unit)
     if (sess)
     {
         sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
-        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_V3C, RCE_NO_H26X_PREPEND_SC);
     }
 
     int rtp_flags = RTP_NO_H26X_SCL;
@@ -533,13 +533,14 @@ TEST(FormatTests, v3c_single_nal_unit)
 
     for (auto& size : test_sizes)
     {
-        uint8_t bytes[] = {
-            0b00010000, 0b00000001
-        };
+        // Inter frame
+        uint8_t pl_header[] = {0, 0};
+        pl_header[0] = 8 << 1;
+        pl_header[1] = 0b01100001;
         std::unique_ptr<uint8_t[]> intra_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
         memset(intra_frame.get(), 'b', size);
-        memset(intra_frame.get(), *bytes, 2);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        memcpy(intra_frame.get(), pl_header, 2);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, format);
     }
 
     size = 35;
@@ -549,14 +550,12 @@ TEST(FormatTests, v3c_single_nal_unit)
         std::cout << "Testing V3C NAL type " << nal_type << std::endl;
         std::unique_ptr<uint8_t[]> intra_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
         memset(intra_frame.get(), 'b', size);
-        uint8_t bytes[] = {
-            0b01000010, 0b00000001
-        };
-        bytes[0] = (nal_type << 1);
-        memset(intra_frame.get(), *bytes, 2);
-
+        uint8_t pl_header[] = { 0, 0 };
+        pl_header[0] = nal_type << 1;
+        pl_header[1] = 1;
+        memcpy(intra_frame.get(), pl_header, 2);
         
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, format);
     }
 
     cleanup_ms(sess, sender);
@@ -575,7 +574,8 @@ TEST(FormatTests, v3c_fragmentation)
     if (sess)
     {
         sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
-        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_V3C, RCE_NO_H26X_PREPEND_SC);
+        receiver->install_receive_hook(nullptr, v3c_rtp_hook);
     }
 
     std::vector<size_t> test_sizes = std::vector<size_t>(13);
@@ -596,11 +596,11 @@ TEST(FormatTests, v3c_fragmentation)
     {
         std::unique_ptr<uint8_t[]> intra_frame = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
         memset(intra_frame.get(), 'b', size);
-        uint8_t bytes[] = {
-            0b01000010, 0b00000001
-        };
-        bytes[0] = (nal_type << 1);
-        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags);
+        uint8_t pl_header[] = { 0, 0 };
+        pl_header[0] = nal_type << 1;
+        pl_header[1] = 1;
+        memcpy(intra_frame.get(), pl_header, 2);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, format);
     }
 
     cleanup_ms(sess, sender);

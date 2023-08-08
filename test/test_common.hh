@@ -12,12 +12,13 @@ inline std::unique_ptr<uint8_t[]> create_test_packet(rtp_format_t format, uint8_
     bool add_start_code, size_t size, int rtp_flags);
 
 inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets, size_t size,
-    uvgrtp::session* sess, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver, int rtp_flags, int framerate = 25);
+    uvgrtp::session* sess, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver, int rtp_flags, rtp_format_t format,
+    int framerate = 25);
 
 inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets, size_t size,
     uvgrtp::session* sess,
     uvgrtp::media_stream* sender, std::vector<uvgrtp::media_stream*> const& receiver,
-    int rtp_flags, int framerate = 25);
+    int rtp_flags, rtp_format_t format, int framerate = 25);
 
 inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size, 
     uvgrtp::session* sess, uvgrtp::media_stream* sender,
@@ -36,6 +37,8 @@ inline void set_nal_unit(uint8_t* frame, size_t& pos, bool zero_prefix, uint8_t 
     uint8_t first_byte, uint8_t second_byte);
 inline void set_nal_unit(uint8_t* frame, size_t& pos, bool zero_prefix, uint8_t zeros,
     uint8_t first_byte);
+
+inline void v3c_rtp_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 
 class Test_receiver
 {
@@ -193,7 +196,7 @@ inline void cleanup_ms(uvgrtp::session* sess, uvgrtp::media_stream* ms)
 }
 
 inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets, size_t size, 
-    uvgrtp::session* sess, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver, int rtp_flags, int framerate)
+    uvgrtp::session* sess, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver, int rtp_flags, rtp_format_t format, int framerate)
 {
     EXPECT_NE(nullptr, sess);
     EXPECT_NE(nullptr, sender);
@@ -204,8 +207,12 @@ inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets
         Test_receiver* tester = new Test_receiver(packets);
 
         int interval_ms = 1000/framerate;
-
-        add_hook(tester, receiver, rtp_receive_hook);
+        if (format == RTP_FORMAT_V3C) {
+            add_hook(tester, receiver, v3c_rtp_hook);
+        }
+        else {
+            add_hook(tester, receiver, rtp_receive_hook);
+        }
 
         // to increase the likelyhood that receiver thread is ready to receive
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -222,7 +229,7 @@ inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets
 inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets, size_t size,
     uvgrtp::session* sess, uvgrtp::media_stream* sender,
     std::vector<uvgrtp::media_stream*> const& receivers,
-    int rtp_flags, int framerate)
+    int rtp_flags, rtp_format_t format, int framerate)
 {
     EXPECT_NE(nullptr, sess);
     EXPECT_NE(nullptr, sender);
@@ -312,4 +319,20 @@ inline void set_nal_unit(uint8_t* frame, size_t& pos, bool start_code, uint8_t z
 
     memset(frame + pos, first_byte, 1);
     pos += 1;
+}
+
+inline void v3c_rtp_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
+{
+    if (arg != nullptr)
+    {
+        Test_receiver* tester = (Test_receiver*)arg;
+        tester->receive();
+    }
+
+    //uint8_t pl_header[] = { frame->payload[0], frame->payload[1] };
+    //uint8_t nut = frame->payload[0] >> 1;
+    //uint8_t nli = ((frame->payload[0] & 0b1) << 7) | (frame->payload[1] >> 3);
+    //uint8_t tid = frame->payload[1] & 0b111;
+    //std::cout << "V3C packet received, NUT: " << (uint32_t)nut << ", NLI: " << (uint32_t)nli << ", TID: " << (uint32_t)tid << std::endl;
+    (void)uvgrtp::frame::dealloc_frame(frame);
 }
