@@ -328,7 +328,9 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
     std::vector<nal_info> nals;
     bool should_aggregate = false;
 
-    if (rtp_flags & RTP_NO_H26X_SCL) {
+    rtp_format_t fmt = rtp_ctx_->get_payload();
+
+    if ((rtp_flags & RTP_NO_H26X_SCL) || (fmt == RTP_FORMAT_V3C)) {
         nal_info nal;
         nal.offset = 0;
         nal.prefix_len = 0;
@@ -514,6 +516,10 @@ uvgrtp::frame::rtp_frame* uvgrtp::formats::h26x::allocate_rtp_frame_with_startco
 
 void uvgrtp::formats::h26x::prepend_start_code(int rce_flags, uvgrtp::frame::rtp_frame** out)
 {
+    rtp_format_t fmt = rtp_ctx_->get_payload();
+    if (fmt == RTP_FORMAT_V3C) {
+        return;
+    }
     if (!(rce_flags & RCE_NO_H26X_PREPEND_SC)) {
         uint8_t* pl = new uint8_t[(*out)->payload_len + 4];
 
@@ -960,7 +966,11 @@ rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out
     size_t fptr = 0;
 
     // allocating the frame with start code ready saves a copy operation for the frame
-    uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode(!(rce_flags & RCE_NO_H26X_PREPEND_SC),
+    bool start_code = !(rce_flags & RCE_NO_H26X_PREPEND_SC);
+    if (rtp_ctx_->get_payload() == RTP_FORMAT_V3C) {
+        start_code = false;
+    }
+    uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode(start_code,
         frame->header, get_nal_header_size() + frames_[frame_timestamp].total_size, fptr);
 
     // construct the NAL header from fragment header of current fragment
