@@ -519,10 +519,10 @@ TEST(FormatTests, v3c_single_nal_unit)
     if (sess)
     {
         sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
-        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_V3C, RCE_NO_H26X_PREPEND_SC);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
     }
 
-    int rtp_flags = RTP_NO_H26X_SCL;
+    int rtp_flags = RTP_NO_FLAGS;
     rtp_format_t format = RTP_FORMAT_V3C;
     int test_runs = 5;
     int size = 8;
@@ -574,7 +574,7 @@ TEST(FormatTests, v3c_fragmentation)
     if (sess)
     {
         sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
-        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_V3C, RCE_NO_H26X_PREPEND_SC);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
         receiver->install_receive_hook(nullptr, v3c_rtp_hook);
     }
 
@@ -587,7 +587,7 @@ TEST(FormatTests, v3c_fragmentation)
         5000, 7500, 10000, 25000, 50000 });
 
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
-    int rtp_flags = RTP_NO_H26X_SCL;
+    int rtp_flags = RTP_NO_FLAGS;
     int nal_type = 5;
     rtp_format_t format = RTP_FORMAT_V3C;
     int test_runs = 10;
