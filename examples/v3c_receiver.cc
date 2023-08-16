@@ -73,7 +73,7 @@ int main(void)
 
     std::this_thread::sleep_for(RECEIVE_TIME_S); // lets this example run for some time
     std::cout << "V3C Total bytes received " << vbytes_received << std::endl;
-    std::cout << "AVC Total bytes received " << abytes_received << std::endl;
+    std::cout << "Video Total bytes received " << abytes_received << std::endl;
 
     cleanup(ctx, sess, v3c);
     cleanup(ctx, sess, avc);
@@ -95,7 +95,7 @@ void v3c_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
 }
 void avc_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
 {
-    std::cout << "Received AVC frame, size: " << frame->payload_len << " bytes" << std::endl;
+    std::cout << "Received video frame, size: " << frame->payload_len << " bytes" << std::endl;
     abytes_received += frame->payload_len;
     /* Now we own the frame. Here you could give the frame to the application
      * if f.ex "arg" was some application-specific pointer

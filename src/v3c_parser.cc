@@ -34,6 +34,7 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, vuh_vps& param, std::vector<std::pa
     uint8_t* v3c_size = new uint8_t[v3c_size_precision];
 
     std::vector<uint32_t> sizes = {};
+    uint8_t nal_size_precision = 0;
     while (true) {
         if (ptr >= len) {
             break;
@@ -53,7 +54,7 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, vuh_vps& param, std::vector<std::pa
             return EXIT_FAILURE;
         }
         // Inside v3c unit now
-        std::cout << "Current V3C unit size " << combined_v3c_size << std::endl;
+        std::cout << "Current V3C unit location " << ptr << ", size " << combined_v3c_size << std::endl;
         uint64_t v3c_ptr = ptr;
 
         // Next 4 bytes are the V3C unit header
@@ -74,19 +75,24 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, vuh_vps& param, std::vector<std::pa
         else if (vuh_t == V3C_OVD || vuh_t == V3C_GVD || vuh_t == V3C_AVD || vuh_t == V3C_PVD) {
             // Video data, map start and size
             std::cout << "-- Video data V3C unit, " << std::endl;
-            vd.push_back({ ptr + V3C_HDR_LEN, combined_v3c_size });
-            ptr += combined_v3c_size;
-            std::cout << std::endl;
-            continue;
+            //vd.push_back({ ptr + V3C_HDR_LEN, combined_v3c_size });
+            //ptr += combined_v3c_size;
+            //std::cout << std::endl;
+            //continue;
         }
 
         // Rest of the function goes inside the V3C unit payload and parses NAL it into NAL units
         v3c_ptr += V3C_HDR_LEN; // Jump over 4 bytes of V3C unit header
-
-        uint8_t v3cu_first_byte = cbuf[v3c_ptr]; // Next up is 1 byte of NAL unit size precision
-        uint8_t nal_size_precision = (v3cu_first_byte >> 5) + 1;
-        std::cout << "  -- NAL Sample stream, 1 byte for NAL unit size precision: " << (uint32_t)nal_size_precision << std::endl;
-        ++v3c_ptr;
+        if (vuh_t == V3C_AD || vuh_t == V3C_CAD) {
+            uint8_t v3cu_first_byte = cbuf[v3c_ptr]; // Next up is 1 byte of NAL unit size precision
+            nal_size_precision = (v3cu_first_byte >> 5) + 1;
+            std::cout << "  -- Atlas NAL Sample stream, 1 byte for NAL unit size precision: " << (uint32_t)nal_size_precision << std::endl;
+            ++v3c_ptr;
+        }
+        else {
+            nal_size_precision = 4;
+            std::cout << "  -- Video NAL Sample stream, using NAL unit size precision of: " << (uint32_t)nal_size_precision << std::endl;
+        }
 
         // Now start to parse the NAL sample stream
         while (true) {
@@ -100,18 +106,27 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, vuh_vps& param, std::vector<std::pa
             else if (nal_size_precision == 3) {
                 combined_nal_size = combineBytes(cbuf[v3c_ptr], cbuf[v3c_ptr + 1], cbuf[v3c_ptr + 2]);
             }
+            else if (nal_size_precision == 4) {
+                combined_nal_size = combineBytes(cbuf[v3c_ptr], cbuf[v3c_ptr + 1], cbuf[v3c_ptr + 2], cbuf[v3c_ptr + 3]);
+            }
             else {
                 std::cout << "  -- Error, invalid NAL size " << std::endl;
                 return EXIT_FAILURE;
             }
             v3c_ptr += nal_size_precision;
-            std::cout << "  -- NALU size: " << combined_nal_size << std::endl;
             switch (vuh_t) {
             case V3C_AD:
             case V3C_CAD:
+                std::cout << "  -- v3c_ptr: " << v3c_ptr << ", NALU size : " << combined_nal_size << std::endl;
                 ad.push_back({ v3c_ptr, combined_nal_size });
                 break;
-
+            case V3C_OVD:
+            case V3C_GVD:
+            case V3C_AVD:
+            case V3C_PVD:
+                uint8_t h265_nalu_t = (cbuf[v3c_ptr] & 0b01111110) >> 1;
+                std::cout << "  -- v3c_ptr: " << v3c_ptr << ", NALU size : " << combined_nal_size << ", HEVC NALU type: " << (uint32_t)h265_nalu_t << std::endl;
+                vd.push_back({ v3c_ptr, combined_nal_size });
             }
             v3c_ptr += combined_nal_size;
         }

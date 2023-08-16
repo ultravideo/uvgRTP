@@ -8,7 +8,7 @@
 
 // vuh_unit_type definitions:
 constexpr int    V3C_VPS = 0; // V3C parameter set
-constexpr int    V3C_AD = 1; // Atlas data
+constexpr int    V3C_AD  = 1; // Atlas data
 constexpr int    V3C_OVD = 2; // Occupancy video data
 constexpr int    V3C_GVD = 3; // Geometry video data
 constexpr int    V3C_AVD = 4; // Attribute video data
