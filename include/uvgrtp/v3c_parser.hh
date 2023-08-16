@@ -74,6 +74,12 @@ struct v3c_unit_header {
     };
 };
 
+struct nal_info {
+    uint8_t format      = 0; // RTP format of this NAL unit (V3C, H264, H265, H266)
+    uint64_t location   = 0; // Start position of the NAL unit
+    uint64_t size       = 0; // Sie of the NAL unit
+};
+
 uint32_t combineBytes(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4);
 uint32_t combineBytes(uint8_t byte1, uint8_t byte2, uint8_t byte3);
 uint32_t combineBytes(uint8_t byte1, uint8_t byte2);
@@ -82,6 +88,5 @@ uint64_t get_size(std::string filename);
 char* get_cmem(std::string filename, const size_t& len);
 
 // ad is for AD and CAD substreams, vd is for all VD substreams
-bool mmap_v3c_file(char* cbuf, uint64_t len, vuh_vps& param, std::vector<std::pair<uint64_t, uint64_t>>& ad,
-    std::vector<std::pair<uint64_t, uint64_t>>& vd);
+bool mmap_v3c_file(char* cbuf, uint64_t len, vuh_vps& param, std::vector<nal_info>& nal_map);
 void parse_v3c_header(v3c_unit_header &hdr, char* buf, uint64_t ptr);

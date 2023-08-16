@@ -15,20 +15,19 @@ constexpr int    AMOUNT_OF_TEST_PACKETS = 100;
 constexpr auto   END_WAIT = std::chrono::seconds(5);
 
 //std::string PATH = "C:\\Users\\ngheta\\Documents\\TMIV_A3_C_QP3.bit";
-std::string PATH = "C:\\Users\\ngheta\\Documents\\v3c_test_seq_2.vpcc";
+std::string PATH = "C:\\Users\\ngheta\\Documents\\test_seq3.vpcc";
 
 int main(void)
 {
     std::cout << "Parsing V3C file" << std::endl;
 
     /* A V3C Sample stream is divided into 6 types of 'sub-bitstreams' + parameters.
-    - The ad_map vector holds the locations and sizes of Atlas NAL units in the file (both AD and CAD)
-    - The vd_map holds the locations and sizes of all video NAL units (OVD, GVD, AVD, PVD)
-    - First uint64_t is the start position of the unit, second is the size
-    - With this info you can send the data via different uvgRTP media streams */
+    - The nal_map holds nal_info structs
+    - nal_info struct holds the format(V3C, H264, H265, H266), start position and size of the NAL unit
+    - With this info you can send the data via different uvgRTP media streams. Usually 2 streams, one in RTP_FORMAT_V3C for
+      Atlas NAL units and a second one for the video NAL units in the correct format*/
 
-    std::vector<std::pair<uint64_t, uint64_t>> ad_map = {};
-    std::vector<std::pair<uint64_t, uint64_t>> vd_map = {};
+    std::vector<nal_info> nal_map = {};
 
     /* Fetch the file and its size */
     uint64_t len = get_size(PATH);
@@ -38,7 +37,7 @@ int main(void)
 
     /* Map the locations and sizes of Atlas and video NAL units with the mmap_v3c_file function */
     vuh_vps parameters = {};
-    mmap_v3c_file(cbuf, len, parameters, ad_map, vd_map);
+    mmap_v3c_file(cbuf, len, parameters, nal_map);
 
     std::cout << "Sending Atlas NAL units via uvgRTP" << std::endl;
 
@@ -69,38 +68,31 @@ int main(void)
     uvgrtp::media_stream* vid = sess->create_stream(8892, 7792, video_format, flags);
 
 
-    uint64_t v3c_bytes_sent = 0;
-    uint64_t avc_bytes_sent = 0;
+    uint64_t bytes_sent = 0;
     uint64_t send_ptr = 0;
 
-    /* Start sending data. First is all the Atlas NAL units, then all the video NAL units */
-    for (auto p : ad_map)
+    /* Start sending data */
+    for (auto p : nal_map)
     {
-        std::cout << "Sending frame in location " << p.first << " with size " << p.second << std::endl;
+        rtp_error_t ret = RTP_OK;
+        if (p.format == V3C_AD || p.format == V3C_CAD) {
+            std::cout << "Sending V3C NAL unit in location " << p.location << " with size " << p.size << std::endl;
+            ret = v3c->push_frame((uint8_t*)cbuf + p.location, p.size, RTP_NO_FLAGS);
 
-        if (v3c->push_frame((uint8_t*)cbuf + p.first, p.second, RTP_NO_FLAGS) != RTP_OK)
-        {
-            std::cout << "Failed to send RTP frame!" << std::endl;
         }
         else {
-            v3c_bytes_sent += p.second;
+            std::cout << "Sending video NAL unit in location " << p.location << " with size " << p.size << std::endl;
+            ret = vid->push_frame((uint8_t*)cbuf + p.location, p.size, RTP_NO_H26X_SCL);
         }
-    }
-    for (auto p : vd_map)
-    {
-        std::cout << "Sending frame in location " << p.first << " with size " << p.second << std::endl;
-
-        if (vid->push_frame((uint8_t*)cbuf + p.first, p.second, RTP_NO_H26X_SCL) != RTP_OK)
-        {
-            std::cout << "Failed to send RTP frame!" << std::endl;
+        if (ret == RTP_OK) {
+            bytes_sent += p.size;
         }
         else {
-            avc_bytes_sent += p.second;
+            std::cout << "Failed to send RTP frame!" << std::endl;
         }
     }
 
-    std::cout << "V3C Sending finished. Total bytes sent " << v3c_bytes_sent << std::endl;
-    std::cout << "Video Sending finished. Total bytes sent " << avc_bytes_sent << std::endl;
+    std::cout << "Sending finished. Total bytes sent " << bytes_sent << std::endl;
 
     sess->destroy_stream(v3c);
     sess->destroy_stream(vid);
