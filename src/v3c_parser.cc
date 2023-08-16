@@ -18,8 +18,7 @@ uint32_t combineBytes(uint8_t byte1, uint8_t byte2) {
         (static_cast<uint32_t>(byte2));
 }
 
-bool mmap_v3c_file(char* cbuf, uint64_t len, vuh_vps& param, std::vector<std::pair<uint64_t, uint64_t>>& ad,
-    std::vector<std::pair<uint64_t, uint64_t>>& vd)
+bool mmap_v3c_file(char* cbuf, uint64_t len, vuh_vps& param, std::vector<nal_info>& nal_map)
 {
     uint64_t ptr = 0;
 
@@ -118,7 +117,6 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, vuh_vps& param, std::vector<std::pa
             case V3C_AD:
             case V3C_CAD:
                 std::cout << "  -- v3c_ptr: " << v3c_ptr << ", NALU size : " << combined_nal_size << std::endl;
-                ad.push_back({ v3c_ptr, combined_nal_size });
                 break;
             case V3C_OVD:
             case V3C_GVD:
@@ -126,12 +124,10 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, vuh_vps& param, std::vector<std::pa
             case V3C_PVD:
                 uint8_t h265_nalu_t = (cbuf[v3c_ptr] & 0b01111110) >> 1;
                 std::cout << "  -- v3c_ptr: " << v3c_ptr << ", NALU size : " << combined_nal_size << ", HEVC NALU type: " << (uint32_t)h265_nalu_t << std::endl;
-                vd.push_back({ v3c_ptr, combined_nal_size });
             }
+            nal_map.push_back({vuh_t, v3c_ptr, combined_nal_size});
             v3c_ptr += combined_nal_size;
         }
-
-
 
         std::cout << std::endl;
         ptr += combined_v3c_size;
