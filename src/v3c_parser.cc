@@ -18,7 +18,7 @@ uint32_t combineBytes(uint8_t byte1, uint8_t byte2) {
         (static_cast<uint32_t>(byte2));
 }
 
-bool mmap_v3c_file(char* cbuf, uint64_t len, vuh_vps& param, std::vector<nal_info>& nal_map)
+bool mmap_v3c_file(char* cbuf, uint64_t len, std::vector<nal_info>& nal_map, std::vector<vuh_vps>& vps_map)
 {
     uint64_t ptr = 0;
 
@@ -32,7 +32,6 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, vuh_vps& param, std::vector<nal_inf
 
     uint8_t* v3c_size = new uint8_t[v3c_size_precision];
 
-    std::vector<uint32_t> sizes = {};
     uint8_t nal_size_precision = 0;
     while (true) {
         if (ptr >= len) {
@@ -66,18 +65,12 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, vuh_vps& param, std::vector<nal_inf
             // Parameter set contains no NAL units, skip over
             std::cout << "-- Parameter set V3C unit" << std::endl;
             ptr += combined_v3c_size;
-            sizes.push_back(combined_v3c_size);
-            param = v3c_hdr.vps;
+            vps_map.push_back(v3c_hdr.vps);
             std::cout << std::endl;
             continue;
         }
         else if (vuh_t == V3C_OVD || vuh_t == V3C_GVD || vuh_t == V3C_AVD || vuh_t == V3C_PVD) {
-            // Video data, map start and size
             std::cout << "-- Video data V3C unit, " << std::endl;
-            //vd.push_back({ ptr + V3C_HDR_LEN, combined_v3c_size });
-            //ptr += combined_v3c_size;
-            //std::cout << std::endl;
-            //continue;
         }
 
         // Rest of the function goes inside the V3C unit payload and parses NAL it into NAL units
@@ -131,7 +124,6 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, vuh_vps& param, std::vector<nal_inf
 
         std::cout << std::endl;
         ptr += combined_v3c_size;
-        sizes.push_back(combined_v3c_size);
     }
     std::cout << "File parsed" << std::endl;
     return true;
@@ -163,7 +155,7 @@ void parse_v3c_header(v3c_unit_header &hdr, char* buf, uint64_t ptr)
     }
 
     switch (hdr.vuh_unit_type) {
-    case V3C_VPS:
+    case V3C_VPS: {
         hdr.vps = {};
         // first bit of first byte
         hdr.vps.ptl.ptl_tier_flag = buf[ptr + 4] >> 7;
@@ -171,8 +163,51 @@ void parse_v3c_header(v3c_unit_header &hdr, char* buf, uint64_t ptr)
         // 7 bits after
         hdr.vps.ptl.ptl_profile_codec_group_idc = buf[ptr + 4] & 0b01111111;
         std::cout << "-- ptl_profile_codec_group_idc: " << (uint32_t)hdr.vps.ptl.ptl_profile_codec_group_idc << std::endl;
+        // 8 bits after
+        hdr.vps.ptl.ptl_profile_toolset_idc = buf[ptr + 5];
+        std::cout << "-- ptl_profile_toolset_idc: " << (uint32_t)hdr.vps.ptl.ptl_profile_toolset_idc << std::endl;
+        // 8 bits after
+        hdr.vps.ptl.ptl_profile_reconstruction_idc = buf[ptr + 6];
+        std::cout << "-- ptl_profile_reconstruction_idc: " << (uint32_t)hdr.vps.ptl.ptl_profile_reconstruction_idc << std::endl;
+        // 16 reserved bits
+        //4 bits after
+        hdr.vps.ptl.ptl_max_decodes_idc = buf[ptr + 9] >> 4;
+        std::cout << "-- ptl_max_decodes_idc: " << (uint32_t)hdr.vps.ptl.ptl_max_decodes_idc << "+1 = " <<
+            (uint32_t)hdr.vps.ptl.ptl_max_decodes_idc + 1 << std::endl;
+        // 12 reserved bits
+        // 8 bits after
+        hdr.vps.ptl.ptl_level_idc = buf[ptr + 11];
+        std::cout << "-- ptl_level_idc: " << (uint32_t)hdr.vps.ptl.ptl_level_idc << "/30 = " <<
+            (double)hdr.vps.ptl.ptl_level_idc / 30 << std::endl;
+        // 6 bits after
+        hdr.vps.ptl.ptl_num_sub_profiles = buf[ptr + 12] >> 2;
+        std::cout << "-- ptl_num_sub_profiles: " << (uint32_t)hdr.vps.ptl.ptl_num_sub_profiles << std::endl;
+        // 1 bit after
+        hdr.vps.ptl.ptl_extended_sub_profile_flag = (buf[ptr + 12] & 0b10) >> 1;
+        std::cout << "-- ptl_extended_sub_profile_flag: " << (uint32_t)hdr.vps.ptl.ptl_extended_sub_profile_flag << std::endl;
+        // next up are the sub-profile IDs. They can be either 32 or 64 bits long, indicated by ptl_extended_sub_profile_flag
+        // Note: This has not been tested. But it should work
+        ptr += 12;
+        uint64_t first_full_byte = ptr + 13;
+        if (hdr.vps.ptl.ptl_extended_sub_profile_flag == 1) {
+            for (int i = 0; i < hdr.vps.ptl.ptl_num_sub_profiles; i++) {
+                uint64_t sub_profile_id = (buf[first_full_byte] >> 1) | ((buf[first_full_byte - 1] & 0b1) << 63);
+                hdr.vps.ptl.ptl_sub_profile_idc.push_back(sub_profile_id);
+                first_full_byte += 8;
+            }
+        }
+        else {
+            for (int i = 0; i < hdr.vps.ptl.ptl_num_sub_profiles; i++) {
+                uint32_t sub_profile_id = (buf[first_full_byte] >> 1) | ((buf[first_full_byte - 1] & 0b1) << 31);
+                hdr.vps.ptl.ptl_sub_profile_idc.push_back((uint64_t)sub_profile_id);
+                first_full_byte += 4;
+            }
+        }
+        // 1 bit after
+        hdr.vps.ptl.ptl_toolset_constraints_present_flag = (buf[ptr] & 0b1);
+        std::cout << "-- ptl_toolset_constraints_present_flag: " << (uint32_t)hdr.vps.ptl.ptl_toolset_constraints_present_flag << std::endl;
         break;
-
+    }
     case V3C_AD:
         hdr.ad = {};
         hdr.ad.vuh_v3c_parameter_set_id = vuh_v3c_parameter_set_id;
