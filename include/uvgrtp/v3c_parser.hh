@@ -27,6 +27,14 @@ constexpr uint8_t     VVC_SC         = 0x00000001; // VVC Start Code
 struct profile_tier_level {
     uint8_t ptl_tier_flag = 0;
     uint8_t ptl_profile_codec_group_idc = 0;
+    uint8_t ptl_profile_toolset_idc = 0;
+    uint8_t ptl_profile_reconstruction_idc = 0;
+    uint8_t ptl_max_decodes_idc = 0;
+    uint8_t ptl_level_idc = 0;
+    uint8_t ptl_num_sub_profiles = 0;
+    bool ptl_extended_sub_profile_flag = 0;
+    std::vector<uint64_t> ptl_sub_profile_idc;
+    bool ptl_toolset_constraints_present_flag = 0;
 };
 struct vuh_vps {
     profile_tier_level ptl;
@@ -72,6 +80,10 @@ struct v3c_unit_header {
         vuh_pvd pvd;
         vuh_cad cad;
     };
+    ~v3c_unit_header() {
+        vps.~vuh_vps();
+    }
+
 };
 
 struct nal_info {
@@ -88,5 +100,5 @@ uint64_t get_size(std::string filename);
 char* get_cmem(std::string filename, const size_t& len);
 
 // ad is for AD and CAD substreams, vd is for all VD substreams
-bool mmap_v3c_file(char* cbuf, uint64_t len, vuh_vps& param, std::vector<nal_info>& nal_map);
+bool mmap_v3c_file(char* cbuf, uint64_t len, std::vector<nal_info>& nal_map, std::vector<vuh_vps> &vps_map);
 void parse_v3c_header(v3c_unit_header &hdr, char* buf, uint64_t ptr);

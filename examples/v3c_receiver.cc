@@ -42,7 +42,7 @@ int main(void)
 
     uvgrtp::context ctx;
     uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS, LOCAL_ADDRESS);
-    int flags = RCE_RECEIVE_ONLY;
+    int flags = RCE_RECEIVE_ONLY | RCE_NO_H26X_PREPEND_SC;
     uvgrtp::media_stream* v3c = sess->create_stream(7790, 8890, RTP_FORMAT_V3C, flags);
     uvgrtp::media_stream* avc = sess->create_stream(7792, 8892, RTP_FORMAT_H265, flags);
     vbytes_received = 0;
@@ -74,6 +74,7 @@ int main(void)
     std::this_thread::sleep_for(RECEIVE_TIME_S); // lets this example run for some time
     std::cout << "V3C Total bytes received " << vbytes_received << std::endl;
     std::cout << "Video Total bytes received " << abytes_received << std::endl;
+    std::cout << "All Total bytes received " << abytes_received + vbytes_received << std::endl;
 
     cleanup(ctx, sess, v3c);
     cleanup(ctx, sess, avc);
