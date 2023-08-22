@@ -97,7 +97,7 @@ void uvgrtp::rtp::set_default_clock_rate(rtp_format_t fmt)
         case RTP_FORMAT_H264:
         case RTP_FORMAT_H265:
         case RTP_FORMAT_H266:
-        case RTP_FORMAT_V3C:
+        case RTP_FORMAT_ATLAS:
             clock_rate_ = 90000;
             break;
         case RTP_FORMAT_L8:   // variable, user should set this

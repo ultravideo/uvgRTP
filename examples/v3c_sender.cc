@@ -27,7 +27,7 @@ int main(void)
     /* A V3C Sample stream is divided into 6 types of 'sub-bitstreams' + parameters.
     - The nal_map holds nal_info structs
     - nal_info struct holds the format(Atlas, H264, H265, H266), start position and size of the NAL unit
-    - With this info you can send the data via different uvgRTP media streams. Usually 2 streams, one in RTP_FORMAT_V3C for
+    - With this info you can send the data via different uvgRTP media streams. Usually 2 streams, one in RTP_FORMAT_ATLAS for
       Atlas NAL units and a second one for the video NAL units in the correct format 
       
       Note: Use RTP_NO_H26X_SCL when sending video frames, as there is no start codes in the video sub-streams */
@@ -52,12 +52,12 @@ int main(void)
 
     // Create the uvgRTP media streams with the correct RTP format
     uvgrtp::media_stream* vps = sess->create_stream(8890, 8891, RTP_FORMAT_GENERIC, flags);
-    uvgrtp::media_stream* ad = sess->create_stream(8892, 8893, RTP_FORMAT_V3C, flags);
+    uvgrtp::media_stream* ad = sess->create_stream(8892, 8893, RTP_FORMAT_ATLAS, flags);
     uvgrtp::media_stream* ovd = sess->create_stream(8894, 8895, RTP_FORMAT_H265, flags);
     uvgrtp::media_stream* gvd = sess->create_stream(8896, 8897, RTP_FORMAT_H265, flags);
     uvgrtp::media_stream* avd = sess->create_stream(8898, 8899, RTP_FORMAT_H265, flags);
     uvgrtp::media_stream* pvd = sess->create_stream(9000, 9001, RTP_FORMAT_H265, flags);
-    uvgrtp::media_stream* cad = sess->create_stream(9002, 9003, RTP_FORMAT_V3C, flags);
+    uvgrtp::media_stream* cad = sess->create_stream(9002, 9003, RTP_FORMAT_ATLAS, flags);
 
 
     uint64_t send_ptr = 0;
@@ -153,14 +153,12 @@ void sender_func(uvgrtp::media_stream* stream, const char* cbuf, const std::vect
                 double time_100m = bytes_sent / 100; // us so dont multiply *1000 * 1000;
                 double time_1g = bytes_sent / (1 * 1000); // us so dont multiply *1000 * 1000;
                 double time_10g = bytes_sent / (10 * 1000); // us so dont multiply *1000 * 1000;
-                std::cout << "bytes sent " << bytes_sent << std::endl;
                 std::string line = std::to_string(index) + ";" + std::to_string(i.size) + ";" + std::to_string(bytes_sent) + ";"
                     + std::to_string(time_100m) + ";"
                     + std::to_string(time_1g) + ";"
                     + std::to_string(time_10g) + ";" + "\n";
 
                 //myfile << line;
-                std::cout << line << std::endl;
             }
             else {
                 std::cout << "Failed to send RTP frame!" << std::endl;

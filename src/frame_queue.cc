@@ -78,7 +78,7 @@ rtp_error_t uvgrtp::frame_queue::init_transaction()
             active_->media_headers = new uvgrtp::formats::h266_headers;
             break;
 
-        case RTP_FORMAT_V3C:
+        case RTP_FORMAT_ATLAS:
             active_->media_headers = new uvgrtp::formats::v3c_headers;
             break;
 

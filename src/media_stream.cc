@@ -225,7 +225,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
             media_.reset(format_266);
             break;
         }
-        case RTP_FORMAT_V3C:
+        case RTP_FORMAT_ATLAS:
         {
             uvgrtp::formats::v3c* format_v3c = new uvgrtp::formats::v3c(socket_, rtp_, rce_flags_);
             reception_flow_->install_handler(

@@ -125,3 +125,9 @@ void parse_v3c_header(v3c_unit_header &hdr, char* buf, uint64_t ptr);
 
 void parse_vps_ptl(profile_tier_level &ptl, char* buf, uint64_t ptr);
 
+// Receiver functions
+void create_v3c_unit(v3c_unit_info& current_unit, char* buf, uint64_t& ptr, uint64_t v3c_precision, uint32_t nal_precision);
+uint64_t reconstruct_v3c_gop(bool hdr_byte, char* buf, uint64_t& ptr, v3c_file_map& mmap, uint64_t index);
+
+
+bool is_gop_ready(uint64_t index, v3c_file_map& mmap);
