@@ -18,7 +18,27 @@ uint32_t combineBytes(uint8_t byte1, uint8_t byte2) {
         (static_cast<uint32_t>(byte2));
 }
 
-bool mmap_v3c_file(char* cbuf, uint64_t len, std::vector<nal_info>& nal_map, std::vector<vuh_vps>& vps_map)
+void convert_size_little_endian(uint32_t in, uint8_t* out, size_t output_size) {
+    // Make sure the output size is not larger than the size of uint32_t
+    if (output_size > sizeof(uint32_t)) {
+        output_size = sizeof(uint32_t);
+    }
+
+    // Convert the uint32_t input into the output array
+    // The exact way to store the value depends on the endianness of the system
+    // This example assumes little-endian
+    for (size_t i = 0; i < output_size; ++i) {
+        out[i] = (in >> (8 * i)) & 0xFF;
+    }
+}
+
+void convert_size_big_endian(uint32_t in, uint8_t* out, size_t output_size) {
+    for (size_t i = 0; i < output_size; ++i) {
+        out[output_size - i - 1] = static_cast<uint8_t>(in >> (8 * i));
+    }
+}
+
+bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap)
 {
     uint64_t ptr = 0;
 
@@ -60,20 +80,19 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, std::vector<nal_info>& nal_map, std
         parse_v3c_header(v3c_hdr, cbuf, v3c_ptr);
         uint8_t vuh_t = v3c_hdr.vuh_unit_type;
         std::cout << "-- vuh_unit_type: " << (uint32_t)vuh_t << std::endl;
+        v3c_unit_info unit = { v3c_hdr, {}, nullptr};
 
         if (vuh_t == V3C_VPS) {
             // Parameter set contains no NAL units, skip over
             std::cout << "-- Parameter set V3C unit" << std::endl;
+            unit.nal_infos.push_back({ ptr, combined_v3c_size });
+            mmap.vps_units.push_back(unit);
             ptr += combined_v3c_size;
-            vps_map.push_back(v3c_hdr.vps);
             std::cout << std::endl;
             continue;
         }
-        else if (vuh_t == V3C_OVD || vuh_t == V3C_GVD || vuh_t == V3C_AVD || vuh_t == V3C_PVD) {
-            std::cout << "-- Video data V3C unit, " << std::endl;
-        }
 
-        // Rest of the function goes inside the V3C unit payload and parses NAL it into NAL units
+        // Rest of the function goes inside the V3C unit payload and parses it into NAL units
         v3c_ptr += V3C_HDR_LEN; // Jump over 4 bytes of V3C unit header
         if (vuh_t == V3C_AD || vuh_t == V3C_CAD) {
             uint8_t v3cu_first_byte = cbuf[v3c_ptr]; // Next up is 1 byte of NAL unit size precision
@@ -85,12 +104,13 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, std::vector<nal_info>& nal_map, std
             nal_size_precision = 4;
             std::cout << "  -- Video NAL Sample stream, using NAL unit size precision of: " << (uint32_t)nal_size_precision << std::endl;
         }
-
+        uint64_t amount_of_nal_units = 0;
         // Now start to parse the NAL sample stream
         while (true) {
             if (v3c_ptr >= (ptr + combined_v3c_size)) {
                 break;
             }
+            amount_of_nal_units++;
             uint32_t combined_nal_size = 0;
             if (nal_size_precision == 2) {
                 combined_nal_size = combineBytes(cbuf[v3c_ptr], cbuf[v3c_ptr + 1]);
@@ -109,19 +129,41 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, std::vector<nal_info>& nal_map, std
             switch (vuh_t) {
             case V3C_AD:
             case V3C_CAD:
-                std::cout << "  -- v3c_ptr: " << v3c_ptr << ", NALU size : " << combined_nal_size << std::endl;
+                std::cout << "  -- v3c_ptr: " << v3c_ptr << ", NALU size: " << combined_nal_size << std::endl;
                 break;
             case V3C_OVD:
             case V3C_GVD:
             case V3C_AVD:
             case V3C_PVD:
                 uint8_t h265_nalu_t = (cbuf[v3c_ptr] & 0b01111110) >> 1;
-                std::cout << "  -- v3c_ptr: " << v3c_ptr << ", NALU size : " << combined_nal_size << ", HEVC NALU type: " << (uint32_t)h265_nalu_t << std::endl;
+                std::cout << "  -- v3c_ptr: " << v3c_ptr << ", NALU size: " << combined_nal_size << ", HEVC NALU type: " << (uint32_t)h265_nalu_t << std::endl;
             }
-            nal_map.push_back({vuh_t, v3c_ptr, combined_nal_size});
+            unit.nal_infos.push_back({ v3c_ptr, combined_nal_size });
             v3c_ptr += combined_nal_size;
-        }
 
+        }
+        std::cout << "  -- Amount of NAL units in v3c unit: " << amount_of_nal_units << std::endl;
+            
+        switch (vuh_t) {
+            case V3C_AD:
+                mmap.ad_units.push_back(unit);
+                break;
+            case V3C_CAD:
+                mmap.cad_units.push_back(unit);
+                break;
+            case V3C_OVD:
+                mmap.ovd_units.push_back(unit);
+                break;
+            case V3C_GVD:
+                mmap.gvd_units.push_back(unit);
+                break;
+            case V3C_AVD:
+                mmap.avd_units.push_back(unit);
+                break;
+            case V3C_PVD:
+                mmap.pvd_units.push_back(unit);
+                break;
+        }
         std::cout << std::endl;
         ptr += combined_v3c_size;
     }
@@ -136,7 +178,7 @@ void parse_v3c_header(v3c_unit_header &hdr, char* buf, uint64_t ptr)
 
     uint8_t vuh_v3c_parameter_set_id = 0;;
     uint8_t vuh_atlas_id = 0;
-
+    
     if (vuh_unit_type == V3C_AVD || vuh_unit_type == V3C_GVD ||
         vuh_unit_type == V3C_OVD || vuh_unit_type == V3C_AD ||
         vuh_unit_type == V3C_CAD || vuh_unit_type == V3C_PVD) {
@@ -156,56 +198,6 @@ void parse_v3c_header(v3c_unit_header &hdr, char* buf, uint64_t ptr)
 
     switch (hdr.vuh_unit_type) {
     case V3C_VPS: {
-        hdr.vps = {};
-        // first bit of first byte
-        hdr.vps.ptl.ptl_tier_flag = buf[ptr + 4] >> 7;
-        std::cout << "-- ptl_tier_flag: " << (uint32_t)hdr.vps.ptl.ptl_tier_flag << std::endl;
-        // 7 bits after
-        hdr.vps.ptl.ptl_profile_codec_group_idc = buf[ptr + 4] & 0b01111111;
-        std::cout << "-- ptl_profile_codec_group_idc: " << (uint32_t)hdr.vps.ptl.ptl_profile_codec_group_idc << std::endl;
-        // 8 bits after
-        hdr.vps.ptl.ptl_profile_toolset_idc = buf[ptr + 5];
-        std::cout << "-- ptl_profile_toolset_idc: " << (uint32_t)hdr.vps.ptl.ptl_profile_toolset_idc << std::endl;
-        // 8 bits after
-        hdr.vps.ptl.ptl_profile_reconstruction_idc = buf[ptr + 6];
-        std::cout << "-- ptl_profile_reconstruction_idc: " << (uint32_t)hdr.vps.ptl.ptl_profile_reconstruction_idc << std::endl;
-        // 16 reserved bits
-        //4 bits after
-        hdr.vps.ptl.ptl_max_decodes_idc = buf[ptr + 9] >> 4;
-        std::cout << "-- ptl_max_decodes_idc: " << (uint32_t)hdr.vps.ptl.ptl_max_decodes_idc << "+1 = " <<
-            (uint32_t)hdr.vps.ptl.ptl_max_decodes_idc + 1 << std::endl;
-        // 12 reserved bits
-        // 8 bits after
-        hdr.vps.ptl.ptl_level_idc = buf[ptr + 11];
-        std::cout << "-- ptl_level_idc: " << (uint32_t)hdr.vps.ptl.ptl_level_idc << "/30 = " <<
-            (double)hdr.vps.ptl.ptl_level_idc / 30 << std::endl;
-        // 6 bits after
-        hdr.vps.ptl.ptl_num_sub_profiles = buf[ptr + 12] >> 2;
-        std::cout << "-- ptl_num_sub_profiles: " << (uint32_t)hdr.vps.ptl.ptl_num_sub_profiles << std::endl;
-        // 1 bit after
-        hdr.vps.ptl.ptl_extended_sub_profile_flag = (buf[ptr + 12] & 0b10) >> 1;
-        std::cout << "-- ptl_extended_sub_profile_flag: " << (uint32_t)hdr.vps.ptl.ptl_extended_sub_profile_flag << std::endl;
-        // next up are the sub-profile IDs. They can be either 32 or 64 bits long, indicated by ptl_extended_sub_profile_flag
-        // Note: This has not been tested. But it should work
-        ptr += 12;
-        uint64_t first_full_byte = ptr + 13;
-        if (hdr.vps.ptl.ptl_extended_sub_profile_flag == 1) {
-            for (int i = 0; i < hdr.vps.ptl.ptl_num_sub_profiles; i++) {
-                uint64_t sub_profile_id = (buf[first_full_byte] >> 1) | ((buf[first_full_byte - 1] & 0b1) << 63);
-                hdr.vps.ptl.ptl_sub_profile_idc.push_back(sub_profile_id);
-                first_full_byte += 8;
-            }
-        }
-        else {
-            for (int i = 0; i < hdr.vps.ptl.ptl_num_sub_profiles; i++) {
-                uint32_t sub_profile_id = (buf[first_full_byte] >> 1) | ((buf[first_full_byte - 1] & 0b1) << 31);
-                hdr.vps.ptl.ptl_sub_profile_idc.push_back((uint64_t)sub_profile_id);
-                first_full_byte += 4;
-            }
-        }
-        // 1 bit after
-        hdr.vps.ptl.ptl_toolset_constraints_present_flag = (buf[ptr] & 0b1);
-        std::cout << "-- ptl_toolset_constraints_present_flag: " << (uint32_t)hdr.vps.ptl.ptl_toolset_constraints_present_flag << std::endl;
         break;
     }
     case V3C_AD:
@@ -265,6 +257,60 @@ void parse_v3c_header(v3c_unit_header &hdr, char* buf, uint64_t ptr)
         break;
     }
     return;
+}
+
+void parse_vps_ptl(profile_tier_level &ptl, char* buf, uint64_t ptr)
+{
+    // first bit of first byte
+    ptl.ptl_tier_flag = buf[ptr + 4] >> 7;
+    std::cout << "-- ptl_tier_flag: " << (uint32_t)ptl.ptl_tier_flag << std::endl;
+    // 7 bits after
+    ptl.ptl_profile_codec_group_idc = buf[ptr + 4] & 0b01111111;
+    std::cout << "-- ptl_profile_codec_group_idc: " << (uint32_t)ptl.ptl_profile_codec_group_idc << std::endl;
+    // 8 bits after
+    ptl.ptl_profile_toolset_idc = buf[ptr + 5];
+    std::cout << "-- ptl_profile_toolset_idc: " << (uint32_t)ptl.ptl_profile_toolset_idc << std::endl;
+    // 8 bits after
+    ptl.ptl_profile_reconstruction_idc = buf[ptr + 6];
+    std::cout << "-- ptl_profile_reconstruction_idc: " << (uint32_t)ptl.ptl_profile_reconstruction_idc << std::endl;
+    // 16 reserved bits
+    //4 bits after
+    ptl.ptl_max_decodes_idc = buf[ptr + 9] >> 4;
+    std::cout << "-- ptl_max_decodes_idc: " << (uint32_t)ptl.ptl_max_decodes_idc << "+1 = " <<
+        (uint32_t)ptl.ptl_max_decodes_idc + 1 << std::endl;
+    // 12 reserved bits
+    // 8 bits after
+    ptl.ptl_level_idc = buf[ptr + 11];
+    std::cout << "-- ptl_level_idc: " << (uint32_t)ptl.ptl_level_idc << "/30 = " <<
+        (double)ptl.ptl_level_idc / 30 << std::endl;
+    // 6 bits after
+    ptl.ptl_num_sub_profiles = buf[ptr + 12] >> 2;
+    std::cout << "-- ptl_num_sub_profiles: " << (uint32_t)ptl.ptl_num_sub_profiles << std::endl;
+    // 1 bit after
+    ptl.ptl_extended_sub_profile_flag = (buf[ptr + 12] & 0b10) >> 1;
+    std::cout << "-- ptl_extended_sub_profile_flag: " << (uint32_t)ptl.ptl_extended_sub_profile_flag << std::endl;
+    // next up are the sub-profile IDs. They can be either 32 or 64 bits long, indicated by ptl_extended_sub_profile_flag
+    // Note: This has not been tested. But it should work
+    ptr += 12;
+    uint64_t first_full_byte = ptr + 13;
+    if (ptl.ptl_extended_sub_profile_flag == 1) {
+        for (int i = 0; i < ptl.ptl_num_sub_profiles; i++) {
+            // TODO this isnt right...
+            uint64_t sub_profile_id = (buf[first_full_byte] >> 1) | ((buf[first_full_byte - 1] & 0b1) << 63);
+            ptl.ptl_sub_profile_idc.push_back(sub_profile_id);
+            first_full_byte += 8;
+        }
+    }
+    else {
+        for (int i = 0; i < ptl.ptl_num_sub_profiles; i++) {
+            uint32_t sub_profile_id = (buf[first_full_byte] >> 1) | ((buf[first_full_byte - 1] & 0b1) << 31);
+            ptl.ptl_sub_profile_idc.push_back((uint64_t)sub_profile_id);
+            first_full_byte += 4;
+        }
+    }
+    // 1 bit after
+    ptl.ptl_toolset_constraints_present_flag = (buf[ptr] & 0b1);
+    std::cout << "-- ptl_toolset_constraints_present_flag: " << (uint32_t)ptl.ptl_toolset_constraints_present_flag << std::endl;
 }
 
 uint64_t get_size(std::string filename)
