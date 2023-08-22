@@ -38,10 +38,7 @@ void avd_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 void pvd_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 void cad_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 
-bool is_gop_ready(uint64_t index, v3c_file_map &mmap);
 void copy_rtp_payload(uint64_t max_size, v3c_unit_info& unit, uvgrtp::frame::rtp_frame* frame);
-void create_v3c_unit(v3c_unit_info& current_unit, char* buf, uint64_t& ptr, uint64_t v3c_precision, uint32_t nal_precision);
-uint64_t reconstruct_v3c_gop(bool hdr_byte, char* buf, uint64_t &ptr, v3c_file_map &mmap, uint64_t index);
 uint64_t vps_count;
 
 constexpr int VPS_NALS = 1;
@@ -68,12 +65,12 @@ int main(void)
 
     // Create the uvgRTP media streams with the correct RTP format
     uvgrtp::media_stream* vps = sess->create_stream(8891, 8890, RTP_FORMAT_GENERIC, flags);
-    uvgrtp::media_stream* ad = sess->create_stream(8893, 8892, RTP_FORMAT_V3C, flags);
+    uvgrtp::media_stream* ad = sess->create_stream(8893, 8892, RTP_FORMAT_ATLAS, flags);
     uvgrtp::media_stream* ovd = sess->create_stream(8895, 8894, RTP_FORMAT_H265, flags);
     uvgrtp::media_stream* gvd = sess->create_stream(8897, 8896, RTP_FORMAT_H265, flags);
     uvgrtp::media_stream* avd = sess->create_stream(8899, 8898, RTP_FORMAT_H265, flags);
     uvgrtp::media_stream* pvd = sess->create_stream(9001, 9000, RTP_FORMAT_H265, flags);
-    uvgrtp::media_stream* cad = sess->create_stream(9003, 9002, RTP_FORMAT_V3C, flags);
+    uvgrtp::media_stream* cad = sess->create_stream(9003, 9002, RTP_FORMAT_ATLAS, flags);
     avd->configure_ctx(RCC_RING_BUFFER_SIZE, 40*1000*1000);
 
     char* out_buf = new char[len];
@@ -151,189 +148,6 @@ int main(void)
 
     return EXIT_SUCCESS;
 }
-
-uint64_t reconstruct_v3c_gop(bool hdr_byte, char* buf, uint64_t &ptr, v3c_file_map& mmap, uint64_t index)
-{
-    /* Calculate GoP size and intiialize the output buffer
-    * 
-    + 1 byte of Sample Stream Precision
-    +----------------------------------------------------------------+
-    + 4 bytes of V3C Unit size
-    + x1 bytes of whole V3C VPS unit (incl. header)
-    +----------------------------------------------------------------+
-      Atlas V3C unit
-    + 4 bytes for V3C Unit size
-    + 4 bytes of V3C header
-    + 1 byte of NAL Unit Size Precision (x1)
-    + NALs count (x1 bytes of NAL Unit Size
-    + x2 bytes of NAL unit payload)
-    +----------------------------------------------------------------+
-      Video V3C unit
-    + 4 bytes for V3C Unit size
-    + 4 bytes of V3C header
-    + NALs count (4 bytes of NAL Unit Size
-    + x2 bytes of NAL unit payload)
-    +----------------------------------------------------------------+
-                .
-                .
-                .
-    +----------------------------------------------------------------+
-      Video V3C unit
-    + 4 bytes for V3C Unit size
-    + 4 bytes of V3C header
-    + NALs count (4 bytes of NAL Unit Size
-    + x2 bytes of NAL unit payload)
-    +----------------------------------------------------------------+ */
-    uint8_t ATLAS_NAL_SIZE_PRECISION = 2;
-    uint8_t VIDEO_NAL_SIZE_PRECISION = 4;
-    uint64_t gop_size = 0;
-    if (hdr_byte) {
-        gop_size++; // Sample Stream Precision
-    }
-    uint64_t vps_size = mmap.vps_units.at(index).nal_infos.at(0).size; // incl. header
-    uint64_t ad_size  = 4+4+1 + mmap.ad_units.at(index).ptr + mmap.ad_units.at(index).nal_infos.size() * ATLAS_NAL_SIZE_PRECISION;
-    uint64_t ovd_size = 8 + mmap.ovd_units.at(index).ptr + mmap.ovd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
-    uint64_t gvd_size = 8 + mmap.gvd_units.at(index).ptr + mmap.gvd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
-    uint64_t avd_size = 8 + mmap.avd_units.at(index).ptr + mmap.avd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
-    gop_size += vps_size + ad_size + ovd_size + gvd_size + avd_size;
-    std::cout << "Initializing GoP buffer of " << gop_size << " bytes" << std::endl;
-    //buf = new char[gop_size];
-    std::cout << "start ptr is " << ptr << std::endl;
-
-    // V3C Sample stream header
-    if (hdr_byte) {
-        std::cout << "Adding Sample Stream header byte" << std::endl;
-        uint8_t first_byte = 64;
-        buf[ptr] = first_byte;
-        ptr++;
-    }
-
-    uint8_t v3c_unit_size_precision = 3;
-
-    uint8_t* v3c_size_arr = new uint8_t[v3c_unit_size_precision];
-
-    v3c_unit_info current_unit = mmap.vps_units.at(index); // Now processing VPS unit
-    uint32_t v3c_size_int = (uint32_t)current_unit.nal_infos.at(0).size;
-
-    // Write the V3C VPS unit size to the output buffer
-    convert_size_big_endian(v3c_size_int, v3c_size_arr, v3c_unit_size_precision);
-    memcpy(&buf[ptr], v3c_size_arr, v3c_unit_size_precision);
-    ptr += v3c_unit_size_precision;
-
-    // Write the V3C VPS unit payload to the output buffer
-    memcpy(&buf[ptr], current_unit.buf, v3c_size_int);
-    ptr += v3c_size_int;
-
-    // Write out V3C AD unit
-    current_unit = mmap.ad_units.at(index);
-    create_v3c_unit(current_unit, buf, ptr, v3c_unit_size_precision, ATLAS_NAL_SIZE_PRECISION);
-
-    // Write out V3C OVD unit
-    current_unit = mmap.ovd_units.at(index);
-    create_v3c_unit(current_unit, buf, ptr, v3c_unit_size_precision, VIDEO_NAL_SIZE_PRECISION);
-
-    // Write out V3C GVD unit
-    current_unit = mmap.gvd_units.at(index);
-    create_v3c_unit(current_unit, buf, ptr, v3c_unit_size_precision, VIDEO_NAL_SIZE_PRECISION);
-
-    // Write out V3C AVD unit
-    current_unit = mmap.avd_units.at(index);
-    create_v3c_unit(current_unit, buf, ptr, v3c_unit_size_precision, VIDEO_NAL_SIZE_PRECISION);
-    std::cout << "end ptr is " << ptr << std::endl;
-
-    return gop_size;
-}
-
-void create_v3c_unit(v3c_unit_info &current_unit, char* buf, uint64_t &ptr, uint64_t v3c_precision, uint32_t nal_precision)
-{
-    uint8_t v3c_type = current_unit.header.vuh_unit_type;
-
-    // V3C unit size
-    uint8_t* v3c_size_arr = new uint8_t[v3c_precision];
-    uint32_t v3c_size_int = 4 + current_unit.ptr + (uint32_t)current_unit.nal_infos.size() * nal_precision;
-    if (v3c_type == V3C_AD ||v3c_type == V3C_CAD) {
-        v3c_size_int++; // NAL size precision for Atlas V3C units
-    }
-    convert_size_big_endian(v3c_size_int, v3c_size_arr, v3c_precision);
-    memcpy(&buf[ptr], v3c_size_arr, v3c_precision);
-    ptr += v3c_precision;
-
-    // Next up create the V3C unit header
-    uint8_t v3c_header[4] = {0, 0, 0, 0};
-
-    // All V3C unit types have parameter_set_id in header
-    uint8_t param_set_id = current_unit.header.ad.vuh_v3c_parameter_set_id;
-    std::cout << "VUH typ: " << (uint32_t)v3c_type << " param set id " << (uint32_t)param_set_id << std::endl;
-    v3c_header[0] = v3c_type << 3 | ((param_set_id & 0b1110) >> 1);
-    v3c_header[1] = ((param_set_id & 0b1) << 7);
-
-    // Only CAD does NOT have atlas_id
-    if (v3c_type != V3C_CAD) {
-        uint8_t atlas_id = current_unit.header.ad.vuh_atlas_id;
-        v3c_header[1] = v3c_header[1] | ((atlas_id & 0b111111) << 1);
-    }
-    // GVD has map_index and aux_video_flag, then zeroes
-    if (v3c_type == V3C_GVD) {
-        uint8_t map_index = current_unit.header.gvd.vuh_map_index;
-        bool auxiliary_video_flag = current_unit.header.gvd.vuh_auxiliary_video_flag;
-        v3c_header[1] = v3c_header[1] | ((map_index & 0b1000) >> 3);
-        v3c_header[2] = ((map_index & 0b111) << 5) | (auxiliary_video_flag << 4);
-    }
-    if (v3c_type == V3C_AVD) {
-        uint8_t vuh_attribute_index = current_unit.header.avd.vuh_attribute_index;
-        uint8_t vuh_attribute_partition_index = current_unit.header.avd.vuh_attribute_partition_index;
-        uint8_t vuh_map_index = current_unit.header.avd.vuh_map_index;
-        bool vuh_auxiliary_video_flag = current_unit.header.avd.vuh_auxiliary_video_flag;
-
-        v3c_header[1] = v3c_header[1] | ((vuh_attribute_index & 0b1000000) >> 7);
-        v3c_header[2] = ((vuh_attribute_index & 0b111111) << 2) | ((vuh_attribute_partition_index & 0b11000) >> 3);
-        v3c_header[3] = ((vuh_attribute_partition_index & 0b111) << 5) | (vuh_map_index << 1) | (int)vuh_auxiliary_video_flag;
-    }
-
-    // Copy V3C header to outbut buffer
-    memcpy(&buf[ptr], v3c_header, 4);
-    ptr += 4;
-
-    // For Atlas V3C units, set one byte for NAL size precision
-    if (v3c_type == V3C_AD || v3c_type == V3C_CAD) {
-        uint8_t nal_size_precision_arr = uint8_t((nal_precision - 1) << 5);
-        memcpy(&buf[ptr], &nal_size_precision_arr, 1);
-        ptr++;
-    }
-    // For Video V3C units, NAL size precision is always 4 bytes
-
-    // Copy V3C unit NAL sizes and NAL units to output buffer
-    for (auto& p : current_unit.nal_infos) {
-
-        // Copy size
-        uint8_t* nal_size_arr = new uint8_t[nal_precision];
-        convert_size_big_endian(uint32_t(p.size), nal_size_arr, nal_precision);
-        memcpy(&buf[ptr], nal_size_arr, nal_precision);
-        ptr += nal_precision;
-
-        // Copy NAL unit
-        memcpy(&buf[ptr], &current_unit.buf[p.location], p.size);
-        ptr += p.size;
-    }
-
-}
-
-bool is_gop_ready(uint64_t index, v3c_file_map& mmap)
-{
-    if (mmap.vps_units.size() < index)
-        return false;
-    if (mmap.ad_units.size() < index || !mmap.ad_units.at(index-1).ready)
-        return false;
-    if (mmap.ovd_units.size() < index || !mmap.ovd_units.at(index-1).ready)
-        return false;
-    if (mmap.gvd_units.size() < index || !mmap.gvd_units.at(index-1).ready)
-        return false;
-    if (mmap.avd_units.size() < index || !mmap.avd_units.at(index-1).ready)
-        return false;
-
-    return true;
-}
-
 
 void copy_rtp_payload(uint64_t max_size, v3c_unit_info &unit, uvgrtp::frame::rtp_frame *frame)
 {

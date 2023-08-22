@@ -330,7 +330,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
 
     rtp_format_t fmt = rtp_ctx_->get_payload();
 
-    if ((rtp_flags & RTP_NO_H26X_SCL) || (fmt == RTP_FORMAT_V3C)) {
+    if ((rtp_flags & RTP_NO_H26X_SCL) || (fmt == RTP_FORMAT_ATLAS)) {
         nal_info nal;
         nal.offset = 0;
         nal.prefix_len = 0;
@@ -517,7 +517,7 @@ uvgrtp::frame::rtp_frame* uvgrtp::formats::h26x::allocate_rtp_frame_with_startco
 void uvgrtp::formats::h26x::prepend_start_code(int rce_flags, uvgrtp::frame::rtp_frame** out)
 {
     rtp_format_t fmt = rtp_ctx_->get_payload();
-    if (fmt == RTP_FORMAT_V3C) {
+    if (fmt == RTP_FORMAT_ATLAS) {
         return;
     }
     if (!(rce_flags & RCE_NO_H26X_PREPEND_SC)) {
@@ -967,7 +967,7 @@ rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out
 
     // allocating the frame with start code ready saves a copy operation for the frame
     bool start_code = !(rce_flags & RCE_NO_H26X_PREPEND_SC);
-    if (rtp_ctx_->get_payload() == RTP_FORMAT_V3C) {
+    if (rtp_ctx_->get_payload() == RTP_FORMAT_ATLAS) {
         start_code = false;
     }
     uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode(start_code,
