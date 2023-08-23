@@ -18,14 +18,21 @@ void avd_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 
 uint64_t vps_count;
 
-constexpr int VPS_NALS = 1;
+/* These values specify the amount of NAL units inside each type of V3C unit. These need to be known to be able to reconstruct the 
+ * file after receiving. These might be different for you depending on your test file. The sending example has prints that show
+ * how many NAL units each V3C unit contain. Change these accordingly. */
+constexpr int VPS_NALS = 2;
 constexpr int AD_NALS = 35;
 constexpr int OVD_NALS = 35;
 constexpr int GVD_NALS = 131;
 constexpr int AVD_NALS = 131;
+
+/* How many Groups of Pictures we are expecting to receive */
 constexpr int EXPECTED_GOPS = 1;
 
-std::string PATH = "C:\\Users\\ngheta\\Documents\\v3c_test_seq_2.vpcc";
+/* Path to the V3C file that we are receiving.This is included so that you can check that the reconstructed file is equal to the
+ * original one */
+std::string PATH = "";
 
 int main(void)
 {
@@ -44,7 +51,8 @@ int main(void)
 
     // Create the uvgRTP media streams with the correct RTP format
     v3c_streams streams = init_v3c_streams(sess, 8890, 8892, flags, true);
-    //avd->configure_ctx(RCC_RING_BUFFER_SIZE, 40*1000*1000);
+
+    // Initialize memory map
     v3c_file_map mmap = init_mmap();
 
     streams.vps->install_receive_hook(&mmap.vps_units, vps_receive_hook);
@@ -52,18 +60,19 @@ int main(void)
     streams.ovd->install_receive_hook(&mmap.ovd_units, ovd_receive_hook);
     streams.gvd->install_receive_hook(&mmap.gvd_units, gvd_receive_hook);
     streams.avd->install_receive_hook(&mmap.avd_units, avd_receive_hook);
-
+    streams.avd->configure_ctx(RCC_RING_BUFFER_SIZE, 40 * 1000 * 1000);
 
     std::cout << "Waiting incoming packets for " << RECEIVE_TIME_S.count() << " s" << std::endl;
-    uint64_t ngops = 1;
+    uint64_t ngops = 0;
     uint64_t bytes = 0;
     uint64_t ptr = 0;
     bool hdb = true;
-    char* out_buf = nullptr;
+    char* out_buf = new char[len]; // Initialize to nullptr if you want to output the file GoP by GoP
 
     while (ngops <= EXPECTED_GOPS) {
         if (is_gop_ready(ngops, mmap)) {
-            bytes +=  reconstruct_v3c_gop(hdb, out_buf, ptr, mmap, ngops - 1);
+            //ptr = 0; Don't reset the ptr because we are writing the whole file into the buffer
+            bytes +=  reconstruct_v3c_gop(hdb, out_buf, ptr, mmap, ngops);
             std::cout << "Full GoP received, num: " << ngops << std::endl;
             ngops++;
             hdb = false; // Only add the V3C Sample Stream header byte to only the first GoP
