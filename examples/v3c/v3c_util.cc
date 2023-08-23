@@ -451,7 +451,8 @@ uint64_t reconstruct_v3c_gop(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_
     gop_size += vps_size + ad_size + ovd_size + gvd_size + avd_size;
     std::cout << "Initializing GoP buffer of " << gop_size << " bytes" << std::endl;
 
-    buf = new char[gop_size];
+    // Commented out because we want to write the whole file into the buffer, not GoP by GoP
+    //buf = new char[gop_size];
 
     // V3C Sample stream header
     if (hdr_byte) {
@@ -495,15 +496,15 @@ uint64_t reconstruct_v3c_gop(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_
 
 bool is_gop_ready(uint64_t index, v3c_file_map& mmap)
 {
-    if (mmap.vps_units.size() < index)
+    if (mmap.vps_units.size() < index+1)
         return false;
-    if (mmap.ad_units.size() < index || !mmap.ad_units.at(index - 1).ready)
+    if (mmap.ad_units.size() < index+1 || !mmap.ad_units.at(index).ready)
         return false;
-    if (mmap.ovd_units.size() < index || !mmap.ovd_units.at(index - 1).ready)
+    if (mmap.ovd_units.size() < index+1 || !mmap.ovd_units.at(index).ready)
         return false;
-    if (mmap.gvd_units.size() < index || !mmap.gvd_units.at(index - 1).ready)
+    if (mmap.gvd_units.size() < index+1 || !mmap.gvd_units.at(index).ready)
         return false;
-    if (mmap.avd_units.size() < index || !mmap.avd_units.at(index - 1).ready)
+    if (mmap.avd_units.size() < index+1 || !mmap.avd_units.at(index).ready)
         return false;
 
     return true;

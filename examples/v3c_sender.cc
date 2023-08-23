@@ -10,30 +10,38 @@
 
 constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
 
-std::string PATH = "C:\\Users\\ngheta\\Documents\\v3c_test_seq_2.vpcc";
-
+// Path to the V3C file that you want to send
+std::string PATH = "";
 void sender_func(uvgrtp::media_stream* stream, const char* cbuf, const std::vector<v3c_unit_info> &units, rtp_flags_t flags, int fmt);
 
 std::atomic<uint64_t> bytes_sent;
 int main(void)
 {
+    /* This example demonstrates sending V3C Sample Stream files via uvgRTP. The V3C Sample Stream contains a V3C Sample Stream
+     * header byte and multiple V3C Units with their sizes specified before each unit. A V3C Unit then contains a V3C header
+     * and Atlas or Video NAL units, depending on the V3C unit type.
+     * 
+     * The process of sending a V3C Cample Stream file via uvgRTP contains the following steps:
+     * Parse file and extract locations and sizes of NAL units -> Send NAL units in separate uvgRTP media streams
+     * -> Receive NAL units -> Reconstruct V3C Sample Stream
+     * 
+     * In this example there are in total 5 media streams, one for each component:
+     * 1. Parameter set stream
+     * 2. Atlas stream
+     * 3. Occupancy Video stream
+     * 4. Geometry Video stream
+     * 5. Attribute Video Stream
+     * 
+     * There is also the possibility to have two more streams: Packed Video and Common Atlas Data. These are not included in
+     * this example as our test files don't have them. If you need these, it should be quite easy to implement them
+     * 
+     * A few notes for users: This example expects there to be no packet loss. If some NAL units are lost in transmission,
+     * the reconstruction will not work.
+     * Please also read the documentation on v3c_receiver.cc before testing this example. */
+
     std::cout << "Parsing V3C file" << std::endl;
 
-    /* A V3C Sample stream is divided into 4 types of 'sub-bitstreams' + parameters.
-    - In v3c_file_map there are vectors of
-      - V3C unit infos
-         - v3c_unit_infos
-            - header
-            - nal_infos
-            - buf
-            - ptr
-            - ready
-
-    - The nal_infos holds nal_info structs
-    - nal_info struct holds the format(Atlas, H264, H265, H266), start position and size of the NAL unit
-    - With this info you can send the data via different uvgRTP media streams.
-      
-      Note: Use RTP_NO_H26X_SCL when sending video frames, as there is no start codes in the video sub-streams */
+    /* Note: Use RTP_NO_H26X_SCL when sending video frames, as there is no start codes in the video sub-streams */
     bytes_sent = 0;
     v3c_file_map mmap;
 

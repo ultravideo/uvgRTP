@@ -80,12 +80,15 @@ struct nal_info {
     uint64_t size       = 0; // Sie of the NAL unit
 };
 
+/* A v3c_unit_info contains all the required information of a V3C unit
+ - nal_info struct holds the format(Atlas, H264, H265, H266), start position and size of the NAL unit
+ - With this info you can send the data via different uvgRTP media streams. */
 struct v3c_unit_info {
     v3c_unit_header header;
     std::vector<nal_info> nal_infos = {};
-    char* buf;
-    uint64_t ptr = 0;
-    bool ready = false;
+    char* buf; // (used on the receiving end)
+    uint64_t ptr = 0; // (used on the receiving end)
+    bool ready = false; // (used on the receiving end)
 };
 
 struct v3c_file_map {
