@@ -518,12 +518,12 @@ TEST(FormatTests, v3c_single_nal_unit)
 
     if (sess)
     {
-        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
-        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_ATLAS, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_ATLAS, RCE_NO_FLAGS);
     }
 
     int rtp_flags = RTP_NO_FLAGS;
-    rtp_format_t format = RTP_FORMAT_V3C;
+    rtp_format_t format = RTP_FORMAT_ATLAS;
     int test_runs = 5;
     int size = 8;
 
@@ -573,8 +573,8 @@ TEST(FormatTests, v3c_fragmentation)
 
     if (sess)
     {
-        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
-        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_V3C, RCE_NO_FLAGS);
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_ATLAS, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_ATLAS, RCE_NO_FLAGS);
         receiver->install_receive_hook(nullptr, v3c_rtp_hook);
     }
 
@@ -589,7 +589,7 @@ TEST(FormatTests, v3c_fragmentation)
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
     int rtp_flags = RTP_NO_FLAGS;
     int nal_type = 5;
-    rtp_format_t format = RTP_FORMAT_V3C;
+    rtp_format_t format = RTP_FORMAT_ATLAS;
     int test_runs = 10;
 
     for (auto& size : test_sizes)

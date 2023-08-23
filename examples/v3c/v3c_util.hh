@@ -1,5 +1,3 @@
-#pragma once
-
 #include <uvgrtp/lib.hh>
 
 #include <iostream>
