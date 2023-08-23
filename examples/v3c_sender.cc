@@ -56,8 +56,6 @@ int main(void)
     uvgrtp::media_stream* ovd = sess->create_stream(8894, 8895, RTP_FORMAT_H265, flags);
     uvgrtp::media_stream* gvd = sess->create_stream(8896, 8897, RTP_FORMAT_H265, flags);
     uvgrtp::media_stream* avd = sess->create_stream(8898, 8899, RTP_FORMAT_H265, flags);
-    uvgrtp::media_stream* pvd = sess->create_stream(9000, 9001, RTP_FORMAT_H265, flags);
-    uvgrtp::media_stream* cad = sess->create_stream(9002, 9003, RTP_FORMAT_ATLAS, flags);
 
 
     uint64_t send_ptr = 0;
@@ -77,12 +75,6 @@ int main(void)
 
     std::unique_ptr<std::thread> avd_thread =
         std::unique_ptr<std::thread>(new std::thread(sender_func, avd, cbuf, mmap.avd_units, RTP_NO_H26X_SCL, V3C_AVD));
-
-    std::unique_ptr<std::thread> pvd_thread =
-        std::unique_ptr<std::thread>(new std::thread(sender_func, pvd, cbuf, mmap.pvd_units, RTP_NO_H26X_SCL, V3C_PVD));
-
-    std::unique_ptr<std::thread> cad_thread =
-        std::unique_ptr<std::thread>(new std::thread(sender_func, cad, cbuf, mmap.cad_units, RTP_NO_FLAGS, V3C_CAD));
 
     if (vps_thread && vps_thread->joinable())
     {
@@ -104,22 +96,12 @@ int main(void)
     {
         avd_thread->join();
     }
-    if (pvd_thread && pvd_thread->joinable())
-    {
-        pvd_thread->join();
-    }
-    if (cad_thread && cad_thread->joinable())
-    {
-        cad_thread->join();
-    }
 
     sess->destroy_stream(vps);
     sess->destroy_stream(ad);
     sess->destroy_stream(ovd);
     sess->destroy_stream(gvd);
     sess->destroy_stream(avd);
-    sess->destroy_stream(pvd);
-    sess->destroy_stream(cad);
 
 
     std::cout << "Sending finished"  << std::endl;
