@@ -1,5 +1,7 @@
 #pragma once
 
+#include <uvgrtp/lib.hh>
+
 #include <iostream>
 #include <fstream>
 #include <cstring>
@@ -24,27 +26,8 @@ enum CODEC {
     CODEC_VVC_MAIN10    = 3 // VVC Main10 
 };
 
-constexpr int    V3C_HDR_LEN         = 4; // 32 bits for v3c unit header
+constexpr int V3C_HDR_LEN = 4; // 32 bits for v3c unit header
 
-constexpr uint8_t     VVC_SC         = 0x00000001; // VVC Start Code
-
-struct profile_tier_level {
-    uint8_t ptl_tier_flag = 0;
-    uint8_t ptl_profile_codec_group_idc = 0;
-    uint8_t ptl_profile_toolset_idc = 0;
-    uint8_t ptl_profile_reconstruction_idc = 0;
-    uint8_t ptl_max_decodes_idc = 0;
-    uint8_t ptl_level_idc = 0;
-    uint8_t ptl_num_sub_profiles = 0;
-    bool ptl_extended_sub_profile_flag = 0;
-    std::vector<uint64_t> ptl_sub_profile_idc = {};
-    bool ptl_toolset_constraints_present_flag = 0;
-};
-struct parameter_set {
-    profile_tier_level ptl;
-    uint8_t vps_v3c_parameter_set_id = 0;
-    uint8_t vps_atlas_count_minus1 = 0;
-};
 struct vuh_ad {
     uint8_t vuh_v3c_parameter_set_id = 0;
     uint8_t vuh_atlas_id = 0;
@@ -110,24 +93,46 @@ struct v3c_file_map {
     std::vector<v3c_unit_info> cad_units = {};
 };
 
+struct v3c_streams {
+    uvgrtp::media_stream* vps = nullptr;
+    uvgrtp::media_stream* ad = nullptr;
+    uvgrtp::media_stream* ovd = nullptr;
+    uvgrtp::media_stream* gvd = nullptr;
+    uvgrtp::media_stream* avd = nullptr;
+};
+
 uint32_t combineBytes(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4);
 uint32_t combineBytes(uint8_t byte1, uint8_t byte2, uint8_t byte3);
 uint32_t combineBytes(uint8_t byte1, uint8_t byte2);
 void convert_size_little_endian(uint32_t in, uint8_t* out, size_t output_size);
 void convert_size_big_endian(uint32_t in, uint8_t* out, size_t output_size);
 
+// Get size of a file in bytes
 uint64_t get_size(std::string filename);
-char* get_cmem(std::string filename, const size_t& len);
 
-// ad is for AD and CAD substreams, vd is for all VD substreams
+// Get a pointer to a file  
+char* get_cmem(std::string filename);
+
+// Memory map a V3C file
 bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap);
+
+// Parse a V3C header into mmap
 void parse_v3c_header(v3c_unit_header &hdr, char* buf, uint64_t ptr);
 
-void parse_vps_ptl(profile_tier_level &ptl, char* buf, uint64_t ptr);
+// Initialize a media stream for all 5 components of a V3C Stream
+v3c_streams init_v3c_streams(uvgrtp::session* sess, uint16_t src_port, uint16_t dst_port, int flags, bool rec);
 
-// Receiver functions
+// Initialize a memory map of a V3C file
+v3c_file_map init_mmap();
+
+// Used in receiver_hooks to copy the received data
+void copy_rtp_payload(std::vector<v3c_unit_info>& units, uint64_t max_size, uvgrtp::frame::rtp_frame* frame);
+
+// Combine a complete V3C unit from received NAL units
 void create_v3c_unit(v3c_unit_info& current_unit, char* buf, uint64_t& ptr, uint64_t v3c_precision, uint32_t nal_precision);
+
+// Reconstruct a whole GoP from V3C Units
 uint64_t reconstruct_v3c_gop(bool hdr_byte, char* buf, uint64_t& ptr, v3c_file_map& mmap, uint64_t index);
 
-
+// Check if there is a complete GoP in the memory map
 bool is_gop_ready(uint64_t index, v3c_file_map& mmap);
