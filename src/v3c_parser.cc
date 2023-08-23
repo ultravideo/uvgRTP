@@ -259,64 +259,9 @@ void parse_v3c_header(v3c_unit_header &hdr, char* buf, uint64_t ptr)
     return;
 }
 
-void parse_vps_ptl(profile_tier_level &ptl, char* buf, uint64_t ptr)
-{
-    // first bit of first byte
-    ptl.ptl_tier_flag = buf[ptr + 4] >> 7;
-    std::cout << "-- ptl_tier_flag: " << (uint32_t)ptl.ptl_tier_flag << std::endl;
-    // 7 bits after
-    ptl.ptl_profile_codec_group_idc = buf[ptr + 4] & 0b01111111;
-    std::cout << "-- ptl_profile_codec_group_idc: " << (uint32_t)ptl.ptl_profile_codec_group_idc << std::endl;
-    // 8 bits after
-    ptl.ptl_profile_toolset_idc = buf[ptr + 5];
-    std::cout << "-- ptl_profile_toolset_idc: " << (uint32_t)ptl.ptl_profile_toolset_idc << std::endl;
-    // 8 bits after
-    ptl.ptl_profile_reconstruction_idc = buf[ptr + 6];
-    std::cout << "-- ptl_profile_reconstruction_idc: " << (uint32_t)ptl.ptl_profile_reconstruction_idc << std::endl;
-    // 16 reserved bits
-    //4 bits after
-    ptl.ptl_max_decodes_idc = buf[ptr + 9] >> 4;
-    std::cout << "-- ptl_max_decodes_idc: " << (uint32_t)ptl.ptl_max_decodes_idc << "+1 = " <<
-        (uint32_t)ptl.ptl_max_decodes_idc + 1 << std::endl;
-    // 12 reserved bits
-    // 8 bits after
-    ptl.ptl_level_idc = buf[ptr + 11];
-    std::cout << "-- ptl_level_idc: " << (uint32_t)ptl.ptl_level_idc << "/30 = " <<
-        (double)ptl.ptl_level_idc / 30 << std::endl;
-    // 6 bits after
-    ptl.ptl_num_sub_profiles = buf[ptr + 12] >> 2;
-    std::cout << "-- ptl_num_sub_profiles: " << (uint32_t)ptl.ptl_num_sub_profiles << std::endl;
-    // 1 bit after
-    ptl.ptl_extended_sub_profile_flag = (buf[ptr + 12] & 0b10) >> 1;
-    std::cout << "-- ptl_extended_sub_profile_flag: " << (uint32_t)ptl.ptl_extended_sub_profile_flag << std::endl;
-    // next up are the sub-profile IDs. They can be either 32 or 64 bits long, indicated by ptl_extended_sub_profile_flag
-    // Note: This has not been tested. But it should work
-    ptr += 12;
-    uint64_t first_full_byte = ptr + 13;
-    if (ptl.ptl_extended_sub_profile_flag == 1) {
-        for (int i = 0; i < ptl.ptl_num_sub_profiles; i++) {
-            // TODO this isnt right...
-            uint64_t sub_profile_id = (buf[first_full_byte] >> 1) | ((buf[first_full_byte - 1] & 0b1) << 63);
-            ptl.ptl_sub_profile_idc.push_back(sub_profile_id);
-            first_full_byte += 8;
-        }
-    }
-    else {
-        for (int i = 0; i < ptl.ptl_num_sub_profiles; i++) {
-            uint32_t sub_profile_id = (buf[first_full_byte] >> 1) | ((buf[first_full_byte - 1] & 0b1) << 31);
-            ptl.ptl_sub_profile_idc.push_back((uint64_t)sub_profile_id);
-            first_full_byte += 4;
-        }
-    }
-    // 1 bit after
-    ptl.ptl_toolset_constraints_present_flag = (buf[ptr] & 0b1);
-    std::cout << "-- ptl_toolset_constraints_present_flag: " << (uint32_t)ptl.ptl_toolset_constraints_present_flag << std::endl;
-}
-
 uint64_t get_size(std::string filename)
 {
     std::ifstream infile(filename, std::ios_base::binary);
-
 
     //get length of file
     infile.seekg(0, infile.end);
@@ -326,13 +271,18 @@ uint64_t get_size(std::string filename)
     return length;
 }
 
-char* get_cmem(std::string filename, const size_t& len)
+char* get_cmem(std::string filename)
 {
     std::ifstream infile(filename, std::ios_base::binary);
 
-    char* buf = new char[len];
+    //get length of file
+    infile.seekg(0, infile.end);
+    size_t length = infile.tellg();
+    infile.seekg(0, infile.beg);
+
+    char* buf = new char[length];
     // read into char*
-    if (!(infile.read(buf, len))) // read up to the size of the buffer
+    if (!(infile.read(buf, length))) // read up to the size of the buffer
     {
         if (!infile.eof())
         {
@@ -342,6 +292,59 @@ char* get_cmem(std::string filename, const size_t& len)
         }
     }
     return buf;
+}
+
+v3c_streams init_v3c_streams(uvgrtp::session* sess, uint16_t src_port, uint16_t dst_port, int flags, bool rec)
+{
+    flags |= RCE_NO_H26X_PREPEND_SC;
+    v3c_streams streams = {};
+    streams.vps = sess->create_stream(src_port, dst_port, RTP_FORMAT_GENERIC, flags);
+    streams.ad = sess->create_stream(src_port, dst_port, RTP_FORMAT_ATLAS, flags);
+    streams.ovd = sess->create_stream(src_port, dst_port, RTP_FORMAT_H265, flags);
+    streams.gvd = sess->create_stream(src_port, dst_port, RTP_FORMAT_H265, flags);
+    streams.avd = sess->create_stream(src_port, dst_port, RTP_FORMAT_H265, flags);
+
+    if (rec) {
+        streams.vps->configure_ctx(RCC_REMOTE_SSRC, 1);
+        streams.ad->configure_ctx(RCC_REMOTE_SSRC, 2);
+        streams.ovd->configure_ctx(RCC_REMOTE_SSRC, 3);
+        streams.gvd->configure_ctx(RCC_REMOTE_SSRC, 4);
+        streams.avd->configure_ctx(RCC_REMOTE_SSRC, 5);
+    }
+    else {
+        streams.vps->configure_ctx(RCC_SSRC, 1);
+        streams.ad->configure_ctx(RCC_SSRC, 2);
+        streams.ovd->configure_ctx(RCC_SSRC, 3);
+        streams.gvd->configure_ctx(RCC_SSRC, 4);
+        streams.avd->configure_ctx(RCC_SSRC, 5);
+    }
+    return streams;
+}
+
+v3c_file_map init_mmap()
+{
+    v3c_file_map mmap = {};
+
+    v3c_unit_header hdr = { V3C_AD };
+    hdr.ad = { 0, 0 };
+    v3c_unit_info unit = { hdr, {}, new char[40 * 1000 * 1000], 0, false };
+    mmap.ad_units.push_back(unit);
+
+    hdr = { V3C_OVD };
+    hdr.ovd = { 0, 0 };
+    unit = { hdr, {}, new char[40 * 1000 * 1000], 0, false };
+    mmap.ovd_units.push_back(unit);
+
+    hdr = { V3C_GVD };
+    hdr.gvd = { 0, 0 };
+    unit = { hdr, {}, new char[40 * 1000 * 1000], 0, false };
+    mmap.gvd_units.push_back(unit);
+
+    hdr = { V3C_AVD };
+    hdr.avd = { 0, 0 };
+    unit = { hdr, {}, new char[40 * 1000 * 1000], 0, false };
+    mmap.avd_units.push_back(unit);
+    return mmap;
 }
 
 void create_v3c_unit(v3c_unit_info& current_unit, char* buf, uint64_t& ptr, uint64_t v3c_precision, uint32_t nal_precision)
@@ -363,7 +366,7 @@ void create_v3c_unit(v3c_unit_info& current_unit, char* buf, uint64_t& ptr, uint
 
     // All V3C unit types have parameter_set_id in header
     uint8_t param_set_id = current_unit.header.ad.vuh_v3c_parameter_set_id;
-    std::cout << "VUH typ: " << (uint32_t)v3c_type << " param set id " << (uint32_t)param_set_id << std::endl;
+    //std::cout << "VUH typ: " << (uint32_t)v3c_type << " param set id " << (uint32_t)param_set_id << std::endl;
     v3c_header[0] = v3c_type << 3 | ((param_set_id & 0b1110) >> 1);
     v3c_header[1] = ((param_set_id & 0b1) << 7);
 
@@ -524,4 +527,48 @@ bool is_gop_ready(uint64_t index, v3c_file_map& mmap)
         return false;
 
     return true;
+}
+
+void copy_rtp_payload(std::vector<v3c_unit_info>& units, uint64_t max_size, uvgrtp::frame::rtp_frame* frame)
+{
+    if ((units.end() - 1)->nal_infos.size() == max_size) {
+        std::cout << "AD size  == 35, adding new v3c_unit " << std::endl;
+        v3c_unit_header hdr = { (units.end() - 1)->header.vuh_unit_type };
+        switch ((units.end() - 1)->header.vuh_unit_type) {
+        case V3C_AD: {
+            hdr.ad = { (uint8_t)units.size(), 0 };
+            v3c_unit_info info = { hdr, {}, new char[400 * 1000], 0, false };
+            units.push_back(info);
+            break;
+        }
+        case V3C_OVD: {
+            hdr.ovd = { (uint8_t)units.size(), 0 };
+            v3c_unit_info info = { hdr, {}, new char[400 * 1000], 0, false };
+            units.push_back(info);
+            break;
+        }
+        case V3C_GVD: {
+            hdr.gvd = { (uint8_t)units.size(), 0, 0, 0 };
+            v3c_unit_info info = { hdr, {}, new char[400 * 1000], 0, false };
+            units.push_back(info);
+            break;
+        }
+        case V3C_AVD: {
+            hdr.avd = { (uint8_t)units.size(), 0 };
+            v3c_unit_info info = { hdr, {}, new char[40 * 1000 * 1000], 0, false };
+            units.push_back(info);
+            break;
+        }
+        }
+    }
+    auto& current = units.end() - 1;
+
+    if (current->nal_infos.size() <= max_size) {
+        memcpy(&current->buf[current->ptr], frame->payload, frame->payload_len);
+        current->nal_infos.push_back({ current->ptr, frame->payload_len });
+        current->ptr += frame->payload_len;
+    }
+    if (current->nal_infos.size() == max_size) {
+        current->ready = true;
+    }
 }
