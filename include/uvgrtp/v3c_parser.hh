@@ -28,6 +28,13 @@ enum CODEC {
 
 constexpr int V3C_HDR_LEN = 4; // 32 bits for v3c unit header
 
+// These are signaled to the receiver one way or the other, for example SDP
+constexpr uint8_t ATLAS_NAL_SIZE_PRECISION = 2;
+constexpr uint8_t VIDEO_NAL_SIZE_PRECISION = 4;
+constexpr uint8_t V3C_SIZE_PRECISION = 3;
+constexpr int INPUT_BUFFER_SIZE = 40 * 1000 * 1000; // Received NAL units are copied to the input buffer
+
+
 struct vuh_ad {
     uint8_t vuh_v3c_parameter_set_id = 0;
     uint8_t vuh_atlas_id = 0;
@@ -104,7 +111,6 @@ struct v3c_streams {
 uint32_t combineBytes(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4);
 uint32_t combineBytes(uint8_t byte1, uint8_t byte2, uint8_t byte3);
 uint32_t combineBytes(uint8_t byte1, uint8_t byte2);
-void convert_size_little_endian(uint32_t in, uint8_t* out, size_t output_size);
 void convert_size_big_endian(uint32_t in, uint8_t* out, size_t output_size);
 
 // Get size of a file in bytes
@@ -132,7 +138,7 @@ void copy_rtp_payload(std::vector<v3c_unit_info>& units, uint64_t max_size, uvgr
 void create_v3c_unit(v3c_unit_info& current_unit, char* buf, uint64_t& ptr, uint64_t v3c_precision, uint32_t nal_precision);
 
 // Reconstruct a whole GoP from V3C Units
-uint64_t reconstruct_v3c_gop(bool hdr_byte, char* buf, uint64_t& ptr, v3c_file_map& mmap, uint64_t index);
+uint64_t reconstruct_v3c_gop(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_map& mmap, uint64_t index);
 
 // Check if there is a complete GoP in the memory map
 bool is_gop_ready(uint64_t index, v3c_file_map& mmap);

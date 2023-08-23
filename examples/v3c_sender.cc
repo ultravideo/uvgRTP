@@ -5,32 +5,35 @@
 #include <cstring>
 #include <vector>
 #include <string>
+#include <atomic>
 
 constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
-constexpr uint16_t REMOTE_PORT = 8890;
 
-// the parameters of demostration
-constexpr size_t PAYLOAD_LEN = 100;
-constexpr int    AMOUNT_OF_TEST_PACKETS = 100;
-constexpr auto   END_WAIT = std::chrono::seconds(5);
-
-//std::string PATH = "C:\\Users\\ngheta\\Documents\\TMIV_A3_C_QP3.bit";
 std::string PATH = "C:\\Users\\ngheta\\Documents\\v3c_test_seq_2.vpcc";
 
 void sender_func(uvgrtp::media_stream* stream, const char* cbuf, const std::vector<v3c_unit_info> &units, rtp_flags_t flags, int fmt);
 
+std::atomic<uint64_t> bytes_sent;
 int main(void)
 {
     std::cout << "Parsing V3C file" << std::endl;
 
-    /* A V3C Sample stream is divided into 6 types of 'sub-bitstreams' + parameters.
-    - The nal_map holds nal_info structs
+    /* A V3C Sample stream is divided into 4 types of 'sub-bitstreams' + parameters.
+    - In v3c_file_map there are vectors of
+      - V3C unit infos
+         - v3c_unit_infos
+            - header
+            - nal_infos
+            - buf
+            - ptr
+            - ready
+
+    - The nal_infos holds nal_info structs
     - nal_info struct holds the format(Atlas, H264, H265, H266), start position and size of the NAL unit
-    - With this info you can send the data via different uvgRTP media streams. Usually 2 streams, one in RTP_FORMAT_ATLAS for
-      Atlas NAL units and a second one for the video NAL units in the correct format 
+    - With this info you can send the data via different uvgRTP media streams.
       
       Note: Use RTP_NO_H26X_SCL when sending video frames, as there is no start codes in the video sub-streams */
-
+    bytes_sent = 0;
     v3c_file_map mmap;
 
     /* Fetch the file and its size */
@@ -92,8 +95,7 @@ int main(void)
     sess->destroy_stream(streams.gvd);
     sess->destroy_stream(streams.avd);
 
-
-    std::cout << "Sending finished"  << std::endl;
+    std::cout << "Sending finished, " << bytes_sent << " bytes sent" << std::endl;
 
     if (sess)
     {
@@ -113,8 +115,7 @@ void sender_func(uvgrtp::media_stream* stream, const char* cbuf, const std::vect
             if (ret != RTP_OK) {
                 std::cout << "Failed to send RTP frame!" << std::endl;
             }
+            bytes_sent += i.size;
         }
     }
-
-    
 }
