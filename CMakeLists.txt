@@ -99,7 +99,6 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/wrapper_c.cc
         src/socketfactory.cc
         src/rtcp_reader.cc
-        src/v3c_parser.cc
         )
 
 source_group(src/srtp src/srtp/.*)
@@ -153,7 +152,6 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/srtp/srtcp.hh
         src/socketfactory.hh
         src/rtcp_reader.hh
-        include/uvgrtp/v3c_parser.hh
 
         include/uvgrtp/util.hh
         include/uvgrtp/clock.hh
