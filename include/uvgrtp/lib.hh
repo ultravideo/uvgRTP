@@ -13,4 +13,3 @@
 #include "frame.hh"         // frame related functions
 #include "util.hh"          // types
 #include "version.hh"       // version
-#include "v3c_parser.hh"    // v3c parser
