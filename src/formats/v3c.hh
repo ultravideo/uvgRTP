@@ -27,7 +27,7 @@ namespace uvgrtp {
 
         enum V3C_PKT_TYPES {
             V3C_PKT_AGGR = 56,
-            V3C_PKT_FRAG = 58
+            V3C_PKT_FRAG = 57
         };
 
         struct v3c_aggregation_packet {

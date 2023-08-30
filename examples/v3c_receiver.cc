@@ -28,11 +28,14 @@ constexpr int GVD_NALS = 131;
 constexpr int AVD_NALS = 131;
 
 /* How many Groups of Pictures we are expecting to receive */
-constexpr int EXPECTED_GOPS = 1;
+constexpr int EXPECTED_GOPS = 10;
 
 /* Path to the V3C file that we are receiving.This is included so that you can check that the reconstructed file is equal to the
  * original one */
 std::string PATH = "";
+std::string RESULT_FILENAME = "received_backetball.vpcc";
+
+bool write_file(const char* data, size_t len, const std::string& filename);
 
 int main(void)
 {
@@ -67,19 +70,26 @@ int main(void)
     uint64_t bytes = 0;
     uint64_t ptr = 0;
     bool hdb = true;
-    char* out_buf = new char[len]; // Initialize to nullptr if you want to output the file GoP by GoP
+    struct gop_info {
+        uint64_t size = 0;
+        char* buf = nullptr;
+    };
+    std::map<uint32_t, gop_info> gops_buf = {};
 
-    while (ngops <= EXPECTED_GOPS) {
+    while (ngops < EXPECTED_GOPS) {
         if (is_gop_ready(ngops, mmap)) {
-            //ptr = 0; Don't reset the ptr because we are writing the whole file into the buffer
-            bytes +=  reconstruct_v3c_gop(hdb, out_buf, ptr, mmap, ngops);
+            uint64_t gop_len = get_gop_size(hdb, ngops, mmap);
+            gop_info cur = {gop_len, new char[gop_len]};
+            gops_buf.insert({ ngops, cur });
+            ptr = 0; //Don't reset the ptr because we are writing the whole file into the buffer
+            bytes +=  reconstruct_v3c_gop(hdb, gops_buf.at(ngops).buf, ptr, mmap, ngops);
             std::cout << "Full GoP received, num: " << ngops << std::endl;
             ngops++;
             hdb = false; // Only add the V3C Sample Stream header byte to only the first GoP
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-
+    std::cout << "output file size " << bytes << std::endl;
     std::this_thread::sleep_for(RECEIVE_TIME_S); // lets this example run for some time
 
     sess->destroy_stream(streams.vps);
@@ -90,14 +100,24 @@ int main(void)
 
     ctx.destroy_session(sess);
 
+    char* out_buf = new char[bytes]; // Initialize to nullptr if you want to output the file GoP by GoP
+    uint64_t ptr2 = 0;
+    // reconstruct file from gops
+    for (auto& p : gops_buf) {
+        memcpy(&out_buf[ptr2], p.second.buf , p.second.size);
+        ptr2 += p.second.size;
+    }
+
     // compare files
-    for (auto i = 0; i < len; ++i) {
+    for (auto i = 0; i < bytes; ++i) {
         if (original_buf[i] != out_buf[i]) {
             std::cout << "Difference at " << i << std::endl;
-            break;
+            //break;
         }
     }
-    std::cout << "Done " << std::endl;
+    std::cout << "Writing to file " << RESULT_FILENAME << std::endl;
+    write_file(out_buf, bytes, RESULT_FILENAME);
+    std::cout << "Done" << std::endl;
 
     return EXIT_SUCCESS;
 }
@@ -116,24 +136,37 @@ void vps_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
 void ad_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
 {
     std::vector<v3c_unit_info>* vec = (std::vector<v3c_unit_info>*)arg;
-    copy_rtp_payload(*vec, AD_NALS, frame);
+    copy_rtp_payload(vec, AD_NALS, frame);
     (void)uvgrtp::frame::dealloc_frame(frame);
 }
 void ovd_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
 {
     std::vector<v3c_unit_info>* vec = (std::vector<v3c_unit_info>*)arg;
-    copy_rtp_payload(*vec, OVD_NALS, frame);
+    copy_rtp_payload(vec, OVD_NALS, frame);
     (void)uvgrtp::frame::dealloc_frame(frame);
 }
 void gvd_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
 {
     std::vector<v3c_unit_info>* vec = (std::vector<v3c_unit_info>*)arg;
-    copy_rtp_payload(*vec, GVD_NALS, frame);
+    copy_rtp_payload(vec, GVD_NALS, frame);
     (void)uvgrtp::frame::dealloc_frame(frame);
 }
 void avd_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
 {
     std::vector<v3c_unit_info>* vec = (std::vector<v3c_unit_info>*)arg;
-    copy_rtp_payload(*vec, AVD_NALS, frame);
+    copy_rtp_payload(vec, AVD_NALS, frame);
     (void)uvgrtp::frame::dealloc_frame(frame);
+}
+
+bool write_file(const char* data, size_t len, const std::string& filename) {
+    std::ofstream file(filename, std::ios::binary);
+
+    if (!file.is_open()) {
+        return false; // Failed to open the file
+    }
+
+    file.write(data, len);
+
+    file.close();
+    return true; // File write successful
 }

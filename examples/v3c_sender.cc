@@ -39,7 +39,6 @@ int main(void)
      * the reconstruction will not work.
      * Please also read the documentation on v3c_receiver.cc before testing this example. */
 
-    std::cout << "Parsing V3C file" << std::endl;
 
     /* Note: Use RTP_NO_H26X_SCL when sending video frames, as there is no start codes in the video sub-streams */
     bytes_sent = 0;
@@ -48,6 +47,7 @@ int main(void)
     /* Fetch the file and its size */
     uint64_t len = get_size(PATH);
     char* cbuf = get_cmem(PATH);
+    std::cout << "Parsing V3C file, size " << len << std::endl;
 
     /* Map the locations and sizes of Atlas and video NAL units with the mmap_v3c_file function */
     mmap_v3c_file(cbuf, len, mmap);
@@ -116,6 +116,7 @@ int main(void)
 
 void sender_func(uvgrtp::media_stream* stream, const char* cbuf, const std::vector<v3c_unit_info> &units, rtp_flags_t flags, int fmt)
 {
+
     for (auto& p : units) {
         for (auto i : p.nal_infos) {
             rtp_error_t ret = RTP_OK;
@@ -126,5 +127,6 @@ void sender_func(uvgrtp::media_stream* stream, const char* cbuf, const std::vect
             }
             bytes_sent += i.size;
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
 }
