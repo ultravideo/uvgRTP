@@ -37,7 +37,6 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap)
     ++ptr;
 
     uint8_t* v3c_size = new uint8_t[v3c_size_precision];
-
     uint8_t nal_size_precision = 0;
     while (true) {
         if (ptr >= len) {
@@ -284,12 +283,26 @@ v3c_streams init_v3c_streams(uvgrtp::session* sess, uint16_t src_port, uint16_t 
 {
     flags |= RCE_NO_H26X_PREPEND_SC;
     v3c_streams streams = {};
+    if (rec) {
+        streams.vps = sess->create_stream(4998, 4999, RTP_FORMAT_GENERIC, flags);
+        streams.ad = sess->create_stream(5000, 5001, RTP_FORMAT_ATLAS, flags);
+        streams.ovd = sess->create_stream(5002, 5003, RTP_FORMAT_H265, flags);
+        streams.gvd = sess->create_stream(6000, 6002, RTP_FORMAT_H265, flags);
+        streams.avd = sess->create_stream(5006, 5007, RTP_FORMAT_H265, flags);
+    }
+    else {
+        streams.vps = sess->create_stream(4999, 4998, RTP_FORMAT_GENERIC, flags);
+        streams.ad = sess->create_stream(5001, 5000, RTP_FORMAT_ATLAS, flags);
+        streams.ovd = sess->create_stream(5003, 5002, RTP_FORMAT_H265, flags);
+        streams.gvd = sess->create_stream(6002, 6000, RTP_FORMAT_H265, flags);
+        streams.avd = sess->create_stream(5007, 5006, RTP_FORMAT_H265, flags);
+    }/*
     streams.vps = sess->create_stream(src_port, dst_port, RTP_FORMAT_GENERIC, flags);
     streams.ad = sess->create_stream(src_port, dst_port, RTP_FORMAT_ATLAS, flags);
     streams.ovd = sess->create_stream(src_port, dst_port, RTP_FORMAT_H265, flags);
     streams.gvd = sess->create_stream(src_port, dst_port, RTP_FORMAT_H265, flags);
     streams.avd = sess->create_stream(src_port, dst_port, RTP_FORMAT_H265, flags);
-
+    
     if (rec) {
         streams.vps->configure_ctx(RCC_REMOTE_SSRC, 1);
         streams.ad->configure_ctx(RCC_REMOTE_SSRC, 2);
@@ -303,7 +316,8 @@ v3c_streams init_v3c_streams(uvgrtp::session* sess, uint16_t src_port, uint16_t 
         streams.ovd->configure_ctx(RCC_SSRC, 3);
         streams.gvd->configure_ctx(RCC_SSRC, 4);
         streams.avd->configure_ctx(RCC_SSRC, 5);
-    }
+    }*/
+    //streams.gvd->configure_ctx(RCC_FPS_NUMERATOR, 10);
     return streams;
 }
 
@@ -322,12 +336,12 @@ v3c_file_map init_mmap()
     mmap.ovd_units.push_back(unit);
 
     hdr = { V3C_GVD };
-    hdr.gvd = { 0, 0 };
+    hdr.gvd = { 0, 0, 0, false};
     unit = { hdr, {}, new char[INPUT_BUFFER_SIZE], 0, false };
     mmap.gvd_units.push_back(unit);
 
     hdr = { V3C_AVD };
-    hdr.avd = { 0, 0 };
+    hdr.avd = { 0, 0, 0, 0, 0, false};
     unit = { hdr, {}, new char[INPUT_BUFFER_SIZE], 0, false };
     mmap.avd_units.push_back(unit);
     return mmap;
@@ -343,6 +357,7 @@ void create_v3c_unit(v3c_unit_info& current_unit, char* buf, uint64_t& ptr, uint
     if (v3c_type == V3C_AD || v3c_type == V3C_CAD) {
         v3c_size_int++; // NAL size precision for Atlas V3C units
     }
+    std::cout << "init v3c unit of size " << v3c_size_int << std::endl;
     convert_size_big_endian(v3c_size_int, v3c_size_arr, v3c_precision);
     memcpy(&buf[ptr], v3c_size_arr, v3c_precision);
     ptr += v3c_precision;
@@ -413,18 +428,18 @@ uint64_t reconstruct_v3c_gop(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_
     *
     + 1 byte of Sample Stream Precision
     +----------------------------------------------------------------+
-    + 4 bytes of V3C Unit size
+    + V3C_SIZE_PRECISION bytes of V3C Unit size
     + x1 bytes of whole V3C VPS unit (incl. header)
     +----------------------------------------------------------------+
       Atlas V3C unit
-    + 4 bytes for V3C Unit size
+    + V3C_SIZE_PRECISION bytes for V3C Unit size
     + 4 bytes of V3C header
     + 1 byte of NAL Unit Size Precision (x1)
     + NALs count (x1 bytes of NAL Unit Size
     + x2 bytes of NAL unit payload)
     +----------------------------------------------------------------+
       Video V3C unit
-    + 4 bytes for V3C Unit size
+    + V3C_SIZE_PRECISION bytes for V3C Unit size
     + 4 bytes of V3C header
     + NALs count (4 bytes of NAL Unit Size
     + x2 bytes of NAL unit payload)
@@ -434,20 +449,22 @@ uint64_t reconstruct_v3c_gop(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_
                 .
     +----------------------------------------------------------------+
       Video V3C unit
-    + 4 bytes for V3C Unit size
+    + V3C_SIZE_PRECISION bytes for V3C Unit size
     + 4 bytes of V3C header
     + NALs count (4 bytes of NAL Unit Size
     + x2 bytes of NAL unit payload)
     +----------------------------------------------------------------+ */
     uint64_t gop_size = 0;
-    /*if (hdr_byte) {
-        //gop_size++; // Sample Stream Precision
-    }*/
-    uint64_t vps_size = mmap.vps_units.at(index).nal_infos.at(0).size; // incl. header
-    uint64_t ad_size = 4 + 4 + 1 + mmap.ad_units.at(index).ptr + mmap.ad_units.at(index).nal_infos.size() * ATLAS_NAL_SIZE_PRECISION;
-    uint64_t ovd_size = 8 + mmap.ovd_units.at(index).ptr + mmap.ovd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
-    uint64_t gvd_size = 8 + mmap.gvd_units.at(index).ptr + mmap.gvd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
-    uint64_t avd_size = 8 + mmap.avd_units.at(index).ptr + mmap.avd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
+    if (hdr_byte) {
+        gop_size++; // Sample Stream Precision
+    }
+
+    // These sizes include the V3C unit size field, header and payload
+    uint64_t vps_size = V3C_SIZE_PRECISION + mmap.vps_units.at(index).nal_infos.at(0).size; // incl. header
+    uint64_t ad_size = V3C_SIZE_PRECISION + 4 + 1 + mmap.ad_units.at(index).ptr + mmap.ad_units.at(index).nal_infos.size() * ATLAS_NAL_SIZE_PRECISION;
+    uint64_t ovd_size = V3C_SIZE_PRECISION + 4 + mmap.ovd_units.at(index).ptr + mmap.ovd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
+    uint64_t gvd_size = V3C_SIZE_PRECISION + 4 + mmap.gvd_units.at(index).ptr + mmap.gvd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
+    uint64_t avd_size = V3C_SIZE_PRECISION + 4 + mmap.avd_units.at(index).ptr + mmap.avd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
     gop_size += vps_size + ad_size + ovd_size + gvd_size + avd_size;
     std::cout << "Initializing GoP buffer of " << gop_size << " bytes" << std::endl;
 
@@ -490,13 +507,19 @@ uint64_t reconstruct_v3c_gop(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_
     // Write out V3C AVD unit
     current_unit = mmap.avd_units.at(index);
     create_v3c_unit(current_unit, buf, ptr, V3C_SIZE_PRECISION, VIDEO_NAL_SIZE_PRECISION);
-
+    
+    delete[] mmap.vps_units.at(index).buf;
+    delete[] mmap.ad_units.at(index).buf;
+    delete[] mmap.ovd_units.at(index).buf;
+    delete[] mmap.gvd_units.at(index).buf;
+    delete[] mmap.avd_units.at(index).buf;
+    
     return gop_size;
 }
 
 bool is_gop_ready(uint64_t index, v3c_file_map& mmap)
 {
-    if (mmap.vps_units.size() < index+1)
+    if (mmap.vps_units.size() < index+1) 
         return false;
     if (mmap.ad_units.size() < index+1 || !mmap.ad_units.at(index).ready)
         return false;
@@ -506,44 +529,59 @@ bool is_gop_ready(uint64_t index, v3c_file_map& mmap)
         return false;
     if (mmap.avd_units.size() < index+1 || !mmap.avd_units.at(index).ready)
         return false;
-
     return true;
 }
 
-void copy_rtp_payload(std::vector<v3c_unit_info>& units, uint64_t max_size, uvgrtp::frame::rtp_frame* frame)
+void copy_rtp_payload(std::vector<v3c_unit_info>* units, uint64_t max_size, uvgrtp::frame::rtp_frame* frame)
 {
-    if ((units.end() - 1)->nal_infos.size() == max_size) {
-        v3c_unit_header hdr = { (units.end() - 1)->header.vuh_unit_type };
-        v3c_unit_info info = { {}, {}, new char[INPUT_BUFFER_SIZE], 0, false };
-
-        switch ((units.end() - 1)->header.vuh_unit_type) {
+    uint32_t seq = frame->header.seq;
+    if (units->back().nal_infos.size() == max_size) {
+        v3c_unit_header hdr = { units->back().header.vuh_unit_type};
+        v3c_unit_info info = { hdr, {}, new char[INPUT_BUFFER_SIZE], 0, false };
+        switch (units->back().header.vuh_unit_type) {
             case V3C_AD: {
-                info.header.ad = { (uint8_t)units.size(), 0 };
+                info.header.ad = { (uint8_t)units->size(), 0};
                 break;
             }
             case V3C_OVD: {
-                info.header.ovd = { (uint8_t)units.size(), 0 };
+                info.header.ovd = { (uint8_t)units->size(), 0 };
                 break;
             }
             case V3C_GVD: {
-                info.header.gvd = { (uint8_t)units.size(), 0, 0, 0 };
+                info.header.gvd = { (uint8_t)units->size(), 0, 0, 0 };
                 break;
             }
             case V3C_AVD: {
-                info.header.avd = { (uint8_t)units.size(), 0 };
+                info.header.avd = { (uint8_t)units->size(), 0 };
                 break;
             }
         }
-        units.push_back(info);
+        units->push_back(info);
     }
-    auto current = units.end() - 1;
 
-    if (current->nal_infos.size() <= max_size) {
-        memcpy(&current->buf[current->ptr], frame->payload, frame->payload_len);
-        current->nal_infos.push_back({ current->ptr, frame->payload_len });
-        current->ptr += frame->payload_len;
+    if (units->back().nal_infos.size() <= max_size) {
+        memcpy(&units->back().buf[units->back().ptr], frame->payload, frame->payload_len);
+        units->back().nal_infos.push_back({ units->back().ptr, frame->payload_len });
+        units->back().ptr += frame->payload_len;
     }
-    if (current->nal_infos.size() == max_size) {
-        current->ready = true;
+    if (units->back().nal_infos.size() == max_size) {
+        units->back().ready = true;
     }
+}
+
+uint64_t get_gop_size(bool hdr_byte, uint64_t index, v3c_file_map& mmap)
+{
+    uint64_t gop_size = 0;
+    if (hdr_byte) {
+        gop_size++; // Sample Stream Precision
+    }
+
+    // These sizes include the V3C unit size field, header and payload
+    uint64_t vps_size = V3C_SIZE_PRECISION + mmap.vps_units.at(index).nal_infos.at(0).size; // incl. header
+    uint64_t ad_size = V3C_SIZE_PRECISION + 4 + 1 + mmap.ad_units.at(index).ptr + mmap.ad_units.at(index).nal_infos.size() * ATLAS_NAL_SIZE_PRECISION;
+    uint64_t ovd_size = V3C_SIZE_PRECISION + 4 + mmap.ovd_units.at(index).ptr + mmap.ovd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
+    uint64_t gvd_size = V3C_SIZE_PRECISION + 4 + mmap.gvd_units.at(index).ptr + mmap.gvd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
+    uint64_t avd_size = V3C_SIZE_PRECISION + 4 + mmap.avd_units.at(index).ptr + mmap.avd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
+    gop_size += vps_size + ad_size + ovd_size + gvd_size + avd_size;
+    return gop_size;
 }

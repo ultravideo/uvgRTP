@@ -81,7 +81,7 @@ uvgrtp::formats::FRAG_TYPE uvgrtp::formats::v3c::get_fragment_type(uvgrtp::frame
     bool first_frag = frame->payload[2] & 0x80;
     bool last_frag = frame->payload[2] & 0x40;
 
-    if (((frame->payload[0] & 0x7f) >> 1) != uvgrtp::formats::V3C_PKT_FRAG)
+    if (((frame->payload[0] >> 1) & 0x7f) != uvgrtp::formats::V3C_PKT_FRAG)
         return uvgrtp::formats::FRAG_TYPE::FT_NOT_FRAG; // Single NAL unit
 
     if (first_frag && last_frag)
