@@ -65,7 +65,7 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap)
         parse_v3c_header(v3c_hdr, cbuf, v3c_ptr);
         uint8_t vuh_t = v3c_hdr.vuh_unit_type;
         std::cout << "-- vuh_unit_type: " << (uint32_t)vuh_t << std::endl;
-        v3c_unit_info unit = { v3c_hdr, {}, nullptr};
+        v3c_unit_info unit = { v3c_hdr, {}};
 
         if (vuh_t == V3C_VPS) {
             // Parameter set contains no NAL units, skip over
@@ -327,22 +327,22 @@ v3c_file_map init_mmap()
 
     v3c_unit_header hdr = { V3C_AD };
     hdr.ad = { 0, 0 };
-    v3c_unit_info unit = { hdr, {}, new char[INPUT_BUFFER_SIZE], 0, false };
+    v3c_unit_info unit = { hdr, {}, 0, false };
     mmap.ad_units.push_back(unit);
 
     hdr = { V3C_OVD };
     hdr.ovd = { 0, 0 };
-    unit = { hdr, {}, new char[INPUT_BUFFER_SIZE], 0, false };
+    unit = { hdr, {}, 0, false };
     mmap.ovd_units.push_back(unit);
 
     hdr = { V3C_GVD };
     hdr.gvd = { 0, 0, 0, false};
-    unit = { hdr, {}, new char[INPUT_BUFFER_SIZE], 0, false };
+    unit = { hdr, {}, 0, false };
     mmap.gvd_units.push_back(unit);
 
     hdr = { V3C_AVD };
     hdr.avd = { 0, 0, 0, 0, 0, false};
-    unit = { hdr, {}, new char[INPUT_BUFFER_SIZE], 0, false };
+    unit = { hdr, {}, 0, false };
     mmap.avd_units.push_back(unit);
     return mmap;
 }
@@ -416,7 +416,8 @@ void create_v3c_unit(v3c_unit_info& current_unit, char* buf, uint64_t& ptr, uint
         ptr += nal_precision;
 
         // Copy NAL unit
-        memcpy(&buf[ptr], &current_unit.buf[p.location], p.size);
+        //memcpy(&buf[ptr], &current_unit.buf[p.location], p.size);
+        memcpy(&buf[ptr], p.buf, p.size);
         ptr += p.size;
     }
 
@@ -489,7 +490,8 @@ uint64_t reconstruct_v3c_gop(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_
     ptr += V3C_SIZE_PRECISION;
 
     // Write the V3C VPS unit payload to the output buffer
-    memcpy(&buf[ptr], current_unit.buf, v3c_size_int);
+    //memcpy(&buf[ptr], current_unit.buf, v3c_size_int);
+    memcpy(&buf[ptr], current_unit.nal_infos.back().buf, v3c_size_int);
     ptr += v3c_size_int;
 
     // Write out V3C AD unit
@@ -507,12 +509,6 @@ uint64_t reconstruct_v3c_gop(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_
     // Write out V3C AVD unit
     current_unit = mmap.avd_units.at(index);
     create_v3c_unit(current_unit, buf, ptr, V3C_SIZE_PRECISION, VIDEO_NAL_SIZE_PRECISION);
-    
-    delete[] mmap.vps_units.at(index).buf;
-    delete[] mmap.ad_units.at(index).buf;
-    delete[] mmap.ovd_units.at(index).buf;
-    delete[] mmap.gvd_units.at(index).buf;
-    delete[] mmap.avd_units.at(index).buf;
     
     return gop_size;
 }
@@ -537,7 +533,7 @@ void copy_rtp_payload(std::vector<v3c_unit_info>* units, uint64_t max_size, uvgr
     uint32_t seq = frame->header.seq;
     if (units->back().nal_infos.size() == max_size) {
         v3c_unit_header hdr = { units->back().header.vuh_unit_type};
-        v3c_unit_info info = { hdr, {}, new char[INPUT_BUFFER_SIZE], 0, false };
+        v3c_unit_info info = { hdr, {}, 0, false };
         switch (units->back().header.vuh_unit_type) {
             case V3C_AD: {
                 info.header.ad = { (uint8_t)units->size(), 0};
@@ -560,8 +556,10 @@ void copy_rtp_payload(std::vector<v3c_unit_info>* units, uint64_t max_size, uvgr
     }
 
     if (units->back().nal_infos.size() <= max_size) {
-        memcpy(&units->back().buf[units->back().ptr], frame->payload, frame->payload_len);
-        units->back().nal_infos.push_back({ units->back().ptr, frame->payload_len });
+        char* cbuf = new char[frame->payload_len];
+        memcpy(cbuf, frame->payload, frame->payload_len);
+        nal_info nalu = { units->back().ptr, frame->payload_len, cbuf};
+        units->back().nal_infos.push_back(nalu);
         units->back().ptr += frame->payload_len;
     }
     if (units->back().nal_infos.size() == max_size) {
