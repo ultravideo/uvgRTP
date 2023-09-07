@@ -30,8 +30,6 @@ constexpr int V3C_HDR_LEN = 4; // 32 bits for v3c unit header
 constexpr uint8_t ATLAS_NAL_SIZE_PRECISION = 2;
 constexpr uint8_t VIDEO_NAL_SIZE_PRECISION = 4;
 constexpr uint8_t V3C_SIZE_PRECISION = 3;
-constexpr int INPUT_BUFFER_SIZE = 40 * 1000 * 1000; // Received NAL units are copied to the input buffer
-
 
 struct vuh_ad {
     uint8_t vuh_v3c_parameter_set_id = 0;
@@ -77,7 +75,8 @@ struct v3c_unit_header {
 
 struct nal_info {
     uint64_t location   = 0; // Start position of the NAL unit
-    uint64_t size       = 0; // Sie of the NAL unit
+    uint64_t size       = 0; // Size of the NAL unit
+    char* buf = nullptr;     // Used on receiving end for temporary storage of the received NAL unit
 };
 
 /* A v3c_unit_info contains all the required information of a V3C unit
@@ -86,8 +85,8 @@ struct nal_info {
 struct v3c_unit_info {
     v3c_unit_header header;
     std::vector<nal_info> nal_infos = {};
-    char* buf; // (used on the receiving end)
-    uint64_t ptr = 0; // (used on the receiving end)
+    //char* buf; // (used on the receiving end)
+    uint64_t ptr = 0; // (used on the receiving end) total size of the received NAL units in a V3C unit
     bool ready = false; // (used on the receiving end)
 };
 

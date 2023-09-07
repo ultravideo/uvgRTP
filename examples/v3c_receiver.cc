@@ -128,7 +128,7 @@ void vps_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
 
     char* cbuf = new char[frame->payload_len];
     memcpy(cbuf, frame->payload, frame->payload_len);
-    v3c_unit_info vps = { {}, {{0, frame->payload_len}}, cbuf };
+    v3c_unit_info vps = { {}, {{0, frame->payload_len, cbuf}} };
     vec->push_back(vps);
     
     (void)uvgrtp::frame::dealloc_frame(frame);
