@@ -283,6 +283,7 @@ v3c_streams init_v3c_streams(uvgrtp::session* sess, uint16_t src_port, uint16_t 
 {
     flags |= RCE_NO_H26X_PREPEND_SC;
     v3c_streams streams = {};
+    /*
     if (rec) {
         streams.vps = sess->create_stream(4998, 4999, RTP_FORMAT_GENERIC, flags);
         streams.ad = sess->create_stream(5000, 5001, RTP_FORMAT_ATLAS, flags);
@@ -296,7 +297,7 @@ v3c_streams init_v3c_streams(uvgrtp::session* sess, uint16_t src_port, uint16_t 
         streams.ovd = sess->create_stream(5003, 5002, RTP_FORMAT_H265, flags);
         streams.gvd = sess->create_stream(6002, 6000, RTP_FORMAT_H265, flags);
         streams.avd = sess->create_stream(5007, 5006, RTP_FORMAT_H265, flags);
-    }/*
+    }*/
     streams.vps = sess->create_stream(src_port, dst_port, RTP_FORMAT_GENERIC, flags);
     streams.ad = sess->create_stream(src_port, dst_port, RTP_FORMAT_ATLAS, flags);
     streams.ovd = sess->create_stream(src_port, dst_port, RTP_FORMAT_H265, flags);
@@ -316,7 +317,7 @@ v3c_streams init_v3c_streams(uvgrtp::session* sess, uint16_t src_port, uint16_t 
         streams.ovd->configure_ctx(RCC_SSRC, 3);
         streams.gvd->configure_ctx(RCC_SSRC, 4);
         streams.avd->configure_ctx(RCC_SSRC, 5);
-    }*/
+    }
     //streams.gvd->configure_ctx(RCC_FPS_NUMERATOR, 10);
     return streams;
 }
@@ -419,6 +420,8 @@ void create_v3c_unit(v3c_unit_info& current_unit, char* buf, uint64_t& ptr, uint
         //memcpy(&buf[ptr], &current_unit.buf[p.location], p.size);
         memcpy(&buf[ptr], p.buf, p.size);
         ptr += p.size;
+        delete[] p.buf;
+        p.buf = nullptr;
     }
 
 }
