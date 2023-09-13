@@ -8,7 +8,7 @@
 constexpr char LOCAL_ADDRESS[] = "127.0.0.1";
 
 // This example runs for 5 seconds
-constexpr auto RECEIVE_TIME_S = std::chrono::seconds(10);
+constexpr auto RECEIVE_TIME_S = std::chrono::seconds(5);
 
 void vps_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 void ad_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
@@ -33,7 +33,8 @@ constexpr int EXPECTED_GOPS = 10;
 /* Path to the V3C file that we are receiving.This is included so that you can check that the reconstructed file is equal to the
  * original one */
 std::string PATH = "";
-std::string RESULT_FILENAME = "received_backetball.vpcc";
+
+std::string RESULT_FILENAME = "received_basketball.vpcc";
 
 bool write_file(const char* data, size_t len, const std::string& filename);
 
@@ -50,7 +51,7 @@ int main(void)
 
     uvgrtp::context ctx;
     uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS, LOCAL_ADDRESS);
-    int flags = RCE_RECEIVE_ONLY;
+    int flags = 0;
 
     // Create the uvgRTP media streams with the correct RTP format
     v3c_streams streams = init_v3c_streams(sess, 8890, 8892, flags, true);

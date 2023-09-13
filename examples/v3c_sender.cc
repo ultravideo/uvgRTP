@@ -58,7 +58,7 @@ int main(void)
     uvgrtp::context ctx;
     uvgrtp::session* sess = ctx.create_session(REMOTE_ADDRESS, REMOTE_ADDRESS);
 
-    int flags = RCE_SEND_ONLY;
+    int flags = 0;
     v3c_streams streams = init_v3c_streams(sess, 8892, 8890, flags, false);
 
     /* Start sending data */
