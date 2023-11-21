@@ -26,7 +26,8 @@ int main(void)
      * -> Receive NAL units -> Reconstruct V3C Sample Stream
      * 
      * In this example there are in total 5 media streams, one for each component:
-     * 1. Parameter set stream
+     * 1. Parameter set stream (NOTE: Parameter set should be carried via a signaling protocol such as SDP. It is only
+     *    transmitted using RTP for the simplicity of this demonstration.)
      * 2. Atlas stream
      * 3. Occupancy Video stream
      * 4. Geometry Video stream

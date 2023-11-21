@@ -4,11 +4,12 @@
 #include <thread>
 #include <iostream>
 #include <fstream>
+#include <chrono>
 
 constexpr char LOCAL_ADDRESS[] = "127.0.0.1";
 
 // This example runs for 5 seconds
-constexpr auto RECEIVE_TIME_S = std::chrono::seconds(5);
+constexpr auto RECEIVE_TIME_S = std::chrono::seconds(10);
 
 void vps_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 void ad_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
@@ -29,6 +30,9 @@ constexpr int AVD_NALS = 131;
 
 /* How many Groups of Frames we are expecting to receive */
 constexpr int EXPECTED_GOFS = 10;
+
+/* NOTE: If for example the last GOF has fewer NAL units than specified above, the receiver does not know how many to expect
+   and cannot reconstruct that specific GOF. s*/
 
 /* Path to the V3C file that we are receiving.This is included so that you can check that the reconstructed file is equal to the
  * original one */
@@ -76,6 +80,8 @@ int main(void)
     };
     std::map<uint32_t, gof_info> gofs_buf = {};
 
+    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();;
+
     while (ngofs < EXPECTED_GOFS) {
         if (is_gof_ready(ngofs, mmap)) {
             uint64_t gof_len = get_gof_size(hdb, ngofs, mmap);
@@ -88,9 +94,17 @@ int main(void)
             hdb = false; // Only add the V3C Sample Stream header byte to only the first GOF
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        
+        auto runtime = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::high_resolution_clock::now() - start).count();
+
+        if (runtime > RECEIVE_TIME_S.count()*1000) {
+            std::cout << "Timeout" << std::endl;
+            break;
+        }
     }
+    std::cout << ngofs << " full GOFs received" << std::endl;
     std::cout << "output file size " << bytes << std::endl;
-    //std::this_thread::sleep_for(RECEIVE_TIME_S); // lets this example run for some time
 
     sess->destroy_stream(streams.vps);
     sess->destroy_stream(streams.ad);
@@ -101,6 +115,8 @@ int main(void)
     ctx.destroy_session(sess);
 
     char* out_buf = new char[bytes];
+    std::memset(out_buf, 0, bytes); // Initialize with zeros
+
     uint64_t ptr2 = 0;
     // reconstruct file from gofs
     for (auto& p : gofs_buf) {
@@ -109,17 +125,19 @@ int main(void)
     }
 
     // compare files
-    
     for (auto i = 0; i < bytes; ++i) {
         if (original_buf[i] != out_buf[i]) {
             std::cout << "Difference at " << i << std::endl;
             //break;
         }
     }
-    /*
+    std::cout << "No difference found" << std::endl;
+    
     std::cout << "Writing to file " << RESULT_FILENAME << std::endl;
     write_file(out_buf, bytes, RESULT_FILENAME);
-    */
+
+    delete[] out_buf;
+
     std::cout << "Done" << std::endl;
 
     return EXIT_SUCCESS;
