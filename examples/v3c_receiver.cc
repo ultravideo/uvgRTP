@@ -27,14 +27,13 @@ constexpr int OVD_NALS = 35;
 constexpr int GVD_NALS = 131;
 constexpr int AVD_NALS = 131;
 
-/* How many Groups of Pictures we are expecting to receive */
-constexpr int EXPECTED_GOPS = 10;
+/* How many Groups of Frames we are expecting to receive */
+constexpr int EXPECTED_GOFS = 10;
 
 /* Path to the V3C file that we are receiving.This is included so that you can check that the reconstructed file is equal to the
  * original one */
 std::string PATH = "";
-
-std::string RESULT_FILENAME = "received_basketball.vpcc";
+std::string RESULT_FILENAME = "received.vpcc";
 
 bool write_file(const char* data, size_t len, const std::string& filename);
 
@@ -67,31 +66,31 @@ int main(void)
     streams.avd->configure_ctx(RCC_RING_BUFFER_SIZE, 40 * 1000 * 1000);
 
     std::cout << "Waiting incoming packets for " << RECEIVE_TIME_S.count() << " s" << std::endl;
-    uint64_t ngops = 0;
+    uint64_t ngofs = 0;
     uint64_t bytes = 0;
     uint64_t ptr = 0;
     bool hdb = true;
-    struct gop_info {
+    struct gof_info {
         uint64_t size = 0;
         char* buf = nullptr;
     };
-    std::map<uint32_t, gop_info> gops_buf = {};
+    std::map<uint32_t, gof_info> gofs_buf = {};
 
-    while (ngops < EXPECTED_GOPS) {
-        if (is_gop_ready(ngops, mmap)) {
-            uint64_t gop_len = get_gop_size(hdb, ngops, mmap);
-            gop_info cur = {gop_len, new char[gop_len]};
-            gops_buf.insert({ ngops, cur });
+    while (ngofs < EXPECTED_GOFS) {
+        if (is_gof_ready(ngofs, mmap)) {
+            uint64_t gof_len = get_gof_size(hdb, ngofs, mmap);
+            gof_info cur = {gof_len, new char[gof_len]};
+            gofs_buf.insert({ ngofs, cur });
             ptr = 0; //Don't reset the ptr because we are writing the whole file into the buffer
-            bytes +=  reconstruct_v3c_gop(hdb, gops_buf.at(ngops).buf, ptr, mmap, ngops);
-            std::cout << "Full GoP received, num: " << ngops << std::endl;
-            ngops++;
-            hdb = false; // Only add the V3C Sample Stream header byte to only the first GoP
+            bytes +=  reconstruct_v3c_gof(hdb, gofs_buf.at(ngofs).buf, ptr, mmap, ngofs);
+            std::cout << "Full GOF received, num: " << ngofs << std::endl;
+            ngofs++;
+            hdb = false; // Only add the V3C Sample Stream header byte to only the first GOF
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     std::cout << "output file size " << bytes << std::endl;
-    std::this_thread::sleep_for(RECEIVE_TIME_S); // lets this example run for some time
+    //std::this_thread::sleep_for(RECEIVE_TIME_S); // lets this example run for some time
 
     sess->destroy_stream(streams.vps);
     sess->destroy_stream(streams.ad);
@@ -101,23 +100,26 @@ int main(void)
 
     ctx.destroy_session(sess);
 
-    char* out_buf = new char[bytes]; // Initialize to nullptr if you want to output the file GoP by GoP
+    char* out_buf = new char[bytes];
     uint64_t ptr2 = 0;
-    // reconstruct file from gops
-    for (auto& p : gops_buf) {
+    // reconstruct file from gofs
+    for (auto& p : gofs_buf) {
         memcpy(&out_buf[ptr2], p.second.buf , p.second.size);
         ptr2 += p.second.size;
     }
 
     // compare files
+    
     for (auto i = 0; i < bytes; ++i) {
         if (original_buf[i] != out_buf[i]) {
             std::cout << "Difference at " << i << std::endl;
             //break;
         }
     }
+    /*
     std::cout << "Writing to file " << RESULT_FILENAME << std::endl;
     write_file(out_buf, bytes, RESULT_FILENAME);
+    */
     std::cout << "Done" << std::endl;
 
     return EXIT_SUCCESS;

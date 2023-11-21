@@ -137,10 +137,10 @@ void copy_rtp_payload(std::vector<v3c_unit_info>* units, uint64_t max_size, uvgr
 // Combine a complete V3C unit from received NAL units
 void create_v3c_unit(v3c_unit_info& current_unit, char* buf, uint64_t& ptr, uint64_t v3c_precision, uint32_t nal_precision);
 
-// Reconstruct a whole GoP from V3C Units
-uint64_t reconstruct_v3c_gop(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_map& mmap, uint64_t index);
+// Reconstruct a whole GOF from V3C Units
+uint64_t reconstruct_v3c_gof(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_map& mmap, uint64_t index);
 
-// Check if there is a complete GoP in the memory map
-bool is_gop_ready(uint64_t index, v3c_file_map& mmap);
+// Check if there is a complete GOF in the memory map
+bool is_gof_ready(uint64_t index, v3c_file_map& mmap);
 
-uint64_t get_gop_size(bool hdr_byte, uint64_t index, v3c_file_map& mmap);
+uint64_t get_gof_size(bool hdr_byte, uint64_t index, v3c_file_map& mmap);

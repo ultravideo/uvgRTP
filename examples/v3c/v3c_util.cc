@@ -70,7 +70,8 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap)
         if (vuh_t == V3C_VPS) {
             // Parameter set contains no NAL units, skip over
             std::cout << "-- Parameter set V3C unit" << std::endl;
-            unit.nal_infos.push_back({ ptr, combined_v3c_size });
+            nal_info nalu = {ptr, combined_v3c_size, nullptr};
+            unit.nal_infos.push_back(nalu);
             mmap.vps_units.push_back(unit);
             ptr += combined_v3c_size;
             std::cout << std::endl;
@@ -113,9 +114,10 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap)
             v3c_ptr += nal_size_precision;
             switch (vuh_t) {
             case V3C_AD:
-            case V3C_CAD:
-                std::cout << "  -- v3c_ptr: " << v3c_ptr << ", NALU size: " << combined_nal_size << std::endl;
-                break;
+            case V3C_CAD: {
+                uint8_t atlas_nalu_t = (cbuf[v3c_ptr] & 0b01111110) >> 1;
+                std::cout << "  -- v3c_ptr: " << v3c_ptr << ", NALU size: " << combined_nal_size << ", Atlas NALU type: " << (uint32_t)atlas_nalu_t << std::endl;
+                break; }
             case V3C_OVD:
             case V3C_GVD:
             case V3C_AVD:
@@ -123,7 +125,8 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap)
                 uint8_t h265_nalu_t = (cbuf[v3c_ptr] & 0b01111110) >> 1;
                 std::cout << "  -- v3c_ptr: " << v3c_ptr << ", NALU size: " << combined_nal_size << ", HEVC NALU type: " << (uint32_t)h265_nalu_t << std::endl;
             }
-            unit.nal_infos.push_back({ v3c_ptr, combined_nal_size });
+            nal_info nalu = { v3c_ptr, combined_nal_size, nullptr };
+            unit.nal_infos.push_back({ v3c_ptr, combined_nal_size, nullptr });
             v3c_ptr += combined_nal_size;
 
         }
@@ -426,9 +429,9 @@ void create_v3c_unit(v3c_unit_info& current_unit, char* buf, uint64_t& ptr, uint
 
 }
 
-uint64_t reconstruct_v3c_gop(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_map& mmap, uint64_t index)
+uint64_t reconstruct_v3c_gof(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_map& mmap, uint64_t index)
 {
-    /* Calculate GoP size and intiialize the output buffer
+    /* Calculate GOF size and intiialize the output buffer
     *
     + 1 byte of Sample Stream Precision
     +----------------------------------------------------------------+
@@ -458,9 +461,9 @@ uint64_t reconstruct_v3c_gop(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_
     + NALs count (4 bytes of NAL Unit Size
     + x2 bytes of NAL unit payload)
     +----------------------------------------------------------------+ */
-    uint64_t gop_size = 0;
+    uint64_t gof_size = 0;
     if (hdr_byte) {
-        gop_size++; // Sample Stream Precision
+        gof_size++; // Sample Stream Precision
     }
 
     // These sizes include the V3C unit size field, header and payload
@@ -469,11 +472,11 @@ uint64_t reconstruct_v3c_gop(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_
     uint64_t ovd_size = V3C_SIZE_PRECISION + 4 + mmap.ovd_units.at(index).ptr + mmap.ovd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
     uint64_t gvd_size = V3C_SIZE_PRECISION + 4 + mmap.gvd_units.at(index).ptr + mmap.gvd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
     uint64_t avd_size = V3C_SIZE_PRECISION + 4 + mmap.avd_units.at(index).ptr + mmap.avd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
-    gop_size += vps_size + ad_size + ovd_size + gvd_size + avd_size;
-    std::cout << "Initializing GoP buffer of " << gop_size << " bytes" << std::endl;
+    gof_size += vps_size + ad_size + ovd_size + gvd_size + avd_size;
+    std::cout << "Initializing GOF buffer of " << gof_size << " bytes" << std::endl;
 
-    // Commented out because we want to write the whole file into the buffer, not GoP by GoP
-    //buf = new char[gop_size];
+    // Commented out because we want to write the whole file into the buffer, not GOF by GOF
+    //buf = new char[gof_size];
 
     // V3C Sample stream header
     if (hdr_byte) {
@@ -513,10 +516,10 @@ uint64_t reconstruct_v3c_gop(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_
     current_unit = mmap.avd_units.at(index);
     create_v3c_unit(current_unit, buf, ptr, V3C_SIZE_PRECISION, VIDEO_NAL_SIZE_PRECISION);
     
-    return gop_size;
+    return gof_size;
 }
 
-bool is_gop_ready(uint64_t index, v3c_file_map& mmap)
+bool is_gof_ready(uint64_t index, v3c_file_map& mmap)
 {
     if (mmap.vps_units.size() < index+1) 
         return false;
@@ -570,11 +573,11 @@ void copy_rtp_payload(std::vector<v3c_unit_info>* units, uint64_t max_size, uvgr
     }
 }
 
-uint64_t get_gop_size(bool hdr_byte, uint64_t index, v3c_file_map& mmap)
+uint64_t get_gof_size(bool hdr_byte, uint64_t index, v3c_file_map& mmap)
 {
-    uint64_t gop_size = 0;
+    uint64_t gof_size = 0;
     if (hdr_byte) {
-        gop_size++; // Sample Stream Precision
+        gof_size++; // Sample Stream Precision
     }
 
     // These sizes include the V3C unit size field, header and payload
@@ -583,6 +586,6 @@ uint64_t get_gop_size(bool hdr_byte, uint64_t index, v3c_file_map& mmap)
     uint64_t ovd_size = V3C_SIZE_PRECISION + 4 + mmap.ovd_units.at(index).ptr + mmap.ovd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
     uint64_t gvd_size = V3C_SIZE_PRECISION + 4 + mmap.gvd_units.at(index).ptr + mmap.gvd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
     uint64_t avd_size = V3C_SIZE_PRECISION + 4 + mmap.avd_units.at(index).ptr + mmap.avd_units.at(index).nal_infos.size() * VIDEO_NAL_SIZE_PRECISION;
-    gop_size += vps_size + ad_size + ovd_size + gvd_size + avd_size;
-    return gop_size;
+    gof_size += vps_size + ad_size + ovd_size + gvd_size + avd_size;
+    return gof_size;
 }
