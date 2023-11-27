@@ -17,11 +17,16 @@ void sender_func(uvgrtp::media_stream* stream, const char* cbuf, const std::vect
 std::atomic<uint64_t> bytes_sent;
 int main(void)
 {
-    /* This example demonstrates sending V3C Sample Stream files via uvgRTP. The V3C Sample Stream contains a V3C Sample Stream
-     * header byte and multiple V3C Units with their sizes specified before each unit. A V3C Unit then contains a V3C header
-     * and Atlas or Video NAL units, depending on the V3C unit type.
+    /* This example demonstrates sending a file that is in the V3C sample stream format via uvgRTP. It can be used to send V-PCC
+     * encoded files, but with minor modifications (addition of V3C_CAD and V3C_PVD streams) it can be used also for MIV
+     * encoded files.
      * 
-     * The process of sending a V3C Cample Stream file via uvgRTP contains the following steps:
+     * The V3C Sample Stream contains a V3C Sample Stream
+     * header byte and multiple V3C Units with their sizes specified before each unit. A V3C Unit then contains a V3C header
+     * and Atlas or Video NAL units, depending on the V3C unit type. Video data can be either AVC, HEVC or VVC encoded. This
+     * example uses HEVC encoding. Using AVC or VVC requires you to set the media streams payload format accordingly.
+     * 
+     * The process of sending and receiving a V3C Sample Stream file via uvgRTP contains the following steps:
      * Parse file and extract locations and sizes of NAL units -> Send NAL units in separate uvgRTP media streams
      * -> Receive NAL units -> Reconstruct V3C Sample Stream
      * 
@@ -34,18 +39,19 @@ int main(void)
      * 5. Attribute Video Stream
      * 
      * There is also the possibility to have two more streams: Packed Video and Common Atlas Data. These are not included in
-     * this example as our test files don't have them. If you need these, it should be quite easy to implement them
-     * 
-     * A few notes for users: This example expects there to be no packet loss. If some NAL units are lost in transmission,
-     * the reconstruction will not work.
-     * Please also read the documentation on v3c_receiver.cc before testing this example. */
+     * this example as our test files (V-PCC) don't have them. If you need these (MIV), it should be quite easy to implement them
+     *
+     A few notes for users:
+     - This example expects there to be no packet loss. If some NAL units are lost in transmission,
+       the reconstruction will not work.
+     - Please also read the documentation on v3c_receiver.cc before testing this example. 
+     - Use RTP_NO_H26X_SCL when sending video frames, as there is no start codes in the video sub-streams
+     - v3c_sender and v3c_receiver programs use common functions defined in v3c_util. */
 
-
-    /* Note: Use RTP_NO_H26X_SCL when sending video frames, as there is no start codes in the video sub-streams */
     bytes_sent = 0;
     v3c_file_map mmap;
 
-    /* Fetch the file and its size */
+    /* Read the file and its size */
     uint64_t len = get_size(PATH);
     char* cbuf = get_cmem(PATH);
     std::cout << "Parsing V3C file, size " << len << std::endl;
@@ -128,6 +134,5 @@ void sender_func(uvgrtp::media_stream* stream, const char* cbuf, const std::vect
             }
             bytes_sent += i.size;
         }
-        //std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
 }
