@@ -6,11 +6,20 @@
 #include <fstream>
 #include <chrono>
 
+/* This example demonstrates receiving V3C Sample Stream via uvgRTP. It can be used to send V-PCC encoded files, but with
+ * minor modifications (addition of V3C_CAD and V3C_PVD streams) it can be used also for MIV encoded files. See the comments
+ * in v3c_sender for more comprehensive documentation on V3C RTP streaming.
+ 
+ * Video data can be either AVC, HEVC or VVC encoded. This example uses HEVC encoding. Using AVC or VVC requires you to
+ * set the media streams payload format accordingly.
+ */
+
 constexpr char LOCAL_ADDRESS[] = "127.0.0.1";
 
 // This example runs for 5 seconds
 constexpr auto RECEIVE_TIME_S = std::chrono::seconds(10);
 
+// Hooks for the media streams
 void vps_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 void ad_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 void ovd_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
@@ -21,18 +30,18 @@ uint64_t vps_count;
 
 /* These values specify the amount of NAL units inside each type of V3C unit. These need to be known to be able to reconstruct the 
  * file after receiving. These might be different for you depending on your test file. The sending example has prints that show
- * how many NAL units each V3C unit contain. Change these accordingly. */
+ * how many NAL units each V3C unit contain. Run it first and change these values accordingly. */
 constexpr int VPS_NALS = 2;
 constexpr int AD_NALS = 35;
 constexpr int OVD_NALS = 35;
 constexpr int GVD_NALS = 131;
 constexpr int AVD_NALS = 131;
 
-/* How many Groups of Frames we are expecting to receive */
-constexpr int EXPECTED_GOFS = 10;
-
-/* NOTE: If for example the last GOF has fewer NAL units than specified above, the receiver does not know how many to expect
+/* NOTE: In case where the last GOF has fewer NAL units than specified above, the receiver does not know how many to expect
    and cannot reconstruct that specific GOF. s*/
+
+/* How many *FULL* Groups of Frames we are expecting to receive */
+constexpr int EXPECTED_GOFS = 10;
 
 /* Path to the V3C file that we are receiving.This is included so that you can check that the reconstructed file is equal to the
  * original one */
@@ -45,13 +54,14 @@ int main(void)
 {
     std::cout << "Starting uvgRTP V3C receive hook example" << std::endl;
 
-    /* Fetch the original file and its size */
+    /* Read the original file and its size. This can be used later for verifying that the received and reconstructed file is valid */
     uint64_t len = get_size(PATH);
-    std::cout << "File size " << len << std::endl;
+    std::cout << "Original file size " << len << std::endl;
 
     char* original_buf = nullptr;
     original_buf = get_cmem(PATH);
 
+    /* Initialize uvgRTP context and session*/
     uvgrtp::context ctx;
     uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS, LOCAL_ADDRESS);
     int flags = 0;
@@ -70,11 +80,14 @@ int main(void)
     streams.avd->configure_ctx(RCC_RING_BUFFER_SIZE, 40 * 1000 * 1000);
 
     std::cout << "Waiting incoming packets for " << RECEIVE_TIME_S.count() << " s" << std::endl;
-    uint64_t ngofs = 0;
-    uint64_t bytes = 0;
-    uint64_t ptr = 0;
-    bool hdb = true;
-    struct gof_info {
+
+    uint64_t ngofs = 0;     // Number of received GOFs
+    uint64_t bytes = 0;     // Number of received bytes
+    uint64_t ptr = 0;       // Pointer of current position on the received file
+    bool hdb = true;        // Write header byte or not. True only for first GOF of file.
+
+    // Save each GOF into data structures
+    struct gof_info {       
         uint64_t size = 0;
         char* buf = nullptr;
     };
@@ -83,11 +96,18 @@ int main(void)
     std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();;
 
     while (ngofs < EXPECTED_GOFS) {
+        // Check if we received enough NAL units of a GOF
         if (is_gof_ready(ngofs, mmap)) {
+
+            // Get GOF size and initialize a new data structure for it
             uint64_t gof_len = get_gof_size(hdb, ngofs, mmap);
             gof_info cur = {gof_len, new char[gof_len]};
             gofs_buf.insert({ ngofs, cur });
+
             ptr = 0; //Don't reset the ptr because we are writing the whole file into the buffer
+
+            // Reconstruct the GOF from NAL units and update size of the to-be complete file. NOTE: Not the same as the amount of
+            // received bytes, because we add new info such as V3C unit headers here.
             bytes +=  reconstruct_v3c_gof(hdb, gofs_buf.at(ngofs).buf, ptr, mmap, ngofs);
             std::cout << "Full GOF received, num: " << ngofs << std::endl;
             ngofs++;
@@ -106,6 +126,7 @@ int main(void)
     std::cout << ngofs << " full GOFs received" << std::endl;
     std::cout << "output file size " << bytes << std::endl;
 
+    /* Reception done, clean up uvgRTP */
     sess->destroy_stream(streams.vps);
     sess->destroy_stream(streams.ad);
     sess->destroy_stream(streams.ovd);
@@ -114,17 +135,18 @@ int main(void)
 
     ctx.destroy_session(sess);
 
+    // Not we have all the GOFs constructed. Next up save them all into a single file
     char* out_buf = new char[bytes];
     std::memset(out_buf, 0, bytes); // Initialize with zeros
 
     uint64_t ptr2 = 0;
-    // reconstruct file from gofs
+    // Reconstruct file from GOFs
     for (auto& p : gofs_buf) {
         memcpy(&out_buf[ptr2], p.second.buf , p.second.size);
         ptr2 += p.second.size;
     }
 
-    // compare files
+    // Compare reconstructed file with the original one
     for (auto i = 0; i < bytes; ++i) {
         if (original_buf[i] != out_buf[i]) {
             std::cout << "Difference at " << i << std::endl;
@@ -133,6 +155,7 @@ int main(void)
     }
     std::cout << "No difference found" << std::endl;
     
+    // Write the received file on the disk
     std::cout << "Writing to file " << RESULT_FILENAME << std::endl;
     write_file(out_buf, bytes, RESULT_FILENAME);
 
