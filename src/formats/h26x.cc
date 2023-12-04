@@ -310,7 +310,7 @@ rtp_error_t uvgrtp::formats::h26x::frame_getter(uvgrtp::frame::rtp_frame** frame
     return RTP_NOT_FOUND;
 }
 
-rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t* data, size_t data_len, int rtp_flags)
+rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t* data, size_t data_len, int rtp_flags, uint32_t ssrc)
 {
     rtp_error_t ret = RTP_OK;
 
@@ -395,7 +395,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
     }
 
     // actually send the packets
-    ret = fqueue_->flush_queue(addr, addr6);
+    ret = fqueue_->flush_queue(addr, addr6, ssrc);
     clear_aggregation_info();
 
     return ret;

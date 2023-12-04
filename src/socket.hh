@@ -120,10 +120,10 @@ namespace uvgrtp {
 
             rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *buf, size_t buf_len, int send_flags);
             rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *buf, size_t buf_len, int send_flags, int *bytes_sent);
-            rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, buf_vec& buffers, int send_flags);
-            rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, buf_vec& buffers, int send_flags, int *bytes_sent);
-            rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, pkt_vec& buffers, int send_flags);
-            rtp_error_t sendto(sockaddr_in& addr, sockaddr_in6& addr6, pkt_vec& buffers, int send_flags, int *bytes_sent);
+            rtp_error_t sendto(uint32_t ssrc, sockaddr_in& addr, sockaddr_in6& addr6, buf_vec& buffers, int send_flags);
+            rtp_error_t sendto(uint32_t ssrc, sockaddr_in& addr, sockaddr_in6& addr6, buf_vec& buffers, int send_flags, int *bytes_sent);
+            rtp_error_t sendto(uint32_t ssrc, sockaddr_in& addr, sockaddr_in6& addr6, pkt_vec& buffers, int send_flags);
+            rtp_error_t sendto(uint32_t ssrc, sockaddr_in& addr, sockaddr_in6& addr6, pkt_vec& buffers, int send_flags, int *bytes_sent);
 
             /* Same as recv(2), receives a message from socket (remote address not known)
              *
