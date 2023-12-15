@@ -207,7 +207,7 @@ inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets
         Test_receiver* tester = new Test_receiver(packets);
 
         int interval_ms = 1000/framerate;
-        if (format == RTP_FORMAT_V3C) {
+        if (format == RTP_FORMAT_ATLAS) {
             add_hook(tester, receiver, v3c_rtp_hook);
         }
         else {

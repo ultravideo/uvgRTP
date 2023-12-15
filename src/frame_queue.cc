@@ -78,7 +78,7 @@ rtp_error_t uvgrtp::frame_queue::init_transaction()
             active_->media_headers = new uvgrtp::formats::h266_headers;
             break;
 
-        case RTP_FORMAT_V3C:
+        case RTP_FORMAT_ATLAS:
             active_->media_headers = new uvgrtp::formats::v3c_headers;
             break;
 
@@ -275,7 +275,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(buf_vec& buffers)
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::frame_queue::flush_queue(sockaddr_in& addr, sockaddr_in6& addr6)
+rtp_error_t uvgrtp::frame_queue::flush_queue(sockaddr_in& addr, sockaddr_in6& addr6, uint32_t ssrc)
 {
     if (active_->packets.empty()) {
         UVG_LOG_ERROR("Cannot send an empty packet!");
@@ -347,7 +347,7 @@ rtp_error_t uvgrtp::frame_queue::flush_queue(sockaddr_in& addr, sockaddr_in6& ad
             std::this_thread::sleep_for(next_packet - std::chrono::high_resolution_clock::now());
 
             //  send pkt vects
-            if (socket_->sendto(addr, addr6, active_->packets[i], 0) != RTP_OK) {
+            if (socket_->sendto(ssrc, addr, addr6, active_->packets[i], 0) != RTP_OK) {
                 UVG_LOG_ERROR("Failed to send packet: %li", errno);
                 (void)deinit_transaction();
                 return RTP_SEND_ERROR;
@@ -355,7 +355,7 @@ rtp_error_t uvgrtp::frame_queue::flush_queue(sockaddr_in& addr, sockaddr_in6& ad
         }
 
     }
-    else if (socket_->sendto(addr, addr6, active_->packets, 0) != RTP_OK) {
+    else if (socket_->sendto(ssrc, addr, addr6, active_->packets, 0) != RTP_OK) {
         UVG_LOG_ERROR("Failed to flush the message queue: %li", errno);
         (void)deinit_transaction();
         return RTP_SEND_ERROR;

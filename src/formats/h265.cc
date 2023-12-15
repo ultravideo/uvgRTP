@@ -167,7 +167,7 @@ rtp_error_t uvgrtp::formats::h265::fu_division(uint8_t* data, size_t data_len, s
     auto headers = (uvgrtp::formats::h265_headers*)fqueue_->get_media_headers();
     
     headers->payload_header[0] = H265_PKT_FRAG << 1; /* fragmentation unit */
-    headers->payload_header[1] = 1;                  /* temporal id */
+    headers->payload_header[1] = data[1];                  /* temporal id */
 
     initialize_fu_headers(get_nal_type(data), headers->fu_headers);
 
