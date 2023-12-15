@@ -21,7 +21,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">uvgRTP<span id="projectnumber">&#160;2.3.0</span>
+   <div id="projectname">uvgRTP<span id="projectnumber">&#160;3.0.0</span>
    </div>
    <div id="projectbrief">An open-source library for RTP/SRTP media delivery</div>
   </td>
@@ -91,47 +91,49 @@ $(function() {
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span> </div>
 <div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span>    <span class="keyword">class </span>media_stream;</div>
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span>    <span class="keyword">class </span>zrtp;</div>
-<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span> </div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1session.html">   26</a></span>    <span class="keyword">class </span><a class="code hl_class" href="classuvgrtp_1_1session.html">session</a> {</div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>        <span class="keyword">public</span>:</div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>            <a class="code hl_class" href="classuvgrtp_1_1session.html">session</a>(std::string cname, std::string addr);</div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>            <a class="code hl_class" href="classuvgrtp_1_1session.html">session</a>(std::string cname, std::string remote_addr, std::string local_addr);</div>
-<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>            <a class="code hl_class" href="classuvgrtp_1_1session.html">~session</a>();</div>
-<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span> </div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1session.html#a0b9fb48e95cbfdb76fd9f61e8cafe8e4">   62</a></span>            <a class="code hl_class" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a> *<a class="code hl_function" href="classuvgrtp_1_1session.html#a0b9fb48e95cbfdb76fd9f61e8cafe8e4">create_stream</a>(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, <span class="keywordtype">int</span> rce_flags);</div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span> </div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1session.html#a07a96e787de86d902d5c4d6bcb3dc416">   87</a></span>            <a class="code hl_class" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a> *<a class="code hl_function" href="classuvgrtp_1_1session.html#a07a96e787de86d902d5c4d6bcb3dc416">create_stream</a>(uint16_t port, rtp_format_t fmt, <span class="keywordtype">int</span> rce_flags);</div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span> </div>
-<div class="line"><a id="l00100" name="l00100"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1session.html#a291629a3bfb910463b88d8edb3984149">  100</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1session.html#a291629a3bfb910463b88d8edb3984149">destroy_stream</a>(<a class="code hl_class" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a> *stream);</div>
-<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span> </div>
-<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>            <span class="comment">/* Get unique key of the session</span></div>
-<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span><span class="comment">             * Used by context to index sessions */</span></div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>            std::string&amp; get_key();</div>
-<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span> </div>
-<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>        <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>            <span class="comment">/* Each RTP multimedia session shall have one ZRTP session from which all session are derived */</span></div>
-<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>            std::shared_ptr&lt;uvgrtp::zrtp&gt; zrtp_;</div>
-<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span> </div>
-<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>            std::string generic_address_;</div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span> </div>
-<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>            <span class="comment">/* Each RTP multimedia session is always IP-specific */</span></div>
-<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>            std::string remote_address_;</div>
-<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span> </div>
-<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>            <span class="comment">/* If user so wishes, the session can be bound to a certain interface */</span></div>
-<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>            std::string local_address_;</div>
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span> </div>
-<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>            <span class="comment">/* All media streams of this session */</span></div>
-<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>            std::unordered_map&lt;uint32_t, uvgrtp::media_stream *&gt; streams_;</div>
-<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span> </div>
-<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>            std::mutex session_mtx_;</div>
-<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span> </div>
-<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span>            std::string cname_;</div>
-<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>    };</div>
-<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>}</div>
-<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span> </div>
-<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span><span class="keyword">namespace </span>uvg_rtp = uvgrtp;</div>
-<div class="ttc" id="aclassuvgrtp_1_1media__stream_html"><div class="ttname"><a href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a></div><div class="ttdoc">The media_stream is an entity which represents one RTP stream.</div><div class="ttdef"><b>Definition:</b> <a href="media__stream_8hh_source.html#l00050">media_stream.hh:50</a></div></div>
-<div class="ttc" id="aclassuvgrtp_1_1session_html"><div class="ttname"><a href="classuvgrtp_1_1session.html">uvgrtp::session</a></div><div class="ttdoc">Provides ZRTP synchronization and can be used to create uvgrtp::media_stream objects.</div><div class="ttdef"><b>Definition:</b> <a href="session_8hh_source.html#l00026">session.hh:26</a></div></div>
+<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span>    <span class="keyword">class </span>socketfactory;</div>
+<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span> </div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1session.html">   27</a></span>    <span class="keyword">class </span><a class="code hl_class" href="classuvgrtp_1_1session.html">session</a> {</div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>        <span class="keyword">public</span>:</div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>            <a class="code hl_class" href="classuvgrtp_1_1session.html">session</a>(std::string cname, std::string addr, std::shared_ptr&lt;uvgrtp::socketfactory&gt; sfp);</div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>            <a class="code hl_class" href="classuvgrtp_1_1session.html">session</a>(std::string cname, std::string remote_addr, std::string local_addr, std::shared_ptr&lt;uvgrtp::socketfactory&gt; sfp);</div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>            <a class="code hl_class" href="classuvgrtp_1_1session.html">~session</a>();</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span> </div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1session.html#a0b9fb48e95cbfdb76fd9f61e8cafe8e4">   63</a></span>            <a class="code hl_class" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a> *<a class="code hl_function" href="classuvgrtp_1_1session.html#a0b9fb48e95cbfdb76fd9f61e8cafe8e4">create_stream</a>(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, <span class="keywordtype">int</span> rce_flags);</div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span> </div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1session.html#a07a96e787de86d902d5c4d6bcb3dc416">   88</a></span>            <a class="code hl_class" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a> *<a class="code hl_function" href="classuvgrtp_1_1session.html#a07a96e787de86d902d5c4d6bcb3dc416">create_stream</a>(uint16_t port, rtp_format_t fmt, <span class="keywordtype">int</span> rce_flags);</div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span> </div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno"><a class="line" href="classuvgrtp_1_1session.html#a291629a3bfb910463b88d8edb3984149">  101</a></span>            rtp_error_t <a class="code hl_function" href="classuvgrtp_1_1session.html#a291629a3bfb910463b88d8edb3984149">destroy_stream</a>(<a class="code hl_class" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a> *stream);</div>
+<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span> </div>
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>            <span class="comment">/* Get unique key of the session</span></div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span><span class="comment">             * Used by context to index sessions */</span></div>
+<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>            std::string&amp; get_key();</div>
+<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span> </div>
+<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>        <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>            <span class="comment">/* Each RTP multimedia session shall have one ZRTP session from which all session are derived */</span></div>
+<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>            std::shared_ptr&lt;uvgrtp::zrtp&gt; zrtp_;</div>
+<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span> </div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>            std::string generic_address_;</div>
+<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span> </div>
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>            <span class="comment">/* Each RTP multimedia session is always IP-specific */</span></div>
+<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>            std::string remote_address_;</div>
+<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span> </div>
+<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>            <span class="comment">/* If user so wishes, the session can be bound to a certain interface */</span></div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>            std::string local_address_;</div>
+<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span> </div>
+<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>            <span class="comment">/* All media streams of this session */</span></div>
+<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>            std::unordered_map&lt;uint32_t, uvgrtp::media_stream *&gt; streams_;</div>
+<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span> </div>
+<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>            std::mutex session_mtx_;</div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span> </div>
+<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>            std::string cname_;</div>
+<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>            std::shared_ptr&lt;uvgrtp::socketfactory&gt; sf_;</div>
+<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>    };</div>
+<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>}</div>
+<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span> </div>
+<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span><span class="keyword">namespace </span>uvg_rtp = uvgrtp;</div>
+<div class="ttc" id="aclassuvgrtp_1_1media__stream_html"><div class="ttname"><a href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a></div><div class="ttdoc">The media_stream is an entity which represents one RTP stream.</div><div class="ttdef"><b>Definition:</b> <a href="media__stream_8hh_source.html#l00052">media_stream.hh:52</a></div></div>
+<div class="ttc" id="aclassuvgrtp_1_1session_html"><div class="ttname"><a href="classuvgrtp_1_1session.html">uvgrtp::session</a></div><div class="ttdoc">Provides ZRTP synchronization and can be used to create uvgrtp::media_stream objects.</div><div class="ttdef"><b>Definition:</b> <a href="session_8hh_source.html#l00027">session.hh:27</a></div></div>
 <div class="ttc" id="aclassuvgrtp_1_1session_html_a07a96e787de86d902d5c4d6bcb3dc416"><div class="ttname"><a href="classuvgrtp_1_1session.html#a07a96e787de86d902d5c4d6bcb3dc416">uvgrtp::session::create_stream</a></div><div class="ttdeci">uvgrtp::media_stream * create_stream(uint16_t port, rtp_format_t fmt, int rce_flags)</div><div class="ttdoc">Create a unidirectional media_stream for an RTP session.</div></div>
 <div class="ttc" id="aclassuvgrtp_1_1session_html_a0b9fb48e95cbfdb76fd9f61e8cafe8e4"><div class="ttname"><a href="classuvgrtp_1_1session.html#a0b9fb48e95cbfdb76fd9f61e8cafe8e4">uvgrtp::session::create_stream</a></div><div class="ttdeci">uvgrtp::media_stream * create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags)</div><div class="ttdoc">Create a uni- or bidirectional media stream.</div></div>
 <div class="ttc" id="aclassuvgrtp_1_1session_html_a291629a3bfb910463b88d8edb3984149"><div class="ttname"><a href="classuvgrtp_1_1session.html#a291629a3bfb910463b88d8edb3984149">uvgrtp::session::destroy_stream</a></div><div class="ttdeci">rtp_error_t destroy_stream(uvgrtp::media_stream *stream)</div><div class="ttdoc">Destroy a media stream.</div></div>

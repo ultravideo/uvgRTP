@@ -21,7 +21,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">uvgRTP<span id="projectnumber">&#160;2.3.0</span>
+   <div id="projectname">uvgRTP<span id="projectnumber">&#160;3.0.0</span>
    </div>
    <div id="projectbrief">An open-source library for RTP/SRTP media delivery</div>
   </td>
@@ -88,6 +88,9 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
+<tr class="memitem:a9e22ebbe9f903abe0fcae267f98cafeb"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1media__stream.html#a9e22ebbe9f903abe0fcae267f98cafeb">start_zrtp</a> ()</td></tr>
+<tr class="memdesc:a9e22ebbe9f903abe0fcae267f98cafeb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Start the ZRTP negotiation manually.  <br /></td></tr>
+<tr class="separator:a9e22ebbe9f903abe0fcae267f98cafeb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0950a91bd645cbf842d8218ae4171aed"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1media__stream.html#a0950a91bd645cbf842d8218ae4171aed">add_srtp_ctx</a> (uint8_t *key, uint8_t *salt)</td></tr>
 <tr class="memdesc:a0950a91bd645cbf842d8218ae4171aed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add keying information for user-managed SRTP session.  <br /></td></tr>
 <tr class="separator:a0950a91bd645cbf842d8218ae4171aed"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -121,15 +124,15 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a2cee4fe3bf423ec317b4a3eacc136238"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1media__stream.html#a2cee4fe3bf423ec317b4a3eacc136238">configure_ctx</a> (int rcc_flag, ssize_t value)</td></tr>
 <tr class="memdesc:a2cee4fe3bf423ec317b4a3eacc136238"><td class="mdescLeft">&#160;</td><td class="mdescRight">Configure the media stream, see <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587f" title="RTP context configuration flags.">RTP_CTX_CONFIGURATION_FLAGS</a> for more details.  <br /></td></tr>
 <tr class="separator:a2cee4fe3bf423ec317b4a3eacc136238"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acee8dd45e8c6ebbb1af52bb54dd7c40d"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1media__stream.html#acee8dd45e8c6ebbb1af52bb54dd7c40d">get_configuration_value</a> (int rcc_flag)</td></tr>
+<tr class="memdesc:acee8dd45e8c6ebbb1af52bb54dd7c40d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the values associated with configuration flags, see <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587f" title="RTP context configuration flags.">RTP_CTX_CONFIGURATION_FLAGS</a> for more details.  <br /></td></tr>
+<tr class="separator:acee8dd45e8c6ebbb1af52bb54dd7c40d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab339f15d5a852beacd901b7b78e887ea"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classuvgrtp_1_1rtcp.html">uvgrtp::rtcp</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1media__stream.html#ab339f15d5a852beacd901b7b78e887ea">get_rtcp</a> ()</td></tr>
 <tr class="memdesc:ab339f15d5a852beacd901b7b78e887ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to the RTCP object of the media stream.  <br /></td></tr>
 <tr class="separator:ab339f15d5a852beacd901b7b78e887ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8796cb34e0e6c61af8cabd13dd6793b5"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1media__stream.html#a8796cb34e0e6c61af8cabd13dd6793b5">get_ssrc</a> () const</td></tr>
 <tr class="memdesc:a8796cb34e0e6c61af8cabd13dd6793b5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get SSRC identifier. You can use the SSRC value for example to find the report block belonging to this <a class="el" href="classuvgrtp_1_1media__stream.html" title="The media_stream is an entity which represents one RTP stream.">media_stream</a> in RTCP sender/receiver report.  <br /></td></tr>
 <tr class="separator:a8796cb34e0e6c61af8cabd13dd6793b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a13b543a64861d06fc74c87aa51d1dbe9"><td class="memItemLeft" align="right" valign="top"><a id="a13b543a64861d06fc74c87aa51d1dbe9" name="a13b543a64861d06fc74c87aa51d1dbe9"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><b>get_ipv6</b> () const</td></tr>
-<tr class="separator:a13b543a64861d06fc74c87aa51d1dbe9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The <a class="el" href="classuvgrtp_1_1media__stream.html" title="The media_stream is an entity which represents one RTP stream.">media_stream</a> is an entity which represents one RTP stream. </p>
@@ -137,7 +140,7 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>get_ipv6</b> () const
 <p>If RCE_RTCP was given when creating <a class="el" href="classuvgrtp_1_1media__stream.html" title="The media_stream is an entity which represents one RTP stream.">media_stream</a>, you can get the <a class="el" href="classuvgrtp_1_1rtcp.html" title="RTCP instance handles all incoming and outgoing RTCP traffic, including report generation.">uvgrtp::rtcp</a> object with <a class="el" href="classuvgrtp_1_1media__stream.html#ab339f15d5a852beacd901b7b78e887ea" title="Get pointer to the RTCP object of the media stream.">get_rtcp()</a>-function.</p>
 <p><a class="el" href="classuvgrtp_1_1media__stream.html" title="The media_stream is an entity which represents one RTP stream.">media_stream</a> corresponds to one RTP session in <a href="https://www.rfc-editor.org/rfc/rfc3550">RFC 3550</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="media__stream_8hh_source.html#l00050">50</a> of file <a class="el" href="media__stream_8hh_source.html">media_stream.hh</a>.</p>
+<p class="definition">Definition at line <a class="el" href="media__stream_8hh_source.html#l00052">52</a> of file <a class="el" href="media__stream_8hh_source.html">media_stream.hh</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a0950a91bd645cbf842d8218ae4171aed" name="a0950a91bd645cbf842d8218ae4171aed"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0950a91bd645cbf842d8218ae4171aed">&#9670;&#160;</a></span>add_srtp_ctx()</h2>
@@ -219,6 +222,34 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>get_ipv6</b> () const
     <tr><td class="paramname">RTP_OK</td><td>On success </td></tr>
     <tr><td class="paramname">RTP_INVALID_VALUE</td><td>If the provided value is not valid for a given configuration flag </td></tr>
     <tr><td class="paramname">RTP_GENERIC_ERROR</td><td>If setsockopt(2) failed </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="acee8dd45e8c6ebbb1af52bb54dd7c40d" name="acee8dd45e8c6ebbb1af52bb54dd7c40d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acee8dd45e8c6ebbb1af52bb54dd7c40d">&#9670;&#160;</a></span>get_configuration_value()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int uvgrtp::media_stream::get_configuration_value </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>rcc_flag</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the values associated with configuration flags, see <a class="el" href="util_8hh.html#aa98d9238629e33567e73af0d239e587f" title="RTP context configuration flags.">RTP_CTX_CONFIGURATION_FLAGS</a> for more details. </p>
+<dl class="section return"><dt>Returns</dt><dd>Value of the configuration flag</dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">int</td><td>value on success </td></tr>
+    <tr><td class="paramname">-1</td><td>on error </td></tr>
   </table>
   </dd>
 </dl>
@@ -763,6 +794,38 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>get_ipv6</b> () const
     <tr><td class="paramname">RTP_MEMORY_ERROR</td><td>If the data chunk is too large to be processed </td></tr>
     <tr><td class="paramname">RTP_SEND_ERROR</td><td>If uvgRTP failed to send the data to remote </td></tr>
     <tr><td class="paramname">RTP_GENERIC_ERROR</td><td>If an unspecified error occurred </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a9e22ebbe9f903abe0fcae267f98cafeb" name="a9e22ebbe9f903abe0fcae267f98cafeb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9e22ebbe9f903abe0fcae267f98cafeb">&#9670;&#160;</a></span>start_zrtp()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">rtp_error_t uvgrtp::media_stream::start_zrtp </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Start the ZRTP negotiation manually. </p>
+<p>There is two ways to use ZRTP.</p><ol type="1">
+<li>Use flags RCE_SRTP + RCE_SRTP_KMNGMNT_ZRTP + (RCE_ZRTP_DIFFIE_HELLMAN_MODE/RCE_ZRTP_MULTISTREAM_MODE) to automatically start ZRTP negotiation when creating a media stream.</li>
+<li>Use flags RCE_SRTP + (RCE_ZRTP_DIFFIE_HELLMAN_MODE/RCE_ZRTP_MULTISTREAM_MODE) and after creating the media stream, call <a class="el" href="classuvgrtp_1_1media__stream.html#a9e22ebbe9f903abe0fcae267f98cafeb" title="Start the ZRTP negotiation manually.">start_zrtp()</a> to manually start the ZRTP negotiation</li>
+</ol>
+<dl class="section return"><dt>Returns</dt><dd>RTP error code</dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">RTP_OK</td><td>On success </td></tr>
+    <tr><td class="paramname">RTP_TIMEOUT</td><td>if ZRTP timed out </td></tr>
+    <tr><td class="paramname">RTP_GENERIC_ERROR</td><td>on other errors </td></tr>
   </table>
   </dd>
 </dl>

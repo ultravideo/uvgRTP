@@ -21,7 +21,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">uvgRTP<span id="projectnumber">&#160;2.3.0</span>
+   <div id="projectname">uvgRTP<span id="projectnumber">&#160;3.0.0</span>
    </div>
    <div id="projectbrief">An open-source library for RTP/SRTP media delivery</div>
   </td>
@@ -130,8 +130,8 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a81198428cc697c0c7cbb2a4191f294d8"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1rtcp.html#a81198428cc697c0c7cbb2a4191f294d8">remove_all_hooks</a> ()</td></tr>
 <tr class="memdesc:a81198428cc697c0c7cbb2a4191f294d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove all installed hooks for RTCP.  <br /></td></tr>
 <tr class="separator:a81198428cc697c0c7cbb2a4191f294d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a27adb6b5965dab3918bd02a2e7a2dfd2"><td class="memItemLeft" align="right" valign="top"><a id="a27adb6b5965dab3918bd02a2e7a2dfd2" name="a27adb6b5965dab3918bd02a2e7a2dfd2"></a>
-rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>remove_send_app_hook</b> (std::string app_name)</td></tr>
+<tr class="memitem:a27adb6b5965dab3918bd02a2e7a2dfd2"><td class="memItemLeft" align="right" valign="top">rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classuvgrtp_1_1rtcp.html#a27adb6b5965dab3918bd02a2e7a2dfd2">remove_send_app_hook</a> (std::string app_name)</td></tr>
+<tr class="memdesc:a27adb6b5965dab3918bd02a2e7a2dfd2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove a hook for sending APP packets *.  <br /></td></tr>
 <tr class="separator:a27adb6b5965dab3918bd02a2e7a2dfd2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -141,7 +141,7 @@ rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>remove_send_ap
 <p>You can use the APP packet to test new RTCP packet types using the <a class="el" href="classuvgrtp_1_1rtcp.html#a0c092bca6edda19218a2cb84ed776c34" title="Send an RTCP APP packet.">send_app_packet()</a>-function. The APP packets are added to these periodically sent compound packets.</p>
 <p>See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6" target="_blank">RFC 3550 section 6</a> for more details. </p>
 
-<p class="definition">Definition at line <a class="el" href="rtcp_8hh_source.html#l00118">118</a> of file <a class="el" href="rtcp_8hh_source.html">rtcp.hh</a>.</p>
+<p class="definition">Definition at line <a class="el" href="rtcp_8hh_source.html#l00120">120</a> of file <a class="el" href="rtcp_8hh_source.html">rtcp.hh</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a76cb98093acfb54050b50ff82106ca94" name="a76cb98093acfb54050b50ff82106ca94"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a76cb98093acfb54050b50ff82106ca94">&#9670;&#160;</a></span>install_app_hook() <span class="overload">[1/2]</span></h2>
@@ -486,6 +486,39 @@ rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>remove_send_ap
 
 </div>
 </div>
+<a id="a27adb6b5965dab3918bd02a2e7a2dfd2" name="a27adb6b5965dab3918bd02a2e7a2dfd2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a27adb6b5965dab3918bd02a2e7a2dfd2">&#9670;&#160;</a></span>remove_send_app_hook()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">rtp_error_t uvgrtp::rtcp::remove_send_app_hook </td>
+          <td>(</td>
+          <td class="paramtype">std::string&#160;</td>
+          <td class="paramname"><em>app_name</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Remove a hook for sending APP packets *. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">app_name</td><td>name of the APP packet hook. Max 4 chars </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">RTP_OK</td><td>on success </td></tr>
+    <tr><td class="paramname">RTP_INVALID_VALUE</td><td>if hook with given app_name was not found </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="a0c092bca6edda19218a2cb84ed776c34" name="a0c092bca6edda19218a2cb84ed776c34"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0c092bca6edda19218a2cb84ed776c34">&#9670;&#160;</a></span>send_app_packet()</h2>
 
@@ -527,7 +560,7 @@ rtp_error_t&#160;</td><td class="memItemRight" valign="bottom"><b>remove_send_ap
 <p>Send an RTCP APP packet. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">name</td><td>Name of the APP item, e.g., EMAIL or PHONE </td></tr>
+    <tr><td class="paramname">name</td><td>Name of the APP item, e.g., STAT, must have a length of four ASCII characters </td></tr>
     <tr><td class="paramname">subtype</td><td>Subtype of the APP item </td></tr>
     <tr><td class="paramname">payload_len</td><td>Length of the payload </td></tr>
     <tr><td class="paramname">payload</td><td>Payload</td></tr>
