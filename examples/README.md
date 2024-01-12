@@ -133,15 +133,17 @@ NOTE: The hook should not be used for extensive media processing. It is meant to
 
 [How to create a simple RTP receiver (polling)](receiving_poll.cc)
 
-## Advanced RTP examples
+## Visual Volumetric Video-based Coding (V3C) streaming
 
-[How to modify uvgRTP behavior](configuration.cc)
+Using RTP for transmission of V3C bitstreams such as V-PCC or MIV files, stored in the *sample stream format* requires:
+1. Parsing the bitstream into NAL units for RTP transmission
+2. Reconstructing the V3C bitstream from received NAL units
 
-[How to fragment generic media types](sending_generic.cc)
+Included below are example implementations of these processes and the session structure of uvgRTP for V-PCC transmission.
 
-[How to enable UDP hole punching](binding.cc)
+[How to parse and transmit a V-PCC bitstream](v3c_sender.cc)
 
-[How to use custom timestamps correctly](custom_timestamps.cc)
+[How to receive and reconstruct a V-PCC bitstream](v3c_receiver.cc)
 
 ## RTCP example
 
@@ -156,3 +158,13 @@ Make sure you have checked the [build instructions](../BUILDING.md#linking-uvgrt
 [How to use multi-stream SRTP with ZRTP](zrtp_multistream.cc)
 
 [How to use SRTP with user-managed keys](srtp_user.cc)
+
+## Advanced RTP examples
+
+[How to modify uvgRTP behavior](configuration.cc)
+
+[How to fragment generic media types](sending_generic.cc)
+
+[How to enable UDP hole punching](binding.cc)
+
+[How to use custom timestamps correctly](custom_timestamps.cc)
