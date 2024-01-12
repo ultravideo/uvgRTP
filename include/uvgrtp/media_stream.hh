@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <atomic>
+#include <cstdint>
 
 #ifndef _WIN32
 #include <sys/socket.h>
