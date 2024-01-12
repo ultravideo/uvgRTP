@@ -1594,6 +1594,7 @@ rtp_error_t uvgrtp::rtcp::handle_app_packet(uint8_t* packet, size_t& read_ptr,
 rtp_error_t uvgrtp::rtcp::handle_fb_packet(uint8_t* packet, size_t& read_ptr,
     size_t packet_end, uvgrtp::frame::rtcp_header& header)
 {
+    (void)packet_end;
     auto frame = new uvgrtp::frame::rtcp_fb_packet;
     frame->header = header;
     read_ssrc(packet, read_ptr, frame->sender_ssrc);

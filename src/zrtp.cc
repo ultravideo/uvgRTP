@@ -969,7 +969,7 @@ rtp_error_t uvgrtp::zrtp::get_srtp_keys(
 
 rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out)
 {
-    if (size < 0 || (uint32_t)size < sizeof(uvgrtp::zrtp_msg::zrtp_msg))
+    if ((uint32_t)size < sizeof(uvgrtp::zrtp_msg::zrtp_msg))
     {
         return RTP_PKT_NOT_HANDLED;
     }
