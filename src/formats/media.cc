@@ -22,25 +22,25 @@ uvgrtp::formats::media::~media()
 }
 
 rtp_error_t uvgrtp::formats::media::push_frame(sockaddr_in& addr, sockaddr_in6& addr6,
-    uint8_t *data, size_t data_len, int rtp_flags)
+    uint8_t *data, size_t data_len, int rtp_flags, uint32_t ssrc)
 {
     if (!data || !data_len)
         return RTP_INVALID_VALUE;
 
-    return push_media_frame(addr, addr6, data, data_len, rtp_flags);
+    return push_media_frame(addr, addr6, data, data_len, rtp_flags, ssrc);
 }
 
 rtp_error_t uvgrtp::formats::media::push_frame(sockaddr_in& addr, sockaddr_in6& addr6,
-    std::unique_ptr<uint8_t[]> data, size_t data_len, int rtp_flags)
+    std::unique_ptr<uint8_t[]> data, size_t data_len, int rtp_flags, uint32_t ssrc)
 {
     if (!data || !data_len)
         return RTP_INVALID_VALUE;
 
-    return push_media_frame(addr, addr6, data.get(), data_len, rtp_flags);
+    return push_media_frame(addr, addr6, data.get(), data_len, rtp_flags, ssrc);
 }
 
 rtp_error_t uvgrtp::formats::media::push_media_frame(sockaddr_in& addr, sockaddr_in6& addr6,
-    uint8_t *data, size_t data_len, int rtp_flags)
+    uint8_t *data, size_t data_len, int rtp_flags, uint32_t ssrc)
 {
     (void)rtp_flags;
 
@@ -72,7 +72,7 @@ rtp_error_t uvgrtp::formats::media::push_media_frame(sockaddr_in& addr, sockaddr
             return ret;
         }
 
-        return fqueue_->flush_queue(addr, addr6);
+        return fqueue_->flush_queue(addr, addr6, ssrc);
     }
 
     size_t payload_size = rtp_ctx_->get_payload_size();
@@ -95,7 +95,7 @@ rtp_error_t uvgrtp::formats::media::push_media_frame(sockaddr_in& addr, sockaddr
         return ret;
     }
 
-    return fqueue_->flush_queue(addr, addr6);
+    return fqueue_->flush_queue(addr, addr6, ssrc);
 }
 
 uvgrtp::formats::media_frame_info_t *uvgrtp::formats::media::get_media_frame_info()

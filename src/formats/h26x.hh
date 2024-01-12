@@ -88,7 +88,7 @@ namespace uvgrtp {
                  *
                  * Return RTP_OK on success
                  * Return RTP_INVALID_VALUE if one of the parameters is invalid */
-                rtp_error_t push_media_frame(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *data, size_t data_len, int rtp_flags);
+                rtp_error_t push_media_frame(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *data, size_t data_len, int rtp_flags, uint32_t ssrc);
 
                 /* If the packet handler must return more than one frame, it can install a frame getter
                  * that is called by the auxiliary handler caller if packet_handler() returns RTP_MULTIPLE_PKTS_READY

@@ -54,8 +54,8 @@ namespace uvgrtp {
                  * implement if they require more processing than what the default implementation offers
                  *
                  * Return RTP_OK on success */
-                rtp_error_t push_frame(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *data, size_t data_len, int rtp_flags);
-                rtp_error_t push_frame(sockaddr_in& addr, sockaddr_in6& addr6, std::unique_ptr<uint8_t[]> data, size_t data_len, int rtp_flags);
+                rtp_error_t push_frame(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *data, size_t data_len, int rtp_flags, uint32_t ssrc);
+                rtp_error_t push_frame(sockaddr_in& addr, sockaddr_in6& addr6, std::unique_ptr<uint8_t[]> data, size_t data_len, int rtp_flags, uint32_t ssrc);
 
                 /* Media-specific packet handler. The default handler, depending on what "rce_flags_" contains,
                  * may only return the received RTP packet or it may merge multiple packets together before
@@ -75,7 +75,7 @@ namespace uvgrtp {
                 void set_fps(ssize_t enumarator, ssize_t denominator);
 
             protected:
-                virtual rtp_error_t push_media_frame(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *data, size_t data_len, int rtp_flags);
+                virtual rtp_error_t push_media_frame(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *data, size_t data_len, int rtp_flags, uint32_t ssrc);
 
                 std::shared_ptr<uvgrtp::socket> socket_;
                 std::shared_ptr<uvgrtp::rtp> rtp_ctx_;

@@ -5,6 +5,7 @@
 #include "formats/h264.hh"
 #include "formats/h265.hh"
 #include "formats/h266.hh"
+#include "formats/v3c.hh"
 #include "debug.hh"
 #include "random.hh"
 #include "rtp.hh"
@@ -222,6 +223,20 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
                 std::bind(&uvgrtp::formats::h266::frame_getter, format_266, std::placeholders::_1));
 
             media_.reset(format_266);
+            break;
+        }
+        case RTP_FORMAT_ATLAS:
+        {
+            uvgrtp::formats::v3c* format_v3c = new uvgrtp::formats::v3c(socket_, rtp_, rce_flags_);
+            reception_flow_->install_handler(
+                5, remote_ssrc_,
+                std::bind(&uvgrtp::formats::v3c::packet_handler, format_v3c, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                    std::placeholders::_4, std::placeholders::_5), nullptr
+            );
+            reception_flow_->install_getter(remote_ssrc_,
+                std::bind(&uvgrtp::formats::v3c::frame_getter, format_v3c, std::placeholders::_1));
+
+            media_.reset(format_v3c);
             break;
         }
         case RTP_FORMAT_OPUS:
@@ -533,11 +548,11 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int
         {
             data = copy_frame(data, data_len);
             std::unique_ptr<uint8_t[]> data_copy(data);
-            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data_copy), data_len, rtp_flags);
+            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data_copy), data_len, rtp_flags, ssrc_.get()->load());
         }
         else
         {
-            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, data, data_len, rtp_flags);
+            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, data, data_len, rtp_flags, ssrc_.get()->load());
         }
     }
 
@@ -553,7 +568,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
             holepuncher_->notify();
 
         // making a copy of a smart pointer does not make sense
-        ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data), data_len, rtp_flags);
+        ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data), data_len, rtp_flags, ssrc_.get()->load());
     }
 
     return ret;
@@ -572,11 +587,11 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, uin
         {
             data = copy_frame(data, data_len);
             std::unique_ptr<uint8_t[]> data_copy(data);
-            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data_copy), data_len, rtp_flags);
+            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data_copy), data_len, rtp_flags, ssrc_.get()->load());
         }
         else
         {
-            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, data, data_len, rtp_flags);
+            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, data, data_len, rtp_flags, ssrc_.get()->load());
         }
         rtp_->set_timestamp(INVALID_TS);
     }
@@ -598,11 +613,11 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t* data, size_t data_len, uin
         {
             data = copy_frame(data, data_len);
             std::unique_ptr<uint8_t[]> data_copy(data);
-            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data_copy), data_len, rtp_flags);
+            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data_copy), data_len, rtp_flags, ssrc_.get()->load());
         }
         else
         {
-            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, data, data_len, rtp_flags);
+            ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, data, data_len, rtp_flags, ssrc_.get()->load());
         }
         rtp_->set_timestamp(INVALID_TS);
     }
@@ -620,7 +635,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
 
         // making a copy of a smart pointer does not make sense
         rtp_->set_timestamp(ts);
-        ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data), data_len, rtp_flags);
+        ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data), data_len, rtp_flags, ssrc_.get()->load());
         rtp_->set_timestamp(INVALID_TS);
     }
 
@@ -638,7 +653,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
         // making a copy of a smart pointer does not make sense
         rtp_->set_timestamp(ts);
         rtp_->set_sampling_ntp(ntp_ts);
-        ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data), data_len, rtp_flags);
+        ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data), data_len, rtp_flags, ssrc_.get()->load());
         rtp_->set_timestamp(INVALID_TS);
     }
 

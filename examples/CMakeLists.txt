@@ -13,6 +13,8 @@ add_executable(srtp_zrtp)        # SRTP + ZRTP example
 add_executable(zrtp_multistream) # ZRTP Multistream example
 add_executable(sync_sender)      # Syncing streams example, sender
 add_executable(sync_receiver)    # Syncing streams example, receiver
+add_executable(v3c_receiver)
+add_executable(v3c_sender)
 
 # Sources
 target_sources(binding           PRIVATE binding.cc)
@@ -28,6 +30,12 @@ target_sources(srtp_zrtp         PRIVATE srtp_zrtp.cc)
 target_sources(zrtp_multistream  PRIVATE zrtp_multistream.cc)
 target_sources(sync_sender       PRIVATE sync_sender.cc)
 target_sources(sync_receiver     PRIVATE sync_receiver.cc)
+target_sources(v3c_receiver      PRIVATE v3c_receiver.cc v3c/v3c_util.cc v3c/v3c_util.hh)
+target_sources(v3c_sender        PRIVATE v3c_sender.cc v3c/v3c_util.cc v3c/v3c_util.hh)
+
+# V3C Utility files
+target_include_directories(v3c_receiver PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} v3c)
+target_include_directories(v3c_sender PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} v3c)
 
 # set crypto++ to be linked in examples if available
 if (NOT UVGRTP_DISABLE_CRYPTO AND CRYPTOPP_FOUND)
@@ -53,3 +61,5 @@ target_link_libraries(srtp_zrtp         PRIVATE uvgrtp ${CRYPTOPP_LIB_NAME})
 target_link_libraries(zrtp_multistream  PRIVATE uvgrtp ${CRYPTOPP_LIB_NAME})
 target_link_libraries(sync_sender       PRIVATE uvgrtp ${CRYPTOPP_LIB_NAME})
 target_link_libraries(sync_receiver     PRIVATE uvgrtp ${CRYPTOPP_LIB_NAME})
+target_link_libraries(v3c_receiver  PRIVATE uvgrtp ${CRYPTOPP_LIB_NAME})
+target_link_libraries(v3c_sender    PRIVATE uvgrtp ${CRYPTOPP_LIB_NAME})
