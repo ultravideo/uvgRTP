@@ -1,9 +1,9 @@
-if (NOT UVGRTP_DISABLE_TESTS)
-    # PThread
-    set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-    set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-    find_package( Threads REQUIRED )
+# PThread
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package( Threads REQUIRED )
 
+if (NOT UVGRTP_DISABLE_TESTS)
     # Git
     find_package(Git)
 
