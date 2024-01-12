@@ -250,6 +250,10 @@ void parse_v3c_header(v3c_unit_header &hdr, char* buf, uint64_t ptr)
 uint64_t get_size(std::string filename)
 {
     std::ifstream infile(filename, std::ios_base::binary);
+    if (!infile.is_open()) {
+        std::cout << "File not found" << std::endl;
+        return 0;
+    }
 
     //get length of file
     infile.seekg(0, infile.end);
@@ -262,6 +266,11 @@ uint64_t get_size(std::string filename)
 char* get_cmem(std::string filename)
 {
     std::ifstream infile(filename, std::ios_base::binary);
+
+    if (!infile.is_open()) {
+        std::cout << "File not found" << std::endl;
+        return 0;
+    }
 
     //get length of file
     infile.seekg(0, infile.end);

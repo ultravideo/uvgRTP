@@ -6,7 +6,7 @@
 #include <fstream>
 #include <chrono>
 
-/* This example demonstrates receiving V3C Sample Stream via uvgRTP. It can be used to send V-PCC encoded files, but with
+/* This example demonstrates receiving a V3C Sample Stream via uvgRTP. It can be used to send V-PCC encoded files, but with
  * minor modifications (addition of V3C_CAD and V3C_PVD streams) it can be used also for MIV encoded files. See the comments
  * in v3c_sender for more comprehensive documentation on V3C RTP streaming.
  
