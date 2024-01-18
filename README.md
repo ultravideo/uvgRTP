@@ -31,7 +31,7 @@ See [BUILDING.md](BUILDING.md) for instructions on how to build and use uvgRTP.
 
 ## Learning to use uvgRTP
 
-The [examples](examples) folder contains working examples and a basic tutorial on uvgRTP usage. For a more detailed description, check the [documentation](docs/README.md) where you can find info on advanced topics and descriptions of all uvgRTP flags.
+To get started using uvgRTP, check out [usage](USAGE.md) file which contains a step-by-step tutorial for using uvgRTP. To see uvgRTP in action, the [examples](examples) folder contains many working examples to illustrate how to use uvgRTP in variety of situations. For a more detailed description, check the [documentation](docs/README.md) where you can find info on advanced topics and descriptions of all uvgRTP flags.
 
 Furthermore, we also provide a Doxygen documentation of the [public API](https://ultravideo.github.io/uvgRTP/html/index.html) on Github.
 
