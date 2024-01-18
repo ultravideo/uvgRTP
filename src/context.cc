@@ -55,6 +55,11 @@ uvgrtp::context::~context()
 #endif
 }
 
+uvgrtp::session* uvgrtp::context::create_session(std::pair<std::string, std::string> addresses)
+{
+    return create_session(addresses.second, addresses.first);
+}
+
 uvgrtp::session *uvgrtp::context::create_session(std::string address)
 {
     if (address == "")

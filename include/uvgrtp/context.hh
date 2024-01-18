@@ -34,6 +34,18 @@ namespace uvgrtp {
             ~context();
 
             /**
+             * \brief Create a new RTP session between two IP addresses
+             *
+             * \param addresses Pair of a local and a remote IP address
+             *
+             * \return RTP session object
+             *
+             * \retval uvgrtp::session     On success
+             * \retval nullptr             If memory allocation failed
+             */
+            uvgrtp::session* create_session(std::pair<std::string, std::string> addresses);
+
+            /**
              * \brief Create a new RTP session
              *
              * \param address IP address of the remote participant
@@ -45,23 +57,10 @@ namespace uvgrtp {
              */
             uvgrtp::session *create_session(std::string address);
 
-            /**
-             * \brief Create a new RTP session
-             *
-             * \details If UDP holepunching should be utilized, in addition to remote IP
-             * address, the caller must also provide local IP address where uvgRTP
-             * should bind itself to. If you are using uvgRTP for unidirectional streaming,
-             * please take a look at @ref RCE_HOLEPUNCH_KEEPALIVE
-             *
-             * \param remote_addr IP address of the remote participant
-             * \param local_addr  IP address of a local interface
-             *
-             * \return RTP session object
-             *
-             * \retval uvgrtp::session     On success
-             * \retval nullptr              If memory allocation failed
-             */
+            /// \cond DO_NOT_DOCUMENT
+            // Obsolete method, replaced by create_session(std::pair<std::string, std::string> addresses);
             uvgrtp::session *create_session(std::string remote_addr, std::string local_addr);
+            /// \endcond
 
             /**
              * \brief Destroy RTP session and all of its media streams
