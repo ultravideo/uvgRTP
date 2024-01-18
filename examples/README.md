@@ -139,7 +139,7 @@ Using RTP for transmission of V3C bitstreams such as V-PCC or MIV files, stored 
 1. Parsing the bitstream into NAL units for RTP transmission
 2. Reconstructing the V3C bitstream from received NAL units
 
-Included below are example implementations of these processes and the session structure of uvgRTP for V-PCC transmission.
+Included below are example implementations of these processes and the session structure of uvgRTP for V-PCC transmission. You can download a suitable V-PCC test sequence [here](https://ultravideo.fi/uvgRTP_example_sequence_longdress.vpcc).
 
 [How to parse and transmit a V-PCC bitstream](v3c_sender.cc)
 
