@@ -51,7 +51,7 @@ uint8_t uvgrtp::formats::h266::get_start_code_range() const
 
 uvgrtp::formats::NAL_TYPE uvgrtp::formats::h266::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
 {
-    // see https://datatracker.ietf.org/doc/html/draft-ietf-avtcore-rtp-vvc#section-4.3.3
+    // see https://datatracker.ietf.org/doc/html/rfc9328#section-4.3.3
     uint8_t nal_type = frame->payload[2] & 0x3f;
 
     if (nal_type == H266_IDR_W_RADL)
@@ -64,7 +64,7 @@ uvgrtp::formats::NAL_TYPE uvgrtp::formats::h266::get_nal_type(uvgrtp::frame::rtp
 
 uint8_t uvgrtp::formats::h266::get_nal_type(uint8_t* data) const
 {
-    // see https://datatracker.ietf.org/doc/html/draft-ietf-avtcore-rtp-vvc#section-1.1.4
+    // see https://datatracker.ietf.org/doc/html/rfc9328#section-1.1.4
     return (data[1] >> 3) & 0x1f;
 }
 
