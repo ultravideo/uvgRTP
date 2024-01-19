@@ -2,6 +2,19 @@
 
 This directory contains a collection of commented and functioning examples that demonstrate the usage of uvgRTP.
 
+## Building the examples
+
+Compile the library according to instructions in [BUILDING.md](../BUILDING.md).
+Follow either Visual Studio or Linux compilation instructions below:
+
+### Visual Studio compilation
+
+Navigate to `uvgRTP/build/examples` and open the `uvgrtp_examples.sln` with Visual Studio, through which you can build the individual example programs.
+
+### Linux and MinGW compilation
+
+Navigate to `uvgRTP/build/examples` and compile the programs with the `make` command.
+
 ## Basic RTP examples
 
 [How to create a simple RTP sender](sending.cc) (Pair with one of the receiver examples)
@@ -14,16 +27,14 @@ NOTE: The hook should not be used for extensive media processing. It is meant to
 
 ## Visual Volumetric Video-based Coding (V3C) streaming
 
-Using RTP for transmission of V3C bitstreams such as V-PCC or MIV files, stored in the *sample stream format* includes:
-1. Parsing the bitstream into NAL units for RTP transmission
-2. Transmission of NAL units with uvgRTP
-3. Reconstructing the V3C bitstream from received NAL units
+To demonstrate V3C streaming, uvgRTP comes with example V3C sender and V3C receiver programs, found in `uvgRTP/build/examples`. Below are simple step-by-step instructions to run these programs:
 
-Included below are basic functioning examples that implement these processes and the session structure of uvgRTP for V-PCC transmission. You can download a suitable V-PCC test sequence [here](https://ultravideo.fi/uvgRTP_example_sequence_longdress.vpcc).
-
-[How to parse and transmit a V-PCC bitstream](v3c_sender.cc)
-
-[How to receive and reconstruct a V-PCC bitstream](v3c_receiver.cc)
+1. Build the library according to instructions in [BUILDING.md](../BUILDING.md). Crypto++ is not needed.
+3. Download a test sequence from [here](https://ultravideo.fi/uvgRTP_example_sequence_longdress.vpcc).
+4. Set the PATH variable in the [v3c_sender](v3c_sender.cc#L20) and [v3c_receiver](v3c_receiver.cc#L49) to the path of the test sequence.
+5. Build the `v3c_sender` and `v3c_receiver` applications according to building instructions on the top of this page.
+6. Start the `v3c_receiver` program.
+7. Start the `v3c_sender` program. The program will parse the test sequence for transmission and send it to the receiver.
 
 ## RTCP example
 
