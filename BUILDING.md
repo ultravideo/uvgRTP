@@ -49,6 +49,8 @@ After you have created the build files with CMake, open the solution and build t
 
 Add the path to uvgRTP include folder to `project -> Properties -> C/C++ -> General -> Additional Include Directories` for your project. Add `uvgrtp.lib` to `project -> Properties -> Linker -> Input -> Additional Dependencies` as a dependancy and specify the location of built library by adding the path to `project -> Properties -> Linker -> General -> Additional Library Directories`. Another option for finding the headers and the library is adding them to PATH.
 
+If you are not using CMake in your Visual Studio project, you may need to add additional libraries such as `ws2_32.lib` or `Advapi32.lib` to Visual Studio when linking uvgRTP.
+
 ##### Linking uvgRTP and Crypto++ to an application
 
 If Crypto++ is not found on Windows, it is assumed to be missing in uvgRTP to avoid unexpected build errors. You need to add 1) Crypto++ header location when compiling uvgRTP, 2) Crypto++ library dependancy for your project and 3) Crypto++ library location for you project. You can skip 1) and 3) if the files can be found in PATH. These instructions also apply to encryption portions of uvgRTP examples and test suite. 
