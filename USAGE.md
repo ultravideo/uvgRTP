@@ -20,7 +20,7 @@ Next, you will use the uvgrtp::context object to create uvgrtp::session objects.
 ```
 uvgrtp::session *sess = ctx.create_session("10.10.10.2");
 ```
-or 2) specify both local and remote addresses as a pair:
+or 2) specify two addresses as a pair. First local address, then remote address:
 
 ```
 std::pair<std::string, std::string> addresses("10.10.10.3", "10.10.10.2");
@@ -30,7 +30,7 @@ Mixing IPv4 and IPv6 addresses is not possible.
 
 ### Step 3: Create media_stream
 
-To send/receive actual media, a uvgrtp::media_stream object has to be created. The first parameter is the local port from which the sending happens and the second port is the port where the data is sent to (note that these are in the reverse order compared to creating the session). The third parameter specifies the RTP payload format which will be used for the outgoing and incoming data. The last parameter holds the flags that can be used to modify the behavior of created uvgrtp::media_stream. The flags can be combined using bitwise OR-operation(|). These flags start with prefix `RCE_` and the explanations can be found in docs folder of repository. RTCP can be enabled with `RCE_RTCP`-flag.
+To send/receive actual media, a uvgrtp::media_stream object has to be created. The first parameter is the local port from which the sending happens and the second port is the port where the data is sent to. The third parameter specifies the RTP payload format which will be used for the outgoing and incoming data. The last parameter holds the flags that can be used to modify the behavior of created uvgrtp::media_stream. The flags can be combined using bitwise OR-operation(|). These flags start with prefix `RCE_` and the explanations can be found in docs folder of repository. RTCP can be enabled with `RCE_RTCP`-flag.
 
 ```
 uvgrtp::media_stream *strm = sess->create_stream(8888, 8888, RTP_FORMAT_GENERIC, RCE_NO_FLAGS);
