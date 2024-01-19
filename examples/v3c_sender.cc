@@ -8,10 +8,16 @@
 #include <string>
 #include <atomic>
 
-constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
+/* Usage
+ * 1. Set the PATH in both sender and receiver to the V-PCC file to be transmitted. You can download it from a link on
+ *    Github in uvgrtp/examples
+ * 2. Start the receiver program
+ * 3. Start the sender program */
+
+constexpr char LOCAL_IP[] = "127.0.0.1";
 
 // Path to the V-PCC file that you want to send
-std::string PATH = "longdress.vpcc";
+std::string PATH = "";
 void sender_func(uvgrtp::media_stream* stream, const char* cbuf, const std::vector<v3c_unit_info> &units, rtp_flags_t flags, int fmt);
 
 std::atomic<uint64_t> bytes_sent;
@@ -68,7 +74,7 @@ int main(void)
 
     /* Create the necessary uvgRTP media streams */
     uvgrtp::context ctx;
-    uvgrtp::session* sess = ctx.create_session(REMOTE_ADDRESS, REMOTE_ADDRESS);
+    uvgrtp::session* sess = ctx.create_session(LOCAL_IP, LOCAL_IP);
 
     int flags = 0;
     v3c_streams streams = init_v3c_streams(sess, 8892, 8890, flags, false);

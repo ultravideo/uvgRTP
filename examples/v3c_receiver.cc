@@ -14,13 +14,13 @@
  * set the media streams payload format accordingly.
  */
 
-constexpr char LOCAL_ADDRESS[] = "127.0.0.1";
+constexpr char LOCAL_IP[] = "127.0.0.1";
 
-// This example runs for 5 seconds
+// This example runs for 10 seconds
 constexpr auto RECEIVE_TIME_S = std::chrono::seconds(10);
 
 // Hooks for the media streams
-void vps_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
+void vps_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame); // VPS only included for simplicity of demonstration
 void ad_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 void ovd_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 void gvd_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
@@ -29,9 +29,10 @@ void avd_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 uint64_t vps_count;
 
 /* These values specify the amount of NAL units inside each type of V3C unit. These need to be known to be able to reconstruct the 
- * file after receiving. These might be different for you depending on your test file. The sending example has prints that show
- * how many NAL units each V3C unit contain. Run it first and change these values accordingly. */
-constexpr int VPS_NALS = 2;
+ * GOFs after receiving. These default values correspond to the provided test sequence, and may be different for other sequences.
+ * The sending example has prints that show how many NAL units each V3C unit contain. For other sequences, these values can be
+ * modified accordingly. */
+constexpr int VPS_NALS = 2; // VPS only included for simplicity of demonstration
 constexpr int AD_NALS = 35;
 constexpr int OVD_NALS = 35;
 constexpr int GVD_NALS = 131;
@@ -41,12 +42,11 @@ constexpr int AVD_NALS = 131;
    and cannot reconstruct that specific GOF. s*/
 
 /* How many *FULL* Groups of Frames we are expecting to receive */
-constexpr int EXPECTED_GOFS = 10;
+constexpr int EXPECTED_GOFS = 9;
 
-/* Path to the V3C file that we are receiving.This is included so that you can check that the reconstructed file is equal to the
- * original one */
+/* Path to the V3C file that we are receiving. This is included so that you can check that the reconstructed full GOFs are equal to the
+ * original ones */
 std::string PATH = "";
-std::string RESULT_FILENAME = "received.vpcc";
 
 bool write_file(const char* data, size_t len, const std::string& filename);
 
@@ -54,16 +54,9 @@ int main(void)
 {
     std::cout << "Starting uvgRTP V3C receive hook example" << std::endl;
 
-    /* Read the original file and its size. This can be used later for verifying that the received and reconstructed file is valid */
-    uint64_t len = get_size(PATH);
-    std::cout << "Original file size " << len << std::endl;
-
-    char* original_buf = nullptr;
-    original_buf = get_cmem(PATH);
-
     /* Initialize uvgRTP context and session*/
     uvgrtp::context ctx;
-    uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS, LOCAL_ADDRESS);
+    uvgrtp::session* sess = ctx.create_session(LOCAL_IP, LOCAL_IP);
     int flags = 0;
 
     // Create the uvgRTP media streams with the correct RTP format
@@ -124,7 +117,6 @@ int main(void)
         }
     }
     std::cout << ngofs << " full GOFs received" << std::endl;
-    std::cout << "output file size " << bytes << std::endl;
 
     /* Reception done, clean up uvgRTP */
     sess->destroy_stream(streams.vps);
@@ -146,18 +138,27 @@ int main(void)
         ptr2 += p.second.size;
     }
 
+    /* Read the original file and its size for verification */
+    uint64_t len = get_size(PATH);
+    if (len == 0) {
+        return EXIT_FAILURE;
+    }
+    std::cout << "Reading original file for comparison " << len << std::endl;
+    char* original_buf = nullptr;
+    original_buf = get_cmem(PATH);
+
+    bool diff = false;
     // Compare reconstructed file with the original one
     for (auto i = 0; i < bytes; ++i) {
         if (original_buf[i] != out_buf[i]) {
             std::cout << "Difference at " << i << std::endl;
-            //break;
+            diff = true;
+            break;
         }
     }
-    std::cout << "No difference found" << std::endl;
-    
-    // Write the received file on the disk
-    std::cout << "Writing to file " << RESULT_FILENAME << std::endl;
-    write_file(out_buf, bytes, RESULT_FILENAME);
+    if (!diff) {
+        std::cout << "No difference found in " << EXPECTED_GOFS << " GOFs" << std::endl;
+    }
 
     delete[] out_buf;
 
