@@ -62,7 +62,8 @@ int main(void)
     }
 
     std::cout << "Initializing receivers" << std::endl;
-    uvgrtp::session *receiver_session = receiver_ctx.create_session(SENDER_ADDRESS, RECEIVER_ADDRESS);
+    std::pair<std::string, std::string> addresses_receiver(RECEIVER_ADDRESS, SENDER_ADDRESS);
+    uvgrtp::session *receiver_session = receiver_ctx.create_session(addresses_receiver);
 
     std::shared_ptr<std::mutex> print_mutex = std::shared_ptr<std::mutex> (new std::mutex);
 
@@ -86,7 +87,8 @@ int main(void)
 
     std::cout << "Initializing senders" << std::endl;
     uvgrtp::context sender_ctx;
-    uvgrtp::session *sender_session = sender_ctx.create_session(RECEIVER_ADDRESS, SENDER_ADDRESS);
+    std::pair<std::string, std::string> addresses_sender(SENDER_ADDRESS, RECEIVER_ADDRESS);
+    uvgrtp::session *sender_session = sender_ctx.create_session(addresses_sender);
 
     // start the senders in their own threads
     std::thread a_sender(sender_function, sender_session, rce_dh_flags, print_mutex,

@@ -64,7 +64,8 @@ int main(void)
 
     std::cout << "Initializing receivers" << std::endl;
     uvgrtp::context receiver_ctx;
-    uvgrtp::session* receiver_session = receiver_ctx.create_session(SENDER_ADDRESS, RECEIVER_ADDRESS);
+    std::pair<std::string, std::string> addresses_receiver(RECEIVER_ADDRESS, SENDER_ADDRESS);
+    uvgrtp::session* receiver_session = receiver_ctx.create_session(addresses_receiver);
 
     // start the audio and video receivers in different threads
     std::thread a_receiver(receive_function, receiver_session, rce_dh_flags, print_mutex,

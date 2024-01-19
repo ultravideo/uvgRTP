@@ -45,14 +45,16 @@ int main(void)
     std::cout << "Starting uvgRTP binding example" << std::endl;
 
     uvgrtp::context rtp_ctx;
-    uvgrtp::session *sending_session = rtp_ctx.create_session(LOCAL_INTERFACE, REMOTE_ADDRESS);
+    std::pair<std::string, std::string> addresses_sender(LOCAL_INTERFACE, REMOTE_ADDRESS);
+    uvgrtp::session *sending_session = rtp_ctx.create_session(addresses_sender);
     uvgrtp::media_stream *send = sending_session->create_stream(LOCAL_PORT, REMOTE_PORT,
                                                                 RTP_FORMAT_H265, RCE_NO_FLAGS);
 
     /* RCE flags or RTP Context Enable flags are given when creating the Media Stream.
        Notice the RCE_HOLEPUNCH_KEEPALIVE flag which keeps the NAT/firewall open */
     int flags = RCE_HOLEPUNCH_KEEPALIVE;
-    uvgrtp::session *receiving_session = rtp_ctx.create_session(REMOTE_ADDRESS, LOCAL_INTERFACE);
+    std::pair<std::string, std::string> addresses_receiver(REMOTE_ADDRESS, LOCAL_INTERFACE);
+    uvgrtp::session *receiving_session = rtp_ctx.create_session(addresses_receiver);
     uvgrtp::media_stream *recv = receiving_session->create_stream(REMOTE_PORT, LOCAL_PORT,
                                                                   RTP_FORMAT_H265, flags);
 

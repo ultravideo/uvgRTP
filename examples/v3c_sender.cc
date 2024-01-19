@@ -74,7 +74,8 @@ int main(void)
 
     /* Create the necessary uvgRTP media streams */
     uvgrtp::context ctx;
-    uvgrtp::session* sess = ctx.create_session(LOCAL_IP, LOCAL_IP);
+    std::pair<std::string, std::string> addresses_sender(LOCAL_IP, LOCAL_IP);
+    uvgrtp::session* sess = ctx.create_session(addresses_sender);
 
     int flags = 0;
     v3c_streams streams = init_v3c_streams(sess, 8892, 8890, flags, false);

@@ -58,10 +58,12 @@ int main(void)
         RCE_RECEIVE_ONLY;               /* interpret address/port as binding interface */
 
     uvgrtp::context ctx;
-    uvgrtp::session *local_session = ctx.create_session(REMOTE_ADDRESS, LOCAL_ADDRESS);
+    std::pair<std::string, std::string> addresses_sender(LOCAL_ADDRESS, REMOTE_ADDRESS);
+    uvgrtp::session *local_session = ctx.create_session(addresses_sender);
     uvgrtp::media_stream *send = local_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_H265, send_flags);
 
-    uvgrtp::session *remote_session = ctx.create_session(LOCAL_ADDRESS, REMOTE_ADDRESS);
+    std::pair<std::string, std::string> addresses_receiver(REMOTE_ADDRESS, LOCAL_ADDRESS);
+    uvgrtp::session *remote_session = ctx.create_session(addresses_receiver);
     uvgrtp::media_stream *receive = remote_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_H265, receive_flags);
 
     if (receive)

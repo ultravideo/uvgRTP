@@ -56,7 +56,8 @@ int main(void)
 
     /* Initialize uvgRTP context and session*/
     uvgrtp::context ctx;
-    uvgrtp::session* sess = ctx.create_session(LOCAL_IP, LOCAL_IP);
+    std::pair<std::string, std::string> addresses_receiver(LOCAL_IP, LOCAL_IP);
+    uvgrtp::session* sess = ctx.create_session(addresses_receiver);
     int flags = 0;
 
     // Create the uvgRTP media streams with the correct RTP format
