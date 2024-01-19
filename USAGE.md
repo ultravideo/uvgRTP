@@ -20,10 +20,11 @@ Next, you will use the uvgrtp::context object to create uvgrtp::session objects.
 ```
 uvgrtp::session *sess = ctx.create_session("10.10.10.2");
 ```
-or 2) specify both remote and local addresses:
+or 2) specify both local and remote addresses as a pair:
 
 ```
-uvgrtp::session *sess = ctx.create_session("10.10.10.2", "10.10.10.3");
+std::pair<std::string, std::string> addresses("10.10.10.3", "10.10.10.2");
+uvgrtp::session *sess = ctx.create_session(addresses);
 ```
 Mixing IPv4 and IPv6 addresses is not possible.
 
