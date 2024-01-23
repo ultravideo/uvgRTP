@@ -8,12 +8,6 @@
 #include <string>
 #include <atomic>
 
-/* Usage
- * 1. Set the PATH in both sender and receiver to the V-PCC file to be transmitted. You can download it from a link on
- *    Github in uvgrtp/examples
- * 2. Start the receiver program
- * 3. Start the sender program */
-
 constexpr char LOCAL_IP[] = "127.0.0.1";
 
 // Path to the V-PCC file that you want to send
@@ -21,7 +15,7 @@ std::string PATH = "";
 void sender_func(uvgrtp::media_stream* stream, const char* cbuf, const std::vector<v3c_unit_info> &units, rtp_flags_t flags, int fmt);
 
 std::atomic<uint64_t> bytes_sent;
-int main(void)
+int main(int argc, char* argv[])
 {
     /* This example demonstrates transmitting a file that is in the V3C sample stream format via uvgRTP. It can be used to transmit
      * V-PCC encoded files, but with minor modifications (addition of V3C_CAD and V3C_PVD streams) it can also be used for MIV
@@ -56,6 +50,13 @@ int main(void)
      - Remember to use RTP_NO_H26X_SCL flag when sending video frames, as there is no start codes in the video sub-streams
      - v3c_sender and v3c_receiver programs use common functions defined in v3c_util. */
 
+    if (argc != 2) {
+        std::cout << "Enter test file name as input parameter" << std::endl;
+        return EXIT_FAILURE;
+    }
+    else {
+        PATH = argv[1];
+    }
     bytes_sent = 0;
     v3c_file_map mmap;
 

@@ -31,12 +31,12 @@ NOTE: The hook should not be used for extensive media processing. It is meant to
 To demonstrate V3C streaming, uvgRTP comes with example V3C sender and V3C receiver programs, found in `uvgRTP/build/examples`. Below are simple step-by-step instructions to run these programs:
 
 1. Build the library according to instructions in [BUILDING.md](../BUILDING.md). Crypto++ is not needed.
+2. Build the `v3c_sender` and `v3c_receiver` applications according to building instructions on the top of this page.
 3. Download a test sequence from [here](https://ultravideo.fi/uvgRTP_example_sequence_longdress.vpcc).
-4. Set the PATH variable in the [v3c_sender](v3c_sender.cc#L20) and [v3c_receiver](v3c_receiver.cc#L49) to the path of the test sequence.
-5. Build the `v3c_sender` and `v3c_receiver` applications according to building instructions on the top of this page.
-6. Start the `v3c_receiver` program with `./v3c_receiver`
-7. Start the `v3c_sender` program with `./v3c_sender`. The program will parse the test sequence for transmission and send it to the receiver.
-8. The with `v3c_receiver` will print information on the reception and reconstruction of the V3C bitstream.
+4. Place the test sequence in uvgRTP/build/examples/Release
+5. Start the `v3c_receiver` program with `./v3c_receiver uvgRTP_example_sequence_longdress.vpcc`. If you have changed the filename, modify the command accordingly.
+6. Start the `v3c_sender` program with `./v3c_sender uvgRTP_example_sequence_longdress.vpcc`. The program will parse the test sequence for transmission and send it to the receiver.
+7. The with `v3c_receiver` will print information on the reception and reconstruction of the V3C bitstream.
 
 ## RTCP example
 

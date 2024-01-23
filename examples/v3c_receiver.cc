@@ -50,8 +50,16 @@ std::string PATH = "";
 
 bool write_file(const char* data, size_t len, const std::string& filename);
 
-int main(void)
+int main(int argc, char* argv[])
 {
+    if (argc != 2) {
+        std::cout << "Enter test file name as input parameter" << std::endl;
+        return EXIT_FAILURE;
+    }
+    else {
+        PATH = argv[1];
+    }
+
     std::cout << "Starting uvgRTP V3C receive hook example" << std::endl;
 
     /* Initialize uvgRTP context and session*/
