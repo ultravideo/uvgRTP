@@ -152,7 +152,6 @@ int main(void)
     // Compare reconstructed file with the original one
     for (auto i = 0; i < bytes; ++i) {
         if (original_buf[i] != out_buf[i]) {
-            std::cout << "Difference at " << i << std::endl;
             diff = true;
             break;
         }

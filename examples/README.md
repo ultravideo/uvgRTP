@@ -9,7 +9,8 @@ Follow either Visual Studio or Linux compilation instructions below:
 
 ### Visual Studio compilation
 
-Navigate to `uvgRTP/build/examples` and open the `uvgrtp_examples.sln` with Visual Studio, through which you can build the individual example programs.
+Navigate to `uvgRTP/build/examples` and open the `uvgrtp_examples.sln` with Visual Studio, through which you can build the individual example programs. When building, select the Release x64 version.
+The built executable files will be found in uvgRTP/build/examples/Release
 
 ### Linux and MinGW compilation
 
@@ -33,8 +34,9 @@ To demonstrate V3C streaming, uvgRTP comes with example V3C sender and V3C recei
 3. Download a test sequence from [here](https://ultravideo.fi/uvgRTP_example_sequence_longdress.vpcc).
 4. Set the PATH variable in the [v3c_sender](v3c_sender.cc#L20) and [v3c_receiver](v3c_receiver.cc#L49) to the path of the test sequence.
 5. Build the `v3c_sender` and `v3c_receiver` applications according to building instructions on the top of this page.
-6. Start the `v3c_receiver` program.
-7. Start the `v3c_sender` program. The program will parse the test sequence for transmission and send it to the receiver.
+6. Start the `v3c_receiver` program with `./v3c_receiver`
+7. Start the `v3c_sender` program with `./v3c_sender`. The program will parse the test sequence for transmission and send it to the receiver.
+8. The with `v3c_receiver` will print information on the reception and reconstruction of the V3C bitstream.
 
 ## RTCP example
 
