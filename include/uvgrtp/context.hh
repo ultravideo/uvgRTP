@@ -36,7 +36,7 @@ namespace uvgrtp {
             /**
              * \brief Create a new RTP session between two IP addresses
              *
-             * \param addresses Pair of a local and a remote IP address
+             * \param addresses Local and remote IP address for session as a pair
              *
              * \return RTP session object
              *
