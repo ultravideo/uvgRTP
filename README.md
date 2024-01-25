@@ -17,7 +17,8 @@ Currently supported specifications:
 
 ## Notable features
 
-* AVC/HEVC/VVC/V3C Atlas video streaming, including packetization
+* AVC/HEVC/VVC video streaming, including packetization
+* V3C Atlas streaming, including packetization
 * Ready support for many formats which don't need packetization, including Opus
 * Delivery encryption with SRTP
 * Encryption key negotiation with ZRTP
