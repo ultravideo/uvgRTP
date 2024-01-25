@@ -16,7 +16,6 @@ if (Git_FOUND)
                 test_4_formats.cpp
                 test_5_srtp_zrtp.cpp
                 test_6_scl_unit_test.cpp
-                test_7_ipv6.cpp
                 test_common.hh
             )
 

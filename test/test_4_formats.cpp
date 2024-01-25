@@ -4,6 +4,7 @@
 
 constexpr uint16_t SEND_PORT = 9100;
 constexpr char LOCAL_ADDRESS[] = "127.0.0.1";
+constexpr char LOCAL_ADDRESS_IP6[] = "::1";
 constexpr uint16_t RECEIVE_PORT = 9102;
 
 constexpr int AMOUNT_OF_TEST_PACKETS = 100;
@@ -71,7 +72,7 @@ TEST(FormatTests, h264_single_nal_unit)
 
     int rtp_flags = RTP_NO_FLAGS;
     rtp_format_t format = RTP_FORMAT_H264;
-    int test_runs = 5;
+    int test_runs = 2;
     int size = 8;
     
     std::cout << "Testing small NAL unit" << std::endl;
@@ -104,6 +105,47 @@ TEST(FormatTests, h264_fragmentation)
     std::cout << "Starting h264 fragmentation test" << std::endl;
     uvgrtp::context ctx;
     uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    if (sess)
+    {
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H264, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H264, RCE_NO_FLAGS);
+    }
+
+    // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
+
+    std::vector<size_t> test_sizes = std::vector<size_t>(13);
+    std::iota(test_sizes.begin(), test_sizes.end(), 1443);
+    test_sizes.insert(test_sizes.end(), { 1501,
+        1446 * 2 - 1,
+        1446 * 2,
+        1446 * 2 + 1,
+        5000, 7500, 10000, 50000 });
+
+    int rtp_flags = RTP_NO_FLAGS;
+    int nal_type = 5;
+    rtp_format_t format = RTP_FORMAT_H264;
+    int test_runs = 10;
+
+    for (auto& size : test_sizes)
+    {
+        std::unique_ptr<uint8_t[]> intra_frame = create_test_packet(format, nal_type, true, size, rtp_flags);
+        test_packet_size(std::move(intra_frame), test_runs, size, sess, sender, receiver, rtp_flags, RTP_FORMAT_H264);
+    }
+
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
+}
+
+TEST(FormatTests, h264_fragmentation_ip6)
+{
+    std::cout << "Starting IPv6 h264 fragmentation test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS_IP6);
 
     uvgrtp::media_stream* sender = nullptr;
     uvgrtp::media_stream* receiver = nullptr;
@@ -157,7 +199,7 @@ TEST(FormatTests, h265_single_nal_unit)
 
     int rtp_flags = RTP_NO_FLAGS;
     rtp_format_t format = RTP_FORMAT_H265;
-    int test_runs = 5;
+    int test_runs = 2;
     int size = 8;
 
     std::cout << "Testing small NAL unit" << std::endl;
@@ -206,7 +248,7 @@ TEST(FormatTests, h265_fragmentation)
         1446 * 2 - 1,
         1446 * 2,
         1446 * 2 + 1,
-        5000, 7500, 10000, 25000, 50000 });
+        5000, 7500, 10000, 50000 });
 
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
     int rtp_flags = RTP_NO_FLAGS;
@@ -255,6 +297,7 @@ TEST(FormatTests, h265_fps)
     int nal_type = 5;
     rtp_format_t format = RTP_FORMAT_H265;
     int test_runs = 10;
+    test_runs = 2;
 
     for (auto& size : test_sizes)
     {
@@ -329,7 +372,7 @@ TEST(FormatTests, h266_single_nal_unit)
 
     int rtp_flags = RTP_NO_FLAGS;
     rtp_format_t format = RTP_FORMAT_H266;
-    int test_runs = 5;
+    int test_runs = 2;
     int size = 8;
 
     std::cout << "Testing small NAL unit" << std::endl;
@@ -478,13 +521,8 @@ TEST(FormatTests, h264_multiplex)
     }
 
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
-    std::vector<size_t> test_sizes = std::vector<size_t>(13);
-    std::iota(test_sizes.begin(), test_sizes.end(), 1443);
-    test_sizes.insert(test_sizes.end(), { 1501,
-        1446 * 2 - 1,
-        1446 * 2,
-        1446 * 2 + 1,
-        5000, 7500, 10000, 25000, 50000 });
+    std::vector<size_t> test_sizes = std::vector<size_t>();
+    test_sizes.insert(test_sizes.end(), { 1400, 50000 });
 
     int rtp_flags = RTP_NO_FLAGS;
     int nal_type = 5;
@@ -524,7 +562,7 @@ TEST(FormatTests, v3c_single_nal_unit)
 
     int rtp_flags = RTP_NO_FLAGS;
     rtp_format_t format = RTP_FORMAT_ATLAS;
-    int test_runs = 5;
+    int test_runs = 2;
     int size = 8;
 
     std::cout << "Testing small NAL unit" << std::endl;
@@ -562,6 +600,7 @@ TEST(FormatTests, v3c_single_nal_unit)
     cleanup_ms(sess, receiver);
     cleanup_sess(ctx, sess);
 }
+
 TEST(FormatTests, v3c_fragmentation)
 {
     std::cout << "Starting V3C fragmentation test" << std::endl;

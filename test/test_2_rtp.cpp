@@ -8,7 +8,10 @@
 constexpr uint16_t SEND_PORT = 9300;
 
 constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
+constexpr char REMOTE_ADDRESS_IP6[] = "::1";
 constexpr char MULTICAST_ADDRESS[] = "224.0.0.122";
+constexpr char MULTICAST_ADDRESS_IP6[] = "FF02:0:0:0:0:0:0:0";
+
 constexpr uint16_t RECEIVE_PORT = 9302;
 
 void rtp_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
@@ -53,6 +56,36 @@ TEST(RTPTests, rtp_hook)
     std::cout << "Starting RTP hook test" << std::endl;
     uvgrtp::context ctx;
     uvgrtp::session* sess = ctx.create_session(REMOTE_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    int flags = RCE_FRAGMENT_GENERIC;
+    if (sess)
+    {
+        sender = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_GENERIC, flags);
+        receiver = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
+    }
+
+    int test_packets = 10;
+    std::vector<size_t> sizes = { 1000, 2000 };
+    for (size_t& size : sizes)
+    {
+        std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
+        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receiver, RTP_NO_FLAGS, RTP_FORMAT_GENERIC);
+    }
+
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
+}
+
+TEST(RTPTests, rtp_hook_ip6)
+{
+    // Tests installing a hook to uvgRTP
+    std::cout << "Starting IPv6 RTP hook test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(REMOTE_ADDRESS_IP6);
 
     uvgrtp::media_stream* sender = nullptr;
     uvgrtp::media_stream* receiver = nullptr;
@@ -430,7 +463,7 @@ TEST(RTPTests, rtp_multicast)
     cleanup_sess(ctx, sess);
 }
 
-TEST(RTPTests, rtp_multicast_multiple)
+TEST(RTPTests, rtp_multicast_multiple_ip4)
 {
     // Tests with a multicast address
     std::cout << "Starting RTP multicast test" << std::endl;
@@ -458,6 +491,37 @@ TEST(RTPTests, rtp_multicast_multiple)
 
     cleanup_ms(sess, sender);
     for (auto receiver: receivers) cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
+}
+
+TEST(RTPTests, rtp_multicast_multiple_ip6)
+{
+    // Tests with a multicast address
+    std::cout << "Starting RTP multicast test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(MULTICAST_ADDRESS_IP6, MULTICAST_ADDRESS_IP6);
+
+    EXPECT_NE(nullptr, sess);
+    if (!sess) return;
+
+    int flags = RCE_FRAGMENT_GENERIC;
+
+    auto sender = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_GENERIC, flags);
+    std::vector<uvgrtp::media_stream*> receivers = {
+        sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags),
+        sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags)
+    };
+
+    int test_packets = 10;
+    std::vector<size_t> sizes = { 1000, 2000 };
+    for (size_t& size : sizes)
+    {
+        std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
+        test_packet_size(std::move(test_frame), test_packets, size, sess, sender, receivers, RTP_NO_FLAGS, RTP_FORMAT_GENERIC);
+    }
+
+    cleanup_ms(sess, sender);
+    for (auto receiver : receivers) cleanup_ms(sess, receiver);
     cleanup_sess(ctx, sess);
 }
 
@@ -653,6 +717,7 @@ TEST(RTPTests, rtp_multiplex_poll)
     cleanup_sess(ctx, sender_sess);
     cleanup_sess(ctx, receiver_sess);
 }
+
 /* User packets disabled for now
 TEST(RTPTests, uvgrtp_user_frames)
 {

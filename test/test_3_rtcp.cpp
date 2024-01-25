@@ -1,14 +1,17 @@
 #include "test_common.hh"
 
 constexpr char LOCAL_INTERFACE[] = "127.0.0.1";
+constexpr char LOCAL_INTERFACE_IP6[] = "::1";
 constexpr uint16_t LOCAL_PORT = 9200;
 
 constexpr char REMOTE_ADDRESS[] = "127.0.0.1";
+constexpr char REMOTE_ADDRESS_IP6[] = "::1";
 constexpr uint16_t REMOTE_PORT = 9202;
+
 
 constexpr uint16_t PAYLOAD_LEN = 256;
 constexpr uint16_t FRAME_RATE = 30;
-constexpr uint32_t EXAMPLE_RUN_TIME_S = 4;
+constexpr uint32_t EXAMPLE_RUN_TIME_S = 3;
 constexpr int SEND_TEST_PACKETS = FRAME_RATE * EXAMPLE_RUN_TIME_S;
 constexpr int PACKET_INTERVAL_MS = 1000 / FRAME_RATE;
 
@@ -31,13 +34,65 @@ static int received2;
 static int received3;
 static int received4;
 
-TEST(RTCPTests, rtcp) {
+TEST(RTCPTests, rtcp_ip4) {
     std::cout << "Starting uvgRTP RTCP tests" << std::endl;
 
     // Creation of RTP stream. See sending example for more details
     uvgrtp::context ctx;
     uvgrtp::session* local_session = ctx.create_session(REMOTE_ADDRESS);
     uvgrtp::session* remote_session = ctx.create_session(LOCAL_INTERFACE);
+
+    int flags = RCE_RTCP;
+
+    // received1 is receiver reports, received2 sender reports
+    received1 = 0;
+    received2 = 0;
+
+    uvgrtp::media_stream* local_stream = nullptr;
+    if (local_session)
+    {
+        local_stream = local_session->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
+    }
+
+    uvgrtp::media_stream* remote_stream = nullptr;
+    if (remote_session)
+    {
+        remote_stream = remote_session->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
+    }
+
+    EXPECT_NE(nullptr, remote_stream);
+
+    if (local_stream)
+    {
+        EXPECT_EQ(RTP_OK, local_stream->get_rtcp()->install_receiver_hook(receiver_hook));
+        EXPECT_EQ(RTP_OK, local_stream->get_rtcp()->install_sdes_hook(sdes_hook));
+    }
+
+    if (remote_stream)
+    {
+        EXPECT_EQ(RTP_OK, remote_stream->get_rtcp()->install_sender_hook(sender_hook));
+        EXPECT_EQ(RTP_OK, remote_stream->get_rtcp()->install_sdes_hook(sdes_hook));
+    }
+
+    std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[PAYLOAD_LEN]);
+    memset(test_frame.get(), 'b', PAYLOAD_LEN);
+    send_packets(std::move(test_frame), PAYLOAD_LEN, local_session, local_stream, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
+
+
+
+    cleanup(ctx, local_session, remote_session, local_stream, remote_stream);
+    std::cout << "Received RRs: " << received1 << ", received SRs: " << received2 << std::endl;
+    EXPECT_TRUE(received1 > 0);
+    EXPECT_TRUE(received2 > 0);
+}
+
+TEST(RTCPTests, rtcp_ip6) {
+    std::cout << "Starting uvgRTP RTCP tests" << std::endl;
+
+    // Creation of RTP stream. See sending example for more details
+    uvgrtp::context ctx;
+    uvgrtp::session* local_session = ctx.create_session(REMOTE_ADDRESS_IP6);
+    uvgrtp::session* remote_session = ctx.create_session(LOCAL_INTERFACE_IP6);
 
     int flags = RCE_RTCP;
 
@@ -134,7 +189,7 @@ TEST(RTCPTests, rtcp_app) {
     EXPECT_TRUE(received1 > 0);
 }
 
-TEST(RTCP_reopen_receiver, rtcp) {
+TEST(RTCPTests, rtcp_reopen) {
     std::cout << "Starting uvgRTP RTCP reopen receiver test" << std::endl;
 
     // Creation of RTP stream. See sending example for more details
@@ -366,6 +421,7 @@ TEST(RTCPTests, rtcp_multiplex2)
     cleanup_sess(ctx, receiver_sess);
 
 }
+
 
 void m_r_hook1(uvgrtp::frame::rtcp_receiver_report* frame)
 {

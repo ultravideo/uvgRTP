@@ -3,9 +3,11 @@
 
 // network parameters of example
 constexpr char SENDER_ADDRESS[] = "127.0.0.1";
+constexpr char SENDER_ADDRESS_IP6[] = "::1";
 constexpr uint16_t SENDER_PORT = 9000;
 
 constexpr char RECEIVER_ADDRESS[] = "127.0.0.1";
+constexpr char RECEIVER_ADDRESS_IP6[] = "::1";
 constexpr uint16_t RECEIVER_PORT = 9042;
 
 constexpr auto EXAMPLE_DURATION_S = std::chrono::seconds(2);
@@ -270,7 +272,7 @@ TEST(EncryptionTests, zrtp_multistream)
         return;
     }
 
-    /* Enable SRTP and ZRTP */
+    // Enable SRTP and ZRTP
     unsigned zrtp_dh_flags      = RCE_SRTP   | RCE_SRTP_KMNGMNT_ZRTP | RCE_ZRTP_DIFFIE_HELLMAN_MODE;
 
     // only one of the streams should perform DH
@@ -289,6 +291,82 @@ TEST(EncryptionTests, zrtp_multistream)
         std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, false));
 
     std::unique_ptr<std::thread> receiver_thread2 = 
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, false));
+
+    std::unique_ptr<std::thread> sender_thread3 =
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 6, RECEIVER_PORT + 6, zrtp_multistream_flags, false));
+
+    std::unique_ptr<std::thread> receiver_thread3 =
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 6, RECEIVER_PORT + 6, zrtp_multistream_flags, false));
+
+    if (receiver_thread1 && receiver_thread1->joinable())
+    {
+        receiver_thread1->join();
+    }
+
+    if (sender_thread1 && sender_thread1->joinable())
+    {
+        sender_thread1->join();
+    }
+
+    if (sender_thread2 && sender_thread2->joinable())
+    {
+        sender_thread2->join();
+    }
+
+    if (receiver_thread2 && receiver_thread2->joinable())
+    {
+        receiver_thread2->join();
+    }
+
+    if (sender_thread3 && sender_thread3->joinable())
+    {
+        sender_thread3->join();
+    }
+
+    if (receiver_thread3 && receiver_thread3->joinable())
+    {
+        receiver_thread3->join();
+    }
+
+    std::cout << received_packets << " / 30 packets received" << std::endl;
+    EXPECT_TRUE(received_packets > 25);
+
+    cleanup_sess(ctx, sender_session);
+    cleanup_sess(ctx, receiver_session);
+}
+
+TEST(EncryptionTests, zrtp_multistream_ip6)
+{
+    uvgrtp::context ctx;
+    received_packets = 0;
+
+    if (!ctx.crypto_enabled())
+    {
+        std::cout << "Please link crypto to uvgRTP library in order to tests its ZRTP feature!" << std::endl;
+        FAIL();
+        return;
+    }
+
+    // Enable SRTP and ZRTP
+    unsigned zrtp_dh_flags = RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_ZRTP_DIFFIE_HELLMAN_MODE;
+
+    // only one of the streams should perform DH
+    unsigned int zrtp_multistream_flags = RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_ZRTP_MULTISTREAM_MODE;
+
+    uvgrtp::session* sender_session = ctx.create_session(RECEIVER_ADDRESS_IP6, SENDER_ADDRESS_IP6);
+    uvgrtp::session* receiver_session = ctx.create_session(SENDER_ADDRESS_IP6, RECEIVER_ADDRESS_IP6);
+
+    std::unique_ptr<std::thread> sender_thread1 =
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_dh_flags, false));
+
+    std::unique_ptr<std::thread> receiver_thread1 =
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_dh_flags, false));
+
+    std::unique_ptr<std::thread> sender_thread2 =
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, false));
+
+    std::unique_ptr<std::thread> receiver_thread2 =
         std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, false));
 
     std::unique_ptr<std::thread> sender_thread3 =
