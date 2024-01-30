@@ -37,6 +37,10 @@ To get started using uvgRTP, check out [usage](USAGE.md) file which contains a s
 
 Furthermore, we also provide a Doxygen documentation of the [public API](https://ultravideo.github.io/uvgRTP/html/index.html) on Github.
 
+## Ultra Video Group in Discord
+
+Contact us in our Discord if you have questions or comments regarding the library [![Discord](https://img.shields.io/discord/973260924288901140?style=plastic)](https://discord.gg/fZpub7BPUA)
+
 ## Contributing
 
 We warmly welcome any contributions to the project. If you are considering submitting a pull request, please read [CONTRIBUTING.md](CONTRIBUTING.md) before proceeding.
