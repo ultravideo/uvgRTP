@@ -21,7 +21,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">uvgRTP<span id="projectnumber">&#160;2.3.0</span>
+   <div id="projectname">uvgRTP<span id="projectnumber">&#160;3.0.0</span>
    </div>
    <div id="projectbrief">An open-source library for RTP/SRTP media delivery</div>
   </td>
@@ -73,22 +73,24 @@ $(function() {
   <div class="headertitle"><div class="title">uvgRTP </div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p><a class="anchor" id="md_html_INDEX"></a> uvgRTP is an <em>Real-Time Transport Protocol (RTP)</em> library written in C++ with a focus on simple to use and high-efficiency media delivery over the Internet. It features an intuitive and easy-to-use <em>Application Programming Interface (API)</em>, built-in support for transporting <em>Versatile Video Coding (VVC)</em>, <em>High Efficiency Video Coding (HEVC)</em>, <em>Advanced Video Coding (AVC)</em> encoded video and Opus encoded audio. uvgRTP also supports <em>End-to-End Encrypted (E2EE)</em> media delivery using the combination of <em>Secure RTP (SRTP)</em> and ZRTP. According to <a href="https://researchportal.tuni.fi/en/publications/open-source-rtp-library-for-high-speed-4k-hevc-video-streaming">our measurements</a> uvgRTP is able to reach a goodput of 600 MB/s (4K at 700fps) for HEVC stream when measured in LAN. The CPU usage is relative to the goodput value, and therefore smaller streams have a very small CPU usage.</p>
-<p>uvgRTP is licensed under the permissive BSD 2-Clause License. This cross-platform library can be run on both Linux and Windows operating systems. Mac OS is also supported, but the support relies on community contributions. For SRTP/ZRTP support, uvgRTP uses <a href="https://www.cryptopp.com/">Crypto++ library</a>.</p>
+<div class="textblock"><p><a class="anchor" id="md_html_INDEX"></a> uvgRTP is an <em>Real-Time Transport Protocol (RTP)</em> library written in C++ with a focus on simple to use and high-efficiency media delivery over the Internet. It features an intuitive and easy-to-use <em>Application Programming Interface (API)</em>, built-in support for transporting <em>Versatile Video Coding (VVC)</em>, <em>High Efficiency Video Coding (HEVC)</em>, <em>Advanced Video Coding (AVC)</em> encoded video and Opus encoded audio. uvgRTP also supports <em>End-to-End Encrypted (E2EE)</em> media delivery using the combination of <em>Secure RTP (SRTP)</em> and ZRTP. uvgRTP has been designed to minimize memory operations to reduce its CPU usage and latency.</p>
+<p>uvgRTP is licensed under the permissive BSD 2-Clause License. This cross-platform library can be run on both Linux and Windows operating systems. Mac OS is also supported, but the support relies on community contributions. For SRTP/ZRTP support, uvgRTP uses the <a href="https://www.cryptopp.com/">Crypto++ library</a>.</p>
 <p>Currently supported specifications:</p><ul>
-<li><a href="https://tools.ietf.org/html/rfc3550">RFC 3550: RTP: A Transport Protocol for Real-Time Applications</a></li>
-<li><a href="https://tools.ietf.org/html/rfc3551">RFC 3551: RTP Profile for Audio and Video Conferences</a></li>
-<li><a href="https://tools.ietf.org/html/rfc6184">RFC 6184: RTP Payload Format for H.264 Video</a></li>
-<li><a href="https://tools.ietf.org/html/rfc7798">RFC 7798: RTP Payload Format for High Efficiency Video Coding (HEVC)</a></li>
-<li><a href="https://tools.ietf.org/html/draft-ietf-avtcore-rtp-vvc-18">Draft: RTP Payload Format for Versatile Video Coding (VVC)</a></li>
-<li><a href="https://tools.ietf.org/html/rfc7587">RFC 7587: RTP Payload Format for the Opus Speech and Audio Codec</a></li>
-<li><a href="https://tools.ietf.org/html/rfc3711">RFC 3711: The Secure Real-time Transport Protocol (SRTP)</a></li>
-<li><a href="https://tools.ietf.org/html/rfc6189">RFC 6189: ZRTP: Media Path Key Agreement for Unicast Secure RTP</a></li>
+<li><a href="https://datatracker.ietf.org/doc/html/rfc3550">RFC 3550: RTP: A Transport Protocol for Real-Time Applications</a></li>
+<li><a href="https://datatracker.ietf.org/doc/html/rfc3551">RFC 3551: RTP Profile for Audio and Video Conferences</a></li>
+<li><a href="https://datatracker.ietf.org/doc/html/rfc6184">RFC 6184: RTP Payload Format for H.264 Video</a></li>
+<li><a href="https://datatracker.ietf.org/doc/html/rfc7798">RFC 7798: RTP Payload Format for High Efficiency Video Coding (HEVC)</a></li>
+<li><a href="https://datatracker.ietf.org/doc/html/rfc9328">RFC 9328: RTP Payload Format for Versatile Video Coding (VVC)</a></li>
+<li><a href="https://datatracker.ietf.org/doc/html/rfc7587">RFC 7587: RTP Payload Format for the Opus Speech and Audio Codec</a></li>
+<li><a href="https://datatracker.ietf.org/doc/draft-ietf-avtcore-rtp-v3c/">RFC draft: RTP Payload Format for Visual Volumetric Video-based Coding (V3C)</a></li>
+<li><a href="https://datatracker.ietf.org/doc/html/rfc3711">RFC 3711: The Secure Real-time Transport Protocol (SRTP)</a></li>
+<li><a href="https://datatracker.ietf.org/doc/html/rfc6189">RFC 6189: ZRTP: Media Path Key Agreement for Unicast Secure RTP</a></li>
 </ul>
 <h1><a class="anchor" id="autotoc_md1"></a>
 Notable features</h1>
 <ul>
 <li>AVC/HEVC/VVC video streaming, including packetization</li>
+<li>V3C Atlas streaming, including packetization</li>
 <li>Ready support for many formats which don't need packetization, including Opus</li>
 <li>Delivery encryption with SRTP</li>
 <li>Encryption key negotiation with ZRTP</li>

@@ -21,7 +21,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">uvgRTP<span id="projectnumber">&#160;2.3.0</span>
+   <div id="projectname">uvgRTP<span id="projectnumber">&#160;3.0.0</span>
    </div>
    <div id="projectbrief">An open-source library for RTP/SRTP media delivery</div>
   </td>
@@ -82,7 +82,7 @@ $(function() {
 <table class="directory">
   <tr class="even"><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html#a0950a91bd645cbf842d8218ae4171aed">add_srtp_ctx</a>(uint8_t *key, uint8_t *salt)</td><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a></td><td class="entry"></td></tr>
   <tr class="odd"><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html#a2cee4fe3bf423ec317b4a3eacc136238">configure_ctx</a>(int rcc_flag, ssize_t value)</td><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a></td><td class="entry"></td></tr>
-  <tr bgcolor="#f0f0f0" class="even"><td class="entry"><b>get_ipv6</b>() const (defined in <a class="el" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a>)</td><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a></td><td class="entry"></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html#acee8dd45e8c6ebbb1af52bb54dd7c40d">get_configuration_value</a>(int rcc_flag)</td><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a></td><td class="entry"></td></tr>
   <tr class="odd"><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html#ab339f15d5a852beacd901b7b78e887ea">get_rtcp</a>()</td><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a></td><td class="entry"></td></tr>
   <tr class="even"><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html#a8796cb34e0e6c61af8cabd13dd6793b5">get_ssrc</a>() const</td><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a></td><td class="entry"></td></tr>
   <tr class="odd"><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html#a74a558b23866976e52c5903996544a27">install_receive_hook</a>(void *arg, void(*hook)(void *, uvgrtp::frame::rtp_frame *))</td><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a></td><td class="entry"></td></tr>
@@ -94,6 +94,7 @@ $(function() {
   <tr class="odd"><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html#a5577c57f1bdd5b888aa4e8c4f939eba7">push_frame</a>(uint8_t *data, size_t data_len, uint32_t ts, uint64_t ntp_ts, int rtp_flags)</td><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a></td><td class="entry"></td></tr>
   <tr class="even"><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html#abe9099254c6bf16f255f5f50441ec9d2">push_frame</a>(std::unique_ptr&lt; uint8_t[]&gt; data, size_t data_len, uint32_t ts, int rtp_flags)</td><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a></td><td class="entry"></td></tr>
   <tr class="odd"><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html#a56d2a209b2647d0f3ee7948e8cf45438">push_frame</a>(std::unique_ptr&lt; uint8_t[]&gt; data, size_t data_len, uint32_t ts, uint64_t ntp_ts, int rtp_flags)</td><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a></td><td class="entry"></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html#a9e22ebbe9f903abe0fcae267f98cafeb">start_zrtp</a>()</td><td class="entry"><a class="el" href="classuvgrtp_1_1media__stream.html">uvgrtp::media_stream</a></td><td class="entry"></td></tr>
 </table></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
