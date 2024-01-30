@@ -178,3 +178,7 @@ None of these parameters will however help if you are sending more data than the
 ## Using uvgRTP RTCP for Congestion Control
 
 When RTCP is enabled in uvgRTP (using `RCE_RTCP`); fraction, lost and jitter fields in [rtcp_report_block](../include/uvgrtp/frame.hh#L106) can be used to detect network congestion. Report blocks are sent by all media_stream entities receiving data and can be included in both Sender Reports (when sending and receiving) and Receiver Reports (when only receiving). There exists several algorithms for congestion control, but they are outside the scope of uvgRTP.
+
+## Currently accepted NAL unit structures
+
+When streaming H264/H265/H266, sending access units that contain multiple large NAL units which require fragmentation may lead to undefined behaviour. Same is true if the NAL unit contains 0x00 0x01 0x00 byte sequence. These issues will be resolved soon.
