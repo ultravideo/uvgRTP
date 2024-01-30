@@ -43,6 +43,7 @@
 #endif // __cplusplus
 
 #include <iostream>
+#include <cstdint>
 
 namespace uvgrtp {
 
