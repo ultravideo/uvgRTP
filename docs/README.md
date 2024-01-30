@@ -87,6 +87,7 @@ session->create_stream(..., RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP_NULL_CIP
 | RCE_ZRTP_MULTISTREAM_MODE    | Select which streams do not perform Diffie-Hellman with ZRTP. Currently, ZRTP only works reliably with one stream performing DH and one not performing it |
 | RCE_FRAMERATE              | Try to keep the sent framerate as constant as possible (default fps is 30) |
 | RCE_PACE_FRAGMENT_SENDING  | Pace the sending of framents to frame interval to help receiver receive packets (default frame interval is 1/30) |
+| RCE_RTCP_MUX               | Use a single UDP port for both RTP and RTCP transmission (default RTCP port is +1) |
 
 ### RTP Context Configuration (RCC) flags
 

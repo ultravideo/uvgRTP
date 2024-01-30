@@ -276,6 +276,7 @@ enum RTP_CTX_ENABLE_FLAGS {
     /** Paces the sending of frame fragments within frame interval (default 1/30 s) */
     RCE_PACE_FRAGMENT_SENDING       = 1 << 20,
 
+    /** Use a single UDP port for both RTP and RTCP transmission (default RTCP port is +1) **/
     RCE_RTCP_MUX                    = 1 << 21,
     
     /// \cond DO_NOT_DOCUMENT
