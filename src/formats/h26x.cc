@@ -186,6 +186,10 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
         if (pos + 4 <= len)
         {
             cur_value32 = *(uint32_t*)(data + pos);
+            //uint8_t* curr = (uint8_t*)&cur_value32;
+            //uint8_t* prev = (uint8_t*)&prev_value32;
+            //UVG_LOG_DEBUG("P: %u %u %u %u C: %u %u %u %u", prev[0], prev[1], prev[2], prev[3], curr[0], curr[1], curr[2], curr[3]);
+
 #if __BYTE_ORDER == __LITTLE_ENDIAN
             cur_has_zero = haszero32_le(cur_value32);
 #else
@@ -237,7 +241,7 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
             // see if the start code prefix is split between previous and this dword
 #if __BYTE_ORDER == __LITTLE_ENDIAN
             uint16_t cur_ls  = (cur_value32 >> 16) & 0xffff; // current less significant word
-            uint16_t cur_ms  = (cur_value32 >>  0) & 0xffff; // corrent more significant word
+            uint16_t cur_ms  = (cur_value32 >>  0) & 0xffff; // current more significant word
             uint16_t prev_ls = (prev_value32 >> 16) & 0xffff; // previous less significant word
 
             // previous has 4 zeros
@@ -290,9 +294,23 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
             }
         }
 
-        prev_had_zero = cur_has_zero;
         pos += get_start_code_range();
-        prev_value32 = cur_value32;
+
+        if (get_start_code_range() == 4)
+        {
+            prev_had_zero = cur_has_zero;
+            prev_value32 = cur_value32;
+        }
+        else
+        {
+            prev_value32 = (prev_value32 >> 8 * get_start_code_range()) | (cur_value32 << 8 * (4 - get_start_code_range()));
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+            prev_had_zero = haszero32_le(prev_value32);
+#else
+            prev_had_zero = haszero32_be(prev_value32);
+#endif
+        }
     }
 
     data[last_byte_position] = temp_last_byte;
