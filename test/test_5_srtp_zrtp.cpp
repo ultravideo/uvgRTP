@@ -17,7 +17,7 @@ enum Key_length { SRTP_128 = 128, SRTP_196 = 196, SRTP_256 = 256 };
 constexpr int SALT_SIZE = 112;
 constexpr int SALT_SIZE_BYTES = SALT_SIZE / 8;
 
-void user_send_func(uint8_t *key, uint8_t salt[SALT_SIZE_BYTES], uint8_t key_size);
+void user_send_func(uint8_t *key, uint8_t salt[SALT_SIZE_BYTES], int key_size);
 void user_receive_func(uint8_t *key, uint8_t salt[SALT_SIZE_BYTES], uint8_t key_size);
 void zrtp_sender_func(uvgrtp::session* sender_session, int sender_port, int receiver_port, unsigned int flags, bool mux);
 void zrtp_receive_func(uvgrtp::session* receiver_session, int sender_port, int receiver_port, unsigned int flags, bool mux);
@@ -79,7 +79,7 @@ void test_user_key(Key_length len)
     delete[] key;
 }
 
-void user_send_func(uint8_t* key, uint8_t salt[SALT_SIZE_BYTES], uint8_t key_size)
+void user_send_func(uint8_t* key, uint8_t salt[SALT_SIZE_BYTES], int key_size)
 {
     uvgrtp::context ctx;
     uvgrtp::session* sender_session = nullptr;
@@ -508,7 +508,7 @@ void zrtp_sender_func(uvgrtp::session* sender_session, int sender_port, int rece
     {
         int test_packets = 10;
         size_t packet_size = 1000;
-        int packet_interval_ms = EXAMPLE_DURATION_S.count() * 1000 / test_packets;
+        int packet_interval_ms = int(EXAMPLE_DURATION_S.count()) * 1000 / test_packets;
 
         std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, packet_size, RTP_NO_FLAGS);
         send_packets(std::move(test_frame), packet_size, sender_session, send, test_packets, packet_interval_ms, false, RTP_NO_FLAGS);

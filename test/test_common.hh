@@ -107,7 +107,7 @@ inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size,
             << " and interval " << packet_interval_ms << "ms" << std::endl;
         
         std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-        for (unsigned int i = 0; i < packets; ++i)
+        for (int i = 0; i < packets; ++i)
         {
             if (i % 60 == 0 && send_app)
             {

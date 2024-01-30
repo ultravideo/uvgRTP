@@ -39,7 +39,7 @@ void test_wait(int time_ms, uvgrtp::media_stream* receiver)
         auto start = std::chrono::high_resolution_clock::now();
         frame = receiver->pull_frame(time_ms);
         int actual_difference =
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
+            int(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count());
 
         EXPECT_EQ(RTP_OK, rtp_errno);
         EXPECT_GE(actual_difference, time_ms);
