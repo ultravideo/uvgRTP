@@ -109,6 +109,8 @@ stream->configure_ctx(RCC_PKT_MAX_DELAY, 150);
 | RCC_FPS_NUMERATOR   | Set the fps used with RCE_FRAMERATE and RCE_FRAGMENT_PACING. | 30 | Sender |
 | RCC_FPS_DENOMINATOR  | Use this in combination with RCC_FPS_NUMERATOR if you need fractional fps values. | 1 | Sender |
 | RCC_POLL_TIMEOUT     | Set the timeout value for polling the socket. | 100 ms | Receiver|
+| RCC_SSRC             | Set the SSSRC value for this media stream. | random uint32 | Sender|
+| RCC_REMOTE_SSRC      | Set the remote SSRC value that this media stream should receive packets from. | random uint32 | Receiver|
 
 ### RTP frame flags
 
