@@ -163,24 +163,10 @@ typedef enum RTP_FLAGS {
  * \details These flags are passed to uvgrtp::session::create_stream and can be OR'ed together
  */
 enum RTP_CTX_ENABLE_FLAGS {
-    RCE_NO_FLAGS                  = 0, ///<  Use this if you have no RCE flags
+    RCE_NO_FLAGS                    = 0, ///<  Use this if you have no RCE flags
 
     /// \cond DO_NOT_DOCUMENT
-    // Obsolete flags, they do nothing because the feature has been removed or they are enabled by default
-    RCE_OBSOLETE                        = 1, ///< for checking if user inputs obsolete flags
-    RCE_SYSTEM_CALL_DISPATCHER          = 1, ///< obsolete flag, removed feature
-    RCE_NO_H26X_INTRA_DELAY             = 1, ///< obsolete flag,  removed feature
-    RCE_NO_H26X_SCL                     = 1, ///< obsolete flag, this flag was moved to be an RTP flag
-    RCE_H26X_NO_DEPENDENCY_ENFORCEMENT  = 1, ///< obsolete flag, the feature is disabled by default
-    RCE_H26X_PREPEND_SC                 = 1, ///< obsolete flag, the feature is enabled by default
-    RCE_NO_SYSTEM_CALL_CLUSTERING       = 1, ///< obsolete flag, disabled by default
-    RCE_SRTP_INPLACE_ENCRYPTION         = 1, ///< obsolete flag, the feature is enabled by default
-
-    // renamed flags
-    RCE_H26X_DO_NOT_PREPEND_SC = 1 << 6,  ///< renamed flag, use RCE_NO_H26X_PREPEND_SC instead
-    RCE_FRAMERATE              = 1 << 18, ///< renamed flag, use RCE_FRAME_RATE instead
-    RCE_FRAGMENT_PACING        = 1 << 19, ///< renamed flag, use RCE_PACE_FRAGMENT_SENDING instead
-    RCE_ZRTP_MULTISTREAM_NO_DH = 1 << 17, ///< renamed flag, use RCE_ZRTP_MULTISTREAM_MODE instead
+    RCE_OBSOLETE                    = 1, ///< for checking if user inputs obsolete flags
     /// \endcond
 
     // These can be used to specify what the address does for one address create session
@@ -295,7 +281,6 @@ enum RTP_CTX_ENABLE_FLAGS {
 enum RTP_CTX_CONFIGURATION_FLAGS {
     /// \cond DO_NOT_DOCUMENT
     RCC_NO_FLAGS         = 0, // This flag has no purpose
-    RCC_FPS_ENUMERATOR = 8, ///< renamed flag, use RCC_FPS_NUMERATOR instead
     /// \endcond
 
     /** How large is the receiver UDP buffer size

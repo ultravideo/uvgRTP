@@ -23,7 +23,7 @@ TEST(FormatTests, h26x_flags)
     uvgrtp::media_stream* receiver = nullptr;
 
     int sender_rce_flags = RCE_NO_FLAGS;
-    int receiver_rce_flags = RCE_H26X_DO_NOT_PREPEND_SC;
+    int receiver_rce_flags = RCE_NO_H26X_PREPEND_SC;
 
     if (sess)
     {
