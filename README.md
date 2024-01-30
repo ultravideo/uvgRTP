@@ -15,6 +15,8 @@ Currently supported specifications:
    * [RFC 3711: The Secure Real-time Transport Protocol (SRTP)](https://datatracker.ietf.org/doc/html/rfc3711)
    * [RFC 6189: ZRTP: Media Path Key Agreement for Unicast Secure RTP](https://datatracker.ietf.org/doc/html/rfc6189)
 
+You are welcome to contact us in our Discord if you have questions or comments regarding the library [![Discord](https://img.shields.io/discord/973260924288901140?style=plastic)](https://discord.gg/fZpub7BPUA)
+
 ## Notable features
 
 * AVC/HEVC/VVC video streaming, including packetization
@@ -36,10 +38,6 @@ See [BUILDING.md](BUILDING.md) for instructions on how to build and use uvgRTP.
 To get started using uvgRTP, check out [usage](USAGE.md) file which contains a step-by-step tutorial for using uvgRTP. To see uvgRTP in action, the [examples](examples) folder contains many working examples to illustrate how to use uvgRTP in variety of situations. For a more detailed description, check the [documentation](docs/README.md) where you can find info on advanced topics and descriptions of all uvgRTP flags.
 
 Furthermore, we also provide a Doxygen documentation of the [public API](https://ultravideo.github.io/uvgRTP/html/index.html) on Github.
-
-## Ultra Video Group in Discord
-
-Contact us in our Discord if you have questions or comments regarding the library [![Discord](https://img.shields.io/discord/973260924288901140?style=plastic)](https://discord.gg/fZpub7BPUA)
 
 ## Contributing
 
