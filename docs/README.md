@@ -181,4 +181,4 @@ When RTCP is enabled in uvgRTP (using `RCE_RTCP`); fraction, lost and jitter fie
 
 ## Currently accepted NAL unit structures
 
-When streaming H264/H265/H266, sending access units that contain multiple large NAL units which require fragmentation may lead to undefined behaviour. Same is true if the NAL unit contains 0x00 0x01 0x00 byte sequence. These issues will be resolved soon.
+When streaming H264/H265/H266, sending access units that contain multiple large NAL units which require fragmentation may lead to undefined behaviour. This issues will be resolved soon.
