@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
     if (len == 0) {
         return EXIT_FAILURE;
     }
-    std::cout << "Reading original file for comparison " << len << std::endl;
+    std::cout << "Reading original file for comparison " << std::endl;
     char* original_buf = nullptr;
     original_buf = get_cmem(PATH);
 
@@ -161,6 +161,7 @@ int main(int argc, char* argv[])
     for (auto i = 0; i < bytes; ++i) {
         if (original_buf[i] != out_buf[i]) {
             diff = true;
+            std::cout << "Difference found in " << i << std::endl;
             break;
         }
     }

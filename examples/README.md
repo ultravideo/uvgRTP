@@ -36,7 +36,7 @@ To demonstrate V3C streaming, uvgRTP comes with example V3C sender and V3C recei
 4. Place the test sequence in uvgRTP/build/examples/Release
 5. Start the `v3c_receiver` program with `./v3c_receiver uvgRTP_example_sequence_longdress.vpcc`. If you have changed the filename, modify the command accordingly.
 6. Start the `v3c_sender` program with `./v3c_sender uvgRTP_example_sequence_longdress.vpcc`. The program will parse the test sequence for transmission and send it to the receiver.
-7. The with `v3c_receiver` will print information on the reception and reconstruction of the V3C bitstream.
+7. The `v3c_receiver` will print information on the reception and reconstruction of the V3C bitstream. It will also check the received sequence for any differences to the original one.
 
 ## RTCP example
 
