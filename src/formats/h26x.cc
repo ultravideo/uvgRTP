@@ -386,12 +386,21 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
         }
 
         (void)finalize_aggregation_pkt();
+        // actually send the packets
+        ret = fqueue_->flush_queue(addr, addr6, ssrc);
+        clear_aggregation_info();
     }
 
     for (auto& nal : nals) // non-aggregatable NAL units
     {
+
+        UVG_LOG_DEBUG("NAL size %u", nal.size);
         if (!nal.aggregate || !should_aggregate)
         {
+            if ((ret = fqueue_->init_transaction(data + nal.offset)) != RTP_OK) {
+                UVG_LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
+                return ret;
+            }
             // single NAL unit uses the NAL unit header as the payload header meaning that it does not
             // add anything extra to the packet and we can just compare the NAL size with the payload size allowed
             if (nal.size <= payload_size) // send as a single NAL unit packet
@@ -409,13 +418,9 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
                 fqueue_->deinit_transaction();
                 return ret;
             }
+            ret = fqueue_->flush_queue(addr, addr6, ssrc);
         }
     }
-
-    // actually send the packets
-    ret = fqueue_->flush_queue(addr, addr6, ssrc);
-    clear_aggregation_info();
-
     return ret;
 }
 
