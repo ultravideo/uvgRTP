@@ -41,27 +41,32 @@ namespace uvgrtp {
             NT_OTHER = 0xff
         };
 
-        typedef struct h26x_info {
+        struct frag_info {
+            bool start = false;
+            bool end = false;
+            bool reconstructed = false;
+        };
+
+        /* Used for determining if the NAL unit can be reconstructed */
+        struct nal {
+            bool complete = false;
+            std::set<uint16_t> seqs = {};
+        };
+
+        struct access_unit_info {
             /* clock reading when the first fragment is received */
             uvgrtp::clock::hrc::hrc_t sframe_time;
-
-            uvgrtp::formats::NAL_TYPE nal_type = uvgrtp::formats::NAL_TYPE::NT_OTHER;
-
-            bool start_received = false;
-            bool end_received = false;
-
-            /* sequence number of the fragment with s-bit (start) */
-            uint16_t s_seq = 0;
-
-            /* sequence number of the fragment with e-bit (end) */
-            uint16_t e_seq = 0;
 
             /* total size of all fragments */
             size_t total_size = 0;
 
-            // needed for cleaning fragments in case the frame is dropped
+            /* Keep track of all sequence numbers for an access unit, as well as the ones that have not been yet used for reconstruction */
             std::set<uint16_t> received_packet_seqs;
-        } h26x_info_t;
+            std::set<uint16_t> incomplete_packet_seqs;
+
+            /* Save frag_info for each fragment in an access unit */
+            std::unordered_map<uint16_t, frag_info> fragments_info;
+        };
 
         struct nal_info
         {
@@ -158,12 +163,10 @@ namespace uvgrtp {
                 virtual void prepend_start_code(int rce_flags, uvgrtp::frame::rtp_frame** out);
 
         private:
+            size_t drop_access_unit(uint32_t ts);
 
-            bool is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay);
-            size_t drop_frame(uint32_t ts);
-
-            inline size_t calculate_expected_fus(uint32_t ts);
-            inline void initialize_new_fragmented_frame(uint32_t ts, NAL_TYPE nal_type);
+            inline uint16_t next_seq_num(uint16_t seq);
+            inline void initialize_new_access_unit(uint32_t ts);
 
             void free_fragment(uint16_t sequence_number);
 
@@ -172,13 +175,13 @@ namespace uvgrtp {
 
             void garbage_collect_lost_frames(size_t timout);
 
-            rtp_error_t reconstruction(uvgrtp::frame::rtp_frame** out,
-                int rce_flags, uint32_t frame_timestamp, const uint8_t sizeof_fu_headers);
+            rtp_error_t reconstruction(uvgrtp::frame::rtp_frame** out, size_t nal_size,
+                int rce_flags, uint16_t s_seq, uint16_t e_seq, const uint8_t sizeof_fu_headers);
 
             bool is_duplicate_frame(uint32_t timestamp, uint16_t seq_num);
 
             std::deque<uvgrtp::frame::rtp_frame*> queued_;
-            std::unordered_map<uint32_t, h26x_info_t> frames_;
+            std::unordered_map<uint32_t, access_unit_info> access_units_;
 
             // Save received RTP frame stats, used to check for duplicates in is_duplicate_frame()
             struct pkt_stats {
@@ -188,12 +191,14 @@ namespace uvgrtp {
             std::deque<pkt_stats> received_frames_;
             std::unordered_map<uint32_t, std::vector<uint16_t>> received_info_;
 
-            // Holds all possible fragments in sequence number order
-            std::vector<uvgrtp::frame::rtp_frame*> fragments_;
+            // Holds all possible fragments with sequence number
+            std::unordered_map<uint16_t, uvgrtp::frame::rtp_frame*> fragments_;
 
-            // keep track of frames discarded so we don't accept invalid fragments
+            // keep track of old, dropped access units so we don't accept invalid fragments
             std::unordered_map<uint32_t, uvgrtp::clock::hrc::hrc_t> dropped_ts_;
-            std::unordered_map<uint32_t, uvgrtp::clock::hrc::hrc_t> completed_ts_;
+            /* Keep track of the order of dropped access units, so we can delete the oldest ones to not reserve increasing amounts
+            of memory */
+            std::set<uint32_t> dropped_in_order_;
 
             std::shared_ptr<uvgrtp::rtp> rtp_ctx_;
 
