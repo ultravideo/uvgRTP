@@ -83,9 +83,9 @@ namespace uvgrtp {
             frame_queue(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int rce_flags);
             ~frame_queue();
 
-            rtp_error_t init_transaction();
-            rtp_error_t init_transaction(uint8_t *data);
-            rtp_error_t init_transaction(std::unique_ptr<uint8_t[]> data);
+            rtp_error_t init_transaction(bool use_old_rtp_ts);
+            rtp_error_t init_transaction(uint8_t *data, bool old_rtp_ts = false);
+            rtp_error_t init_transaction(std::unique_ptr<uint8_t[]> data, bool old_rtp_ts = false);
 
             /* Releases all memory associated with transaction
              *

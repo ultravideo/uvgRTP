@@ -393,10 +393,10 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
 
     for (auto& nal : nals) // non-aggregatable NAL units
     {
-
+        //UVG_LOG_DEBUG("NAL size %u", nal.size);
         if (!nal.aggregate || !should_aggregate)
         {
-            if ((ret = fqueue_->init_transaction(data + nal.offset)) != RTP_OK) {
+            if ((ret = fqueue_->init_transaction(data + nal.offset, true)) != RTP_OK) {
                 UVG_LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
                 return ret;
             }

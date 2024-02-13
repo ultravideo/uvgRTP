@@ -40,7 +40,7 @@ namespace uvgrtp {
             void set_pkt_max_delay(size_t delay);
             void set_sampling_ntp(uint64_t ntp_ts);
 
-            void fill_header(uint8_t *buffer);
+            void fill_header(uint8_t* buffer, bool use_old_ts = false);
             void update_sequence(uint8_t *buffer);
 
             /* Validates the RTP header pointed to by "packet" */

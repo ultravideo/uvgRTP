@@ -143,7 +143,7 @@ void uvgrtp::rtp::update_sequence(uint8_t *buffer)
     *(uint16_t *)&buffer[2] = htons(seq_);
 }
 
-void uvgrtp::rtp::fill_header(uint8_t *buffer)
+void uvgrtp::rtp::fill_header(uint8_t *buffer, bool use_old_ts)
 {
     if (!buffer)
         return;
@@ -161,7 +161,10 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer)
     *(uint16_t *)&buffer[2] = htons(seq_);
     *(uint32_t *)&buffer[8] = htonl(*ssrc_.get());
 
-    if (timestamp_ == INVALID_TS) {
+    if (use_old_ts) {
+        *(uint32_t*)&buffer[4] = htonl((u_long)rtp_ts_);
+    }
+    else if (timestamp_ == INVALID_TS) {
 
         auto t1 = std::chrono::high_resolution_clock::now();
         std::chrono::microseconds time_since_start = 
