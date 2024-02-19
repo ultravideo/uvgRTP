@@ -335,11 +335,6 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
     if (!data || !data_len)
         return RTP_INVALID_VALUE;
 
-    if ((ret = fqueue_->init_transaction(data)) != RTP_OK) {
-        UVG_LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
-        return ret;
-    }
-
     size_t payload_size = rtp_ctx_->get_payload_size();
 
     // find all the locations of NAL units using Start Code Lookup (SCL)
@@ -369,6 +364,11 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
 
     if (should_aggregate) // an aggregate packet is possible
     {
+        if ((ret = fqueue_->init_transaction(data)) != RTP_OK) {
+            UVG_LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
+            return ret;
+        }
+
         // use aggregation function that also may just send the packets as Single NAL units 
         // if aggregates have not been implemented
 
@@ -584,7 +584,7 @@ size_t uvgrtp::formats::h26x::drop_access_unit(uint32_t ts)
     dropped_ts_[ts] = access_units_.at(ts).sframe_time;
     dropped_in_order_.insert(ts);
 
-    if (dropped_ts_.size() > 500) {
+    if (dropped_ts_.size() > 600) {
         uint32_t oldest_ts = *dropped_in_order_.begin();
         dropped_ts_.erase(oldest_ts);
         dropped_in_order_.erase(oldest_ts);
@@ -814,7 +814,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
                 nal_size += fragments_[p]->payload_len;
                 au.fragments_info[p].reconstructed = true;
             }
-            // here we discard inter frames if their references were not received correctly
+            /* Work in progress feature: here we discard inter frames if their references were not received correctly */
             bool enable_reference_discarding = (rce_flags & RCE_H26X_DEPENDENCY_ENFORCEMENT);
             if (discard_until_key_frame_ && enable_reference_discarding) {
                 if (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTER) {
