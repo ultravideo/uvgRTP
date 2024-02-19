@@ -362,7 +362,9 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
         return RTP_INVALID_VALUE;
     }
 
-    if (should_aggregate) // an aggregate packet is possible
+    bool do_not_aggr = (rtp_flags & RTP_H26X_DO_NOT_AGGR);
+
+    if (should_aggregate && !do_not_aggr) // an aggregate packet is possible
     {
         if ((ret = fqueue_->init_transaction(data)) != RTP_OK) {
             UVG_LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
@@ -394,7 +396,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
     for (auto& nal : nals) // non-aggregatable NAL units
     {
         //UVG_LOG_DEBUG("NAL size %u", nal.size);
-        if (!nal.aggregate || !should_aggregate)
+        if (do_not_aggr || !nal.aggregate || !should_aggregate)
         {
             if ((ret = fqueue_->init_transaction(data + nal.offset, true)) != RTP_OK) {
                 UVG_LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
