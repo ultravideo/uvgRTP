@@ -100,12 +100,12 @@ static inline uint8_t determine_start_prefix_precense(uint32_t value, bool& addi
 uvgrtp::formats::h26x::h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp, int rce_flags) :
     media(socket, rtp, rce_flags),
     queued_(), 
-    frames_(), 
+    access_units_(),
     received_frames_(),
     received_info_(),
-    fragments_(UINT16_MAX + 1, nullptr),
+    fragments_(),
+    dropped_in_order_(),
     dropped_ts_(),
-    completed_ts_(),
     rtp_ctx_(rtp),
     last_garbage_collection_(uvgrtp::clock::hrc::now()),
     discard_until_key_frame_(true)
@@ -122,9 +122,9 @@ uvgrtp::formats::h26x::~h26x()
 
     for (auto& fragment : fragments_)
     {
-        if (fragment != nullptr)
+        if (fragment.second != nullptr)
         {
-            (void)uvgrtp::frame::dealloc_frame(fragment);
+            (void)uvgrtp::frame::dealloc_frame(fragment.second);
         }
     }
 
@@ -386,12 +386,20 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
         }
 
         (void)finalize_aggregation_pkt();
+        // actually send the packets
+        ret = fqueue_->flush_queue(addr, addr6, ssrc);
+        clear_aggregation_info();
     }
 
     for (auto& nal : nals) // non-aggregatable NAL units
     {
+        //UVG_LOG_DEBUG("NAL size %u", nal.size);
         if (!nal.aggregate || !should_aggregate)
         {
+            if ((ret = fqueue_->init_transaction(data + nal.offset, true)) != RTP_OK) {
+                UVG_LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
+                return ret;
+            }
             // single NAL unit uses the NAL unit header as the payload header meaning that it does not
             // add anything extra to the packet and we can just compare the NAL size with the payload size allowed
             if (nal.size <= payload_size) // send as a single NAL unit packet
@@ -409,13 +417,9 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
                 fqueue_->deinit_transaction();
                 return ret;
             }
+            ret = fqueue_->flush_queue(addr, addr6, ssrc);
         }
     }
-
-    // actually send the packets
-    ret = fqueue_->flush_queue(addr, addr6, ssrc);
-    clear_aggregation_info();
-
     return ret;
 }
 
@@ -554,15 +558,10 @@ void uvgrtp::formats::h26x::prepend_start_code(int rce_flags, uvgrtp::frame::rtp
     }
 }
 
-bool uvgrtp::formats::h26x::is_frame_late(uvgrtp::formats::h26x_info_t& hinfo, size_t max_delay)
-{
-    return (uvgrtp::clock::hrc::diff_now(hinfo.sframe_time) >= max_delay);
-}
-
-size_t uvgrtp::formats::h26x::drop_frame(uint32_t ts)
+size_t uvgrtp::formats::h26x::drop_access_unit(uint32_t ts)
 {
     size_t total_cleaned = 0;
-    if (frames_.find(ts) == frames_.end())
+    if (access_units_.find(ts) == access_units_.end())
     {
         UVG_LOG_ERROR("Tried to drop a non-existing frame");
         return total_cleaned;
@@ -572,18 +571,26 @@ size_t uvgrtp::formats::h26x::drop_frame(uint32_t ts)
     uint16_t s_seq = frames_.at(ts).s_seq;
     uint16_t e_seq = frames_.at(ts).e_seq;
 
-    UVG_LOG_INFO("Dropping frame. Ts: %lu, Seq: %u <-> %u, received/expected: %lli/%lli", 
+    UVG_LOG_INFO("Dropping frame. Ts: %lu, Seq: %u <-> %u, received/expected: %lli/%lli",
         ts, s_seq, e_seq, frames_[ts].received_packet_seqs.size(), calculate_expected_fus(ts));
     */
 
-    for (auto& fragment_seq : frames_[ts].received_packet_seqs)
+    for (auto& fragment_seq : access_units_[ts].incomplete_packet_seqs)
     {
         total_cleaned += fragments_[fragment_seq]->payload_len + sizeof(uvgrtp::frame::rtp_frame);
         free_fragment(fragment_seq);
     }
 
-    dropped_ts_[ts] = frames_.at(ts).sframe_time;
-    frames_.erase(ts);
+    dropped_ts_[ts] = access_units_.at(ts).sframe_time;
+    dropped_in_order_.insert(ts);
+
+    if (dropped_ts_.size() > 500) {
+        uint32_t oldest_ts = *dropped_in_order_.begin();
+        dropped_ts_.erase(oldest_ts);
+        dropped_in_order_.erase(oldest_ts);
+    }
+
+    access_units_.erase(ts);
 
     discard_until_key_frame_ = true;
 
@@ -673,22 +680,15 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
 
     // aggregate, start, middle, end or single NAL
     uvgrtp::formats::FRAG_TYPE frag_type = get_fragment_type(frame); 
-
-    // first we check that this packet does not belong to a frame that has been dropped or completed
+    
+    // first we check that this packet does not belong to an access unit that has been dropped by garbage collection
     if (dropped_ts_.find(frame->header.timestamp) != dropped_ts_.end()) {
-        UVG_LOG_DEBUG("Received an RTP packet belonging to a dropped frame! Timestamp: %lu, seq: %u",
+        UVG_LOG_DEBUG("Received an RTP packet belonging to an old, dropped access unit! Timestamp: %lu, seq: %u",
             frame->header.timestamp, frame->header.seq);
         (void)uvgrtp::frame::dealloc_frame(frame); // free fragment memory
         return RTP_GENERIC_ERROR;
     }
-
-    if (completed_ts_.find(frame->header.timestamp) != completed_ts_.end()) {
-        UVG_LOG_DEBUG("Received an RTP packet belonging to a completed frame! Timestamp: %lu, seq: %u",
-            frame->header.timestamp, frame->header.seq);
-        (void)uvgrtp::frame::dealloc_frame(frame); // free fragment memory
-        return RTP_GENERIC_ERROR;
-    }
-
+    
     if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_AGGR) {
         // handle aggregate packets (packets with multiple NAL units in them)
         return handle_aggregation_packet(out, get_payload_header_size(), rce_flags);
@@ -728,19 +728,21 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
     uint32_t fragment_ts = frame->header.timestamp;
 
     // Fragment sequence number, determines the order of the fragments within frame
-    uint16_t fragment_seq = frame->header.seq;      
+    uint16_t fragment_seq = frame->header.seq;
 
     uvgrtp::formats::NAL_TYPE nal_type = get_nal_type(frame); // Intra, inter or some other type of frame
     
-    // Initialize new frame if this is the first packet with this timestamp
-    if (frames_.find(fragment_ts) == frames_.end()) {
-        initialize_new_fragmented_frame(fragment_ts, nal_type);
-    }
-    else if (frames_[fragment_ts].received_packet_seqs.find(fragment_seq) !=
-        frames_[fragment_ts].received_packet_seqs.end()) {
+    //UVG_LOG_DEBUG("Received FU, ts: %lu, Seq: %u", fragment_ts, fragment_seq);
 
+    // Initialize new access unit if this is the first packet with this timestamp
+    if (access_units_.find(fragment_ts) == access_units_.end()) {
+        initialize_new_access_unit(fragment_ts);
+        //UVG_LOG_DEBUG("intialized new access unit, ts %u, seq %u", fragment_ts, fragment_seq);
+    }
+    else if (access_units_[fragment_ts].received_packet_seqs.find(fragment_seq) !=
+        access_units_[fragment_ts].received_packet_seqs.end()) {
         // we have already received this seq
-        UVG_LOG_DEBUG("Detected duplicate fragment, dropping! Fragment ts: %lu, Seq: %u", 
+        UVG_LOG_DEBUG("Detected duplicate fragment, dropping! Fragment ts: %lu, Seq: %u",
             fragment_ts, fragment_seq);
         (void)uvgrtp::frame::dealloc_frame(frame); // free fragment memory
         *out = nullptr;
@@ -749,20 +751,16 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
 
     const uint8_t sizeof_fu_headers = (uint8_t)get_payload_header_size() + 
                                                get_fu_header_size();
+    access_unit_info &au = access_units_[fragment_ts];
+    // keep track of fragments belonging to this frame
+    au.received_packet_seqs.insert(fragment_seq);
+    au.incomplete_packet_seqs.insert(fragment_seq);
+    au.fragments_info[fragment_seq] = {false, false, false};
 
-    if (frames_[fragment_ts].nal_type != nal_type)
-    {
-        UVG_LOG_ERROR("The fragment has different NAL type fragments before!");
-        (void)uvgrtp::frame::dealloc_frame(frame); // free fragment memory
-        return RTP_GENERIC_ERROR;
-    }
+    au.total_size += (frame->payload_len - sizeof_fu_headers);
 
-    // keep track of fragments belonging to this frame in case we need to delete them
-    frames_[fragment_ts].received_packet_seqs.insert(fragment_seq);
-    frames_[fragment_ts].total_size += (frame->payload_len - sizeof_fu_headers);
-
-    if (fragments_[fragment_seq] != nullptr)
-    {
+    // This may not be necessary, as new duplicate fragments should get dropped already above
+    if (fragments_[fragment_seq] != nullptr) {
         UVG_LOG_WARN("Found an existing fragment with same sequence number %u! Fragment ts: %lu, current ts: %lu",
             fragment_seq, fragments_[fragment_seq]->header.timestamp, fragment_ts);
 
@@ -774,29 +772,57 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
 
     // if this is first or last, save it to help with reconstruction
     if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_START) {
-        frames_[fragment_ts].s_seq = fragment_seq; 
-        frames_[fragment_ts].start_received = true;
+        au.fragments_info[fragment_seq].start = true;
     }
     else if (frag_type == uvgrtp::formats::FRAG_TYPE::FT_END) {
-        frames_[fragment_ts].e_seq = fragment_seq;
-        frames_[fragment_ts].end_received = true;
+        //au.end_seqs.push_back(fragment_seq);
+        au.fragments_info[fragment_seq].end = true;
     }
 
-    // have the first and last fragment arrived so we can possibly start reconstructing the frame?
-    if (frames_[fragment_ts].start_received && frames_[fragment_ts].end_received) {
-        size_t received = calculate_expected_fus(fragment_ts);
+    /* Check all the incomplete fragments of this access unit, by looking for a set of fragments with consecutive
+       sequence numbers that starts with a start fragment and ends in an end fragment. If this is found,
+       a NAL unit can be reconstructed. */
+    bool continuous = false;
+    uint16_t next = 0;
+    uint16_t start = *au.incomplete_packet_seqs.begin();
 
-        // have we received every fragment and can the frame can be reconstructed?
-        if (received == frames_[fragment_ts].received_packet_seqs.size()) {
+    std::unordered_map<uint16_t, nal>reconstructed_fragments = {}; /* Used to keep track of fragments that can be used for reconstruction.
+    If a NAL unit is reconstructed, these can be removed from incomplete_packet_seqs after the loop below. */
 
-            bool enable_reference_discarding = (rce_flags & RCE_H26X_DEPENDENCY_ENFORCEMENT);
+    rtp_error_t ret = RTP_OK;
+    for (auto &c : au.incomplete_packet_seqs) {
+
+        bool s = au.fragments_info[c].start;
+        bool e = au.fragments_info[c].end;
+
+        if (s) {
+            start = c;
+            reconstructed_fragments[c] = {}; // If this is start FU, initialize a new map for it
+        }
+
+        if (next == c || s) {
+            continuous = true;
+            reconstructed_fragments.at(start).seqs.insert(c);
+        }
+        next = next_seq_num(c);
+        //UVG_LOG_DEBUG("Current fragment %u, next %u, start %d, end %d, continuous %d", c, next, s, e, continuous);
+
+        /* A continuous set of fragments with a start and end has been found. NAL unit can be reconstructed */
+        if (e && continuous) {                   
+            size_t nal_size = 0; // Find size of the complete reconstructed NAL unit       
+            for (auto p : reconstructed_fragments.at(start).seqs) {
+                nal_size += fragments_[p]->payload_len;
+                au.fragments_info[p].reconstructed = true;
+            }
             // here we discard inter frames if their references were not received correctly
+            bool enable_reference_discarding = (rce_flags & RCE_H26X_DEPENDENCY_ENFORCEMENT);
             if (discard_until_key_frame_ && enable_reference_discarding) {
                 if (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTER) {
-                    UVG_LOG_WARN("Dropping h26x frame because of missing reference. Timestamp: %lu. Seq: %u - %u",
-                        fragment_ts, frames_[fragment_ts].s_seq, frames_[fragment_ts].e_seq);
+                    UVG_LOG_WARN("Dropping h26x access unit because of missing reference. Timestamp: %lu. Seq: %u - %u",
+                        fragment_ts, *access_units_[fragment_ts].received_packet_seqs.begin(), 
+                        *access_units_[fragment_ts].received_packet_seqs.rbegin());
 
-                    drop_frame(fragment_ts);
+                    drop_access_unit(fragment_ts);
                     return RTP_GENERIC_ERROR;
                 }
                 else if (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTRA) {
@@ -806,14 +832,23 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
                     discard_until_key_frame_ = false;
                 }
             }
-
-            return reconstruction(out, rce_flags, fragment_ts, sizeof_fu_headers);
+            if ((reconstruction(out, nal_size, rce_flags, start, c, sizeof_fu_headers)) == RTP_PKT_READY) {
+                ret = RTP_PKT_READY;
+            }
+            reconstructed_fragments.at(start).complete = true;
         }
     }
-
-    // make sure uvgRTP does not reserve increasing amounts of memory because some frames are not completed
+    for (auto& p : reconstructed_fragments) {
+        if (p.second.complete) {
+            for (auto &print : p.second.seqs) {
+                //UVG_LOG_DEBUG("reconstructed from fragment %u", print);
+                au.incomplete_packet_seqs.erase(print);
+            }
+        }
+    }
+    // make sure uvgRTP does not reserve increasing amounts of memory by deleting old access unit information
     garbage_collect_lost_frames(rtp_ctx_->get_pkt_max_delay());
-    return RTP_OK; // no frame was completed, but everything went ok for this fragment
+    return ret;
 }
 
 void uvgrtp::formats::h26x::garbage_collect_lost_frames(size_t timout)
@@ -821,91 +856,51 @@ void uvgrtp::formats::h26x::garbage_collect_lost_frames(size_t timout)
     if (uvgrtp::clock::hrc::diff_now(last_garbage_collection_) >= GARBAGE_COLLECTION_INTERVAL_MS) {
         size_t total_cleaned = 0;
         std::vector<uint32_t> to_remove;
-
-        // first find all frames that have been waiting for too long
-        for (auto& gc_frame : frames_) {
+        // first find all access units that have been waiting for too long
+        for (auto& gc_frame : access_units_) {
             if (uvgrtp::clock::hrc::diff_now(gc_frame.second.sframe_time) > timout) {
 #ifndef __RTP_SILENT__
-                uint16_t s_seq = gc_frame.second.s_seq;
-                uint16_t e_seq = gc_frame.second.e_seq;
-                UVG_LOG_WARN("Found an old frame that has not been completed. Ts: %lu, Seq: %u <-> %u, received/expected: %lli/%lli",
-                    gc_frame.first, s_seq, e_seq, gc_frame.second.received_packet_seqs.size(), calculate_expected_fus(gc_frame.first));
+                //uint16_t s_seq = *gc_frame.second.received_packet_seqs.begin();
+                //uint16_t e_seq = *gc_frame.second.received_packet_seqs.rbegin();
+                //UVG_LOG_DEBUG("Found an old access unit. Ts: %lu, Seq: %u <-> %u, received: %lli",
+                    //gc_frame.first, s_seq, e_seq, gc_frame.second.received_packet_seqs.size());
 #endif
                 to_remove.push_back(gc_frame.first);
             }
         }
 
-        // remove old frames
+        // remove old access units
         for (auto& old_frame : to_remove) {
-
-            total_cleaned += drop_frame(old_frame);
+            //UVG_LOG_DEBUG("Dropping old access unit. Ts: %lu", old_frame);
+            total_cleaned += drop_access_unit(old_frame);
         }
 
         if (total_cleaned > 0) {
             UVG_LOG_DEBUG("Garbage collection cleaned %d bytes!", total_cleaned);
         }
 
-        // we keep track of old frames, so we don't send duplicate frames forward twice
-        std::vector<uint32_t> to_remove_completed;
-        for (auto& invalid : completed_ts_) {
-            if (uvgrtp::clock::hrc::diff_now(invalid.second) > TIME_TO_KEEP_TRACK_OF_PREVIOUS_FRAMES_MS)
-            {
-                to_remove_completed.push_back(invalid.first);
-            }
-        }
-
-        for (auto& old_invalid : to_remove_completed)
-        {
-            completed_ts_.erase(old_invalid);
-        }
-
-        // we keep track of old dopped, so we don't send invalid frames forward again
-        to_remove_completed.clear();
-        for (auto& invalid : dropped_ts_) {
-            if (uvgrtp::clock::hrc::diff_now(invalid.second) > TIME_TO_KEEP_TRACK_OF_PREVIOUS_FRAMES_MS)
-            {
-                to_remove_completed.push_back(invalid.first);
-            }
-        }
-
-        for (auto& old_invalid : to_remove_completed)
-        {
-            dropped_ts_.erase(old_invalid);
-        }
-
         last_garbage_collection_ = uvgrtp::clock::hrc::now();
     }
 }
 
-void uvgrtp::formats::h26x::initialize_new_fragmented_frame(uint32_t ts, NAL_TYPE nal_type)
+void uvgrtp::formats::h26x::initialize_new_access_unit(uint32_t ts)
 {
-    frames_[ts].nal_type = nal_type;
-    frames_[ts].s_seq = 0;
-    frames_[ts].start_received = false;
-    frames_[ts].e_seq = 0;
-    frames_[ts].end_received = false;
+    access_units_[ts].received_packet_seqs = {};
+    access_units_[ts].fragments_info = {};
 
-    frames_[ts].sframe_time = uvgrtp::clock::hrc::now();
-    frames_[ts].total_size = 0;
+    access_units_[ts].sframe_time = uvgrtp::clock::hrc::now();
+    access_units_[ts].total_size = 0;
 }
 
-size_t uvgrtp::formats::h26x::calculate_expected_fus(uint32_t ts)
+uint16_t uvgrtp::formats::h26x::next_seq_num(uint16_t seq)
 {
-    size_t expected = 0;
-    size_t s_seq = frames_[ts].s_seq;
-    size_t e_seq = frames_[ts].e_seq;
-
-    if (frames_[ts].start_received && frames_[ts].end_received)
-    {
-        if (s_seq > e_seq) {
-            expected = (UINT16_MAX - s_seq) + e_seq + 2;
-        }
-        else {
-            expected = e_seq - s_seq + 1;
-        }
+    if (seq == UINT16_MAX) {
+        return 0;
     }
-
-    return expected;
+    else {
+        seq++;
+        return seq;
+    }
 }
 
 void uvgrtp::formats::h26x::free_fragment(uint16_t sequence_number)
@@ -918,6 +913,7 @@ void uvgrtp::formats::h26x::free_fragment(uint16_t sequence_number)
 
     (void)uvgrtp::frame::dealloc_frame(fragments_[sequence_number]); // free fragment memory
     fragments_[sequence_number] = nullptr;
+    fragments_.erase(sequence_number);
 }
 
 void uvgrtp::formats::h26x::scl(uint8_t* data, size_t data_len, size_t packet_size, 
@@ -972,13 +968,11 @@ void uvgrtp::formats::h26x::scl(uint8_t* data, size_t data_len, size_t packet_si
     can_be_aggregated = (aggregatable_packets >= 2);
 }
 
-rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out, 
-    int rce_flags, uint32_t frame_timestamp, const uint8_t sizeof_fu_headers)
+rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out, size_t nal_size, 
+    int rce_flags, uint16_t s_seq, uint16_t e_seq, const uint8_t sizeof_fu_headers)
 {
     uvgrtp::frame::rtp_frame* frame = *out;
-
-    //LOG_DEBUG("Reconstructing frame. Ts: %lu, Seq: %u -> %u", frame_timestamp, 
-    //    frames_.at(frame_timestamp).s_seq, frames_.at(frame_timestamp).e_seq);
+    //UVG_LOG_DEBUG("Reconstructing frame. Ts: %lu, Seq: %u -> %u", ts, s_seq, e_seq);
 
     // Reconstruction of frame from fragments
     size_t fptr = 0;
@@ -989,19 +983,20 @@ rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out
         start_code = false;
     }
     uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode(start_code,
-        frame->header, get_nal_header_size() + frames_[frame_timestamp].total_size, fptr);
+        frame->header, get_nal_header_size() + nal_size, fptr);
 
     // construct the NAL header from fragment header of current fragment
     get_nal_header_from_fu_headers(fptr, frame->payload, complete->payload); // NAL header
     fptr += get_nal_header_size();
 
-    uint16_t next_from_last = frames_.at(frame_timestamp).e_seq + 1;
-    for (uint16_t i = frames_.at(frame_timestamp).s_seq; i != next_from_last; ++i)
+    //uint16_t next_from_last = frames_.at(frame_timestamp).e_seq + 1;
+    uint16_t next_from_last = uint16_t(next_seq_num(e_seq));
+    for (uint16_t i = s_seq; i != next_from_last; ++i)
     {
         if (fragments_[i] == nullptr)
         {
             UVG_LOG_ERROR("Missing fragment in reconstruction. Seq range: %u - %u. Missing seq %u",
-                frames_.at(frame_timestamp).s_seq, frames_.at(frame_timestamp).e_seq, i);
+                s_seq, e_seq, i);
             return RTP_GENERIC_ERROR;
         }
 
@@ -1016,9 +1011,5 @@ rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out
     }
 
     *out = complete;      // save result to output
-
-    // keep track of completed frames so we don't accept the same frame again
-    completed_ts_[frame_timestamp] = frames_.at(frame_timestamp).sframe_time;
-    frames_.erase(frame_timestamp);  // erase data structures for this frame
     return RTP_PKT_READY; // indicate that we have a frame ready
 }

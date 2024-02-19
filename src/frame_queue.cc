@@ -47,7 +47,7 @@ uvgrtp::frame_queue::~frame_queue()
     }
 }
 
-rtp_error_t uvgrtp::frame_queue::init_transaction()
+rtp_error_t uvgrtp::frame_queue::init_transaction(bool use_old_rtp_ts)
 {
     if (active_)
     {
@@ -99,18 +99,18 @@ rtp_error_t uvgrtp::frame_queue::init_transaction()
     else
         active_->rtp_auth_tags = nullptr;
 
-    rtp_->fill_header((uint8_t *)&active_->rtp_common);
+    rtp_->fill_header((uint8_t *)&active_->rtp_common, use_old_rtp_ts);
     active_->buffers.clear();
 
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::frame_queue::init_transaction(uint8_t *data)
+rtp_error_t uvgrtp::frame_queue::init_transaction(uint8_t *data, bool old_rtp_ts)
 {
     if (!data)
         return RTP_INVALID_VALUE;
 
-    if (init_transaction() != RTP_OK) {
+    if (init_transaction(old_rtp_ts) != RTP_OK) {
         UVG_LOG_ERROR("Failed to initialize transaction");
         return RTP_GENERIC_ERROR;
     }
@@ -121,12 +121,12 @@ rtp_error_t uvgrtp::frame_queue::init_transaction(uint8_t *data)
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::frame_queue::init_transaction(std::unique_ptr<uint8_t[]> data)
+rtp_error_t uvgrtp::frame_queue::init_transaction(std::unique_ptr<uint8_t[]> data, bool old_rtp_ts)
 {
     if (!data)
         return RTP_INVALID_VALUE;
 
-    if (init_transaction() != RTP_OK) {
+    if (init_transaction(old_rtp_ts) != RTP_OK) {
         UVG_LOG_ERROR("Failed to initialize transaction");
         return RTP_GENERIC_ERROR;
     }
