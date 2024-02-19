@@ -10,6 +10,10 @@ constexpr uint16_t RECEIVE_PORT = 9102;
 constexpr int AMOUNT_OF_TEST_PACKETS = 100;
 constexpr size_t PAYLOAD_LEN = 100;
 
+/* This hook is used for aggregation packet tests */
+inline void aggr_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
+int aggr_received = 0;
+
 // TODO: Use real files
 
 TEST(FormatTests, h26x_flags)
@@ -645,4 +649,151 @@ TEST(FormatTests, v3c_fragmentation)
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
     cleanup_sess(ctx, sess);
+}
+
+TEST(FormatTests, h264_aggregation)
+{
+    std::cout << "Starting h264 Aggregation packet test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    aggr_received = 0;
+    int expected = 3;
+
+    if (sess)
+    {
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H264, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H264, RCE_NO_FLAGS);
+        receiver->install_receive_hook(nullptr, aggr_receive_hook);
+    }
+
+    int rtp_flags = RTP_NO_FLAGS;
+    rtp_format_t format = RTP_FORMAT_H264;
+    int test_runs = 1;
+
+    std::vector<size_t> test_sizes = { 100, 200, 300 };
+
+    size_t total_size = 0;
+    std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[700]);
+
+    for (auto& size : test_sizes)
+    {
+        int nal_type = 8;
+        std::unique_ptr<uint8_t[]> nal_unit = create_test_packet(format, nal_type, true, size, rtp_flags);
+        memcpy(test_frame.get() + total_size, nal_unit.get(), size);
+        total_size += size;
+    }
+    if (sender->push_frame(std::move(test_frame), total_size, RTP_NO_FLAGS) != RTP_OK) {
+        std::cout << "Failed to send test packet!" << std::endl;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    std::cout << "H264: Received/expected: " << aggr_received << "/" << expected << std::endl;
+    ASSERT_TRUE(aggr_received >= expected/3);
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
+}
+
+TEST(FormatTests, h265_aggregation)
+{
+    std::cout << "Starting h265 Aggregation packet test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    aggr_received = 0;
+    int expected = 3;
+
+    if (sess)
+    {
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H265, RCE_NO_FLAGS);
+        receiver->install_receive_hook(nullptr, aggr_receive_hook);
+    }
+
+    int rtp_flags = RTP_NO_FLAGS;
+    rtp_format_t format = RTP_FORMAT_H265;
+    int test_runs = 1;
+
+    std::vector<size_t> test_sizes = { 100, 200, 300 };
+
+    size_t total_size = 0;
+    std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[700]);
+
+    for (auto& size : test_sizes)
+    {
+        int nal_type = 8;
+        std::unique_ptr<uint8_t[]> nal_unit = create_test_packet(format, nal_type, true, size, rtp_flags);
+        memcpy(test_frame.get() + total_size, nal_unit.get(), size);
+        total_size += size;
+    }
+    if (sender->push_frame(std::move(test_frame), total_size, RTP_NO_FLAGS) != RTP_OK) {
+        std::cout << "Failed to send test packet!" << std::endl;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    std::cout << "H265: Received/expected: " << aggr_received << "/" << expected << std::endl;
+    ASSERT_TRUE(aggr_received >= expected/3);
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
+}
+
+TEST(FormatTests, h266_aggregation)
+{
+    std::cout << "Starting h266 Aggregation packet test" << std::endl;
+    uvgrtp::context ctx;
+    uvgrtp::session* sess = ctx.create_session(LOCAL_ADDRESS);
+
+    uvgrtp::media_stream* sender = nullptr;
+    uvgrtp::media_stream* receiver = nullptr;
+
+    aggr_received = 0;
+    int expected = 3;
+
+    if (sess)
+    {
+        sender = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_H266, RCE_NO_FLAGS);
+        receiver = sess->create_stream(RECEIVE_PORT, SEND_PORT, RTP_FORMAT_H266, RCE_NO_FLAGS);
+        receiver->install_receive_hook(nullptr, aggr_receive_hook);
+    }
+
+    int rtp_flags = RTP_NO_FLAGS;
+    rtp_format_t format = RTP_FORMAT_H266;
+    int test_runs = 1;
+
+    std::vector<size_t> test_sizes = { 100, 200, 300 };
+
+    size_t total_size = 0;
+    std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[700]);
+
+    for (auto& size : test_sizes)
+    {
+        int nal_type = 8;
+        std::unique_ptr<uint8_t[]> nal_unit = create_test_packet(format, nal_type, true, size, rtp_flags);
+        memcpy(test_frame.get() + total_size, nal_unit.get(), size);
+        total_size += size;
+    }
+    if (sender->push_frame(std::move(test_frame), total_size, RTP_NO_FLAGS) != RTP_OK) {
+        std::cout << "Failed to send test packet!" << std::endl;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    std::cout << "H266: Received/expected: " << aggr_received << "/" << expected << std::endl;
+    ASSERT_TRUE(aggr_received >= expected/3);
+    cleanup_ms(sess, sender);
+    cleanup_ms(sess, receiver);
+    cleanup_sess(ctx, sess);
+}
+
+inline void aggr_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
+{
+    aggr_received++;
+    (void)uvgrtp::frame::dealloc_frame(frame);
 }
