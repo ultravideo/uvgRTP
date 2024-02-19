@@ -335,6 +335,13 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
     if (!data || !data_len)
         return RTP_INVALID_VALUE;
 
+    /* This is the first call of init_transaction. It generates a new RTP timestamp. The init_transaction() calls
+       below will use the same RTP timestamp. */
+    if ((ret = fqueue_->init_transaction(data)) != RTP_OK) {
+        UVG_LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
+        return ret;
+    }
+
     size_t payload_size = rtp_ctx_->get_payload_size();
 
     // find all the locations of NAL units using Start Code Lookup (SCL)
@@ -366,10 +373,6 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
 
     if (should_aggregate && !do_not_aggr) // an aggregate packet is possible
     {
-        if ((ret = fqueue_->init_transaction(data)) != RTP_OK) {
-            UVG_LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
-            return ret;
-        }
 
         // use aggregation function that also may just send the packets as Single NAL units 
         // if aggregates have not been implemented
@@ -685,7 +688,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
     
     // first we check that this packet does not belong to an access unit that has been dropped by garbage collection
     if (dropped_ts_.find(frame->header.timestamp) != dropped_ts_.end()) {
-        UVG_LOG_DEBUG("Received an RTP packet belonging to an old, dropped access unit! Timestamp: %lu, seq: %u",
+        UVG_LOG_DEBUG("Received an RTP packet belonging to an old, dropped access unit! Timestamp: %u, seq: %u",
             frame->header.timestamp, frame->header.seq);
         (void)uvgrtp::frame::dealloc_frame(frame); // free fragment memory
         return RTP_GENERIC_ERROR;
