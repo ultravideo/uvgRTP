@@ -125,6 +125,7 @@ stream->push_frame(frame, frame_size, RTP_NO_H26X_SCL | RTP_COPY);
 | RTP_NO_FLAGS    | Use this if you don't need any RTP flags |
 | RTP_COPY        | Copy the input buffer and operate on the copy. Does not work with unique_ptr. | 
 | RTP_NO_H26X_SCL | By default, uvgRTP expect the need to search for NAL start codes from the frames using start code prefixes. Use this flag if your encoder provides ready NAL units without start code prefixes to disable Start Code Lookup (SCL). | 
+| RTP_H26X_DO_NOT_AGGR | Use this to disable the use of Aggregation Packets in H26x formats. Single NAL unit packets will be used for all small NAL units.
 
 ### Obsolete flags
 

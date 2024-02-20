@@ -151,7 +151,10 @@ typedef enum RTP_FLAGS {
      * want to provide the NAL units without the start code prefix yourself,
      * you may use this flag to disable Start Code Lookup (SCL) and the frames
      * will be treated as send-ready NAL units. */
-    RTP_NO_H26X_SCL   = 1 << 2
+    RTP_NO_H26X_SCL   = 1 << 2,
+
+    /** Disable the use of Aggregation Packets in H26x formats **/
+    RTP_H26X_DO_NOT_AGGR = 1 << 3
 
 } rtp_flags_t;
 

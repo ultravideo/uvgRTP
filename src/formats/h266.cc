@@ -73,6 +73,9 @@ uvgrtp::formats::FRAG_TYPE uvgrtp::formats::h266::get_fragment_type(uvgrtp::fram
     bool first_frag = frame->payload[2] & 0x80;
     bool last_frag = frame->payload[2] & 0x40;
 
+    if ((frame->payload[0] >> 1) == uvgrtp::formats::H266_PKT_AGGR)
+        return uvgrtp::formats::FRAG_TYPE::FT_AGGR;
+
     if ((frame->payload[1] >> 3) != uvgrtp::formats::H266_PKT_FRAG)
         return uvgrtp::formats::FRAG_TYPE::FT_NOT_FRAG; // Single NAL unit
 
@@ -107,6 +110,69 @@ void uvgrtp::formats::h266::get_nal_header_from_fu_headers(size_t fptr, uint8_t*
     std::memcpy(&complete_payload[fptr], payload_header, get_payload_header_size());
 }
 
+void uvgrtp::formats::h266::clear_aggregation_info()
+{
+    aggr_pkt_info_.nalus.clear();
+    aggr_pkt_info_.aggr_pkt.clear();
+}
+
+rtp_error_t uvgrtp::formats::h266::finalize_aggregation_pkt()
+{
+    rtp_error_t ret = RTP_OK;
+
+    if (aggr_pkt_info_.nalus.size() <= 1)
+        return RTP_INVALID_VALUE;
+
+    /* create header for the packet and craft the aggregation packet
+     * according to the format defined in RFC 9328 */
+    aggr_pkt_info_.payload_header[0] = H266_PKT_AGGR << 1;
+    aggr_pkt_info_.payload_header[1] = 1;
+
+    aggr_pkt_info_.aggr_pkt.push_back(
+        std::make_pair(HEADER_SIZE_H266_PAYLOAD, aggr_pkt_info_.payload_header)
+    );
+
+    for (size_t i = 0; i < aggr_pkt_info_.nalus.size(); ++i) {
+
+        if (aggr_pkt_info_.nalus[i].first < UINT16_MAX)
+        {
+            auto pkt_size = aggr_pkt_info_.nalus[i].first;
+            aggr_pkt_info_.nalus[i].first = htons((u_short)aggr_pkt_info_.nalus[i].first);
+
+            aggr_pkt_info_.aggr_pkt.push_back(
+                std::make_pair(
+                    sizeof(uint16_t),
+                    (uint8_t*)&aggr_pkt_info_.nalus[i].first
+                )
+            );
+
+            aggr_pkt_info_.aggr_pkt.push_back(
+                std::make_pair(
+                    pkt_size,
+                    aggr_pkt_info_.nalus[i].second
+                )
+            );
+        }
+        else {
+            UVG_LOG_ERROR("NALU too large");
+        }
+    }
+
+    if ((ret = fqueue_->enqueue_message(aggr_pkt_info_.aggr_pkt)) != RTP_OK) {
+        UVG_LOG_ERROR("Failed to enqueue buffers of an aggregation packet!");
+        return ret;
+    }
+
+    return ret;
+}
+
+rtp_error_t uvgrtp::formats::h266::add_aggregate_packet(uint8_t* data, size_t data_len)
+{
+    /* If there is more data coming in (possibly another small packet)
+     * create entry to "aggr_pkt_info_" to construct an aggregation packet */
+    aggr_pkt_info_.nalus.push_back(std::make_pair(data_len, data));
+    return RTP_OK;
+}
 
 rtp_error_t uvgrtp::formats::h266::fu_division(uint8_t* data, size_t data_len, size_t payload_size)
 {
