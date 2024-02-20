@@ -356,6 +356,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
         nal.prefix_len = 0;
         nal.size = data_len;
         nal.aggregate = false;
+        nal.was_aggregated = false;
 
         nals.push_back(nal);
     }
@@ -381,12 +382,16 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
         {
             if (nal.aggregate)
             {
+                nal.was_aggregated = true;
                 if ((ret = add_aggregate_packet(data + nal.offset, nal.size)) != RTP_OK)
                 {
                     clear_aggregation_info();
                     fqueue_->deinit_transaction();
                     return ret;
                 }
+            }
+            else {
+                break;
             }
         }
 
@@ -398,8 +403,7 @@ rtp_error_t uvgrtp::formats::h26x::push_media_frame(sockaddr_in& addr, sockaddr_
 
     for (auto& nal : nals) // non-aggregatable NAL units
     {
-        //UVG_LOG_DEBUG("NAL size %u", nal.size);
-        if (do_not_aggr || !nal.aggregate || !should_aggregate)
+        if (do_not_aggr || !nal.was_aggregated || !should_aggregate)
         {
             if ((ret = fqueue_->init_transaction(data + nal.offset, true)) != RTP_OK) {
                 UVG_LOG_ERROR("Invalid frame queue or failed to initialize transaction!");
@@ -816,7 +820,7 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
         if (e && continuous) {                   
             size_t nal_size = 0; // Find size of the complete reconstructed NAL unit       
             for (auto p : reconstructed_fragments.at(start).seqs) {
-                nal_size += fragments_[p]->payload_len;
+                nal_size += (fragments_[p]->payload_len - sizeof_fu_headers);
                 au.fragments_info[p].reconstructed = true;
             }
             /* Work in progress feature: here we discard inter frames if their references were not received correctly */

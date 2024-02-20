@@ -708,7 +708,7 @@ TEST(FormatTests, h265_aggregation)
     uvgrtp::media_stream* receiver = nullptr;
 
     aggr_received = 0;
-    int expected = 3;
+    int expected = 5;
 
     if (sess)
     {
@@ -721,10 +721,10 @@ TEST(FormatTests, h265_aggregation)
     rtp_format_t format = RTP_FORMAT_H265;
     int test_runs = 1;
 
-    std::vector<size_t> test_sizes = { 100, 200, 300 };
+    std::vector<size_t> test_sizes = { 100, 200, 1700, 300, 400};
 
     size_t total_size = 0;
-    std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[700]);
+    std::unique_ptr<uint8_t[]> test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[2700]);
 
     for (auto& size : test_sizes)
     {
@@ -841,6 +841,7 @@ TEST(FormatTests, h265_disable_aggr)
 
 inline void aggr_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
 {
+    std::cout << "Rec frame size " << frame->payload_len << std::endl;
     aggr_received++;
     (void)uvgrtp::frame::dealloc_frame(frame);
 }

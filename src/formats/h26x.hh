@@ -74,6 +74,7 @@ namespace uvgrtp {
             size_t prefix_len = 0;
             size_t size = 0;
             bool aggregate = false;
+            bool was_aggregated = false;
         };
 
         class h26x : public media {
