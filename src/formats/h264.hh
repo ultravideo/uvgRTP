@@ -52,8 +52,7 @@ namespace uvgrtp {
 
             protected:
                 
-                /* Construct an aggregation packet from data in "aggr_pkt_info_" 
-                 * TODO: The code exists, but it is not used */
+                /* Construct an aggregation packet from data in "aggr_pkt_info_" */
                 virtual rtp_error_t finalize_aggregation_pkt();
 
                 /* Clear aggregation buffers */
