@@ -1,9 +1,6 @@
 var searchData=
 [
-  ['send_5fapp_5fpacket_0',['send_app_packet',['../classuvgrtp_1_1rtcp.html#a0c092bca6edda19218a2cb84ed776c34',1,'uvgrtp::rtcp']]],
-  ['send_5fbye_5fpacket_1',['send_bye_packet',['../classuvgrtp_1_1rtcp.html#a2b831698320212e382e3d565e62d31c4',1,'uvgrtp::rtcp']]],
-  ['send_5fsdes_5fpacket_2',['send_sdes_packet',['../classuvgrtp_1_1rtcp.html#a65680d4ba308fc8cb92fd41f0d313c84',1,'uvgrtp::rtcp']]],
-  ['session_3',['session',['../classuvgrtp_1_1session.html',1,'uvgrtp']]],
-  ['set_5fts_5finfo_4',['set_ts_info',['../classuvgrtp_1_1rtcp.html#a5d0d06f9b4b7779d96d8d60938627316',1,'uvgrtp::rtcp']]],
-  ['start_5fzrtp_5',['start_zrtp',['../classuvgrtp_1_1media__stream.html#a9e22ebbe9f903abe0fcae267f98cafeb',1,'uvgrtp::media_stream']]]
+  ['get_5fconfiguration_5fvalue_0',['get_configuration_value',['../classuvgrtp_1_1media__stream.html#acee8dd45e8c6ebbb1af52bb54dd7c40d',1,'uvgrtp::media_stream']]],
+  ['get_5frtcp_1',['get_rtcp',['../classuvgrtp_1_1media__stream.html#ab339f15d5a852beacd901b7b78e887ea',1,'uvgrtp::media_stream']]],
+  ['get_5fssrc_2',['get_ssrc',['../classuvgrtp_1_1media__stream.html#a8796cb34e0e6c61af8cabd13dd6793b5',1,'uvgrtp::media_stream']]]
 ];
