@@ -1763,8 +1763,8 @@ rtp_error_t uvgrtp::rtcp::generate_report()
 {
     /* Check the participants_ map. If there is no other participants, don't send report */
     if (participants_.empty()) {
-        UVG_LOG_INFO("No other participants in this session. Report not sent.");
-        return RTP_GENERIC_ERROR;
+        UVG_LOG_DEBUG("No other participants in this session. Report not sent.");
+        return RTP_OK;
 
     }
 

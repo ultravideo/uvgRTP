@@ -296,9 +296,11 @@ TEST(RTCPTests, rtcp_multiplex)
         sender1 = sender_sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
         sender1->configure_ctx(RCC_SSRC, 11);
         sender1->configure_ctx(RCC_REMOTE_SSRC, 22);
+        sender1->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
         sender2 = sender_sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
         sender2->configure_ctx(RCC_SSRC, 33);
         sender2->configure_ctx(RCC_REMOTE_SSRC, 44);
+        sender2->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
     }
     if (sender1 && sender2)
     {
@@ -310,9 +312,11 @@ TEST(RTCPTests, rtcp_multiplex)
         receiver1 = receiver_sess->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
         receiver1->configure_ctx(RCC_SSRC, 22);
         receiver1->configure_ctx(RCC_REMOTE_SSRC, 11);
+        receiver1->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
         receiver2 = receiver_sess->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
         receiver2->configure_ctx(RCC_SSRC, 44);
         receiver2->configure_ctx(RCC_REMOTE_SSRC, 33);
+        receiver2->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
     }
     if (receiver1 && receiver2)
     {
@@ -372,9 +376,11 @@ TEST(RTCPTests, rtcp_multiplex2)
         sender1 = sender_sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
         sender1->configure_ctx(RCC_SSRC, 11);
         sender1->configure_ctx(RCC_REMOTE_SSRC, 22);
+        sender1->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
         sender2 = sender_sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
         sender2->configure_ctx(RCC_SSRC, 33);
         sender2->configure_ctx(RCC_REMOTE_SSRC, 44);
+        sender2->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
     }
     if (sender1 && sender2)
     {
@@ -386,9 +392,11 @@ TEST(RTCPTests, rtcp_multiplex2)
         receiver1 = receiver_sess->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
         receiver1->configure_ctx(RCC_SSRC, 22);
         receiver1->configure_ctx(RCC_REMOTE_SSRC, 11);
+        receiver1->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
         receiver2 = receiver_sess->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
         receiver2->configure_ctx(RCC_SSRC, 44);
         receiver2->configure_ctx(RCC_REMOTE_SSRC, 33);
+        receiver2->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
     }
     if (receiver1 && receiver2)
     {
