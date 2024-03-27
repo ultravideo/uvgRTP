@@ -810,8 +810,10 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
         }
 
         if (next == c || s) {
-            continuous = true;
-            reconstructed_fragments.at(start).seqs.insert(c);
+            if (reconstructed_fragments.find(start) != reconstructed_fragments.end() ) {
+                continuous = true;
+                reconstructed_fragments.at(start).seqs.insert(c);
+            }
         }
         next = next_seq_num(c);
         //UVG_LOG_DEBUG("Current fragment %u, next %u, start %d, end %d, continuous %d", c, next, s, e, continuous);
