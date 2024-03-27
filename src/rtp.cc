@@ -162,7 +162,12 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer, bool use_old_ts)
     *(uint32_t *)&buffer[8] = htonl(*ssrc_.get());
 
     if (use_old_ts) {
-        *(uint32_t*)&buffer[4] = htonl((u_long)rtp_ts_);
+        if (timestamp_ == INVALID_TS) {
+            *(uint32_t*)&buffer[4] = htonl((u_long)rtp_ts_);
+        }
+        else {
+            *(uint32_t*)&buffer[4] = htonl((u_long)timestamp_);
+        }
     }
     else if (timestamp_ == INVALID_TS) {
 
