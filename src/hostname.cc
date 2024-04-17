@@ -49,6 +49,16 @@ std::string uvgrtp::hostname::get_username()
 
     return std::string(buffer);
 #else
+#ifdef ANDROID
+    const char* username = getlogin();
+
+    if (username == nullptr) {
+        UVG_LOG_ERROR("%s", strerror(errno));
+        return "";
+    }
+
+    return std::string(username);
+#else
     char username[NAME_MAXLEN];
 
     if (getlogin_r(username, NAME_MAXLEN) != 0) {
@@ -57,5 +67,6 @@ std::string uvgrtp::hostname::get_username()
     }
 
     return std::string(username);
+#endif
 #endif
 }
