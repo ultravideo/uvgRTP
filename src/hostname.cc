@@ -48,8 +48,7 @@ std::string uvgrtp::hostname::get_username()
     }
 
     return std::string(buffer);
-#else
-#ifdef ANDROID
+#elif defined(ANDROID)
     const char* username = getlogin();
 
     if (username == nullptr) {
@@ -67,6 +66,5 @@ std::string uvgrtp::hostname::get_username()
     }
 
     return std::string(username);
-#endif
 #endif
 }
