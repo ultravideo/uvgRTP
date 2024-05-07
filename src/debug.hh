@@ -11,6 +11,9 @@
 #include <cstring>
 #include <string>
 
+#ifdef ANDROID
+#include "android/log.h"
+#endif
 
 inline const std::string className(const std::string& prettyFunction)
 {
@@ -50,7 +53,27 @@ static inline void win_get_last_error(void)
 #define LOG_LEVEL_INFO  "\x1b[34mINFO\x1b[0m"
 #endif
 #define LOG_LEVEL_DEBUG "DEBUG"
+#ifdef ANDROID
+static inline void uvgrtp_debug(const char *level, const char *function, const char *s, ...)
+{
+    android_LogPriority android_level = android_LogPriority::ANDROID_LOG_DEBUG;
+    if (strcmp(level, LOG_LEVEL_ERROR) == 0) {
+        android_level = android_LogPriority::ANDROID_LOG_ERROR;
+    } else if (strcmp(level, LOG_LEVEL_WARN) == 0) {
+        android_level = android_LogPriority::ANDROID_LOG_WARN;
+    } else if (strcmp(level, LOG_LEVEL_INFO) == 0) {
+        android_level = android_LogPriority::ANDROID_LOG_INFO;
+    }
 
+    va_list args;
+    va_start(args, s);
+    char fmt[256] = {0};
+    snprintf(fmt, sizeof(fmt), "[uvgRTP][%s::%s] %s\n",
+             "", function, s);
+    __android_log_vprint(android_level, "UVGRTP", fmt, args);
+    va_end(args);
+}
+#else
 static inline void uvgrtp_debug(const char *level, const char *function, const char *s, ...)
 {
     va_list args;
@@ -61,6 +84,7 @@ static inline void uvgrtp_debug(const char *level, const char *function, const c
     vfprintf(stderr, fmt, args);
     va_end(args);
 }
+#endif
 
 #ifndef NDEBUG
 #define UVG_LOG_DEBUG(...) uvgrtp_debug(LOG_LEVEL_DEBUG, __func__, __VA_ARGS__)
