@@ -48,7 +48,7 @@ std::string uvgrtp::hostname::get_username()
     }
 
     return std::string(buffer);
-#elif defined(ANDROID)
+#elif defined(ANDROID) && __ANDROID_MIN_SDK_VERSION__ < 28
     const char* username = getlogin();
 
     if (username == nullptr) {
