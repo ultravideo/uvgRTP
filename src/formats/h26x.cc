@@ -104,8 +104,8 @@ uvgrtp::formats::h26x::h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_
     received_frames_(),
     received_info_(),
     fragments_(),
-    dropped_in_order_(),
     dropped_ts_(),
+    dropped_in_order_(),
     rtp_ctx_(rtp),
     last_garbage_collection_(uvgrtp::clock::hrc::now()),
     discard_until_key_frame_(true)
