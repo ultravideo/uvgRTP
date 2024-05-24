@@ -70,7 +70,7 @@ session->create_stream(..., RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP_NULL_CIP
 | RCE_SEND_ONLY         | Use this to prevent binding to a local address |
 | RCE_RECEIVE_ONLY      | Use this to interpret any address as local address and prevent sending |
 | RCE_SRTP              | Enable SRTP, must be coupled with either RCE_SRTP_KMNGMNT_ZRTP or RCE_SRTP_KMNGMNT_USER |
-| RCE_SRTP_KMNGMNT_ZRTP | Use ZRTP to manage keys (see section SRTP for more details) |
+| RCE_SRTP_KMNGMNT_ZRTP | Use automatic ZRTP negotiation to manage keys (see section SRTP for more details) |
 | RCE_SRTP_KMNGMNT_USER | Let user manage keys (see section SRTP for more details) |
 | RCE_H26X_DO_NOT_PREPEND_SC | Prevent uvgRTP from prepending start code prefix to received H26x frames. Use this is your decoder doesn't expect prefixes |
 | RCE_H26X_DEPENDENCY_ENFORCEMENT | In progress feature. When ready, a loss of frame means that rest of the frames that depended on that frame are also dropped |
@@ -153,6 +153,11 @@ uvgRTP provides two ways for an application to deal with SRTP key-management: 1)
 
 uvgRTP supports Diffie-Hellman and Multistream modes of ZRTP. To use ZRTP, user must provide `RCE_SRTP | RCE_SRTP_KMNGMNT_ZRTP` flag combination
 to `create_stream()` as well as `RCE_ZRTP_MULTISTREAM_MODE` flag for all streams which are in Multistream mode. See [ZRTP Multistream example](../examples/zrtp_multistream.cc) for more details.
+
+If you want to manually trigger ZRTP negotiation instead of it starting automatically with media stream creation, use the following flags:
+`RCE_SRTP | RCE_ZRTP_DIFFIE_HELLMAN_MODE` or `RCE_SRTP | RCE_ZRTP_MULTISTREAM_MODE`,
+configure media stream values such as SSRC values using `configure_ctx()`,
+and start ZRTP negotiation with `start_zrtp()`.
 
 ### User-managed SRTP
 
