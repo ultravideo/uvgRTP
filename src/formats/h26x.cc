@@ -814,6 +814,8 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
                 continuous = true;
                 reconstructed_fragments.at(start).seqs.insert(c);
             }
+        } else {
+            continuous = false;
         }
         next = next_seq_num(c);
         //UVG_LOG_DEBUG("Current fragment %u, next %u, start %d, end %d, continuous %d", c, next, s, e, continuous);
