@@ -12,12 +12,11 @@ inline std::unique_ptr<uint8_t[]> create_test_packet(rtp_format_t format, uint8_
     bool add_start_code, size_t size, int rtp_flags);
 
 inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets, size_t size,
-    uvgrtp::session* sess, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver, int rtp_flags, rtp_format_t format,
-    int framerate = 25);
+    uvgrtp::session* sess, uvgrtp::media_stream* sender, uvgrtp::media_stream* receiver, 
+    int rtp_flags, rtp_format_t format, int framerate = 25);
 
 inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets, size_t size,
-    uvgrtp::session* sess,
-    uvgrtp::media_stream* sender, std::vector<uvgrtp::media_stream*> const& receiver,
+    uvgrtp::session* sess, uvgrtp::media_stream* sender, std::vector<uvgrtp::media_stream*> const& receiver,
     int rtp_flags, rtp_format_t format, int framerate = 25);
 
 inline void send_packets(std::unique_ptr<uint8_t[]> test_packet, size_t size, 
