@@ -109,7 +109,7 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
     }
     
     uvgrtp::media_stream* stream =
-        new uvgrtp::media_stream(cname_, remote_address_, local_address_, src_port, dst_port, fmt, sf_, rce_flags);
+        new uvgrtp::media_stream(cname_, remote_address_, local_address_, src_port, dst_port, fmt, sf_, session_zrtp_mtx_, rce_flags);
 
     if (rce_flags & RCE_SRTP) {
         if (!uvgrtp::crypto::enabled()) {
