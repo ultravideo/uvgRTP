@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <memory>
 #include <string>
-#include <mutex>
 #include <atomic>
 #include <cstdint>
 
@@ -55,7 +54,7 @@ namespace uvgrtp {
         public:
             /// \cond DO_NOT_DOCUMENT
             media_stream(std::string cname, std::string remote_addr, std::string local_addr, uint16_t src_port, uint16_t dst_port,
-                rtp_format_t fmt, std::shared_ptr<uvgrtp::socketfactory> sfp, std::shared_ptr<std::mutex> zrtp_mtx, int rce_flags);
+                rtp_format_t fmt, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags);
             ~media_stream();
 
             /* Initialize traditional RTP session.
@@ -422,7 +421,6 @@ namespace uvgrtp {
             std::shared_ptr<uvgrtp::rtp>    rtp_;
             std::shared_ptr<uvgrtp::rtcp>   rtcp_;
             std::shared_ptr<uvgrtp::zrtp>   zrtp_;
-            std::shared_ptr<std::mutex>     zrtp_mtx_;
 
             std::shared_ptr<uvgrtp::socketfactory> sfp_;
 

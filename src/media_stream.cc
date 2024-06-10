@@ -34,7 +34,7 @@
 
 uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     std::string local_addr, uint16_t src_port, uint16_t dst_port, rtp_format_t fmt,
-    std::shared_ptr<uvgrtp::socketfactory> sfp, std::shared_ptr<std::mutex> zrtp_mtx, int rce_flags) :
+    std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags) :
     key_(uvgrtp::random::generate_32()),
     srtp_(nullptr),
     srtcp_(nullptr),
@@ -42,7 +42,6 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     rtp_(nullptr),
     rtcp_(nullptr),
     zrtp_(nullptr),
-    zrtp_mtx_(zrtp_mtx),
     sfp_(sfp),
     remote_sockaddr_(),
     remote_sockaddr_ip6_(),
@@ -426,6 +425,7 @@ rtp_error_t uvgrtp::media_stream::start_zrtp()
         }
     }
 
+    zrtp_->set_zrtp_busy(true);
     rtp_error_t ret = RTP_OK;
     if ((ret = zrtp_->init(rtp_->get_ssrc(), socket_, remote_sockaddr_, remote_sockaddr_ip6_, perform_dh, ipv6_)) != RTP_OK) {
         UVG_LOG_WARN("Failed to initialize ZRTP for media stream!");

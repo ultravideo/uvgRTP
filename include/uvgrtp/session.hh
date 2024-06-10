@@ -109,7 +109,6 @@ namespace uvgrtp {
         private:
             /* Each RTP multimedia session shall have one ZRTP session from which all session are derived */
             std::shared_ptr<uvgrtp::zrtp> zrtp_;
-            std::shared_ptr<std::mutex> session_zrtp_mtx_;
 
             std::string generic_address_;
 
