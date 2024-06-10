@@ -76,22 +76,26 @@ namespace uvgrtp {
              * Return RTP_GENERIC_ERROR if "buffer" contains an invalid ZRTP message */
             rtp_error_t packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out);
 
-            inline bool has_dh_finished() const
+            inline bool has_dh_finished()
             {
+                std::lock_guard<std::mutex> lg(state_mutex_);
                 return dh_finished_;
             }
 
             inline void dh_has_finished()
             {
+                std::lock_guard<std::mutex> lg(state_mutex_);
                 dh_finished_ = true;
             }
 
-            inline bool is_zrtp_busy() const
+            inline bool is_zrtp_busy()
             {
+                std::lock_guard<std::mutex> lg(busy_mutex_);
                 return zrtp_busy_;
             }
             inline void set_zrtp_busy(bool status)
             {
+                std::lock_guard<std::mutex> lg(busy_mutex_);
                 zrtp_busy_ = status;
             }
 
@@ -214,6 +218,8 @@ namespace uvgrtp {
 
             std::mutex state_mutex_;
             bool dh_finished_ = false;
+
+            std::mutex busy_mutex_;
             bool zrtp_busy_;
 
     };
