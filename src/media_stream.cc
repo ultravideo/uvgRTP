@@ -439,7 +439,9 @@ rtp_error_t uvgrtp::media_stream::start_zrtp()
         return free_resources(ret);
 
     zrtp_->set_zrtp_busy(false);
-    zrtp_->dh_has_finished(); // only after the DH stream has gotten its keys, do we let non-DH stream perform ZRTP
+    if (perform_dh) {
+        zrtp_->dh_has_finished(); // only after the DH stream has gotten its keys, do we let non-DH stream perform ZRTP
+    }
     install_packet_handlers();
 
     return RTP_OK;
