@@ -93,10 +93,19 @@ namespace uvgrtp {
                 std::lock_guard<std::mutex> lg(busy_mutex_);
                 return zrtp_busy_;
             }
-            inline void set_zrtp_busy(bool status)
+            inline bool try_lock_zrtp()
             {
                 std::lock_guard<std::mutex> lg(busy_mutex_);
-                zrtp_busy_ = status;
+                if (zrtp_busy_) {
+                    return false;
+                }
+                zrtp_busy_ = true;
+                return true;
+            }
+            inline void unlock_zrtp()
+            {
+                std::lock_guard<std::mutex> lg(busy_mutex_);
+                zrtp_busy_ = false;
             }
 
         private:
