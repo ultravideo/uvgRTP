@@ -788,46 +788,58 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
         au.fragments_info[fragment_seq].end = true;
     }
 
-    /* Check all the incomplete fragments of this access unit, by looking for a set of fragments with consecutive
-       sequence numbers that starts with a start fragment and ends in an end fragment. If this is found,
-       a NAL unit can be reconstructed. */
-    bool continuous = false;
-    uint16_t next = 0;
-    uint16_t start = *au.incomplete_packet_seqs.begin();
-
-    std::unordered_map<uint16_t, nal>reconstructed_fragments = {}; /* Used to keep track of fragments that can be used for reconstruction.
+    /* Used to keep track of fragments that can be used for reconstruction.
     If a NAL unit is reconstructed, these can be removed from incomplete_packet_seqs after the loop below. */
+    std::unordered_map<uint16_t, nal>reconstructed_fragments = {}; 
 
+    // figure out if we have the start sequence number and which seq it is (usually first, but not always)
     rtp_error_t ret = RTP_OK;
-    for (auto &c : au.incomplete_packet_seqs) {
-
-        bool s = au.fragments_info[c].start;
-        bool e = au.fragments_info[c].end;
-
-        if (s) {
-            start = c;
-            continuous = true;
-            reconstructed_fragments[c] = {}; // If this is start FU, initialize a new map for it
+    uint16_t start_seq = 0;
+    bool start_found = false;
+    for (const uint16_t& fragment : au.incomplete_packet_seqs) {
+        if (au.fragments_info[fragment].start)
+        {
+            start_seq = fragment;
+            start_found = true;
+            reconstructed_fragments[fragment] = {}; // If this is start FU, initialize a new map for it
+            reconstructed_fragments.at(start_seq).seqs.insert(start_seq);
+            break;
         }
+    }
 
-        if (continuous && (next == c || s)) {
-            if (reconstructed_fragments.find(start) != reconstructed_fragments.end() ) {
-                continuous = true;
-                reconstructed_fragments.at(start).seqs.insert(c);
-            }
+    if (!start_found)
+    {
+        return ret;
+    }
+
+    /* Check all the incomplete fragments of this access unit, by looking for a set of fragments with consecutive
+   sequence numbers that starts with a start fragment and ends in an end fragment. If this is found,
+   a NAL unit can be reconstructed. */
+    uint16_t next_seq = next_seq_num(start_seq);
+    uint16_t current_fragment = nextSeq(start_seq, au.incomplete_packet_seqs);
+
+    while (current_fragment != start_seq) { // go until we reconstruct or find the start again
+
+        bool is_end = au.fragments_info[current_fragment].end;
+
+        // check that this frament is continuous 
+        if (current_fragment != next_seq) {
+            break;
         } else {
             continuous = false;
         }
-        next = next_seq_num(c);
-        //UVG_LOG_DEBUG("Current fragment %u, next %u, start %d, end %d, continuous %d", c, next, s, e, continuous);
+        else {
+            reconstructed_fragments.at(start_seq).seqs.insert(current_fragment);
+        }
 
         /* A continuous set of fragments with a start and end has been found. NAL unit can be reconstructed */
-        if (e && continuous) {                   
+        if (is_end) {
             size_t nal_size = 0; // Find size of the complete reconstructed NAL unit       
-            for (auto p : reconstructed_fragments.at(start).seqs) {
+            for (auto p : reconstructed_fragments.at(start_seq).seqs) {
                 nal_size += (fragments_[p]->payload_len - sizeof_fu_headers);
                 au.fragments_info[p].reconstructed = true;
             }
+
             /* Work in progress feature: here we discard inter frames if their references were not received correctly */
             bool enable_reference_discarding = (rce_flags & RCE_H26X_DEPENDENCY_ENFORCEMENT);
             if (discard_until_key_frame_ && enable_reference_discarding) {
@@ -846,12 +858,18 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
                     discard_until_key_frame_ = false;
                 }
             }
-            if ((reconstruction(out, nal_size, rce_flags, start, c, sizeof_fu_headers)) == RTP_PKT_READY) {
+            if ((reconstruction(out, nal_size, rce_flags, start_seq, current_fragment, sizeof_fu_headers)) == RTP_PKT_READY) {
                 ret = RTP_PKT_READY;
             }
-            reconstructed_fragments.at(start).complete = true;
+            reconstructed_fragments.at(start_seq).complete = true;
         }
+
+
+        next_seq = next_seq_num(next_seq);
+        current_fragment = nextSeq(current_fragment, au.incomplete_packet_seqs);
     }
+
+
     for (auto& p : reconstructed_fragments) {
         if (p.second.complete) {
             for (auto &print : p.second.seqs) {
@@ -1026,4 +1044,17 @@ rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out
 
     *out = complete;      // save result to output
     return RTP_PKT_READY; // indicate that we have a frame ready
+}
+
+
+uint16_t uvgrtp::formats::h26x::nextSeq(uint16_t currentSeq, std::set<uint16_t>& fragments)
+{
+    auto currentIterator = fragments.find(currentSeq);
+
+    if (*currentIterator == *(fragments.rbegin()))
+    {
+        return *(fragments.begin());
+    }
+
+    return *(++currentIterator);
 }

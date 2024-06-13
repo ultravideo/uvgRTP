@@ -181,6 +181,8 @@ namespace uvgrtp {
 
             bool is_duplicate_frame(uint32_t timestamp, uint16_t seq_num);
 
+            uint16_t nextSeq(uint16_t currentSeq, std::set<uint16_t>& fragments);
+
             std::deque<uvgrtp::frame::rtp_frame*> queued_;
             std::unordered_map<uint32_t, access_unit_info> access_units_;
 
