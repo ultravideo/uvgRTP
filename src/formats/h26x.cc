@@ -806,14 +806,17 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
 
         if (s) {
             start = c;
+            continuous = true;
             reconstructed_fragments[c] = {}; // If this is start FU, initialize a new map for it
         }
 
-        if (next == c || s) {
+        if (continuous && (next == c || s)) {
             if (reconstructed_fragments.find(start) != reconstructed_fragments.end() ) {
                 continuous = true;
                 reconstructed_fragments.at(start).seqs.insert(c);
             }
+        } else {
+            continuous = false;
         }
         next = next_seq_num(c);
         //UVG_LOG_DEBUG("Current fragment %u, next %u, start %d, end %d, continuous %d", c, next, s, e, continuous);
