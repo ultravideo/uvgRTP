@@ -825,8 +825,6 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
         // check that this frament is continuous 
         if (current_fragment != next_seq) {
             break;
-        } else {
-            continuous = false;
         }
         else {
             reconstructed_fragments.at(start_seq).seqs.insert(current_fragment);
