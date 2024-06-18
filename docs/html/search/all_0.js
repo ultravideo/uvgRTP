@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['1_3a_20create_20context_0',['Step 1: Create context',['../index.html#autotoc_md3',1,'']]],
-  ['1_3a_20encryption_20optional_1',['Step 3.1: Encryption (optional)',['../index.html#autotoc_md6',1,'']]]
+  ['add_5fsrtp_5fctx_0',['add_srtp_ctx',['../classuvgrtp_1_1media__stream.html#a0950a91bd645cbf842d8218ae4171aed',1,'uvgrtp::media_stream']]]
 ];
