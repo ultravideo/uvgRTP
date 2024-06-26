@@ -320,7 +320,7 @@ rtp_error_t uvgrtp::rtp::packet_handler(void* args, int rce_flags, uint8_t* pack
      * valid and subtract the amount of padding bytes from payload length */
     if ((*out)->header.padding) {
         UVG_LOG_DEBUG("Frame contains padding");
-        uint8_t padding_len = (*out)->payload[(*out)->payload_len - 1];
+        uint8_t padding_len = packet[size - 1];
 
         if (!padding_len || (*out)->payload_len <= padding_len) {
             uvgrtp::frame::dealloc_frame(*out);
