@@ -17,10 +17,14 @@ enum Key_length { SRTP_128 = 128, SRTP_196 = 196, SRTP_256 = 256 };
 constexpr int SALT_SIZE = 112;
 constexpr int SALT_SIZE_BYTES = SALT_SIZE / 8;
 
+constexpr int TEST_PACKET_SIZE = 1000;
+
 void user_send_func(uint8_t *key, uint8_t salt[SALT_SIZE_BYTES], int key_size);
 void user_receive_func(uint8_t *key, uint8_t salt[SALT_SIZE_BYTES], uint8_t key_size);
-void zrtp_sender_func(uvgrtp::session* sender_session, int sender_port, int receiver_port, unsigned int flags, bool mux);
-void zrtp_receive_func(uvgrtp::session* receiver_session, int sender_port, int receiver_port, unsigned int flags, bool mux);
+void zrtp_sender_func(uvgrtp::session* sender_session, int sender_port, int receiver_port, unsigned int flags, 
+    uint32_t local_ssrc = 0, uint32_t remote_ssrc = 0);
+void zrtp_receive_func(uvgrtp::session* receiver_session, int sender_port, int receiver_port, unsigned int flags,
+    uint32_t local_ssrc = 0, uint32_t remote_ssrc = 0);
 
 void test_user_key(Key_length len);
 int received_packets;
@@ -198,10 +202,10 @@ TEST(EncryptionTests, zrtp)
     received_packets = 0;
 
     std::unique_ptr<std::thread> sender_thread =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT, RECEIVER_PORT, zrtp_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT, RECEIVER_PORT, zrtp_flags, 0, 0));
 
     std::unique_ptr<std::thread> receiver_thread =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT, RECEIVER_PORT, zrtp_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT, RECEIVER_PORT, zrtp_flags, 0, 0));
 
     if (sender_thread && sender_thread->joinable())
     {
@@ -238,10 +242,10 @@ TEST(EncryptionTests, zrtp_authenticate)
     received_packets = 0;
 
     std::unique_ptr<std::thread> sender_thread =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT, RECEIVER_PORT, zrtp_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT, RECEIVER_PORT, zrtp_flags, 0, 0));
 
     std::unique_ptr<std::thread> receiver_thread =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT, RECEIVER_PORT, zrtp_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT, RECEIVER_PORT, zrtp_flags, 0, 0));
 
     if (sender_thread && sender_thread->joinable())
     {
@@ -282,22 +286,22 @@ TEST(EncryptionTests, zrtp_multistream)
     uvgrtp::session* receiver_session = ctx.create_session(SENDER_ADDRESS, RECEIVER_ADDRESS);
 
     std::unique_ptr<std::thread> sender_thread1 = 
-        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_dh_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_dh_flags, 0, 0));
 
     std::unique_ptr<std::thread> receiver_thread1 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_dh_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_dh_flags, 0, 0));
 
     std::unique_ptr<std::thread> sender_thread2 = 
-        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, 0, 0));
 
     std::unique_ptr<std::thread> receiver_thread2 = 
-        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, 0, 0));
 
     std::unique_ptr<std::thread> sender_thread3 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 6, RECEIVER_PORT + 6, zrtp_multistream_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 6, RECEIVER_PORT + 6, zrtp_multistream_flags, 0, 0));
 
     std::unique_ptr<std::thread> receiver_thread3 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 6, RECEIVER_PORT + 6, zrtp_multistream_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 6, RECEIVER_PORT + 6, zrtp_multistream_flags, 0, 0));
 
     if (receiver_thread1 && receiver_thread1->joinable())
     {
@@ -358,22 +362,22 @@ TEST(EncryptionTests, zrtp_multistream_ip6)
     uvgrtp::session* receiver_session = ctx.create_session(SENDER_ADDRESS_IP6, RECEIVER_ADDRESS_IP6);
 
     std::unique_ptr<std::thread> sender_thread1 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_dh_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_dh_flags, 0, 0));
 
     std::unique_ptr<std::thread> receiver_thread1 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_dh_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_dh_flags, 0, 0));
 
     std::unique_ptr<std::thread> sender_thread2 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, 0, 0));
 
     std::unique_ptr<std::thread> receiver_thread2 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, 0, 0));
 
     std::unique_ptr<std::thread> sender_thread3 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 6, RECEIVER_PORT + 6, zrtp_multistream_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 6, RECEIVER_PORT + 6, zrtp_multistream_flags, 0, 0));
 
     std::unique_ptr<std::thread> receiver_thread3 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 6, RECEIVER_PORT + 6, zrtp_multistream_flags, false));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 6, RECEIVER_PORT + 6, zrtp_multistream_flags, 0, 0));
 
     if (receiver_thread1 && receiver_thread1->joinable())
     {
@@ -436,19 +440,29 @@ TEST(EncryptionTests, zrtp_multistream_mux)
     uvgrtp::session* sender_session = send_ctx.create_session(RECEIVER_ADDRESS, SENDER_ADDRESS);
     uvgrtp::session* receiver_session = recv_ctx.create_session(SENDER_ADDRESS, RECEIVER_ADDRESS);
 
+    uint32_t t1_sender_ssrc = 11;
+    uint32_t t1_receiver_ssrc = 22;
+
+    uint32_t t2_sender_ssrc = 33;
+    uint32_t t2_receiver_ssrc = 44;
+
     std::unique_ptr<std::thread> sender_thread1 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT, RECEIVER_PORT, zrtp_dh_flags, true));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT, RECEIVER_PORT, zrtp_dh_flags, 
+            t1_sender_ssrc, t1_receiver_ssrc));
 
     std::unique_ptr<std::thread> receiver_thread1 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT, RECEIVER_PORT, zrtp_dh_flags, true));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT, RECEIVER_PORT, zrtp_dh_flags, 
+            t1_receiver_ssrc, t1_sender_ssrc));
 
     //std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     std::unique_ptr<std::thread> sender_thread2 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT, RECEIVER_PORT, zrtp_multistream_flags, true));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT, RECEIVER_PORT, zrtp_multistream_flags, 
+            t2_sender_ssrc, t2_receiver_ssrc));
 
     std::unique_ptr<std::thread> receiver_thread2 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT, RECEIVER_PORT, zrtp_multistream_flags, true));
+        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT, RECEIVER_PORT, zrtp_multistream_flags, 
+            t2_receiver_ssrc, t2_sender_ssrc));
 
     if (receiver_thread1 && receiver_thread1->joinable())
     {
@@ -477,7 +491,8 @@ TEST(EncryptionTests, zrtp_multistream_mux)
     cleanup_sess(recv_ctx, receiver_session);
 }
 
-void zrtp_sender_func(uvgrtp::session* sender_session, int sender_port, int receiver_port, unsigned int flags, bool mux)
+void zrtp_sender_func(uvgrtp::session* sender_session, int sender_port, int receiver_port, unsigned int flags, 
+    uint32_t local_ssrc, uint32_t remote_ssrc)
 {
     std::cout << "Starting ZRTP sender thread" << std::endl;
 
@@ -485,38 +500,40 @@ void zrtp_sender_func(uvgrtp::session* sender_session, int sender_port, int rece
     uvgrtp::media_stream* send = nullptr;
     send = sender_session->create_stream(sender_port, receiver_port, RTP_FORMAT_GENERIC, flags);
 
-    if (sender_session && mux)
-    {
-        if (flags & RCE_ZRTP_MULTISTREAM_MODE) {
-            send->configure_ctx(RCC_REMOTE_SSRC, 11);
-            send->configure_ctx(RCC_SSRC, 22);
-        }
-        else {
-            send->configure_ctx(RCC_REMOTE_SSRC, 33);
-            send->configure_ctx(RCC_SSRC, 44);
-        }
-        send->start_zrtp();
-        //send = sender_session->create_stream(sender_port, receiver_port, RTP_FORMAT_GENERIC, flags);
-    }
-    //Sleep for a bit so that the receiver is ready to receives
-    std::this_thread::sleep_for(std::chrono::milliseconds(50)); 
-    auto start = std::chrono::steady_clock::now();
-
-    uvgrtp::frame::rtp_frame* frame = nullptr;
-
     if (send)
     {
+        if (local_ssrc)
+        {
+            send->configure_ctx(RCC_SSRC, local_ssrc);
+        }
+
+        if (remote_ssrc)
+        {
+            send->configure_ctx(RCC_REMOTE_SSRC, remote_ssrc);
+        }
+
+        if (!(flags & RCE_SRTP_KMNGMNT_ZRTP))
+        {
+            send->start_zrtp();
+        }
+
+        //Sleep for a bit so that the receiver is ready to receives
+        std::this_thread::sleep_for(std::chrono::milliseconds(50)); 
+        auto start = std::chrono::steady_clock::now();
+
+        uvgrtp::frame::rtp_frame* frame = nullptr;
+
         int test_packets = 10;
-        size_t packet_size = 1000;
         int packet_interval_ms = int(EXAMPLE_DURATION_S.count()) * 1000 / test_packets;
 
-        std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, packet_size, RTP_NO_FLAGS);
-        send_packets(std::move(test_frame), packet_size, sender_session, send, test_packets, packet_interval_ms, false, RTP_NO_FLAGS);
+        std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, TEST_PACKET_SIZE, RTP_NO_FLAGS);
+        send_packets(std::move(test_frame), TEST_PACKET_SIZE, sender_session, send, test_packets, packet_interval_ms, false, RTP_NO_FLAGS);
     }
     cleanup_ms(sender_session, send);
 }
 
-void zrtp_receive_func(uvgrtp::session* receiver_session, int sender_port, int receiver_port, unsigned int flags, bool mux)
+void zrtp_receive_func(uvgrtp::session* receiver_session, int sender_port, int receiver_port, unsigned int flags, 
+    uint32_t local_ssrc, uint32_t remote_ssrc)
 {
     std::cout << "Starting ZRTP receiver thread" << std::endl;
 
@@ -524,32 +541,41 @@ void zrtp_receive_func(uvgrtp::session* receiver_session, int sender_port, int r
     uvgrtp::media_stream* recv = nullptr;
     recv = receiver_session->create_stream(receiver_port, sender_port, RTP_FORMAT_GENERIC, flags);
 
-    if (receiver_session && mux)
-    {
-        if (flags & RCE_ZRTP_MULTISTREAM_MODE) {
-            recv->configure_ctx(RCC_REMOTE_SSRC, 22);
-            recv->configure_ctx(RCC_SSRC, 11);
-        }
-        else {
-            recv->configure_ctx(RCC_REMOTE_SSRC, 44);
-            recv->configure_ctx(RCC_SSRC, 33);
-        }
-        recv->start_zrtp();
-        //recv = receiver_session->create_stream(receiver_port, sender_port, RTP_FORMAT_GENERIC, flags);
-    }
-
-    auto start = std::chrono::steady_clock::now();
-
-    uvgrtp::frame::rtp_frame* frame = nullptr;
-
     if (recv)
     {
+        if (local_ssrc)
+        {
+            recv->configure_ctx(RCC_SSRC, local_ssrc);
+        }
+
+        if (remote_ssrc)
+        {
+            recv->configure_ctx(RCC_REMOTE_SSRC, remote_ssrc);
+        }
+
+        if (!(flags & RCE_SRTP_KMNGMNT_ZRTP))
+        {
+            recv->start_zrtp();
+        }
+
+        auto start = std::chrono::steady_clock::now();
+
+        uvgrtp::frame::rtp_frame* frame = nullptr;
+
         while (std::chrono::steady_clock::now() - start < std::chrono::seconds(4))
         {
             frame = recv->pull_frame(10);
             if (frame)
             {
                 std::cout << "Stream " << flags << " received frame" << std::endl;
+                const char* expected_payload = "bbbb";
+
+                EXPECT_TRUE(frame->payload_len == TEST_PACKET_SIZE);
+                EXPECT_TRUE(frame->payload[0] == expected_payload[0]);
+                EXPECT_TRUE(frame->payload[1] == expected_payload[1]);
+                EXPECT_TRUE(frame->payload[2] == expected_payload[2]);
+                EXPECT_TRUE(frame->payload[3] == expected_payload[3]);
+
                 ++received_packets;
                 process_rtp_frame(frame);
             }

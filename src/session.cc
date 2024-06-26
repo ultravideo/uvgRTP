@@ -164,7 +164,7 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
                 return nullptr;
             }
         } else {
-            UVG_LOG_ERROR("SRTP key management scheme not specified!");
+            UVG_LOG_DEBUG("SRTP key management scheme not specified. Assuming key management will be determined later");
             if (stream->init(zrtp_) != RTP_OK) {
                 UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), src_port, dst_port);
                 delete stream;
