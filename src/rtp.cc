@@ -167,6 +167,7 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer, bool use_old_ts)
         }
         else {
             *(uint32_t*)&buffer[4] = htonl((u_long)timestamp_);
+            rtp_ts_ = timestamp_;
         }
     }
     else if (timestamp_ == INVALID_TS) {
@@ -186,6 +187,7 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer, bool use_old_ts)
     }
     else {
         *(uint32_t *)&buffer[4] = htonl((u_long)timestamp_);
+        rtp_ts_ = timestamp_;
     }
 }
 
