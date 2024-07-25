@@ -107,17 +107,18 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
         rtp_errno = RTP_INVALID_VALUE;
         return  nullptr;
     }
+
+    if (rce_flags & RCE_SRTP && !uvgrtp::crypto::enabled()) 
+    {
+        UVG_LOG_ERROR("RCE_SRTP requires inclusion of Crypto++ during compilation!");
+        rtp_errno = RTP_GENERIC_ERROR;
+        return nullptr;
+    }
     
     uvgrtp::media_stream* stream =
         new uvgrtp::media_stream(cname_, remote_address_, local_address_, src_port, dst_port, fmt, sf_, rce_flags);
 
     if (rce_flags & RCE_SRTP) {
-        if (!uvgrtp::crypto::enabled()) {
-            UVG_LOG_ERROR("Recompile uvgRTP with -D__RTP_CRYPTO__");
-            delete stream;
-            rtp_errno = RTP_GENERIC_ERROR;
-            return nullptr;
-        }
 
         session_mtx_.lock();
         if (!zrtp_) {

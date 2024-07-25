@@ -50,13 +50,6 @@ void test_user_key(Key_length len)
     std::cout << "Starting ZRTP sender thread" << std::endl;
     uvgrtp::context ctx;
 
-    if (!ctx.crypto_enabled())
-    {
-        std::cout << "Please link crypto to uvgRTP library in order to tests its SRTP user keys!" << std::endl;
-        FAIL();
-        return;
-    }
-
     uint8_t *key = new uint8_t[len];
     uint8_t salt[SALT_SIZE_BYTES] = { 0 };
 
@@ -188,13 +181,6 @@ TEST(EncryptionTests, zrtp)
 {
     uvgrtp::context ctx;
 
-    if (!ctx.crypto_enabled())
-    {
-        std::cout << "Please link crypto to uvgRTP library in order to tests its ZRTP feature!" << std::endl;
-        FAIL();
-        return;
-    }
-    
     uvgrtp::session* sender_session = ctx.create_session(RECEIVER_ADDRESS, SENDER_ADDRESS);
     uvgrtp::session* receiver_session = ctx.create_session(SENDER_ADDRESS, RECEIVER_ADDRESS);
 
