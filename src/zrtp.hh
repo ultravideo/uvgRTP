@@ -51,7 +51,8 @@ namespace uvgrtp {
              *
              * Return RTP_OK on success
              * Return RTP_TIMEOUT if remote did not send messages in timely manner */
-            rtp_error_t init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, sockaddr_in6& addr6, bool perform_dh, bool ipv6);
+            rtp_error_t init(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, sockaddr_in& addr, sockaddr_in6& addr6, 
+                bool perform_dh, bool ipv6);
 
             /* Get SRTP keys for the session that was just initialized
              *
@@ -195,42 +196,46 @@ namespace uvgrtp {
              * Before this step validate_session() is called to make sure we have a valid session */
             rtp_error_t initiator_finalize_session();
 
-            uint32_t ssrc_;
+            void resetSession(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket,
+                sockaddr_in& addr, sockaddr_in6& addr6);
+
+            /* Has the ZRTP connection been initialized using DH */
+            bool initialized_;
+            bool dh_finished_ = false;
+
             std::shared_ptr<uvgrtp::socket> local_socket_;
             sockaddr_in remote_addr_;
             sockaddr_in6 remote_ip6_addr_;
 
-            /* Has the ZRTP connection been initialized using DH */
-            bool initialized_;
-
             /* Our own and remote capability structs */
-            zrtp_capab_t capab_;
-            zrtp_capab_t rcapab_;
+            //zrtp_capab_t capab_;
+            //zrtp_capab_t rcapab_;
 
             zrtp_crypto_ctx_t cctx_;
             zrtp_session_t session_;
 
             std::mutex zrtp_mtx_;
 
+            // received ZRTP messages
             uvgrtp::zrtp_msg::zrtp_hello* hello_;
+            size_t hello_len_;
+            
             uvgrtp::zrtp_msg::zrtp_hello_ack* hello_ack_;
+
             uvgrtp::zrtp_msg::zrtp_commit* commit_;
+            size_t commit_len_;
+            
             uvgrtp::zrtp_msg::zrtp_dh* dh1_;
             uvgrtp::zrtp_msg::zrtp_dh* dh2_;
+            size_t dh_len_;
+            
             uvgrtp::zrtp_msg::zrtp_confirm* conf1_;
             uvgrtp::zrtp_msg::zrtp_confirm* conf2_;
             uvgrtp::zrtp_msg::zrtp_confack* confack_;
 
-            size_t hello_len_;
-            size_t commit_len_;
-            size_t dh_len_;
-
             std::mutex state_mutex_;
-            bool dh_finished_ = false;
-
             std::mutex busy_mutex_;
             bool zrtp_busy_;
-
     };
 }
 

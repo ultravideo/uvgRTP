@@ -31,10 +31,10 @@ using namespace uvgrtp::zrtp_msg;
 #define ZRTP_VERSION 110
 
 uvgrtp::zrtp::zrtp():
-    ssrc_(0),
+    initialized_(false),
+    dh_finished_(false),
     remote_addr_(),
     remote_ip6_addr_(),
-    initialized_(false),
     hello_(nullptr),
     hello_ack_(nullptr),
     commit_(nullptr),
@@ -45,8 +45,7 @@ uvgrtp::zrtp::zrtp():
     confack_(nullptr),
     hello_len_(0),
     commit_len_(0),
-    dh_len_(0),
-    zrtp_busy_(false)
+    dh_len_(0)
 {
     cctx_.sha256 = new uvgrtp::crypto::sha256;
     cctx_.dh     = new uvgrtp::crypto::dh;
@@ -789,14 +788,7 @@ rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
         UVG_LOG_DEBUG("Starting ZRTP Diffie-Hellman negotiation with %s", uvgrtp::socket::sockaddr_to_string(addr).c_str());
     }
 
-    hello_ = nullptr;
-    hello_ack_ = nullptr;
-    commit_ = nullptr;
-    dh1_ = nullptr;
-    dh2_ = nullptr;
-    conf1_ = nullptr;
-    conf2_ = nullptr;
-    confack_ = nullptr;
+    resetSession(ssrc, socket, addr, addr6);
 
     /* TODO: set all fields initially to zero */
     memset(session_.hash_ctx.o_hvi, 0, sizeof(session_.hash_ctx.o_hvi));
@@ -807,13 +799,6 @@ rtp_error_t uvgrtp::zrtp::init_dhm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
 
     /* Initialize the session hashes H0 - H3 defined in Section 9 of RFC 6189 */
     init_session_hashes();
-
-    local_socket_ = socket;
-    remote_addr_ = addr;
-    remote_ip6_addr_ = addr6;
-
-    session_.seq  = 0;
-    session_.ssrc = ssrc;
 
     /* Begin session by exchanging Hello and HelloACK messages.
      *
@@ -888,21 +873,7 @@ rtp_error_t uvgrtp::zrtp::init_msm(uint32_t ssrc, std::shared_ptr<uvgrtp::socket
 {
     rtp_error_t ret;
 
-    local_socket_ = socket;
-    remote_addr_ = addr;
-    remote_ip6_addr_ = addr6;
-
-    session_.ssrc = ssrc;
-    session_.seq  = 0;
-
-    hello_ = nullptr;
-    hello_ack_ = nullptr;
-    commit_ = nullptr;
-    dh1_ = nullptr;
-    dh2_ = nullptr;
-    conf1_ = nullptr;
-    conf2_ = nullptr;
-    confack_ = nullptr;
+    resetSession(ssrc, socket, addr, addr6);
 
     UVG_LOG_DEBUG("Generating ZRTP keys in multistream mode");
 
@@ -1243,4 +1214,23 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
             return RTP_OK;
         }
     }
+}
+
+void uvgrtp::zrtp::resetSession(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> socket, 
+    sockaddr_in& addr, sockaddr_in6& addr6){
+    local_socket_ = socket;
+    remote_addr_ = addr;
+    remote_ip6_addr_ = addr6;
+
+    session_.ssrc = ssrc;
+    session_.seq = 0;
+
+    hello_ = nullptr;
+    hello_ack_ = nullptr;
+    commit_ = nullptr;
+    dh1_ = nullptr;
+    dh2_ = nullptr;
+    conf1_ = nullptr;
+    conf2_ = nullptr;
+    confack_ = nullptr;
 }
