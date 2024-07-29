@@ -754,6 +754,12 @@ rtp_error_t uvgrtp::media_stream::check_push_preconditions(int rtp_flags, bool s
         return RTP_GENERIC_ERROR;
     }
 
+    if (media_ == nullptr)
+    {
+        UVG_LOG_ERROR("Media not intialized");
+        return RTP_GENERIC_ERROR;
+    }
+
     if (smart_pointer && (rtp_flags & RTP_COPY))
     {
         UVG_LOG_ERROR("Copying a smart pointer does not make sense since the original would be lost");
