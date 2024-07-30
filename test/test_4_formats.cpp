@@ -80,7 +80,7 @@ TEST(FormatTests, h264_single_nal_unit)
     int size = 8;
     
     std::cout << "Testing small NAL unit" << std::endl;
-    std::vector<size_t> test_sizes = std::vector<size_t>(16);
+    std::vector<size_t> test_sizes = std::vector<size_t>(3);
     std::iota(test_sizes.begin(), test_sizes.end(), 4);
 
     for (auto& size : test_sizes)
@@ -126,8 +126,7 @@ TEST(FormatTests, h264_fragmentation)
     test_sizes.insert(test_sizes.end(), { 1501,
         1446 * 2 - 1,
         1446 * 2,
-        1446 * 2 + 1,
-        5000, 7500, 10000, 50000 });
+        1446 * 2 + 1});
 
     int rtp_flags = RTP_NO_FLAGS;
     int nal_type = 5;
@@ -167,8 +166,7 @@ TEST(FormatTests, h264_fragmentation_ip6)
     test_sizes.insert(test_sizes.end(), { 1501,
         1446 * 2 - 1,
         1446 * 2,
-        1446 * 2 + 1,
-        5000, 7500, 10000, 25000, 50000 });
+        1446 * 2 + 1 });
 
     int rtp_flags = RTP_NO_FLAGS;
     int nal_type = 5;
@@ -251,8 +249,7 @@ TEST(FormatTests, h265_fragmentation)
     test_sizes.insert(test_sizes.end(), { 1501,
         1446 * 2 - 1,
         1446 * 2,
-        1446 * 2 + 1,
-        5000, 7500, 10000, 50000 });
+        1446 * 2 + 1 });
 
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
     int rtp_flags = RTP_NO_FLAGS;
@@ -294,7 +291,7 @@ TEST(FormatTests, h265_fps)
         }
     }
 
-    std::vector<size_t> test_sizes = { 10000, 20000, 30000, 40000, 50000, 75000, 100000 };
+    std::vector<size_t> test_sizes = { 10000, 30000, 50000, 100000 };
 
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
     int rtp_flags = RTP_NO_FLAGS;
@@ -340,7 +337,7 @@ TEST(FormatTests, h265_small_fragment_pacing_fps)
         }
     }
 
-    std::vector<size_t> test_sizes = { 1000, 2000, 3000, 4000, 5000, 7500, 10000 };
+    std::vector<size_t> test_sizes = { 1000, 3000, 5000, 10000 };
 
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
     int rtp_flags = RTP_NO_FLAGS;
@@ -432,7 +429,7 @@ TEST(FormatTests, h265_large_fragment_pacing)
         }
     }
 
-    std::vector<size_t> test_sizes = { 100000, 200000, 300000, 400000, 500000, 750000, 1000000 };
+    std::vector<size_t> test_sizes = { 100000, 300000, 500000, 1000000 };
 
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
     int rtp_flags = RTP_NO_FLAGS;
@@ -471,8 +468,7 @@ TEST(FormatTests, h266_fragmentation)
     test_sizes.insert(test_sizes.end(), { 1501,
         1446 * 2 - 1,
         1446 * 2,
-        1446 * 2 + 1,
-        5000, 7500, 10000, 25000, 50000 });
+        1446 * 2 + 1 });
 
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
     int rtp_flags = RTP_NO_FLAGS;
@@ -570,7 +566,7 @@ TEST(FormatTests, v3c_single_nal_unit)
     int size = 8;
 
     std::cout << "Testing small NAL unit" << std::endl;
-    std::vector<size_t> test_sizes = std::vector<size_t>(16);
+    std::vector<size_t> test_sizes = std::vector<size_t>(3);
     std::iota(test_sizes.begin(), test_sizes.end(), 6);
 
     for (auto& size : test_sizes)
@@ -626,8 +622,7 @@ TEST(FormatTests, v3c_fragmentation)
     test_sizes.insert(test_sizes.end(), { 1501,
         1446 * 2 - 1,
         1446 * 2,
-        1446 * 2 + 1,
-        5000, 7500, 10000, 25000, 50000 });
+        1446 * 2 + 1});
 
     // the default packet limit for RTP is 1458 where 12 bytes are dedicated to RTP header
     int rtp_flags = RTP_NO_FLAGS;

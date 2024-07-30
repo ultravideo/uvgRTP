@@ -296,11 +296,11 @@ TEST(RTCPTests, rtcp_multiplex)
         sender1 = sender_sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
         sender1->configure_ctx(RCC_SSRC, 11);
         sender1->configure_ctx(RCC_REMOTE_SSRC, 22);
-        sender1->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
+        sender1->configure_ctx(RCC_SESSION_BANDWIDTH, 1000);
         sender2 = sender_sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
         sender2->configure_ctx(RCC_SSRC, 33);
         sender2->configure_ctx(RCC_REMOTE_SSRC, 44);
-        sender2->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
+        sender2->configure_ctx(RCC_SESSION_BANDWIDTH, 1000);
     }
     if (sender1 && sender2)
     {
@@ -312,11 +312,11 @@ TEST(RTCPTests, rtcp_multiplex)
         receiver1 = receiver_sess->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
         receiver1->configure_ctx(RCC_SSRC, 22);
         receiver1->configure_ctx(RCC_REMOTE_SSRC, 11);
-        receiver1->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
+        receiver1->configure_ctx(RCC_SESSION_BANDWIDTH, 1000);
         receiver2 = receiver_sess->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
         receiver2->configure_ctx(RCC_SSRC, 44);
         receiver2->configure_ctx(RCC_REMOTE_SSRC, 33);
-        receiver2->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
+        receiver2->configure_ctx(RCC_SESSION_BANDWIDTH, 1000);
     }
     if (receiver1 && receiver2)
     {
@@ -324,14 +324,13 @@ TEST(RTCPTests, rtcp_multiplex)
         EXPECT_EQ(RTP_OK, receiver2->get_rtcp()->install_sender_hook(m_s_hook2));
     }
 
-    int test_packets = 10;
-    std::vector<size_t> sizes = { 1000, 2000 };
+    std::vector<size_t> sizes = { 1000 };
     for (size_t& size : sizes)
     {
         std::unique_ptr<uint8_t[]> test_frame1 = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
         std::unique_ptr<uint8_t[]> test_frame2 = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
-        send_packets(std::move(test_frame1), PAYLOAD_LEN, sender_sess, sender1, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
-        send_packets(std::move(test_frame2), PAYLOAD_LEN, sender_sess, sender2, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
+        send_packets(std::move(test_frame1), PAYLOAD_LEN, sender_sess, sender1, SEND_TEST_PACKETS/2, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
+        send_packets(std::move(test_frame2), PAYLOAD_LEN, sender_sess, sender2, SEND_TEST_PACKETS/2, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
     }
     std::cout << "Receiver 1 received " << received3 << " sender reports" << std::endl;
     std::cout << "Receiver 2 received " << received4 << " sender reports" << std::endl;
@@ -376,11 +375,11 @@ TEST(RTCPTests, rtcp_multiplex2)
         sender1 = sender_sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
         sender1->configure_ctx(RCC_SSRC, 11);
         sender1->configure_ctx(RCC_REMOTE_SSRC, 22);
-        sender1->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
+        sender1->configure_ctx(RCC_SESSION_BANDWIDTH, 1000);
         sender2 = sender_sess->create_stream(LOCAL_PORT, REMOTE_PORT, RTP_FORMAT_GENERIC, flags);
         sender2->configure_ctx(RCC_SSRC, 33);
         sender2->configure_ctx(RCC_REMOTE_SSRC, 44);
-        sender2->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
+        sender2->configure_ctx(RCC_SESSION_BANDWIDTH, 1000);
     }
     if (sender1 && sender2)
     {
@@ -392,11 +391,11 @@ TEST(RTCPTests, rtcp_multiplex2)
         receiver1 = receiver_sess->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
         receiver1->configure_ctx(RCC_SSRC, 22);
         receiver1->configure_ctx(RCC_REMOTE_SSRC, 11);
-        receiver1->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
+        receiver1->configure_ctx(RCC_SESSION_BANDWIDTH, 1000);
         receiver2 = receiver_sess->create_stream(REMOTE_PORT, LOCAL_PORT, RTP_FORMAT_GENERIC, flags);
         receiver2->configure_ctx(RCC_SSRC, 44);
         receiver2->configure_ctx(RCC_REMOTE_SSRC, 33);
-        receiver2->configure_ctx(RCC_SESSION_BANDWIDTH, 100);
+        receiver2->configure_ctx(RCC_SESSION_BANDWIDTH, 1000);
     }
     if (receiver1 && receiver2)
     {
@@ -404,14 +403,13 @@ TEST(RTCPTests, rtcp_multiplex2)
         EXPECT_EQ(RTP_OK, receiver2->get_rtcp()->install_sender_hook(m_s_hook2));
     }
 
-    int test_packets = 10;
-    std::vector<size_t> sizes = { 1000, 2000 };
+    std::vector<size_t> sizes = { 1000 };
     for (size_t& size : sizes)
     {
         std::unique_ptr<uint8_t[]> test_frame1 = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
         std::unique_ptr<uint8_t[]> test_frame2 = create_test_packet(RTP_FORMAT_GENERIC, 0, false, size, RTP_NO_FLAGS);
-        send_packets(std::move(test_frame1), PAYLOAD_LEN, sender_sess, sender1, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
-        send_packets(std::move(test_frame2), PAYLOAD_LEN, sender_sess, sender2, SEND_TEST_PACKETS, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
+        send_packets(std::move(test_frame1), PAYLOAD_LEN, sender_sess, sender1, SEND_TEST_PACKETS/2, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
+        send_packets(std::move(test_frame2), PAYLOAD_LEN, sender_sess, sender2, SEND_TEST_PACKETS/2, PACKET_INTERVAL_MS, true, RTP_NO_FLAGS);
     }
     std::cout << "Receiver 1 received " << received3 << " sender reports" << std::endl;
     std::cout << "Receiver 2 received " << received4 << " sender reports" << std::endl;

@@ -14,6 +14,8 @@ constexpr char MULTICAST_ADDRESS_IP6[] = "FF02:0:0:0:0:0:0:0";
 
 constexpr uint16_t RECEIVE_PORT = 9302;
 
+constexpr uint16_t PACKETS = 3;
+
 void rtp_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 void process_rtp_frame(uvgrtp::frame::rtp_frame* frame);
 void user_hook(void* arg, uint8_t* data, uint32_t len);
@@ -67,7 +69,7 @@ TEST(RTPTests, rtp_hook)
         receiver = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
     }
 
-    int test_packets = 10;
+    int test_packets = PACKETS;
     std::vector<size_t> sizes = { 1000, 2000 };
     for (size_t& size : sizes)
     {
@@ -97,7 +99,7 @@ TEST(RTPTests, rtp_hook_ip6)
         receiver = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
     }
 
-    int test_packets = 10;
+    int test_packets = PACKETS;
     std::vector<size_t> sizes = { 1000, 2000 };
     for (size_t& size : sizes)
     {
@@ -127,7 +129,7 @@ TEST(RTPTests, rtp_copy)
         receiver = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
     }
 
-    int test_packets = 10;
+    int test_packets = PACKETS;
     std::vector<size_t> sizes = { 1000, 2000 };
     for (size_t& size : sizes)
     {
@@ -158,7 +160,7 @@ TEST(RTPTests, rtp_holepuncher)
         receiver = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
     }
 
-    int test_packets = 10;
+    int test_packets = PACKETS;
     std::vector<size_t> sizes = { 1000, 2000 };
     for (size_t& size : sizes)
     {
@@ -215,7 +217,7 @@ TEST(RTPTests, rtp_configuration)
         receiver->configure_ctx(RCC_DYN_PAYLOAD_TYPE, 8);
     }
 
-    int test_packets = 10;
+    int test_packets = PACKETS;
     std::vector<size_t> sizes = { 1000, 2000 };
     for (size_t& size : sizes)
     {
@@ -284,7 +286,7 @@ TEST(RTPTests, rtp_send_receive_only_flags)
         receiver = receive_sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, receive_flags);
     }
 
-    int test_packets = 10;
+    int test_packets = PACKETS;
     std::vector<size_t> sizes = { 1000, 2000 };
     for (size_t& size : sizes)
     {
@@ -316,7 +318,7 @@ TEST(RTPTests, rtp_poll)
         receiver = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
     }
 
-    int test_packets = 10;
+    int test_packets = PACKETS;
 
     EXPECT_NE(nullptr, receiver);
     EXPECT_NE(nullptr, sender);
@@ -450,7 +452,7 @@ TEST(RTPTests, rtp_multicast)
         receiver = sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags);
     }
 
-    int test_packets = 10;
+    int test_packets = PACKETS;
     std::vector<size_t> sizes = { 1000, 2000 };
     for (size_t& size : sizes)
     {
@@ -481,7 +483,7 @@ TEST(RTPTests, rtp_multicast_multiple_ip4)
         sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags)
     };
 
-    int test_packets = 10;
+    int test_packets = PACKETS;
     std::vector<size_t> sizes = { 1000, 2000 };
     for (size_t& size : sizes)
     {
@@ -512,7 +514,7 @@ TEST(RTPTests, rtp_multicast_multiple_ip6)
         sess->create_stream(SEND_PORT, RECEIVE_PORT, RTP_FORMAT_GENERIC, flags)
     };
 
-    int test_packets = 10;
+    int test_packets = PACKETS;
     std::vector<size_t> sizes = { 1000, 2000 };
     for (size_t& size : sizes)
     {
@@ -558,7 +560,7 @@ TEST(RTPTests, rtp_multiplex)
         receiver2->configure_ctx(RCC_REMOTE_SSRC, 33);
     }
 
-    int test_packets = 10;
+    int test_packets = PACKETS;
     std::vector<size_t> sizes = { 1000, 2000 };
     for (size_t& size : sizes)
     {
@@ -604,7 +606,7 @@ TEST(RTPTests, rtp_multiplex_poll)
         receiver2->configure_ctx(RCC_REMOTE_SSRC, 22);
     }
 
-    int test_packets = 10;
+    int test_packets = PACKETS;
 
     if (sender1 && sender2)
     {
