@@ -52,7 +52,7 @@ rtp_error_t uvgrtp::frame::dealloc_frame(uvgrtp::frame::rtp_frame *frame)
         delete frame->ext;
     }
 
-    else if (frame->payload)
+    if (frame->payload)
         delete[] frame->payload;
 
     //UVG_LOG_DEBUG("Deallocating frame, type %u", frame->type);
