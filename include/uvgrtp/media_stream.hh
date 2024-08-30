@@ -461,6 +461,7 @@ namespace uvgrtp {
             // Values are initialized to -2, which means value not set
             int snd_buf_size_;
             int rcv_buf_size_;
+            int multicast_ttl_;
     };
 }
 

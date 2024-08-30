@@ -389,6 +389,12 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
     */
     RCC_POLL_TIMEOUT       = 13,
 
+    /** Set the sender packets IP TTL (Time to Live) for multicast
+     *
+     * Must be in range [1, 255]. Keep the system default if not set.
+     */
+    RCC_MULTICAST_TTL = 15,
+
     /// \cond DO_NOT_DOCUMENT
     RCC_LAST
     /// \endcond

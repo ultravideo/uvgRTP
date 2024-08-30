@@ -202,6 +202,8 @@ TEST(RTPTests, rtp_configuration)
 
         sender->configure_ctx(RCC_FPS_NUMERATOR, 100);
         sender->configure_ctx(RCC_FPS_DENOMINATOR, 1);
+
+        sender->configure_ctx(RCC_MULTICAST_TTL, 1);
     }
 
     if (receiver)

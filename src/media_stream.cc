@@ -63,7 +63,8 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     ssrc_(std::make_shared<std::atomic<std::uint32_t>>(uvgrtp::random::generate_32())),
     remote_ssrc_(std::make_shared<std::atomic<std::uint32_t>>(ssrc_.get()->load() + 1)),
     snd_buf_size_(-1),
-    rcv_buf_size_(-1)
+    rcv_buf_size_(-1),
+    multicast_ttl_(-1)
 {
 }
 
@@ -936,6 +937,15 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             *remote_ssrc_ = (uint32_t)value;
             break;
         }
+        case RCC_MULTICAST_TTL: {
+            if (value <= 0 || value > 255)
+                return RTP_INVALID_VALUE;
+
+            int multicast_ttl = (int)value;
+            multicast_ttl_ = multicast_ttl;
+            ret = socket_->setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, (const char*)&multicast_ttl, sizeof(int));
+            break;
+        }
         default:
             return RTP_INVALID_VALUE;
     }
@@ -992,6 +1002,9 @@ int uvgrtp::media_stream::get_configuration_value(int rcc_flag)
         }
         case RCC_POLL_TIMEOUT: {
             return reception_flow_->get_poll_timeout_ms();
+        }
+        case RCC_MULTICAST_TTL: {
+            return multicast_ttl_;
         }
         default:
             ret = -1;
