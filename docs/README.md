@@ -112,6 +112,7 @@ stream->configure_ctx(RCC_PKT_MAX_DELAY, 150);
 | RCC_POLL_TIMEOUT     | Set the timeout value for polling the socket. | 100 ms | Receiver|
 | RCC_SSRC             | Set the SSSRC value for this media stream. | random uint32 | Sender|
 | RCC_REMOTE_SSRC      | Set the remote SSRC value that this media stream should receive packets from. | random uint32 | Receiver|
+| RCC_MULTICAST_TTL    | Set the sender packets IP TTL (Time to Live) for multicast. Must be in range [1, 255]. | system default | Sender |
 
 ### RTP frame flags
 
@@ -173,7 +174,7 @@ The default behavior of uvgRTP video reception when there is packet loss is to g
 
 ## Trouble receiving burst of packets?
 
-The default configuration of uvgRTP should be able to handle most basic scenarios up to 4K60p without any frame loss. If you are however 1) using a higher resolution, 2) higher fps value, 3) using a low power machine to receive the RTP stream, or 4) you are experiencing frame loss, you might consider setting or increasing the following parameters: 
+The default configuration of uvgRTP should be able to handle most basic scenarios up to 4K60p without any frame loss. If you are however 1) using a higher resolution, 2) higher fps value, 3) using a low power machine to receive the RTP stream, or 4) you are experiencing frame loss, you might consider setting or increasing the following parameters:
 * RCC_UDP_RCV_BUF_SIZE: You can try increasing this to 40 or 80 MB if it helps receiving frames
 * RCC_UDP_SND_BUF_SIZE_ You can try increasing this to 40 or 80 MB if it helps sending frames
 * RCC_RING_BUFFER_SIZE: You can try increasing this to 8 or 16 MB if it helps receiving frames
