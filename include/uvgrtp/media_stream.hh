@@ -411,6 +411,8 @@ namespace uvgrtp {
             bool check_pull_preconditions();
             rtp_error_t check_push_preconditions(int rtp_flags, bool smart_pointer);
 
+            void holepuncher();
+
             inline uint8_t* copy_frame(uint8_t* original, size_t data_len);
 
             uint32_t key_;

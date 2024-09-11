@@ -543,8 +543,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int
     rtp_error_t ret = check_push_preconditions(rtp_flags, false);
     if (ret == RTP_OK)
     {
-        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
-            holepuncher_->notify();
+        holepuncher();
 
         if (rtp_flags & RTP_COPY)
         {
@@ -566,8 +565,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
     rtp_error_t ret = check_push_preconditions(rtp_flags, true);
     if (ret == RTP_OK)
     {
-        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
-            holepuncher_->notify();
+        holepuncher();
 
         // making a copy of a smart pointer does not make sense
         ret = media_->push_frame(remote_sockaddr_, remote_sockaddr_ip6_, std::move(data), data_len, rtp_flags, ssrc_.get()->load());
@@ -581,8 +579,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, uin
     rtp_error_t ret = check_push_preconditions(rtp_flags, false);
     if (ret == RTP_OK)
     {
-        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
-            holepuncher_->notify();
+        holepuncher();
 
         rtp_->set_timestamp(ts);
         if (rtp_flags & RTP_COPY)
@@ -606,8 +603,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t* data, size_t data_len, uin
     rtp_error_t ret = check_push_preconditions(rtp_flags, false);
     if (ret == RTP_OK)
     {
-        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
-            holepuncher_->notify();
+        holepuncher();
 
         rtp_->set_timestamp(ts);
         rtp_->set_sampling_ntp(ntp_ts);
@@ -632,8 +628,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
     rtp_error_t ret = check_push_preconditions(rtp_flags, true);
     if (ret == RTP_OK)
     {
-        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
-            holepuncher_->notify();
+        holepuncher();
 
         // making a copy of a smart pointer does not make sense
         rtp_->set_timestamp(ts);
@@ -649,8 +644,7 @@ rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, si
     rtp_error_t ret = check_push_preconditions(rtp_flags, true);
     if (ret == RTP_OK)
     {
-        if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
-            holepuncher_->notify();
+        holepuncher();
 
         // making a copy of a smart pointer does not make sense
         rtp_->set_timestamp(ts);
@@ -1154,4 +1148,19 @@ uint32_t uvgrtp::media_stream::get_default_bandwidth_kbps(rtp_format_t fmt)
     }
 
     return bandwidth;
+}
+
+void uvgrtp::media_stream::holepuncher()
+{
+    if (rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE)
+    {
+        if (holepuncher_)
+        {
+            holepuncher_->notify();
+        }
+        else
+        {
+            UVG_LOG_WARN("Holepuncher is missing");
+        }
+    }  
 }
