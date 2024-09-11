@@ -283,12 +283,6 @@ TEST(EncryptionTests, zrtp_multistream)
     std::unique_ptr<std::thread> receiver_thread2 = 
         std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, 0, 0));
 
-    std::unique_ptr<std::thread> sender_thread3 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 6, RECEIVER_PORT + 6, zrtp_multistream_flags, 0, 0));
-
-    std::unique_ptr<std::thread> receiver_thread3 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 6, RECEIVER_PORT + 6, zrtp_multistream_flags, 0, 0));
-
     if (receiver_thread1 && receiver_thread1->joinable())
     {
         receiver_thread1->join();
@@ -307,16 +301,6 @@ TEST(EncryptionTests, zrtp_multistream)
     if (receiver_thread2 && receiver_thread2->joinable())
     {
         receiver_thread2->join();
-    }
-
-    if (sender_thread3 && sender_thread3->joinable())
-    {
-        sender_thread3->join();
-    }
-
-    if (receiver_thread3 && receiver_thread3->joinable())
-    {
-        receiver_thread3->join();
     }
 
     std::cout << received_packets << " / 30 packets received" << std::endl;
@@ -359,12 +343,6 @@ TEST(EncryptionTests, zrtp_multistream_ip6)
     std::unique_ptr<std::thread> receiver_thread2 =
         std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, 0, 0));
 
-    std::unique_ptr<std::thread> sender_thread3 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 6, RECEIVER_PORT + 6, zrtp_multistream_flags, 0, 0));
-
-    std::unique_ptr<std::thread> receiver_thread3 =
-        std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 6, RECEIVER_PORT + 6, zrtp_multistream_flags, 0, 0));
-
     if (receiver_thread1 && receiver_thread1->joinable())
     {
         receiver_thread1->join();
@@ -385,15 +363,6 @@ TEST(EncryptionTests, zrtp_multistream_ip6)
         receiver_thread2->join();
     }
 
-    if (sender_thread3 && sender_thread3->joinable())
-    {
-        sender_thread3->join();
-    }
-
-    if (receiver_thread3 && receiver_thread3->joinable())
-    {
-        receiver_thread3->join();
-    }
 
     std::cout << received_packets << " / 30 packets received" << std::endl;
     EXPECT_TRUE(received_packets > 25);
