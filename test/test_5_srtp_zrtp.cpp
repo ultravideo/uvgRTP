@@ -303,8 +303,8 @@ TEST(EncryptionTests, zrtp_multistream)
         receiver_thread2->join();
     }
 
-    std::cout << received_packets << " / 30 packets received" << std::endl;
-    EXPECT_TRUE(received_packets > 25);
+    std::cout << received_packets << " / 20 packets received" << std::endl;
+    EXPECT_TRUE(received_packets == 20);
 
     cleanup_sess(ctx, sender_session);
     cleanup_sess(ctx, receiver_session);
@@ -364,8 +364,8 @@ TEST(EncryptionTests, zrtp_multistream_ip6)
     }
 
 
-    std::cout << received_packets << " / 30 packets received" << std::endl;
-    EXPECT_TRUE(received_packets > 25);
+    std::cout << received_packets << " / 20 packets received" << std::endl;
+    EXPECT_TRUE(received_packets == 20);
 
     cleanup_sess(ctx, sender_session);
     cleanup_sess(ctx, receiver_session);
