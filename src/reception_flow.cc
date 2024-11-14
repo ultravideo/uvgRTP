@@ -148,6 +148,9 @@ rtp_error_t uvgrtp::reception_flow::start(std::shared_ptr<uvgrtp::socket> socket
     pthread_setschedparam(receiver_->native_handle(), SCHED_FIFO, &params);
     params.sched_priority = sched_get_priority_max(SCHED_FIFO) - 1;
     pthread_setschedparam(processor_->native_handle(), SCHED_FIFO, &params);
+#elif defined(_MSC_VER)
+    SetThreadPriority(receiver_->native_handle(), REALTIME_PRIORITY_CLASS);
+    SetThreadPriority(processor_->native_handle(), ABOVE_NORMAL_PRIORITY_CLASS);
 #else
 
     HANDLE hReceiverThread = OpenThread(THREAD_SET_INFORMATION, FALSE, receiver_->native_handle());
