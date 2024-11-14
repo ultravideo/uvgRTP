@@ -1009,7 +1009,17 @@ bool uvgrtp::rtcp::collision_detected(uint32_t ssrc) const
 
 void uvgrtp::rtcp::update_session_statistics(const uvgrtp::frame::rtp_frame *frame)
 {
+    if (!frame)
+        return;
+
     std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
+
+    if (participants_.find(frame->header.ssrc) == participants_.end())
+    {
+        UVG_LOG_WARN("Tried to update non-existing RTCP statistics");
+        return;
+    }
+
     participants_[frame->header.ssrc]->stats.received_rtp_packet = true;
 
     participants_[frame->header.ssrc]->stats.received_pkts  += 1;
