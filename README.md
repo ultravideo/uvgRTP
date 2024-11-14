@@ -6,7 +6,7 @@ uvgRTP is licensed under the permissive BSD 2-Clause License. This cross-platfor
 
 Currently supported specifications:
    * [RFC 3550: RTP: A Transport Protocol for Real-Time Applications](https://datatracker.ietf.org/doc/html/rfc3550)
-   * [RFC 3551: RTP Profile for Audio and Video Conferences](https://datatracker.ietf.org/doc/html/rfc3551)
+   * [RFC 3551: RTP Profile for Audio and Video Conferences with Minimal Control](https://datatracker.ietf.org/doc/html/rfc3551)
    * [RFC 6184: RTP Payload Format for H.264 Video](https://datatracker.ietf.org/doc/html/rfc6184)
    * [RFC 7798: RTP Payload Format for High Efficiency Video Coding (HEVC)](https://datatracker.ietf.org/doc/html/rfc7798)
    * [RFC 9328: RTP Payload Format for Versatile Video Coding (VVC)](https://datatracker.ietf.org/doc/html/rfc9328)
