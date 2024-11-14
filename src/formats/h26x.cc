@@ -148,15 +148,6 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
     bool prev_had_zero   = false;
     bool cur_has_zero    = false;
     size_t pos           = offset;
-    size_t last_byte_position = len - (len % 8) - 1;
-
-    /* We can get rid of the bounds check when looping through
-     * non-zero 8 byte chunks by setting the last byte to zero.
-     *
-     * This added zero will make the last 8 byte zero check to fail
-     * and when we get out of the loop we can check if we've reached the end */
-    uint8_t temp_last_byte    = data[last_byte_position];
-    data[last_byte_position] = 0;
 
     uint32_t prev_value32 = UINT32_MAX;
     uint32_t cur_value32 = UINT32_MAX;
@@ -210,7 +201,6 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
                 if (((cur_value32 >> 24) & 0xff) == 0x01 && ((prev_value32 >>  0) & 0xffff) == 0) {
                     start_len = (((prev_value32 >>  0) & 0xffffff) == 0) ? 4 : 3;
 #endif
-                    data[last_byte_position] = temp_last_byte;
                     return pos + 1;
                 }
             }
@@ -234,7 +224,7 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
                 {
                     --start_len;
                 }
-                data[last_byte_position] = temp_last_byte;
+
                 return pos + ret;
             }
 
@@ -274,7 +264,7 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
             if (p4z && c4s) {
                 // previous dword 0xXXXX0000 and current dword is 0x0001XXXX
                 start_len = 4;
-                data[last_byte_position] = temp_last_byte;
+
                 return pos + 2;
             } else if (p2z) {
                 // Previous dword was 0xXXXXXX00
@@ -282,13 +272,13 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
                 if (c6s) {
                     // Current dword is 0x000001XX
                     start_len = 4;
-                    data[last_byte_position] = temp_last_byte;
+
                     return pos + 3;
                 }
                 else if (c4s) {
                     // Current dword is 0x0001XXXX
                     start_len = 3;
-                    data[last_byte_position] = temp_last_byte;
+
                     return pos + 2;
                 }
             }
@@ -313,7 +303,6 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
         }
     }
 
-    data[last_byte_position] = temp_last_byte;
     return -1;
 }
 
