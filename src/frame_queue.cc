@@ -156,6 +156,13 @@ rtp_error_t uvgrtp::frame_queue::deinit_transaction()
     if (active_->rtp_auth_tags)
         delete[] active_->rtp_auth_tags;
 
+    for (unsigned int i = 0; i < active_->tmp.size(); ++i)
+    {
+        delete[] active_->tmp[i];
+    }
+
+    active_->tmp.clear();
+
     active_->headers = nullptr;
     active_->chunks = nullptr;
     active_->rtp_headers = nullptr;
@@ -264,6 +271,7 @@ rtp_error_t uvgrtp::frame_queue::enqueue_message(buf_vec& buffers)
         }
 
         tmp.push_back({ total, mem });
+        active_->tmp.push_back(mem);
 
     } else {
         for (auto& buffer : buffers) {
@@ -391,16 +399,6 @@ uvgrtp::buf_vec* uvgrtp::frame_queue::get_buffer_vector()
 void *uvgrtp::frame_queue::get_media_headers()
 {
     return active_->media_headers;
-}
-
-uint8_t *uvgrtp::frame_queue::get_active_dataptr()
-{
-    if (!active_)
-        return nullptr;
-
-    if (active_->data_smart)
-        return active_->data_smart.get();
-    return active_->data_raw;
 }
 
 void uvgrtp::frame_queue::install_dealloc_hook(void (*dealloc_hook)(void *))

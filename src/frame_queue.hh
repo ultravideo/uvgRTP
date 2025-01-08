@@ -72,6 +72,9 @@ namespace uvgrtp {
         std::unique_ptr<uint8_t[]> data_smart;
         uint8_t *data_raw = nullptr;
 
+        // a hack so the memory gets deleted correctly
+        std::vector<uint8_t*> tmp;
+
         /* If the application code provided us a deallocation hook, this points to it.
          * When SCD finishes processing a transaction, it will call this hook with "data_raw" pointer */
         void (*dealloc_hook)(void *) = nullptr;
@@ -132,14 +135,6 @@ namespace uvgrtp {
             /* Update the active task's current packet's sequence number */
             void update_rtp_header();
 
-            /* Because frame queue supports both raw and smart pointers and the smart pointer ownership
-             * is transferred to active transaction, the code that created the transaction must query
-             * the data pointer from frame queue explicitly
-             *
-             * Return raw data pointer for caller on success
-             * Return nullptr if no data pointer is set or if there is no active transaction */
-            uint8_t *get_active_dataptr();
-
             /* Install deallocation hook for external memory chunks
              *
              * When user doesn't issue RTP_COPY and doesn't pass unique_ptr, memory given
@@ -164,6 +159,7 @@ namespace uvgrtp {
             }
 
         private:
+
 
             void enqueue_finalize(uvgrtp::buf_vec& tmp);
 
