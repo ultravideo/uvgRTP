@@ -431,19 +431,22 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
 {
     int read_packets = 0;
 
-    while (!should_stop_) {
-
-        // First we wait using poll until there is data in the socket
-
 #ifdef _WIN32
-        LPWSAPOLLFD pfds = new pollfd();
+    LPWSAPOLLFD pfds = new pollfd();
 #else
-        pollfd* pfds = new pollfd();
+    pollfd* pfds = new pollfd();
 #endif
 
-        size_t read_fds = socket->get_raw_socket();
-        pfds->fd = read_fds;
-        pfds->events = POLLIN;
+    if (!pfds) {
+        UVG_LOG_ERROR("Memory allocation failed for pollfd");
+        return;
+    }
+
+    size_t read_fds = socket->get_raw_socket();
+    pfds->fd = read_fds;
+    pfds->events = POLLIN;
+
+    while (!should_stop_) {
 
         // exits after poll_timeout_ms_ time if no data has been received to check whether we should exit
 #ifdef _WIN32
@@ -452,39 +455,19 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
         if (poll(pfds, 1, poll_timeout_ms_) < 0) {
 #endif
             UVG_LOG_ERROR("poll(2) failed");
-            if (pfds)
-            {
-                delete pfds;
-                pfds = nullptr;
-            }
             break;
         }
 
         if (pfds->revents & POLLIN) {
-
             // we write as many packets as socket has in the buffer
             while (!should_stop_)
             {
                 ssize_t next_write_index = next_buffer_location(last_ring_write_index_);
 
-                //increase_buffer_size(next_write_index);
-
-                rtp_error_t ret = RTP_OK;
-                //sockaddr_in sender = {};
-                //sockaddr_in6 sender6 = {};
-                
-                // get the potential packet
-                ret = socket->recvfrom(ring_buffer_[next_write_index].data, payload_size_,
+                rtp_error_t ret = socket->recvfrom(ring_buffer_[next_write_index].data, payload_size_,
                     MSG_DONTWAIT, &ring_buffer_[next_write_index].read);
 
-
-                if (ret == RTP_INTERRUPTED)
-                {
-                    break;
-                }
-                else if (ring_buffer_[next_write_index].read == 0)
-                {
-                    UVG_LOG_WARN("Failed to read anything from socket");
+                if (ret == RTP_INTERRUPTED || ring_buffer_[next_write_index].read == 0) {
                     break;
                 }
                 else if (ret != RTP_OK) {
@@ -494,22 +477,17 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
                 }
 
                 ++read_packets;
-                // Save the IP adderss that this packet came from into the buffer
-                //ring_buffer_[next_write_index].from6 = sender6;
-                //ring_buffer_[next_write_index].from = sender;
-                // finally we update the ring buffer so processing (reading) knows that there is a new frame
                 last_ring_write_index_ = next_write_index;
             }
 
             // start processing the packets by waking the processing thread
             process_cond_.notify_one();
         }
+    }
 
-        if (pfds)
-        {
-            delete pfds;
-            pfds = nullptr;
-        }
+    if (pfds) {
+        delete pfds;
+        pfds = nullptr;
     }
 
     UVG_LOG_DEBUG("Total read packets from buffer: %li", read_packets);
