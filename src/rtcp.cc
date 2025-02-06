@@ -1660,6 +1660,11 @@ rtp_error_t uvgrtp::rtcp::handle_fb_packet(uint8_t* packet, size_t& read_ptr,
     if (fb_hook_u_) {
         fb_hook_u_(std::unique_ptr<uvgrtp::frame::rtcp_fb_packet>(frame));
     }
+    else
+    {
+        UVG_LOG_WARN("Discarding received RTCP PSFB packet without a hook");
+        delete frame;
+    }
     fb_mutex_.unlock();
     return RTP_OK;
 }
@@ -1860,6 +1865,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
             !construct_sender_info(frame, write_ptr, ntp_ts, reporting_rtp_ts, our_stats.sent_pkts, our_stats.sent_bytes))
         {
             UVG_LOG_ERROR("Failed to construct SR");
+            delete[] frame;
             return RTP_GENERIC_ERROR;
         }
 
@@ -1873,6 +1879,7 @@ rtp_error_t uvgrtp::rtcp::generate_report()
             !construct_ssrc(frame, write_ptr, ssrc))
         {
             UVG_LOG_ERROR("Failed to construct RR");
+            delete[] frame;
             return RTP_GENERIC_ERROR;
         }
     }

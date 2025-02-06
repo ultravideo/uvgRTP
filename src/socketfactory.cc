@@ -58,6 +58,8 @@ rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr)
         ipv6_ = true;
 
     }
+
+    freeaddrinfo(res);
     return RTP_OK;
 }
 
