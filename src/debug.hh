@@ -10,6 +10,7 @@
 #include <cstdarg>
 #include <cstring>
 #include <string>
+#include <cerrno>
 
 #ifdef ANDROID
 #include "android/log.h"
