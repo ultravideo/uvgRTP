@@ -860,13 +860,11 @@ rtp_error_t uvgrtp::socket::recv(uint8_t *buf, size_t buf_len, int recv_flags, i
 
 rtp_error_t uvgrtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int recv_flags, sockaddr_in *sender, int *bytes_read)
 {
-    socklen_t *len_ptr = nullptr;
     socklen_t len      = sizeof(sockaddr_in);
-
-    if (sender)
-        len_ptr = &len;
-
+    
 #ifndef _WIN32
+    socklen_t* len_ptr = &len;
+
     int32_t ret = ::recvfrom(socket_, buf, buf_len, recv_flags, (struct sockaddr *)sender, len_ptr);
 
     if (ret == -1) {
@@ -882,6 +880,10 @@ rtp_error_t uvgrtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int recv_fl
 
     set_bytes(bytes_read, ret);
 #else
+    socklen_t* len_ptr = nullptr;
+
+    if (sender)
+        len_ptr = &len;
 
     (void)recv_flags;
 
@@ -915,13 +917,10 @@ rtp_error_t uvgrtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int recv_fl
 
 rtp_error_t uvgrtp::socket::__recvfrom_ip6(uint8_t* buf, size_t buf_len, int recv_flags, sockaddr_in6* sender, int* bytes_read)
 {
-    socklen_t* len_ptr = nullptr;
     socklen_t len = sizeof(sockaddr_in6);
 
-    if (sender)
-        len_ptr = &len;
-
 #ifndef _WIN32
+    socklen_t* len_ptr = &len;
     int32_t ret = ::recvfrom(socket_, buf, buf_len, recv_flags, (struct sockaddr*)sender, len_ptr);
 
     if (ret == -1) {
@@ -937,6 +936,11 @@ rtp_error_t uvgrtp::socket::__recvfrom_ip6(uint8_t* buf, size_t buf_len, int rec
 
     set_bytes(bytes_read, ret);
 #else
+
+    socklen_t* len_ptr = nullptr;
+
+    if (sender)
+        len_ptr = &len;
 
     (void)recv_flags;
 
