@@ -155,7 +155,13 @@ namespace uvgrtp {
                     frame_interval_ = std::chrono::nanoseconds(uint64_t(1.0 / double(numerator / denominator) * 1000*1000*1000));
                 }
                 frames_since_sync_ = 0; 
-                force_sync_ = true;
+                force_sync_ = rce_flags_ & RCE_FRAME_RATE;
+            }
+
+            void set_pace(ssize_t numerator, ssize_t denominator)
+            {
+                pace_numerator_ = numerator;
+                pace_denominator_ = denominator;
             }
 
         private:
@@ -182,6 +188,8 @@ namespace uvgrtp {
 
             bool fps_ = false;
             std::chrono::nanoseconds frame_interval_;
+            ssize_t pace_numerator_;
+            ssize_t pace_denominator_;
 
             std::chrono::high_resolution_clock::time_point fps_sync_point_;
             uint64_t frames_since_sync_ = 0;

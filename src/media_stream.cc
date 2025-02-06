@@ -58,8 +58,6 @@ uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     media_(nullptr),
     holepuncher_(nullptr),
     cname_(cname),
-    fps_numerator_(30),
-    fps_denominator_(1),
     ssrc_(std::make_shared<std::atomic<std::uint32_t>>(uvgrtp::random::generate_32())),
     remote_ssrc_(std::make_shared<std::atomic<std::uint32_t>>(ssrc_.get()->load() + 1)),
     snd_buf_size_(-1),
@@ -282,6 +280,7 @@ rtp_error_t uvgrtp::media_stream::create_media(rtp_format_t fmt)
 
     // set default values for fps
     media_->set_fps(fps_numerator_, fps_denominator_);
+    media_->set_pace(pace_numerator_, pace_denominator_);
     return RTP_OK;
 }
 
@@ -940,6 +939,16 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             ret = socket_->setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, (const char*)&multicast_ttl, sizeof(int));
             break;
         }
+        case RCC_PACE_NUMERATOR: {
+                pace_numerator_ = value;
+                media_->set_pace(pace_numerator_, pace_denominator_);
+                break;
+        }
+        case RCC_PACE_DENOMINATOR: {
+                pace_denominator_ = value;
+                media_->set_pace(pace_numerator_, pace_denominator_);
+                break;
+        }
         default:
             return RTP_INVALID_VALUE;
     }
@@ -999,6 +1008,12 @@ int uvgrtp::media_stream::get_configuration_value(int rcc_flag)
         }
         case RCC_MULTICAST_TTL: {
             return multicast_ttl_;
+        }
+        case RCC_PACE_NUMERATOR: {
+            return (int)pace_numerator_;
+        }
+        case RCC_PACE_DENOMINATOR: {
+            return (int)pace_denominator_;
         }
         default:
             ret = -1;
