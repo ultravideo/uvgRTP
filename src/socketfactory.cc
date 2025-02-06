@@ -69,25 +69,23 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int typ
     std::shared_ptr<uvgrtp::socket> socket = std::make_shared<uvgrtp::socket>(rce_flags_);
 
     if (ipv6_) {
-        if ((ret = socket->init(AF_INET6, SOCK_DGRAM, 0)) != RTP_OK) {
-            return nullptr;
-        }
+        ret = socket->init(AF_INET6, SOCK_DGRAM, 0);
     }
     else {
-        if ((ret = socket->init(AF_INET, SOCK_DGRAM, 0)) != RTP_OK) {
-            return nullptr;
-        }
+        ret = socket->init(AF_INET, SOCK_DGRAM, 0);
     }
-#ifdef _WIN32
-    /* Make the socket non-blocking */
-    int enabled = 1;
-
-    if (::ioctlsocket(socket->get_raw_socket(), FIONBIO, (u_long*)&enabled) < 0) {
-        return nullptr;
-    }
-#endif
 
     if (ret == RTP_OK) {
+
+#ifdef _WIN32
+        /* Make the socket non-blocking */
+        int enabled = 1;
+
+        if (::ioctlsocket(socket->get_raw_socket(), FIONBIO, (u_long*)&enabled) < 0) {
+            return nullptr;
+        }
+#endif
+
         used_sockets_.push_back(socket);
         if (port != 0) {
             bind_socket(socket, port);

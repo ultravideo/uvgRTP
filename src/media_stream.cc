@@ -81,12 +81,17 @@ uvgrtp::media_stream::~media_stream()
     {
         rtcp_->stop();
     }
-    reception_flow_->remove_handlers(remote_ssrc_);
+
     // Clear this media stream from the reception_flow
-    if ( reception_flow_ && (reception_flow_->clear_stream_from_flow(remote_ssrc_)) == 1) {
-        reception_flow_->stop();
-        if (sfp_) {
-            sfp_->clear_port(src_port_, socket_);
+    if ( reception_flow_)
+    {
+        reception_flow_->remove_handlers(remote_ssrc_);
+
+        if (reception_flow_->clear_stream_from_flow(remote_ssrc_) == 1) {
+            reception_flow_->stop();
+            if (sfp_) {
+                sfp_->clear_port(src_port_, socket_);
+            }
         }
     }
 
@@ -786,31 +791,6 @@ rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(v
 rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
 {
     rtp_error_t ret = RTP_OK;
-
-    if (rcc_flag == RCC_SSRC) {
-        if (value <= 0 || value > (ssize_t)UINT32_MAX)
-            return RTP_INVALID_VALUE;
-
-        *ssrc_ = (uint32_t)value;
-        return ret;
-    }
-    else if (rcc_flag == RCC_REMOTE_SSRC) {
-        if (value <= 0 || value > (ssize_t)UINT32_MAX)
-            return RTP_INVALID_VALUE;
-        if (reception_flow_) {
-            reception_flow_->update_remote_ssrc(remote_ssrc_.get()->load(), (uint32_t)value);
-        }
-        *remote_ssrc_ = (uint32_t)value;
-        
-        return ret;
-    }
-    else if (rcc_flag == RCC_POLL_TIMEOUT) {
-        if (reception_flow_) {
-            reception_flow_->set_poll_timeout_ms((int)value);
-        }
-        return ret;
-    }
-
     if (!initialized_) {
         UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
         return RTP_NOT_INITIALIZED;
@@ -850,14 +830,14 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             break;
         }
         case RCC_DYN_PAYLOAD_TYPE: {
-            if (value <= 0 || (ssize_t)UINT8_MAX < value)
+            if (value <= 0 || UINT8_MAX < value)
                 return RTP_INVALID_VALUE;
 
             rtp_->set_dynamic_payload((uint8_t)value);
             break;
         }
         case RCC_CLOCK_RATE: {
-            if (value <= 0 || (ssize_t)UINT32_MAX < value)
+            if (value <= 0 || UINT32_MAX < value)
                 return RTP_INVALID_VALUE;
 
             rtp_->set_clock_rate((uint32_t)value);
@@ -871,7 +851,7 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             if (value <= hdr)
                 return RTP_INVALID_VALUE;
 
-            if (value > (ssize_t)UINT16_MAX) {
+            if (value > UINT16_MAX) {
                 UVG_LOG_ERROR("Payload size (%zd) is larger than maximum UDP datagram size (%u)",
                         value, UINT16_MAX);
                 return RTP_INVALID_VALUE;
@@ -917,6 +897,13 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             }
             break;
         }
+        case RCC_POLL_TIMEOUT: {
+            if (reception_flow_) {
+                reception_flow_->set_poll_timeout_ms((int)value);
+            }
+            break;
+        }
+
         case RCC_SSRC: {
             if (value <= 0 || value > (ssize_t)UINT32_MAX)
                 return RTP_INVALID_VALUE;
@@ -927,7 +914,9 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
         case RCC_REMOTE_SSRC: {
             if (value <= 0 || value > (ssize_t)UINT32_MAX)
                 return RTP_INVALID_VALUE;
-
+            if (reception_flow_) {
+                reception_flow_->update_remote_ssrc(remote_ssrc_.get()->load(), (uint32_t)value);
+            }
             *remote_ssrc_ = (uint32_t)value;
             break;
         }
