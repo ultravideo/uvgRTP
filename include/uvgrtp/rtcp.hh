@@ -312,6 +312,18 @@ namespace uvgrtp {
             rtp_error_t install_receiver_hook(void (*hook)(uvgrtp::frame::rtcp_receiver_report *));
 
             /**
+             * \brief Install an Round Trip Time hook
+             *
+             * \details ......
+             *
+             * \param hook Function pointer to the hook
+             *
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If hook is nullptr
+             */
+            rtp_error_t install_roundtrip_time_hook(std::function<void(double)> rtt_handler);
+
+            /**
              * \brief Install an RTCP Receiver Report hook
              *
              * \details This function is called when an RTCP Receiver Report is received
@@ -616,6 +628,9 @@ namespace uvgrtp {
             uint8_t num_receivers_; // maximum is 32 at the moment (5 bits)
             bool ipv6_;
 
+            // [Thong]
+            std::map<uint32_t, uint64_t> dlsr_timestamps_;
+
             /* Address of the socket that we are sending data to */
             sockaddr_in socket_address_;
             sockaddr_in6 socket_address_ipv6_;
@@ -649,9 +664,11 @@ namespace uvgrtp {
             std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)>      app_hook_f_;
             std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>)>      app_hook_u_;
             std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_fb_packet>)>       fb_hook_u_;
+            std::function<void(double)>                                               rtt_hook_;
 
             std::mutex sr_mutex_;
             std::mutex rr_mutex_;
+            std::mutex rtt_mutex_;
             std::mutex sdes_mutex_;
             std::mutex app_mutex_;
             std::mutex fb_mutex_;

@@ -71,6 +71,7 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic
     app_hook_f_(nullptr),
     app_hook_u_(nullptr),
     fb_hook_u_(nullptr),
+    rtt_hook_(nullptr),
     sfp_(sfp),
     rtcp_reader_(nullptr),
     active_(false),
@@ -562,6 +563,20 @@ rtp_error_t uvgrtp::rtcp::install_receiver_hook(std::function<void(std::shared_p
     rr_hook_f_     = rr_handler;
     rr_hook_u_     = nullptr;
     rr_mutex_.unlock();
+
+    return RTP_OK;
+}
+
+rtp_error_t uvgrtp::rtcp::install_roundtrip_time_hook(std::function<void(double)> rtt_handler)
+{
+    if (!rtt_handler)
+    {
+        return RTP_INVALID_VALUE;
+    }
+
+    rtt_mutex_.lock();
+    rtt_hook_ = rtt_handler;
+    rtt_mutex_.unlock();
 
     return RTP_OK;
 }
@@ -1336,6 +1351,9 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* buffer, size_t&
 {
     auto frame = new uvgrtp::frame::rtcp_receiver_report;
     frame->header = header;
+    
+    auto received_time = std::chrono::high_resolution_clock::now();
+
     read_ssrc(buffer, read_ptr, frame->ssrc);
 
     /* Receiver Reports are sent from participant that don't send RTP packets
@@ -1356,6 +1374,22 @@ rtp_error_t uvgrtp::rtcp::handle_receiver_report_packet(uint8_t* buffer, size_t&
     }
     
     read_reports(buffer, read_ptr, packet_end, frame->header.count, frame->report_blocks);
+
+    if (rtt_hook_) {
+        auto sending_time = dlsr_timestamps_.find(frame->ssrc);
+        if (sending_time != dlsr_timestamps_.end()) {
+            
+            if (!frame->report_blocks.empty()) {
+                uint64_t rr_received_ntp = uvgrtp::clock::ntp::now();
+                uint32_t arrival_timestamp = static_cast<uint32_t>((rr_received_ntp >> 16) & 0xFFFFFFFF); // When RR is received
+                uint64_t dlsr = frame->report_blocks[0].dlsr;
+                uint32_t LSR = frame->report_blocks[0].lsr;
+                uint32_t RTT = (arrival_timestamp - LSR) - dlsr;
+                rtt_hook_((static_cast<double>(RTT) / 65536.0) * 1000.0);
+            } 
+        }
+    }
+                
 
     rr_mutex_.lock();
     if (receiver_hook_) {
@@ -1870,6 +1904,14 @@ rtp_error_t uvgrtp::rtcp::generate_report()
         }
 
         our_stats.sent_rtp_packet = false;
+
+        // [Thong]
+        if (rtt_hook_) {  
+            for (auto& p : participants_)
+            {
+                dlsr_timestamps_.insert({p.first, ntp_ts});
+            }
+        }
 
     } else if (rr_packet) { // RECEIVER
 
