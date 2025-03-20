@@ -63,10 +63,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 set(UVGRTP_CXX_FLAGS "")
 set(UVGRTP_LINKER_FLAGS "")
 
-if (UVGRTP_BUILD_SHARED)
-    include(cmake/ExportHeaders.cmake)
-endif()
-
+# uvgRTP shared version header generation
+include(cmake/ExportHeaders.cmake)
 include(cmake/Definitions.cmake)
 
 target_sources(${PROJECT_NAME} PRIVATE
