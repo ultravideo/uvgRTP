@@ -15,6 +15,7 @@ project(uvgrtp
 
 include(GNUInstallDirs)
 
+option(UVGRTP_BUILD_SHARED "Build uvgRTP as a shared library" OFF)
 
 option(UVGRTP_DISABLE_CRYPTO "Do not build uvgRTP with crypto enabled" OFF)
 option(UVGRTP_DISABLE_PRINTS "Do not print anything from uvgRTP" OFF)
@@ -44,18 +45,29 @@ if (DISABLE_WERROR)
     set(UVGRTP_DISABLE_WERROR ON)
 endif()
 
+if (UVGRTP_BUILD_SHARED)
+    set(UVGRTP_LIB_TYPE SHARED)
+    add_definitions(-DUVGRTP_BUILD_DLL)  # Defines export macro for Windows
+else()
+    set(UVGRTP_LIB_TYPE STATIC)
+endif()
 
 include(cmake/FindDependencies.cmake)
 include(cmake/Versioning.cmake)
 
-
-add_library(${PROJECT_NAME})
+add_library(${PROJECT_NAME} ${UVGRTP_LIB_TYPE})
 set_target_properties(${PROJECT_NAME} PROPERTIES
         SOVERSION "${PROJECT_VERSION_MAJOR}"
         VERSION "${LIBRARY_VERSION}"
         )
 set(UVGRTP_CXX_FLAGS "")
 set(UVGRTP_LINKER_FLAGS "")
+
+if (UVGRTP_BUILD_SHARED)
+    include(cmake/ExportHeaders.cmake)
+endif()
+
+include(cmake/Definitions.cmake)
 
 target_sources(${PROJECT_NAME} PRIVATE
         src/clock.cc
@@ -179,9 +191,10 @@ target_link_libraries(${PROJECT_NAME}
         )
 
 target_include_directories(${PROJECT_NAME}
-        PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> 
         PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-        PUBLIC $<INSTALL_INTERFACE:include>
+        PUBLIC  $<INSTALL_INTERFACE:include>
         )
 
 if(CMAKE_BUILD_TYPE)
@@ -348,6 +361,9 @@ if (NOT UVGRTP_DISABLE_INSTALL)
             DESTINATION ${ConfigPackageLocation}
             COMPONENT uvgRTPMain
     )
+    if (UVGRTP_BUILD_SHARED)
+        install(FILES "${CMAKE_CURRENT_BINARY_DIR}/uvgrtp_export.hh" DESTINATION include)
+    endif()
 
     # Packaging
     #
