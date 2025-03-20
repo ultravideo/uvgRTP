@@ -11,5 +11,7 @@ else()
     file(APPEND ${UVGRTP_DEFS_FILE} "#define UVGRTP_SHARED_API 0\n")
 endif()
 
+target_sources(${PROJECT_NAME} PRIVATE ${UVGRTP_DEFS_FILE})
+
 # Install the generated file so external projects can use it
 install(FILES ${UVGRTP_DEFS_FILE} DESTINATION include)
