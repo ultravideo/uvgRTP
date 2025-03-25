@@ -72,7 +72,8 @@ namespace uvgrtp {
                 /* Return pointer to the internal frame info structure which is relayed to packet handler */
                 media_frame_info_t *get_media_frame_info();
 
-                void set_fps(ssize_t enumarator, ssize_t denominator);
+                void set_fps(ssize_t numerator, ssize_t denominator);
+                void set_pace(ssize_t numerator, ssize_t denominator);
 
             protected:
                 virtual rtp_error_t push_media_frame(sockaddr_in& addr, sockaddr_in6& addr6, uint8_t *data, size_t data_len, int rtp_flags, uint32_t ssrc);

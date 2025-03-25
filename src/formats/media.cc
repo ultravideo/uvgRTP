@@ -196,3 +196,8 @@ void uvgrtp::formats::media::set_fps(ssize_t numerator, ssize_t denominator)
 {
     fqueue_->set_fps(numerator, denominator);
 }
+
+void uvgrtp::formats::media::set_pace(ssize_t numerator, ssize_t denominator)
+{
+    fqueue_->set_pace(numerator, denominator);
+}
