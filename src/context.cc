@@ -18,26 +18,62 @@ thread_local rtp_error_t rtp_errno;
 static inline std::string generate_string(size_t length)
 {
     auto randchar = []() -> char
-    {
-        const char charset[] =
-            "0123456789"
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            "abcdefghijklmnopqrstuvwxyz";
-        const size_t max_index = (sizeof(charset) - 1);
-        return charset[rand() % max_index];
-    };
+        {
+            const char charset[] =
+                "0123456789"
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                "abcdefghijklmnopqrstuvwxyz";
+            const size_t max_index = (sizeof(charset) - 1);
+            return charset[rand() % max_index];
+        };
 
     std::string str(length, 0);
     std::generate_n(str.begin(), length, randchar);
     return str;
 }
 
-uvgrtp::context::context()
+
+class uvgrtp::context::context_impl
+{
+public:
+    context_impl()
+    {
+        cname_ = generate_cname();
+        sfp_ = std::make_shared<uvgrtp::socketfactory>(RCE_NO_FLAGS);
+    }
+
+    std::string& get_cname()
+    {
+        return cname_;
+    }
+
+    /* Generate CNAME for participant using host and login names */
+    std::string generate_cname() const
+    {
+        std::string host = uvgrtp::hostname::get_hostname();
+        std::string user = uvgrtp::hostname::get_username();
+
+        if (host == "")
+            host = generate_string(10);
+
+        if (user == "")
+            user = generate_string(10);
+
+        return host + "@" + user;
+    }
+
+    /* CNAME is the same for all connections */
+    std::string cname_;
+    std::shared_ptr<uvgrtp::socketfactory> sfp_;
+
+};
+
+uvgrtp::context::context():
+    pimpl_(new context_impl())
 {
     UVG_LOG_INFO("uvgRTP version: %s", uvgrtp::get_version().c_str());
 
-    cname_  = uvgrtp::context::generate_cname();
-    sfp_ = std::make_shared<uvgrtp::socketfactory>(RCE_NO_FLAGS);
+
 
 #ifdef _WIN32
     WSADATA wsd;
@@ -55,6 +91,37 @@ uvgrtp::context::~context()
 #endif
 }
 
+
+uvgrtp::session* uvgrtp::context::create_session(const char* address)
+{
+    if (!address || address[0] == '\0') {
+        UVG_LOG_ERROR("Please specify the address you want to communicate with!");
+        return nullptr;
+    }
+
+    return new uvgrtp::session(pimpl_->get_cname(), std::string(address), pimpl_->sfp_);
+}
+
+
+uvgrtp::session* uvgrtp::context::create_session(const char* local_address, const char* remote_address)
+{
+    const bool has_local = local_address && local_address[0] != '\0';
+    const bool has_remote = remote_address && remote_address[0] != '\0';
+
+    if (!has_local && !has_remote) {
+        UVG_LOG_ERROR("Please specify at least one address for create_session");
+        return nullptr;
+    }
+
+
+    std::string local_str = has_local ? std::string(local_address) : std::string("");
+    std::string remote_str = has_remote ? std::string(remote_address) : std::string("");
+
+    return new uvgrtp::session(pimpl_->get_cname(), remote_str, local_str, pimpl_->sfp_);
+}
+
+
+#if UVGRTP_EXTENDED_API
 uvgrtp::session* uvgrtp::context::create_session(std::pair<std::string, std::string> addresses)
 {
     return create_session(addresses.second, addresses.first);
@@ -68,7 +135,7 @@ uvgrtp::session *uvgrtp::context::create_session(std::string address)
         return nullptr;
     }
 
-    return new uvgrtp::session(get_cname(), address, sfp_);
+    return new uvgrtp::session(pimpl_->get_cname(), address, pimpl_->sfp_);
 }
 
 uvgrtp::session* uvgrtp::context::create_session(std::string remote_addr, std::string local_addr)
@@ -78,8 +145,9 @@ uvgrtp::session* uvgrtp::context::create_session(std::string remote_addr, std::s
         UVG_LOG_ERROR("Please specify at least one address for create_session");
         return nullptr;
     }
-    return new uvgrtp::session(get_cname(), remote_addr, local_addr, sfp_);
+    return new uvgrtp::session(pimpl_->get_cname(), remote_addr, local_addr, pimpl_->sfp_);
 }
+#endif
 
 rtp_error_t uvgrtp::context::destroy_session(uvgrtp::session *session)
 {
@@ -89,25 +157,6 @@ rtp_error_t uvgrtp::context::destroy_session(uvgrtp::session *session)
     delete session;
 
     return RTP_OK;
-}
-
-std::string uvgrtp::context::generate_cname() const
-{
-    std::string host = uvgrtp::hostname::get_hostname();
-    std::string user = uvgrtp::hostname::get_username();
-
-    if (host == "")
-        host = generate_string(10);
-
-    if (user == "")
-        user = generate_string(10);
-
-    return host + "@" + user;
-}
-
-std::string& uvgrtp::context::get_cname()
-{
-    return cname_;
 }
 
 bool uvgrtp::context::crypto_enabled() const
