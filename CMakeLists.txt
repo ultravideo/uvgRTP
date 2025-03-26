@@ -86,6 +86,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/socket.cc
         src/zrtp.cc
         src/holepuncher.cc
+        src/media_stream_internal.cc
 
         src/formats/media.cc
         src/formats/h26x.cc
@@ -135,6 +136,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/zrtp.hh
         src/frame_queue.hh
         src/memory.hh
+        src/media_stream_internal.cc
 
         src/formats/h26x.hh
         src/formats/h264.hh

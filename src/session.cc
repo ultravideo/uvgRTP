@@ -1,6 +1,8 @@
 #include "uvgrtp/session.hh"
 
 #include "uvgrtp/media_stream.hh"
+
+#include "media_stream_internal.hh"
 #include "socketfactory.hh"
 #include "crypto.hh"
 #include "zrtp.hh"
@@ -152,28 +154,28 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
                 rce_flags |= RCE_ZRTP_DIFFIE_HELLMAN_MODE;
             }
 
-            if (stream->init_auto_zrtp(zrtp_) != RTP_OK) {
+            if (stream->impl_->init_auto_zrtp(zrtp_) != RTP_OK) {
                 UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), src_port, dst_port);
                 delete stream;
                 return nullptr;
             }
         } else if (rce_flags & RCE_SRTP_KMNGMNT_USER) {
             UVG_LOG_DEBUG("SRTP with user-managed keys enabled, postpone initialization");
-            if (stream->init(zrtp_) != RTP_OK) {
+            if (stream->impl_->init(zrtp_) != RTP_OK) {
                 UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), src_port, dst_port);
                 delete stream;
                 return nullptr;
             }
         } else {
             UVG_LOG_DEBUG("SRTP key management scheme not specified. Assuming key management will be determined later");
-            if (stream->init(zrtp_) != RTP_OK) {
+            if (stream->impl_->init(zrtp_) != RTP_OK) {
                 UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), src_port, dst_port);
                 delete stream;
                 return nullptr;
             }
         }
     } else {
-        if (stream->init(zrtp_) != RTP_OK) {
+        if (stream->impl_->init(zrtp_) != RTP_OK) {
             UVG_LOG_ERROR("Failed to initialize media stream %s:%d/%d", remote_address_.c_str(), src_port, dst_port);
             delete stream;
             return nullptr;
@@ -181,7 +183,7 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
     }
 
     session_mtx_.lock();
-    streams_.insert(std::make_pair(stream->get_key(), stream));
+    streams_.insert(std::make_pair(stream->impl_->get_key(), stream));
     session_mtx_.unlock();
 
     return stream;
@@ -192,7 +194,7 @@ rtp_error_t uvgrtp::session::destroy_stream(uvgrtp::media_stream *stream)
     if (!stream)
         return RTP_INVALID_VALUE;
 
-    auto mstream = streams_.find(stream->get_key());
+    auto mstream = streams_.find(stream->impl_->get_key());
 
     if (mstream == streams_.end())
         return RTP_NOT_FOUND;

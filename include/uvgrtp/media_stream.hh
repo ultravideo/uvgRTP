@@ -39,6 +39,8 @@ namespace uvgrtp {
         class media;
     }
 
+    class media_stream_internal;
+
     /**
      * \brief The media_stream is an entity which represents one RTP stream.
      *
@@ -51,32 +53,9 @@ namespace uvgrtp {
      * media_stream corresponds to one RTP session in <a href="https://www.rfc-editor.org/rfc/rfc3550">RFC 3550</a>.
      */
     class media_stream {
+        friend class session;
         public:
-            /// \cond DO_NOT_DOCUMENT
-            media_stream(std::string cname, std::string remote_addr, std::string local_addr, uint16_t src_port, uint16_t dst_port,
-                rtp_format_t fmt, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags);
-            ~media_stream();
 
-            /* Initialize traditional RTP session.
-             * Allocate Connection/Reader/Writer objects and initialize them
-             *
-             * Return RTP_OK on success
-             * Return RTP_MEMORY_ERROR if allocation failed
-             *
-             * Other error return codes are defined in {conn,writer,reader}.hh */
-            rtp_error_t init(std::shared_ptr<uvgrtp::zrtp> zrtp);
-
-            /* Initialize Secure RTP session with automatic ZRTP negotiation
-             * Allocate Connection/Reader/Writer objects and initialize them
-             *
-             * Return RTP_OK on success
-             * Return RTP_MEMORY_ERROR if allocation failed
-             *
-             * TODO document all error codes!
-             *
-             * Other error return codes are defined in {conn,writer,reader,srtp}.hh */
-            rtp_error_t init_auto_zrtp(std::shared_ptr<uvgrtp::zrtp> zrtp);
-            /// \endcond
 
             /**
              *
@@ -358,14 +337,6 @@ namespace uvgrtp {
              */
             int get_configuration_value(int rcc_flag);
 
-            /// \cond DO_NOT_DOCUMENT
-
-            /* Get unique key of the media stream
-             * Used by session to index media streams */
-            uint32_t get_key() const;
-
-            /// \endcond
-
             /**
              * \brief Get pointer to the RTCP object of the media stream
              *
@@ -388,82 +359,12 @@ namespace uvgrtp {
             uint32_t get_ssrc() const;
 
         private:
-            /* Initialize the connection by initializing the socket
-             * and binding ourselves to specified interface and creating
-             * an outgoing address */
-            rtp_error_t init_connection();
 
-            /* Create the media object for the stream */
-            rtp_error_t create_media(rtp_format_t fmt);
+            media_stream(std::string cname, std::string remote_addr, std::string local_addr, uint16_t src_port, uint16_t dst_port,
+                rtp_format_t fmt, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags);
+            ~media_stream();
 
-            /* free all allocated resources */
-            rtp_error_t free_resources(rtp_error_t ret);
-
-            rtp_error_t init_srtp_with_zrtp(int rce_flags, int type, std::shared_ptr<uvgrtp::base_srtp> srtp,
-                                            std::shared_ptr<uvgrtp::zrtp> zrtp);
-
-            rtp_error_t start_components();
-
-            rtp_error_t install_packet_handlers();
-
-            uint32_t get_default_bandwidth_kbps(rtp_format_t fmt);
-
-            bool check_pull_preconditions();
-            rtp_error_t check_push_preconditions(int rtp_flags, bool smart_pointer);
-
-            void holepuncher();
-
-            inline uint8_t* copy_frame(uint8_t* original, size_t data_len);
-
-            uint32_t key_;
-
-            std::shared_ptr<uvgrtp::srtp>   srtp_;
-            std::shared_ptr<uvgrtp::srtcp>  srtcp_;
-            std::shared_ptr<uvgrtp::socket> socket_;
-            std::shared_ptr<uvgrtp::rtp>    rtp_;
-            std::shared_ptr<uvgrtp::rtcp>   rtcp_;
-            std::shared_ptr<uvgrtp::zrtp>   zrtp_;
-
-            std::shared_ptr<uvgrtp::socketfactory> sfp_;
-
-            sockaddr_in remote_sockaddr_;
-            sockaddr_in6 remote_sockaddr_ip6_;
-            std::string remote_address_;
-            std::string local_address_;
-            uint16_t src_port_;
-            uint16_t dst_port_;
-            bool ipv6_;
-            rtp_format_t fmt_;
-            bool new_socket_;
-
-            /* Media context config */
-            int rce_flags_ = 0;
-
-            /* Has the media stream been initialized */
-            bool initialized_;
-
-            /* RTP packet reception flow. Dispatches packets to other components */
-            std::shared_ptr<uvgrtp::reception_flow> reception_flow_;
-
-            /* Media object associated with this media stream. */
-            std::unique_ptr<uvgrtp::formats::media> media_;
-
-            /* Thread that keeps the holepunched connection open for unidirectional streams */
-            std::unique_ptr<uvgrtp::holepuncher> holepuncher_;
-
-            std::string cname_;
-
-            ssize_t fps_numerator_ = 30;
-            ssize_t fps_denominator_ = 1;
-            uint32_t bandwidth_ = 0;
-            std::shared_ptr<std::atomic<std::uint32_t>> ssrc_;
-            std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc_;
-
-            // Save values associated with context flags, to be returned with get_configuration_value
-            // Values are initialized to -2, which means value not set
-            int snd_buf_size_;
-            int rcv_buf_size_;
-            int multicast_ttl_;
+            std::unique_ptr<media_stream_internal> impl_;
     };
 }
 
