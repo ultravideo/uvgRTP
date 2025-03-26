@@ -13,17 +13,6 @@ else()
 endif()
 
 
-
-file(APPEND ${UVGRTP_DEFS_FILE} "\n/**\n")
-file(APPEND ${UVGRTP_DEFS_FILE} " * \\defgroup CORE_API Core API\n")
-file(APPEND ${UVGRTP_DEFS_FILE} " * \\brief Available for both static and shared builds.\n")
-file(APPEND ${UVGRTP_DEFS_FILE} " */\n\n")
-file(APPEND ${UVGRTP_DEFS_FILE} "/**\n")
-file(APPEND ${UVGRTP_DEFS_FILE} " * \\defgroup EXTENDED_API Extended C++ API\n")
-file(APPEND ${UVGRTP_DEFS_FILE} " * \\brief Only available in static builds.\n")
-file(APPEND ${UVGRTP_DEFS_FILE} " */\n\n")
-
-
 target_sources(${PROJECT_NAME} PRIVATE ${UVGRTP_DEFS_FILE})
 
 # Install the generated file so external projects can use it
