@@ -1,13 +1,15 @@
 #include "rtcp_reader.hh"
+
 #include "uvgrtp/util.hh"
 #include "uvgrtp/frame.hh"
+
 #include "rtcp_packets.hh"
 #include "poll.hh"
-#include "uvgrtp/rtcp.hh"
 #include "socketfactory.hh"
 #include "socket.hh"
 #include "global.hh"
 #include "debug.hh"
+#include "rtcp_internal.hh"
 
 #ifndef _WIN32
 #include <sys/time.h>
@@ -79,7 +81,7 @@ void uvgrtp::rtcp_reader::rtcp_report_reader() {
             }
             else {
                 for (auto& p : rtcps_map_) {
-                    std::shared_ptr<uvgrtp::rtcp> rtcp_ptr = p.second;
+                    std::shared_ptr<uvgrtp::rtcp_internal> rtcp_ptr = p.second;
                     if (sender_ssrc == p.first.get()->load()) {
                         (void)rtcp_ptr->handle_incoming_packet(nullptr, 0, buffer.get(), (size_t)nread, nullptr);
                     }
@@ -104,7 +106,8 @@ rtp_error_t uvgrtp::rtcp_reader::set_socket(std::shared_ptr<uvgrtp::socket> sock
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::rtcp_reader::map_ssrc_to_rtcp(std::shared_ptr<std::atomic<uint32_t>> ssrc, std::shared_ptr<uvgrtp::rtcp> rtcp)
+rtp_error_t uvgrtp::rtcp_reader::map_ssrc_to_rtcp(std::shared_ptr<std::atomic<uint32_t>> ssrc, 
+    std::shared_ptr<uvgrtp::rtcp_internal> rtcp)
 {
     map_mutex_.lock();
     rtcps_map_[ssrc] = rtcp;

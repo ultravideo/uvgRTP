@@ -12,6 +12,7 @@
 #include "zrtp.hh"
 #include "socket.hh"
 #include "rtcp_reader.hh"
+#include "rtcp_internal.hh"
 
 #include "holepuncher.hh"
 #include "reception_flow.hh"
@@ -65,8 +66,7 @@ uvgrtp::media_stream_internal::media_stream_internal(std::string cname, std::str
     snd_buf_size_(-1),
     rcv_buf_size_(-1),
     multicast_ttl_(-1)
-{
-}
+{}
 
 uvgrtp::media_stream_internal::~media_stream_internal()
 {
@@ -79,7 +79,7 @@ uvgrtp::media_stream_internal::~media_stream_internal()
 
     if ((rce_flags_ & RCE_RTCP) && rtcp_)
     {
-        rtcp_->stop();
+        rtcp_->pimpl_->stop();
     }
 
     // Clear this media stream from the reception_flow
@@ -323,13 +323,13 @@ rtp_error_t uvgrtp::media_stream_internal::install_packet_handlers()
     if (rce_flags_ & RCE_RTCP) {
         reception_flow_->install_handler(
             6, remote_ssrc_,
-            std::bind(&uvgrtp::rtcp::recv_packet_handler_common, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                std::placeholders::_4, std::placeholders::_5), rtcp_.get());
+            std::bind(&uvgrtp::rtcp_internal::recv_packet_handler_common, rtcp_->pimpl_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                std::placeholders::_4, std::placeholders::_5), rtcp_->pimpl_.get());
     }
     if (rce_flags_ & RCE_RTCP_MUX) {
         reception_flow_->install_handler(
             2, remote_ssrc_,
-            std::bind(&uvgrtp::rtcp::handle_incoming_packet, rtcp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+            std::bind(&uvgrtp::rtcp_internal::handle_incoming_packet, rtcp_->pimpl_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
                 std::placeholders::_4, std::placeholders::_5), nullptr);
     }
     if (rce_flags_ & RCE_SRTP) {
@@ -356,12 +356,15 @@ rtp_error_t uvgrtp::media_stream_internal::init(std::shared_ptr<uvgrtp::zrtp> zr
         return RTP_GENERIC_ERROR;
     }
 
-    rtp_ = std::shared_ptr<uvgrtp::rtp>(new uvgrtp::rtp(fmt_, ssrc_, ipv6_));
-    rtcp_ = std::shared_ptr<uvgrtp::rtcp>(new uvgrtp::rtcp(rtp_, ssrc_, remote_ssrc_, cname_, sfp_, rce_flags_));
-    srtp_ = std::shared_ptr<uvgrtp::srtp>(new uvgrtp::srtp(rce_flags_));
-    srtcp_ = std::shared_ptr<uvgrtp::srtcp>(new uvgrtp::srtcp());
+    rtp_ = std::make_shared<uvgrtp::rtp>(fmt_, ssrc_, ipv6_);
 
-    socket_->install_handler(ssrc_, rtcp_.get(), rtcp_->send_packet_handler_vec);
+    // we are the only friend class for rtcp to call internal constructor
+    rtcp_ = std::shared_ptr<uvgrtp::rtcp>(new uvgrtp::rtcp(rtp_, ssrc_, remote_ssrc_, cname_, sfp_, rce_flags_));
+
+    srtp_ = std::make_shared<uvgrtp::srtp>(rce_flags_);
+    srtcp_ = std::make_shared<uvgrtp::srtcp>();
+
+    socket_->install_handler(ssrc_, rtcp_->pimpl_.get(), rtcp_->pimpl_->send_packet_handler_vec);
 
     /* If we are using ZRTP, we only install the ZRTP handler first. Rest of the handlers are installed after ZRTP is
        finished. If ZRTP is not enabled, we can install all the required handlers now */
@@ -498,15 +501,15 @@ rtp_error_t uvgrtp::media_stream_internal::start_components()
         else
         {
             if (!(rce_flags_ & RCE_RTCP_MUX)) {
-                rtcp_->set_network_addresses(local_address_, remote_address_, src_port_ + 1, dst_port_ + 1, ipv6_);
+                rtcp_->pimpl_->set_network_addresses(local_address_, remote_address_, src_port_ + 1, dst_port_ + 1, ipv6_);
             }
             else {
-                rtcp_->set_network_addresses(local_address_, remote_address_, src_port_, dst_port_, ipv6_);
-                rtcp_->set_socket(socket_);
+                rtcp_->pimpl_->set_network_addresses(local_address_, remote_address_, src_port_, dst_port_, ipv6_);
+                rtcp_->pimpl_->set_socket(socket_);
             }
-            rtcp_->add_initial_participant(rtp_->get_clock_rate());
+            rtcp_->pimpl_->add_initial_participant(rtp_->get_clock_rate());
             bandwidth_ = get_default_bandwidth_kbps(fmt_);
-            rtcp_->set_session_bandwidth(bandwidth_);
+            rtcp_->pimpl_->set_session_bandwidth(bandwidth_);
 
             uint16_t rtcp_port = src_port_ + 1;
             std::shared_ptr<uvgrtp::socket> rtcp_socket;
@@ -521,12 +524,12 @@ rtp_error_t uvgrtp::media_stream_internal::start_components()
                    any socket multiplexing, it will be 0 by default */
 
                 rtcp_socket = sfp_->get_socket_ptr(1, rtcp_port);
-                rtcp_->set_socket(rtcp_socket);
+                rtcp_->pimpl_->set_socket(rtcp_socket);
                 rtcp_reader = sfp_->get_rtcp_reader(rtcp_port);
-                rtcp_reader->map_ssrc_to_rtcp(remote_ssrc_, rtcp_);
+                rtcp_reader->map_ssrc_to_rtcp(remote_ssrc_, rtcp_->pimpl_);
                 rtcp_reader->set_socket(rtcp_socket);
             }
-            rtcp_->start();
+            rtcp_->pimpl_->start();
         }
     }
 
@@ -860,7 +863,7 @@ rtp_error_t uvgrtp::media_stream_internal::configure_ctx(int rcc_flag, ssize_t v
         rtp_->set_payload_size(value - hdr);
 
         // auth tag is always included with SRTP and RTCP has a header for each packet within a compound frame
-        rtcp_->set_payload_size(value - (IPV4_HDR_SIZE + UDP_HDR_SIZE));
+        rtcp_->pimpl_->set_payload_size(value - (IPV4_HDR_SIZE + UDP_HDR_SIZE));
 
         reception_flow_->set_payload_size(value - (IPV4_HDR_SIZE + UDP_HDR_SIZE)); // largest packet we can get from socket
         break;
@@ -893,7 +896,7 @@ rtp_error_t uvgrtp::media_stream_internal::configure_ctx(int rcc_flag, ssize_t v
             return RTP_INVALID_VALUE;
         }
         if (rtcp_) {
-            rtcp_->set_session_bandwidth(bandwidth_);
+            rtcp_->pimpl_->set_session_bandwidth(bandwidth_);
         }
         break;
     }

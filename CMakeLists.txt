@@ -88,6 +88,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/holepuncher.cc
         src/media_stream_internal.cc
         src/clock_internal.cc
+        src/rtcp_internal.cc
 
         src/formats/media.cc
         src/formats/h26x.cc
@@ -139,6 +140,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/memory.hh
         src/media_stream_internal.hh
         src/clock_internal.hh
+        src/rtcp_internal.hh
 
         src/formats/h26x.hh
         src/formats/h264.hh

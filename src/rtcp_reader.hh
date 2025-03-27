@@ -21,7 +21,7 @@
 
 namespace uvgrtp {
     class socketfactory;
-    class rtcp;
+    class rtcp_internal;
     class socket;
 
     /* Every RTCP socket will have an RTCP reader that receives packets and distributes them to the correct RTCP
@@ -57,7 +57,8 @@ namespace uvgrtp {
              * Param ssrc SSRC of the REMOTE stream that the given RTCP will receive from
              * Param rtcp RTCP object
              * Return RTP_OK on success */
-            rtp_error_t map_ssrc_to_rtcp(std::shared_ptr<std::atomic<uint32_t>> ssrc, std::shared_ptr<uvgrtp::rtcp> rtcp);
+            rtp_error_t map_ssrc_to_rtcp(std::shared_ptr<std::atomic<uint32_t>> ssrc, 
+                std::shared_ptr<uvgrtp::rtcp_internal> rtcp);
 
             /* Clear an RTCP object with the given REMOTE SSRC from the RTCP reader
              *
@@ -73,7 +74,7 @@ namespace uvgrtp {
 
             bool active_;
             std::shared_ptr<uvgrtp::socket> socket_;
-            std::map<std::shared_ptr<std::atomic<uint32_t>>, std::shared_ptr<uvgrtp::rtcp>> rtcps_map_;
+            std::map<std::shared_ptr<std::atomic<uint32_t>>, std::shared_ptr<uvgrtp::rtcp_internal>> rtcps_map_;
             std::unique_ptr<std::thread> report_reader_;
             std::mutex map_mutex_;
     };
