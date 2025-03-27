@@ -17,19 +17,9 @@
 namespace uvgrtp {
 
     // forward declarations
-    class rtp;
+    /// \cond DO_NOT_DOCUMENT
     class rtcp;
-
-    class zrtp;
-    class base_srtp;
-    class srtp;
-    class srtcp;
-
-    class reception_flow;
-    class holepuncher;
-    class socket;
     class socketfactory;
-    class rtcp_reader;
 
     namespace frame {
         struct rtp_frame;
@@ -40,6 +30,7 @@ namespace uvgrtp {
     }
 
     class media_stream_internal;
+    /// \endcond
 
     /**
      * \brief The media_stream is an entity which represents one RTP stream.
@@ -53,9 +44,10 @@ namespace uvgrtp {
      * media_stream corresponds to one RTP session in <a href="https://www.rfc-editor.org/rfc/rfc3550">RFC 3550</a>.
      */
     class media_stream {
+        /// \cond DO_NOT_DOCUMENT
         friend class session;
+        /// \endcond
         public:
-
 
             /**
              *

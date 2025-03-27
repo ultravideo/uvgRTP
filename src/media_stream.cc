@@ -73,7 +73,6 @@ uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame()
 uvgrtp::frame::rtp_frame *uvgrtp::media_stream::pull_frame(size_t timeout_ms)
 {
     return impl_->pull_frame(timeout_ms);
-
 }
 
 rtp_error_t uvgrtp::media_stream::install_receive_hook(void *arg, void (*hook)(void *, uvgrtp::frame::rtp_frame *))
