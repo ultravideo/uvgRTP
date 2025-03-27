@@ -1,8 +1,8 @@
 #pragma once
 
-#include "uvgrtp/clock.hh"
 #include "uvgrtp/util.hh"
 
+#include "clock_internal.hh"
 #include <chrono>
 #include <memory>
 #include <atomic>

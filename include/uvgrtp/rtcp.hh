@@ -3,6 +3,7 @@
 #include "clock.hh"
 #include "util.hh"
 #include "frame.hh"
+#include "clock_internal.hh"
 
 #ifdef _WIN32
 #include <ws2ipdef.h>
@@ -65,7 +66,7 @@ namespace uvgrtp {
         uint32_t clock_rate = 0;     /* Rate of the clock (used for jitter calculations) */
 
         uint32_t lsr = 0;                /* Middle 32 bits of the 64-bit NTP timestamp of previous SR */
-        uvgrtp::clock::hrc::hrc_t sr_ts; /* When the last SR was received (used to calculate delay) */
+        std::chrono::high_resolution_clock::time_point sr_ts; /* When the last SR was received (used to calculate delay) */
 
         uint16_t max_seq = 0;        /* Highest sequence number received */
         uint32_t base_seq = 0;       /* First sequence number received */

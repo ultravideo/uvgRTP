@@ -6,6 +6,7 @@
 
 #include "media.hh"
 #include "../socket.hh"
+#include "clock_internal.hh"
 
 #include <deque>
 #include <memory>

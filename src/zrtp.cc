@@ -1,5 +1,7 @@
 #include "zrtp.hh"
 
+#include "uvgrtp/clock.hh"
+
 #include "zrtp/commit.hh"
 #include "zrtp/confack.hh"
 #include "zrtp/confirm.hh"
@@ -11,7 +13,8 @@
 #include "crypto.hh"
 #include "random.hh"
 #include "debug.hh"
-#include "uvgrtp/clock.hh"
+#include "clock_internal.hh"
+
 #ifdef _WIN32
 #include <ws2ipdef.h>
 #else
