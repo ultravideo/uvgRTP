@@ -10,7 +10,6 @@
 #include <netinet/in.h>
 #endif
 
-#include <string>
 #include <vector>
 
 /* https://stackoverflow.com/questions/1537964/visual-c-equivalent-of-gccs-attribute-packed  */
@@ -130,6 +129,56 @@ namespace uvgrtp {
             uint32_t dlsr = 0; /* delay since last Sender Report */
         };
 
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
+        struct rtcp_sdes_item {
+            uint8_t type = 0;
+            uint8_t length = 0;
+            uint8_t* data = nullptr;
+        };
+
+        /// \brief Maximum number of report blocks in a single RTCP SR or RR packet
+        /// \details Defined by the 5-bit RC (Reception Report Count) field in the RTCP header. See RFC 3550 section 6.4.1.
+        #define UVGRTP_MAX_REPORT_BLOCKS 31
+
+        /// \brief Maximum number of SDES chunks in an RTCP SDES packet
+        /// \details Defined by the 5-bit SC (Source Count) field in the RTCP header. See RFC 3550 section 6.5.
+        #define UVGRTP_MAX_SDES_CHUNKS 31
+
+        /// \brief Maximum number of SDES items in a single SDES chunk
+        /// \details RFC 3550 defines 8 SDES item types.
+        #define UVGRTP_MAX_SDES_ITEMS 8
+
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.2" target="_blank">RFC 3550 section 6.4.2</a> */
+        struct rtcp_rr {
+            struct rtcp_header header;
+            uint32_t ssrc = 0;
+            rtcp_report_block report_blocks[UVGRTP_MAX_REPORT_BLOCKS];
+            size_t report_block_count = 0;
+        };
+
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
+        struct rtcp_sr {
+            struct rtcp_header header;
+            uint32_t ssrc = 0;
+            rtcp_sender_info sender_info;
+            rtcp_report_block report_blocks[UVGRTP_MAX_REPORT_BLOCKS];
+            size_t report_block_count = 0;
+        };
+
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
+        struct rtcp_sdes_ck {
+            uint32_t ssrc = 0;
+            rtcp_sdes_item items[UVGRTP_MAX_SDES_ITEMS];
+            size_t item_count = 0;
+        };
+
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
+        struct rtcp_sdes {
+            struct rtcp_header header;
+            rtcp_sdes_ck chunks[UVGRTP_MAX_SDES_CHUNKS];
+            size_t chunk_count = 0;
+        };
+
         /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.2" target="_blank">RFC 3550 section 6.4.2</a> */
         struct rtcp_receiver_report {
             struct rtcp_header header;
@@ -146,13 +195,6 @@ namespace uvgrtp {
         };
 
         /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
-        struct rtcp_sdes_item {
-            uint8_t type = 0;
-            uint8_t length = 0;
-            uint8_t *data = nullptr;
-        };
-
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
         struct rtcp_sdes_chunk {
             uint32_t ssrc = 0;
             std::vector<rtcp_sdes_item> items;
@@ -164,37 +206,45 @@ namespace uvgrtp {
             std::vector<rtcp_sdes_chunk> chunks;
         };
 
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.7" target="_blank">RFC 3550 section 6.7</a> */
+
+        // \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.7" target="_blank">RFC 3550 section 6.7</a> 
         struct rtcp_app_packet {
             struct rtcp_header header;
             uint32_t ssrc = 0;
             uint8_t name[4] = {0};
             uint8_t *payload = nullptr;
-            /** \brief Size of the payload in bytes. Added by uvgRTP to help process the payload. */
+            // \brief Size of the payload in bytes. Added by uvgRTP to help process the payload. 
             size_t payload_len = 0;
         };
 
-        /** \brief Full Intra Request, See RFC 5104 section 4.3.1 */
+        /*
+        * The feedback messages are commented as they were not implemented anywhere. If
+        * someone wants to implement these, please get rid of the union as it breaks rfc by
+        * allowing more than one type of feedback in the same message. 
+        * 
+        * Please also keep ABI safety in mind by removing std::vector.
+        * 
+        * 
+        // \brief Full Intra Request, See RFC 5104 section 4.3.1 
         struct rtcp_fir {
             uint32_t ssrc = 0;
             uint8_t seq = 0;
         };
-        /** \brief Slice Loss Indication, See RFC 4585 section 6.3.2 */
+        // \brief Slice Loss Indication, See RFC 4585 section 6.3.2
         struct rtcp_sli {
             uint16_t first = 0;
             uint16_t num = 0;
             uint8_t picture_id = 0;
         };
-        /** \brief Reference Picture Selection Indication, See RFC 4585 section 6.3.3 */
+        // \brief Reference Picture Selection Indication, See RFC 4585 section 6.3.3
         struct rtcp_rpsi {
             uint8_t pb = 0;
             uint8_t pt = 0;
             uint8_t* str = nullptr;
         };
 
-        /** \brief RTCP Feedback Control Information, See RFC 4585 section 6.1 */
+        // \brief RTCP Feedback Control Information, See RFC 4585 section 6.1
         struct rtcp_fb_fci {
-
             union {
                 rtcp_fir fir;
                 rtcp_sli sli;
@@ -202,15 +252,17 @@ namespace uvgrtp {
             };
         };
 
-        /** \brief Feedback message. See RFC 4585 section 6.1 */
+        // \brief Feedback message. See RFC 4585 section 6.1
         struct rtcp_fb_packet {
             struct rtcp_header header;
             uint32_t sender_ssrc = 0;
             uint32_t media_ssrc = 0;
-            std::vector<rtcp_fb_fci> items;
-            /** \brief Size of the payload in bytes. Added by uvgRTP to help process the payload. */
+            std::vector<rtcp_fb_fci> items; // allows illegal stucts, please fix if implementing
+            // \brief Size of the payload in bytes. Added by uvgRTP to help process the payload.
             size_t payload_len = 0;
         };
+
+        */
 
 
         PACK(struct zrtp_frame {

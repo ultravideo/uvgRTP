@@ -7,12 +7,16 @@
 #include "uvgrtp/util.hh"
 
 #include <memory>
+#include <string>
+
 #ifdef _WIN32
 #include <ws2ipdef.h>
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>
 #endif
+
+#include <string>
 
 namespace uvgrtp {
 
