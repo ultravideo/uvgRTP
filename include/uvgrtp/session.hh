@@ -26,12 +26,10 @@ namespace uvgrtp {
      */
 
     class session {
+        /// \cond DO_NOT_DOCUMENT
+        friend class context;
+        /// \endcond
         public:
-            /// \cond DO_NOT_DOCUMENT
-            session(std::string cname, std::string addr, std::shared_ptr<uvgrtp::socketfactory> sfp);
-            session(std::string cname, std::string remote_addr, std::string local_addr, std::shared_ptr<uvgrtp::socketfactory> sfp);
-            ~session();
-            /// \endcond
 
             /**
              * \brief Create a uni- or bidirectional media stream
@@ -101,16 +99,18 @@ namespace uvgrtp {
              */
             rtp_error_t destroy_stream(uvgrtp::media_stream *stream);
 
-            /// \cond DO_NOT_DOCUMENT
-            /* Get unique key of the session
-             * Used by context to index sessions */
-            std::string& get_key();
-            /// \endcond
 
     private:
 
-        std::unique_ptr<session_impl> pimpl_;
+        session(std::string cname, std::string addr, std::shared_ptr<uvgrtp::socketfactory> sfp);
+        session(std::string cname, std::string remote_addr, std::string local_addr, std::shared_ptr<uvgrtp::socketfactory> sfp);
+        ~session();
 
+         /* Get unique key of the session
+          * Used by context to index sessions */
+        std::string& get_key();
+
+        std::unique_ptr<session_impl> pimpl_;
     };
 }
 
