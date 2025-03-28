@@ -13,6 +13,7 @@ namespace uvgrtp {
     class media_stream;
     class zrtp;
     class socketfactory;
+    class session_impl;
 
     /** \brief Provides ZRTP synchronization and can be used to create uvgrtp::media_stream objects
      *
@@ -106,25 +107,10 @@ namespace uvgrtp {
             std::string& get_key();
             /// \endcond
 
-        private:
-            /* Each RTP multimedia session shall have one ZRTP session from which all session are derived */
-            std::shared_ptr<uvgrtp::zrtp> zrtp_;
+    private:
 
-            std::string generic_address_;
+        std::unique_ptr<session_impl> pimpl_;
 
-            /* Each RTP multimedia session is always IP-specific */
-            std::string remote_address_;
-
-            /* If user so wishes, the session can be bound to a certain interface */
-            std::string local_address_;
-
-            /* All media streams of this session */
-            std::unordered_map<uint32_t, uvgrtp::media_stream *> streams_;
-
-            std::mutex session_mtx_;
-
-            std::string cname_;
-            std::shared_ptr<uvgrtp::socketfactory> sf_;
     };
 }
 
