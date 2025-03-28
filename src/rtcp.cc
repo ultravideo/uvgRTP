@@ -23,16 +23,14 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp,
 {}
 
 uvgrtp::rtcp::~rtcp()
-{
-}
-
+{}
 
 rtp_error_t uvgrtp::rtcp::remove_all_hooks()
 {
     return pimpl_->remove_all_hooks();
 }
 
-rtp_error_t uvgrtp::rtcp::remove_send_app_hook(std::string app_name)
+rtp_error_t uvgrtp::rtcp::remove_send_app_hook(const std::string& app_name)
 {
     return pimpl_->remove_send_app_hook(std::move(app_name));
 }
@@ -97,7 +95,7 @@ rtp_error_t uvgrtp::rtcp::install_app_hook(std::function<void(std::unique_ptr<uv
     return pimpl_->install_app_hook(std::move(app_handler));
 }
 
-rtp_error_t uvgrtp::rtcp::install_send_app_hook(std::string app_name,
+rtp_error_t uvgrtp::rtcp::install_send_app_hook(const std::string& app_name,
     std::function<std::unique_ptr<uint8_t[]>(uint8_t& subtype, uint32_t& payload_len)> app_sending_func)
 {
     return pimpl_->install_send_app_hook(std::move(app_name), std::move(app_sending_func));
@@ -133,7 +131,7 @@ rtp_error_t uvgrtp::rtcp::send_sdes_packet(const std::vector<uvgrtp::frame::rtcp
     return pimpl_->send_sdes_packet(items);
 }
 
-rtp_error_t uvgrtp::rtcp::send_bye_packet(std::vector<uint32_t> ssrcs)
+rtp_error_t uvgrtp::rtcp::send_bye_packet(const std::vector<uint32_t>& ssrcs)
 {
     return pimpl_->send_bye_packet(ssrcs);
 }

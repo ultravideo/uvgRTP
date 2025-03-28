@@ -53,22 +53,132 @@ namespace uvgrtp {
         friend class media_stream_internal;
         /// \endcond
         public:
-
+            /// \cond DO_NOT_DOCUMENT
             ~rtcp();
+            /// \endcond
 
-            /* Send "frame" to all participants
-             *
-             * These routines will convert all necessary fields to network byte order
-             *
-             * Return RTP_OK on success
-             * Return RTP_INVALID_VALUE if "frame" is in some way invalid
-             * Return RTP_SEND_ERROR if sending "frame" did not succeed (see socket.hh for details) */
+            // the Core api suitable for shared and static library use
+
+            /// \brief Provide timestamping information for RTCP
+            ///
+            /// \details If the application wishes to timestamp the stream itself and it has
+            /// enabled RTCP (via RCE_RTCP), it should provide timestamping information for
+            /// RTCP so sensible synchronization values can be calculated for Sender Reports.
+            ///
+            /// You can use uvgrtp::clock::ntp::now() to get the current NTP timestamp.
+            ///
+            /// \param clock_start NTP timestamp at t = 0
+            /// \param clock_rate Clock rate of the media (Hz)
+            /// \param rtp_ts_start RTP timestamp at t = 0
+            void set_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start);
+
+            /// \brief Add an SDES item that will be included in all future RTCP SDES packets
+            ///
+            /// \param item SDES item to include (C-compatible ABI-safe struct)
+            /// \retval RTP_OK on success
+            /// \retval RTP_GENERIC_ERROR on failure
+            rtp_error_t add_sdes_item(const uvgrtp::frame::rtcp_sdes_item& item);
+
+            /// \brief Remove all SDES items previously added with add_sdes_item()
+            ///
+            /// \details Clears the list of SDES items that are included in outgoing RTCP SDES packets.
+            ///
+            /// \retval RTP_OK on success
+            rtp_error_t clear_sdes_items();
+
+            /// \brief Send an RTCP APP packet
+            ///
+            /// \param name Four-character name of the APP packet (e.g., "STAT")
+            /// \param subtype Subtype (0-31) for the APP message
+            /// \param payload_len Size of payload in bytes
+            /// \param payload Pointer to payload data
+            /// \retval RTP_OK on success
+            /// \retval RTP_MEMORY_ERROR if allocation fails
+            /// \retval RTP_GENERIC_ERROR if sending fails
+            rtp_error_t send_app_packet(const char* name, uint8_t subtype, uint32_t payload_len, const uint8_t* payload);
 
             /**
-             * \brief Send an RTCP SDES packet
+             * \brief Install a hook for generating RTCP APP packets during RTCP reporting
+             *
+             * \details This function installs a C-style callback that is called every time
+             * RTCP packets are being prepared for sending. The callback is responsible
+             * for returning a pointer to the payload data and filling in subtype and length.
+             * The returned buffer must be allocated on the heap using `new uint8_t[]` and will be freed by uvgRTP.
+             *
+             * \param app_name      Name of the APP item, must be 4 ASCII characters
+             * \param send_hook     Function pointer for the hook
+             * \param user_arg      User-provided pointer passed to the callback
+             *
+             * \retval RTP_OK On success
+             * \retval RTP_INVALID_VALUE If input is invalid
+             */
+            rtp_error_t install_send_app_hook(
+                const char* app_name,
+                uint8_t* (*send_hook)(uint8_t* subtype, uint32_t* payload_len, void* user_arg),
+                void* user_arg
+            );
+
+            /// \brief Remove a previously installed APP sending hook
+            /// \param app_name Four-character name of the APP hook to remove
+            /// \retval RTP_OK on success
+            /// \retval RTP_NOT_FOUND if hook was not found
+            rtp_error_t remove_send_app_hook(const char* app_name);
+
+            /// \brief Send an RTCP BYE packet to indicate stream end
+            ///
+            /// \param ssrcs Array of SSRCs to include in the BYE
+            /// \param count Number of SSRCs in the array
+            /// \retval RTP_OK on success
+            /// \retval RTP_INVALID_VALUE on invalid parameters
+            rtp_error_t send_bye_packet(const uint32_t* ssrcs, size_t count);
+
+            /// \brief Install a callback for incoming RTCP Sender Reports
+            ///
+            /// \param handler Function to call when a Sender Report is received
+            /// \retval RTP_OK on success
+            /// \retval RTP_INVALID_VALUE if handler is nullptr
+            rtp_error_t install_sender_hook(void (*handler)(uvgrtp::frame::rtcp_sr*));
+
+            /// \brief Install a callback for incoming RTCP Receiver Reports
+            ///
+            /// \param handler Function to call when a Receiver Report is received
+            /// \retval RTP_OK on success
+            /// \retval RTP_INVALID_VALUE if handler is nullptr
+            rtp_error_t install_receiver_hook(void (*handler)(uvgrtp::frame::rtcp_rr*));
+
+            /// \brief Install a callback for incoming RTCP SDES packets
+            ///
+            /// \param handler Function to call when an SDES packet is received
+            /// \retval RTP_OK on success
+            /// \retval RTP_INVALID_VALUE if handler is nullptr
+            rtp_error_t install_sdes_hook(void (*handler)(uvgrtp::frame::rtcp_sdes*));
+
+            /// \brief Install a callback for incoming RTCP APP packets
+            ///
+            /// \param handler Function to call when an APP packet is received
+            /// \retval RTP_OK on success
+            /// \retval RTP_INVALID_VALUE if handler is nullptr
+            rtp_error_t install_app_hook(void (*handler)(uvgrtp::frame::rtcp_app_packet*));
+
+            /// \brief Remove all installed reception RTCP packet hook, but not app send hook
+            ///
+            /// \retval RTP_OK on success
+            rtp_error_t remove_all_hooks();
+
+            uvgrtp::frame::rtcp_sr* get_sr(uint32_t ssrc);
+            uvgrtp::frame::rtcp_rr* get_rr(uint32_t ssrc);
+            uvgrtp::frame::rtcp_sdes* get_sdes(uint32_t ssrc);
+            uvgrtp::frame::rtcp_app_packet* get_app_packet(uint32_t ssrc);
+
+
+
+
+            // Extended API
+
+            /**
+             * \brief Send an RTCP SDES packet with full SDES items
              *
              * \param items Vector of SDES items
-             *
              * \retval RTP_OK On success
              * \retval RTP_MEMORY_ERROR If allocation fails
              * \retval RTP_GENERIC_ERROR If sending fails
@@ -76,197 +186,102 @@ namespace uvgrtp {
             rtp_error_t send_sdes_packet(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
 
             /**
-             * \brief Send an RTCP APP packet
-             *
-             * \param name Name of the APP item, e.g., STAT, must have a length of four ASCII characters
-             * \param subtype Subtype of the APP item
-             * \param payload_len Length of the payload
-             * \param payload Payload
-             *
-             * \retval RTP_OK On success
-             * \retval RTP_MEMORY_ERROR If allocation fails
-             * \retval RTP_GENERIC_ERROR If sending fails
-             */
-            rtp_error_t send_app_packet(const char *name, uint8_t subtype, uint32_t payload_len, const uint8_t *payload);
-
-            /**
              * \brief Send an RTCP BYE packet
              *
-             * \details In case the quitting participant is a mixer and is serving multiple
-             * paricipants, the input vector contains the SSRCs of all those participants. If the
-             * participant is a regular member of the session, the vector only contains the SSRC
-             * of the participant.
-             *
              * \param ssrcs Vector of SSRCs of those participants who are quitting
-             *
              * \retval RTP_OK On success
              * \retval RTP_MEMORY_ERROR If allocation fails
              * \retval RTP_GENERIC_ERROR If sending fails
              */
-            rtp_error_t send_bye_packet(std::vector<uint32_t> ssrcs);
+            rtp_error_t send_bye_packet(const std::vector<uint32_t>& ssrcs);
 
             /**
-             * \brief Provide timestamping information for RTCP
+             * \brief Install a C++ callback for incoming RTCP Sender Reports
              *
-             * \details If the application wishes to timestamp the stream itself AND it has
-             * enabled RTCP by using ::RCE_RTCP, it must provide timestamping information for
-             * RTCP so sensible synchronization values can be calculated for Sender Reports
-             *
-             * The application can call uvgrtp::clock::ntp::now() to get the current wall clock
-             * reading as an NTP timestamp value
-             *
-             * \param clock_start NTP timestamp for t = 0
-             * \param clock_rate Clock rate of the stream
-             * \param rtp_ts_start RTP timestamp for t = 0
-             */
-            void set_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32_t rtp_ts_start);
-
-            /* Alternate way to get RTCP packets is to install a hook for them. So instead of
-             * polling an RTCP packet, user can install a function that is called when
-             * a specific RTCP packet is received. */
-
-            /**
-             * \brief Install an RTCP Sender Report hook
-             *
-             * \details This function is called when an RTCP Sender Report is received
-             *
-             * \param hook Function pointer to the hook
-             *
+             * \param sr_handler C++ function taking std::unique_ptr to Sender Report
              * \retval RTP_OK on success
-             * \retval RTP_INVALID_VALUE If hook is nullptr
-             */
-            rtp_error_t install_sender_hook(void (*hook)(uvgrtp::frame::rtcp_sender_report *));
-
-            /**
-             * \brief Install an RTCP Sender Report hook
-             *
-             * \details This function is called when an RTCP Sender Report is received
-             *
-             * \param sr_handler C++ function pointer to the hook
-             *
-             * \retval RTP_OK on success
-             * \retval RTP_INVALID_VALUE If hook is nullptr
+             * \retval RTP_INVALID_VALUE if handler is nullptr
              */
             rtp_error_t install_sender_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_handler);
 
             /**
-             * \brief Install an RTCP Receiver Report hook
+             * \brief Install a C++ callback for incoming RTCP Receiver Reports
              *
-             * \details This function is called when an RTCP Receiver Report is received
-             *
-             * \param hook Function pointer to the hook
-             *
+             * \param rr_handler C++ function taking std::unique_ptr to Receiver Report
              * \retval RTP_OK on success
-             * \retval RTP_INVALID_VALUE If hook is nullptr
-             */
-            rtp_error_t install_receiver_hook(void (*hook)(uvgrtp::frame::rtcp_receiver_report *));
-
-            /**
-             * \brief Install an RTCP Receiver Report hook
-             *
-             * \details This function is called when an RTCP Receiver Report is received
-             *
-             * \param rr_handler C++ function pointer to the hook
-             *
-             * \retval RTP_OK on success
-             * \retval RTP_INVALID_VALUE If hook is nullptr
+             * \retval RTP_INVALID_VALUE if handler is nullptr
              */
             rtp_error_t install_receiver_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_handler);
 
             /**
-             * \brief Install an RTCP SDES packet hook
+             * \brief Install a C++ callback for incoming RTCP SDES packets
              *
-             * \details This function is called when an RTCP SDES packet is received
-             *
-             * \param hook Function pointer to the hook
-             *
+             * \param sdes_handler C++ function taking std::unique_ptr to SDES packet
              * \retval RTP_OK on success
-             * \retval RTP_INVALID_VALUE If hook is nullptr
-             */
-            rtp_error_t install_sdes_hook(void (*hook)(uvgrtp::frame::rtcp_sdes_packet *));
-
-            /**
-             * \brief Install an RTCP SDES packet hook
-             *
-             * \details This function is called when an RTCP SDES packet is received
-             *
-             * \param sdes_handler C++ function pointer to the hook
-             *
-             * \retval RTP_OK on success
-             * \retval RTP_INVALID_VALUE If hook is nullptr
+             * \retval RTP_INVALID_VALUE if handler is nullptr
              */
             rtp_error_t install_sdes_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_handler);
 
             /**
-             * \brief Install an RTCP APP packet hook
+             * \brief Install a C++ callback for incoming RTCP APP packets
              *
-             * \details This function is called when an RTCP APP packet is received
-             *
-             * \param hook Function pointer to the hook
-             *
+             * \param app_handler C++ function taking std::unique_ptr to APP packet
              * \retval RTP_OK on success
-             * \retval RTP_INVALID_VALUE If hook is nullptr
-             */
-            rtp_error_t install_app_hook(void (*hook)(uvgrtp::frame::rtcp_app_packet *));
-
-            /**
-             * \brief Install an RTCP APP packet hook
-             *
-             * \details This function is called when an RTCP APP packet is received
-             *
-             * \param app_handler C++ function pointer to the hook
-             *
-             * \retval RTP_OK on success
-             * \retval RTP_INVALID_VALUE If hook is nullptr
+             * \retval RTP_INVALID_VALUE if handler is nullptr
              */
             rtp_error_t install_app_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
 
-            /// \cond DO_NOT_DOCUMENT
-            // These have been replaced by functions with unique_ptr in them
-            rtp_error_t install_sender_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_handler);
-            rtp_error_t install_receiver_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_handler);
-            rtp_error_t install_sdes_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_handler);
-            rtp_error_t install_app_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
-            /// \endcond
-
             /**
-             * \brief Install hook for one type of APP packets
+             * \brief Install a C++ hook for sending RTCP APP packets during compound report generation
              *
-             * \details Each time the RR/SR is sent, all APP sending hooks call their respective functions to get the data
-             * 
-             * \param app_name name of the APP packet. Max 4 chars
-             * \param app_sending the function to be called when hook fires
+             * \param app_name Four-character name of the APP item
+             * \param app_sending_func Function returning dynamically allocated payload data and setting subtype/payload_len
              * \retval RTP_OK on success
-             * \retval RTP_INVALID_VALUE If app_name is empty or longer that 4 characters or function pointer is empty
-            */
-            rtp_error_t install_send_app_hook(std::string app_name, std::function<std::unique_ptr<uint8_t[]>(uint8_t& subtype, uint32_t& payload_len)> app_sending_func);
-            
-            /**
-             * \brief Remove all installed hooks for RTCP
-             *
-             * \details Removes all installed hooks so they can be readded in case of changes
-             *
-             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE if inputs are invalid
              */
-            rtp_error_t remove_all_hooks();
+            rtp_error_t install_send_app_hook(const std::string& app_name,
+                std::function<std::unique_ptr<uint8_t[]>(uint8_t& subtype, uint32_t& payload_len)> app_sending_func);
 
-            /**
-             * \brief Remove a hook for sending APP packets
-             *             *
-             * \param app_name name of the APP packet hook. Max 4 chars
-             * \retval RTP_OK on success
-             * \retval RTP_INVALID_VALUE if hook with given app_name was not found
-            */
-            rtp_error_t remove_send_app_hook(std::string app_name);
+            rtp_error_t remove_send_app_hook(const std::string& app_name);
 
-            /* Return the latest RTCP packet received from participant of "ssrc"
-             * Return nullptr if we haven't received this kind of packet or if "ssrc" doesn't exist
-             *
-             * NOTE: Caller is responsible for deallocating the memory */
+
+
+
+            // deprecated functions
+
+            // replaced by unique_ptr
+            [[deprecated("Replaced with unique_ptr or C-style hook functions")]]
+            rtp_error_t install_sender_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_handler);
+
+            [[deprecated("Replaced with unique_ptr or C-style hook functions")]]
+            rtp_error_t install_receiver_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_receiver_report>)> rr_handler);
+
+            [[deprecated("Replaced with unique_ptr or C-style hook functions")]]
+            rtp_error_t install_sdes_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_sdes_packet>)> sdes_handler);
+
+            [[deprecated("Replaced with unique_ptr or C-style hook functions")]]
+            rtp_error_t install_app_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
+
+            // replaced by ABI safe versions
+            [[deprecated("Use install_sender_hook(rtcp_sr*) from Core API instead")]]
+            rtp_error_t install_sender_hook(void (*hook)(uvgrtp::frame::rtcp_sender_report*));
+
+            [[deprecated("Use install_receiver_hook(rtcp_rr*) from Core API instead")]]
+            rtp_error_t install_receiver_hook(void (*hook)(uvgrtp::frame::rtcp_receiver_report*));
+
+            [[deprecated("Use install_sdes_hook(rtcp_sdes*) from Core API instead")]]
+            rtp_error_t install_sdes_hook(void (*hook)(uvgrtp::frame::rtcp_sdes_packet*));
+
+            [[deprecated("Use get_sr from Core API")]]
             uvgrtp::frame::rtcp_sender_report* get_sender_packet(uint32_t ssrc);
+
+            [[deprecated("Use get_rr from Core API")]]
             uvgrtp::frame::rtcp_receiver_report* get_receiver_packet(uint32_t ssrc);
+
+            [[deprecated("Use get_sdes from Core API")]]
             uvgrtp::frame::rtcp_sdes_packet* get_sdes_packet(uint32_t ssrc);
-            uvgrtp::frame::rtcp_app_packet* get_app_packet(uint32_t ssrc);
+
+
 
         private:
 
