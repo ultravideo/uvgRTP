@@ -3,6 +3,60 @@
 #include "rtcp_internal.hh"
 
 
+uvgrtp::frame::rtcp_sr convert_sr(const uvgrtp::frame::rtcp_sender_report* sr)
+{
+    uvgrtp::frame::rtcp_sr converted;
+    converted.header = sr->header;
+    converted.ssrc = sr->ssrc;
+    converted.sender_info = sr->sender_info;
+
+    converted.report_block_count = sr->report_blocks.size();
+
+    for (size_t i = 0; i < converted.report_block_count; ++i) {
+        converted.report_blocks[i] = sr->report_blocks[i];
+    }
+
+    return converted;
+}
+
+uvgrtp::frame::rtcp_rr convert_rr(const uvgrtp::frame::rtcp_receiver_report* rr)
+{
+    uvgrtp::frame::rtcp_rr converted;
+    converted.header = rr->header;
+    converted.ssrc = rr->ssrc;
+
+    converted.report_block_count = rr->report_blocks.size();
+
+    for (size_t i = 0; i < converted.report_block_count; ++i) {
+        converted.report_blocks[i] = rr->report_blocks[i];
+    }
+
+    return converted;
+}
+
+
+uvgrtp::frame::rtcp_sdes convert_sdes_packet(const uvgrtp::frame::rtcp_sdes_packet* packet)
+{
+    uvgrtp::frame::rtcp_sdes converted;
+    converted.header = packet->header;
+
+    // Iterate through chunks and convert them into fixed-size arrays.
+    converted.chunk_count = packet->chunks.size();
+
+    for (size_t i = 0; i < converted.chunk_count; ++i) {
+        const auto& chunk = packet->chunks[i];
+
+        converted.chunks[i].ssrc = chunk.ssrc;
+        converted.chunks[i].item_count = chunk.items.size();
+
+        for (size_t j = 0; j < converted.chunks[i].item_count; ++j) {
+            converted.chunks[i].items[j] = chunk.items[j];
+        }
+    }
+
+    return converted;
+}
+
 uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp,
     std::shared_ptr<std::atomic_uint> ssrc,
     std::shared_ptr<std::atomic<uint32_t>> remote_ssrc,
@@ -48,6 +102,61 @@ rtp_error_t uvgrtp::rtcp::install_sender_hook(std::function<void(std::shared_ptr
 rtp_error_t uvgrtp::rtcp::install_sender_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sender_report>)> sr_handler)
 {
     return pimpl_->install_sender_hook(std::move(sr_handler));
+}
+
+rtp_error_t uvgrtp::rtcp::install_sender_hook(void (*handler)(uvgrtp::frame::rtcp_sr*))
+{
+    if (!handler)
+        return RTP_INVALID_VALUE;
+
+    // instead add a function that also converts the type on the fly
+    return pimpl_->install_sender_hook([handler](std::unique_ptr<uvgrtp::frame::rtcp_sender_report> sr) {
+        uvgrtp::frame::rtcp_sr converted_sr = convert_sr(sr.get());
+        handler(&converted_sr);
+        });
+}
+
+rtp_error_t uvgrtp::rtcp::install_receiver_hook(void (*handler)(uvgrtp::frame::rtcp_rr*))
+{
+    if (!handler)
+        return RTP_INVALID_VALUE;
+
+    return pimpl_->install_receiver_hook([handler](std::unique_ptr<uvgrtp::frame::rtcp_receiver_report> rr) {
+        uvgrtp::frame::rtcp_rr converted_rr = convert_rr(rr.get());
+        handler(&converted_rr);
+        });
+}
+
+rtp_error_t uvgrtp::rtcp::install_sdes_hook(void (*handler)(uvgrtp::frame::rtcp_sdes*))
+{
+    if (!handler)
+        return RTP_INVALID_VALUE;
+
+    return pimpl_->install_sdes_hook([handler](std::unique_ptr<uvgrtp::frame::rtcp_sdes_packet> sdes_packet) {
+        uvgrtp::frame::rtcp_sdes converted_sdes = convert_sdes_packet(sdes_packet.get());
+        handler(&converted_sdes);
+        });
+}
+
+rtp_error_t uvgrtp::rtcp::install_send_app_hook(
+    const char* app_name,
+    uint8_t* (*send_hook)(uint8_t* subtype, uint32_t* payload_len, void* user_arg),
+    void* user_arg
+)
+{
+    if (!app_name || !send_hook)
+        return RTP_INVALID_VALUE;
+
+    // Convert app_name (const char*) to std::string
+    std::string app_name_str(app_name);
+
+    // Convert the C-style function pointer into a std::function
+    auto app_sending_func = [send_hook](uint8_t& subtype, uint32_t& payload_len) -> std::unique_ptr<uint8_t[]> {
+        return std::unique_ptr<uint8_t[]>(send_hook(&subtype, &payload_len, nullptr));
+        };
+
+    // Now call the internal function with the std::string and std::function
+    return pimpl_->install_send_app_hook(app_name_str, app_sending_func);
 }
 
 rtp_error_t uvgrtp::rtcp::install_receiver_hook(void (*hook)(uvgrtp::frame::rtcp_receiver_report*))
@@ -98,7 +207,7 @@ rtp_error_t uvgrtp::rtcp::install_app_hook(std::function<void(std::unique_ptr<uv
 rtp_error_t uvgrtp::rtcp::install_send_app_hook(const std::string& app_name,
     std::function<std::unique_ptr<uint8_t[]>(uint8_t& subtype, uint32_t& payload_len)> app_sending_func)
 {
-    return pimpl_->install_send_app_hook(std::move(app_name), std::move(app_sending_func));
+    return pimpl_->install_send_app_hook(app_name, std::move(app_sending_func));
 }
 
 uvgrtp::frame::rtcp_sender_report* uvgrtp::rtcp::get_sender_packet(uint32_t ssrc)
