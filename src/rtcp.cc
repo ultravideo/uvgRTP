@@ -159,6 +159,32 @@ rtp_error_t uvgrtp::rtcp::install_send_app_hook(
     return pimpl_->install_send_app_hook(app_name_str, app_sending_func);
 }
 
+rtp_error_t uvgrtp::rtcp::remove_send_app_hook(const char* app_name)
+{
+    if (!app_name)
+        return RTP_INVALID_VALUE;
+
+    // Convert app_name (const char*) to std::string
+    std::string app_name_str(app_name);
+
+    // Call internal remove function
+    return pimpl_->remove_send_app_hook(app_name_str);
+}
+
+rtp_error_t uvgrtp::rtcp::send_bye_packet(const uint32_t* ssrcs, size_t count)
+{
+    if (ssrcs == nullptr || count == 0)
+        return RTP_INVALID_VALUE;
+
+    // Convert the raw array into a vector
+    std::vector<uint32_t> ssrc_vector(ssrcs, ssrcs + count);
+
+    // Call the internal function to send the BYE packet
+    return pimpl_->send_bye_packet(ssrc_vector);
+}
+
+
+
 rtp_error_t uvgrtp::rtcp::install_receiver_hook(void (*hook)(uvgrtp::frame::rtcp_receiver_report*))
 {
     return pimpl_->install_receiver_hook(hook);
@@ -269,4 +295,46 @@ rtp_error_t uvgrtp::rtcp::send_app_packet(const char* name, uint8_t subtype,
     uint32_t payload_len, const uint8_t* payload)
 {
     return pimpl_->send_app_packet(name, subtype, payload_len, payload);
+}
+
+uvgrtp::frame::rtcp_sr* uvgrtp::rtcp::get_sr(uint32_t ssrc)
+{
+    // Retrieve the internal sender report
+    uvgrtp::frame::rtcp_sender_report* internal_sr = pimpl_->get_sender_packet(ssrc);
+
+    if (!internal_sr)
+        return nullptr;
+
+    uvgrtp::frame::rtcp_sr* sr = new uvgrtp::frame::rtcp_sr();
+    *sr = convert_sr(internal_sr);
+
+    return sr;
+}
+
+uvgrtp::frame::rtcp_rr* uvgrtp::rtcp::get_rr(uint32_t ssrc)
+{
+    // Retrieve the internal receiver report
+    uvgrtp::frame::rtcp_receiver_report* internal_rr = pimpl_->get_receiver_packet(ssrc);
+
+    if (!internal_rr)
+        return nullptr;
+
+    uvgrtp::frame::rtcp_rr* rr = new uvgrtp::frame::rtcp_rr();
+    *rr = convert_rr(internal_rr);
+
+    return rr;
+}
+
+uvgrtp::frame::rtcp_sdes* uvgrtp::rtcp::get_sdes(uint32_t ssrc)
+{
+    // Retrieve the internal SDES packet
+    uvgrtp::frame::rtcp_sdes_packet* internal_sdes = pimpl_->get_sdes_packet(ssrc);
+
+    if (!internal_sdes)
+        return nullptr;
+
+    uvgrtp::frame::rtcp_sdes* sdes = new uvgrtp::frame::rtcp_sdes();
+    *sdes = convert_sdes_packet(internal_sdes); 
+
+    return sdes;
 }
