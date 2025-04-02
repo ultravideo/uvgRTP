@@ -149,56 +149,12 @@ namespace uvgrtp {
         rtp_error_t handle_incoming_packet(void* args, int rce_flags, uint8_t* buffer, size_t size, frame::rtp_frame** out);
         /// \endcond
 
-        /* Send "frame" to all participants
-         *
-         * These routines will convert all necessary fields to network byte order
-         *
-         * Return RTP_OK on success
-         * Return RTP_INVALID_VALUE if "frame" is in some way invalid
-         * Return RTP_SEND_ERROR if sending "frame" did not succeed (see socket.hh for details) */
+        rtp_error_t add_sdes_item(const uvgrtp::frame::rtcp_sdes_item& item);
+        rtp_error_t clear_sdes_items();
 
-         /**
-          * \brief Send an RTCP SDES packet
-          *
-          * \param items Vector of SDES items
-          *
-          * \retval RTP_OK On success
-          * \retval RTP_MEMORY_ERROR If allocation fails
-          * \retval RTP_GENERIC_ERROR If sending fails
-          */
-        rtp_error_t send_sdes_packet(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
-
-        /**
-         * \brief Send an RTCP APP packet
-         *
-         * \param name Name of the APP item, e.g., STAT, must have a length of four ASCII characters
-         * \param subtype Subtype of the APP item
-         * \param payload_len Length of the payload
-         * \param payload Payload
-         *
-         * \retval RTP_OK On success
-         * \retval RTP_MEMORY_ERROR If allocation fails
-         * \retval RTP_GENERIC_ERROR If sending fails
-         */
         rtp_error_t send_app_packet(const char* name, uint8_t subtype, uint32_t payload_len, const uint8_t* payload);
-
-        /**
-         * \brief Send an RTCP BYE packet
-         *
-         * \details In case the quitting participant is a mixer and is serving multiple
-         * paricipants, the input vector contains the SSRCs of all those participants. If the
-         * participant is a regular member of the session, the vector only contains the SSRC
-         * of the participant.
-         *
-         * \param ssrcs Vector of SSRCs of those participants who are quitting
-         *
-         * \retval RTP_OK On success
-         * \retval RTP_MEMORY_ERROR If allocation fails
-         * \retval RTP_GENERIC_ERROR If sending fails
-         */
         rtp_error_t send_bye_packet(std::vector<uint32_t> ssrcs);
 
-        /// \cond DO_NOT_DOCUMENT
         /* Return the latest RTCP packet received from participant of "ssrc"
          * Return nullptr if we haven't received this kind of packet or if "ssrc" doesn't exist
          *
@@ -431,7 +387,7 @@ namespace uvgrtp {
 
     private:
 
-        rtp_error_t set_sdes_items(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
+        //rtp_error_t set_sdes_items(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
 
         uint32_t size_of_ready_app_packets() const;
         uint32_t size_of_apps_from_hook(std::vector< std::shared_ptr<rtcp_app_packet>> packets) const;
@@ -679,7 +635,8 @@ namespace uvgrtp {
         std::mutex packet_mutex_;
 
         // messages waiting to be sent
-        std::vector<uvgrtp::frame::rtcp_sdes_item> ourItems_; // always sent
+        // key is message type
+        std::map<uint8_t, uvgrtp::frame::rtcp_sdes_item> ourItems_; // always sent
         std::vector<uint32_t> bye_ssrcs_; // sent once
 
         std::map<std::string, std::deque<rtcp_app_packet>> app_packets_; // sent one at a time per name

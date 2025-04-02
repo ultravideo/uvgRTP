@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <memory>
+#include <map>
 
 namespace uvgrtp
 {
@@ -15,7 +16,7 @@ namespace uvgrtp
 
     uint32_t get_sr_packet_size(int rce_flags, uint16_t reports);
     uint32_t get_rr_packet_size(int rce_flags, uint16_t reports);
-    uint32_t get_sdes_packet_size(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items);
+    uint32_t get_sdes_packet_size(const std::map<uint8_t, uvgrtp::frame::rtcp_sdes_item>& items);
     uint32_t get_app_packet_size(uint32_t payload_len);
     uint32_t get_bye_packet_size(const std::vector<uint32_t>& ssrcs);
 

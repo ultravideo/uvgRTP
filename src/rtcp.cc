@@ -128,7 +128,27 @@ void uvgrtp::rtcp::set_ts_info(uint64_t clock_start, uint32_t clock_rate, uint32
 
 rtp_error_t uvgrtp::rtcp::send_sdes_packet(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items)
 {
-    return pimpl_->send_sdes_packet(items);
+    rtp_error_t ret = pimpl_->clear_sdes_items();
+
+    if (ret == RTP_OK)
+    {
+        for (auto item : items)
+        {
+            ret = pimpl_->add_sdes_item(item);
+        }
+    }
+
+    return ret;
+}
+
+rtp_error_t uvgrtp::rtcp::add_sdes_item(const uvgrtp::frame::rtcp_sdes_item& item)
+{
+    return pimpl_->add_sdes_item(item);
+}
+
+rtp_error_t uvgrtp::rtcp::clear_sdes_items()
+{
+    return pimpl_->clear_sdes_items();
 }
 
 rtp_error_t uvgrtp::rtcp::send_bye_packet(const std::vector<uint32_t>& ssrcs)

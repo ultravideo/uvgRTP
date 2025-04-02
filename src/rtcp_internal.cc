@@ -107,7 +107,7 @@ uvgrtp::rtcp_internal::rtcp_internal(std::shared_ptr<uvgrtp::rtp> rtp, std::shar
         cnameItem_.length = length;
         cnameItem_.data = (uint8_t*)cname_;
 
-        ourItems_.push_back(cnameItem_);
+        ourItems_[cnameItem_.type] = cnameItem_;
     }
 }
 
@@ -352,45 +352,33 @@ void uvgrtp::rtcp_internal::rtcp_runner(rtcp_internal* rtcp)
     UVG_LOG_DEBUG("Exited RTCP loop");
 }
 
-rtp_error_t uvgrtp::rtcp_internal::set_sdes_items(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items)
+
+rtp_error_t uvgrtp::rtcp_internal::add_sdes_item(const uvgrtp::frame::rtcp_sdes_item& item)
 {
-    bool hasCname = false;
-
-    std::set<unsigned int> to_ignore;
-
-    // find invalid items and check if cname is already included
-    for (unsigned int i = 0; i < items.size(); ++i)
+    if (item.type == 0)
     {
-        if (items.at(i).type == 0)
-        {
-            UVG_LOG_WARN("Invalid item type 0 found at index %lu, removing item", i);
-            to_ignore.insert(i);
-        }
-        else if (items.at(i).type == 1)
-        {
-            hasCname = true;
-            UVG_LOG_DEBUG("Found CName in sdes items, not adding pregenerated");
-            break;
-        }
+        UVG_LOG_WARN("Invalid item type 0, not adding item");
+        return RTP_GENERIC_ERROR;
     }
-
-    ourItems_.clear();
-    if (!hasCname)
-    {
-        ourItems_.push_back(cnameItem_);
-    }
-
-    // add all items expect ones set for us to ignore
-    for (unsigned int i = 0; i < items.size(); ++i)
-    {
-        if (to_ignore.find(i) == to_ignore.end())
-        {
-            ourItems_.push_back(items.at(i));
-        }
-    }
-
+    packet_mutex_.lock();
+    // replaces existing item of same type.
+    ourItems_[item.type] = item;
+    packet_mutex_.unlock();
     return RTP_OK;
 }
+
+
+rtp_error_t uvgrtp::rtcp_internal::clear_sdes_items()
+{
+    packet_mutex_.lock();
+    ourItems_.clear();
+
+    // we always need to have cname
+    ourItems_[cnameItem_.type] = cnameItem_;
+    packet_mutex_.unlock();
+    return RTP_OK;
+}
+
 
 rtp_error_t uvgrtp::rtcp_internal::add_initial_participant(uint32_t clock_rate)
 {
@@ -1975,7 +1963,11 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
     if (sdes_packet)
     {
         uvgrtp::frame::rtcp_sdes_chunk chunk;
-        chunk.items = ourItems_;
+        for (auto i = ourItems_.begin(); i != ourItems_.end(); ++i)
+        {
+            chunk.items.push_back(i->second);
+        }
+
         chunk.ssrc = *ssrc_.get();
 
         // add the SDES packet after the SR/RR, mandatory, must contain CNAME
@@ -2046,20 +2038,6 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
     return send_rtcp_packet_to_participants(frame, compound_packet_size, true);
 }
 
-rtp_error_t uvgrtp::rtcp_internal::send_sdes_packet(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items)
-{
-    if (items.empty())
-    {
-        UVG_LOG_ERROR("Cannot send an empty SDES packet!");
-        return RTP_INVALID_VALUE;
-    }
-
-    packet_mutex_.lock();
-    rtp_error_t ret = set_sdes_items(items);
-    packet_mutex_.unlock();
-
-    return ret;
-}
 
 rtp_error_t uvgrtp::rtcp_internal::send_bye_packet(std::vector<uint32_t> ssrcs)
 {

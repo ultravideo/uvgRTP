@@ -30,7 +30,7 @@ uint32_t uvgrtp::get_app_packet_size(uint32_t payload_len)
     return RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + APP_NAME_SIZE + payload_len;
 }
 
-uint32_t uvgrtp::get_sdes_packet_size(const std::vector<uvgrtp::frame::rtcp_sdes_item>& items) {
+uint32_t uvgrtp::get_sdes_packet_size(const std::map<uint8_t, uvgrtp::frame::rtcp_sdes_item>& items) {
     /* We currently only support having one source. If uvgRTP is used in a mixer, multiple sources
      * should be supported in SDES packet. */
 
@@ -38,7 +38,7 @@ uint32_t uvgrtp::get_sdes_packet_size(const std::vector<uvgrtp::frame::rtcp_sdes
     frame_size += (uint32_t)items.size() * 2; /* sdes item type + length, both take one byte */
     for (auto& item : items)
     {
-        frame_size += item.length;
+        frame_size += item.second.length;
     }
 
     /* each chunk must end to a zero octet so 4 zeros is only option
