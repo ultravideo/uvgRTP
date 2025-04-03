@@ -2,6 +2,8 @@
 
 #include "util.hh"
 
+#include "uvgrtp_defs.hh"
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
@@ -179,6 +181,7 @@ namespace uvgrtp {
             size_t chunk_count = 0;
         };
 
+#if UVGRTP_EXTENDED_API
         /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.2" target="_blank">RFC 3550 section 6.4.2</a> */
         struct rtcp_receiver_report {
             struct rtcp_header header;
@@ -205,7 +208,7 @@ namespace uvgrtp {
             struct rtcp_header header;
             std::vector<rtcp_sdes_chunk> chunks;
         };
-
+#endif
 
         // \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.7" target="_blank">RFC 3550 section 6.7</a> 
         struct rtcp_app_packet {

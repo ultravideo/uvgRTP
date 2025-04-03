@@ -170,8 +170,7 @@ namespace uvgrtp {
             uvgrtp::frame::rtcp_sdes* get_sdes(uint32_t ssrc);
             uvgrtp::frame::rtcp_app_packet* get_app_packet(uint32_t ssrc);
 
-
-
+#if UVGRTP_EXTENDED_API
 
             // Extended API
 
@@ -245,8 +244,6 @@ namespace uvgrtp {
             rtp_error_t remove_send_app_hook(const std::string& app_name);
 
 
-
-
             // deprecated functions
 
             // replaced by unique_ptr
@@ -262,7 +259,7 @@ namespace uvgrtp {
             [[deprecated("Replaced with unique_ptr or C-style hook functions")]]
             rtp_error_t install_app_hook(std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
 
-            // replaced by ABI safe versions
+            // replaced by ABI-safe versions
             [[deprecated("Use install_sender_hook(rtcp_sr*) from Core API instead")]]
             rtp_error_t install_sender_hook(void (*hook)(uvgrtp::frame::rtcp_sender_report*));
 
@@ -281,7 +278,7 @@ namespace uvgrtp {
             [[deprecated("Use get_sdes from Core API")]]
             uvgrtp::frame::rtcp_sdes_packet* get_sdes_packet(uint32_t ssrc);
 
-
+#endif
 
         private:
 

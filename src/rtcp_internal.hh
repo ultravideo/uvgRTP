@@ -31,6 +31,44 @@ namespace uvgrtp {
     class socketfactory;
     class rtcp_reader;
 
+
+
+#if !UVGRTP_EXTENDED_API
+    namespace frame {
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.2" target="_blank">RFC 3550 section 6.4.2</a> */
+        struct rtcp_receiver_report {
+            struct rtcp_header header;
+            uint32_t ssrc = 0;
+            std::vector<rtcp_report_block> report_blocks;
+        };
+
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
+        struct rtcp_sender_report {
+            struct rtcp_header header;
+            uint32_t ssrc = 0;
+            struct rtcp_sender_info sender_info;
+            std::vector<rtcp_report_block> report_blocks;
+        };
+
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
+        struct rtcp_sdes_chunk {
+            uint32_t ssrc = 0;
+            std::vector<rtcp_sdes_item> items;
+        };
+
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
+        struct rtcp_sdes_packet {
+            struct rtcp_header header;
+            std::vector<rtcp_sdes_chunk> chunks;
+        };
+    }
+#endif
+
+
+
+
+
+
     typedef std::vector<std::pair<size_t, uint8_t*>> buf_vec; // also defined in socket.hh
 
     /// \cond DO_NOT_DOCUMENT

@@ -2,6 +2,11 @@
 
 #include "uvgrtp/frame.hh"
 
+#if !UVGRTP_EXTENDED_API
+// for frame structs if we are building a shared version
+#include "rtcp_internal.hh"
+#endif
+
 #include <vector>
 #include <memory>
 #include <map>
