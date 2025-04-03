@@ -1445,7 +1445,7 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sdes_packet(uint8_t* packet, size_t& r
     frame->header = header;
 
     // Read SDES chunks
-    while (read_ptr + SSRC_CSRC_SIZE <= packet_end)
+    while (frame->chunks.size() < frame->header.count && read_ptr + SSRC_CSRC_SIZE <= packet_end)
     {
         uvgrtp::frame::rtcp_sdes_chunk chunk;
         read_ssrc(packet, read_ptr, chunk.ssrc);
@@ -1475,6 +1475,12 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sdes_packet(uint8_t* packet, size_t& r
         }
 
         frame->chunks.push_back(chunk);
+    }
+
+    if (frame->chunks.size() < frame->header.count)
+    {
+        UVG_LOG_WARN("Failed to read all items from SDES");
+        return RTP_GENERIC_ERROR;
     }
 
     sdes_mutex_.lock();
