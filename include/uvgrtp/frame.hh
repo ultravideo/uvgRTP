@@ -138,6 +138,21 @@ namespace uvgrtp {
             uint32_t dlsr = 0; /* delay since last Sender Report */
         };
 
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
+        struct rtcp_sr {
+            struct rtcp_header header;
+            uint32_t ssrc = 0;
+            rtcp_sender_info sender_info;
+            rtcp_report_block* report_blocks;
+        };
+
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.2" target="_blank">RFC 3550 section 6.4.2</a> */
+        struct rtcp_rr {
+            struct rtcp_header header;
+            uint32_t ssrc = 0;
+            rtcp_report_block* report_blocks;
+        };
+
         /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
         struct rtcp_sdes_item {
             uint8_t type = 0;
@@ -145,77 +160,18 @@ namespace uvgrtp {
             uint8_t* data = nullptr;
         };
 
-        /// \brief Maximum number of report blocks in a single RTCP SR or RR packet
-        /// \details Defined by the 5-bit RC (Reception Report Count) field in the RTCP header. See RFC 3550 section 6.4.1.
-        #define UVGRTP_MAX_REPORT_BLOCKS 31
-
-        /// \brief Maximum number of SDES chunks in an RTCP SDES packet
-        /// \details Defined by the 5-bit SC (Source Count) field in the RTCP header. See RFC 3550 section 6.5.
-        #define UVGRTP_MAX_SDES_CHUNKS 31
-
-        /// \brief Maximum number of SDES items in a single SDES chunk
-        /// \details RFC 3550 defines 8 SDES item types.
-        #define UVGRTP_MAX_SDES_ITEMS 8
-
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.2" target="_blank">RFC 3550 section 6.4.2</a> */
-        struct rtcp_rr {
-            struct rtcp_header header;
-            uint32_t ssrc = 0;
-            rtcp_report_block report_blocks[UVGRTP_MAX_REPORT_BLOCKS];
-            size_t report_block_count = 0;
-        };
-
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
-        struct rtcp_sr {
-            struct rtcp_header header;
-            uint32_t ssrc = 0;
-            rtcp_sender_info sender_info;
-            rtcp_report_block report_blocks[UVGRTP_MAX_REPORT_BLOCKS];
-            size_t report_block_count = 0;
-        };
-
         /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
         struct rtcp_sdes_ck {
             uint32_t ssrc = 0;
-            rtcp_sdes_item items[UVGRTP_MAX_SDES_ITEMS];
-            size_t item_count = 0;
+            rtcp_sdes_item* items = nullptr;
+            size_t item_count = 0;  // not in rfc, here to make usage easier
         };
 
         /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
         struct rtcp_sdes {
             struct rtcp_header header;
-            rtcp_sdes_ck chunks[UVGRTP_MAX_SDES_CHUNKS];
-            size_t chunk_count = 0;
+            rtcp_sdes_ck* chunks = nullptr;
         };
-
-#if UVGRTP_EXTENDED_API
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.2" target="_blank">RFC 3550 section 6.4.2</a> */
-        struct rtcp_receiver_report {
-            struct rtcp_header header;
-            uint32_t ssrc = 0;
-            std::vector<rtcp_report_block> report_blocks;
-        };
-
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
-        struct rtcp_sender_report {
-            struct rtcp_header header;
-            uint32_t ssrc = 0;
-            struct rtcp_sender_info sender_info;
-            std::vector<rtcp_report_block> report_blocks;
-        };
-
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
-        struct rtcp_sdes_chunk {
-            uint32_t ssrc = 0;
-            std::vector<rtcp_sdes_item> items;
-        };
-
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
-        struct rtcp_sdes_packet {
-            struct rtcp_header header;
-            std::vector<rtcp_sdes_chunk> chunks;
-        };
-#endif
 
         // \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.7" target="_blank">RFC 3550 section 6.7</a> 
         struct rtcp_app_packet {
@@ -282,6 +238,41 @@ namespace uvgrtp {
          * Return RTP_OK on successs
          * Return RTP_INVALID_VALUE if "frame" is nullptr */
         rtp_error_t dealloc_frame(uvgrtp::frame::rtp_frame *frame);
+
+        rtp_error_t dealloc_sr(uvgrtp::frame::rtcp_sr* sr);
+        rtp_error_t dealloc_rr(uvgrtp::frame::rtcp_rr* rr);
+        rtp_error_t dealloc_sdes(uvgrtp::frame::rtcp_sdes* sdes);
+
+
+
+#if UVGRTP_EXTENDED_API
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.2" target="_blank">RFC 3550 section 6.4.2</a> */
+        struct rtcp_receiver_report {
+            struct rtcp_header header;
+            uint32_t ssrc = 0;
+            std::vector<rtcp_report_block> report_blocks;
+        };
+
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
+        struct rtcp_sender_report {
+            struct rtcp_header header;
+            uint32_t ssrc = 0;
+            struct rtcp_sender_info sender_info;
+            std::vector<rtcp_report_block> report_blocks;
+        };
+
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
+        struct rtcp_sdes_chunk {
+            uint32_t ssrc = 0;
+            std::vector<rtcp_sdes_item> items;
+        };
+
+        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
+        struct rtcp_sdes_packet {
+            struct rtcp_header header;
+            std::vector<rtcp_sdes_chunk> chunks;
+        };
+#endif
     }
 }
 

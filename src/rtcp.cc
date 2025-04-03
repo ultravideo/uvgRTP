@@ -10,9 +10,13 @@ uvgrtp::frame::rtcp_sr convert_sr(const uvgrtp::frame::rtcp_sender_report* sr)
     converted.ssrc = sr->ssrc;
     converted.sender_info = sr->sender_info;
 
-    converted.report_block_count = sr->report_blocks.size();
+    // Allocate memory for report_blocks
+    size_t block_count = sr->report_blocks.size();
+    converted.report_blocks = new uvgrtp::frame::rtcp_report_block[block_count];
 
-    for (size_t i = 0; i < converted.report_block_count; ++i) {
+    // Copy the report blocks into the new allocated memory
+    for (size_t i = 0; i < block_count; ++i) 
+    {
         converted.report_blocks[i] = sr->report_blocks[i];
     }
 
@@ -25,30 +29,40 @@ uvgrtp::frame::rtcp_rr convert_rr(const uvgrtp::frame::rtcp_receiver_report* rr)
     converted.header = rr->header;
     converted.ssrc = rr->ssrc;
 
-    converted.report_block_count = rr->report_blocks.size();
+    // Allocate memory for report_blocks
+    size_t block_count = rr->report_blocks.size();
+    converted.report_blocks = new uvgrtp::frame::rtcp_report_block[block_count];
 
-    for (size_t i = 0; i < converted.report_block_count; ++i) {
+    // Copy the report blocks into the new allocated memory
+    for (size_t i = 0; i < block_count; ++i) 
+    {
         converted.report_blocks[i] = rr->report_blocks[i];
     }
 
     return converted;
 }
 
-
 uvgrtp::frame::rtcp_sdes convert_sdes_packet(const uvgrtp::frame::rtcp_sdes_packet* packet)
 {
     uvgrtp::frame::rtcp_sdes converted;
     converted.header = packet->header;
 
-    // Iterate through chunks and convert them into fixed-size arrays.
-    converted.chunk_count = packet->chunks.size();
+    // Use sc from the header to determine chunk count
+    size_t chunk_count = packet->header.count;
 
-    for (size_t i = 0; i < converted.chunk_count; ++i) {
+    // Allocate memory for chunks
+    converted.chunks = new uvgrtp::frame::rtcp_sdes_ck[chunk_count];
+
+    for (size_t i = 0; i < chunk_count; ++i) {
         const auto& chunk = packet->chunks[i];
 
         converted.chunks[i].ssrc = chunk.ssrc;
-        converted.chunks[i].item_count = chunk.items.size();
 
+        // Allocate memory for items and set item_count
+        converted.chunks[i].item_count = chunk.items.size();
+        converted.chunks[i].items = new uvgrtp::frame::rtcp_sdes_item[converted.chunks[i].item_count];
+
+        // Copy items
         for (size_t j = 0; j < converted.chunks[i].item_count; ++j) {
             converted.chunks[i].items[j] = chunk.items[j];
         }
