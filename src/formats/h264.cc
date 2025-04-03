@@ -2,6 +2,7 @@
 
 #include "../frame_queue.hh"
 #include "../rtp.hh"
+#include "frame_internal.hh"
 
 #include "debug.hh"
 

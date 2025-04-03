@@ -7,6 +7,7 @@
 #include "random.hh"
 #include "memory.hh"
 #include "clock_internal.hh"
+#include "frame_internal.hh"
 
 #include "global.hh"
 

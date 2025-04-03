@@ -2,6 +2,7 @@
 
 #include "uvgrtp/frame.hh"
 
+#include "frame_internal.hh"
 #include "socket.hh"
 #include "debug.hh"
 

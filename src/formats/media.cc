@@ -4,6 +4,7 @@
 #include "../rtp.hh"
 #include "../frame_queue.hh"
 #include "debug.hh"
+#include "../frame_internal.hh"
 
 #include <map>
 #include <unordered_map>
