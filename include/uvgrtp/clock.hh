@@ -44,6 +44,8 @@ namespace uvgrtp {
              */
             UVGRTP_EXPORT uint64_t diff_now(uint64_t then);
         }
+
+        UVGRTP_EXPORT uint64_t jiffies_to_ms(uint64_t jiffies);
     }
 }
 

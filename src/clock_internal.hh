@@ -29,7 +29,6 @@ namespace uvgrtp
         }
 
         uint64_t ms_to_jiffies(uint64_t ms);
-        uint64_t jiffies_to_ms(uint64_t jiffies);
 
 #ifdef _WIN32
         int gettimeofday(struct timeval* tp, struct timezone* tzp);

@@ -58,3 +58,8 @@ uint64_t uvgrtp::clock::ntp::diff_now(uint64_t then)
     return ntp_diff_ms(then, now);
 }
 
+uint64_t uvgrtp::clock::jiffies_to_ms(uint64_t jiffies)
+{
+    return (uint64_t)(((double)jiffies / 65536) * 1000);
+}
+
