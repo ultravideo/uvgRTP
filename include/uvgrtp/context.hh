@@ -1,8 +1,8 @@
 #pragma once
 
 #include "util.hh"
-#include "uvgrtp_export.hh"
-#include "uvgrtp_defs.hh"
+#include "uvgrtp/export.hh"
+#include "uvgrtp/definitions.hh"
 
 #include <map>
 #include <string>

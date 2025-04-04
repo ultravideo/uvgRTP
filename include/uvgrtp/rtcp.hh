@@ -1,7 +1,7 @@
 #pragma once
 
-#include "uvgrtp_defs.hh"
-#include "uvgrtp_export.hh"
+#include "uvgrtp/export.hh"
+#include "uvgrtp/definitions.hh"
 
 #include "clock.hh"
 #include "util.hh"

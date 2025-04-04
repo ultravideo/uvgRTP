@@ -367,9 +367,6 @@ if (NOT UVGRTP_DISABLE_INSTALL)
             DESTINATION ${ConfigPackageLocation}
             COMPONENT uvgRTPMain
     )
-    if (UVGRTP_BUILD_SHARED)
-        install(FILES "${CMAKE_CURRENT_BINARY_DIR}/uvgrtp_export.hh" DESTINATION include)
-    endif()
 
     # Packaging
     #

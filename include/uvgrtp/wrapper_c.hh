@@ -1,7 +1,7 @@
 #ifndef UVGRTP_H
 #define UVGRTP_H
 
-#include "uvgrtp_export.hh"
+#include "uvgrtp/export.hh"
 
 #ifdef __cplusplus
 extern "C"

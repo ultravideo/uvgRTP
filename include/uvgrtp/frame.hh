@@ -2,8 +2,8 @@
 
 #include "util.hh"
 
-#include "uvgrtp_defs.hh"
-#include "uvgrtp_export.hh"
+#include "uvgrtp/export.hh"
+#include "uvgrtp/definitions.hh"
 
 #ifdef _WIN32
 #include <winsock2.h>

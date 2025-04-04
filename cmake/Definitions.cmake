@@ -1,6 +1,6 @@
-set(UVGRTP_DEFS_FILE "${CMAKE_CURRENT_BINARY_DIR}/include/uvgrtp_defs.hh")
+set(UVGRTP_DEFS_FILE "${CMAKE_CURRENT_BINARY_DIR}/include/uvgrtp/definitions.hh")
 
-file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include/uvgrtp")
 file(WRITE ${UVGRTP_DEFS_FILE} 
     "#pragma once\n\n"
 )
