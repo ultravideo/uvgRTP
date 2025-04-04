@@ -291,7 +291,7 @@ namespace uvgrtp {
                 std::string cname, std::shared_ptr<uvgrtp::socketfactory> sfp, std::shared_ptr<uvgrtp::srtcp> srtcp, int rce_flags);
 
 
-            std::shared_ptr<rtcp_internal> pimpl_;
+            rtcp_internal* pimpl_;
     };
 }
 

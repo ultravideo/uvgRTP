@@ -58,7 +58,7 @@ namespace uvgrtp {
              * Param rtcp RTCP object
              * Return RTP_OK on success */
             rtp_error_t map_ssrc_to_rtcp(std::shared_ptr<std::atomic<uint32_t>> ssrc, 
-                std::shared_ptr<uvgrtp::rtcp_internal> rtcp);
+                uvgrtp::rtcp_internal* rtcp);
 
             /* Clear an RTCP object with the given REMOTE SSRC from the RTCP reader
              *
@@ -74,7 +74,7 @@ namespace uvgrtp {
 
             bool active_;
             std::shared_ptr<uvgrtp::socket> socket_;
-            std::map<std::shared_ptr<std::atomic<uint32_t>>, std::shared_ptr<uvgrtp::rtcp_internal>> rtcps_map_;
+            std::map<std::shared_ptr<std::atomic<uint32_t>>, uvgrtp::rtcp_internal*> rtcps_map_;
             std::unique_ptr<std::thread> report_reader_;
             std::mutex map_mutex_;
     };

@@ -56,12 +56,12 @@ namespace uvgrtp {
 
 
 uvgrtp::session::session(std::string cname, std::string addr, std::shared_ptr<uvgrtp::socketfactory> sfp) :
-    pimpl_(std::make_unique<session_impl>(std::move(cname), std::move(addr), "", "", std::move(sfp)))
+    pimpl_(new session_impl(std::move(cname), std::move(addr), "", "", std::move(sfp)))
 {}
 
 uvgrtp::session::session(std::string cname, std::string remote_addr, std::string local_addr, 
     std::shared_ptr<uvgrtp::socketfactory> sfp)
-    :pimpl_(std::make_unique<session_impl>(std::move(cname), "", std::move(remote_addr), std::move(local_addr), std::move(sfp)))
+    :pimpl_(new session_impl(std::move(cname), "", std::move(remote_addr), std::move(local_addr), std::move(sfp)))
 {}
 
 uvgrtp::session::~session()
@@ -71,6 +71,7 @@ uvgrtp::session::~session()
     }
     pimpl_->streams_.clear();
     pimpl_->sf_ = nullptr;
+    delete pimpl_;
 }
 
 uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t port, rtp_format_t fmt, int rce_flags)

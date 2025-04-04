@@ -368,7 +368,7 @@ namespace uvgrtp {
                 rtp_format_t fmt, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags);
             ~media_stream();
 
-            std::unique_ptr<media_stream_internal> impl_;
+           media_stream_internal* impl_;
     };
 }
 

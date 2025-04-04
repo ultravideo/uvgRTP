@@ -111,7 +111,7 @@ namespace uvgrtp {
           * Used by context to index sessions */
         std::string& get_key();
 
-        std::unique_ptr<session_impl> pimpl_;
+        session_impl* pimpl_;
     };
 }
 

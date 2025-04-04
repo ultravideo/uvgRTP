@@ -71,7 +71,7 @@ public:
 uvgrtp::context::context():
     pimpl_(new context_impl())
 {
-#if UVGRTP_EXTENDED API
+#if UVGRTP_EXTENDED_API
     UVG_LOG_INFO("uvgRTP version: %s", uvgrtp::get_version().c_str());
 #endif
 
@@ -87,6 +87,7 @@ uvgrtp::context::context():
 
 uvgrtp::context::~context()
 {
+    delete pimpl_;
 #ifdef _WIN32
     WSACleanup();
 #endif

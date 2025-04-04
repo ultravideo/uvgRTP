@@ -324,7 +324,7 @@ rtp_error_t uvgrtp::media_stream_internal::install_packet_handlers()
         reception_flow_->install_handler(
             6, remote_ssrc_,
             std::bind(&uvgrtp::rtcp_internal::recv_packet_handler_common, rtcp_->pimpl_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                std::placeholders::_4, std::placeholders::_5), rtcp_->pimpl_.get());
+                std::placeholders::_4, std::placeholders::_5), rtcp_->pimpl_);
     }
     if (rce_flags_ & RCE_RTCP_MUX) {
         reception_flow_->install_handler(
@@ -364,7 +364,7 @@ rtp_error_t uvgrtp::media_stream_internal::init(std::shared_ptr<uvgrtp::zrtp> zr
     srtp_ = std::make_shared<uvgrtp::srtp>(rce_flags_);
     srtcp_ = std::make_shared<uvgrtp::srtcp>();
 
-    socket_->install_handler(ssrc_, rtcp_->pimpl_.get(), rtcp_->pimpl_->send_packet_handler_vec);
+    socket_->install_handler(ssrc_, rtcp_->pimpl_, rtcp_->pimpl_->send_packet_handler_vec);
 
     /* If we are using ZRTP, we only install the ZRTP handler first. Rest of the handlers are installed after ZRTP is
        finished. If ZRTP is not enabled, we can install all the required handlers now */

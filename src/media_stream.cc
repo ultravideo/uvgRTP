@@ -6,13 +6,15 @@
 uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     std::string local_addr, uint16_t src_port, uint16_t dst_port, rtp_format_t fmt,
     std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags):
-    impl_(std::make_unique<media_stream_internal>(
+    impl_(new media_stream_internal(
         std::move(cname), std::move(remote_addr), std::move(local_addr),
         src_port, dst_port, fmt, std::move(sfp), rce_flags))
 {}
 
 uvgrtp::media_stream::~media_stream()
-{}
+{
+    delete impl_;
+}
 
 rtp_error_t uvgrtp::media_stream::start_zrtp()
 {

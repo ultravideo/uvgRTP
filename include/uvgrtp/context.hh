@@ -6,7 +6,6 @@
 
 #include <map>
 #include <string>
-#include <memory>
 
 
 namespace uvgrtp {
@@ -122,13 +121,8 @@ namespace uvgrtp {
 
         private:
 
-// warning about exporting private variables in DLL, should be safe
-#ifdef _MSC_VER
-#  pragma warning(disable: 4251)
-#endif
-
             class context_impl;
-            std::unique_ptr<context_impl> pimpl_;
+            context_impl* pimpl_;
         };
 }
 

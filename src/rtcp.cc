@@ -77,7 +77,7 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp,
     std::string cname,
     std::shared_ptr<uvgrtp::socketfactory> sfp,
     int rce_flags)
-    : pimpl_(std::make_shared<rtcp_internal>(rtp, ssrc, remote_ssrc, std::move(cname), sfp, nullptr, rce_flags))
+    : pimpl_(new rtcp_internal(rtp, ssrc, remote_ssrc, std::move(cname), sfp, nullptr, rce_flags))
 {}
 
 uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp,
@@ -87,11 +87,13 @@ uvgrtp::rtcp::rtcp(std::shared_ptr<uvgrtp::rtp> rtp,
     std::shared_ptr<uvgrtp::socketfactory> sfp,
     std::shared_ptr<uvgrtp::srtcp> srtcp,
     int rce_flags)
-    : pimpl_(std::make_shared<rtcp_internal>(rtp, ssrc, remote_ssrc, std::move(cname), sfp, srtcp, rce_flags))
+    : pimpl_(new rtcp_internal(rtp, ssrc, remote_ssrc, std::move(cname), sfp, srtcp, rce_flags))
 {}
 
 uvgrtp::rtcp::~rtcp()
-{}
+{
+    delete pimpl_;
+}
 
 rtp_error_t uvgrtp::rtcp::remove_all_hooks()
 {

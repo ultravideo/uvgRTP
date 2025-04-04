@@ -81,7 +81,7 @@ void uvgrtp::rtcp_reader::rtcp_report_reader() {
             }
             else {
                 for (auto& p : rtcps_map_) {
-                    std::shared_ptr<uvgrtp::rtcp_internal> rtcp_ptr = p.second;
+                    uvgrtp::rtcp_internal* rtcp_ptr = p.second;
                     if (sender_ssrc == p.first.get()->load()) {
                         (void)rtcp_ptr->handle_incoming_packet(nullptr, 0, buffer.get(), (size_t)nread, nullptr);
                     }
@@ -107,7 +107,7 @@ rtp_error_t uvgrtp::rtcp_reader::set_socket(std::shared_ptr<uvgrtp::socket> sock
 }
 
 rtp_error_t uvgrtp::rtcp_reader::map_ssrc_to_rtcp(std::shared_ptr<std::atomic<uint32_t>> ssrc, 
-    std::shared_ptr<uvgrtp::rtcp_internal> rtcp)
+    uvgrtp::rtcp_internal* rtcp)
 {
     map_mutex_.lock();
     rtcps_map_[ssrc] = rtcp;
