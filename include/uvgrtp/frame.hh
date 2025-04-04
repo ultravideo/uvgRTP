@@ -3,6 +3,7 @@
 #include "util.hh"
 
 #include "uvgrtp_defs.hh"
+#include "uvgrtp_export.hh"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -54,7 +55,7 @@ namespace uvgrtp {
 
         // structs
 
-        PACK(struct rtp_header {
+        PACK(struct UVGRTP_EXPORT rtp_header {
             uint8_t version:2;
             uint8_t padding:1;
             uint8_t ext:1;
@@ -66,14 +67,14 @@ namespace uvgrtp {
             uint32_t ssrc = 0;
         });
 
-        PACK(struct ext_header {
+        PACK(struct UVGRTP_EXPORT ext_header {
             uint16_t type = 0;
             uint16_t len = 0;
             uint8_t *data = nullptr;
         });
 
         /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-5" target="_blank">RFC 3550 section 5</a> */
-        struct rtp_frame {
+        struct UVGRTP_EXPORT rtp_frame {
             struct rtp_header header;
             uint32_t *csrc = nullptr;
             struct ext_header *ext = nullptr;
@@ -94,7 +95,7 @@ namespace uvgrtp {
         };
 
         /** \brief Header of for all RTCP packets defined in <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6" target="_blank">RFC 3550 section 6</a> */
-        struct rtcp_header {
+        struct UVGRTP_EXPORT rtcp_header {
             /** \brief  This field identifies the version of RTP. The version defined by
              * RFC 3550 is two (2).  */
             uint8_t version = 0;
@@ -115,7 +116,7 @@ namespace uvgrtp {
         };
 
         /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
-        struct rtcp_sender_info {
+        struct UVGRTP_EXPORT rtcp_sender_info {
             /** \brief NTP timestamp, most significant word */
             uint32_t ntp_msw = 0;
             /** \brief NTP timestamp, least significant word */
@@ -128,7 +129,7 @@ namespace uvgrtp {
         };
 
         /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
-        struct rtcp_report_block {
+        struct UVGRTP_EXPORT rtcp_report_block {
             uint32_t ssrc = 0;
             uint8_t  fraction = 0;
             int32_t  lost = 0;
@@ -139,7 +140,7 @@ namespace uvgrtp {
         };
 
         /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
-        struct rtcp_sr {
+        struct UVGRTP_EXPORT rtcp_sr {
             struct rtcp_header header;
             uint32_t ssrc = 0;
             rtcp_sender_info sender_info;
@@ -147,34 +148,34 @@ namespace uvgrtp {
         };
 
         /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.2" target="_blank">RFC 3550 section 6.4.2</a> */
-        struct rtcp_rr {
+        struct UVGRTP_EXPORT rtcp_rr {
             struct rtcp_header header;
             uint32_t ssrc = 0;
             rtcp_report_block* report_blocks;
         };
 
         /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
-        struct rtcp_sdes_item {
+        struct UVGRTP_EXPORT rtcp_sdes_item {
             uint8_t type = 0;
             uint8_t length = 0;
             uint8_t* data = nullptr;
         };
 
         /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
-        struct rtcp_sdes_ck {
+        struct UVGRTP_EXPORT rtcp_sdes_ck {
             uint32_t ssrc = 0;
             rtcp_sdes_item* items = nullptr;
             size_t item_count = 0;  // not in rfc, here to make usage easier
         };
 
         /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
-        struct rtcp_sdes {
+        struct UVGRTP_EXPORT rtcp_sdes {
             struct rtcp_header header;
             rtcp_sdes_ck* chunks = nullptr;
         };
 
         // \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.7" target="_blank">RFC 3550 section 6.7</a> 
-        struct rtcp_app_packet {
+        struct UVGRTP_EXPORT rtcp_app_packet {
             struct rtcp_header header;
             uint32_t ssrc = 0;
             uint8_t name[4] = {0};
@@ -237,13 +238,11 @@ namespace uvgrtp {
          *
          * Return RTP_OK on successs
          * Return RTP_INVALID_VALUE if "frame" is nullptr */
-        rtp_error_t dealloc_frame(uvgrtp::frame::rtp_frame *frame);
+        rtp_error_t UVGRTP_EXPORT dealloc_frame(uvgrtp::frame::rtp_frame *frame);
 
-        rtp_error_t dealloc_sr(uvgrtp::frame::rtcp_sr* sr);
-        rtp_error_t dealloc_rr(uvgrtp::frame::rtcp_rr* rr);
-        rtp_error_t dealloc_sdes(uvgrtp::frame::rtcp_sdes* sdes);
-
-
+        rtp_error_t UVGRTP_EXPORT dealloc_sr(uvgrtp::frame::rtcp_sr* sr);
+        rtp_error_t UVGRTP_EXPORT dealloc_rr(uvgrtp::frame::rtcp_rr* rr);
+        rtp_error_t UVGRTP_EXPORT dealloc_sdes(uvgrtp::frame::rtcp_sdes* sdes);
 
 #if UVGRTP_EXTENDED_API
         /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.2" target="_blank">RFC 3550 section 6.4.2</a> */

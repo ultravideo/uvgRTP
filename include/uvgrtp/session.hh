@@ -1,6 +1,8 @@
 #pragma once
 
 #include "util.hh"
+#include "uvgrtp_defs.hh"
+#include "uvgrtp_export.hh"
 
 #include <mutex>
 #include <string>
@@ -25,7 +27,7 @@ namespace uvgrtp {
      * which can be created by session. media_stream corresponds to an RTP session in RFC 3550.
      */
 
-    class session {
+    class UVGRTP_EXPORT session {
         /// \cond DO_NOT_DOCUMENT
         friend class context;
         /// \endcond
@@ -98,7 +100,6 @@ namespace uvgrtp {
              * \retval RTP_NOT_FOUND      If stream does not belong to this session
              */
             rtp_error_t destroy_stream(uvgrtp::media_stream *stream);
-
 
     private:
 

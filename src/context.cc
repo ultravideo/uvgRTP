@@ -71,8 +71,9 @@ public:
 uvgrtp::context::context():
     pimpl_(new context_impl())
 {
+#if UVGRTP_EXTENDED API
     UVG_LOG_INFO("uvgRTP version: %s", uvgrtp::get_version().c_str());
-
+#endif
 
 
 #ifdef _WIN32

@@ -29,11 +29,6 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, int
     return impl_->push_frame(data, data_len, rtp_flags);
 }
 
-rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int rtp_flags)
-{
-    return impl_->push_frame(std::move(data), data_len, rtp_flags);
-}
-
 rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, uint32_t ts, int rtp_flags)
 {
     return impl_->push_frame(data, data_len, ts, rtp_flags);
@@ -42,16 +37,6 @@ rtp_error_t uvgrtp::media_stream::push_frame(uint8_t *data, size_t data_len, uin
 rtp_error_t uvgrtp::media_stream::push_frame(uint8_t* data, size_t data_len, uint32_t ts, uint64_t ntp_ts, int rtp_flags)
 {
     return impl_->push_frame(data, data_len, ts, ntp_ts, rtp_flags);
-}
-
-rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int rtp_flags)
-{
-    return impl_->push_frame(std::move(data), data_len, ts, rtp_flags);
-}
-
-rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, uint64_t ntp_ts, int rtp_flags)
-{
-    return impl_->push_frame(std::move(data), data_len, ts, ntp_ts, rtp_flags);
 }
 
 /* Disabled for now
@@ -99,3 +84,22 @@ uint32_t uvgrtp::media_stream::get_ssrc() const
 {
     return impl_->get_ssrc();
 }
+
+#if UVGRTP_EXTENDED_API
+
+rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int rtp_flags)
+{
+    return impl_->push_frame(std::move(data), data_len, rtp_flags);
+}
+
+rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, int rtp_flags)
+{
+    return impl_->push_frame(std::move(data), data_len, ts, rtp_flags);
+}
+
+rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, uint32_t ts, uint64_t ntp_ts, int rtp_flags)
+{
+    return impl_->push_frame(std::move(data), data_len, ts, ntp_ts, rtp_flags);
+}
+
+#endif

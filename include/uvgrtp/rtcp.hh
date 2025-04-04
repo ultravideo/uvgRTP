@@ -1,5 +1,8 @@
 #pragma once
 
+#include "uvgrtp_defs.hh"
+#include "uvgrtp_export.hh"
+
 #include "clock.hh"
 #include "util.hh"
 #include "frame.hh"
@@ -48,7 +51,7 @@ namespace uvgrtp {
      * 
      * See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6" target="_blank">RFC 3550 section 6</a> for more details. 
      */
-    class rtcp {
+    class UVGRTP_EXPORT rtcp {
         /// \cond DO_NOT_DOCUMENT
         friend class media_stream_internal;
         /// \endcond
