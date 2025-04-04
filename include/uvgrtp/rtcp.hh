@@ -6,7 +6,6 @@
 #include "clock.hh"
 #include "util.hh"
 #include "frame.hh"
-#include "clock_internal.hh"
 
 #ifdef _WIN32
 #include <ws2ipdef.h>
