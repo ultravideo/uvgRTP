@@ -47,7 +47,6 @@ endif()
 
 if (UVGRTP_BUILD_SHARED)
     set(UVGRTP_LIB_TYPE SHARED)
-    add_definitions(-DUVGRTP_BUILD_DLL)  # Defines export macro for Windows
 else()
     set(UVGRTP_LIB_TYPE STATIC)
 endif()
@@ -66,6 +65,8 @@ set(UVGRTP_LINKER_FLAGS "")
 # uvgRTP shared version header generation
 include(cmake/ExportHeaders.cmake)
 include(cmake/Definitions.cmake)
+
+
 
 target_sources(${PROJECT_NAME} PRIVATE
         src/clock.cc
@@ -187,6 +188,12 @@ target_sources(${PROJECT_NAME} PRIVATE
 
 if(WIN32)
     set(WINLIBS wsock32 ws2_32)
+    
+    if (UVGRTP_BUILD_SHARED)
+        include(cmake/Resource.cmake)
+        set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/uvgrtp.rc PROPERTIES LANGUAGE RC)
+        target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/uvgrtp.rc)
+    endif()
 endif()
 
 target_link_libraries(${PROJECT_NAME}
