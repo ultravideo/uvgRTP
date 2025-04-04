@@ -31,9 +31,12 @@ configure_file(cmake/version.cc.in version.cc
         )
 add_library(${PROJECT_NAME}_version OBJECT
         ${CMAKE_CURRENT_BINARY_DIR}/version.cc)
+        
 target_include_directories(${PROJECT_NAME}_version
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
-        )
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_BINARY_DIR}/include
+)
 
 if (UVGRTP_RELEASE_COMMIT)
     target_compile_definitions(${PROJECT_NAME}_version PRIVATE RTP_RELEASE_COMMIT)
