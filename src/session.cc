@@ -9,7 +9,7 @@
 
 uvgrtp::session::session(std::string cname, std::string addr, std::shared_ptr<uvgrtp::socketfactory> sfp) :
 #ifdef __RTP_CRYPTO__
-    zrtp_(new uvgrtp::zrtp()),
+    zrtp_(nullptr),
 #endif
     generic_address_(addr),
     remote_address_(""),
@@ -22,7 +22,7 @@ uvgrtp::session::session(std::string cname, std::string addr, std::shared_ptr<uv
 
 uvgrtp::session::session(std::string cname, std::string remote_addr, std::string local_addr, std::shared_ptr<uvgrtp::socketfactory> sfp):
 #ifdef __RTP_CRYPTO__
-    zrtp_(new uvgrtp::zrtp()),
+    zrtp_(nullptr),
 #endif
     generic_address_(""),
     remote_address_(remote_addr),
@@ -120,14 +120,14 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
 
     if (rce_flags & RCE_SRTP) {
 
+        if (rce_flags & RCE_SRTP_REPLAY_PROTECTION)
+            rce_flags |= RCE_SRTP_AUTHENTICATE_RTP;
+
         session_mtx_.lock();
-        if (!zrtp_) {
+        if (zrtp_ == nullptr) {
             zrtp_ = std::shared_ptr<uvgrtp::zrtp>(new uvgrtp::zrtp());
         }
         session_mtx_.unlock();
-
-        if (rce_flags & RCE_SRTP_REPLAY_PROTECTION)
-            rce_flags |= RCE_SRTP_AUTHENTICATE_RTP;
 
         /* With flags RCE_SRTP_KMNGMNT_ZRTP enabled, start ZRTP negotiation automatically.  NOTE! This only works when
          * not doing socket multiplexing. 
@@ -139,7 +139,6 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
          *     -> Use start_zrtp() function to start ZRTP negotiation manually
          */
         if (rce_flags & RCE_SRTP_KMNGMNT_ZRTP) {
-
             if (rce_flags & (RCE_SRTP_KEYSIZE_192 | RCE_SRTP_KEYSIZE_256)) {
                 UVG_LOG_ERROR("Only 128-bit keys are supported with ZRTP");
                 delete stream;
