@@ -523,6 +523,15 @@ void copy_rtp_payload(std::vector<v3c_unit_info>* units, uint64_t max_size, uvgr
     }
 }
 
+
+void finalize_gof(v3c_file_map& mmap)
+{
+  mmap.ad_units.back().ready = true;
+  mmap.ovd_units.back().ready = true;
+  mmap.gvd_units.back().ready = true;
+  mmap.avd_units.back().ready = true;
+}
+
 uint64_t get_gof_size(bool hdr_byte, uint64_t index, v3c_file_map& mmap, uint8_t v3c_precision)
 {
     /* Calculate GOF size and intialize the output buffer

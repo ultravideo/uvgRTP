@@ -166,4 +166,7 @@ uint64_t reconstruct_v3c_gof(bool hdr_byte, char* &buf, uint64_t& ptr, v3c_file_
 // Check if there is a complete GOF in the memory map
 bool is_gof_ready(uint64_t index, v3c_file_map& mmap);
 
+// Mark last nalu infos as ready. May cause issues if all data has not been received yet. Can be used to "flush" end of stream
+void finalize_gof(v3c_file_map& mmap);
+
 uint64_t get_gof_size(bool hdr_byte, uint64_t index, v3c_file_map& mmap, uint8_t v3c_precision);

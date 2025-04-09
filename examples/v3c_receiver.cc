@@ -93,6 +93,7 @@ int main(int argc, char* argv[])
     uint64_t bytes = 0;     // Number of bytes in reconstructed bitstream
     uint64_t ptr = 0;       // Pointer of current position on the received file
     bool hdb = true;        // Write header byte or not. True only for first GOF of file.
+    bool timeout = false;   // Has receiving timedout
 
     // Save each GOF into data structures
     struct gof_info {       
@@ -127,8 +128,13 @@ int main(int argc, char* argv[])
             std::chrono::high_resolution_clock::now() - start).count();
 
         if (runtime > RECEIVE_TIME_S.count()*1000) {
-            std::cout << "Timeout" << std::endl;
+          if (!timeout) {
+            std::cout << "Timeout, finalize GoFs" << std::endl;
+            finalize_gof(mmap);
+            timeout = true;
+          } else {
             break;
+          }
         }
     }
     std::cout << ngofs << " full GOFs received" << std::endl;
@@ -180,7 +186,7 @@ int main(int argc, char* argv[])
         }
     }
     if (!diff) {
-        std::cout << "No difference found in " << EXPECTED_GOFS << " GOFs" << std::endl;
+        std::cout << "No difference found in " << ngofs << " GOFs" << std::endl;
     }
 
     delete[] out_buf;
