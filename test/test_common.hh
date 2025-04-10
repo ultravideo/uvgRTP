@@ -3,6 +3,8 @@
 #include <gtest/gtest.h>
 #include "uvgrtp/lib.hh"
 
+#include <chrono>
+
 class Test_receiver;
 
 void wait_until_next_frame(std::chrono::high_resolution_clock::time_point& start,

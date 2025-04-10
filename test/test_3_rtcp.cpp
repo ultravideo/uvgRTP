@@ -1,5 +1,7 @@
 #include "test_common.hh"
 
+#include "uvgrtp/frame.hh"
+
 constexpr char LOCAL_INTERFACE[] = "127.0.0.1";
 constexpr char LOCAL_INTERFACE_IP6[] = "::1";
 constexpr uint16_t LOCAL_PORT = 9200;
