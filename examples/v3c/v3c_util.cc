@@ -2,6 +2,45 @@
 
 #include <cassert>
 
+void write_out_bitstream_info(bitstream_info & info, std::ostream & out_stream, INFO_FMT fmt)
+{
+  switch (fmt)
+  {
+  case INFO_FMT::LOGGING:
+    out_stream << "Summary:" << std::endl;
+    out_stream << "--------" << std::endl;
+    out_stream << "  number of GOFS: " << (int)info.num_GOF << std::endl;
+    out_stream << std::endl;
+    if (info.num_nal[V3C_VPS]) out_stream << "  number of VPS_NALS: " << (int)info.num_nal[V3C_VPS] << std::endl;
+    if (info.num_nal[V3C_AD]) out_stream << "  number of AD_NALS: " << (int)info.num_nal[V3C_AD] << std::endl;
+    if (info.num_nal[V3C_OVD]) out_stream << "  number of OVD_NALS: " << (int)info.num_nal[V3C_OVD] << std::endl;
+    if (info.num_nal[V3C_GVD]) out_stream << "  number of GVD_NALS: " << (int)info.num_nal[V3C_GVD] << std::endl;
+    if (info.num_nal[V3C_AVD]) out_stream << "  number of AVD_NALS: " << (int)info.num_nal[V3C_AVD] << std::endl;
+    if (info.num_nal[V3C_CAD]) out_stream << "  number of CAD_NALS: " << (int)info.num_nal[V3C_CAD] << std::endl;
+    if (info.num_nal[V3C_PVD]) out_stream << "  number of PVD_NALS: " << (int)info.num_nal[V3C_PVD] << std::endl;
+    if (info.variable_nal_num) out_stream << "  Warning: Variable number of nals between GOFs!" << std::endl;
+    out_stream << std::endl;
+    out_stream << "  atlas nal size precision: " << (int)info.nal_sample_stream_precision[V3C_AD] << std::endl;
+    out_stream << "  video nal size precision: " << (int)DEFAULT_VIDEO_NAL_SIZE_PRECISION << std::endl;
+    out_stream << "  V3C size precision: " << (int)info.v3c_sample_stream_precision << std::endl;
+    if (info.variable_nal_precision) out_stream << "  Warning: Variable nal size precision between GOFs!" << std::endl;
+    break;
+  case INFO_FMT::PARAM:
+    out_stream << "constexpr int EXPECTED_GOFS = " << (int)info.num_GOF << ";" << std::endl;
+    out_stream << "constexpr int VPS_NALS = " << (int)info.num_nal[V3C_VPS] << ";" << std::endl;
+    out_stream << "constexpr int AD_NALS = " << (int)info.num_nal[V3C_AD] << ";" << std::endl;
+    out_stream << "constexpr int OVD_NALS = " << (int)info.num_nal[V3C_OVD] << ";" << std::endl;
+    out_stream << "constexpr int GVD_NALS = " << (int)info.num_nal[V3C_GVD] << ";" << std::endl;
+    out_stream << "constexpr int AVD_NALS = " << (int)info.num_nal[V3C_AVD] << ";" << std::endl;
+    out_stream << "constexpr uint8_t ATLAS_NAL_SIZE_PRECISION = " << (int)info.nal_sample_stream_precision[V3C_AD] << ";" << std::endl;
+    out_stream << "constexpr uint8_t VIDEO_NAL_SIZE_PRECISION = " << (int)DEFAULT_VIDEO_NAL_SIZE_PRECISION << ";" << std::endl;
+    out_stream << "constexpr uint8_t V3C_SIZE_PRECISION = " << (int)info.v3c_sample_stream_precision << ";" << std::endl;
+    break;
+  default:
+    break;
+  }
+}
+
 uint64_t combineBytes(const uint8_t *const bytes, const uint8_t num_bytes) {
     uint64_t combined_out = 0;
     for(uint8_t i = 0; i < num_bytes; ++i){
@@ -16,9 +55,13 @@ void convert_size_big_endian(uint64_t in, uint8_t* out, size_t output_size) {
     }
 }
 
-bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap)
+bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap, bitstream_info& info)
 {
     uint64_t ptr = 0;
+
+    //Reset atlas nal precision to make it easier to check if all nals have the same precision
+    info.nal_sample_stream_precision[V3C_AD] = 0;
+    info.nal_sample_stream_precision[V3C_CAD] = 0;
 
     // First byte is the file header
     uint8_t first_byte = cbuf[ptr];
@@ -26,6 +69,7 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap)
     uint8_t v3c_size_precision = (first_byte >> 5) + 1;
     assert(0 < v3c_size_precision && v3c_size_precision <= 8 && "sample stream precision should be in range [1,8]");
 
+    info.v3c_sample_stream_precision = v3c_size_precision;
     std::cout << "V3C size precision: " << (uint32_t)v3c_size_precision << std::endl;
     std::cout << std::endl;
     ++ptr;
@@ -62,6 +106,7 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap)
             mmap.vps_units.push_back(unit);
             ptr += combined_v3c_size;
             std::cout << std::endl;
+            info.num_nal[V3C_VPS] += 1;
             continue;
         }
 
@@ -72,12 +117,16 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap)
             unit.sample_stream_nal_precision = nal_size_precision = (nalu_first_byte >> 5) + 1;
             std::cout << "  -- Atlas NAL Sample stream, 1 byte for NAL unit size precision: " << (uint32_t)nal_size_precision << std::endl;
             ++v3c_ptr;
+
+            if (!info.nal_sample_stream_precision[(V3C_UNIT_TYPE)vuh_t]) info.nal_sample_stream_precision[(V3C_UNIT_TYPE)vuh_t] = nal_size_precision;
         }
         else {
-            unit.sample_stream_nal_precision = nal_size_precision = 4;
+            unit.sample_stream_nal_precision = nal_size_precision = DEFAULT_VIDEO_NAL_SIZE_PRECISION;
             std::cout << "  -- Video NAL Sample stream, using NAL unit size precision of: " << (uint32_t)nal_size_precision << std::endl;
         }
         assert(0 < nal_size_precision && nal_size_precision <= 8 && "sample stream precision should be in range [1,8]");
+
+        info.variable_nal_precision |= (info.nal_sample_stream_precision[(V3C_UNIT_TYPE)vuh_t] != nal_size_precision);
 
         uint64_t amount_of_nal_units = 0;
         // Now start to parse the NAL sample stream
@@ -110,6 +159,9 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap)
 
         }
         std::cout << "  -- Amount of NAL units in v3c unit: " << amount_of_nal_units << std::endl;
+
+        if (!info.num_nal[(V3C_UNIT_TYPE)vuh_t]) info.num_nal[(V3C_UNIT_TYPE)vuh_t] = amount_of_nal_units;
+        info.variable_nal_num |= info.num_nal[(V3C_UNIT_TYPE)vuh_t] != amount_of_nal_units;
             
         switch (vuh_t) {
             case V3C_AD:
@@ -134,6 +186,8 @@ bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap)
         std::cout << std::endl;
         ptr += combined_v3c_size;
     }
+    // Use number of atlas units as baseline for GOFs
+    info.num_GOF += mmap.ad_units.size();
     std::cout << "File parsed" << std::endl;
     return true;
 }

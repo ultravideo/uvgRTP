@@ -59,6 +59,7 @@ int main(int argc, char* argv[])
     }
     bytes_sent = 0;
     v3c_file_map mmap;
+    bitstream_info info;
 
     /* Read the file and its size */
     uint64_t len = get_size(PATH);
@@ -69,7 +70,7 @@ int main(int argc, char* argv[])
     std::cout << "Parsing V3C file, size " << len << std::endl;
 
     /* Map the locations and sizes of Atlas and video NAL units with the mmap_v3c_file function */
-    mmap_v3c_file(cbuf, len, mmap);
+    mmap_v3c_file(cbuf, len, mmap, info);
 
     std::cout << "Sending V3C NAL units via uvgRTP" << std::endl;
 
@@ -125,6 +126,7 @@ int main(int argc, char* argv[])
     sess->destroy_stream(streams.avd);
 
     std::cout << "Sending finished, " << bytes_sent << " bytes sent" << std::endl;
+    write_out_bitstream_info(info, std::cout, INFO_FMT::LOGGING);
 
     if (sess)
     {

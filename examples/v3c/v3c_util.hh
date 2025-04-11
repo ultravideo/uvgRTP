@@ -25,6 +25,11 @@ enum CODEC {
     CODEC_VVC_MAIN10    = 3 // VVC Main10 
 };
 
+enum class INFO_FMT {
+  LOGGING, // Logging printout in a human readable format
+  PARAM    // Print relevant parameters directly to c++ expressions
+};
+
 constexpr int V3C_HDR_LEN = 4; // 32 bits for v3c unit header
 constexpr int SAMPLE_STREAM_HDR_LEN = 1; // 8 bits for sample stream headers
 constexpr uint8_t DEFAULT_ATLAS_NAL_SIZE_PRECISION = 2;
@@ -118,6 +123,46 @@ struct v3c_streams {
     uvgrtp::media_stream* avd = nullptr;
 };
 
+/* Information about the bitstream that should not be included in the rtp stream, but send through other means to the receiver
+    - Sample stream headers (precision)
+    - Number of GoFs (?)
+    - Number of NALs in GoF
+    - Other header info (?)
+*/
+struct bitstream_info {
+  uint8_t v3c_sample_stream_precision = MAX_V3C_SIZE_PREC;
+  std::map<V3C_UNIT_TYPE, uint8_t> nal_sample_stream_precision = {};
+  bool variable_nal_precision = false;
+  uint64_t num_GOF = 0;
+  std::map<V3C_UNIT_TYPE, uint64_t> num_nal = {};
+  bool variable_nal_num = false;
+
+  bitstream_info() {
+    this->nal_sample_stream_precision[V3C_VPS] = 0;
+    this->nal_sample_stream_precision[V3C_AD ] = DEFAULT_ATLAS_NAL_SIZE_PRECISION;
+    this->nal_sample_stream_precision[V3C_OVD] = DEFAULT_VIDEO_NAL_SIZE_PRECISION;
+    this->nal_sample_stream_precision[V3C_GVD] = DEFAULT_VIDEO_NAL_SIZE_PRECISION;
+    this->nal_sample_stream_precision[V3C_AVD] = DEFAULT_VIDEO_NAL_SIZE_PRECISION;
+    this->nal_sample_stream_precision[V3C_PVD ] = DEFAULT_VIDEO_NAL_SIZE_PRECISION;
+    this->nal_sample_stream_precision[V3C_CAD] = DEFAULT_ATLAS_NAL_SIZE_PRECISION;
+    this->nal_sample_stream_precision[V3C_UNDEF] = 0;
+
+    this->num_nal[V3C_VPS] = 0;
+    this->num_nal[V3C_AD] = 0;
+    this->num_nal[V3C_OVD] = 0;
+    this->num_nal[V3C_GVD] = 0;
+    this->num_nal[V3C_AVD] = 0;
+    this->num_nal[V3C_PVD] = 0;
+    this->num_nal[V3C_CAD] = 0;
+    this->num_nal[V3C_UNDEF] = 0;
+  }
+};
+
+/* Write bitstream info to given output stream
+    fmt: What format should be used to print info (see INFO_FMT enum)
+*/
+void write_out_bitstream_info(bitstream_info& info, std::ostream& out_stream, INFO_FMT fmt=INFO_FMT::LOGGING);
+
 uint64_t combineBytes(const uint8_t *const bytes, const uint8_t num_bytes);
 void convert_size_big_endian(uint64_t in, uint8_t* out, size_t output_size);
 
@@ -143,7 +188,7 @@ uint64_t get_size(std::string filename);
 char* get_cmem(std::string filename);
 
 // Memory map a V3C file
-bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap);
+bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap, bitstream_info& info);
 
 // Parse a V3C header into mmap
 void parse_v3c_header(v3c_unit_header &hdr, char* buf, uint64_t ptr);
