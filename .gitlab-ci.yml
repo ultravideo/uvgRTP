@@ -27,6 +27,7 @@ build_with_crypto:
     
 tests_with_crypto:
   stage: test
+  needs: ["build_with_crypto"]
   script:
     - mkdir build && cd build
     - apt -y install libcrypto++-dev
@@ -72,6 +73,7 @@ examples_with_crypto:
 
 tests_with_shared:
   stage: test
+  needs: ["tests_with_crypto"]
   script:
     - mkdir build && cd build
     - apt -y install libcrypto++-dev
