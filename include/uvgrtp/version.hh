@@ -8,9 +8,9 @@
 
 namespace uvgrtp {
 
-uint16_t get_version_major();
-uint16_t get_version_minor();
-uint16_t get_version_patch();
+uint16_t UVGRTP_EXPORT get_version_major();
+uint16_t UVGRTP_EXPORT get_version_minor();
+uint16_t UVGRTP_EXPORT get_version_patch();
 
 #if UVGRTP_EXTENDED_API
 std::string get_version();
