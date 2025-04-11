@@ -1,4 +1,7 @@
 #include "test_common.hh"
+
+#include "uvgrtp/definitions.hh"
+
 #include <array>
 
 /* TODO: 1) Test only sending, 2) test sending with different configuration, 3) test receiving with different configurations, and 
@@ -43,7 +46,9 @@ void test_wait(int time_ms, uvgrtp::media_stream* receiver)
         int actual_difference =
             int(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count());
 
+#if UVGRTP_EXTENDED_API
         EXPECT_EQ(RTP_OK, rtp_errno);
+#endif
         EXPECT_GE(actual_difference, time_ms);
         EXPECT_LE(actual_difference, time_ms + 50); // allow max 50 ms extra
 
@@ -334,7 +339,9 @@ TEST(RTPTests, rtp_poll)
         uvgrtp::frame::rtp_frame* received_frame = nullptr;
 
         auto start = std::chrono::steady_clock::now();
+#if UVGRTP_EXTENDED_API
         rtp_errno = RTP_OK;
+#endif
 
         std::cout << "Start pulling data" << std::endl;
 
@@ -344,7 +351,9 @@ TEST(RTPTests, rtp_poll)
             if (receiver)
             {
                 received_frame = receiver->pull_frame(0);
+#if UVGRTP_EXTENDED_API
                 EXPECT_EQ(RTP_OK, rtp_errno);
+#endif
             }
 
             if (received_frame)
@@ -368,7 +377,9 @@ TEST(RTPTests, rtp_poll)
             if (receiver)
             {
                 received_frame = receiver->pull_frame(3);
+#if UVGRTP_EXTENDED_API
                 EXPECT_EQ(RTP_OK, rtp_errno);
+#endif
             }
 
             if (received_frame)
@@ -624,7 +635,9 @@ TEST(RTPTests, rtp_multiplex_poll)
         uvgrtp::frame::rtp_frame* received_frame2 = nullptr;
 
         auto start = std::chrono::steady_clock::now();
+#if UVGRTP_EXTENDED_API
         rtp_errno = RTP_OK;
+#endif
 
         std::cout << "Start pulling data in both streams" << std::endl;
 
@@ -635,12 +648,16 @@ TEST(RTPTests, rtp_multiplex_poll)
             if (receiver1)
             {
                 received_frame1 = receiver1->pull_frame(0);
+#if UVGRTP_EXTENDED_API
                 EXPECT_EQ(RTP_OK, rtp_errno);
+#endif
             }
             if (receiver2)
             {
                 received_frame2 = receiver2->pull_frame(0);
+#if UVGRTP_EXTENDED_API
                 EXPECT_EQ(RTP_OK, rtp_errno);
+#endif
             }
             if (received_frame1)
             {
@@ -673,12 +690,16 @@ TEST(RTPTests, rtp_multiplex_poll)
             if (receiver1)
             {
                 received_frame1 = receiver1->pull_frame(3);
+#if UVGRTP_EXTENDED_API
                 EXPECT_EQ(RTP_OK, rtp_errno);
+#endif
             }
             if (receiver2)
             {
                 received_frame2 = receiver2->pull_frame(3);
+#if UVGRTP_EXTENDED_API
                 EXPECT_EQ(RTP_OK, rtp_errno);
+#endif
             }
 
             if (received_frame1)

@@ -12,6 +12,8 @@
 const int DATA_SIZE = 128;
 const int DATA_VALUE = 128;
 
+#if UVGRTP_EXTENDED_API
+
 TEST(FormatTests, h264_scl_zero) {
     uvgrtp::context ctx;
     uvgrtp::session* local_session = ctx.create_session("127.0.0.1");
@@ -131,3 +133,6 @@ TEST(FormatTests, h266_scl) {
         EXPECT_EQ(4, start_len);
     }
 }
+
+
+#endif

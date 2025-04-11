@@ -17,6 +17,10 @@ constexpr uint32_t EXAMPLE_RUN_TIME_S = 3;
 constexpr int SEND_TEST_PACKETS = FRAME_RATE * EXAMPLE_RUN_TIME_S;
 constexpr int PACKET_INTERVAL_MS = 1000 / FRAME_RATE;
 
+
+// TODO: upgrade RTCP tests to use the core API
+#if UVGRTP_EXTENDED_API
+
 void receiver_hook(uvgrtp::frame::rtcp_receiver_report* frame);
 void sender_hook(uvgrtp::frame::rtcp_sender_report* frame);
 void sdes_hook(uvgrtp::frame::rtcp_sdes_packet* frame);
@@ -565,3 +569,5 @@ void cleanup(uvgrtp::context& ctx, uvgrtp::session* local_session, uvgrtp::sessi
     cleanup_sess(ctx, local_session);
     cleanup_sess(ctx, remote_session);
 }
+
+#endif
