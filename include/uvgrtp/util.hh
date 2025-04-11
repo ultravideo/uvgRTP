@@ -405,5 +405,16 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
 
 
 #if UVGRTP_EXTENDED_API
+/** \ingroup EXTENDED_API
+ *  @{
+ */
+
+ /**
+  * \brief Thread-local variable holding the error code for RTP operations that do not return rtp_error.
+  *
+  * Stores the most recent RTP error code for the current thread.
+  */
 extern thread_local rtp_error_t rtp_errno;
+
+/** @} */  // End of EXTENDED_API group
 #endif

@@ -59,6 +59,10 @@ namespace uvgrtp {
             ~rtcp();
             /// \endcond
 
+            /** \ingroup CORE_API
+             *  @{
+             */
+
             // the Core api suitable for shared and static library use
 
             /// \brief Provide timestamping information for RTCP
@@ -172,9 +176,14 @@ namespace uvgrtp {
             uvgrtp::frame::rtcp_sdes* get_sdes(uint32_t ssrc);
             uvgrtp::frame::rtcp_app_packet* get_app_packet(uint32_t ssrc);
 
+
+            /** @} */  // End of CORE_API group
+
 #if UVGRTP_EXTENDED_API
 
-            // Extended API
+            /** \ingroup EXTENDED_API
+             *  @{
+             */
 
             /**
              * \brief Send an RTCP SDES packet with full SDES items
@@ -280,6 +289,7 @@ namespace uvgrtp {
             [[deprecated("Use get_sdes from Core API")]]
             uvgrtp::frame::rtcp_sdes_packet* get_sdes_packet(uint32_t ssrc);
 
+            /** @} */  // End of EXTENDED_API group
 #endif
 
         private:

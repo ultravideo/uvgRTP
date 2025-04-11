@@ -33,6 +33,10 @@ namespace uvgrtp {
         /// \endcond
         public:
 
+            /** \ingroup CORE_API
+             *  @{
+             */
+
             /**
              * \brief Create a uni- or bidirectional media stream
              *
@@ -100,6 +104,8 @@ namespace uvgrtp {
              * \retval RTP_NOT_FOUND      If stream does not belong to this session
              */
             rtp_error_t destroy_stream(uvgrtp::media_stream *stream);
+
+            /** @} */  // End of CORE_API group
 
     private:
 

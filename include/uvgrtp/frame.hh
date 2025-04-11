@@ -55,25 +55,42 @@ namespace uvgrtp {
 
         // structs
 
+        /**
+        * \ingroup CORE_API
+        * \brief RTP header as defined in RFC 3550 (Section 5).
+        * \see https://www.rfc-editor.org/rfc/rfc3550#section-5
+        *
+        * The RTP header contains fields that define the basic structure of the RTP packet, including version, padding, payload type, sequence number, timestamp, and synchronization source identifier (SSRC).
+        */
         PACK(struct UVGRTP_EXPORT rtp_header {
-            uint8_t version:2;
-            uint8_t padding:1;
-            uint8_t ext:1;
-            uint8_t cc:4;
-            uint8_t marker:1;
-            uint8_t payload:7;
-            uint16_t seq = 0;
-            uint32_t timestamp = 0;
-            uint32_t ssrc = 0;
+            uint8_t version:2;      ///< RTP version (2 bits)
+            uint8_t padding:1;      ///< Padding flag (1 bit)
+            uint8_t ext:1;          ///< Extension header flag (1 bit)
+            uint8_t cc:4;           ///< CSRC count (4 bits)
+            uint8_t marker:1;       ///< Marker bit (1 bit)
+            uint8_t payload:7;      ///< Payload type (7 bits)
+            uint16_t seq = 0;       ///< Sequence number (16 bits)
+            uint32_t timestamp = 0; ///< Timestamp (32 bits)
+            uint32_t ssrc = 0;      ///< Synchronization source identifier (SSRC) (32 bits)
         });
 
+        /**
+         * \ingroup CORE_API
+         * \brief RTP extension header.
+         * \see https://www.rfc-editor.org/rfc/rfc3550#section-5.3
+         *
+         * The extension header provides additional information for the RTP packet, such as the type of extension and the length of the extension data.
+         */
         PACK(struct UVGRTP_EXPORT ext_header {
             uint16_t type = 0;
             uint16_t len = 0;
             uint8_t *data = nullptr;
         });
 
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-5" target="_blank">RFC 3550 section 5</a> */
+        /** 
+        * \ingroup CORE_API
+        * \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-5" target="_blank">RFC 3550 section 5</a> 
+        */
         struct UVGRTP_EXPORT rtp_frame {
             struct rtp_header header;
             uint32_t *csrc = nullptr;
@@ -94,7 +111,10 @@ namespace uvgrtp {
             /// \endcond
         };
 
-        /** \brief Header of for all RTCP packets defined in <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6" target="_blank">RFC 3550 section 6</a> */
+        /**
+         * \ingroup CORE_API
+         * \brief Header for all RTCP packets defined in <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6" target="_blank">RFC 3550 section 6</a> 
+         */
         struct UVGRTP_EXPORT rtcp_header {
             /** \brief  This field identifies the version of RTP. The version defined by
              * RFC 3550 is two (2).  */
@@ -115,7 +135,11 @@ namespace uvgrtp {
             uint16_t length = 0;
         };
 
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
+
+        /**
+        * \ingroup CORE_API
+        * \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> 
+        */
         struct UVGRTP_EXPORT rtcp_sender_info {
             /** \brief NTP timestamp, most significant word */
             uint32_t ntp_msw = 0;
@@ -128,7 +152,10 @@ namespace uvgrtp {
             uint32_t byte_cnt = 0;
         };
 
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
+        /**
+        * \ingroup CORE_API
+        * \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> 
+        */
         struct UVGRTP_EXPORT rtcp_report_block {
             uint32_t ssrc = 0;
             uint8_t  fraction = 0;
@@ -139,7 +166,10 @@ namespace uvgrtp {
             uint32_t dlsr = 0; /* delay since last Sender Report */
         };
 
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
+        /**
+        * \ingroup CORE_API
+        * \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> 
+        */
         struct UVGRTP_EXPORT rtcp_sr {
             struct rtcp_header header;
             uint32_t ssrc = 0;
@@ -147,34 +177,54 @@ namespace uvgrtp {
             rtcp_report_block* report_blocks;
         };
 
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.2" target="_blank">RFC 3550 section 6.4.2</a> */
+        /**
+         * \ingroup CORE_API
+         * \brief See \ref RFC3550_Section_6_4_2 for details on the RTCP RR (Receiver Report).
+         * \see https://www.rfc-editor.org/rfc/rfc3550#section-6.4.2
+         */
         struct UVGRTP_EXPORT rtcp_rr {
             struct rtcp_header header;
             uint32_t ssrc = 0;
             rtcp_report_block* report_blocks;
         };
 
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
+        /**
+         * \ingroup CORE_API
+         * \brief See \ref RFC3550_Section_6_5 for details on RTCP SDES Item.
+         * \see https://www.rfc-editor.org/rfc/rfc3550#section-6.5
+         */
         struct UVGRTP_EXPORT rtcp_sdes_item {
             uint8_t type = 0;
             uint8_t length = 0;
             uint8_t* data = nullptr;
         };
 
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
+        /**
+         * \ingroup CORE_API
+         * \brief See \ref RFC3550_Section_6_5 for details on RTCP SDES Chunk.
+         * \see https://www.rfc-editor.org/rfc/rfc3550#section-6.5
+         */
         struct UVGRTP_EXPORT rtcp_sdes_ck {
             uint32_t ssrc = 0;
             rtcp_sdes_item* items = nullptr;
             size_t item_count = 0;  // not in rfc, here to make usage easier
         };
 
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
+
+        /**
+         * \ingroup CORE_API
+         * \brief See \ref RFC3550_Section_6_5 for details on RTCP SDES (Source Description).
+         * \see https://www.rfc-editor.org/rfc/rfc3550#section-6.5
+         */
         struct UVGRTP_EXPORT rtcp_sdes {
             struct rtcp_header header;
             rtcp_sdes_ck* chunks = nullptr;
         };
-
-        // \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.7" target="_blank">RFC 3550 section 6.7</a> 
+        /**
+         * \ingroup CORE_API
+         * \brief See \ref RFC3550_Section_6_7 for details on RTCP Application Packet.
+         * \see https://www.rfc-editor.org/rfc/rfc3550#section-6.7
+         */
         struct UVGRTP_EXPORT rtcp_app_packet {
             struct rtcp_header header;
             uint32_t ssrc = 0;
@@ -233,26 +283,77 @@ namespace uvgrtp {
         */
 
         // dealloc functions, add new functions to the end for abi reasons
-
-        /* Deallocate RTP frame
+        /**
+         * \ingroup CORE_API
+         * \brief Deallocates an RTP frame.
          *
-         * Return RTP_OK on successs
-         * Return RTP_INVALID_VALUE if "frame" is nullptr */
-        rtp_error_t UVGRTP_EXPORT dealloc_frame(uvgrtp::frame::rtp_frame *frame);
+         * This function is responsible for deallocating an RTP frame object.
+         *
+         * \param frame Pointer to the RTP frame to be deallocated.
+         *
+         * \return RTP_OK on success.
+         * \return RTP_INVALID_VALUE if the provided "frame" is nullptr.
+         */
+        rtp_error_t UVGRTP_EXPORT dealloc_frame(uvgrtp::frame::rtp_frame* frame);
 
+        /**
+         * \ingroup CORE_API
+         * \brief Deallocates an RTCP Sender Report (SR) frame.
+         *
+         * This function is responsible for deallocating an RTCP Sender Report (SR) frame object.
+         *
+         * \param sr Pointer to the RTCP SR frame to be deallocated.
+         *
+         * \return RTP_OK on success.
+         * \return RTP_INVALID_VALUE if the provided "sr" is nullptr.
+         */
         rtp_error_t UVGRTP_EXPORT dealloc_sr(uvgrtp::frame::rtcp_sr* sr);
+
+        /**
+         * \ingroup CORE_API
+         * \brief Deallocates an RTCP Receiver Report (RR) frame.
+         *
+         * This function is responsible for deallocating an RTCP Receiver Report (RR) frame object.
+         *
+         * \param rr Pointer to the RTCP RR frame to be deallocated.
+         *
+         * \return RTP_OK on success.
+         * \return RTP_INVALID_VALUE if the provided "rr" is nullptr.
+         */
         rtp_error_t UVGRTP_EXPORT dealloc_rr(uvgrtp::frame::rtcp_rr* rr);
+
+        /**
+         * \ingroup CORE_API
+         * \brief Deallocates an RTCP Source Description (SDES) frame.
+         *
+         * This function is responsible for deallocating an RTCP Source Description (SDES) frame object.
+         *
+         * \param sdes Pointer to the RTCP SDES frame to be deallocated.
+         *
+         * \return RTP_OK on success.
+         * \return RTP_INVALID_VALUE if the provided "sdes" is nullptr.
+         */
         rtp_error_t UVGRTP_EXPORT dealloc_sdes(uvgrtp::frame::rtcp_sdes* sdes);
 
 #if UVGRTP_EXTENDED_API
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.2" target="_blank">RFC 3550 section 6.4.2</a> */
+        /**
+         * \ingroup EXTENDED_API
+         * \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.2" target="_blank">RFC 3550 section 6.4.2</a>
+         *
+         * This structure represents the RTCP Receiver Report, which provides feedback on the quality of reception of RTP packets.
+         */
         struct rtcp_receiver_report {
             struct rtcp_header header;
             uint32_t ssrc = 0;
             std::vector<rtcp_report_block> report_blocks;
         };
 
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a> */
+        /**
+         * \ingroup EXTENDED_API
+         * \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.4.1" target="_blank">RFC 3550 section 6.4.1</a>
+         *
+         * This structure represents the RTCP Sender Report, which provides feedback from the sender to the receivers.
+         */
         struct rtcp_sender_report {
             struct rtcp_header header;
             uint32_t ssrc = 0;
@@ -260,13 +361,23 @@ namespace uvgrtp {
             std::vector<rtcp_report_block> report_blocks;
         };
 
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
+        /**
+         * \ingroup EXTENDED_API
+         * \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a>
+         *
+         * This structure represents an RTCP SDES chunk, which contains a collection of Source Description (SDES) items.
+         */
         struct rtcp_sdes_chunk {
             uint32_t ssrc = 0;
             std::vector<rtcp_sdes_item> items;
         };
 
-        /** \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a> */
+        /**
+         * \ingroup EXTENDED_API
+         * \brief See <a href="https://www.rfc-editor.org/rfc/rfc3550#section-6.5" target="_blank">RFC 3550 section 6.5</a>
+         *
+         * This structure represents the RTCP SDES packet, which contains a list of SDES chunks.
+         */
         struct rtcp_sdes_packet {
             struct rtcp_header header;
             std::vector<rtcp_sdes_chunk> chunks;
