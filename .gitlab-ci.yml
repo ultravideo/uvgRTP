@@ -23,19 +23,8 @@ build_with_crypto:
     paths:
     - bin/uvgrtp
     expire_in: 1 week
-
-build_shared:
-  stage: build
-  script:
-    - mkdir build && cd build
-    - apt -y install libcrypto++-dev
-    - cmake -DUVGRTP_BUILD_SHARED=ON ..
-    - make
-  artifacts:
-    paths:
-    - bin/uvgrtp
-    expire_in: 1 week
-
+    
+    
 tests_with_crypto:
   stage: test
   script:
@@ -50,6 +39,8 @@ tests_with_crypto:
     paths:
     - bin/uvgrtp
     expire_in: 1 week
+
+
 
 examples_with_crypto:
   stage: test
@@ -77,3 +68,20 @@ examples_with_crypto:
     paths:
     - bin/uvgrtp
     expire_in: 1 week
+
+
+tests_with_shared:
+  stage: test
+  script:
+    - mkdir build && cd build
+    - apt -y install libcrypto++-dev
+    - cmake -DCMAKE_BUILD_TYPE=Debug -DUVGRTP_BUILD_SHARED=ON ..
+    - make
+    - cd test
+    - make
+    - ./uvgrtp_test
+  artifacts:
+    paths:
+    - bin/uvgrtp
+    expire_in: 1 week
+
