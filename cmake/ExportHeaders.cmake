@@ -9,4 +9,4 @@ generate_export_header(${PROJECT_NAME}
 
 target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include/uvgrtp/export.hh)
 
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/uvgrtp/export.hh" DESTINATION include)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/uvgrtp/export.hh" DESTINATION include/uvgrtp)

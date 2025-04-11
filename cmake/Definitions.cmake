@@ -16,4 +16,4 @@ endif()
 target_sources(${PROJECT_NAME} PRIVATE ${UVGRTP_DEFS_FILE})
 
 # Install the generated file so external projects can use it
-install(FILES ${UVGRTP_DEFS_FILE} DESTINATION include)
+install(FILES ${UVGRTP_DEFS_FILE} DESTINATION include/uvgrtp)
