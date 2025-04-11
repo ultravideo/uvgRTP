@@ -37,6 +37,15 @@ If you are using MinGW for your compilation, add the generate parameter the gene
 cmake -G"MinGW Makefiles" ..
 ```
 
+
+The shared version of uvgRTP can be built using the following CMake parameter:
+
+```
+cmake -DUVGRTP_BUILD_SHARE=ON ..
+```
+
+Note: The shared version is only limited to the *Application Binary Interface (ABI)* stable **Core API** of uvgRTP.
+
 ### Visual Studio compilation
 
 NOTE: There are problems with a specific version of Visual Studio 2017 compilation due to Creators Updates resulting in target platform x64 not being available. Please use another version of Visual Studio or some other way of compiling uvgRTP if you face this issue.
