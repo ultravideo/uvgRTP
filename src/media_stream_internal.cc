@@ -726,7 +726,9 @@ bool uvgrtp::media_stream_internal::check_pull_preconditions()
 {
     if (!initialized_) {
         UVG_LOG_ERROR("RTP context has not been initialized fully, cannot continue!");
+#if UVGRTP_EXTENDED_API
         rtp_errno = RTP_NOT_INITIALIZED;
+#endif
         return false;
     }
 

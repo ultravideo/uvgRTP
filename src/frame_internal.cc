@@ -37,7 +37,9 @@ uvgrtp::frame::rtp_frame* uvgrtp::frame::alloc_rtp_frame(size_t payload_len)
 void* uvgrtp::frame::alloc_zrtp_frame(size_t size)
 {
     if (size == 0) {
+#if UVGRTP_EXTENDED_API
         rtp_errno = RTP_INVALID_VALUE;
+#endif
         return nullptr;
     }
 
@@ -46,7 +48,9 @@ void* uvgrtp::frame::alloc_zrtp_frame(size_t size)
     uvgrtp::frame::zrtp_frame* frame = (uvgrtp::frame::zrtp_frame*)new uint8_t[size];
 
     if (frame == nullptr) {
+#if UVGRTP_EXTENDED_API
         rtp_errno = RTP_MEMORY_ERROR;
+#endif
         return nullptr;
     }
 

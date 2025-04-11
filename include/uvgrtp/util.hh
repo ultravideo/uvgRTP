@@ -1,6 +1,8 @@
 /// \file util.hh
 #pragma once
 
+#include "uvgrtp/definitions.hh"
+
 /// \cond DO_NOT_DOCUMENT
 #ifdef _WIN32
 #include <winsock2.h>
@@ -29,6 +31,8 @@ typedef SSIZE_T ssize_t;
  */
 typedef enum RTP_ERROR {
     /// \cond DO_NOT_DOCUMENT
+    RTP_INITIALIZED         = 8,   ///< Object already initialized
+    RTP_AUTH_TAG_MISMATCH   = 7,  ///< Authentication tag does not match the RTP packet contents
     RTP_MULTIPLE_PKTS_READY = 6,
     RTP_PKT_READY           = 5,
     RTP_PKT_MODIFIED        = 4,
@@ -45,13 +49,12 @@ typedef enum RTP_ERROR {
     RTP_SEND_ERROR          = -5,   ///< System call send(2) or one of its derivatives failed
     RTP_MEMORY_ERROR        = -6,   ///< Memory allocation failed
     RTP_SSRC_COLLISION      = -7,   ///< SSRC collision detected
-    RTP_INITIALIZED         = -8,   ///< Object already initialized
     RTP_NOT_INITIALIZED     = -9,   ///< Object has not been initialized
     RTP_NOT_SUPPORTED       = -10,  ///< Method/version/extension not supported
     RTP_RECV_ERROR          = -11,  ///< System call recv(2) or one of its derivatives failed
     RTP_TIMEOUT             = -12,  ///< Operation timed out
     RTP_NOT_FOUND           = -13,  ///< Object not found
-    RTP_AUTH_TAG_MISMATCH   = -14,  ///< Authentication tag does not match the RTP packet contents
+    
 } rtp_error_t;
 
 /**
@@ -400,4 +403,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
     /// \endcond
 };
 
+
+#if UVGRTP_EXTENDED_API
 extern thread_local rtp_error_t rtp_errno;
+#endif

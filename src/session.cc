@@ -97,7 +97,9 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
 
     if ((rce_flags & RCE_SEND_ONLY) && (rce_flags & RCE_RECEIVE_ONLY)) {
         UVG_LOG_ERROR("Cannot both use RCE_SEND_ONLY and RCE_RECEIVE_ONLY!");
+#if UVGRTP_EXTENDED_API
         rtp_errno = RTP_NOT_SUPPORTED;
+#endif
         return nullptr;
     }
 
@@ -116,34 +118,44 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
     else if ((rce_flags & RCE_RECEIVE_ONLY) && pimpl_->local_address_ == "")
     {
         UVG_LOG_ERROR("RCE_RECEIVE_ONLY requires local address!");
+#if UVGRTP_EXTENDED_API
         rtp_errno = RTP_INVALID_VALUE;
+#endif
         return  nullptr;
     }
     else if ((rce_flags & RCE_SEND_ONLY) && pimpl_->remote_address_ == "")
     {
         UVG_LOG_ERROR("RCE_SEND_ONLY requires remote address!");
+#if UVGRTP_EXTENDED_API
         rtp_errno = RTP_INVALID_VALUE;
+#endif
         return  nullptr;
     }
 
     if ((rce_flags & RCE_RECEIVE_ONLY) && src_port == 0)
     {
         UVG_LOG_ERROR("RCE_RECEIVE_ONLY requires source port!");
+#if UVGRTP_EXTENDED_API
         rtp_errno = RTP_INVALID_VALUE;
+#endif
         return  nullptr;
     }
 
     if ((rce_flags & RCE_SEND_ONLY) && dst_port == 0)
     {
         UVG_LOG_ERROR("RCE_SEND_ONLY requires destination port!");
+#if UVGRTP_EXTENDED_API
         rtp_errno = RTP_INVALID_VALUE;
+#endif
         return  nullptr;
     }
 
     if (rce_flags & RCE_SRTP && !uvgrtp::crypto::enabled()) 
     {
         UVG_LOG_ERROR("RCE_SRTP requires inclusion of Crypto++ during compilation!");
+#if UVGRTP_EXTENDED_API
         rtp_errno = RTP_GENERIC_ERROR;
+#endif
         return nullptr;
     }
     
