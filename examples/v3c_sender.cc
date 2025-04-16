@@ -66,11 +66,13 @@ int main(int argc, char* argv[])
     if (len == 0) {
         return EXIT_FAILURE;
     }
-    char* cbuf = get_cmem(PATH);
+    auto cbuf = get_cmem(PATH);
+    if (cbuf == nullptr) return EXIT_FAILURE;
+
     std::cout << "Parsing V3C file, size " << len << std::endl;
 
     /* Map the locations and sizes of Atlas and video NAL units with the mmap_v3c_file function */
-    mmap_v3c_file(cbuf, len, mmap, info);
+    mmap_v3c_file(cbuf.get(), len, mmap, info);
 
     std::cout << "Sending V3C NAL units via uvgRTP" << std::endl;
 
@@ -84,19 +86,19 @@ int main(int argc, char* argv[])
 
     /* Start sending data */
     std::unique_ptr<std::thread> vps_thread =
-        std::unique_ptr<std::thread>(new std::thread(sender_func, streams.vps, cbuf, mmap.vps_units, RTP_NO_FLAGS, V3C_VPS));
+        std::unique_ptr<std::thread>(new std::thread(sender_func, streams.vps, cbuf.get(), mmap.vps_units, RTP_NO_FLAGS, V3C_VPS));
 
     std::unique_ptr<std::thread> ad_thread =
-        std::unique_ptr<std::thread>(new std::thread(sender_func, streams.ad, cbuf, mmap.ad_units, RTP_NO_FLAGS, V3C_AD));
+        std::unique_ptr<std::thread>(new std::thread(sender_func, streams.ad, cbuf.get(), mmap.ad_units, RTP_NO_FLAGS, V3C_AD));
 
     std::unique_ptr<std::thread> ovd_thread =
-        std::unique_ptr<std::thread>(new std::thread(sender_func, streams.ovd, cbuf, mmap.ovd_units, RTP_NO_H26X_SCL, V3C_OVD));
+        std::unique_ptr<std::thread>(new std::thread(sender_func, streams.ovd, cbuf.get(), mmap.ovd_units, RTP_NO_H26X_SCL, V3C_OVD));
 
     std::unique_ptr<std::thread> gvd_thread =
-        std::unique_ptr<std::thread>(new std::thread(sender_func, streams.gvd, cbuf, mmap.gvd_units, RTP_NO_H26X_SCL, V3C_GVD));
+        std::unique_ptr<std::thread>(new std::thread(sender_func, streams.gvd, cbuf.get(), mmap.gvd_units, RTP_NO_H26X_SCL, V3C_GVD));
 
     std::unique_ptr<std::thread> avd_thread =
-        std::unique_ptr<std::thread>(new std::thread(sender_func, streams.avd, cbuf, mmap.avd_units, RTP_NO_H26X_SCL, V3C_AVD));
+        std::unique_ptr<std::thread>(new std::thread(sender_func, streams.avd, cbuf.get(), mmap.avd_units, RTP_NO_H26X_SCL, V3C_AVD));
 
     if (vps_thread && vps_thread->joinable())
     {
@@ -126,6 +128,9 @@ int main(int argc, char* argv[])
     sess->destroy_stream(streams.avd);
 
     std::cout << "Sending finished, " << bytes_sent << " bytes sent" << std::endl;
+
+    // Print side-channel information needed by the receiver to receive the bitstream correctly.
+    // Check INFO_FMT for available formats. Writing to file also possible.
     write_out_bitstream_info(info, std::cout, INFO_FMT::LOGGING);
 
     if (sess)

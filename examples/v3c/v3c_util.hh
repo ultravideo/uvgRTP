@@ -185,7 +185,7 @@ uint64_t get_v3c_unit_size<V3C_AVD>(const v3c_unit_info &info);
 uint64_t get_size(std::string filename);
 
 // Get a pointer to a file  
-char* get_cmem(std::string filename);
+std::unique_ptr<char[]> get_cmem(std::string filename);
 
 // Memory map a V3C file
 bool mmap_v3c_file(char* cbuf, uint64_t len, v3c_file_map &mmap, bitstream_info& info);

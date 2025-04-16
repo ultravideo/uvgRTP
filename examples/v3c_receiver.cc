@@ -149,8 +149,8 @@ int main(int argc, char* argv[])
     ctx.destroy_session(sess);
 
     // Not we have all the GOFs constructed. Next up save them all into a single file
-    char* out_buf = new char[bytes];
-    std::memset(out_buf, 0, bytes); // Initialize with zeros
+    auto out_buf = std::make_unique<char[]>(bytes);
+    std::memset(out_buf.get(), 0, bytes); // Initialize with zeros
 
     uint64_t ptr2 = 0;
     // Reconstruct file from GOFs
@@ -165,8 +165,9 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
     std::cout << "Reading original file for comparison " << std::endl;
-    char* original_buf = nullptr;
-    original_buf = get_cmem(PATH);
+    
+    auto original_buf = get_cmem(PATH);
+    if (original_buf == nullptr) return EXIT_FAILURE;
 
     bool diff = false;
     if (len != bytes){
@@ -188,8 +189,6 @@ int main(int argc, char* argv[])
     if (!diff) {
         std::cout << "No difference found in " << ngofs << " GOFs" << std::endl;
     }
-
-    delete[] out_buf;
 
     std::cout << "Done" << std::endl;
 

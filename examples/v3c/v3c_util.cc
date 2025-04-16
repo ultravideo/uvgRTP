@@ -296,13 +296,13 @@ uint64_t get_size(std::string filename)
     return length;
 }
 
-char* get_cmem(std::string filename)
+std::unique_ptr<char[]> get_cmem(std::string filename)
 {
     std::ifstream infile(filename, std::ios_base::binary);
 
     if (!infile.is_open()) {
         std::cout << "File not found" << std::endl;
-        return 0;
+        return nullptr;
     }
 
     //get length of file
@@ -310,15 +310,14 @@ char* get_cmem(std::string filename)
     size_t length = infile.tellg();
     infile.seekg(0, infile.beg);
 
-    char* buf = new char[length];
+    auto buf = std::make_unique<char[]>(length);
     // read into char*
-    if (!(infile.read(buf, length))) // read up to the size of the buffer
+    if (!(infile.read(buf.get(), length))) // read up to the size of the buffer
     {
         if (!infile.eof())
         {
             std::cerr << "Failed to read file contents." << std::endl;
-            delete[] buf; // Free memory before returning nullptr
-            return nullptr;
+            buf = nullptr; // Release allocated memory before returning nullptr
         }
     }
     return buf;
