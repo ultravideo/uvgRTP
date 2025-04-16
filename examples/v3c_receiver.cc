@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <algorithm>
 
 /* This example demonstrates receiving a V3C Sample Stream via uvgRTP. It can be used to send V-PCC encoded files, but with
  * minor modifications (addition of V3C_CAD and V3C_PVD streams) it can be used also for MIV encoded files. See the comments
@@ -37,6 +38,11 @@ constexpr int AD_NALS = 35;
 constexpr int OVD_NALS = 35;
 constexpr int GVD_NALS = 131;
 constexpr int AVD_NALS = 131;
+
+// These are signaled to the receiver one way or the other, for example SDP
+constexpr uint8_t ATLAS_NAL_SIZE_PRECISION = 2;
+constexpr uint8_t VIDEO_NAL_SIZE_PRECISION = 4;
+constexpr uint8_t V3C_SIZE_PRECISION = 2;
 
 /* NOTE: In case where the last GOF has fewer NAL units than specified above, the receiver does not know how many to expect
    and cannot reconstruct that specific GOF. s*/
@@ -72,7 +78,7 @@ int main(int argc, char* argv[])
     v3c_streams streams = init_v3c_streams(sess, 8890, 8892, flags, true);
 
     // Initialize memory map
-    v3c_file_map mmap = init_mmap();
+    v3c_file_map mmap = init_mmap(ATLAS_NAL_SIZE_PRECISION, VIDEO_NAL_SIZE_PRECISION);
 
     streams.vps->install_receive_hook(&mmap.vps_units, vps_receive_hook);
     streams.ad->install_receive_hook(&mmap.ad_units, ad_receive_hook);
@@ -84,16 +90,17 @@ int main(int argc, char* argv[])
     std::cout << "Waiting incoming packets for " << RECEIVE_TIME_S.count() << " s" << std::endl;
 
     uint64_t ngofs = 0;     // Number of received GOFs
-    uint64_t bytes = 0;     // Number of received bytes
+    uint64_t bytes = 0;     // Number of bytes in reconstructed bitstream
     uint64_t ptr = 0;       // Pointer of current position on the received file
     bool hdb = true;        // Write header byte or not. True only for first GOF of file.
+    bool timeout = false;   // Has receiving timedout
 
     // Save each GOF into data structures
     struct gof_info {       
         uint64_t size = 0;
         char* buf = nullptr;
     };
-    std::map<uint32_t, gof_info> gofs_buf = {};
+    std::map<uint64_t, gof_info> gofs_buf = {};
 
     std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();;
 
@@ -102,7 +109,7 @@ int main(int argc, char* argv[])
         if (is_gof_ready(ngofs, mmap)) {
 
             // Get GOF size and initialize a new data structure for it
-            uint64_t gof_len = get_gof_size(hdb, ngofs, mmap);
+            uint64_t gof_len = get_gof_size(hdb, ngofs, mmap, V3C_SIZE_PRECISION);
             gof_info cur = {gof_len, new char[gof_len]};
             gofs_buf.insert({ ngofs, cur });
 
@@ -110,19 +117,24 @@ int main(int argc, char* argv[])
 
             // Reconstruct the GOF from NAL units and update size of the to-be complete file. NOTE: Not the same as the amount of
             // received bytes, because we add new info such as V3C unit headers here.
-            bytes +=  reconstruct_v3c_gof(hdb, gofs_buf.at(ngofs).buf, ptr, mmap, ngofs);
+            bytes +=  reconstruct_v3c_gof(hdb, gofs_buf.at(ngofs).buf, ptr, mmap, ngofs, V3C_SIZE_PRECISION);
             std::cout << "Full GOF received, num: " << ngofs << std::endl;
             ngofs++;
             hdb = false; // Only add the V3C Sample Stream header byte to only the first GOF
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         
-        auto runtime = (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(
+        auto runtime = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::high_resolution_clock::now() - start).count();
 
         if (runtime > RECEIVE_TIME_S.count()*1000) {
-            std::cout << "Timeout" << std::endl;
+          if (!timeout) {
+            std::cout << "Timeout, finalize GoFs" << std::endl;
+            finalize_gof(mmap);
+            timeout = true;
+          } else {
             break;
+          }
         }
     }
     std::cout << ngofs << " full GOFs received" << std::endl;
@@ -137,8 +149,8 @@ int main(int argc, char* argv[])
     ctx.destroy_session(sess);
 
     // Not we have all the GOFs constructed. Next up save them all into a single file
-    char* out_buf = new char[bytes];
-    std::memset(out_buf, 0, bytes); // Initialize with zeros
+    auto out_buf = std::make_unique<char[]>(bytes);
+    std::memset(out_buf.get(), 0, bytes); // Initialize with zeros
 
     uint64_t ptr2 = 0;
     // Reconstruct file from GOFs
@@ -153,23 +165,30 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
     std::cout << "Reading original file for comparison " << std::endl;
-    char* original_buf = nullptr;
-    original_buf = get_cmem(PATH);
+    
+    auto original_buf = get_cmem(PATH);
+    if (original_buf == nullptr) return EXIT_FAILURE;
 
     bool diff = false;
+    if (len != bytes){
+        std::cout << "Error: Original bitstream size does not match reconstructed bitstream size: " << (int)len << " vs. " << (int)bytes << std::endl;
+        diff = true;
+    }
+
     // Compare reconstructed file with the original one
-    for (auto i = 0; i < bytes; ++i) {
+    for (int i = 0; i < (len < bytes ? len : bytes); ++i) {
         if (original_buf[i] != out_buf[i]) {
             diff = true;
             std::cout << "Difference found in " << i << std::endl;
+            std::cout << "  orig byte: " << std::bitset<8>(original_buf[i]) << std::endl;
+            std::cout << "  recv byte: " << std::bitset<8>(out_buf[i]) << std::endl;
+
             break;
         }
     }
     if (!diff) {
-        std::cout << "No difference found in " << EXPECTED_GOFS << " GOFs" << std::endl;
+        std::cout << "No difference found in " << ngofs << " GOFs" << std::endl;
     }
-
-    delete[] out_buf;
 
     std::cout << "Done" << std::endl;
 
@@ -182,7 +201,7 @@ void vps_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame)
 
     char* cbuf = new char[frame->payload_len];
     memcpy(cbuf, frame->payload, frame->payload_len);
-    v3c_unit_info vps = { {}, {{0, frame->payload_len, cbuf}} };
+    v3c_unit_info vps = {0, {}, {{0, frame->payload_len, cbuf}} };
     vec->push_back(vps);
     
     (void)uvgrtp::frame::dealloc_frame(frame);
