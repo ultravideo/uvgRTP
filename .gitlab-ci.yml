@@ -41,7 +41,24 @@ tests_with_crypto:
     - bin/uvgrtp
     expire_in: 1 week
 
-
+valgrind_tests:
+  stage: test
+  needs: ["build_with_crypto"]
+  script:
+    - apt -y update && apt -y install valgrind libcrypto++-dev
+    - mkdir build && cd build
+    - cmake -DCMAKE_BUILD_TYPE=Debug ..
+    - make
+    - cd test
+    - make
+    - valgrind --leak-check=full --error-exitcode=1 ./uvgrtp_test
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
+  artifacts:
+    paths:
+    - bin/uvgrtp
+    expire_in: 1 week
 
 examples_with_crypto:
   stage: test
@@ -70,7 +87,6 @@ examples_with_crypto:
     - bin/uvgrtp
     expire_in: 1 week
 
-
 tests_with_shared:
   stage: test
   needs: ["tests_with_crypto"]
@@ -86,4 +102,3 @@ tests_with_shared:
     paths:
     - bin/uvgrtp
     expire_in: 1 week
-
