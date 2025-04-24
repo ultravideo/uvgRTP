@@ -15,7 +15,31 @@
  * set the media streams payload format accordingly.
  */
 
+//#################### User configuration ######################//
 constexpr char LOCAL_IP[] = "127.0.0.1";
+
+/* These values specify the amount of NAL units inside each type of V3C unit. These need to be known to be able to reconstruct the 
+ * GOFs after receiving. These default values correspond to the provided test sequence, and may be different for other sequences.
+ * The sending example has prints that show how many NAL units each V3C unit contain. For other sequences, these values can be
+ * modified accordingly. */
+constexpr int VPS_NALS = 10; // VPS only included for simplicity of demonstration
+constexpr int AD_NALS = 35;
+constexpr int OVD_NALS = 35;
+constexpr int GVD_NALS = 131;
+constexpr int AVD_NALS = 131;
+
+/* These are signaled to the receiver one way or the other, for example SDP.
+   Note: Need to be set correctly based on the bitstream (see sender summary printout)*/
+constexpr uint8_t ATLAS_NAL_SIZE_PRECISION = 2;
+constexpr uint8_t VIDEO_NAL_SIZE_PRECISION = 4;
+constexpr uint8_t V3C_SIZE_PRECISION = 3;
+
+/* NOTE: In case where the last GOF has fewer NAL units than specified above, the receiver does not know how many to expect
+   and waits until timeout before attempting to reconstruct the final GOF*/
+/* How many Groups of Frames we are expecting to receive */
+constexpr int EXPECTED_GOFS = 10;
+
+//################## User configuration end #####################//
 
 // This example runs for 10 seconds
 constexpr auto RECEIVE_TIME_S = std::chrono::seconds(10);
@@ -28,27 +52,6 @@ void gvd_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 void avd_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 
 uint64_t vps_count;
-
-/* These values specify the amount of NAL units inside each type of V3C unit. These need to be known to be able to reconstruct the 
- * GOFs after receiving. These default values correspond to the provided test sequence, and may be different for other sequences.
- * The sending example has prints that show how many NAL units each V3C unit contain. For other sequences, these values can be
- * modified accordingly. */
-constexpr int VPS_NALS = 2; // VPS only included for simplicity of demonstration
-constexpr int AD_NALS = 35;
-constexpr int OVD_NALS = 35;
-constexpr int GVD_NALS = 131;
-constexpr int AVD_NALS = 131;
-
-// These are signaled to the receiver one way or the other, for example SDP
-constexpr uint8_t ATLAS_NAL_SIZE_PRECISION = 2;
-constexpr uint8_t VIDEO_NAL_SIZE_PRECISION = 4;
-constexpr uint8_t V3C_SIZE_PRECISION = 2;
-
-/* NOTE: In case where the last GOF has fewer NAL units than specified above, the receiver does not know how many to expect
-   and cannot reconstruct that specific GOF. s*/
-
-/* How many *FULL* Groups of Frames we are expecting to receive */
-constexpr int EXPECTED_GOFS = 9;
 
 /* Path to the V3C file that we are receiving. This is included so that you can check that the reconstructed full GOFs are equal to the
  * original ones */
