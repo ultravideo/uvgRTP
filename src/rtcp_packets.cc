@@ -1,6 +1,6 @@
 #include "rtcp_packets.hh"
 
-#include "srtp/srtcp.hh"
+#include "srtp/base.hh"
 
 #include "debug.hh"
 #include <memory>
@@ -15,14 +15,17 @@ uint32_t uvgrtp::get_sr_packet_size(int rce_flags, uint16_t reports)
 
 uint32_t uvgrtp::get_rr_packet_size(int rce_flags, uint16_t reports)
 {
-    uint32_t size = (size_t)RTCP_HEADER_SIZE + SSRC_CSRC_SIZE
+    return (size_t)RTCP_HEADER_SIZE + SSRC_CSRC_SIZE
         + (size_t)REPORT_BLOCK_SIZE * reports;
-    if (rce_flags & RCE_SRTP)
-    {
-        size += UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH;
-    }
+}
 
-    return size;
+uint32_t uvgrtp::get_security_overhead_size(int rce_flags)
+{
+  if (rce_flags & RCE_SRTP)
+  {
+    return UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH;
+  }
+  return 0;
 }
 
 uint32_t uvgrtp::get_app_packet_size(uint32_t payload_len)

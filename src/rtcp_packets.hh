@@ -24,6 +24,7 @@ namespace uvgrtp
     uint32_t get_sdes_packet_size(const std::map<uint8_t, uvgrtp::frame::rtcp_sdes_item>& items);
     uint32_t get_app_packet_size(uint32_t payload_len);
     uint32_t get_bye_packet_size(const std::vector<uint32_t>& ssrcs);
+    uint32_t get_security_overhead_size(int rce_flags);
 
     // Add the RTCP header
     bool construct_rtcp_header(uint8_t* frame, size_t& ptr, size_t packet_size,

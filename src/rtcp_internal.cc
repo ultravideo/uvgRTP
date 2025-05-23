@@ -1169,6 +1169,7 @@ rtp_error_t uvgrtp::rtcp_internal::handle_incoming_packet(void* args, int rce_fl
             UVG_LOG_ERROR("Failed at decryption");
             return ret;
         }
+        size -= get_security_overhead_size(rce_flags_);
     }
 
     // this handles each separate rtcp packet in a compound packet
@@ -1818,6 +1819,8 @@ uint32_t uvgrtp::rtcp_internal::size_of_compound_packet(uint16_t reports,
         compound_packet_size += get_bye_packet_size(bye_ssrcs_);
         UVG_LOG_DEBUG("Sending BYE. Compound packet size: %li", compound_packet_size);
     }
+
+    compound_packet_size += get_security_overhead_size(rce_flags_);
 
     return compound_packet_size;
 }
