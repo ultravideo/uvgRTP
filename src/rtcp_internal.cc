@@ -283,7 +283,12 @@ rtp_error_t uvgrtp::rtcp_internal::stop()
         cleanup_participants();
         return RTP_OK;
     }
+
+    runner_mutex_.lock();
     active_ = false;
+    runner_mutex_.unlock();
+    runner_cv_.notify_all();
+
     if (report_generator_ && report_generator_->joinable())
     {
         UVG_LOG_DEBUG("Waiting for RTCP loop to exit");
@@ -347,7 +352,8 @@ void uvgrtp::rtcp_internal::rtcp_runner(rtcp_internal* rtcp)
             true, (double)rtcp->avg_rtcp_size_, true, true);
         current_interval_ms = (uint32_t)round(1000 * interval_s);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(current_interval_ms));
+        std::unique_lock<std::mutex> lock(rtcp->get_runner_mutex());
+        rtcp->get_runner_cv().wait_for(lock, std::chrono::milliseconds(current_interval_ms), [&]() { return !rtcp->is_active(); });
     }
     UVG_LOG_DEBUG("Exited RTCP loop");
 }

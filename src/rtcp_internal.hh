@@ -669,8 +669,11 @@ namespace uvgrtp {
         std::mutex app_mutex_;
         std::mutex rtt_mutex_;
         std::mutex fb_mutex_;
+
         mutable std::mutex participants_mutex_;
         std::mutex send_app_mutex_;
+        std::mutex runner_mutex_;
+        std::condition_variable runner_cv_;
 
         std::unique_ptr<std::thread> report_generator_;
         std::shared_ptr<uvgrtp::socket> rtcp_socket_;
@@ -682,7 +685,17 @@ namespace uvgrtp {
             return active_;
         }
 
-        bool active_;
+        std::mutex& get_runner_mutex()
+        {
+            return runner_mutex_;
+        }
+
+        std::condition_variable& get_runner_cv()
+        {
+          return runner_cv_;
+        }
+
+        std::atomic<bool> active_;
 
         std::atomic<uint32_t> interval_ms_;
 
