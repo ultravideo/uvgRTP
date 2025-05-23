@@ -241,6 +241,19 @@ namespace uvgrtp {
              */
             rtp_error_t install_app_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>)> app_handler);
 
+
+            /**
+             * \brief Install an Round Trip Time hook
+             *
+             * \details ......
+             *
+             * \param hook Function pointer to the hook
+             *
+             * \retval RTP_OK on success
+             * \retval RTP_INVALID_VALUE If hook is nullptr
+             */
+            rtp_error_t install_roundtrip_time_hook(std::function<void(double)> rtt_handler);
+
             /**
              * \brief Install a C++ hook for sending RTCP APP packets during compound report generation
              *

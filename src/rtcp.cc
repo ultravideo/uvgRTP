@@ -255,6 +255,17 @@ uvgrtp::frame::rtcp_app_packet* uvgrtp::rtcp::get_app_packet(uint32_t ssrc)
 }
 
 #if UVGRTP_EXTENDED_API
+
+rtp_error_t uvgrtp::rtcp::install_roundtrip_time_hook(std::function<void(double)> rtt_handler)
+{
+    if (!rtt_handler)
+    {
+        return RTP_INVALID_VALUE;
+    }
+
+    return pimpl_->install_roundtrip_time_hook([rtt_handler](double rtt) { rtt_handler(rtt); });
+}
+
 rtp_error_t uvgrtp::rtcp::remove_send_app_hook(const std::string& app_name)
 {
     return pimpl_->remove_send_app_hook(std::move(app_name));
