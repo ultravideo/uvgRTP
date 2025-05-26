@@ -7,6 +7,7 @@
 #include <string>
 #include <atomic>
 #include <cstdint>
+#include <mutex>
 
 #ifndef _WIN32
 #include <sys/socket.h>
@@ -54,7 +55,7 @@ namespace uvgrtp {
     public:
         /// \cond DO_NOT_DOCUMENT
         media_stream_internal(std::string cname, std::string remote_addr, std::string local_addr, uint16_t src_port, uint16_t dst_port,
-            rtp_format_t fmt, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags);
+            rtp_format_t fmt, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags, uint32_t ssrc);
         ~media_stream_internal();
 
         /* Initialize traditional RTP session.
@@ -423,6 +424,9 @@ namespace uvgrtp {
         std::shared_ptr<uvgrtp::rtp>    rtp_;
         std::shared_ptr<uvgrtp::rtcp>   rtcp_;
         std::shared_ptr<uvgrtp::zrtp>   zrtp_;
+
+        std::mutex rtcp_mutex_;
+        static std::unordered_map<uint32_t, std::shared_ptr<uvgrtp::rtcp>> rtcp_map_;
 
         std::shared_ptr<uvgrtp::socketfactory> sfp_;
 

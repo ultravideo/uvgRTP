@@ -31,11 +31,13 @@
 #endif
 
 #include <cstring>
-#include <errno.h>
+
+
+std::unordered_map<uint32_t, std::shared_ptr<uvgrtp::rtcp>> uvgrtp::media_stream_internal::rtcp_map_;
 
 uvgrtp::media_stream_internal::media_stream_internal(std::string cname, std::string remote_addr,
     std::string local_addr, uint16_t src_port, uint16_t dst_port, rtp_format_t fmt,
-    std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags) :
+    std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags, uint32_t ssrc) :
     key_(uvgrtp::random::generate_32()),
     srtp_(nullptr),
     srtcp_(nullptr),
@@ -61,12 +63,17 @@ uvgrtp::media_stream_internal::media_stream_internal(std::string cname, std::str
     cname_(cname),
     fps_numerator_(30),
     fps_denominator_(1),
-    ssrc_(std::make_shared<std::atomic<std::uint32_t>>(uvgrtp::random::generate_32())),
-    remote_ssrc_(std::make_shared<std::atomic<std::uint32_t>>(ssrc_.get()->load() + 1)),
+    ssrc_(std::make_shared<std::atomic<std::uint32_t>>(ssrc)),
+    remote_ssrc_(std::make_shared<std::atomic<std::uint32_t>>(uvgrtp::random::generate_32())),
     snd_buf_size_(-1),
     rcv_buf_size_(-1),
     multicast_ttl_(-1)
-{}
+{
+  if (ssrc == 0)
+  {
+    ssrc_ = std::make_shared<std::atomic<std::uint32_t>>(uvgrtp::random::generate_32());
+  }
+}
 
 uvgrtp::media_stream_internal::~media_stream_internal()
 {
@@ -297,6 +304,13 @@ rtp_error_t uvgrtp::media_stream_internal::free_resources(rtp_error_t ret)
         holepuncher_->stop();
     }
 
+    rtcp_mutex_.lock();
+    if (rtcp_map_.find(ssrc_->load()) != rtcp_map_.end())
+    {
+        rtcp_map_.erase(ssrc_->load());
+    }
+    rtcp_mutex_.unlock();
+
     rtcp_ = nullptr;
     rtp_ = nullptr;
     srtp_ = nullptr;
@@ -358,8 +372,17 @@ rtp_error_t uvgrtp::media_stream_internal::init(std::shared_ptr<uvgrtp::zrtp> zr
 
     rtp_ = std::make_shared<uvgrtp::rtp>(fmt_, ssrc_, ipv6_);
 
+    rtcp_mutex_.lock();
     // we are the only friend class for rtcp to call internal constructor
-    rtcp_ = std::shared_ptr<uvgrtp::rtcp>(new uvgrtp::rtcp(rtp_, ssrc_, remote_ssrc_, cname_, sfp_, rce_flags_));
+    if (rtcp_map_.find(ssrc_->load()) == rtcp_map_.end()) {
+        rtcp_ = std::shared_ptr<uvgrtp::rtcp>(new uvgrtp::rtcp(rtp_, ssrc_, remote_ssrc_, cname_, sfp_, rce_flags_));
+        rtcp_map_[ssrc_->load()] = rtcp_;
+    }
+    else
+    {
+        rtcp_ = rtcp_map_[ssrc_->load()];
+    }
+    rtcp_mutex_.unlock();
 
     srtp_ = std::make_shared<uvgrtp::srtp>(rce_flags_);
     srtcp_ = std::make_shared<uvgrtp::srtcp>();

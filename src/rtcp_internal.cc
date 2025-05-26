@@ -196,61 +196,57 @@ void uvgrtp::rtcp_internal::free_participant(std::unique_ptr<rtcp_participant> p
 
 rtp_error_t uvgrtp::rtcp_internal::start()
 {
-    active_ = true;
-    ipv6_ = sfp_->get_ipv6();
-    if ((rce_flags_ & RCE_RTCP_MUX)) {
+    if (!active_)
+    {
+      active_ = true;
+      ipv6_ = sfp_->get_ipv6();
+      if ((rce_flags_ & RCE_RTCP_MUX)) {
         if (ipv6_) {
-            socket_address_ipv6_ = uvgrtp::socket::create_ip6_sockaddr(remote_addr_, dst_port_);
-        }
-        else {
-            socket_address_ = uvgrtp::socket::create_sockaddr(AF_INET, remote_addr_, dst_port_);
+          socket_address_ipv6_ = uvgrtp::socket::create_ip6_sockaddr(remote_addr_, dst_port_);
+        } else {
+          socket_address_ = uvgrtp::socket::create_sockaddr(AF_INET, remote_addr_, dst_port_);
         }
         report_generator_.reset(new std::thread(rtcp_runner, this));
         return RTP_OK;
-    }
+      }
 
-    rtcp_reader_ = sfp_->get_rtcp_reader(local_port_);
-    rtp_error_t ret = RTP_OK;
+      rtcp_reader_ = sfp_->get_rtcp_reader(local_port_);
+      rtp_error_t ret = RTP_OK;
 
-    /* Set read timeout (5s for now)
+      /* Set read timeout (5s for now)
      *
      * This means that the socket is listened for 5s at a time and after the timeout,
      * Send Report is sent to all participants */
-    struct timeval tv;
-    tv.tv_sec = 3;
-    tv.tv_usec = 0;
+      struct timeval tv;
+      tv.tv_sec = 3;
+      tv.tv_usec = 0;
 
-    if ((ret = rtcp_socket_->setsockopt(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))) != RTP_OK)
-    {
+      if ((ret = rtcp_socket_->setsockopt(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))) != RTP_OK) {
         return ret;
-    }
+      }
 
-    if (local_addr_ != "")
-    {
+      if (local_addr_ != "") {
         UVG_LOG_INFO("Binding RTCP to port %s:%d", local_addr_.c_str(), local_port_);
         if ((ret = sfp_->bind_socket(rtcp_socket_, local_port_)) != RTP_OK) {
-            log_platform_error("bind(2) failed");
-            return ret;
+          log_platform_error("bind(2) failed");
+          return ret;
         }
-    }
-    else
-    {
-
+      } else {
         UVG_LOG_WARN("No local address provided, binding RTCP to INADDR_ANY");
         UVG_LOG_INFO("Binding RTCP to port %s:%d", local_addr_.c_str(), local_port_);
         if ((ret = sfp_->bind_socket_anyip(rtcp_socket_, local_port_)) != RTP_OK) {
-            log_platform_error("bind(2) to any failed");
-            return ret;
+          log_platform_error("bind(2) to any failed");
+          return ret;
         }
-    }
-    if (ipv6_) {
+      }
+      if (ipv6_) {
         socket_address_ipv6_ = uvgrtp::socket::create_ip6_sockaddr(remote_addr_, dst_port_);
-    }
-    else {
+      } else {
         socket_address_ = uvgrtp::socket::create_sockaddr(AF_INET, remote_addr_, dst_port_);
+      }
+      report_generator_.reset(new std::thread(rtcp_runner, this));
+      rtcp_reader_->start();
     }
-    report_generator_.reset(new std::thread(rtcp_runner, this));
-    rtcp_reader_->start();
 
     return RTP_OK;
 }
@@ -1709,7 +1705,6 @@ rtp_error_t uvgrtp::rtcp_internal::send_rtcp_packet_to_participants(uint8_t* fra
         return ret;
     }
 
-
     if (rtcp_socket_ != nullptr)
     {
         std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
@@ -1864,7 +1859,7 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
 
     if (sr_packet)
     {
-        UVG_LOG_DEBUG("Including SR. Our SSRC: %li", ssrc);
+        UVG_LOG_DEBUG("Including SR. Our SSRC: %lu", ssrc);
 
         // sender reports have sender information in addition compared to receiver reports
         size_t sender_report_size = get_sr_packet_size(rce_flags_, reports);

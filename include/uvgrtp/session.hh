@@ -65,7 +65,7 @@ namespace uvgrtp {
              * \retval uvgrtp::media_stream*  On success
              * \retval nullptr                On failure, see print and 
              */
-            uvgrtp::media_stream *create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags);
+            uvgrtp::media_stream *create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags, uint32_t local_ssrc = 0);
 
             /**
              * \brief Create a unidirectional media_stream for an RTP session

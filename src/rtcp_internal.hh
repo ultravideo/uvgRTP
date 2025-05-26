@@ -22,6 +22,7 @@
 #include <mutex>
 #include <deque>
 #include <atomic>
+#include <condition_variable>
 
 namespace uvgrtp {
 

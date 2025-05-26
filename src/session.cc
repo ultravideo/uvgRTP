@@ -89,7 +89,7 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t port, rtp_format_t
     return create_stream(0, port, fmt, rce_flags);
 }
 
-uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags)
+uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t dst_port, rtp_format_t fmt, int rce_flags, uint32_t local_ssrc)
 {
     if (rce_flags & RCE_OBSOLETE) {
         UVG_LOG_WARN("You are using a flag that has either been removed or has been enabled by default. Consider updating RCE flags");
@@ -160,7 +160,7 @@ uvgrtp::media_stream* uvgrtp::session::create_stream(uint16_t src_port, uint16_t
     }
     
     uvgrtp::media_stream* stream =
-        new uvgrtp::media_stream(pimpl_->cname_, pimpl_->remote_address_, pimpl_->local_address_, src_port, dst_port, fmt, pimpl_->sf_, rce_flags);
+        new uvgrtp::media_stream(pimpl_->cname_, pimpl_->remote_address_, pimpl_->local_address_, src_port, dst_port, fmt, pimpl_->sf_, rce_flags, local_ssrc);
 
     if (rce_flags & RCE_SRTP) {
 

@@ -5,10 +5,10 @@
 
 uvgrtp::media_stream::media_stream(std::string cname, std::string remote_addr,
     std::string local_addr, uint16_t src_port, uint16_t dst_port, rtp_format_t fmt,
-    std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags):
+    std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags, uint32_t ssrc):
     impl_(new media_stream_internal(
         std::move(cname), std::move(remote_addr), std::move(local_addr),
-        src_port, dst_port, fmt, std::move(sfp), rce_flags))
+        src_port, dst_port, fmt, std::move(sfp), rce_flags, ssrc))
 {}
 
 uvgrtp::media_stream::~media_stream()

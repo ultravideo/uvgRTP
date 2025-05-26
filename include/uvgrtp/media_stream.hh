@@ -376,7 +376,7 @@ namespace uvgrtp {
         private:
 
             media_stream(std::string cname, std::string remote_addr, std::string local_addr, uint16_t src_port, uint16_t dst_port,
-                rtp_format_t fmt, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags);
+                rtp_format_t fmt, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags, uint32_t ssrc = 0);
             ~media_stream();
 
            media_stream_internal* impl_;
