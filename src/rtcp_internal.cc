@@ -4,7 +4,6 @@
 #include "uvgrtp/frame.hh"
 
 #include "socket.hh"
-#include "hostname.hh"
 #include "poll.hh"
 #include "rtp.hh"
 #include "debug.hh"
@@ -27,9 +26,6 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
-#include <set>
-#include <algorithm>
 #include <random>
 
 
@@ -39,19 +35,16 @@ const uint32_t MIN_SEQUENTIAL = 2;
 const uint32_t MAX_DROPOUT = 3000;
 const uint32_t MAX_MISORDER = 100;
 const uint32_t DEFAULT_RTCP_INTERVAL_MS = 5000;
-const int MAX_PACKET = 65536;
-
-constexpr int ESTIMATED_MAX_RECEPTION_TIME_MS = 10;
 
 const uint32_t MAX_SUPPORTED_PARTICIPANTS = 31;
 
 uvgrtp::rtcp_internal::rtcp_internal(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::shared_ptr<std::atomic<uint32_t>> remote_ssrc,
     std::string cname, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags) :
-    rce_flags_(rce_flags), our_role_(RECEIVER),
+    rce_flags_(rce_flags),
     tp_(0), tc_(0), tn_(0),
     pmembers_(0), members_(0), senders_(0),
     total_bandwidth_(0), rtcp_bandwidth_(0), reduced_minimum_(0),
-    we_sent_(false), local_addr_(""), remote_addr_(""), local_port_(0), dst_port_(0),
+    local_addr_(""), remote_addr_(""), local_port_(0), dst_port_(0),
     avg_rtcp_pkt_pize_(0), avg_rtcp_size_(64), rtcp_pkt_count_(0), rtcp_byte_count_(0),
     rtcp_pkt_sent_count_(0), initial_(true), ssrc_(ssrc), remote_ssrc_(remote_ssrc),
     num_receivers_(0),
@@ -392,7 +385,6 @@ rtp_error_t uvgrtp::rtcp_internal::add_initial_participant(uint32_t clock_rate)
 
     zero_stats(&p->stats);
 
-    p->role = RECEIVER;
     p->stats.clock_rate = clock_rate;
 
     initial_participants_.push_back(std::move(p));
@@ -841,24 +833,6 @@ void uvgrtp::rtcp_internal::set_ts_info(uint64_t clock_start, uint32_t clock_rat
     rtp_ts_start_ = rtp_ts_start;
 }
 
-void uvgrtp::rtcp_internal::sender_update_stats(const uvgrtp::frame::rtp_frame* frame)
-{
-    if (!frame)
-    {
-        return;
-    }
-
-    if (frame->payload_len > UINT32_MAX)
-    {
-        UVG_LOG_ERROR("Payload size larger than uint32 max which is not supported by RFC 3550");
-        return;
-    }
-
-    our_stats.sent_pkts += 1;
-    our_stats.sent_bytes += (uint32_t)frame->payload_len;
-    our_stats.sent_rtp_packet = true;
-}
-
 rtp_error_t uvgrtp::rtcp_internal::init_new_participant(const uvgrtp::frame::rtp_frame* frame)
 {
     rtp_error_t ret;
@@ -904,11 +878,6 @@ rtp_error_t uvgrtp::rtcp_internal::init_new_participant(const uvgrtp::frame::rtp
 
 rtp_error_t uvgrtp::rtcp_internal::update_sender_stats(size_t pkt_size)
 {
-    if (our_role_ == RECEIVER)
-    {
-        our_role_ = SENDER;
-    }
-
     if (our_stats.sent_bytes + pkt_size > UINT32_MAX)
     {
         UVG_LOG_ERROR("Sent bytes overflow");
@@ -917,7 +886,6 @@ rtp_error_t uvgrtp::rtcp_internal::update_sender_stats(size_t pkt_size)
     our_stats.sent_pkts += 1;
     our_stats.sent_bytes += (uint32_t)pkt_size;
     our_stats.sent_rtp_packet = true;
-    we_sent_ = true;
 
     return RTP_OK;
 }
@@ -1795,12 +1763,11 @@ uint32_t uvgrtp::rtcp_internal::size_of_compound_packet(uint16_t reports,
     if (sr_packet)
     {
         compound_packet_size = get_sr_packet_size(rce_flags_, reports);
-        UVG_LOG_DEBUG("Sending SR. Compound packet size: %li", compound_packet_size);
     }
     else if (rr_packet)
     {
         compound_packet_size = get_rr_packet_size(rce_flags_, reports);
-        UVG_LOG_DEBUG("Sending RR. Compound packet size: %li", compound_packet_size);
+
     }
     else
     {
@@ -1811,19 +1778,16 @@ uint32_t uvgrtp::rtcp_internal::size_of_compound_packet(uint16_t reports,
     if (sdes_packet)
     {
         compound_packet_size += get_sdes_packet_size(ourItems_);
-        UVG_LOG_DEBUG("Sending SDES. Compound packet size: %li", compound_packet_size);
     }
 
     if (app_size != 0)
     {
         compound_packet_size += app_size;
-        UVG_LOG_DEBUG("Sending APP. Compound packet size: %li", compound_packet_size);
     }
 
     if (bye_packet)
     {
         compound_packet_size += get_bye_packet_size(bye_ssrcs_);
-        UVG_LOG_DEBUG("Sending BYE. Compound packet size: %li", compound_packet_size);
     }
 
     compound_packet_size += get_security_overhead_size(rce_flags_);
@@ -1843,8 +1807,8 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
     std::lock_guard<std::mutex> lock(packet_mutex_);
     rtcp_pkt_sent_count_++;
 
-    bool sr_packet = our_role_ == SENDER && our_stats.sent_rtp_packet;
-    bool rr_packet = our_role_ == RECEIVER || our_stats.sent_rtp_packet == 0;
+    bool sr_packet = our_stats.sent_rtp_packet;
+    bool rr_packet = !our_stats.sent_rtp_packet;
     bool sdes_packet = true;
     uint32_t app_packets_size = size_of_ready_app_packets();
     bool bye_packet = !bye_ssrcs_.empty();
@@ -1895,8 +1859,13 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
 
     size_t write_ptr = 0;
     uint32_t ssrc = *ssrc_.get();
+
+    UVG_LOG_DEBUG("Sending RTCP packet from SSRC %lu. Compound packet size: %li", ssrc, compound_packet_size);
+
     if (sr_packet)
     {
+        UVG_LOG_DEBUG("Including SR. Our SSRC: %li", ssrc);
+
         // sender reports have sender information in addition compared to receiver reports
         size_t sender_report_size = get_sr_packet_size(rce_flags_, reports);
 
@@ -1938,6 +1907,7 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
     }
     else if (rr_packet) { // RECEIVER
 
+        UVG_LOG_DEBUG("Including RR with %li reports", reports);
         size_t receiver_report_size = get_rr_packet_size(rce_flags_, reports);
 
         if (!construct_rtcp_header(frame, write_ptr, receiver_report_size, reports, uvgrtp::frame::RTCP_FT_RR) ||
@@ -1970,7 +1940,7 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
             /* Calculate number of packets lost */
             uint32_t lost = expected - p.second->stats.received_pkts;
             // clamp lost at 0x7fffff for positive loss and 0x800000 for negative loss
-            if (lost > 8388608) {
+            if (lost > 8388608) { // TODO: Lost is never read after this
                 lost = 8388608;
             }
             else if (lost < 8388607) {
@@ -2015,6 +1985,8 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
 
     if (sdes_packet)
     {
+        UVG_LOG_DEBUG("Including SDES with %li items", ourItems_.size());
+
         uvgrtp::frame::rtcp_sdes_chunk chunk;
         for (auto i = ourItems_.begin(); i != ourItems_.end(); ++i)
         {
@@ -2036,6 +2008,7 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
 
     if (app_packets_size != 0)
     {
+        UVG_LOG_DEBUG("Including %li APP packets", outgoing_apps_.size() + app_packets_.size());
         if (hooked_app_) {
             for (auto& pkt : outgoing_apps_) {
                 if (!construct_app_block(frame, write_ptr, pkt->subtype & 0x1f, *ssrc_.get(), pkt->name, std::move(pkt->payload), pkt->payload_len))
@@ -2070,6 +2043,7 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
     // BYE is last if it is sent
     if (bye_packet)
     {
+        UVG_LOG_DEBUG("Including BYE");
         // header construction does not add our ssrc for BYE
         uint8_t secondField = (bye_ssrcs_.size() & 0x1f);
         if (!construct_rtcp_header(frame, write_ptr, get_bye_packet_size(bye_ssrcs_), secondField,

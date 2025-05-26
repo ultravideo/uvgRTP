@@ -71,12 +71,6 @@ namespace uvgrtp {
 
     typedef std::vector<std::pair<size_t, uint8_t*>> buf_vec; // also defined in socket.hh
 
-    /// \cond DO_NOT_DOCUMENT
-    enum RTCP_ROLE {
-        RECEIVER,
-        SENDER
-    };
-
     struct sender_statistics {
         /* sender stats */
         uint32_t sent_pkts = 0;      /* Number of sent RTP packets */
@@ -211,9 +205,6 @@ namespace uvgrtp {
          *
          * Return RTP_OK on success and RTP_ERROR on error */
         rtp_error_t add_initial_participant(uint32_t clock_rate);
-
-        /* Functions for updating various RTP sender statistics */
-        void sender_update_stats(const uvgrtp::frame::rtp_frame* frame);
 
         /* If we've detected that our SSRC has collided with someone else's SSRC, we need to
          * generate new random SSRC and reinitialize our own RTCP state.
@@ -546,9 +537,6 @@ namespace uvgrtp {
         /* RTP context flags */
         int rce_flags_;
 
-        /* are we a sender (and possible a receiver) or just a receiver */
-        int our_role_;
-
         /* TODO: time_t?? */
         // TODO: Check these, they don't seem to be used
         size_t tp_;       /* the last time an RTCP packet was transmitted */
@@ -570,11 +558,6 @@ namespace uvgrtp {
         /* "Minimum" value for RTCP transmission interval, depends on the session bandwidth
         *  Actual interval can be 50 % smaller due to randomisation */
         uint32_t reduced_minimum_;
-
-        /* Flag that is true if the application has sent data since
-         * the 2nd previous RTCP report was transmitted. */
-         // TODO: Only set, never read
-        bool we_sent_;
 
         /* Store sender and receiver info, this is needed when calling
         *  add_participant dynamically (i.e. after initializing the stream) */
