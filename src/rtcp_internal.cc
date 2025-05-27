@@ -645,7 +645,7 @@ rtp_error_t uvgrtp::rtcp_internal::install_app_hook(std::function<void(std::shar
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::rtcp_internal::install_roundtrip_time_hook(std::function<void(double)> rtt_handler)
+rtp_error_t uvgrtp::rtcp_internal::install_roundtrip_time_hook(std::function<void(uint32_t, uint32_t, double)> rtt_handler)
 {
     if (!rtt_handler)
     {
@@ -1310,7 +1310,7 @@ void uvgrtp::rtcp_internal::read_reports(const uint8_t* buffer, size_t& read_ptr
                     if (report.lsr != 0 || report.dlsr != 0)
                     {
                       uint32_t RTT = (arrival_timestamp - report.lsr) - report.dlsr;
-                      rtt_hook_((static_cast<double>(RTT) / 65536.0) * 1000.0);
+                      rtt_hook_(ssrc_->load(), frame_ssrc, (static_cast<double>(RTT) / 65536.0) * 1000.0);
                     }
                     else
                     {

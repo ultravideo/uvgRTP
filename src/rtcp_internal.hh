@@ -369,7 +369,7 @@ namespace uvgrtp {
          * \retval RTP_OK on success
          * \retval RTP_INVALID_VALUE If hook is nullptr
          */
-        rtp_error_t install_roundtrip_time_hook(std::function<void(double)> rtt_handler);
+        rtp_error_t install_roundtrip_time_hook(std::function<void (uint32_t, uint32_t, double)> rtt_handler);
 
 
         /// \cond DO_NOT_DOCUMENT
@@ -649,7 +649,7 @@ namespace uvgrtp {
         std::function<void(std::shared_ptr<uvgrtp::frame::rtcp_app_packet>)>      app_hook_f_;
         std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>)>      app_hook_u_;
         //std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_fb_packet>)>       fb_hook_u_;
-        std::function<void(double)>                                               rtt_hook_;
+        std::function<void(uint32_t, uint32_t, double)>                           rtt_hook_;
 
         std::mutex sr_mutex_;
         std::mutex rr_mutex_;
