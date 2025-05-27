@@ -1280,7 +1280,7 @@ void uvgrtp::rtcp_internal::read_rtcp_header(const uint8_t* buffer, size_t& read
     read_ptr += RTCP_HEADER_SIZE;
 }
 
-void uvgrtp::rtcp_internal::read_reports(const uint8_t* buffer, size_t& read_ptr, size_t packet_end, uint8_t count,
+void uvgrtp::rtcp_internal::read_reports(const uint8_t* buffer, size_t& read_ptr, size_t packet_end, uint8_t count, uint32_t frame_ssrc,
     std::vector<uvgrtp::frame::rtcp_report_block>& reports)
 {
     for (int i = 0; i < count; ++i)
@@ -1298,6 +1298,27 @@ void uvgrtp::rtcp_internal::read_reports(const uint8_t* buffer, size_t& read_ptr
 
             reports.push_back(report);
             read_ptr += REPORT_BLOCK_SIZE;
+
+            if (rtt_hook_ && report.ssrc == ssrc_->load())
+            {
+                auto sending_time = dlsr_timestamps_.find(frame_ssrc);
+                if (sending_time != dlsr_timestamps_.end())
+                {
+                    uint64_t rr_received_ntp = uvgrtp::clock::ntp::now();
+                    uint32_t arrival_timestamp = static_cast<uint32_t>((rr_received_ntp >> 16) & 0xFFFFFFFF); // When RR is received
+
+                    if (report.lsr != 0 || report.dlsr != 0)
+                    {
+                      uint32_t RTT = (arrival_timestamp - report.lsr) - report.dlsr;
+                      rtt_hook_((static_cast<double>(RTT) / 65536.0) * 1000.0);
+                    }
+                    else
+                    {
+                        UVG_LOG_WARN("Received RTCP report without LSR or DLSR, cannot calculate RTT");
+                    }
+                }
+            }
+
         }
         else {
             UVG_LOG_WARN("Received rtcp packet is smaller than the indicated number of reports!"
@@ -1336,22 +1357,7 @@ rtp_error_t uvgrtp::rtcp_internal::handle_receiver_report_packet(uint8_t* buffer
         add_participant(frame->ssrc);
     }
 
-    read_reports(buffer, read_ptr, packet_end, frame->header.count, frame->report_blocks);
-
-    if (rtt_hook_) {
-        auto sending_time = dlsr_timestamps_.find(frame->ssrc);
-        if (sending_time != dlsr_timestamps_.end()) {
-
-            if (!frame->report_blocks.empty()) {
-                uint64_t rr_received_ntp = uvgrtp::clock::ntp::now();
-                uint32_t arrival_timestamp = static_cast<uint32_t>((rr_received_ntp >> 16) & 0xFFFFFFFF); // When RR is received
-                uint64_t dlsr = frame->report_blocks[0].dlsr;
-                uint32_t LSR = frame->report_blocks[0].lsr;
-                uint32_t RTT = (arrival_timestamp - LSR) - dlsr;
-                rtt_hook_((static_cast<double>(RTT) / 65536.0) * 1000.0);
-            }
-        }
-    }
+    read_reports(buffer, read_ptr, packet_end, frame->header.count, frame->ssrc, frame->report_blocks);
 
     rr_mutex_.lock();
     if (receiver_hook_) {
@@ -1405,7 +1411,7 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sender_report_packet(uint8_t* buffer, 
         (frame->sender_info.ntp_lsw >> 16);
     participants_mutex_.unlock();
 
-    read_reports(buffer, read_ptr, packet_end, frame->header.count, frame->report_blocks);
+    read_reports(buffer, read_ptr, packet_end, frame->header.count, frame->ssrc, frame->report_blocks);
 
     sr_mutex_.lock();
     if (sender_hook_) {

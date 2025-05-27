@@ -441,8 +441,12 @@ namespace uvgrtp {
         /* read the header values from rtcp packet */
         void read_rtcp_header(const uint8_t* buffer, size_t& read_ptr,
             uvgrtp::frame::rtcp_header& header);
-        void read_reports(const uint8_t* buffer, size_t& read_ptr, size_t packet_end, uint8_t count,
-            std::vector<uvgrtp::frame::rtcp_report_block>& reports);
+        void read_reports(const uint8_t* buffer,
+                          size_t& read_ptr,
+                          size_t packet_end,
+                          uint8_t count,
+                          uint32_t frame_ssrc,
+                          std::vector<uvgrtp::frame::rtcp_report_block>& reports);
 
         void read_ssrc(const uint8_t* buffer, size_t& read_ptr, uint32_t& out_ssrc);
 
