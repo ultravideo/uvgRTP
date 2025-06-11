@@ -36,16 +36,16 @@ uvgrtp::zrtp::zrtp():
     remote_addr_(),
     remote_ip6_addr_(),
     hello_(nullptr),
+    hello_len_(0),
     hello_ack_(nullptr),
     commit_(nullptr),
+    commit_len_(0),
     dh1_(nullptr),
     dh2_(nullptr),
+    dh_len_(0),
     conf1_(nullptr),
     conf2_(nullptr),
     confack_(nullptr),
-    hello_len_(0),
-    commit_len_(0),
-    dh_len_(0),
     zrtp_busy_(false)
 {
     cctx_.sha256 = new uvgrtp::crypto::sha256;

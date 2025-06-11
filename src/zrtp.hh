@@ -201,7 +201,7 @@ namespace uvgrtp {
 
             /* Has the ZRTP connection been initialized using DH */
             bool initialized_;
-            bool dh_finished_ = false;
+            bool dh_finished_;
 
             std::shared_ptr<uvgrtp::socket> local_socket_;
             sockaddr_in remote_addr_;
