@@ -65,6 +65,8 @@ namespace uvgrtp {
             /* Use custom timestamp for the outgoing RTP packets */
             uint64_t timestamp_;
 
+            bool custom_ntp_;
+
             /* custom NTP timestamp of when the RTP packet was SAMPLED */
             uint64_t sampling_ntp_;
 

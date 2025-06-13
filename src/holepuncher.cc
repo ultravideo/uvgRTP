@@ -45,9 +45,9 @@ rtp_error_t uvgrtp::holepuncher::set_remote_address(sockaddr_in& addr, sockaddr_
     return RTP_OK;
 }
 
-
 void uvgrtp::holepuncher::notify()
 {
+    // I think this prevents us from sending packets when we don't need to
     last_dgram_sent_ = uvgrtp::clock::ntp::now();
 }
 
@@ -55,11 +55,13 @@ void uvgrtp::holepuncher::keepalive()
 {
     UVG_LOG_DEBUG("Starting holepuncher");
 
+    last_dgram_sent_ = uvgrtp::clock::ntp::now();
+
     /* RFC 6263 https://datatracker.ietf.org/doc/html/rfc6263
      * The RFC above describes several methods of implementing keep-alive. One of them (described in section 4.1) is
      * sending empty (0-Byte) packets, which is implemented here.
      * Another method (section 4.3) is multiplexing RTCP and RTP packets into a single socket, which keeps the connection
-     * alive at all times with RTCP packets. This will be implemented into uvgRTP in the future. */
+     * alive at all times with RTCP packets.  */
     while (active_) {
         if (uvgrtp::clock::ntp::diff_now(last_dgram_sent_) < THRESHOLD) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));

@@ -32,6 +32,7 @@ uvgrtp::rtp::rtp(rtp_format_t fmt, std::shared_ptr<std::atomic<std::uint32_t>> s
     wc_start_2(),
     sent_pkts_(0),
     timestamp_(INVALID_TS),
+    custom_ntp_(false),
     sampling_ntp_(0),
     rtp_ts_(0),
     delay_(PKT_MAX_DELAY_MS)
@@ -171,6 +172,11 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer, bool use_old_ts)
         else {
             *(uint32_t*)&buffer[4] = htonl((u_long)timestamp_);
             rtp_ts_ = timestamp_;
+
+            if (!custom_ntp_)
+            {
+              sampling_ntp_ = uvgrtp::clock::ntp::now();
+            }
         }
     }
     else if (timestamp_ == INVALID_TS) {
@@ -191,6 +197,11 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer, bool use_old_ts)
     else {
         *(uint32_t *)&buffer[4] = htonl((u_long)timestamp_);
         rtp_ts_ = timestamp_;
+
+        if (!custom_ntp_)
+        {
+            sampling_ntp_ = uvgrtp::clock::ntp::now();
+        }
     }
 }
 
@@ -236,6 +247,7 @@ size_t uvgrtp::rtp::get_pkt_max_delay() const
 
 void uvgrtp::rtp::set_sampling_ntp(uint64_t ntp_ts) {
     sampling_ntp_ = ntp_ts;
+    custom_ntp_ = true;
 }
 
 uint64_t uvgrtp::rtp::get_sampling_ntp() const {
