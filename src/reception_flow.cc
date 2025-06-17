@@ -517,6 +517,14 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
 
             if (ring_buffer_[ring_read_index_].read > 0)
             {
+                if (ring_buffer_[ring_read_index_].read < 12)
+                {
+                    UVG_LOG_DEBUG("Ignoring packet: too small to be RTP/RTCP (size: %zu)", ring_buffer_[ring_read_index_].read);
+                    ring_buffer_[ring_read_index_].read = 0;
+                    ++processed_packets;
+                    continue;
+                }
+
                 /* When processing a packet, the following checks are done
                  * 1. If there is only a single set of handlers installed, there is no socket multiplexing. All packets
                  *    to to this handler
