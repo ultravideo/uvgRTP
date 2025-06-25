@@ -41,8 +41,7 @@ const uint32_t MAX_SUPPORTED_PARTICIPANTS = 31;
 uvgrtp::rtcp_internal::rtcp_internal(std::shared_ptr<uvgrtp::rtp> rtp, std::shared_ptr<std::atomic_uint> ssrc, std::shared_ptr<std::atomic<uint32_t>> remote_ssrc,
     std::string cname, std::shared_ptr<uvgrtp::socketfactory> sfp, int rce_flags) :
     rce_flags_(rce_flags),
-    tp_(0), tc_(0), tn_(0),
-    pmembers_(0), members_(0), senders_(0),
+    members_(0),
     total_bandwidth_(0), rtcp_bandwidth_(0), reduced_minimum_(0),
     local_addr_(""), remote_addr_(""), local_port_(0), dst_port_(0),
     avg_rtcp_pkt_pize_(0), avg_rtcp_size_(64), rtcp_pkt_count_(0), rtcp_byte_count_(0),
@@ -317,11 +316,13 @@ void uvgrtp::rtcp_internal::rtcp_runner(rtcp_internal* rtcp)
             UVG_LOG_INFO("Failed to send RTCP status report!");
         }
 
+        int senders = 1;
+
         //Here we check if there are any timed out sources
         //This vector collects the ssrcs of timed out sources
         std::vector<uint32_t> ssrcs_to_be_removed = {};
         for (auto it = rtcp->ms_since_last_rep_.begin(); it != rtcp->ms_since_last_rep_.end(); ++it) {
-            double timeout_interval_s = rtcp->rtcp_interval(int(rtcp->members_), 1, rtcp->rtcp_bandwidth_,
+            double timeout_interval_s = rtcp->rtcp_interval(int(rtcp->members_), senders, rtcp->rtcp_bandwidth_,
                 true, (double)rtcp->avg_rtcp_size_, false, false);
             it->second += uint32_t(current_interval_ms);
             if (it->second > 5 * 1000 * timeout_interval_s) {
@@ -337,7 +338,7 @@ void uvgrtp::rtcp_internal::rtcp_runner(rtcp_internal* rtcp)
         // Number of senders is hard set to 1, because it is not updated anywhere.
         // TODO: Keep track of senders and update it here too
         // Same goes for we_sent also, it is always set to true. TODO: fix this
-        double interval_s = rtcp->rtcp_interval(int(rtcp->members_), 1, rtcp->rtcp_bandwidth_,
+        double interval_s = rtcp->rtcp_interval(int(rtcp->members_), senders, rtcp->rtcp_bandwidth_,
             true, (double)rtcp->avg_rtcp_size_, true, true);
         current_interval_ms = (uint32_t)round(1000 * interval_s);
 
@@ -1046,8 +1047,6 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
       participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
       participants_[frame->header.ssrc]->stats.initial_ntp = uvgrtp::clock::ntp::now();
       participants_mutex_.unlock();
-
-      senders_++;
 
       if (ret != RTP_OK)
       {
@@ -2149,7 +2148,6 @@ rtp_error_t uvgrtp::rtcp_internal::remove_timeout_ssrc(uint32_t ssrc)
         members_ -= 1;
     }
     return RTP_OK;
-
 }
 
 double uvgrtp::rtcp_internal::rtcp_interval(int members, int senders,

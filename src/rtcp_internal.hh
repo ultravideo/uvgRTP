@@ -538,14 +538,7 @@ namespace uvgrtp {
         /* RTP context flags */
         int rce_flags_;
 
-        /* TODO: time_t?? */
-        // TODO: Check these, they don't seem to be used
-        size_t tp_;       /* the last time an RTCP packet was transmitted */
-        size_t tc_;       /* the current time */
-        size_t tn_;       /* the next scheduled transmission time of an RTCP packet */
-        size_t pmembers_; /* the estimated number of session members at the time tn was last recomputed */
         size_t members_;  /* the most current estimate for the number of session members */
-        size_t senders_;  /* the most current estimate for the number of senders in the session */
 
         /* Total session bandwidth. RTCP bandwidth will be set to 5 % of this */
         uint32_t total_bandwidth_;
