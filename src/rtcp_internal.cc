@@ -1035,18 +1035,6 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
       {
         return ret;
       }
-      participants_mutex_.lock();
-      /* Set the probation to MIN_SEQUENTIAL (2)
-     *
-     * What this means is that we must receive at least two packets from SSRC
-     * with sequential RTP sequence numbers for this peer to be considered valid */
-      participants_[frame->header.ssrc]->probation = MIN_SEQUENTIAL;
-
-      /* This is the first RTP frame from remote to frame->header.timestamp represents t = 0
-     * Save the timestamp and current NTP timestamp so we can do jitter calculations later on */
-      participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
-      participants_[frame->header.ssrc]->stats.initial_ntp = uvgrtp::clock::ntp::now();
-      participants_mutex_.unlock();
 
       if (ret != RTP_OK)
       {
@@ -1064,7 +1052,21 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
         }
     }
 
+    participants_mutex_.lock();
 
+    if (participants_[frame->header.ssrc]->stats.initial_ntp == 0) {
+      /* Set the probation to MIN_SEQUENTIAL (2)
+       *
+       * What this means is that we must receive at least two packets from SSRC
+       * with sequential RTP sequence numbers for this peer to be considered valid */
+      participants_[frame->header.ssrc]->probation = MIN_SEQUENTIAL;
+
+      /* This is the first RTP frame from remote to frame->header.timestamp represents t = 0
+       * Save the timestamp and current NTP timestamp so we can do jitter calculations later on */
+      participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
+      participants_[frame->header.ssrc]->stats.initial_ntp = uvgrtp::clock::ntp::now();
+    }
+    participants_mutex_.unlock();
 
     /* Finally update the jitter/transit/received/dropped bytes/pkts statistics */
     rtcp->update_session_statistics(frame);
