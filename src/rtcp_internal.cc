@@ -829,49 +829,6 @@ void uvgrtp::rtcp_internal::set_ts_info(uint64_t clock_start, uint32_t clock_rat
     rtp_ts_start_ = rtp_ts_start;
 }
 
-rtp_error_t uvgrtp::rtcp_internal::init_new_participant(const uvgrtp::frame::rtp_frame* frame)
-{
-    rtp_error_t ret;
-    uint32_t sender_ssrc = frame->header.ssrc;
-
-    if ((ret = add_initial_participant(clock_rate_)) != RTP_OK) {
-        return ret;
-    }
-
-    if (ms_since_last_rep_.find(sender_ssrc) != ms_since_last_rep_.end()) {
-        ms_since_last_rep_.at(sender_ssrc) = 0;
-    }
-    else {
-        ms_since_last_rep_.insert({ sender_ssrc, 0 });
-    }
-
-    if ((ret = uvgrtp::rtcp_internal::add_participant(frame->header.ssrc)) != RTP_OK)
-    {
-        return ret;
-    }
-
-    if ((ret = uvgrtp::rtcp_internal::init_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK)
-    {
-        return ret;
-    }
-    participants_mutex_.lock();
-    /* Set the probation to MIN_SEQUENTIAL (2)
-     *
-     * What this means is that we must receive at least two packets from SSRC
-     * with sequential RTP sequence numbers for this peer to be considered valid */
-    participants_[frame->header.ssrc]->probation = MIN_SEQUENTIAL;
-
-    /* This is the first RTP frame from remote to frame->header.timestamp represents t = 0
-     * Save the timestamp and current NTP timestamp so we can do jitter calculations later on */
-    participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
-    participants_[frame->header.ssrc]->stats.initial_ntp = uvgrtp::clock::ntp::now();
-    participants_mutex_.unlock();
-
-    senders_++;
-
-    return ret;
-}
-
 rtp_error_t uvgrtp::rtcp_internal::update_sender_stats(size_t pkt_size)
 {
     if (our_stats.sent_bytes + pkt_size > UINT32_MAX)
@@ -1055,11 +1012,48 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
     rtp_error_t ret = RTP_OK;
     if (!rtcp->is_participant(frame->header.ssrc))
     {
-        if ((rtcp->init_new_participant(frame)) != RTP_OK)
-        {
-            UVG_LOG_ERROR("Failed to initiate new participant");
-            return RTP_GENERIC_ERROR;
-        }
+      uint32_t sender_ssrc = frame->header.ssrc;
+
+      if ((ret = add_initial_participant(clock_rate_)) != RTP_OK) {
+        return ret;
+      }
+
+      if (ms_since_last_rep_.find(sender_ssrc) != ms_since_last_rep_.end()) {
+        ms_since_last_rep_.at(sender_ssrc) = 0;
+      }
+      else {
+        ms_since_last_rep_.insert({ sender_ssrc, 0 });
+      }
+
+      if ((ret = uvgrtp::rtcp_internal::add_participant(frame->header.ssrc)) != RTP_OK)
+      {
+        return ret;
+      }
+
+      if ((ret = uvgrtp::rtcp_internal::init_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK)
+      {
+        return ret;
+      }
+      participants_mutex_.lock();
+      /* Set the probation to MIN_SEQUENTIAL (2)
+     *
+     * What this means is that we must receive at least two packets from SSRC
+     * with sequential RTP sequence numbers for this peer to be considered valid */
+      participants_[frame->header.ssrc]->probation = MIN_SEQUENTIAL;
+
+      /* This is the first RTP frame from remote to frame->header.timestamp represents t = 0
+     * Save the timestamp and current NTP timestamp so we can do jitter calculations later on */
+      participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
+      participants_[frame->header.ssrc]->stats.initial_ntp = uvgrtp::clock::ntp::now();
+      participants_mutex_.unlock();
+
+      senders_++;
+
+      if (ret != RTP_OK)
+      {
+        UVG_LOG_ERROR("Failed to initiate new participant");
+        return ret;
+      }
     }
     else if ((ret = rtcp->update_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK) {
         if (ret == RTP_NOT_READY) {
@@ -1070,6 +1064,8 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
             return ret;
         }
     }
+
+
 
     /* Finally update the jitter/transit/received/dropped bytes/pkts statistics */
     rtcp->update_session_statistics(frame);

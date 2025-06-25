@@ -485,10 +485,6 @@ namespace uvgrtp {
         /* Move participant from initial_peers_ to participants_ */
         rtp_error_t add_participant(uint32_t ssrc);
 
-        /* We've got a message from new source (the SSRC of the frame is not known to us)
-         * Initialize statistics for the peer and move it to participants_ */
-        rtp_error_t init_new_participant(const uvgrtp::frame::rtp_frame* frame);
-
         /* Initialize the RTP Sequence related stuff of peer
          * This function assumes that the peer already exists in the participants_ map */
         rtp_error_t init_participant_seq(uint32_t ssrc, uint16_t base_seq);
