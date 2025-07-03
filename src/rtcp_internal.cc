@@ -378,46 +378,52 @@ rtp_error_t uvgrtp::rtcp_internal::clear_sdes_items()
 
 rtp_error_t uvgrtp::rtcp_internal::add_initial_participant(uint32_t clock_rate)
 {
-    std::unique_ptr<rtcp_participant> p = std::unique_ptr<rtcp_participant>(new rtcp_participant());
+    std::lock_guard<std::mutex> prtcp_lock(runner_mutex_);
+    if (active_)
+    {
+        std::unique_ptr<rtcp_participant> p = std::unique_ptr<rtcp_participant>(new rtcp_participant());
 
-    zero_stats(&p->stats);
+        zero_stats(&p->stats);
 
-    p->stats.clock_rate = clock_rate;
+        p->stats.clock_rate = clock_rate;
 
-    initial_participants_.push_back(std::move(p));
-    members_ += 1;
+        initial_participants_.push_back(std::move(p));
+        members_ += 1;
+    }
 
     return RTP_OK;
 }
 
 rtp_error_t uvgrtp::rtcp_internal::add_participant(uint32_t ssrc)
 {
-    if (num_receivers_ == MAX_SUPPORTED_PARTICIPANTS)
+    std::lock_guard<std::mutex> prtcp_lock(runner_mutex_);
+    if (active_)
     {
-        UVG_LOG_ERROR("Maximum number of RTCP participants reached.");
-        // TODO: Support more participants by sending multiple messages at the same time
-        return RTP_GENERIC_ERROR;
-    }
+        if (num_receivers_ == MAX_SUPPORTED_PARTICIPANTS)
+        {
+            UVG_LOG_ERROR("Maximum number of RTCP participants reached.");
+            // TODO: Support more participants by sending multiple messages at the same time
+            return RTP_GENERIC_ERROR;
+        }
 
-    participants_mutex_.lock();
-    /* RTCP is not in use for this media stream,
-     * create a "fake" participant that is only used for storing statistics information */
-    if (initial_participants_.empty())
-    {
-        participants_[ssrc] = std::unique_ptr<rtcp_participant>(new rtcp_participant());
-        zero_stats(&participants_[ssrc]->stats);
-    }
-    else {
-        participants_[ssrc] = std::move(initial_participants_.back());
-        initial_participants_.pop_back();
-    }
-    num_receivers_++;
+        /* RTCP is not in use for this media stream,
+         * create a "fake" participant that is only used for storing statistics information */
+        if (initial_participants_.empty())
+        {
+            participants_[ssrc] = std::unique_ptr<rtcp_participant>(new rtcp_participant());
+            zero_stats(&participants_[ssrc]->stats);
+        }
+        else {
+            participants_[ssrc] = std::move(initial_participants_.back());
+            initial_participants_.pop_back();
+        }
+        num_receivers_++;
 
-    participants_[ssrc]->rr_frame = nullptr;
-    participants_[ssrc]->sr_frame = nullptr;
-    participants_[ssrc]->sdes_frame = nullptr;
-    participants_[ssrc]->app_frame = nullptr;
-    participants_mutex_.unlock();
+        participants_[ssrc]->rr_frame = nullptr;
+        participants_[ssrc]->sr_frame = nullptr;
+        participants_[ssrc]->sdes_frame = nullptr;
+        participants_[ssrc]->app_frame = nullptr;
+    }
 
     return RTP_OK;
 }
@@ -755,20 +761,6 @@ uvgrtp::frame::rtcp_app_packet* uvgrtp::rtcp_internal::get_app_packet(uint32_t s
     return frame;
 }
 
-
-std::vector<uint32_t> uvgrtp::rtcp_internal::get_participants() const
-{
-    std::vector<uint32_t> ssrcs;
-
-    for (auto& i : participants_)
-    {
-        std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
-        ssrcs.push_back(i.first);
-    }
-
-    return ssrcs;
-}
-
 void uvgrtp::rtcp_internal::update_rtcp_bandwidth(size_t pkt_size)
 {
     rtcp_pkt_count_ += 1;
@@ -819,7 +811,6 @@ void uvgrtp::rtcp_internal::zero_stats(uvgrtp::receiver_statistics* stats)
 
 bool uvgrtp::rtcp_internal::is_participant(uint32_t ssrc) const
 {
-    std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
     return participants_.find(ssrc) != participants_.end();
 }
 
@@ -846,7 +837,6 @@ rtp_error_t uvgrtp::rtcp_internal::update_sender_stats(size_t pkt_size)
 
 rtp_error_t uvgrtp::rtcp_internal::init_participant_seq(uint32_t ssrc, uint16_t base_seq)
 {
-    std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
     if (participants_.find(ssrc) == participants_.end())
     {
         return RTP_NOT_FOUND;
@@ -861,7 +851,6 @@ rtp_error_t uvgrtp::rtcp_internal::init_participant_seq(uint32_t ssrc, uint16_t 
 
 rtp_error_t uvgrtp::rtcp_internal::update_participant_seq(uint32_t ssrc, uint16_t seq)
 {
-    std::unique_lock<std::mutex> prtcp_lock(participants_mutex_);
     if (participants_.find(ssrc) == participants_.end())
     {
         UVG_LOG_ERROR("Did not find participant SSRC when updating seq");
@@ -881,7 +870,6 @@ rtp_error_t uvgrtp::rtcp_internal::update_participant_seq(uint32_t ssrc, uint16_
             participants_[ssrc]->stats.max_seq = seq;
             if (!participants_[ssrc]->probation)
             {
-                prtcp_lock.unlock();
                 uvgrtp::rtcp_internal::init_participant_seq(ssrc, seq);
                 return RTP_OK;
             }
@@ -909,9 +897,7 @@ rtp_error_t uvgrtp::rtcp_internal::update_participant_seq(uint32_t ssrc, uint16_
             /* Two sequential packets -- assume that the other side
              * restarted without telling us so just re-sync
              * (i.e., pretend this was the first packet).  */
-            prtcp_lock.unlock();
             uvgrtp::rtcp_internal::init_participant_seq(ssrc, seq);
-            prtcp_lock.lock();
         }
         else {
             participants_[ssrc]->stats.bad_seq = (seq + 1) & (RTP_SEQ_MOD - 1);
@@ -928,7 +914,7 @@ rtp_error_t uvgrtp::rtcp_internal::update_participant_seq(uint32_t ssrc, uint16_
 
 rtp_error_t uvgrtp::rtcp_internal::reset_rtcp_state(uint32_t ssrc)
 {
-    std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
+
     if (participants_.find(ssrc) != participants_.end())
     {
         return RTP_SSRC_COLLISION;
@@ -941,7 +927,6 @@ rtp_error_t uvgrtp::rtcp_internal::reset_rtcp_state(uint32_t ssrc)
 
 bool uvgrtp::rtcp_internal::collision_detected(uint32_t ssrc) const
 {
-    std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
     return participants_.find(ssrc) == participants_.end();
 }
 
@@ -949,8 +934,6 @@ void uvgrtp::rtcp_internal::update_session_statistics(const uvgrtp::frame::rtp_f
 {
     if (!frame)
         return;
-
-    std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
 
     if (participants_.find(frame->header.ssrc) == participants_.end())
     {
@@ -1004,6 +987,8 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
     uvgrtp::frame::rtp_frame* frame = *out;
     uvgrtp::rtcp_internal* rtcp = (uvgrtp::rtcp_internal*)arg;
 
+    std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
+
     /* If this is the first packet from remote, move the participant from initial_participants_
      * to participants_, initialize its state and put it on probation until enough valid
      * packets from them have been received
@@ -1042,17 +1027,6 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
         return ret;
       }
     }
-    else if ((ret = rtcp->update_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK) {
-        if (ret == RTP_NOT_READY) {
-            return RTP_OK;
-        }
-        else {
-            UVG_LOG_ERROR("Failed to update participant with seq %u", frame->header.seq);
-            return ret;
-        }
-    }
-
-    participants_mutex_.lock();
 
     if (participants_[frame->header.ssrc]->stats.initial_ntp == 0) {
       /* Set the probation to MIN_SEQUENTIAL (2)
@@ -1065,8 +1039,22 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
        * Save the timestamp and current NTP timestamp so we can do jitter calculations later on */
       participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
       participants_[frame->header.ssrc]->stats.initial_ntp = uvgrtp::clock::ntp::now();
+
+      ret = rtcp->update_participant_seq(frame->header.ssrc, frame->header.seq);
+      if (ret != RTP_OK && ret != RTP_NOT_READY) {
+        UVG_LOG_ERROR("Failed to update participant with seq %u", frame->header.seq);
+        return ret;
+      }
     }
-    participants_mutex_.unlock();
+    else if ((ret = rtcp->update_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK) {
+      if (ret == RTP_NOT_READY) {
+        return RTP_OK;
+      }
+      else {
+        UVG_LOG_ERROR("Failed to update participant with seq %u", frame->header.seq);
+        return ret;
+      }
+    }
 
     /* Finally update the jitter/transit/received/dropped bytes/pkts statistics */
     rtcp->update_session_statistics(frame);
@@ -1196,6 +1184,8 @@ rtp_error_t uvgrtp::rtcp_internal::handle_incoming_packet(void* args, int rce_fl
         }
 
         ret = RTP_INVALID_VALUE;
+
+        std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
 
         switch (header.pkt_type)
         {
@@ -1367,7 +1357,6 @@ rtp_error_t uvgrtp::rtcp_internal::handle_receiver_report_packet(uint8_t* buffer
         rr_hook_u_(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report>(frame));
     }
     else {
-        std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
         /* Deallocate previous frame from the buffer if it exists, it's going to get overwritten */
         if (participants_[frame->ssrc]->rr_frame)
         {
@@ -1393,7 +1382,6 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sender_report_packet(uint8_t* buffer, 
         add_participant(frame->ssrc);
     }
 
-    participants_mutex_.lock();
     participants_[frame->ssrc]->stats.sr_ts = uvgrtp::clock::hrc::now();
 
     frame->sender_info.ntp_msw = ntohl(*(uint32_t*)&buffer[read_ptr]);
@@ -1406,7 +1394,6 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sender_report_packet(uint8_t* buffer, 
     participants_[frame->ssrc]->stats.lsr =
         ((frame->sender_info.ntp_msw & 0xffff) << 16) |
         (frame->sender_info.ntp_lsw >> 16);
-    participants_mutex_.unlock();
 
     read_reports(buffer, read_ptr, packet_end, frame->header.count, frame->ssrc, frame->report_blocks);
 
@@ -1421,7 +1408,6 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sender_report_packet(uint8_t* buffer, 
         sr_hook_u_(std::unique_ptr<uvgrtp::frame::rtcp_sender_report>(frame));
     }
     else {
-        std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
         /* Deallocate previous frame from the buffer if it exists, it's going to get overwritten */
         if (participants_[frame->ssrc]->sr_frame)
         {
@@ -1498,7 +1484,6 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sdes_packet(uint8_t* packet, size_t& r
         sdes_hook_u_(std::unique_ptr<uvgrtp::frame::rtcp_sdes_packet>(frame));
     }
     else {
-        std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
         // Deallocate previous frame from the buffer if it exists, it's going to get overwritten
         if (participants_[sender_ssrc]->sdes_frame)
         {
@@ -1541,11 +1526,9 @@ rtp_error_t uvgrtp::rtcp_internal::handle_bye_packet(uint8_t* packet, size_t& re
 
         UVG_LOG_DEBUG("Destroying participant with BYE");
 
-        participants_mutex_.lock();
         free_participant(std::move(participants_[ssrc]));
         participants_.erase(ssrc);
         ms_since_last_rep_.erase(ssrc);
-        participants_mutex_.unlock();
     }
     // TODO: RFC3550 6.2.1: add a delay for deleting the member. This way if straggler packets
     // are received after deletion, deleted member wont be recreated
@@ -1599,7 +1582,6 @@ rtp_error_t uvgrtp::rtcp_internal::handle_app_packet(uint8_t* packet, size_t& re
         app_hook_u_(std::unique_ptr<uvgrtp::frame::rtcp_app_packet>(frame));
     }
     else {
-        std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
         if (participants_[frame->ssrc]->app_frame)
         {
             delete[] participants_[frame->ssrc]->app_frame->payload;
@@ -1811,7 +1793,7 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
     uint32_t app_packets_size = size_of_ready_app_packets();
     bool bye_packet = !bye_ssrcs_.empty();
 
-    // Unique lock unlocks when exiting the scope
+    // Unique lock unlocks when exiting the scope, locking can be deferred
     std::unique_lock<std::mutex> prtcp_lock(participants_mutex_);
     uint8_t reports = 0;
     for (auto& p : participants_)

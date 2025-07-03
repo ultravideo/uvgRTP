@@ -239,8 +239,6 @@ namespace uvgrtp {
         rtp_error_t set_network_addresses(std::string local_addr, std::string remote_addr,
             uint16_t local_port, uint16_t dst_port, bool ipv6);
 
-        /* Return SSRCs of all participants */
-        std::vector<uint32_t> get_participants() const;
         /// \endcond
 
         /**
