@@ -62,6 +62,7 @@ uvgrtp::rtcp_internal::rtcp_internal(std::shared_ptr<uvgrtp::rtp> rtp, std::shar
     sdes_hook_u_(nullptr),
     app_hook_f_(nullptr),
     app_hook_u_(nullptr),
+    rtt_hook_(nullptr),
     //fb_hook_u_(nullptr),
     sfp_(sfp),
     rtcp_reader_(nullptr),
@@ -1944,8 +1945,8 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
                 }
             }
 
-            uint64_t diff = (u_long)uvgrtp::clock::hrc::diff_now(p.second->stats.sr_ts);
-            uint32_t dlrs = (uint32_t)uvgrtp::clock::ms_to_jiffies(diff);
+            uint64_t diff_us = (u_long)uvgrtp::clock::hrc::diff_now_us(p.second->stats.sr_ts);
+            uint32_t dlrs = (uint32_t)uvgrtp::clock::us_to_jiffies(diff_us);
 
             /* calculate delay of last SR only if SR has been received at least once */
             if (p.second->stats.lsr == 0)

@@ -36,6 +36,10 @@ uint64_t uvgrtp::clock::ms_to_jiffies(uint64_t ms)
     return (uint64_t)(((double)ms / 1000) * 65536);
 }
 
+uint64_t uvgrtp::clock::us_to_jiffies(uint64_t us)
+{
+  return static_cast<uint64_t>((double(us) / 1000000.0) * 65536.0);
+}
 
 
 #ifdef _WIN32
