@@ -5,6 +5,11 @@
 
 #include <stdint.h>
 
+
+
+/* Currently this class uses millisecond precision, but it should be updated to use microseconds.
+ * The RTP spec offers a microsecond precision in things like jiffies so we should offer it to users */
+
 namespace uvgrtp {
     namespace clock {
 

@@ -99,8 +99,8 @@ namespace uvgrtp {
         uint32_t initial_rtp = 0;    /* RTP timestamp of the first RTP packet received */
         uint32_t clock_rate = 0;     /* Rate of the clock (used for jitter calculations) */
 
-        uint32_t lsr = 0;                /* Middle 32 bits of the 64-bit NTP timestamp of previous SR */
-        std::chrono::high_resolution_clock::time_point sr_ts; /* When the last SR was received (used to calculate delay) */
+        uint32_t lsr = 0;            /* Middle 32 bits of the 64-bit NTP timestamp of previous SR */
+        uint64_t sr_ts;              /* When the last SR was received (used to calculate delay) */
 
         uint16_t max_seq = 0;        /* Highest sequence number received */
         uint32_t base_seq = 0;       /* First sequence number received */

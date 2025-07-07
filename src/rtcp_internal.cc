@@ -1383,7 +1383,7 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sender_report_packet(uint8_t* buffer, 
         add_participant(frame->ssrc);
     }
 
-    participants_[frame->ssrc]->stats.sr_ts = uvgrtp::clock::hrc::now();
+    participants_[frame->ssrc]->stats.sr_ts = uvgrtp::clock::ntp::now();
 
     frame->sender_info.ntp_msw = ntohl(*(uint32_t*)&buffer[read_ptr]);
     frame->sender_info.ntp_lsw = ntohl(*(uint32_t*)&buffer[read_ptr + 4]);
@@ -1945,8 +1945,8 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
                 }
             }
 
-            uint64_t diff_us = (u_long)uvgrtp::clock::hrc::diff_now_us(p.second->stats.sr_ts);
-            uint32_t dlrs = (uint32_t)uvgrtp::clock::us_to_jiffies(diff_us);
+            uint64_t diff_ms = (u_long)uvgrtp::clock::ntp::diff_now(p.second->stats.sr_ts);
+            uint32_t dlrs = (uint32_t)uvgrtp::clock::ms_to_jiffies(diff_ms);
 
             /* calculate delay of last SR only if SR has been received at least once */
             if (p.second->stats.lsr == 0)
