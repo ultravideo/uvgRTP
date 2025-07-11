@@ -401,7 +401,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
     *
     * Used to compute the pace rate used when RCE_PACE_FRAGMENT_SENDING is enabled
     */
-    RCC_PACE_NUMERATOR  = 16,
+    RCC_PACE_FRAG_NUMERATOR = 16,
 
     /** Set the denominator of pace rate used by uvgRTP.
     *
@@ -409,7 +409,7 @@ enum RTP_CTX_CONFIGURATION_FLAGS {
     *
     * Used to compute the pace rate used when RCE_PACE_FRAGMENT_SENDING is enabled
     */
-    RCC_PACE_DENOMINATOR  = 17,
+    RCC_PACE_FRAG_DENOMINATOR  = 17,
 
     /// \cond DO_NOT_DOCUMENT
     RCC_LAST

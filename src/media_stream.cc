@@ -939,12 +939,12 @@ rtp_error_t uvgrtp::media_stream::configure_ctx(int rcc_flag, ssize_t value)
             ret = socket_->setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, (const char*)&multicast_ttl, sizeof(int));
             break;
         }
-        case RCC_PACE_NUMERATOR: {
+        case RCC_PACE_FRAG_NUMERATOR: {
                 pace_numerator_ = value;
                 media_->set_pace(pace_numerator_, pace_denominator_);
                 break;
         }
-        case RCC_PACE_DENOMINATOR: {
+        case RCC_PACE_FRAG_DENOMINATOR: {
                 pace_denominator_ = value;
                 media_->set_pace(pace_numerator_, pace_denominator_);
                 break;
@@ -1009,10 +1009,10 @@ int uvgrtp::media_stream::get_configuration_value(int rcc_flag)
         case RCC_MULTICAST_TTL: {
             return multicast_ttl_;
         }
-        case RCC_PACE_NUMERATOR: {
+        case RCC_PACE_FRAG_NUMERATOR: {
             return (int)pace_numerator_;
         }
-        case RCC_PACE_DENOMINATOR: {
+        case RCC_PACE_FRAG_DENOMINATOR: {
             return (int)pace_denominator_;
         }
         default:

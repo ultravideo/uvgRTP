@@ -113,8 +113,8 @@ stream->configure_ctx(RCC_PKT_MAX_DELAY, 150);
 | RCC_SSRC             | Set the SSSRC value for this media stream. | random uint32 | Sender|
 | RCC_REMOTE_SSRC      | Set the remote SSRC value that this media stream should receive packets from. | random uint32 | Receiver|
 | RCC_MULTICAST_TTL    | Set the sender packets IP TTL (Time to Live) for multicast. Must be in range [1, 255]. | system default | Sender |
-| RCC_PACE_NUMERATOR   | Set the pace rate used with RCE_PACE_FRAGMENT_SENDING. | 8 | Sender |
-| RCC_PACE_DENOMINATOR | Use this in combination with RCC_PACE_NUMERATOR. Must be higher than RCC_PACE_NUMERATOR. | 10 | Sender |
+| RCC_PACE_FRAG_NUMERATOR   | Set the pace rate used with RCE_PACE_FRAGMENT_SENDING. | 8 | Sender |
+| RCC_PACE_FRAG_DENOMINATOR | Use this in combination with RCC_PACE_NUMERATOR. Must be higher than RCC_PACE_NUMERATOR. | 10 | Sender |
 
 ### RTP frame flags
 
