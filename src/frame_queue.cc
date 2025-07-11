@@ -345,7 +345,7 @@ rtp_error_t uvgrtp::frame_queue::flush_queue(sockaddr_in& addr, sockaddr_in6& ad
     if ((rce_flags_ & RCE_PACE_FRAGMENT_SENDING) && fps_ && !force_sync_)
     {
         // allocate 80% of frame interval for pacing, rest for other processing
-        std::chrono::nanoseconds packet_interval = 8*frame_interval_/(10*active_->packets.size());
+        std::chrono::nanoseconds packet_interval = pace_numerator_*frame_interval_/(pace_denominator_*active_->packets.size());
 
         for (size_t i = 0; i < active_->packets.size(); ++i)
         {
