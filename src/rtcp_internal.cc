@@ -1017,19 +1017,6 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
         return ret;
       }
 
-      if ((ret = uvgrtp::rtcp_internal::init_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK)
-      {
-        return ret;
-      }
-
-      if (ret != RTP_OK)
-      {
-        UVG_LOG_ERROR("Failed to initiate new participant");
-        return ret;
-      }
-    }
-
-    if (participants_[frame->header.ssrc]->stats.initial_ntp == 0) {
       /* Set the probation to MIN_SEQUENTIAL (2)
        *
        * What this means is that we must receive at least two packets from SSRC
@@ -1041,9 +1028,14 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
       participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
       participants_[frame->header.ssrc]->stats.initial_ntp = uvgrtp::clock::ntp::now();
 
-      ret = rtcp->update_participant_seq(frame->header.ssrc, frame->header.seq);
-      if (ret != RTP_OK && ret != RTP_NOT_READY) {
-        UVG_LOG_ERROR("Failed to update participant with seq %u", frame->header.seq);
+      if ((ret = uvgrtp::rtcp_internal::init_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK)
+      {
+        return ret;
+      }
+
+      if (ret != RTP_OK)
+      {
+        UVG_LOG_ERROR("Failed to initiate new participant");
         return ret;
       }
     }
