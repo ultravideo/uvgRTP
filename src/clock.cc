@@ -48,11 +48,21 @@ uint64_t uvgrtp::clock::ntp::now()
 
 uint64_t uvgrtp::clock::ntp::diff(uint64_t ntp1, uint64_t ntp2)
 {
+    if (ntp1 == 0)
+    {
+        UVG_LOG_ERROR("Older NTP is zero");
+    }
+
     return ntp_diff_ms(ntp1, ntp2);
 }
 
 uint64_t uvgrtp::clock::ntp::diff_now(uint64_t then)
 {
+    if (then == 0)
+    {
+        UVG_LOG_ERROR("Asked to difference now with zero");
+    }
+
     uint64_t now = uvgrtp::clock::ntp::now();
 
     return ntp_diff_ms(then, now);
