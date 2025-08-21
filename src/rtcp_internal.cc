@@ -1950,14 +1950,13 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
                     fraction = 255;
                 }
             }
-
-            uint64_t diff_ms = (u_long)uvgrtp::clock::ntp::diff_now(p.second->stats.sr_ts);
-            uint32_t dlrs = (uint32_t)uvgrtp::clock::ms_to_jiffies(diff_ms);
+            uint32_t dlrs = 0;
 
             /* calculate delay of last SR only if SR has been received at least once */
-            if (p.second->stats.lsr == 0)
+            if (p.second->stats.lsr > 0)
             {
-                dlrs = 0;
+                uint64_t diff_ms = (u_long)uvgrtp::clock::ntp::diff_now(p.second->stats.sr_ts);
+                dlrs = (uint32_t)uvgrtp::clock::ms_to_jiffies(diff_ms);
             }
 
             construct_report_block(frame, write_ptr, p.first, uint8_t(fraction), dropped_packets,
