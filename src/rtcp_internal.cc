@@ -1017,14 +1017,7 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
         return ret;
       }
 
-      /* Set the probation to MIN_SEQUENTIAL (2)
-       *
-       * What this means is that we must receive at least two packets from SSRC
-       * with sequential RTP sequence numbers for this peer to be considered valid */
       participants_[frame->header.ssrc]->probation = MIN_SEQUENTIAL;
-
-      /* This is the first RTP frame from remote to frame->header.timestamp represents t = 0
-       * Save the timestamp and current NTP timestamp so we can do jitter calculations later on */
       participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
       participants_[frame->header.ssrc]->stats.initial_ntp = uvgrtp::clock::ntp::now();
 
@@ -1039,14 +1032,30 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
         return ret;
       }
     }
-    else if ((ret = rtcp->update_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK) {
-      if (ret == RTP_NOT_READY) {
-        return RTP_OK;
-      }
-      else {
-        UVG_LOG_ERROR("Failed to update participant with seq %u", frame->header.seq);
-        return ret;
-      }
+    else
+    {
+        if (participants_[frame->header.ssrc]->stats.initial_ntp == 0) {
+            /* Set the probation to MIN_SEQUENTIAL (2)
+             *
+             * What this means is that we must receive at least two packets from SSRC
+             * with sequential RTP sequence numbers for this peer to be considered valid */
+            participants_[frame->header.ssrc]->probation = MIN_SEQUENTIAL;
+
+            /* This is the first RTP frame from remote to frame->header.timestamp represents t = 0
+             * Save the timestamp and current NTP timestamp so we can do jitter calculations later on */
+            participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
+            participants_[frame->header.ssrc]->stats.initial_ntp = uvgrtp::clock::ntp::now();
+        }
+    
+        if ((ret = rtcp->update_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK) {
+            if (ret == RTP_NOT_READY) {
+                return RTP_OK;
+            }
+            else {
+                UVG_LOG_ERROR("Failed to update participant with seq %u", frame->header.seq);
+                return ret;
+            }
+        }
     }
 
     /* Finally update the jitter/transit/received/dropped bytes/pkts statistics */
