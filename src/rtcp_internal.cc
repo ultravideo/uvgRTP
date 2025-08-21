@@ -942,6 +942,11 @@ void uvgrtp::rtcp_internal::update_session_statistics(const uvgrtp::frame::rtp_f
         return;
     }
 
+    if (participants_[frame->header.ssrc]->stats.initial_ntp == 0)
+    {
+        UVG_LOG_WARN("Updating non-initialized RTCP stats");
+    }
+
     participants_[frame->header.ssrc]->stats.received_rtp_packet = true;
 
     participants_[frame->header.ssrc]->stats.received_pkts += 1;
@@ -1017,9 +1022,9 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
         return ret;
       }
 
-      participants_[frame->header.ssrc]->probation = MIN_SEQUENTIAL;
-      participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
-      participants_[frame->header.ssrc]->stats.initial_ntp = uvgrtp::clock::ntp::now();
+      rtcp->participants_[frame->header.ssrc]->probation = MIN_SEQUENTIAL;
+      rtcp->participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
+      rtcp->participants_[frame->header.ssrc]->stats.initial_ntp = uvgrtp::clock::ntp::now();
 
       if ((ret = uvgrtp::rtcp_internal::init_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK)
       {
@@ -1034,17 +1039,17 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
     }
     else
     {
-        if (participants_[frame->header.ssrc]->stats.initial_ntp == 0) {
+        if (rtcp->participants_[frame->header.ssrc]->stats.initial_ntp == 0) {
             /* Set the probation to MIN_SEQUENTIAL (2)
              *
              * What this means is that we must receive at least two packets from SSRC
              * with sequential RTP sequence numbers for this peer to be considered valid */
-            participants_[frame->header.ssrc]->probation = MIN_SEQUENTIAL;
+            rtcp->participants_[frame->header.ssrc]->probation = MIN_SEQUENTIAL;
 
             /* This is the first RTP frame from remote to frame->header.timestamp represents t = 0
              * Save the timestamp and current NTP timestamp so we can do jitter calculations later on */
-            participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
-            participants_[frame->header.ssrc]->stats.initial_ntp = uvgrtp::clock::ntp::now();
+            rtcp->participants_[frame->header.ssrc]->stats.initial_rtp = frame->header.timestamp;
+            rtcp->participants_[frame->header.ssrc]->stats.initial_ntp = uvgrtp::clock::ntp::now();
         }
     
         if ((ret = rtcp->update_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK) {
