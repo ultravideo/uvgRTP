@@ -995,6 +995,11 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
 
     std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
 
+    if (rtcp->active_ == false || !frame)
+    {
+        return RTP_OK;
+    }
+
     /* If this is the first packet from remote, move the participant from initial_participants_
      * to participants_, initialize its state and put it on probation until enough valid
      * packets from them have been received
@@ -1193,6 +1198,11 @@ rtp_error_t uvgrtp::rtcp_internal::handle_incoming_packet(void* args, int rce_fl
         ret = RTP_INVALID_VALUE;
 
         std::lock_guard<std::mutex> prtcp_lock(participants_mutex_);
+
+        if (active_ == false)
+        {
+          return RTP_OK;
+        }
 
         switch (header.pkt_type)
         {
