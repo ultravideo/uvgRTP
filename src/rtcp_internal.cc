@@ -464,6 +464,11 @@ rtp_error_t uvgrtp::rtcp_internal::remove_all_hooks()
     //fb_hook_u_ = nullptr;
     fb_mutex_.unlock();
 
+    /* Remove RTT hook if installed */
+    rtt_mutex_.lock();
+    rtt_hook_ = nullptr;
+    rtt_mutex_.unlock();
+
     return RTP_OK;
 }
 
