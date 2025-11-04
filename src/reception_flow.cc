@@ -377,27 +377,28 @@ void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
 {
     uint32_t ssrc = frame->header.ssrc;
 
-    // 1. Check if there is only one hook installed -> no socket muxing
-    // 2. Multiple handlers -> check if there exists a hook that this ssrc belongs to
-    // 3. If neither is found, push the frame to the queue
-    if (hooks_.size() == 1) {
-        /* No socket multiplexing: All packets are given to this hook */
+    auto it = hooks_.find(ssrc);
+
+    // Check if there is only one hook installed -> no socket muxing
+    if (hooks_.size() == 1 && hooks_.begin()->second.hook) {
         receive_pkt_hook pkt_hook = hooks_.begin()->second;
         recv_hook hook = pkt_hook.hook;
         void* arg = pkt_hook.arg;
+
         hook(arg, frame);
     }
-    else if (hooks_.find(ssrc) != hooks_.end()) {
-        /* Socket multiplexing: Hook found */
-        receive_pkt_hook pkt_hook = hooks_[ssrc];
+    // Multiple handlers -> check if there exists a hook that this ssrc belongs to
+    else if (it != hooks_.end() && it->second.hook) {
+        receive_pkt_hook pkt_hook = it->second;
         recv_hook hook = pkt_hook.hook;
         void* arg = pkt_hook.arg;
+
         hook(arg, frame);
     }
+    // If neither is found, push the frame to the queue
     else {
-        frames_mtx_.lock();
+        std::lock_guard<std::mutex> lg(frames_mtx_);
         frames_.push_back(frame);
-        frames_mtx_.unlock();
     }
 }
 /* User packets disabled for now
