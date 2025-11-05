@@ -87,6 +87,11 @@ uint32_t uvgrtp::media_stream::get_ssrc() const
     return impl_->get_ssrc();
 }
 
+rtp_error_t uvgrtp::media_stream::stop()
+{
+    return impl_->stop();
+}
+
 #if UVGRTP_EXTENDED_API
 
 rtp_error_t uvgrtp::media_stream::push_frame(std::unique_ptr<uint8_t[]> data, size_t data_len, int rtp_flags)

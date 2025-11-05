@@ -272,6 +272,12 @@ namespace uvgrtp {
              */
             uint32_t get_ssrc() const;
 
+            /**
+             * \brief Stop the media stream and its background components (RTCP, reception flow, holepuncher)
+             *
+             * \retval RTP_OK on success
+             */
+            rtp_error_t stop();
 
 
 #if UVGRTP_EXTENDED_API

@@ -388,6 +388,8 @@ namespace uvgrtp {
          */
         uint32_t get_ssrc() const;
 
+        rtp_error_t stop();
+
     private:
         /* Initialize the connection by initializing the socket
          * and binding ourselves to specified interface and creating

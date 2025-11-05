@@ -569,6 +569,41 @@ rtp_error_t uvgrtp::media_stream_internal::start_components()
     return reception_flow_->start(socket_, rce_flags_);
 }
 
+rtp_error_t uvgrtp::media_stream_internal::stop()
+{
+    /* This attempts a graceful stop of worker components that may be running
+     * so that deleting media_stream after this call has a smaller race window.
+     * We intentionally do not throw exceptions here. */
+
+    if ((rce_flags_ & RCE_HOLEPUNCH_KEEPALIVE) && holepuncher_)
+    {
+        holepuncher_->stop();
+    }
+
+    if (socket_) {
+        socket_->remove_handler(ssrc_);
+    }
+
+    if ((rce_flags_ & RCE_RTCP) && rtcp_)
+    {
+        rtcp_->pimpl_->stop();
+    }
+
+    if (reception_flow_)
+    {
+        (void)reception_flow_->remove_handlers(remote_ssrc_);
+
+        if (reception_flow_->clear_stream_from_flow(remote_ssrc_) == 1) {
+            reception_flow_->stop();
+            if (sfp_) {
+                sfp_->clear_port(src_port_, socket_);
+            }
+        }
+    }
+
+    return RTP_OK;
+}
+
 rtp_error_t uvgrtp::media_stream_internal::push_frame(uint8_t* data, size_t data_len, int rtp_flags)
 {
     rtp_error_t ret = check_push_preconditions(rtp_flags, false);

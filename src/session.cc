@@ -66,8 +66,13 @@ uvgrtp::session::session(std::string cname, std::string remote_addr, std::string
 
 uvgrtp::session::~session()
 {
-    for (auto& i : pimpl_->streams_) {
-        (void)destroy_stream(i.second);
+    std::vector<uvgrtp::media_stream*> streams;
+    streams.reserve(pimpl_->streams_.size());
+    for (auto &i : pimpl_->streams_) {
+        streams.push_back(i.second);
+    }
+    for (auto s : streams) {
+        (void)destroy_stream(s);
     }
     pimpl_->streams_.clear();
     pimpl_->sf_ = nullptr;
@@ -235,14 +240,28 @@ rtp_error_t uvgrtp::session::destroy_stream(uvgrtp::media_stream *stream)
 {
     if (!stream)
         return RTP_INVALID_VALUE;
+    /* Find the stream entry by pointer equality without touching impl_ */
+    pimpl_->session_mtx_.lock();
+    auto it = std::find_if(pimpl_->streams_.begin(), pimpl_->streams_.end(),
+        [stream](const std::pair<uint32_t, uvgrtp::media_stream*>& p) { return p.second == stream; });
 
-    auto mstream = pimpl_->streams_.find(stream->impl_->get_key());
+    if (it == pimpl_->streams_.end()) {
+        pimpl_->session_mtx_.unlock();
+        return RTP_NOT_FOUND;
+    }
 
-    if (mstream == pimpl_->streams_.end())
+    uvgrtp::media_stream* ms = it->second;
+    pimpl_->streams_.erase(it);
+    pimpl_->session_mtx_.unlock();
+
+    if (!ms)
         return RTP_NOT_FOUND;
 
-    delete mstream->second;
-    mstream->second = nullptr;
+    /* Call public stop() to allow the media stream to stop background threads safely. */
+    (void)ms->stop();
+
+    delete ms;
+    ms = nullptr;
 
     return RTP_OK;
 }
