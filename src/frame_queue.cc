@@ -185,6 +185,11 @@ rtp_error_t uvgrtp::frame_queue::deinit_transaction()
             delete (uvgrtp::formats::h266_headers*)active_->media_headers;
             active_->media_headers = nullptr;
             break;
+        
+        case RTP_FORMAT_ATLAS:
+            delete (uvgrtp::formats::v3c_headers*)active_->media_headers;
+            active_->media_headers = nullptr;
+            break;
 
         default:
             break;
