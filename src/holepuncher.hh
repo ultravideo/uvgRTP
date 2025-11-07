@@ -5,6 +5,8 @@
 #include <atomic>
 #include <memory>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 #ifdef _WIN32
 #include <ws2def.h>
 #include <ws2ipdef.h>
@@ -43,7 +45,9 @@ namespace uvgrtp {
             sockaddr_in remote_sockaddr_;
             sockaddr_in6 remote_sockaddr_ip6_;
 
-            bool active_;
+            std::atomic<bool> active_;
+            std::mutex cv_mutex_;
+            std::condition_variable cv_;
             std::unique_ptr<std::thread> runner_;
     };
 }

@@ -278,15 +278,21 @@ rtp_error_t uvgrtp::rtcp_internal::stop()
     runner_mutex_.unlock();
     runner_cv_.notify_all();
 
+    /* Stop the reader first (non-muxed case) so it won't be holding sockets/resources
+     * while we wait for the RTCP runner to exit. clear_rtcp_from_reader() will stop the reader
+     * if no mapped RTCPs remain. */
+    if (!(rce_flags_ & RCE_RTCP_MUX)) {
+        if (rtcp_reader_) {
+            if (rtcp_reader_->clear_rtcp_from_reader(remote_ssrc_) == 1) {
+                sfp_->clear_port(local_port_, rtcp_socket_);
+            }
+        }
+    }
+
     if (report_generator_ && report_generator_->joinable())
     {
         UVG_LOG_DEBUG("Waiting for RTCP loop to exit");
         report_generator_->join();
-    }
-    if (!(rce_flags_ & RCE_RTCP_MUX)) {
-        if (rtcp_reader_ && rtcp_reader_->clear_rtcp_from_reader(remote_ssrc_) == 1) {
-            sfp_->clear_port(local_port_, rtcp_socket_);
-        }
     }
 
     return ret;
