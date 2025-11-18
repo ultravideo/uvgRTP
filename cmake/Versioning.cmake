@@ -20,11 +20,13 @@ endif()
 if(UVGRTP_RELEASE_COMMIT)
     set (LIBRARY_VERSION ${PROJECT_VERSION})
 elseif(uvgrtp_GIT_HASH)
-    set (LIBRARY_VERSION ${PROJECT_VERSION} + "-" + ${uvgrtp_GIT_HASH})
+    set (LIBRARY_VERSION "${PROJECT_VERSION}-${uvgrtp_GIT_HASH}")
 else()
-    set (LIBRARY_VERSION ${PROJECT_VERSION} + "-source")
+    set (LIBRARY_VERSION "${PROJECT_VERSION}-source")
     set(uvgrtp_GIT_HASH "source")
 endif()
+
+message(STATUS "Set version string to ${LIBRARY_VERSION}")
 
 configure_file(cmake/version.cc.in version.cc
         @ONLY
