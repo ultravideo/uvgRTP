@@ -85,7 +85,8 @@ rtp_error_t uvgrtp::srtcp::encrypt(uint32_t ssrc, uint64_t seq, uint8_t *buffer,
 
 rtp_error_t uvgrtp::srtcp::add_auth_tag(uint8_t *buffer, size_t len)
 {
-    auto hmac_sha1 = uvgrtp::crypto::hmac::sha1(local_srtp_ctx_->auth_key, UVG_AES_KEY_LENGTH);
+    //see RFC 3711, section 5.2
+    auto hmac_sha1 = uvgrtp::crypto::hmac::sha1(local_srtp_ctx_->auth_key, UVG_HMAC_KEY_LENGTH);
 
     hmac_sha1.update(buffer, len - UVG_AUTH_TAG_LENGTH);
     hmac_sha1.update((uint8_t *)&local_srtp_ctx_->roc, sizeof(local_srtp_ctx_->roc));
@@ -96,8 +97,9 @@ rtp_error_t uvgrtp::srtcp::add_auth_tag(uint8_t *buffer, size_t len)
 
 rtp_error_t uvgrtp::srtcp::verify_auth_tag(uint8_t *buffer, size_t len)
 {
+    //see RFC 3711, section 5.2
     uint8_t digest[10] = { 0 };
-    auto hmac_sha1     = uvgrtp::crypto::hmac::sha1(remote_srtp_ctx_->auth_key, UVG_AES_KEY_LENGTH);
+    auto hmac_sha1     = uvgrtp::crypto::hmac::sha1(remote_srtp_ctx_->auth_key, UVG_HMAC_KEY_LENGTH);
 
     hmac_sha1.update(buffer, len - UVG_AUTH_TAG_LENGTH);
     hmac_sha1.update((uint8_t *)&remote_srtp_ctx_->roc, sizeof(remote_srtp_ctx_->roc));

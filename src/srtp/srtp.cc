@@ -66,7 +66,7 @@ rtp_error_t uvgrtp::srtp::recv_packet_handler(void* args, int rce_flags, uint8_t
     /* Calculate authentication tag for the packet and compare it against the one we received */
     if (srtp->authenticate_rtp()) {
         uint8_t digest[10] = { 0 };
-        auto hmac_sha1     = uvgrtp::crypto::hmac::sha1(remote_ctx->auth_key, UVG_AUTH_LENGTH);
+        auto hmac_sha1     = uvgrtp::crypto::hmac::sha1(remote_ctx->auth_key, UVG_HMAC_KEY_LENGTH);
 
         hmac_sha1.update(frame->dgram, frame->dgram_size - UVG_AUTH_TAG_LENGTH);
         hmac_sha1.update((uint8_t *)&remote_ctx->roc, sizeof(remote_ctx->roc));
@@ -138,7 +138,7 @@ rtp_error_t uvgrtp::srtp::send_packet_handler(void *arg, uvgrtp::buf_vec& buffer
     auto local_ctx   = srtp->get_local_ctx();
     auto off        = srtp->authenticate_rtp() ? 2 : 1;
     auto data       = buffers.at(buffers.size() - off);
-    auto hmac_sha1  = uvgrtp::crypto::hmac::sha1(local_ctx->auth_key, UVG_AUTH_LENGTH);
+    auto hmac_sha1  = uvgrtp::crypto::hmac::sha1(local_ctx->auth_key, UVG_HMAC_KEY_LENGTH);
     rtp_error_t ret = RTP_OK;
 
     if (srtp->use_null_cipher())

@@ -24,13 +24,13 @@ enum {
     AES256_KEY_SIZE = 32
 };
 
-#define UVG_AES_KEY_LENGTH      16 /* 128 bits */
-#define UVG_HMAC_KEY_LENGTH     32 /* 256 bits */
-#define UVG_SALT_LENGTH         14 /* 112 bits */
-#define UVG_AUTH_LENGTH         16
-#define UVG_IV_LENGTH           16
-#define UVG_AUTH_TAG_LENGTH     10
-#define UVG_SRTCP_INDEX_LENGTH   4
+#define UVG_AES_KEY_LENGTH      16 /* 128 bits - RFC3711 Sec. 5.1: default session encryption key length (n_e = 128 bits) */
+#define UVG_SALT_LENGTH         14 /* 112 bits - RFC3711 Sec. 5.3: master/session salt length (n_s = 112 bits) */
+#define UVG_HMAC_BUFFER_LENGTH  32 /* 256 bits (implementation buffer) - Capable of holding HMAC-SHA256 */
+#define UVG_HMAC_KEY_LENGTH     20 /* 160 bits - RFC3711 Sec. 5.2: default authentication key length (n_a = 160 bits) */
+#define UVG_IV_LENGTH           16 /* 128 bits - RFC3711 Sec. 4.1.1: AES block/IV size = 128 bits */
+#define UVG_AUTH_TAG_LENGTH     10 /* 80 bits - RFC3711 Sec. 5.2: default authentication tag length (n_tag = 80 bits) */
+#define UVG_SRTCP_INDEX_LENGTH   4 /* 31-bit SRTCP index carried in 4 octets (with 1 E-bit) - RFC3711 Sec. 3.4 */
 
 namespace uvgrtp {
 
@@ -69,7 +69,7 @@ namespace uvgrtp {
 
         // Session keys are used to encrypt/authenticate packets
         uint8_t* enc_key = nullptr;
-        uint8_t auth_key[UVG_AUTH_LENGTH] = {};
+        uint8_t auth_key[UVG_HMAC_KEY_LENGTH] = {};
         uint8_t salt_key[UVG_SALT_LENGTH] = {};
 
         int type = 0;     /* srtp or srtcp */

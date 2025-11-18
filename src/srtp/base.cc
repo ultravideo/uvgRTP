@@ -153,7 +153,7 @@ rtp_error_t uvgrtp::base_srtp::init_srtp_context(std::shared_ptr<uvgrtp::srtp_ct
     context->mk_cnt = 0;
 
     context->n_e = key_size;
-    context->n_a = UVG_HMAC_KEY_LENGTH;
+    context->n_a = UVG_HMAC_BUFFER_LENGTH;
 
     context->s_l = 0;
     context->replay = nullptr;
@@ -194,7 +194,7 @@ rtp_error_t uvgrtp::base_srtp::init_srtp_context(std::shared_ptr<uvgrtp::srtp_ct
         context->master_key,
         context->master_salt,
         context->auth_key,
-        UVG_AUTH_LENGTH
+        UVG_HMAC_KEY_LENGTH
     );
     (void)derive_key(
         label_salt,
