@@ -601,22 +601,28 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_
 {
     uvgrtp::buf_vec nalus;
 
-    size_t size = 0;
     auto* frame = *out;
 
-    for (size_t i = payload_header_size; i < frame->payload_len; 
-        i += ntohs(*(uint16_t*)&frame->payload[i]) + sizeof(uint16_t)) {
+    // Parse aggregation packet as a sequence of: [uint16_t length][N bytes payload]
+    // Be conservative: validate each entry's length fits within frame->payload_len
+    size_t pos = payload_header_size;
 
-        uint16_t packet_size = ntohs(*(uint16_t*)&frame->payload[i]);
-        size += packet_size;
+    while (pos + sizeof(uint16_t) <= frame->payload_len) {
+        // Safely read 16-bit network-ordered length
+        uint16_t net_len = 0;
+        std::memcpy(&net_len, &frame->payload[pos], sizeof(uint16_t));
+        uint16_t packet_size = ntohs(net_len);
 
-        if (size <= (*out)->payload_len) {
-            nalus.push_back(std::make_pair(packet_size, &frame->payload[i] + sizeof(uint16_t)));
-        }
-        else {
+        // Check that the length + its header fits in the remaining payload
+        if (pos + sizeof(uint16_t) + packet_size > frame->payload_len) {
             UVG_LOG_ERROR("The received aggregation packet claims to be larger than packet!");
             return RTP_GENERIC_ERROR;
         }
+
+        // push pointer to payload after the 16-bit length
+        nalus.push_back(std::make_pair((size_t)packet_size, &frame->payload[pos + sizeof(uint16_t)]));
+
+        pos += sizeof(uint16_t) + packet_size;
     }
 
     for (size_t i = 0; i < nalus.size(); ++i) {
@@ -973,6 +979,7 @@ void uvgrtp::formats::h26x::scl(uint8_t* data, size_t data_len, size_t packet_si
             // last NAL unit, the length is offset to end
             nals.at(i).size = data_len - nals[i].offset;
         }
+
 
         // each NAL unit added to aggregate packet needs the size added which has to be taken into account
         // when calculating the aggregate packet 
