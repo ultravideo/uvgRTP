@@ -1489,7 +1489,8 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sdes_packet(uint8_t* packet, size_t& r
 
         if (packet[read_ptr] == 0)
         {
-            read_ptr += (4 - read_ptr % 4);
+            /* Advance to next 32-bit boundary. If already aligned, add 0. */
+            read_ptr += (4 - (read_ptr % 4)) % 4;
         }
 
         frame->chunks.push_back(chunk);

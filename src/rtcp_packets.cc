@@ -44,9 +44,9 @@ uint32_t uvgrtp::get_sdes_packet_size(const std::map<uint8_t, uvgrtp::frame::rtc
         frame_size += item.second.length;
     }
 
-    /* each chunk must end to a zero octet so 4 zeros is only option
-     * if the length matches 32-bits multiples */
-    frame_size += (4 - frame_size % 4);
+    /* each chunk must end to a zero octet and be 32-bit aligned.
+     * If frame_size is already a multiple of 4, no padding is needed. */
+    frame_size += (4 - (frame_size % 4)) % 4;
 
     return frame_size;
 }
@@ -147,7 +147,8 @@ bool uvgrtp::construct_sdes_chunk(uint8_t* frame, size_t& ptr,
         ptr += item.length;
     }
 
-    ptr += (4 - ptr % 4);
+    /* Align to 32-bit boundary. If ptr is already aligned, add 0. */
+    ptr += (4 - (ptr % 4)) % 4;
 
     if (!have_cname)
     {
