@@ -1462,13 +1462,16 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sdes_packet(uint8_t* packet, size_t& r
     auto frame = new uvgrtp::frame::rtcp_sdes_packet;
     frame->header = header;
 
-    // Read SDES chunks
+    // Read SDES chunks. Loop until we've read `header.count` chunks or hit
+    // the packet end. Each chunk starts with an SSRC and is followed by
+    // zero or more items; a zero octet ends the item list and the chunk
+    // is padded to a 32-bit boundary.
     while (frame->chunks.size() < frame->header.count && read_ptr + SSRC_CSRC_SIZE <= packet_end)
     {
         uvgrtp::frame::rtcp_sdes_chunk chunk;
         read_ssrc(packet, read_ptr, chunk.ssrc);
 
-        // Read chunk items, 2 makes sure we at least get item type and length
+        // Read chunk items. Require at least two bytes (type + length)
         while (read_ptr + 2 <= packet_end && packet[read_ptr] != 0)
         {
             uvgrtp::frame::rtcp_sdes_item item;
@@ -1476,20 +1479,42 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sdes_packet(uint8_t* packet, size_t& r
             item.length = packet[read_ptr + 1];
             read_ptr += 2;
 
-            if (read_ptr + item.length <= packet_end)
+            // Validate that the declared item length fits in the packet.
+            if (read_ptr + item.length > packet_end)
+            {
+                // Malformed packet: free any allocated memory and abort.
+                for (auto &c : frame->chunks)
+                {
+                    for (auto &it : c.items)
+                    {
+                        if (it.data)
+                            delete[] it.data;
+                    }
+                }
+                delete frame;
+                UVG_LOG_WARN("Received rtcp packet is smaller than indicated item length in SDES");
+                return RTP_GENERIC_ERROR;
+            }
+
+            // Copy item data
+            if (item.length > 0)
             {
                 item.data = new uint8_t[item.length];
-
                 memcpy(item.data, &packet[read_ptr], item.length);
                 read_ptr += item.length;
+            }
+            else
+            {
+                item.data = nullptr;
             }
 
             chunk.items.push_back(item);
         }
 
-        if (packet[read_ptr] == 0)
+        // If we have a terminating zero octet for this chunk, advance to
+        // the next 32-bit boundary. Ensure we don't read beyond packet_end.
+        if (read_ptr < packet_end && packet[read_ptr] == 0)
         {
-            /* Advance to next 32-bit boundary. If already aligned, add 0. */
             read_ptr += (4 - (read_ptr % 4)) % 4;
         }
 
@@ -1498,6 +1523,16 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sdes_packet(uint8_t* packet, size_t& r
 
     if (frame->chunks.size() < frame->header.count)
     {
+        // Not enough chunks found: cleanup allocations and return error.
+        for (auto &c : frame->chunks)
+        {
+            for (auto &it : c.items)
+            {
+                if (it.data)
+                    delete[] it.data;
+            }
+        }
+        delete frame;
         UVG_LOG_WARN("Failed to read all items from SDES");
         return RTP_GENERIC_ERROR;
     }
@@ -2003,8 +2038,12 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
 
         chunk.ssrc = *ssrc_.get();
 
+    // RFC 3550 §6.5: SDES COUNT = number of chunks in this packet.
+    // We emit a single chunk (our SSRC + items) here; set COUNT = 1.
+    uint8_t sdes_chunk_count = 1;
+
         // add the SDES packet after the SR/RR, mandatory, must contain CNAME
-        if (!construct_rtcp_header(frame, write_ptr, get_sdes_packet_size(ourItems_), num_receivers_,
+        if (!construct_rtcp_header(frame, write_ptr, get_sdes_packet_size(ourItems_), sdes_chunk_count,
             uvgrtp::frame::RTCP_FT_SDES) ||
             !construct_sdes_chunk(frame, write_ptr, chunk))
         {

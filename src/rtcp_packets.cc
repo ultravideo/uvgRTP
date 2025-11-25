@@ -44,8 +44,8 @@ uint32_t uvgrtp::get_sdes_packet_size(const std::map<uint8_t, uvgrtp::frame::rtc
         frame_size += item.second.length;
     }
 
-    /* each chunk must end to a zero octet and be 32-bit aligned.
-     * If frame_size is already a multiple of 4, no padding is needed. */
+    /* Each SDES chunk is be terminated by a single END (0) octet. */
+    frame_size += 1; /* END octet */
     frame_size += (4 - (frame_size % 4)) % 4;
 
     return frame_size;
@@ -147,7 +147,12 @@ bool uvgrtp::construct_sdes_chunk(uint8_t* frame, size_t& ptr,
         ptr += item.length;
     }
 
-    /* Align to 32-bit boundary. If ptr is already aligned, add 0. */
+    /* Explicitly write the END octet to mark the end of the chunk's items.
+     * After the END octet, add zero octets as padding up to the next
+     * 32-bit boundary. We use a modulo-safe expression so no padding is
+     * added when already aligned. Writing the END octet here makes the
+     * packet layout explicit and avoids depending on an external memset. */
+    frame[ptr++] = 0; /* END */
     ptr += (4 - (ptr % 4)) % 4;
 
     if (!have_cname)
