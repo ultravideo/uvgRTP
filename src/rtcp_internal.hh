@@ -612,6 +612,7 @@ namespace uvgrtp {
         *  First number is the sources ssrc
         *  Second number is how many milliseconds it has been silent*/
         std::map<uint32_t, uint32_t> ms_since_last_rep_;
+        std::mutex ms_map_mutex_;
 
         /* statistics for RTCP Sender and Receiver Reports */
         struct sender_statistics our_stats;

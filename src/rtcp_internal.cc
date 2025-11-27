@@ -328,18 +328,19 @@ void uvgrtp::rtcp_internal::rtcp_runner(rtcp_internal* rtcp)
         //Here we check if there are any timed out sources
         //This vector collects the ssrcs of timed out sources
         std::vector<uint32_t> ssrcs_to_be_removed = {};
+        double timeout_interval_s = rtcp->rtcp_interval(int(rtcp->members_), senders, rtcp->rtcp_bandwidth_,
+            true, (double)rtcp->avg_rtcp_size_, false, false);
+        rtcp->ms_map_mutex_.lock();
         for (auto it = rtcp->ms_since_last_rep_.begin(); it != rtcp->ms_since_last_rep_.end(); ++it) {
-            double timeout_interval_s = rtcp->rtcp_interval(int(rtcp->members_), senders, rtcp->rtcp_bandwidth_,
-                true, (double)rtcp->avg_rtcp_size_, false, false);
-            it->second += uint32_t(current_interval_ms);
+             it->second += uint32_t(current_interval_ms);
             if (it->second > 5 * 1000 * timeout_interval_s) {
                 ssrcs_to_be_removed.push_back(it->first);
             }
         }
-        //If some ssrcs are timed out, remove them
+        rtcp->ms_map_mutex_.unlock();
+        // If some ssrcs are timed out, remove them. Removal will also erase the ms map entry.
         for (auto rm : ssrcs_to_be_removed) {
             rtcp->remove_timeout_ssrc(rm);
-            rtcp->ms_since_last_rep_.erase(rm);
         }
 
         // Number of senders is hard set to 1, because it is not updated anywhere.
@@ -1026,12 +1027,14 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
         return ret;
       }
 
+      ms_map_mutex_.lock();
       if (ms_since_last_rep_.find(sender_ssrc) != ms_since_last_rep_.end()) {
         ms_since_last_rep_.at(sender_ssrc) = 0;
       }
       else {
         ms_since_last_rep_.insert({ sender_ssrc, 0 });
       }
+      ms_map_mutex_.unlock();
 
       if ((ret = uvgrtp::rtcp_internal::add_participant(frame->header.ssrc)) != RTP_OK)
       {
@@ -1193,12 +1196,14 @@ rtp_error_t uvgrtp::rtcp_internal::handle_incoming_packet(void* args, int rce_fl
         }
 
         /* Update the timeout map */
+        ms_map_mutex_.lock();
         if (ms_since_last_rep_.find(sender_ssrc) != ms_since_last_rep_.end()) {
             ms_since_last_rep_.at(sender_ssrc) = 0;
         }
         else {
             ms_since_last_rep_.insert({ sender_ssrc, 0 });
         }
+        ms_map_mutex_.unlock();
         if (header.pkt_type > uvgrtp::frame::RTCP_FT_APP ||
             header.pkt_type < uvgrtp::frame::RTCP_FT_SR)
         {
@@ -1592,7 +1597,9 @@ rtp_error_t uvgrtp::rtcp_internal::handle_bye_packet(uint8_t* packet, size_t& re
 
         free_participant(std::move(participants_[ssrc]));
         participants_.erase(ssrc);
+        ms_map_mutex_.lock();
         ms_since_last_rep_.erase(ssrc);
+        ms_map_mutex_.unlock();
     }
     // TODO: RFC3550 6.2.1: add a delay for deleting the member. This way if straggler packets
     // are received after deletion, deleted member wont be recreated
@@ -2038,7 +2045,7 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
 
         chunk.ssrc = *ssrc_.get();
 
-    // RFC 3550 ยง6.5: SDES COUNT = number of chunks in this packet.
+    // RFC 3550 ง6.5: SDES COUNT = number of chunks in this packet.
     // We emit a single chunk (our SSRC + items) here; set COUNT = 1.
     uint8_t sdes_chunk_count = 1;
 
@@ -2192,12 +2199,22 @@ void uvgrtp::rtcp_internal::set_session_bandwidth(uint32_t kbps)
 rtp_error_t uvgrtp::rtcp_internal::remove_timeout_ssrc(uint32_t ssrc)
 {
     UVG_LOG_INFO("Destroying timed out source, ssrc: %lu", ssrc);
-    free_participant(std::move(participants_[ssrc]));
-    participants_.erase(ssrc);
+    participants_mutex_.lock();
+    auto it = participants_.find(ssrc);
+    if (it != participants_.end()) {
+        free_participant(std::move(it->second));
+        participants_.erase(it);
 
-    if (members_ >= 1) {
-        members_ -= 1;
+        if (members_ >= 1) {
+            members_ -= 1;
+        }
     }
+    participants_mutex_.unlock();
+
+    ms_map_mutex_.lock();
+    ms_since_last_rep_.erase(ssrc);
+    ms_map_mutex_.unlock();
+
     return RTP_OK;
 }
 
