@@ -267,6 +267,30 @@ rtp_error_t uvgrtp::rtcp_internal::stop()
         UVG_LOG_DEBUG("Failed to send RTCP report with BYE packet!");
     }
 
+    // If we are not using RTCP muxing, stop and clear the RTCP reader, else remove
+    // handlers from the reception flow for the muxed case.
+    if (!(rce_flags_ & RCE_RTCP_MUX)) {
+        if (rtcp_reader_) {
+            // stop reader thread and drop its socket
+            rtcp_reader_->stop();
+            rtcp_reader_->set_socket(nullptr);
+            if (rtcp_reader_->clear_rtcp_from_reader(remote_ssrc_) == 1) {
+                sfp_->clear_port(local_port_, rtcp_socket_);
+            }
+        }
+    } else {
+        if (rtcp_socket_) {
+            // remove handlers from reception flow to avoid callbacks into destroyed object
+            auto flow = sfp_->get_reception_flow_ptr(rtcp_socket_);
+            if (flow) {
+                (void)flow->remove_handlers(remote_ssrc_);
+                if (flow->clear_stream_from_flow(remote_ssrc_) == 1) {
+                    flow->stop();
+                }
+            }
+        }
+    }
+
     if (!active_)
     {
         cleanup_participants();
@@ -278,22 +302,13 @@ rtp_error_t uvgrtp::rtcp_internal::stop()
     runner_mutex_.unlock();
     runner_cv_.notify_all();
 
-    /* Stop the reader first (non-muxed case) so it won't be holding sockets/resources
-     * while we wait for the RTCP runner to exit. clear_rtcp_from_reader() will stop the reader
-     * if no mapped RTCPs remain. */
-    if (!(rce_flags_ & RCE_RTCP_MUX)) {
-        if (rtcp_reader_) {
-            if (rtcp_reader_->clear_rtcp_from_reader(remote_ssrc_) == 1) {
-                sfp_->clear_port(local_port_, rtcp_socket_);
-            }
-        }
-    }
-
     if (report_generator_ && report_generator_->joinable())
     {
         UVG_LOG_DEBUG("Waiting for RTCP loop to exit");
         report_generator_->join();
     }
+
+    rtcp_socket_.reset();
 
     return ret;
 }
@@ -2045,7 +2060,7 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
 
         chunk.ssrc = *ssrc_.get();
 
-    // RFC 3550 §6.5: SDES COUNT = number of chunks in this packet.
+    // RFC 3550 ï¿½6.5: SDES COUNT = number of chunks in this packet.
     // We emit a single chunk (our SSRC + items) here; set COUNT = 1.
     uint8_t sdes_chunk_count = 1;
 

@@ -78,31 +78,7 @@ uvgrtp::media_stream_internal::media_stream_internal(std::string cname, std::str
 
 uvgrtp::media_stream_internal::~media_stream_internal()
 {
-    // TODO: I would take a close look at what happens when pull_frame is called
-    // and media stream is destroyed. Note that this is the only way to stop pull
-    // frame without waiting
-    if (socket_) {
-        socket_->remove_handler(ssrc_);
-    }
-
-    if ((rce_flags_ & RCE_RTCP) && rtcp_)
-    {
-        rtcp_->pimpl_->stop();
-    }
-
-    // Clear this media stream from the reception_flow
-    if (reception_flow_)
-    {
-        reception_flow_->remove_handlers(remote_ssrc_);
-
-        if (reception_flow_->clear_stream_from_flow(remote_ssrc_) == 1) {
-            reception_flow_->stop();
-            if (sfp_) {
-                sfp_->clear_port(src_port_, socket_);
-            }
-        }
-    }
-
+    (void)stop();
     (void)free_resources(RTP_OK);
 }
 
@@ -120,7 +96,7 @@ rtp_error_t uvgrtp::media_stream_internal::init_connection()
     if (ipv6_ && src_port_ != 0 && local_address_ != "") {
         multicast_sockaddr6_ = uvgrtp::socket::create_ip6_sockaddr(local_address_, src_port_);
         if (uvgrtp::socket::is_multicast(multicast_sockaddr6_)) {
-            socket_ = sfp_->create_new_socket(2, src_port_);
+            socket_ = sfp_->create_new_socket(2, src_port_, rce_flags_);
             new_socket_ = true;
             multicast = true;
         }
@@ -128,7 +104,7 @@ rtp_error_t uvgrtp::media_stream_internal::init_connection()
     else if (src_port_ != 0 && local_address_ != "") {
         multicast_sockaddr_ = uvgrtp::socket::create_sockaddr(AF_INET, local_address_, src_port_);
         if (uvgrtp::socket::is_multicast(multicast_sockaddr_)) {
-            socket_ = sfp_->create_new_socket(2, src_port_);
+            socket_ = sfp_->create_new_socket(2, src_port_, rce_flags_);
             new_socket_ = true;
             multicast = true;
         }
@@ -136,7 +112,7 @@ rtp_error_t uvgrtp::media_stream_internal::init_connection()
 
     /* If the given local address is not a multicast address, get the socket */
     if (!multicast) {
-        socket_ = sfp_->get_socket_ptr(2, src_port_);
+        socket_ = sfp_->get_socket_ptr(2, src_port_, rce_flags_);
         if (!socket_) {
             UVG_LOG_DEBUG("No socket found");
             return RTP_GENERIC_ERROR;
@@ -305,19 +281,18 @@ rtp_error_t uvgrtp::media_stream_internal::free_resources(rtp_error_t ret)
         holepuncher_->stop();
     }
 
-    {
-        std::lock_guard<std::mutex> lock(rtcp_map_mutex_);
-        auto it = rtcp_map_.find(ssrc_->load());
-        if (it != rtcp_map_.end()) {
-            size_t count = it->second.use_count();
-            if (count <= 1) {
-                UVG_LOG_DEBUG("Erasing RTCP map entry for %u (use_count=%zu)", ssrc_->load(), count);
-                rtcp_map_.erase(it);
-            } else {
-                UVG_LOG_DEBUG("Not erasing RTCP map entry for %u, other owners remain (use_count=%zu)", ssrc_->load(), count);
-            }
+    rtcp_map_mutex_.lock();
+    auto it = rtcp_map_.find(ssrc_->load());
+    if (it != rtcp_map_.end()) {
+        size_t count = it->second.use_count();
+        if (count <= 1) {
+            UVG_LOG_DEBUG("Erasing RTCP map entry for %u (use_count=%zu)", ssrc_->load(), count);
+            rtcp_map_.erase(it);
+        } else {
+            UVG_LOG_DEBUG("Not erasing RTCP map entry for %u, other owners remain (use_count=%zu)", ssrc_->load(), count);
         }
     }
+    rtcp_map_mutex_.unlock();
 
     rtcp_ = nullptr;
     rtp_ = nullptr;
@@ -555,7 +530,7 @@ rtp_error_t uvgrtp::media_stream_internal::start_components()
                 3. In RTCP reader, map our RTCP object to the REMOTE ssrc of this stream. If we are not doing
                    any socket multiplexing, it will be 0 by default */
 
-                rtcp_socket = sfp_->get_socket_ptr(1, rtcp_port);
+                rtcp_socket = sfp_->get_socket_ptr(1, rtcp_port, rce_flags_);
                 rtcp_->pimpl_->set_socket(rtcp_socket);
                 rtcp_reader = sfp_->get_rtcp_reader(rtcp_port);
                 rtcp_reader->map_ssrc_to_rtcp(remote_ssrc_, rtcp_->pimpl_);
@@ -605,7 +580,12 @@ rtp_error_t uvgrtp::media_stream_internal::stop()
         if (reception_flow_->clear_stream_from_flow(remote_ssrc_) == 1) {
             reception_flow_->stop();
             if (sfp_) {
-                sfp_->clear_port(src_port_, socket_);
+                // Release our own references before clearing factory mappings so
+                // the socket destructor can close the underlying OS socket
+                auto socket_to_clear = socket_;
+                holepuncher_ = nullptr;
+                socket_ = nullptr;
+                sfp_->clear_port(src_port_, socket_to_clear);
             }
         }
     }

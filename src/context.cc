@@ -39,7 +39,7 @@ public:
     context_impl()
     {
         cname_ = generate_cname();
-        sfp_ = std::make_shared<uvgrtp::socketfactory>(RCE_NO_FLAGS);
+        sfp_ = std::make_shared<uvgrtp::socketfactory>();
     }
 
     std::string& get_cname()

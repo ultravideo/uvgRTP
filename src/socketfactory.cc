@@ -1,6 +1,7 @@
 #include "socketfactory.hh"
 #include "socket.hh"
 #include "uvgrtp/frame.hh"
+#include "uvgrtp/util.hh"
 #include "rtcp_reader.hh"
 #include "random.hh"
 #include "global.hh"
@@ -26,19 +27,27 @@
 
 constexpr size_t DEFAULT_INITIAL_BUFFER_SIZE = 4194304;
 
-uvgrtp::socketfactory::socketfactory(int rce_flags) :
-    rce_flags_(rce_flags),
+uvgrtp::socketfactory::socketfactory() :
     local_address_(""),
-    used_ports_({}),
-    ipv6_(false),
-    used_sockets_({}),
+    ipv6_address_(false),
+    port_to_socket_({}),
     reception_flows_({}),
     rtcp_readers_to_ports_({})
-{
-}
+{}
 
 uvgrtp::socketfactory::~socketfactory()
 {
+    std::lock_guard<std::mutex> lg(conf_mutex_);
+
+    // Clear all reception flows
+    for (auto& it : reception_flows_) {
+        it.first->stop();
+    }
+
+    // Clear all RTCP readers
+    for (auto& it : rtcp_readers_to_ports_) {
+        it.first->stop();
+    }
 }
 
 rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr)
@@ -55,7 +64,7 @@ rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr)
         return RTP_GENERIC_ERROR;
     }
     if (res->ai_family == AF_INET6) {
-        ipv6_ = true;
+        ipv6_address_ = true;
 
     }
 
@@ -63,12 +72,12 @@ rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr)
     return RTP_OK;
 }
 
-std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int type, uint16_t port)
+std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int type, uint16_t port, int rce_flags)
 {
     rtp_error_t ret = RTP_OK;
-    std::shared_ptr<uvgrtp::socket> socket = std::make_shared<uvgrtp::socket>(rce_flags_);
+    std::shared_ptr<uvgrtp::socket> socket = std::make_shared<uvgrtp::socket>(rce_flags);
 
-    if (ipv6_) {
+    if (ipv6_address_) {
         ret = socket->init(AF_INET6, SOCK_DGRAM, 0);
     }
     else {
@@ -86,14 +95,13 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int typ
         }
 #endif
 
-        used_sockets_.push_back(socket);
         if (port != 0) {
             bind_socket(socket, port);
         }
 
         // If the socket is a type 2 (non-RTCP) socket, install a reception_flow
         if (type == 2) {
-            std::shared_ptr<uvgrtp::reception_flow> flow = std::shared_ptr<uvgrtp::reception_flow>(new uvgrtp::reception_flow(ipv6_));
+            std::shared_ptr<uvgrtp::reception_flow> flow = std::shared_ptr<uvgrtp::reception_flow>(new uvgrtp::reception_flow(ipv6_address_));
             std::pair pair = std::make_pair(flow, socket);
             reception_flows_.insert(pair);
         }
@@ -118,7 +126,7 @@ rtp_error_t uvgrtp::socketfactory::bind_socket(std::shared_ptr<uvgrtp::socket> s
     // streams can bind to the same port
     // If it is a regular address and you want to multiplex several streams into a single socket, one 
     // bind is enough
-    if (ipv6_) {
+    if (ipv6_address_) {
         bind_addr6 = uvgrtp::socket::create_ip6_sockaddr(local_address_, port);
         if (uvgrtp::socket::is_multicast(bind_addr6)) {
             UVG_LOG_INFO("The used address %s is a multicast address", local_address_.c_str());
@@ -139,7 +147,7 @@ rtp_error_t uvgrtp::socketfactory::bind_socket(std::shared_ptr<uvgrtp::socket> s
         }
     }
     if (ret == RTP_OK) {
-        used_ports_.insert({ port, soc });
+        port_to_socket_.insert({ port, soc });
         return RTP_OK;
     }
 
@@ -153,7 +161,7 @@ rtp_error_t uvgrtp::socketfactory::bind_socket_anyip(std::shared_ptr<uvgrtp::soc
 
     if (!is_port_in_use(port)) {
 
-        if (ipv6_) {
+        if (ipv6_address_) {
             sockaddr_in6 bind_addr6 = uvgrtp::socket::create_ip6_sockaddr_any(port);
             ret = soc->bind_ip6(bind_addr6);
         }
@@ -161,21 +169,21 @@ rtp_error_t uvgrtp::socketfactory::bind_socket_anyip(std::shared_ptr<uvgrtp::soc
             ret = soc->bind(AF_INET, INADDR_ANY, port);
         }
         if (ret == RTP_OK) {
-            used_ports_.insert({ port, soc });
+            port_to_socket_.insert({ port, soc });
             return RTP_OK;
         }
     }
     return ret;
 }
 
-std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::get_socket_ptr(int type, uint16_t port)
+std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::get_socket_ptr(int type, uint16_t port, int rce_flags)
 {
     std::lock_guard<std::mutex> lg(conf_mutex_);
-    const auto& ptr = used_ports_.find(port);
-    if (ptr != used_ports_.end()) {
+    const auto& ptr = port_to_socket_.find(port);
+    if (ptr != port_to_socket_.end()) {
         return ptr->second;
     }
-    return create_new_socket(type, port);
+    return create_new_socket(type, port, rce_flags);
 }
 
 std::shared_ptr<uvgrtp::reception_flow> uvgrtp::socketfactory::get_reception_flow_ptr(std::shared_ptr<uvgrtp::socket> socket) 
@@ -208,12 +216,12 @@ std::shared_ptr <uvgrtp::rtcp_reader> uvgrtp::socketfactory::get_rtcp_reader(uin
 
 bool uvgrtp::socketfactory::get_ipv6() const
 {
-    return ipv6_;
+    return ipv6_address_;
 }
 
 bool uvgrtp::socketfactory::is_port_in_use(uint16_t port)
 {
-    if (used_ports_.find(port) == used_ports_.end()) {
+    if (port_to_socket_.find(port) == port_to_socket_.end()) {
         return false;
     }
     return true;
@@ -222,25 +230,45 @@ bool uvgrtp::socketfactory::is_port_in_use(uint16_t port)
 bool uvgrtp::socketfactory::clear_port(uint16_t port, std::shared_ptr<uvgrtp::socket> socket)
 {
     std::lock_guard<std::mutex> lg(conf_mutex_);
-
-    if (port != 0) {
-        used_ports_.erase(port);
-    }
-    for (auto& p : rtcp_readers_to_ports_) {
+    // Collect RTCP reader keys that map to this port, then erase them.
+    std::vector<std::shared_ptr<uvgrtp::rtcp_reader>> rtcp_to_erase;
+    for (const auto &p : rtcp_readers_to_ports_) {
         if (p.second == port) {
-            rtcp_readers_to_ports_.erase(p.first);
-            break;
+            rtcp_to_erase.push_back(p.first);
         }
     }
-    auto it = std::find(used_sockets_.begin(), used_sockets_.end(), socket);
-    if (it != used_sockets_.end()) {
-        used_sockets_.erase(it);
+    for (const auto &k : rtcp_to_erase) {
+        // Ensure the reader thread is stopped and its socket cleared so it
+        // releases any shared_ptr references to the socket before we erase it
+        if (k) {
+            UVG_LOG_DEBUG("clear_port: stopping rtcp_reader for port %u", port);
+            (void)k->stop();
+            (void)k->set_socket(nullptr);
+        }
+        rtcp_readers_to_ports_.erase(k);
     }
-    for (auto& p : reception_flows_) {
+
+    // Collect reception_flow keys that reference this socket, then erase them.
+    std::vector<std::shared_ptr<uvgrtp::reception_flow>> flows_to_erase;
+    for (const auto &p : reception_flows_) {
         if (p.second == socket) {
-            reception_flows_.erase(p.first);
-            break;
+            flows_to_erase.push_back(p.first);
         }
     }
+    for (const auto &k : flows_to_erase) {
+        reception_flows_.erase(k);
+    }
+
+    // Erase port mapping only if it matches the provided socket
+    if (port != 0) {
+        auto up = port_to_socket_.find(port);
+        if (up != port_to_socket_.end() && up->second == socket) {
+            port_to_socket_.erase(up);
+        }
+        else {
+            UVG_LOG_WARN("Attempted to clear port %u from socketfactory, but port is not mapped to the provided socket", port);
+        }
+    }
+
     return true;
 }

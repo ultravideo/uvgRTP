@@ -31,7 +31,7 @@ namespace uvgrtp {
     class socketfactory {
 
         public:
-            socketfactory(int rce_flags);
+            socketfactory();
             ~socketfactory();
 
             /* Set the local addres for socketfactory.
@@ -45,7 +45,12 @@ namespace uvgrtp {
              *
              * Param type 1 RTCP socket, 2 for any other type of a socket
              * Return the created socket on success, nullptr otherwise */
-            std::shared_ptr<uvgrtp::socket> create_new_socket(int , uint16_t port);
+            /* Create a new socket. Parameters:
+             *  - type: 1 = RTCP socket, 2 = other (media)
+             *  - port: port to bind into (0 = none)
+             *  - rce_flags: optional flags propagated to the socket instance
+             */
+            std::shared_ptr<uvgrtp::socket> create_new_socket(int type, uint16_t port, int rce_flags = 0);
 
             /* Bind socket to the local IP address and given port
              * 
@@ -65,7 +70,9 @@ namespace uvgrtp {
              *
              * Param port socket with wanted port
              * Return pointer to socket on success. If one does not exist, a new one is created */
-            std::shared_ptr<uvgrtp::socket> get_socket_ptr(int type, uint16_t port);
+            /* Get or create socket for a given port. `rce_flags` is forwarded
+             * to `create_new_socket` when a new socket is created. */
+            std::shared_ptr<uvgrtp::socket> get_socket_ptr(int type, uint16_t port, int rce_flags = 0);
 
             /* Get reception flow matching the given socket
              *
@@ -100,14 +107,20 @@ namespace uvgrtp {
 
         private:
 
+            // protect maps
             std::mutex conf_mutex_;
 
-            int rce_flags_;
+            // local address used for binds; empty means any-address
             std::string local_address_;
-            std::map<uint16_t, std::shared_ptr<uvgrtp::socket>> used_ports_;
-            bool ipv6_;
-            std::vector<std::shared_ptr<uvgrtp::socket>> used_sockets_;
+            bool ipv6_address_;
+
+            // port -> socket object
+            std::map<uint16_t, std::shared_ptr<uvgrtp::socket>> port_to_socket_;
+
+            // reception flow -> its socket (used when multiplexing multiple streams)
             std::map<std::shared_ptr<uvgrtp::reception_flow>, std::shared_ptr<uvgrtp::socket>> reception_flows_;
+
+            // rtcp reader -> bound port
             std::map<std::shared_ptr<uvgrtp::rtcp_reader>, uint16_t> rtcp_readers_to_ports_;
 
     };
