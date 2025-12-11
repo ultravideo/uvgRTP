@@ -291,6 +291,8 @@ rtp_error_t uvgrtp::rtcp_internal::stop()
         }
     }
 
+    rtcp_socket_.reset();
+
     if (!active_)
     {
         cleanup_participants();
