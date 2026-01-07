@@ -186,13 +186,14 @@ namespace uvgrtp {
             std::deque<uvgrtp::frame::rtp_frame*> queued_;
             std::unordered_map<uint32_t, access_unit_info> access_units_;
 
-            // Save received RTP frame stats, used to check for duplicates in is_duplicate_frame()
-            struct pkt_stats {
-                uint32_t ts;
-                uint16_t seq;
+            struct seen_packet {
+                uint64_t key;
+                uvgrtp::clock::hrc::hrc_t arrival;
             };
-            std::deque<pkt_stats> received_frames_;
-            std::unordered_map<uint32_t, std::vector<uint16_t>> received_info_;
+
+            // Time-window duplicate tracking (key = (timestamp << 16) | seq)
+            std::deque<seen_packet> seen_order_;
+            std::unordered_set<uint64_t> seen_packets_;
 
             // Holds all possible fragments with sequence number
             std::unordered_map<uint16_t, uvgrtp::frame::rtp_frame*> fragments_;

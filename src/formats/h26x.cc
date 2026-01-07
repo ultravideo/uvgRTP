@@ -46,10 +46,6 @@ constexpr int GARBAGE_COLLECTION_INTERVAL_MS = 100;
 // any value less than 30 minutes is ok here, since that is how long it takes to go through all timestamps
 constexpr int TIME_TO_KEEP_TRACK_OF_PREVIOUS_FRAMES_MS = 5000;
 
-// how many RTP timestamps get saved for duplicate detection
-// there is 90 000 timestamps in one second -> 5 sec is 450 000
-constexpr int RECEIVED_FRAMES = 450000;
-
 static inline uint8_t determine_start_prefix_precense(uint32_t value, bool& additional_byte)
 {
     additional_byte = false;
@@ -101,8 +97,8 @@ uvgrtp::formats::h26x::h26x(std::shared_ptr<uvgrtp::socket> socket, std::shared_
     media(socket, rtp, rce_flags),
     queued_(), 
     access_units_(),
-    received_frames_(),
-    received_info_(),
+    seen_order_(),
+    seen_packets_(),
     fragments_(),
     dropped_ts_(),
     dropped_in_order_(),
@@ -642,27 +638,21 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_
 
 bool uvgrtp::formats::h26x::is_duplicate_frame(uint32_t timestamp, uint16_t seq_num)
 {
-    if (received_info_.find(timestamp) != received_info_.end()) {
-        if (std::find(received_info_.at(timestamp).begin(), received_info_.at(timestamp).end(), seq_num) != received_info_.at(timestamp).end()) {
-            UVG_LOG_WARN("duplicate ts and seq num received, discarding frame");
-            return true;
-        }
+    while (!seen_order_.empty() &&
+           uvgrtp::clock::hrc::diff_now(seen_order_.front().arrival) > TIME_TO_KEEP_TRACK_OF_PREVIOUS_FRAMES_MS)
+    {
+        seen_packets_.erase(seen_order_.front().key);
+        seen_order_.pop_front();
     }
-    pkt_stats stats = {timestamp, seq_num};
 
-    // Save the received ts and seq num
-    if (received_info_.find(timestamp) == received_info_.end()) {
-        received_info_.insert({timestamp, {seq_num}});
+    const uint64_t key = (uint64_t(timestamp) << 16) | uint64_t(seq_num);
+    if (seen_packets_.find(key) != seen_packets_.end()) {
+        UVG_LOG_WARN("duplicate ts and seq num received, discarding frame");
+        return true;
     }
-    else {
-        received_info_.at(timestamp).push_back(seq_num);
-    }
-    received_frames_.push_back(stats);
 
-    if (received_frames_.size() > RECEIVED_FRAMES) {
-        received_info_.erase(received_frames_.front().ts);
-        received_frames_.pop_front();
-    }
+    seen_packets_.insert(key);
+    seen_order_.push_back({ key, uvgrtp::clock::hrc::now() });
     return false;
 }
 
