@@ -633,6 +633,9 @@ rtp_error_t uvgrtp::formats::h26x::handle_aggregation_packet(uvgrtp::frame::rtp_
 
         queued_.push_back(retframe);
     }
+    
+    (void)uvgrtp::frame::dealloc_frame(frame);
+    *out = nullptr;
 
     return RTP_MULTIPLE_PKTS_READY;
 }
