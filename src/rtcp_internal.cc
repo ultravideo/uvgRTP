@@ -386,7 +386,7 @@ void uvgrtp::rtcp_internal::rtcp_runner(rtcp_internal* rtcp)
             we_sent, double(rtcp->avg_rtcp_size_), true, true);
         current_interval_ms = (uint32_t)round(1000 * interval_s);
 
-        UVG_LOG_INFO("RTCP interval used: %.6f s with %i members, rtcp size: %lu, bandwidth %f, local SSRC: %lu", interval_s, members, rtcp->avg_rtcp_size_, rtcp->rtcp_bandwidth_, (unsigned long)rtcp->ssrc_->load());
+        UVG_LOG_DEBUG("RTCP wait before next packet: %.6f s with %i members, rtcp size: %lu, bandwidth %f, local SSRC: %lu", interval_s, members, rtcp->avg_rtcp_size_, rtcp->rtcp_bandwidth_, (unsigned long)rtcp->ssrc_->load());
 
         std::unique_lock<std::mutex> lock(rtcp->get_runner_mutex());
         rtcp->get_runner_cv().wait_for(lock, std::chrono::milliseconds(current_interval_ms), [&]() { return !rtcp->is_active(); });
@@ -1914,7 +1914,7 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
         }
     }
     // Log whether we're generating a Sender Report (SR) or Receiver Report (RR)
-    UVG_LOG_INFO("Generating RTCP report: %s with %i report blocks",
+    UVG_LOG_DEBUG("Generating RTCP report: %s with %i report blocks",
                  (sr_packet ? "SR" : "RR"), reports);
     std::vector< std::shared_ptr<rtcp_app_packet>> outgoing_apps_;
     if (hooked_app_) {
