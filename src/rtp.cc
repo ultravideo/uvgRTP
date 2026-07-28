@@ -324,10 +324,27 @@ rtp_error_t uvgrtp::rtp::packet_handler(void* args, int rce_flags, uint8_t* pack
 
     if ((*out)->header.ext) {
         UVG_LOG_DEBUG("Frame contains extension information");
+
+        if ((*out)->payload_len < 2 * sizeof(uint16_t)) {
+            UVG_LOG_DEBUG("Invalid frame length, not enough bytes for extension header");
+            (void)uvgrtp::frame::dealloc_frame(*out);
+            *out = nullptr;
+            return RTP_GENERIC_ERROR;
+        }
+
         (*out)->ext = new uvgrtp::frame::ext_header;
 
         (*out)->ext->type    = ntohs(*(uint16_t *)&ptr[0]);
         (*out)->ext->len     = ntohs(*(uint16_t *)&ptr[2]) * sizeof(uint32_t);
+
+        if ((ssize_t)((*out)->payload_len - 2 * sizeof(uint16_t) - (*out)->ext->len) < 0) {
+            UVG_LOG_DEBUG("Invalid frame length, extension length %u exceeds remaining payload %zu",
+                (*out)->ext->len, (*out)->payload_len - 2 * sizeof(uint16_t));
+            (void)uvgrtp::frame::dealloc_frame(*out);
+            *out = nullptr;
+            return RTP_GENERIC_ERROR;
+        }
+
         (*out)->ext->data    = (uint8_t *)memdup(ptr + 2 * sizeof(uint16_t), (*out)->ext->len);
         (*out)->payload_len -= 2 * sizeof(uint16_t) + (*out)->ext->len;
         ptr                 += 2 * sizeof(uint16_t) + (*out)->ext->len;
