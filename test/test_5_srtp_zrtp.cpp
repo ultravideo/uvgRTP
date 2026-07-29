@@ -486,7 +486,8 @@ void zrtp_sender_func(uvgrtp::session* sender_session, int sender_port, int rece
         std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, TEST_PACKET_SIZE, RTP_NO_FLAGS);
         send_packets(std::move(test_frame), TEST_PACKET_SIZE, sender_session, send, test_packets, packet_interval_ms, false, RTP_NO_FLAGS);
     }
-    cleanup_ms(sender_session, send);
+    if (send)
+        cleanup_ms(sender_session, send);
 }
 
 void zrtp_receive_func(uvgrtp::session* receiver_session, int sender_port, int receiver_port, unsigned int flags, 
@@ -539,5 +540,6 @@ void zrtp_receive_func(uvgrtp::session* receiver_session, int sender_port, int r
         }
     }
 
-    cleanup_ms(receiver_session, recv);
+    if (recv)
+        cleanup_ms(receiver_session, recv);
 }
