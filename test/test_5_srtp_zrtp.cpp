@@ -280,7 +280,7 @@ TEST(EncryptionTests, zrtp_multistream)
         std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_dh_flags, 0, 0));
 
     // Wait for DH key exchange to complete before starting multistream streams
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     std::unique_ptr<std::thread> sender_thread2 = 
         std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, 0, 0));
@@ -343,7 +343,7 @@ TEST(EncryptionTests, zrtp_multistream_ip6)
         std::unique_ptr<std::thread>(new std::thread(zrtp_receive_func, receiver_session, SENDER_PORT + 2, RECEIVER_PORT + 2, zrtp_dh_flags, 0, 0));
 
     // Wait for DH key exchange to complete before starting multistream streams
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     std::unique_ptr<std::thread> sender_thread2 =
         std::unique_ptr<std::thread>(new std::thread(zrtp_sender_func, sender_session, SENDER_PORT + 4, RECEIVER_PORT + 4, zrtp_multistream_flags, 0, 0));

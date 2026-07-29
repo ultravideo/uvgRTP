@@ -1,6 +1,7 @@
 #include "test_common.hh"
 
 #include <numeric>
+#include <atomic>
 
 constexpr uint16_t SEND_PORT = 9100;
 constexpr char LOCAL_ADDRESS[] = "127.0.0.1";
@@ -12,7 +13,7 @@ constexpr size_t PAYLOAD_LEN = 100;
 
 /* This hook is used for aggregation packet tests */
 inline void aggr_receive_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
-int aggr_received = 0;
+std::atomic<int> aggr_received(0);
 
 // TODO: Use real files
 
@@ -424,8 +425,8 @@ TEST(FormatTests, h265_large_fragment_pacing)
 
             receiver->configure_ctx(RCC_UDP_RCV_BUF_SIZE, 40 * 1000 * 1000);
             receiver->configure_ctx(RCC_RING_BUFFER_SIZE, 40 * 1000 * 1000);
-            /* This is so high because on the gitlab CI tests the performance seems to be quite bad so extra time is needed */
-            receiver->configure_ctx(RCC_PKT_MAX_DELAY, 2500);
+            /* High delay needed for CI and valgrind where paced fragment delivery is slow */
+            receiver->configure_ctx(RCC_PKT_MAX_DELAY, 30000);
         }
     }
 
@@ -691,7 +692,13 @@ TEST(FormatTests, h264_aggregation)
         std::cout << "Failed to send test packet!" << std::endl;
     }
 #endif
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    auto aggr_wait_start = std::chrono::high_resolution_clock::now();
+    while (aggr_received < expected &&
+           std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::high_resolution_clock::now() - aggr_wait_start).count() < 10000)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
 
     std::cout << "H264: Received/expected: " << aggr_received << "/" << expected << std::endl;
@@ -746,7 +753,13 @@ TEST(FormatTests, h265_aggregation)
         std::cout << "Failed to send test packet!" << std::endl;
     }
 #endif
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    auto aggr_wait_start = std::chrono::high_resolution_clock::now();
+    while (aggr_received < expected &&
+           std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::high_resolution_clock::now() - aggr_wait_start).count() < 10000)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
 
     cleanup_ms(sess, sender);
@@ -802,8 +815,14 @@ TEST(FormatTests, h266_aggregation)
         std::cout << "Failed to send test packet!" << std::endl;
     }
 #endif
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
+    // Wait for aggregated packets to be deaggregated and delivered via hook
+    auto aggr_wait_start = std::chrono::high_resolution_clock::now();
+    while (aggr_received < expected &&
+           std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::high_resolution_clock::now() - aggr_wait_start).count() < 10000)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
     cleanup_ms(sess, sender);
     cleanup_ms(sess, receiver);
@@ -858,7 +877,13 @@ TEST(FormatTests, h265_disable_aggr)
         std::cout << "Failed to send test packet!" << std::endl;
     }
 #endif
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    auto aggr_wait_start = std::chrono::high_resolution_clock::now();
+    while (aggr_received < expected &&
+           std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::high_resolution_clock::now() - aggr_wait_start).count() < 10000)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
 
     cleanup_ms(sess, sender);
