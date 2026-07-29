@@ -217,6 +217,7 @@ rtp_error_t uvgrtp::rtcp_internal::start()
       tv.tv_usec = 0;
 
       if ((ret = rtcp_socket_->setsockopt(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))) != RTP_OK) {
+        active_ = false;
         return ret;
       }
 
@@ -224,6 +225,7 @@ rtp_error_t uvgrtp::rtcp_internal::start()
         UVG_LOG_INFO("Binding RTCP to port %s:%d", local_addr_.c_str(), local_port_);
         if ((ret = sfp_->bind_socket(rtcp_socket_, local_port_)) != RTP_OK) {
           log_platform_error("bind(2) failed");
+          active_ = false;
           return ret;
         }
       } else {
@@ -231,6 +233,7 @@ rtp_error_t uvgrtp::rtcp_internal::start()
         UVG_LOG_INFO("Binding RTCP to port %s:%d", local_addr_.c_str(), local_port_);
         if ((ret = sfp_->bind_socket_anyip(rtcp_socket_, local_port_)) != RTP_OK) {
           log_platform_error("bind(2) to any failed");
+          active_ = false;
           return ret;
         }
       }
