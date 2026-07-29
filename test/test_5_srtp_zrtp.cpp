@@ -112,10 +112,12 @@ void user_send_func(uint8_t* key, uint8_t salt[SALT_SIZE_BYTES], int key_size)
         size_t frame_size = strlen((char*)"Hello, world!");
         std::unique_ptr<uint8_t[]> test_frame = create_test_packet(RTP_FORMAT_GENERIC, 0, false, frame_size, RTP_NO_FLAGS);
         send_packets(std::move(test_frame), frame_size, sender_session, send, test_packets, 0, true, RTP_NO_FLAGS);
-
-        cleanup_ms(sender_session, send);
-        cleanup_sess(ctx, sender_session);
     }
+
+    if (send)
+        cleanup_ms(sender_session, send);
+    if (sender_session)
+        cleanup_sess(ctx, sender_session);
 }
 
 void user_receive_func(uint8_t *key, uint8_t salt[SALT_SIZE_BYTES], uint8_t key_size)

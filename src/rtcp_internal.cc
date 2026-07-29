@@ -113,13 +113,7 @@ uvgrtp::rtcp_internal::rtcp_internal(std::shared_ptr<uvgrtp::rtp> rtp, std::shar
 
 uvgrtp::rtcp_internal::~rtcp_internal()
 {
-    if (active_)
-    {
-        stop();
-    }
-
-    cleanup_participants();
-
+    stop();
     ourItems_.clear();
 }
 
@@ -256,6 +250,12 @@ rtp_error_t uvgrtp::rtcp_internal::stop()
     UVG_LOG_DEBUG("Stopping RTCP");
     rtp_error_t ret = RTP_OK;
 
+    if (!active_)
+    {
+        cleanup_participants();
+        return RTP_OK;
+    }
+
     // TODO: Rules for sending BYE packet when member count is more than 50: RFC 3550 6.3.7
     // This is not implemented and BYE packet is just sent immediately
     // It only relevant in multicast and not critical there either
@@ -293,12 +293,6 @@ rtp_error_t uvgrtp::rtcp_internal::stop()
 
     rtcp_socket_.reset();
 
-    if (!active_)
-    {
-        cleanup_participants();
-        return RTP_OK;
-    }
-
     runner_mutex_.lock();
     active_ = false;
     runner_mutex_.unlock();
@@ -311,6 +305,8 @@ rtp_error_t uvgrtp::rtcp_internal::stop()
     }
 
     rtcp_socket_.reset();
+
+    cleanup_participants();
 
     return ret;
 }
