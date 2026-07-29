@@ -297,8 +297,7 @@ rtp_error_t uvgrtp::frame_queue::flush_queue(sockaddr_in& addr, sockaddr_in6& ad
     }
 
     /* set the marker bit of the last packet to 1 */
-    if (active_->packets.size() > 1)
-        ((uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr - 1])[1] |= (1 << 7);
+    ((uint8_t *)&active_->rtp_headers[active_->rtphdr_ptr - 1])[1] |= (1 << 7);
     
     std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
 

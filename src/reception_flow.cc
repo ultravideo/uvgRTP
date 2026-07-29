@@ -663,11 +663,13 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         /* Update RTCP session statistics.
                          *
                          * Only packets that survived the previous handlers (in particular SRTP authentication)
-                         * may update the statistics. The RTCP result must never override an earlier failure,
-                         * otherwise a packet rejected by SRTP would still be handed to the media handler. */
+                         * may update the statistics. The statistics handler does not decide whether the packet
+                         * is delivered: its result must neither override an earlier failure (a packet rejected
+                         * by SRTP would be delivered) nor an earlier success (it returns RTP_OK e.g. while the
+                         * sender is on probation, which used to skip the media handler and leak the frame). */
                         if ((rce_flags & RCE_RTCP) && (retval == RTP_PKT_MODIFIED || retval == RTP_PKT_NOT_HANDLED)) {
                             if (handlers->rtcp_common.handler != nullptr) {
-                                retval = handlers->rtcp_common.handler(handlers->rtcp_common.args, rce_flags, &ptr[0], size, &frame);
+                                (void)handlers->rtcp_common.handler(handlers->rtcp_common.args, rce_flags, &ptr[0], size, &frame);
                             }
                         }
 
