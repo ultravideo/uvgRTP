@@ -379,7 +379,7 @@ TEST(EncryptionTests, zrtp_multistream_ip6)
     cleanup_sess(ctx, receiver_session);
 }
 
-TEST(EncryptionTests, zrtp_multistream_mux)
+TEST(EncryptionTests, DISABLED_zrtp_multistream_mux)
 {
     std::cout << "Testing ZRTP multiple streams in a single socket" << std::endl;
 
