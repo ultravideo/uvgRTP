@@ -338,6 +338,9 @@ TEST(RTPTests, rtp_poll)
 
         uvgrtp::frame::rtp_frame* received_frame = nullptr;
 
+        // Give the reception flow time to process fragmented packets
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
         auto start = std::chrono::steady_clock::now();
 #if UVGRTP_EXTENDED_API
         rtp_errno = RTP_OK;
@@ -360,6 +363,7 @@ TEST(RTPTests, rtp_poll)
             {
                 ++received_packets_no_timeout;
                 process_rtp_frame(received_frame);
+                received_frame = nullptr;
             }
         }
 
@@ -369,6 +373,9 @@ TEST(RTPTests, rtp_poll)
         test_frame = std::unique_ptr<uint8_t[]>(new uint8_t[frame_size]);
         memset(test_frame.get(), 'b', frame_size);
         send_packets(std::move(test_frame), frame_size, sess, sender, test_packets, 0, true, RTP_NO_FLAGS);
+
+        // Give the reception flow time to process fragmented packets
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         std::cout << "Start pulling data with 3 ms timout" << std::endl;
 
@@ -386,6 +393,7 @@ TEST(RTPTests, rtp_poll)
             {
                 ++received_packets_timout;
                 process_rtp_frame(received_frame);
+                received_frame = nullptr;
             }
         }
 
@@ -634,6 +642,9 @@ TEST(RTPTests, rtp_multiplex_poll)
         uvgrtp::frame::rtp_frame* received_frame1 = nullptr;
         uvgrtp::frame::rtp_frame* received_frame2 = nullptr;
 
+        // Give the reception flow time to process fragmented packets
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
         auto start = std::chrono::steady_clock::now();
 #if UVGRTP_EXTENDED_API
         rtp_errno = RTP_OK;
@@ -663,11 +674,13 @@ TEST(RTPTests, rtp_multiplex_poll)
             {
                 ++received_packets_no_timeout1;
                 process_rtp_frame(received_frame1);
+                received_frame1 = nullptr;
             }
             if (received_frame2)
             {
                 ++received_packets_no_timeout2;
                 process_rtp_frame(received_frame2);
+                received_frame2 = nullptr;
             }
         }
 
@@ -682,6 +695,9 @@ TEST(RTPTests, rtp_multiplex_poll)
         memset(test_frame2.get(), 'b', frame_size);
         send_packets(std::move(test_frame1), frame_size, sender_sess, sender1, test_packets, 0, true, RTP_NO_FLAGS);
         send_packets(std::move(test_frame2), frame_size, sender_sess, sender2, test_packets, 0, true, RTP_NO_FLAGS);
+
+        // Give the reception flow time to process fragmented packets
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         std::cout << "Start pulling data in both streams with 3 ms timout" << std::endl;
 
@@ -706,11 +722,13 @@ TEST(RTPTests, rtp_multiplex_poll)
             {
                 ++received_packets_timout1;
                 process_rtp_frame(received_frame1);
+                received_frame1 = nullptr;
             }
             if (received_frame2)
             {
                 ++received_packets_timout2;
                 process_rtp_frame(received_frame2);
+                received_frame2 = nullptr;
             }
         }
 
