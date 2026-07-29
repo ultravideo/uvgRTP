@@ -172,6 +172,7 @@ void uvgrtp::rtcp_internal::free_participant(std::unique_ptr<rtcp_participant> p
                 if (item.data != nullptr)
                 {
                     delete[] item.data;
+                    item.data = nullptr;
                 }
             }
         }
@@ -1587,15 +1588,7 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sdes_packet(uint8_t* packet, size_t& r
             // Validate that the declared item length fits in the packet.
             if (read_ptr + item.length > packet_end)
             {
-                // Malformed packet: free any allocated memory and abort.
-                for (auto &c : frame->chunks)
-                {
-                    for (auto &it : c.items)
-                    {
-                        if (it.data)
-                            delete[] it.data;
-                    }
-                }
+                // Malformed packet: destructor frees all allocated item data
                 delete frame;
                 UVG_LOG_WARN("Received rtcp packet is smaller than indicated item length in SDES");
                 return RTP_GENERIC_ERROR;
@@ -1613,7 +1606,7 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sdes_packet(uint8_t* packet, size_t& r
                 item.data = nullptr;
             }
 
-            chunk.items.push_back(item);
+            chunk.items.push_back(std::move(item));
         }
 
         // If we have a terminating zero octet for this chunk, advance to
@@ -1623,20 +1616,12 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sdes_packet(uint8_t* packet, size_t& r
             read_ptr += (4 - (read_ptr % 4)) % 4;
         }
 
-        frame->chunks.push_back(chunk);
+        frame->chunks.push_back(std::move(chunk));
     }
 
     if (frame->chunks.size() < frame->header.count)
     {
-        // Not enough chunks found: cleanup allocations and return error.
-        for (auto &c : frame->chunks)
-        {
-            for (auto &it : c.items)
-            {
-                if (it.data)
-                    delete[] it.data;
-            }
-        }
+        // Not enough chunks found: destructor frees all allocated item data
         delete frame;
         UVG_LOG_WARN("Failed to read all items from SDES");
         return RTP_GENERIC_ERROR;

@@ -376,6 +376,15 @@ namespace uvgrtp {
         struct rtcp_sdes_packet {
             struct rtcp_header header;
             std::vector<rtcp_sdes_chunk> chunks;
+
+            ~rtcp_sdes_packet() {
+                for (auto& chunk : chunks) {
+                    for (auto& item : chunk.items) {
+                        delete[] item.data;
+                        item.data = nullptr;
+                    }
+                }
+            }
         };
 #endif
     }
