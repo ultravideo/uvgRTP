@@ -1555,6 +1555,9 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sender_report_packet(uint8_t* buffer, 
 rtp_error_t uvgrtp::rtcp_internal::handle_sdes_packet(uint8_t* packet, size_t& read_ptr, size_t packet_end,
     uvgrtp::frame::rtcp_header& header, uint32_t sender_ssrc)
 {
+    if (!active_)
+        return RTP_OK;
+
     if (!is_participant(sender_ssrc))
     {
         UVG_LOG_INFO("Got an SDES packet from a previously unknown participant SSRC %lu", sender_ssrc);
