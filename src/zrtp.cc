@@ -44,8 +44,9 @@ uvgrtp::zrtp::zrtp():
     commit_(nullptr),
     commit_len_(0),
     dh1_(nullptr),
+    dh1_len_(0),
     dh2_(nullptr),
-    dh_len_(0),
+    dh2_len_(0),
     conf1_(nullptr),
     conf2_(nullptr),
     confack_(nullptr),
@@ -558,7 +559,7 @@ rtp_error_t uvgrtp::zrtp::dh_part1()
         if (dh2_ != nullptr) {
             UVG_LOG_DEBUG("DHPart2 found");
 
-            if (dhpart.parse_msg(dh2_, session_, dh_len_) != RTP_OK) {
+            if (dhpart.parse_msg(dh2_, session_, dh2_len_) != RTP_OK) {
                 UVG_LOG_ERROR("Failed to parse DHPart2 Message!");
                 return RTP_GENERIC_ERROR;
             }
@@ -600,7 +601,7 @@ rtp_error_t uvgrtp::zrtp::dh_part2(uvgrtp::zrtp_msg::dh_key_exchange* dh)
     rtp_error_t ret = RTP_OK;
     auto dhpart = dh;//uvgrtp::zrtp_msg::dh_key_exchange(session_, 2);
 
-    if ((ret = dhpart->parse_msg(dh1_, session_, dh_len_)) != RTP_OK) {
+    if ((ret = dhpart->parse_msg(dh1_, session_, dh1_len_)) != RTP_OK) {
         UVG_LOG_ERROR("Failed to parse DHPart1 Message!");
         return ret;
     }
@@ -942,6 +943,41 @@ rtp_error_t uvgrtp::zrtp::get_srtp_keys(
     return RTP_OK;
 }
 
+uint8_t* uvgrtp::zrtp::store_message(const uint8_t* msg, size_t size)
+{
+    std::unique_ptr<uint8_t[]> copy(new uint8_t[size]);
+    memcpy(copy.get(), msg, size);
+
+    std::lock_guard<std::mutex> lock(rx_messages_mtx_);
+    rx_messages_.push_back(std::move(copy));
+    return rx_messages_.back().get();
+}
+
+/* Validate the framing of a received ZRTP message:
+ *  - the datagram must be at least as large as the fixed structure the parsers read from
+ *  - the length field must match the amount of data received (RFC 6189 section 5.1)
+ *  - the CRC (always the last 4 bytes of the packet) must match */
+static bool zrtp_msg_valid(const uint8_t* packet, size_t size, size_t min_size)
+{
+    if (size < min_size || size < sizeof(uvgrtp::zrtp_msg::zrtp_msg) + sizeof(uint32_t))
+    {
+        UVG_LOG_WARN("ZRTP message is too small (%zu < %zu)", size, min_size);
+        return false;
+    }
+
+    auto msg = (const uvgrtp::zrtp_msg::zrtp_msg*)packet;
+    if ((ssize_t)size != uvgrtp::zrtp_msg::zrtp_message::header_length_to_packet(msg->length))
+    {
+        UVG_LOG_WARN("ZRTP length field does not match the received data amount");
+        return false;
+    }
+
+    uint32_t crc = 0;
+    memcpy(&crc, packet + size - sizeof(uint32_t), sizeof(uint32_t));
+
+    return uvgrtp::crypto::crc32::verify_crc32(packet, size - sizeof(uint32_t), crc);
+}
+
 rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* read_ptr, size_t size, frame::rtp_frame** out)
 {
     if ((uint32_t)size < sizeof(uvgrtp::zrtp_msg::zrtp_msg))
@@ -962,6 +998,10 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
     if (msg->header.version ||  msg->preamble != ZRTP_PREAMBLE) {
         return RTP_PKT_NOT_HANDLED;
     }
+
+    /* NOTE: read_ptr points into the reception ring buffer which is reused for later packets as soon
+     * as this function returns. Every message kept for the ZRTP state machine is therefore copied
+     * with store_message() and only then published through the atomic pointer. */
     switch (msg->msgblock) {
         case ZRTP_MSG_HELLO:
         {
@@ -972,21 +1012,17 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_INVALID_VALUE;
             }
 
-            //UVG_LOG_DEBUG("ZRTP Hello message received, verify CRC32!");
-            zrtp_hello* hello = (zrtp_hello*)msg;
-
-            if (!uvgrtp::crypto::crc32::verify_crc32(read_ptr, size - 4, hello->crc)) {
+            if (!zrtp_msg_valid(read_ptr, size, sizeof(zrtp_hello)))
                 return RTP_NOT_SUPPORTED;
-            }
+
             if (hello_ != nullptr) {
                 //UVG_LOG_DEBUG("Already got Hello, discarding new one");
                 return RTP_OK;
             }
-            hello_ = hello;
             hello_len_ = size;
+            hello_ = (zrtp_hello*)store_message(read_ptr, size);
             return RTP_OK;
         }
-
 
         case ZRTP_MSG_HELLO_ACK:
         {
@@ -996,17 +1032,14 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_INVALID_VALUE;
             }
 
-            //UVG_LOG_DEBUG("ZRTP HelloACK message received, verify CRC32!");
-
-            zrtp_hello_ack* ha_msg = (zrtp_hello_ack*)msg;
-
-            if (!uvgrtp::crypto::crc32::verify_crc32(read_ptr, size - 4, ha_msg->crc))
+            if (!zrtp_msg_valid(read_ptr, size, sizeof(zrtp_hello_ack)))
                 return RTP_NOT_SUPPORTED;
+
             if (hello_ack_ != nullptr) {
                 //UVG_LOG_DEBUG("Already got HelloACK, discarding new one");
                 return RTP_OK;
             }
-            hello_ack_ = ha_msg;
+            hello_ack_ = (zrtp_hello_ack*)store_message(read_ptr, size);
             return RTP_OK;
         }
 
@@ -1020,19 +1053,15 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_INVALID_VALUE;
             }
 
-            //UVG_LOG_DEBUG("ZRTP Commit message received, verify CRC32!");
-
-            zrtp_commit* commit = (zrtp_commit*)msg;
-
-            if (!uvgrtp::crypto::crc32::verify_crc32(read_ptr, size - 4, commit->crc))
+            if (!zrtp_msg_valid(read_ptr, size, sizeof(zrtp_commit)))
                 return RTP_NOT_SUPPORTED;
 
             if (commit_ != nullptr) {
                 UVG_LOG_DEBUG("Already got Commit, discarding new one");
                 return RTP_OK;
             }
-            commit_ = commit;
             commit_len_ = size;
+            commit_ = (zrtp_commit*)store_message(read_ptr, size);
             return RTP_OK;
         }
 
@@ -1045,19 +1074,15 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_INVALID_VALUE;
             }
 
-            //UVG_LOG_DEBUG("ZRTP DH Part1 message received, verify CRC32!");
-
-            zrtp_dh* dh = (zrtp_dh*)msg;
-
-            if (!uvgrtp::crypto::crc32::verify_crc32(read_ptr, size - 4, dh->crc))
+            if (!zrtp_msg_valid(read_ptr, size, sizeof(zrtp_dh)))
                 return RTP_NOT_SUPPORTED;
 
             if (dh1_ != nullptr) {
                 UVG_LOG_DEBUG("Already got DHPart1, discarding new one");
                 return RTP_OK;
             }
-            dh1_ = dh;
-            dh_len_ = size;
+            dh1_len_ = size;
+            dh1_ = (zrtp_dh*)store_message(read_ptr, size);
             return RTP_OK;
         }
 
@@ -1070,19 +1095,15 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_INVALID_VALUE;
             }
 
-            //UVG_LOG_DEBUG("ZRTP DH Part2 message received, verify CRC32!");
-
-            zrtp_dh* dh = (zrtp_dh*)msg;
-
-            if (!uvgrtp::crypto::crc32::verify_crc32(read_ptr, size - 4, dh->crc))
+            if (!zrtp_msg_valid(read_ptr, size, sizeof(zrtp_dh)))
                 return RTP_NOT_SUPPORTED;
 
             if (dh2_ != nullptr) {
                 UVG_LOG_DEBUG("Already got DHPart2, discarding new one");
                 return RTP_OK;
             }
-            dh2_ = dh;
-            dh_len_ = size;
+            dh2_len_ = size;
+            dh2_ = (zrtp_dh*)store_message(read_ptr, size);
             return RTP_OK;
         }
 
@@ -1094,18 +1115,15 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 UVG_LOG_WARN("ZRTP Confirm1 length field is wrong");
                 return RTP_INVALID_VALUE;
             }
-            //UVG_LOG_DEBUG("ZRTP Confirm1 message received, verify CRC32!");
 
-            zrtp_confirm* dh = (zrtp_confirm*)msg;
-
-            if (!uvgrtp::crypto::crc32::verify_crc32(read_ptr, size - 4, dh->crc))
+            if (!zrtp_msg_valid(read_ptr, size, sizeof(zrtp_confirm)))
                 return RTP_NOT_SUPPORTED;
 
             if (conf1_ != nullptr) {
                 UVG_LOG_DEBUG("Already got Confirm1, discarding new one");
                 return RTP_OK;
             }
-            conf1_ = dh;
+            conf1_ = (zrtp_confirm*)store_message(read_ptr, size);
             return RTP_OK;
         }
 
@@ -1114,22 +1132,18 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
             // TODO: Check based on signiture
             if (msg->length < 19) // see rfc 6189 section 5.6
             {
-                UVG_LOG_WARN("ZRTP Confirm1 length field is wrong");
+                UVG_LOG_WARN("ZRTP Confirm2 length field is wrong");
                 return RTP_INVALID_VALUE;
             }
 
-            //UVG_LOG_DEBUG("ZRTP Confirm2 message received, verify CRC32!");
-
-            zrtp_confirm* dh = (zrtp_confirm*)msg;
-
-            if (!uvgrtp::crypto::crc32::verify_crc32(read_ptr, size - 4, dh->crc))
+            if (!zrtp_msg_valid(read_ptr, size, sizeof(zrtp_confirm)))
                 return RTP_NOT_SUPPORTED;
 
             if (conf2_ != nullptr) {
                 UVG_LOG_DEBUG("Already got Confirm2, discarding new one");
                 return RTP_OK;
             }
-            conf2_ = dh;
+            conf2_ = (zrtp_confirm*)store_message(read_ptr, size);
             return RTP_OK;
         }
 
@@ -1141,18 +1155,14 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_INVALID_VALUE;
             }
 
-            //UVG_LOG_DEBUG("ZRTP Conf2 ACK message received, verify CRC32!");
-
-            zrtp_confack* ca = (zrtp_confack*)msg;
-
-            if (!uvgrtp::crypto::crc32::verify_crc32(read_ptr, size - 4, ca->crc))
+            if (!zrtp_msg_valid(read_ptr, size, sizeof(zrtp_confack)))
                 return RTP_NOT_SUPPORTED;
 
             if (confack_ != nullptr) {
                 UVG_LOG_DEBUG("Already got Conf2ACK, discarding new one");
                 return RTP_OK;
             }
-            confack_ = ca;
+            confack_ = (zrtp_confack*)store_message(read_ptr, size);
             return RTP_OK;
         }
 
@@ -1240,4 +1250,12 @@ void uvgrtp::zrtp::resetSession(uint32_t ssrc, std::shared_ptr<uvgrtp::socket> s
     conf1_ = nullptr;
     conf2_ = nullptr;
     confack_ = nullptr;
+
+    hello_len_ = 0;
+    commit_len_ = 0;
+    dh1_len_ = 0;
+    dh2_len_ = 0;
+
+    std::lock_guard<std::mutex> lock(rx_messages_mtx_);
+    rx_messages_.clear();
 }

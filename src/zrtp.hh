@@ -23,6 +23,7 @@
 #endif
 
 #include <mutex>
+#include <atomic>
 #include <vector>
 #include <memory>
 
@@ -216,22 +217,31 @@ namespace uvgrtp {
 
             std::mutex zrtp_mtx_;
 
-            // received ZRTP messages
-            uvgrtp::zrtp_msg::zrtp_hello* hello_;
+            /* Copy a received ZRTP message out of the reception buffer into storage owned by this
+             * object. The reception ring buffer is reused for later datagrams as soon as the packet
+             * handler returns, so the ZRTP state machine must never keep pointers into it. */
+            uint8_t* store_message(const uint8_t* msg, size_t size);
+
+            // received ZRTP messages, these point into rx_messages_
+            std::atomic<uvgrtp::zrtp_msg::zrtp_hello*> hello_;
             size_t hello_len_;
             
-            uvgrtp::zrtp_msg::zrtp_hello_ack* hello_ack_;
+            std::atomic<uvgrtp::zrtp_msg::zrtp_hello_ack*> hello_ack_;
 
-            uvgrtp::zrtp_msg::zrtp_commit* commit_;
+            std::atomic<uvgrtp::zrtp_msg::zrtp_commit*> commit_;
             size_t commit_len_;
             
-            uvgrtp::zrtp_msg::zrtp_dh* dh1_;
-            uvgrtp::zrtp_msg::zrtp_dh* dh2_;
-            size_t dh_len_;
+            std::atomic<uvgrtp::zrtp_msg::zrtp_dh*> dh1_;
+            size_t dh1_len_;
+            std::atomic<uvgrtp::zrtp_msg::zrtp_dh*> dh2_;
+            size_t dh2_len_;
             
-            uvgrtp::zrtp_msg::zrtp_confirm* conf1_;
-            uvgrtp::zrtp_msg::zrtp_confirm* conf2_;
-            uvgrtp::zrtp_msg::zrtp_confack* confack_;
+            std::atomic<uvgrtp::zrtp_msg::zrtp_confirm*> conf1_;
+            std::atomic<uvgrtp::zrtp_msg::zrtp_confirm*> conf2_;
+            std::atomic<uvgrtp::zrtp_msg::zrtp_confack*> confack_;
+
+            std::mutex rx_messages_mtx_;
+            std::vector<std::unique_ptr<uint8_t[]>> rx_messages_;
 
             std::mutex state_mutex_;
             std::mutex busy_mutex_;
