@@ -60,6 +60,11 @@ uint8_t uvgrtp::formats::v3c::get_start_code_range() const
 uvgrtp::formats::NAL_TYPE uvgrtp::formats::v3c::get_nal_type(uvgrtp::frame::rtp_frame* frame) const
 {
     //uint8_t nal_type = frame->payload[2] & 0x3f;
+
+    // V3C NAL parsing reads the first two bytes of the payload
+    if (!frame || frame->payload_len < 2) {
+        return uvgrtp::formats::NAL_TYPE::NT_OTHER;
+    }
     
     // With V3C, Nal Layer ID (NLI) value 0 indicates an intra frame
     uint8_t nal_layer_id = ((frame->payload[0] & 0b1) << 5) | (frame->payload[1] >> 3);
@@ -77,6 +82,12 @@ uint8_t uvgrtp::formats::v3c::get_nal_type(uint8_t* data) const
 
 uvgrtp::formats::FRAG_TYPE uvgrtp::formats::v3c::get_fragment_type(uvgrtp::frame::rtp_frame* frame) const
 {
+    // V3C fragment parsing requires the 2-byte payload header and the FU header,
+    // like the H.265/H.266 implementations already check
+    if (!frame || frame->payload_len < 3) {
+        return uvgrtp::formats::FRAG_TYPE::FT_INVALID;
+    }
+
     // Same bits as in VVC FU headers
     bool first_frag = frame->payload[2] & 0x80;
     bool last_frag = frame->payload[2] & 0x40;
