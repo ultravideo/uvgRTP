@@ -173,7 +173,6 @@ namespace uvgrtp {
 
             //void return_user_pkt(uint8_t* pkt, uint32_t len);
 
-            inline void increase_buffer_size(ssize_t next_write_index);
 
             inline ssize_t next_buffer_location(ssize_t current_location);
 

@@ -75,6 +75,12 @@ void uvgrtp::reception_flow::create_ring_buffer()
     destroy_ring_buffer();
     size_t elements = buffer_size_kbytes_ / payload_size_;
 
+    /* One slot is always reserved for the packet being processed, so at least two are needed */
+    if (elements < 2)
+    {
+        elements = 2;
+    }
+
     for (size_t i = 0; i < elements; ++i)
     {
         uint8_t* data = new uint8_t[payload_size_];
@@ -443,6 +449,9 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
         return;
     }
 
+    /* used to drain the socket when the ring buffer is full */
+    std::unique_ptr<uint8_t[]> discard_buffer(new uint8_t[payload_size_]);
+
     size_t read_fds = socket->get_raw_socket();
     pfds->fd = read_fds;
     pfds->events = POLLIN;
@@ -464,6 +473,24 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
             while (!should_stop_)
             {
                 ssize_t next_write_index = next_buffer_location(last_ring_write_index_);
+
+                /* The ring buffer is full: the next slot is the one the processing thread is currently
+                 * handling (or has not reached yet). Writing into it would overwrite a packet while it
+                 * is being parsed, so drop the incoming packet instead. */
+                if (next_write_index == ring_read_index_) {
+                    int dropped = 0;
+                    rtp_error_t ret = socket->recvfrom(discard_buffer.get(), payload_size_, MSG_DONTWAIT, &dropped);
+                    if (ret == RTP_INTERRUPTED || dropped == 0) {
+                        break;
+                    }
+                    else if (ret != RTP_OK) {
+                        UVG_LOG_ERROR("recvfrom(2) failed! Reception flow cannot continue %d!", ret);
+                        should_stop_ = true;
+                        break;
+                    }
+                    UVG_LOG_WARN("Reception buffer full, dropping a packet of %d bytes", dropped);
+                    continue;
+                }
 
                 rtp_error_t ret = socket->recvfrom(ring_buffer_[next_write_index].data, payload_size_,
                     MSG_DONTWAIT, &ring_buffer_[next_write_index].read);
@@ -698,28 +725,6 @@ ssize_t uvgrtp::reception_flow::next_buffer_location(ssize_t current_location)
 
     // rotates to beginning after buffer end
     return (current_location + 1) % ring_buffer_.size();
-}
-
-void uvgrtp::reception_flow::increase_buffer_size(ssize_t next_write_index)
-{
-    // create new buffer spaces if the process/read hasn't freed any spots on the ring buffer
-    if (next_write_index == ring_read_index_)
-    {
-        // increase the buffer size by 25%
-        ssize_t increase = ring_buffer_.size() / 4;
-        if (increase == 0) // just so there is some increase
-            ++increase;
-
-        UVG_LOG_DEBUG("Reception buffer ran out, increasing the buffer size: %lli -> %lli",
-            ring_buffer_.size(), ring_buffer_.size() + increase);
-        for (unsigned int i = 0; i < increase; ++i)
-        {
-            ring_buffer_.insert(ring_buffer_.begin() + next_write_index, { new uint8_t[payload_size_] , -1 });
-        }
-
-        // this works, because we have just added increase amount of spaces
-        ring_read_index_ += increase;
-    }
 }
 
 int uvgrtp::reception_flow::clear_stream_from_flow(std::shared_ptr<std::atomic<std::uint32_t>> remote_ssrc)
