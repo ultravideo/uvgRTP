@@ -607,14 +607,21 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                                 retval = handlers->srtp.handler(handlers->srtp.args, rce_flags, &ptr[0], size, &frame);
                             }
                         }
-                        /* Update RTCP session statistics */
-                        if (rce_flags & RCE_RTCP) {
+                        /* Update RTCP session statistics.
+                         *
+                         * Only packets that survived the previous handlers (in particular SRTP authentication)
+                         * may update the statistics. The RTCP result must never override an earlier failure,
+                         * otherwise a packet rejected by SRTP would still be handed to the media handler. */
+                        if ((rce_flags & RCE_RTCP) && (retval == RTP_PKT_MODIFIED || retval == RTP_PKT_NOT_HANDLED)) {
                             if (handlers->rtcp_common.handler != nullptr) {
-                                rtp_error_t rtcp_ret = handlers->rtcp_common.handler(handlers->rtcp_common.args, rce_flags, &ptr[0], size, &frame);
-                                if (retval != RTP_PKT_READY && retval != RTP_MULTIPLE_PKTS_READY) {
-                                    retval = rtcp_ret;
-                                }
+                                retval = handlers->rtcp_common.handler(handlers->rtcp_common.args, rce_flags, &ptr[0], size, &frame);
                             }
+                        }
+
+                        /* The packet was rejected before reaching the media handler, release it */
+                        if (retval != RTP_PKT_MODIFIED && retval != RTP_PKT_NOT_HANDLED && frame) {
+                            (void)uvgrtp::frame::dealloc_frame(frame);
+                            frame = nullptr;
                         }
 
                         /* If packet is ok, hand over to media handler */
