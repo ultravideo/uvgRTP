@@ -61,6 +61,17 @@ namespace uvgrtp {
         struct rtcp_sdes_packet {
             struct rtcp_header header;
             std::vector<rtcp_sdes_chunk> chunks;
+
+            /* Same ownership rules as the public definition in uvgrtp/frame.hh: the packet owns
+             * its item data. Shared builds (UVGRTP_EXTENDED_API 0) use this definition. */
+            ~rtcp_sdes_packet() {
+                for (auto& chunk : chunks) {
+                    for (auto& item : chunk.items) {
+                        delete[] item.data;
+                        item.data = nullptr;
+                    }
+                }
+            }
         };
     }
 #endif
