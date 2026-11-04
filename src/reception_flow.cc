@@ -381,6 +381,11 @@ rtp_error_t uvgrtp::reception_flow::remove_handlers(std::shared_ptr<std::atomic<
 
 void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
 {
+    /* dgram points into the reception ring buffer, which is reused for later packets.
+     * Do not hand that pointer to the application, it would read whatever arrives next. */
+    frame->dgram = nullptr;
+    frame->dgram_size = 0;
+
     uint32_t ssrc = frame->header.ssrc;
 
     auto it = hooks_.find(ssrc);
