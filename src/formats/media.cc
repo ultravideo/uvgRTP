@@ -5,6 +5,7 @@
 #include "../frame_queue.hh"
 #include "debug.hh"
 #include "../frame_internal.hh"
+#include "../global.hh"
 
 #include <map>
 #include <unordered_map>
@@ -13,9 +14,50 @@
 
 #define INVALID_SEQ 0xffffffff
 
+/* Upper bound for generic frames that are being reassembled at the same time */
+constexpr size_t MAX_INCOMPLETE_FRAMES = 256;
+
+/* How often incomplete frames are checked for expiry */
+constexpr int64_t GC_INTERVAL_MS = 100;
+
+static void free_media_frame(uvgrtp::formats::media_info_t& info)
+{
+    for (auto& frag : info.fragments) {
+        (void)uvgrtp::frame::dealloc_frame(frag.second);
+    }
+    info.fragments.clear();
+}
+
+/* Drop frames whose fragments have not all arrived within the maximum packet delay.
+ * Without this, every frame with a missing fragment stayed in memory forever. */
+static void garbage_collect_media_frames(uvgrtp::formats::media_frame_info_t* minfo)
+{
+    auto now = std::chrono::steady_clock::now();
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(now - minfo->last_gc).count() < GC_INTERVAL_MS) {
+        return;
+    }
+    minfo->last_gc = now;
+
+    int64_t max_delay = minfo->rtp_ctx ? (int64_t)minfo->rtp_ctx->get_pkt_max_delay() : (int64_t)uvgrtp::PKT_MAX_DELAY_MS;
+
+    for (auto it = minfo->frames.begin(); it != minfo->frames.end();) {
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(now - it->second.start).count() > max_delay) {
+            UVG_LOG_DEBUG("Dropping incomplete generic frame, ts %u", it->first);
+            free_media_frame(it->second);
+            it = minfo->frames.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+}
+
 uvgrtp::formats::media::media(std::shared_ptr<uvgrtp::socket> socket, std::shared_ptr<uvgrtp::rtp> rtp_ctx, int rce_flags):
     socket_(socket), rtp_ctx_(rtp_ctx), rce_flags_(rce_flags), fqueue_(new uvgrtp::frame_queue(socket, rtp_ctx, rce_flags)), minfo_()
-{}
+{
+    minfo_.rtp_ctx = rtp_ctx;
+    minfo_.last_gc = std::chrono::steady_clock::now();
+}
 
 uvgrtp::formats::media::~media()
 {
@@ -133,14 +175,23 @@ rtp_error_t uvgrtp::formats::media::packet_handler(void* arg, int rce_flags, uin
         return RTP_PKT_READY;
     }
 
+    garbage_collect_media_frames(minfo);
+
     if (minfo->frames.find(ts) != minfo->frames.end()) {
+        uint32_t key = (seq < minfo->frames[ts].s_seq) ? seq + 0x10000 : seq;
+
+        /* A duplicate used to overwrite (and leak) the stored fragment while still being counted in
+         * npkts and size, so the frame could never be completed */
+        if (minfo->frames[ts].fragments.find(key) != minfo->frames[ts].fragments.end()) {
+            UVG_LOG_DEBUG("Duplicate generic fragment, ts %u, seq %u", ts, seq);
+            (void)uvgrtp::frame::dealloc_frame(frame);
+            *out = nullptr;
+            return RTP_GENERIC_ERROR;
+        }
+
         minfo->frames[ts].npkts++;
         minfo->frames[ts].size += frame->payload_len;
-
-        if (seq < minfo->frames[ts].s_seq)
-            minfo->frames[ts].fragments[seq + 0x10000] = frame;
-        else
-            minfo->frames[ts].fragments[seq] = frame;
+        minfo->frames[ts].fragments[key] = frame;
 
         *out = nullptr;
 
@@ -188,6 +239,14 @@ rtp_error_t uvgrtp::formats::media::packet_handler(void* arg, int rce_flags, uin
         }
     } else {
         if (!(frame->header.marker)) {
+            if (minfo->frames.size() >= MAX_INCOMPLETE_FRAMES) {
+                UVG_LOG_WARN("Too many incomplete generic frames, dropping packet");
+                (void)uvgrtp::frame::dealloc_frame(frame);
+                *out = nullptr;
+                return RTP_GENERIC_ERROR;
+            }
+
+            minfo->frames[ts].start          = std::chrono::steady_clock::now();
             minfo->frames[ts].npkts          = 1;
             minfo->frames[ts].s_seq          = seq;
             minfo->frames[ts].e_seq          = INVALID_SEQ;

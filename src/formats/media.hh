@@ -2,6 +2,7 @@
 
 #include "uvgrtp/util.hh"
 
+#include <chrono>
 #include <map>
 #include <memory>
 #include <unordered_map>
@@ -37,11 +38,16 @@ namespace uvgrtp {
             size_t npkts = 0;
             size_t size = 0;
             std::map<uint32_t, uvgrtp::frame::rtp_frame *> fragments;
+            std::chrono::steady_clock::time_point start; /* arrival of the first fragment */
         } media_info_t;
 
         typedef struct media_frame_info {
             std::unordered_map<uint32_t, media_info> frames;
             std::unordered_set<uint32_t> dropped;
+
+            /* used to garbage collect frames whose fragments never all arrive */
+            std::shared_ptr<uvgrtp::rtp> rtp_ctx;
+            std::chrono::steady_clock::time_point last_gc;
         } media_frame_info_t;
 
         class media {
