@@ -38,21 +38,32 @@ rtp_error_t uvgrtp::base_srtp::derive_key(int label, size_t key_size,
     uint8_t *key, uint8_t *salt, uint8_t *out, size_t out_len)
 {
     uint8_t input[UVG_IV_LENGTH]    = { 0 };
-    uint8_t ks[AES256_KEY_SIZE] = { 0 };
+    uint8_t ks[UVG_IV_LENGTH]       = { 0 };
 
     memcpy(input, salt, UVG_SALT_LENGTH);
     memset(out, 0, out_len);
 
     input[7] ^= label;
 
-    /* SRTP in uvgRTP uses ECB encryption for encrypting the session keys. For encrypting SRTP payloads, AES CTR mode is used.
-     * ECB encryption is fine for encrypting short messages. However, using a different encryption method for
-     * encrypting the keys too might be a more secure solution and should be explored. */
+    /* RFC 3711 section 4.3.3: the key derivation function is AES in counter mode, keyed with the
+     * master key, with IV = (master_salt XOR (label || index)) * 2^16. Each 16-byte block i of the
+     * output is AES(master_key, IV + i).
+     *
+     * Previously only the first block was generated, so anything longer than 16 bytes was zero:
+     * the last 4 bytes of the 20-byte HMAC-SHA1 key and the second half of AES-192/256 session keys. */
+    uvgrtp::crypto::aes::ecb ecb(key, key_size);
 
-    uvgrtp::crypto::aes::ecb ecb(key, key_size); // srtp_ctx_->n_e);
-    ecb.encrypt(ks, input, UVG_IV_LENGTH);
+    for (size_t offset = 0, block = 0; offset < out_len; offset += UVG_IV_LENGTH, ++block) {
+        input[UVG_IV_LENGTH - 2] = (uint8_t)((block >> 8) & 0xff);
+        input[UVG_IV_LENGTH - 1] = (uint8_t)(block & 0xff);
 
-    memcpy(out, ks, out_len);
+        ecb.encrypt(ks, input, UVG_IV_LENGTH);
+
+        size_t n = out_len - offset < UVG_IV_LENGTH ? out_len - offset : UVG_IV_LENGTH;
+        memcpy(out + offset, ks, n);
+    }
+
+    memset(ks, 0, sizeof(ks));
     return RTP_OK;
 }
 
