@@ -1654,6 +1654,14 @@ rtp_error_t uvgrtp::rtcp_internal::handle_bye_packet(uint8_t* packet, size_t& re
 rtp_error_t uvgrtp::rtcp_internal::handle_app_packet(uint8_t* packet, size_t& read_ptr,
     size_t packet_end, uvgrtp::frame::rtcp_header& header)
 {
+    /* The length field determines packet_end. Make sure the fixed part (SSRC + name) fits,
+     * otherwise packet_end - read_ptr below underflows and a huge payload length is used. */
+    if (read_ptr + SSRC_CSRC_SIZE + APP_NAME_SIZE > packet_end)
+    {
+        UVG_LOG_WARN("Received RTCP APP packet is too small (length field too short)");
+        return RTP_INVALID_VALUE;
+    }
+
     auto frame = new uvgrtp::frame::rtcp_app_packet;
     frame->header = header;
     read_ssrc(packet, read_ptr, frame->ssrc);
