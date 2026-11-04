@@ -388,23 +388,28 @@ void uvgrtp::reception_flow::return_frame(uvgrtp::frame::rtp_frame *frame)
 
     uint32_t ssrc = frame->header.ssrc;
 
-    auto it = hooks_.find(ssrc);
+    /* hooks_ is modified by other threads, look the hook up under the lock and call it without
+     * holding the lock (the hook is user code) */
+    receive_pkt_hook pkt_hook = {};
+    bool has_hook = false;
+    {
+        std::lock_guard<std::mutex> lg(hooks_mutex_);
+        auto it = hooks_.find(ssrc);
 
-    // Check if there is only one hook installed -> no socket muxing
-    if (hooks_.size() == 1 && hooks_.begin()->second.hook) {
-        receive_pkt_hook pkt_hook = hooks_.begin()->second;
-        recv_hook hook = pkt_hook.hook;
-        void* arg = pkt_hook.arg;
-
-        hook(arg, frame);
+        // Check if there is only one hook installed -> no socket muxing
+        if (hooks_.size() == 1 && hooks_.begin()->second.hook) {
+            pkt_hook = hooks_.begin()->second;
+            has_hook = true;
+        }
+        // Multiple handlers -> check if there exists a hook that this ssrc belongs to
+        else if (it != hooks_.end() && it->second.hook) {
+            pkt_hook = it->second;
+            has_hook = true;
+        }
     }
-    // Multiple handlers -> check if there exists a hook that this ssrc belongs to
-    else if (it != hooks_.end() && it->second.hook) {
-        receive_pkt_hook pkt_hook = it->second;
-        recv_hook hook = pkt_hook.hook;
-        void* arg = pkt_hook.arg;
 
-        hook(arg, frame);
+    if (has_hook) {
+        pkt_hook.hook(pkt_hook.arg, frame);
     }
     // If neither is found, push the frame to the queue
     else {
@@ -576,6 +581,13 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                 uint32_t rtp_ssrc = ntohl(*(uint32_t*)&ptr[8]);
                 uint32_t rtcp_ssrc = ntohl(*(uint32_t*)&ptr[4]);
 
+                /* packet_handlers_ is modified by other threads when streams are created, removed or
+                 * their SSRC changes. Keep it locked while a handler set is used, otherwise "handlers"
+                 * can point to a map node that has already been freed. Completed frames are handed to
+                 * the application only after the lock is released, so user hooks cannot deadlock. */
+                std::vector<uvgrtp::frame::rtp_frame*> ready_frames;
+                std::unique_lock<std::mutex> handlers_lock(handlers_mutex_);
+
                 handler* handlers = nullptr;
                 if (packet_handlers_.size() == 1) {
                     /* No socket multiplexing: All packets are given to this handler */
@@ -663,11 +675,11 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                             }
                             /* Last, if one or more packets are ready, return them to the user */
                             if (retval == RTP_PKT_READY) {
-                                return_frame(frame);
+                                ready_frames.push_back(frame);
                             }
                             else if (retval == RTP_MULTIPLE_PKTS_READY && handlers->getter != nullptr) {
                                 while (handlers->getter(&frame) == RTP_PKT_READY) {
-                                    return_frame(frame);
+                                    ready_frames.push_back(frame);
                                 }
                             }
                         }
@@ -694,6 +706,12 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                         return_user_pkt(&ptr[0], (uint32_t)size);
                     }*/
                 }
+                handlers_lock.unlock();
+
+                for (auto ready : ready_frames) {
+                    return_frame(ready);
+                }
+
                 // to make sure we don't process this packet again
                 ring_buffer_[ring_read_index_].read = 0;
                 ++processed_packets;
