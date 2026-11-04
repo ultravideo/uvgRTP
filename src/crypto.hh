@@ -1,5 +1,7 @@
 #pragma once
 
+#include "uvgrtp/util.hh"
+
 #if __cplusplus >= 201703L || _MSC_VER >= 1911
 #if __has_include(<cryptopp/aes.h>) && \
     __has_include(<cryptopp/base32.h>) && \
@@ -153,7 +155,8 @@ namespace uvgrtp {
 
                 void generate_keys();
                 void get_pk(uint8_t *pk, size_t len);
-                void set_remote_pk(uint8_t *pk, size_t len);
+                /* Returns RTP_INVALID_VALUE if the public value is not in the range [2, p-2] */
+                rtp_error_t set_remote_pk(uint8_t *pk, size_t len);
                 void get_shared_secret(uint8_t *ss, size_t len);
 
             private:

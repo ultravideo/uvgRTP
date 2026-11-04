@@ -167,9 +167,11 @@ void uvgrtp::zrtp::generate_secrets()
     uvgrtp::crypto::random::generate_random(session_.secrets.rpbx, 32);
 }
 
-void uvgrtp::zrtp::generate_shared_secrets_dh()
+rtp_error_t uvgrtp::zrtp::generate_shared_secrets_dh()
 {
-    cctx_.dh->set_remote_pk(session_.dh_ctx.remote_public, 384);
+    if (cctx_.dh->set_remote_pk(session_.dh_ctx.remote_public, 384) != RTP_OK) {
+        return RTP_INVALID_VALUE;
+    }
     cctx_.dh->get_shared_secret(session_.dh_ctx.dh_result, 384);
 
     /* Section 4.4.1.4, calculation of total_hash includes:
@@ -243,6 +245,8 @@ void uvgrtp::zrtp::generate_shared_secrets_dh()
     derive_key("Responder ZRTP key", 128, session_.key_ctx.zrtp_keyr);
     derive_key("Initiator HMAC key", 256, session_.key_ctx.hmac_keyi);
     derive_key("Responder HMAC key", 256, session_.key_ctx.hmac_keyr);
+
+    return RTP_OK;
 }
 
 void uvgrtp::zrtp::generate_shared_secrets_msm()
@@ -567,7 +571,10 @@ rtp_error_t uvgrtp::zrtp::dh_part1()
 
             /* parse_msg() above extracted the public key of remote and saved it to session_.
                 * Now we must generate shared secrets (DHResult, total_hash, and s0) */
-            generate_shared_secrets_dh();
+            if (generate_shared_secrets_dh() != RTP_OK) {
+                UVG_LOG_ERROR("Invalid DHPart2 public value, session cannot continue");
+                return RTP_INVALID_VALUE;
+            }
             return RTP_OK;
         }
 
@@ -608,7 +615,10 @@ rtp_error_t uvgrtp::zrtp::dh_part2(uvgrtp::zrtp_msg::dh_key_exchange* dh)
     UVG_LOG_DEBUG("DHPart1 parsed");
     /* parse_msg() above extracted the public key of remote and saved it to session_.
      * Now we must generate shared secrets (DHResult, total_hash, and s0) */
-    generate_shared_secrets_dh();
+    if ((ret = generate_shared_secrets_dh()) != RTP_OK) {
+        UVG_LOG_ERROR("Invalid DHPart1 public value, session cannot continue");
+        return ret;
+    }
 
     uvgrtp::clock::hrc::hrc_t start = uvgrtp::clock::hrc::now();
     int interval = 150;

@@ -131,7 +131,7 @@ namespace uvgrtp {
 
             /* Calculate DHResult, total_hash, and s0
              * according to rules defined in RFC 6189 for Diffie-Hellman mode*/
-            void generate_shared_secrets_dh();
+            rtp_error_t generate_shared_secrets_dh();
 
             /* Calculate shared secrets for Multistream Mode */
             void generate_shared_secrets_msm();

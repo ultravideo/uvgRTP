@@ -256,15 +256,11 @@ void uvgrtp::crypto::aes::ecb::decrypt(uint8_t *output, const uint8_t *input, si
 
 /* ***************** diffie-hellman 3072 ***************** */
 
-uvgrtp::crypto::dh::dh()
 #ifdef __RTP_CRYPTO__
-    :prng_(),
-    dh_(),
-    rpk_()
-#endif
+/* RFC 3526 3072-bit MODP group used by ZRTP DH3k (RFC 6189 section 5.1.5) */
+static const CryptoPP::Integer& dh_prime()
 {
-#ifdef __RTP_CRYPTO__
-    CryptoPP::Integer p(
+    static const CryptoPP::Integer p(
         "0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"
         "29024E088A67CC74020BBEA63B139B22514A08798E3404DD"
         "EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"
@@ -282,6 +278,19 @@ uvgrtp::crypto::dh::dh()
         "BBE117577A615D6C770988C0BAD946E208E24FA074E5AB31"
         "43DB5BFCE0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF"
     );
+    return p;
+}
+#endif
+
+uvgrtp::crypto::dh::dh()
+#ifdef __RTP_CRYPTO__
+    :prng_(),
+    dh_(),
+    rpk_()
+#endif
+{
+#ifdef __RTP_CRYPTO__
+    const CryptoPP::Integer& p = dh_prime();
 
     CryptoPP::Integer g("0x02");
 
@@ -322,10 +331,21 @@ void uvgrtp::crypto::dh::get_pk(uint8_t *pk, size_t len)
 #endif
 }
 
-void uvgrtp::crypto::dh::set_remote_pk(uint8_t *pk, size_t len)
+
+rtp_error_t uvgrtp::crypto::dh::set_remote_pk(uint8_t *pk, size_t len)
 {
 #ifdef __RTP_CRYPTO__
     rpk_.Decode(pk, len);
+
+    /* RFC 6189 section 4.4.1.1: the public value must not be 1 or p-1 (nor outside [2, p-2]),
+     * otherwise the attacker knows the resulting DHResult regardless of our private key. */
+    const CryptoPP::Integer& p = dh_prime();
+    if (rpk_ <= CryptoPP::Integer::One() || rpk_ >= p - CryptoPP::Integer::One()) {
+        UVG_LOG_ERROR("Received an invalid Diffie-Hellman public value");
+        rpk_ = CryptoPP::Integer::Zero();
+        return RTP_INVALID_VALUE;
+    }
+    return RTP_OK;
 #else
     (void)pk, (void)len;
 
@@ -337,24 +357,7 @@ void uvgrtp::crypto::dh::set_remote_pk(uint8_t *pk, size_t len)
 void uvgrtp::crypto::dh::get_shared_secret(uint8_t *ss, size_t len)
 {
 #ifdef __RTP_CRYPTO__
-    CryptoPP::Integer p(
-        "0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"
-        "29024E088A67CC74020BBEA63B139B22514A08798E3404DD"
-        "EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"
-        "E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED"
-        "EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D"
-        "C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F"
-        "83655D23DCA3AD961C62F356208552BB9ED529077096966D"
-        "670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B"
-        "E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9"
-        "DE2BCBF6955817183995497CEA956AE515D2261898FA0510"
-        "15728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64"
-        "ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7"
-        "ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6B"
-        "F12FFA06D98A0864D87602733EC86A64521F2B18177B200C"
-        "BBE117577A615D6C770988C0BAD946E208E24FA074E5AB31"
-        "43DB5BFCE0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF"
-    );
+    const CryptoPP::Integer& p = dh_prime();
 
     CryptoPP::ModularArithmetic ma(p);
     CryptoPP::Integer dhres = ma.Exponentiate(rpk_, sk_);
