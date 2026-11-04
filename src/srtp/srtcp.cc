@@ -46,6 +46,13 @@ rtp_error_t uvgrtp::srtcp::handle_rtcp_decryption(int rce_flags, uint32_t ssrc,
     uint8_t* packet, size_t packet_size)
 {
     auto ret = RTP_OK;
+
+    /* RTCP header + sender SSRC + SRTCP index + authentication tag */
+    if (!packet || packet_size < 8 + UVG_SRTCP_INDEX_LENGTH + UVG_AUTH_TAG_LENGTH) {
+        UVG_LOG_ERROR("SRTCP packet is too small");
+        return RTP_INVALID_VALUE;
+    }
+
     auto srtpi = (*(uint32_t*)&packet[packet_size - UVG_SRTCP_INDEX_LENGTH - UVG_AUTH_TAG_LENGTH]);
 
     if (rce_flags & RCE_SRTP) {
@@ -55,7 +62,7 @@ rtp_error_t uvgrtp::srtcp::handle_rtcp_decryption(int rce_flags, uint32_t ssrc,
         }
 
         if (((srtpi >> 31) & 0x1) && !(rce_flags & RCE_SRTP_NULL_CIPHER)) {
-            if (decrypt(ssrc, srtpi & 0x7fffffff, packet, packet_size) != RTP_OK) {
+            if ((ret = decrypt(ssrc, srtpi & 0x7fffffff, packet, packet_size)) != RTP_OK) {
                 UVG_LOG_ERROR("Failed to decrypt RTCP Sender Report");
                 return ret;
             }

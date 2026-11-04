@@ -1197,13 +1197,31 @@ rtp_error_t uvgrtp::rtcp_internal::handle_incoming_packet(void* args, int rce_fl
     {
         sender_ssrc = ntohl(*(uint32_t*)&buffer[read_ptr + RTCP_HEADER_SIZE]);
 
-        if (srtcp_ && (ret = srtcp_->handle_rtcp_decryption(rce_flags_, sender_ssrc,
-            buffer + RTCP_HEADER_SIZE + SSRC_CSRC_SIZE, size)) != RTP_OK)
+        if (srtcp_)
         {
-            UVG_LOG_ERROR("Failed at decryption");
-            return ret;
+            const size_t overhead = get_security_overhead_size(rce_flags_);
+
+            /* header + SSRC + SRTCP index + authentication tag */
+            if (size < RTCP_HEADER_SIZE + SSRC_CSRC_SIZE + overhead)
+            {
+                UVG_LOG_ERROR("Received SRTCP packet is too small");
+                return RTP_INVALID_VALUE;
+            }
+
+            /* The authentication tag covers the whole packet starting from the RTCP header and
+             * srtcp::decrypt() skips the header and SSRC itself, so pass the start of the packet.
+             * Passing buffer + 8 with the full size made every offset in the SRTCP code point
+             * 8 bytes too far, past the end of the datagram. */
+            if ((ret = srtcp_->handle_rtcp_decryption(rce_flags_, sender_ssrc, buffer, size)) != RTP_OK)
+            {
+                UVG_LOG_ERROR("Failed at decryption");
+                return ret;
+            }
+
+            /* The SRTCP index and authentication tag are not RTCP packets, do not parse them */
+            size -= overhead;
+            remaining_size = size;
         }
-        size -= get_security_overhead_size(rce_flags_);
     }
 
     // this handles each separate rtcp packet in a compound packet
