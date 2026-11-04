@@ -650,6 +650,13 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                             if (handlers->srtp.handler != nullptr) {
                                 retval = handlers->srtp.handler(handlers->srtp.args, rce_flags, &ptr[0], size, &frame);
                             }
+                            else {
+                                /* Fail closed: SRTP is required for this stream but it is not ready yet
+                                 * (e.g. ZRTP still running). Delivering the packet would hand the
+                                 * application a payload that was neither decrypted nor authenticated. */
+                                UVG_LOG_DEBUG("SRTP handler not (yet?) installed, dropping packet");
+                                retval = RTP_GENERIC_ERROR;
+                            }
                         }
                         /* Update RTCP session statistics.
                          *

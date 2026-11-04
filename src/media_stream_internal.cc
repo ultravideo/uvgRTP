@@ -345,11 +345,15 @@ rtp_error_t uvgrtp::media_stream_internal::free_resources(rtp_error_t ret)
 
 rtp_error_t uvgrtp::media_stream_internal::install_packet_handlers()
 {
-    reception_flow_->install_handler(
-        1, remote_ssrc_,
-        std::bind(&uvgrtp::rtp::packet_handler, rtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-            std::placeholders::_4, std::placeholders::_5),
-        nullptr);
+    /* Install the SRTP handler first. Packets that reach the RTP handler before the SRTP handler
+     * exists are dropped (an SRTP stream must never deliver undecrypted payloads). */
+    if (rce_flags_ & RCE_SRTP) {
+        socket_->install_handler(ssrc_, srtp_.get(), srtp_->send_packet_handler);
+        reception_flow_->install_handler(
+            4, remote_ssrc_,
+            std::bind(&uvgrtp::srtp::recv_packet_handler, srtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                std::placeholders::_4, std::placeholders::_5), srtp_.get());
+    }
     if (rce_flags_ & RCE_RTCP) {
         reception_flow_->install_handler(
             6, remote_ssrc_,
@@ -362,13 +366,13 @@ rtp_error_t uvgrtp::media_stream_internal::install_packet_handlers()
             std::bind(&uvgrtp::rtcp_internal::handle_incoming_packet, rtcp_->pimpl_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
                 std::placeholders::_4, std::placeholders::_5), nullptr);
     }
-    if (rce_flags_ & RCE_SRTP) {
-        socket_->install_handler(ssrc_, srtp_.get(), srtp_->send_packet_handler);
-        reception_flow_->install_handler(
-            4, remote_ssrc_,
-            std::bind(&uvgrtp::srtp::recv_packet_handler, srtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                std::placeholders::_4, std::placeholders::_5), srtp_.get());
-    }
+
+    /* The RTP handler is installed last: from this point on packets are processed */
+    reception_flow_->install_handler(
+        1, remote_ssrc_,
+        std::bind(&uvgrtp::rtp::packet_handler, rtp_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+            std::placeholders::_4, std::placeholders::_5),
+        nullptr);
     return RTP_OK;
 }
 
