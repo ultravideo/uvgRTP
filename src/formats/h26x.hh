@@ -177,8 +177,10 @@ namespace uvgrtp {
 
             void garbage_collect_lost_frames(size_t timout);
 
-            rtp_error_t reconstruction(uvgrtp::frame::rtp_frame** out, size_t nal_size,
-                int rce_flags, uint16_t s_seq, uint16_t e_seq, const uint8_t sizeof_fu_headers);
+            /* Reconstruct the NAL unit made of fragments s_seq..e_seq into a new frame (*out) that
+             * carries the given RTP header. The fragments are freed. */
+            rtp_error_t reconstruction(uvgrtp::frame::rtp_frame** out, const uvgrtp::frame::rtp_header& header,
+                size_t nal_size, int rce_flags, uint16_t s_seq, uint16_t e_seq, const uint8_t sizeof_fu_headers);
 
             bool is_duplicate_frame(uint32_t timestamp, uint16_t seq_num);
 

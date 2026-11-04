@@ -158,7 +158,7 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
             // since we know that start code prefix has zeros, we find the next dword that has zeros
             while (!cur_has_zero && pos + 8 <= len)
             {
-                prefetch64 = *(uint64_t*)(data + pos);
+                std::memcpy(&prefetch64, data + pos, sizeof(prefetch64)); // data is not necessarily aligned
 #if __BYTE_ORDER == __LITTLE_ENDIAN
                 cur_has_zero = haszero64_le(prefetch64);
 #else
@@ -173,7 +173,7 @@ ssize_t uvgrtp::formats::h26x::find_h26x_start_code(
 
         if (pos + 4 <= len)
         {
-            cur_value32 = *(uint32_t*)(data + pos);
+            std::memcpy(&cur_value32, data + pos, sizeof(cur_value32));
             //uint8_t* curr = (uint8_t*)&cur_value32;
             //uint8_t* prev = (uint8_t*)&prev_value32;
             //UVG_LOG_DEBUG("P: %u %u %u %u C: %u %u %u %u", prev[0], prev[1], prev[2], prev[3], curr[0], curr[1], curr[2], curr[3]);
@@ -793,115 +793,128 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
         au.fragments_info[fragment_seq].end = true;
     }
 
-    /* Used to keep track of fragments that can be used for reconstruction.
-    If a NAL unit is reconstructed, these can be removed from incomplete_packet_seqs after the loop below. */
-    std::unordered_map<uint16_t, nal>reconstructed_fragments = {}; 
+    /* Look for every NAL unit of this access unit that can now be reconstructed: a continuous run of
+     * fragments that begins with a start fragment and ends with an end fragment. Several NAL units may
+     * become complete from a single packet when packets arrive out of order, so all start fragments are
+     * examined. Every reconstructed NAL unit is a separate frame for the application. */
+    std::vector<uvgrtp::frame::rtp_frame*> completed;
+    const uvgrtp::frame::rtp_header header = frame->header;
 
-    // figure out if we have the start sequence number and which seq it is (usually first, but not always)
-    rtp_error_t ret = RTP_OK;
-    uint16_t start_seq = 0;
-    bool start_found = false;
+    std::vector<uint16_t> start_seqs;
     for (const uint16_t& fragment : au.incomplete_packet_seqs) {
-        if (au.fragments_info[fragment].start)
-        {
-            start_seq = fragment;
-            start_found = true;
-            reconstructed_fragments[fragment] = {}; // If this is start FU, initialize a new map for it
-            reconstructed_fragments.at(start_seq).seqs.insert(start_seq);
-            break;
+        if (au.fragments_info[fragment].start) {
+            start_seqs.push_back(fragment);
         }
     }
 
-    if (!start_found)
-    {
-        return ret;
-    }
+    for (uint16_t start_seq : start_seqs) {
 
-    /* Check all the incomplete fragments of this access unit, by looking for a set of fragments with consecutive
-   sequence numbers that starts with a start fragment and ends in an end fragment. If this is found,
-   a NAL unit can be reconstructed. */
-    uint16_t next_seq = next_seq_num(start_seq);
-    uint16_t current_fragment = nextSeq(start_seq, au.incomplete_packet_seqs);
-
-    while (current_fragment != start_seq) { // go until we reconstruct or find the start again
-
-        bool is_end = au.fragments_info[current_fragment].end;
-
-        // check that this frament is continuous and does not start another NAL unit
-        if (current_fragment != next_seq || au.fragments_info[current_fragment].start) {
-            break;
+        // the fragments of this NAL unit may have been consumed by a previous reconstruction
+        if (au.incomplete_packet_seqs.find(start_seq) == au.incomplete_packet_seqs.end()) {
+            continue;
         }
-        else {
-            reconstructed_fragments.at(start_seq).seqs.insert(current_fragment);
+
+        std::set<uint16_t> nal_seqs = { start_seq };
+        uint16_t end_seq = start_seq;
+        bool complete = au.fragments_info[start_seq].end; // a single fragment that is both start and end
+
+        uint16_t next_seq = next_seq_num(start_seq);
+        uint16_t current_fragment = nextSeq(start_seq, au.incomplete_packet_seqs);
+
+        while (!complete && current_fragment != start_seq) { // go until we reconstruct or find the start again
+
+            // check that this fragment is continuous and does not start another NAL unit
+            if (current_fragment != next_seq || au.fragments_info[current_fragment].start) {
+                break;
+            }
+
+            nal_seqs.insert(current_fragment);
+            end_seq = current_fragment;
+            complete = au.fragments_info[current_fragment].end;
+
+            next_seq = next_seq_num(next_seq);
+            current_fragment = nextSeq(current_fragment, au.incomplete_packet_seqs);
+        }
+
+        if (!complete) {
+            continue;
         }
 
         /* A continuous set of fragments with a start and end has been found. NAL unit can be reconstructed */
-        if (is_end) {
-            size_t nal_size = 0; // Find size of the complete reconstructed NAL unit       
-            bool fragments_present = true;
-            for (auto p : reconstructed_fragments.at(start_seq).seqs) {
-                auto it = fragments_.find(p);
-                if (it == fragments_.end() || it->second == nullptr ||
-                    it->second->payload_len < sizeof_fu_headers) {
-                    fragments_present = false;
-                    break;
-                }
-                nal_size += (it->second->payload_len - sizeof_fu_headers);
+        size_t nal_size = 0; // Find size of the complete reconstructed NAL unit
+        bool fragments_present = true;
+        for (auto p : nal_seqs) {
+            auto it = fragments_.find(p);
+            if (it == fragments_.end() || it->second == nullptr ||
+                it->second->payload_len < sizeof_fu_headers) {
+                fragments_present = false;
+                break;
             }
+            nal_size += (it->second->payload_len - sizeof_fu_headers);
+        }
 
-            if (!fragments_present) {
-                UVG_LOG_ERROR("Fragment missing from reconstruction, dropping access unit. Timestamp: %lu", fragment_ts);
+        if (!fragments_present) {
+            UVG_LOG_ERROR("Fragment missing from reconstruction, dropping access unit. Timestamp: %lu", fragment_ts);
+            for (auto f : completed) {
+                (void)uvgrtp::frame::dealloc_frame(f);
+            }
+            drop_access_unit(fragment_ts);
+            *out = nullptr;
+            return RTP_GENERIC_ERROR;
+        }
+
+        /* Work in progress feature: here we discard inter frames if their references were not received correctly */
+        bool enable_reference_discarding = (rce_flags & RCE_H26X_DEPENDENCY_ENFORCEMENT);
+        if (discard_until_key_frame_ && enable_reference_discarding) {
+            if (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTER) {
+                UVG_LOG_WARN("Dropping h26x access unit because of missing reference. Timestamp: %lu. Seq: %u - %u",
+                    fragment_ts, *access_units_[fragment_ts].received_packet_seqs.begin(),
+                    *access_units_[fragment_ts].received_packet_seqs.rbegin());
+
+                for (auto f : completed) {
+                    (void)uvgrtp::frame::dealloc_frame(f);
+                }
                 drop_access_unit(fragment_ts);
+                *out = nullptr;
                 return RTP_GENERIC_ERROR;
             }
+            else if (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTRA) {
 
-            for (auto p : reconstructed_fragments.at(start_seq).seqs) {
-                au.fragments_info[p].reconstructed = true;
-            }
-
-            /* Work in progress feature: here we discard inter frames if their references were not received correctly */
-            bool enable_reference_discarding = (rce_flags & RCE_H26X_DEPENDENCY_ENFORCEMENT);
-            if (discard_until_key_frame_ && enable_reference_discarding) {
-                if (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTER) {
-                    UVG_LOG_WARN("Dropping h26x access unit because of missing reference. Timestamp: %lu. Seq: %u - %u",
-                        fragment_ts, *access_units_[fragment_ts].received_packet_seqs.begin(), 
-                        *access_units_[fragment_ts].received_packet_seqs.rbegin());
-
-                    drop_access_unit(fragment_ts);
-                    return RTP_GENERIC_ERROR;
-                }
-                else if (nal_type == uvgrtp::formats::NAL_TYPE::NT_INTRA) {
-
-                    // we don't have to discard anymore
-                    UVG_LOG_INFO("Found a key frame at ts %lu", fragment_ts);
-                    discard_until_key_frame_ = false;
-                }
-            }
-            if ((reconstruction(out, nal_size, rce_flags, start_seq, current_fragment, sizeof_fu_headers)) == RTP_PKT_READY) {
-                ret = RTP_PKT_READY;
-            }
-            reconstructed_fragments.at(start_seq).complete = true;
-
-            /* The fragments of this NAL unit have been freed and *out now holds the reconstructed NAL.
-             * Continuing would add the following fragments to the same (already freed) set and
-             * dereference fragments that no longer exist. */
-            break;
-        }
-
-
-        next_seq = next_seq_num(next_seq);
-        current_fragment = nextSeq(current_fragment, au.incomplete_packet_seqs);
-    }
-
-
-    for (auto& p : reconstructed_fragments) {
-        if (p.second.complete) {
-            for (auto &print : p.second.seqs) {
-                //UVG_LOG_DEBUG("reconstructed from fragment %u", print);
-                au.incomplete_packet_seqs.erase(print);
+                // we don't have to discard anymore
+                UVG_LOG_INFO("Found a key frame at ts %lu", fragment_ts);
+                discard_until_key_frame_ = false;
             }
         }
+
+        for (auto p : nal_seqs) {
+            au.fragments_info[p].reconstructed = true;
+        }
+
+        uvgrtp::frame::rtp_frame* complete_frame = nullptr;
+        if (reconstruction(&complete_frame, header, nal_size, rce_flags, start_seq, end_seq, sizeof_fu_headers) == RTP_PKT_READY) {
+            completed.push_back(complete_frame);
+        }
+
+        /* The fragments of this NAL unit have been freed by reconstruction(), forget them here too */
+        for (auto p : nal_seqs) {
+            au.incomplete_packet_seqs.erase(p);
+        }
     }
+
+    rtp_error_t ret = RTP_OK;
+    if (completed.size() == 1) {
+        *out = completed.front();
+        ret = RTP_PKT_READY;
+    }
+    else if (completed.size() > 1) {
+        for (auto f : completed) {
+            queued_.push_back(f);
+        }
+        *out = nullptr;
+        ret = RTP_MULTIPLE_PKTS_READY;
+    }
+    /* otherwise *out still points to the fragment, which is owned by fragments_ */
+
     // make sure uvgRTP does not reserve increasing amounts of memory by deleting old access unit information
     garbage_collect_lost_frames(rtp_ctx_->get_pkt_max_delay());
     return ret;
@@ -1025,10 +1038,9 @@ void uvgrtp::formats::h26x::scl(uint8_t* data, size_t data_len, size_t packet_si
     can_be_aggregated = (aggregatable_packets >= 2);
 }
 
-rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out, size_t nal_size, 
-    int rce_flags, uint16_t s_seq, uint16_t e_seq, const uint8_t sizeof_fu_headers)
+rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out, const uvgrtp::frame::rtp_header& header,
+    size_t nal_size, int rce_flags, uint16_t s_seq, uint16_t e_seq, const uint8_t sizeof_fu_headers)
 {
-    uvgrtp::frame::rtp_frame* frame = *out;
     //UVG_LOG_DEBUG("Reconstructing frame. Ts: %lu, Seq: %u -> %u", ts, s_seq, e_seq);
 
     // Reconstruction of frame from fragments
@@ -1039,8 +1051,9 @@ rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out
     if (rtp_ctx_->get_payload() == RTP_FORMAT_ATLAS) {
         start_code = false;
     }
+    uvgrtp::frame::rtp_header frame_header = header;
     uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode(start_code,
-        frame->header, get_nal_header_size() + nal_size, fptr);
+        frame_header, get_nal_header_size() + nal_size, fptr);
 
     // construct the NAL header from the FU header of the start fragment of this NAL unit
     // (the current packet is not necessarily part of the NAL unit being reconstructed)
