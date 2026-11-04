@@ -572,7 +572,13 @@ size_t uvgrtp::formats::h26x::drop_access_unit(uint32_t ts)
 
     for (auto& fragment_seq : access_units_[ts].incomplete_packet_seqs)
     {
-        total_cleaned += fragments_[fragment_seq]->payload_len + sizeof(uvgrtp::frame::rtp_frame);
+        auto it = fragments_.find(fragment_seq);
+        if (it == fragments_.end() || it->second == nullptr ||
+            it->second->header.timestamp != ts) {
+            continue; // already freed or now owned by another access unit
+        }
+
+        total_cleaned += it->second->payload_len + sizeof(uvgrtp::frame::rtp_frame);
         free_fragment(fragment_seq);
     }
 
@@ -759,9 +765,18 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
     au.total_size += (frame->payload_len - sizeof_fu_headers);
 
     // This may not be necessary, as new duplicate fragments should get dropped already above
-    if (fragments_[fragment_seq] != nullptr) {
+    auto existing = fragments_.find(fragment_seq);
+    if (existing != fragments_.end() && existing->second != nullptr) {
+        uint32_t old_ts = existing->second->header.timestamp;
         UVG_LOG_WARN("Found an existing fragment with same sequence number %u! Fragment ts: %lu, current ts: %lu",
-            fragment_seq, fragments_[fragment_seq]->header.timestamp, fragment_ts);
+            fragment_seq, old_ts, fragment_ts);
+
+        /* The old fragment belongs to another access unit. Forget it there too, otherwise that access
+         * unit would later look up a fragment that no longer exists. */
+        if (old_ts != fragment_ts && access_units_.find(old_ts) != access_units_.end()) {
+            access_units_[old_ts].incomplete_packet_seqs.erase(fragment_seq);
+            access_units_[old_ts].fragments_info.erase(fragment_seq);
+        }
 
         free_fragment(fragment_seq);
     }
@@ -812,8 +827,8 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
 
         bool is_end = au.fragments_info[current_fragment].end;
 
-        // check that this frament is continuous 
-        if (current_fragment != next_seq) {
+        // check that this frament is continuous and does not start another NAL unit
+        if (current_fragment != next_seq || au.fragments_info[current_fragment].start) {
             break;
         }
         else {
@@ -823,8 +838,24 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
         /* A continuous set of fragments with a start and end has been found. NAL unit can be reconstructed */
         if (is_end) {
             size_t nal_size = 0; // Find size of the complete reconstructed NAL unit       
+            bool fragments_present = true;
             for (auto p : reconstructed_fragments.at(start_seq).seqs) {
-                nal_size += (fragments_[p]->payload_len - sizeof_fu_headers);
+                auto it = fragments_.find(p);
+                if (it == fragments_.end() || it->second == nullptr ||
+                    it->second->payload_len < sizeof_fu_headers) {
+                    fragments_present = false;
+                    break;
+                }
+                nal_size += (it->second->payload_len - sizeof_fu_headers);
+            }
+
+            if (!fragments_present) {
+                UVG_LOG_ERROR("Fragment missing from reconstruction, dropping access unit. Timestamp: %lu", fragment_ts);
+                drop_access_unit(fragment_ts);
+                return RTP_GENERIC_ERROR;
+            }
+
+            for (auto p : reconstructed_fragments.at(start_seq).seqs) {
                 au.fragments_info[p].reconstructed = true;
             }
 
@@ -850,6 +881,11 @@ rtp_error_t uvgrtp::formats::h26x::packet_handler(void* args, int rce_flags, uin
                 ret = RTP_PKT_READY;
             }
             reconstructed_fragments.at(start_seq).complete = true;
+
+            /* The fragments of this NAL unit have been freed and *out now holds the reconstructed NAL.
+             * Continuing would add the following fragments to the same (already freed) set and
+             * dereference fragments that no longer exist. */
+            break;
         }
 
 
@@ -1006,8 +1042,9 @@ rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out
     uvgrtp::frame::rtp_frame* complete = allocate_rtp_frame_with_startcode(start_code,
         frame->header, get_nal_header_size() + nal_size, fptr);
 
-    // construct the NAL header from fragment header of current fragment
-    get_nal_header_from_fu_headers(fptr, frame->payload, complete->payload); // NAL header
+    // construct the NAL header from the FU header of the start fragment of this NAL unit
+    // (the current packet is not necessarily part of the NAL unit being reconstructed)
+    get_nal_header_from_fu_headers(fptr, fragments_[s_seq]->payload, complete->payload); // NAL header
     fptr += get_nal_header_size();
 
     //uint16_t next_from_last = frames_.at(frame_timestamp).e_seq + 1;
@@ -1018,6 +1055,7 @@ rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out
         {
             UVG_LOG_ERROR("Missing fragment in reconstruction. Seq range: %u - %u. Missing seq %u",
                 s_seq, e_seq, i);
+            (void)uvgrtp::frame::dealloc_frame(complete);
             return RTP_GENERIC_ERROR;
         }
 
@@ -1039,6 +1077,11 @@ rtp_error_t uvgrtp::formats::h26x::reconstruction(uvgrtp::frame::rtp_frame** out
 uint16_t uvgrtp::formats::h26x::nextSeq(uint16_t currentSeq, std::set<uint16_t>& fragments)
 {
     auto currentIterator = fragments.find(currentSeq);
+
+    if (currentIterator == fragments.end())
+    {
+        return currentSeq;
+    }
 
     if (*currentIterator == *(fragments.rbegin()))
     {
