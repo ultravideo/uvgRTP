@@ -957,12 +957,22 @@ rtp_error_t uvgrtp::zrtp::get_srtp_keys(
     return RTP_OK;
 }
 
+/* Upper bound for ZRTP messages kept for one handshake. Each message type is stored once, but a
+ * discarded (invalid) Confirm2 is replaced by its retransmission, so leave some room for those. */
+constexpr size_t ZRTP_MAX_STORED_MESSAGES = 32;
+
 uint8_t* uvgrtp::zrtp::store_message(const uint8_t* msg, size_t size)
 {
+    std::lock_guard<std::mutex> lock(rx_messages_mtx_);
+
+    if (rx_messages_.size() >= ZRTP_MAX_STORED_MESSAGES) {
+        UVG_LOG_WARN("Too many ZRTP messages received during this handshake, discarding");
+        return nullptr;
+    }
+
     std::unique_ptr<uint8_t[]> copy(new uint8_t[size]);
     memcpy(copy.get(), msg, size);
 
-    std::lock_guard<std::mutex> lock(rx_messages_mtx_);
     rx_messages_.push_back(std::move(copy));
     return rx_messages_.back().get();
 }
@@ -1034,7 +1044,11 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_OK;
             }
             hello_len_ = size;
-            hello_ = (zrtp_hello*)store_message(read_ptr, size);
+            uint8_t* copy = store_message(read_ptr, size);
+            if (copy == nullptr) {
+                return RTP_MEMORY_ERROR;
+            }
+            hello_ = (zrtp_hello*)copy;
             return RTP_OK;
         }
 
@@ -1053,7 +1067,11 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 //UVG_LOG_DEBUG("Already got HelloACK, discarding new one");
                 return RTP_OK;
             }
-            hello_ack_ = (zrtp_hello_ack*)store_message(read_ptr, size);
+            uint8_t* copy = store_message(read_ptr, size);
+            if (copy == nullptr) {
+                return RTP_MEMORY_ERROR;
+            }
+            hello_ack_ = (zrtp_hello_ack*)copy;
             return RTP_OK;
         }
 
@@ -1075,7 +1093,11 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_OK;
             }
             commit_len_ = size;
-            commit_ = (zrtp_commit*)store_message(read_ptr, size);
+            uint8_t* copy = store_message(read_ptr, size);
+            if (copy == nullptr) {
+                return RTP_MEMORY_ERROR;
+            }
+            commit_ = (zrtp_commit*)copy;
             return RTP_OK;
         }
 
@@ -1096,7 +1118,11 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_OK;
             }
             dh1_len_ = size;
-            dh1_ = (zrtp_dh*)store_message(read_ptr, size);
+            uint8_t* copy = store_message(read_ptr, size);
+            if (copy == nullptr) {
+                return RTP_MEMORY_ERROR;
+            }
+            dh1_ = (zrtp_dh*)copy;
             return RTP_OK;
         }
 
@@ -1117,7 +1143,11 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 return RTP_OK;
             }
             dh2_len_ = size;
-            dh2_ = (zrtp_dh*)store_message(read_ptr, size);
+            uint8_t* copy = store_message(read_ptr, size);
+            if (copy == nullptr) {
+                return RTP_MEMORY_ERROR;
+            }
+            dh2_ = (zrtp_dh*)copy;
             return RTP_OK;
         }
 
@@ -1137,7 +1167,11 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 UVG_LOG_DEBUG("Already got Confirm1, discarding new one");
                 return RTP_OK;
             }
-            conf1_ = (zrtp_confirm*)store_message(read_ptr, size);
+            uint8_t* copy = store_message(read_ptr, size);
+            if (copy == nullptr) {
+                return RTP_MEMORY_ERROR;
+            }
+            conf1_ = (zrtp_confirm*)copy;
             return RTP_OK;
         }
 
@@ -1157,7 +1191,11 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 UVG_LOG_DEBUG("Already got Confirm2, discarding new one");
                 return RTP_OK;
             }
-            conf2_ = (zrtp_confirm*)store_message(read_ptr, size);
+            uint8_t* copy = store_message(read_ptr, size);
+            if (copy == nullptr) {
+                return RTP_MEMORY_ERROR;
+            }
+            conf2_ = (zrtp_confirm*)copy;
             return RTP_OK;
         }
 
@@ -1176,7 +1214,11 @@ rtp_error_t uvgrtp::zrtp::packet_handler(void* args, int rce_flags, uint8_t* rea
                 UVG_LOG_DEBUG("Already got Conf2ACK, discarding new one");
                 return RTP_OK;
             }
-            confack_ = (zrtp_confack*)store_message(read_ptr, size);
+            uint8_t* copy = store_message(read_ptr, size);
+            if (copy == nullptr) {
+                return RTP_MEMORY_ERROR;
+            }
+            confack_ = (zrtp_confack*)copy;
             return RTP_OK;
         }
 

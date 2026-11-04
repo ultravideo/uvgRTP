@@ -584,7 +584,9 @@ void uvgrtp::reception_flow::process_packet(int rce_flags)
                 /* packet_handlers_ is modified by other threads when streams are created, removed or
                  * their SSRC changes. Keep it locked while a handler set is used, otherwise "handlers"
                  * can point to a map node that has already been freed. Completed frames are handed to
-                 * the application only after the lock is released, so user hooks cannot deadlock. */
+                 * the application only after the lock is released, so user hooks cannot deadlock.
+                 * NOTE: with RCE_RTCP_MUX the RTCP handler (and thus the user's RTCP hooks) runs under
+                 * this lock, so those hooks must not create or destroy streams or change the remote SSRC. */
                 std::vector<uvgrtp::frame::rtp_frame*> ready_frames;
                 std::unique_lock<std::mutex> handlers_lock(handlers_mutex_);
 

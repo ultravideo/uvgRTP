@@ -185,9 +185,13 @@ void uvgrtp::rtp::fill_header(uint8_t *buffer, bool use_old_ts)
         std::chrono::microseconds time_since_start = 
             std::chrono::duration_cast<std::chrono::microseconds>(t1 - wc_start_);
 
-        uint64_t u_seconds = time_since_start.count() * clock_rate_;
+        /* Convert the elapsed time to RTP clock ticks without overflowing: elapsed microseconds times the
+         * clock rate does not fit into 64 bits if the stream has been running for a long time (or
+         * wc_start_ was never set). Only the low 32 bits of the result matter for the timestamp. */
+        uint64_t elapsed_us = time_since_start.count() > 0 ? (uint64_t)time_since_start.count() : 0;
+        uint64_t ticks = (elapsed_us / 1000000) * clock_rate_ + ((elapsed_us % 1000000) * clock_rate_) / 1000000;
 
-        uint32_t rtp_timestamp = ts_ + uint32_t(u_seconds / 1000000);
+        uint32_t rtp_timestamp = ts_ + uint32_t(ticks);
         rtp_ts_ = rtp_timestamp;
         sampling_ntp_ = uvgrtp::clock::ntp::now();
 
