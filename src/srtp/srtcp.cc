@@ -112,7 +112,7 @@ rtp_error_t uvgrtp::srtcp::verify_auth_tag(uint8_t *buffer, size_t len)
     hmac_sha1.update((uint8_t *)&remote_srtp_ctx_->roc, sizeof(remote_srtp_ctx_->roc));
     hmac_sha1.final(digest, UVG_AUTH_TAG_LENGTH);
 
-    if (memcmp(digest, &buffer[len - UVG_AUTH_TAG_LENGTH], UVG_AUTH_TAG_LENGTH)) {
+    if (!uvgrtp::crypto::constant_time_equal(digest, &buffer[len - UVG_AUTH_TAG_LENGTH], UVG_AUTH_TAG_LENGTH)) {
         UVG_LOG_ERROR("STCP authentication tag mismatch!");
         return RTP_AUTH_TAG_MISMATCH;
     }

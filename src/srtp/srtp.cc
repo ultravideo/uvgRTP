@@ -80,7 +80,7 @@ rtp_error_t uvgrtp::srtp::recv_packet_handler(void* args, int rce_flags, uint8_t
         hmac_sha1.update((uint8_t *)&remote_ctx->roc, sizeof(remote_ctx->roc));
         hmac_sha1.final((uint8_t *)digest, UVG_AUTH_TAG_LENGTH);
 
-        if (memcmp(digest, &frame->dgram[frame->dgram_size - UVG_AUTH_TAG_LENGTH], UVG_AUTH_TAG_LENGTH)) {
+        if (!uvgrtp::crypto::constant_time_equal(digest, &frame->dgram[frame->dgram_size - UVG_AUTH_TAG_LENGTH], UVG_AUTH_TAG_LENGTH)) {
             UVG_LOG_ERROR("Authentication tag mismatch!");
             return RTP_GENERIC_ERROR;
         }
