@@ -48,7 +48,6 @@ uvgrtp::rtcp_internal::rtcp_internal(std::shared_ptr<uvgrtp::rtp> rtp, std::shar
     local_addr_(""), remote_addr_(""), local_port_(0), dst_port_(0),
     avg_rtcp_size_(128),
     rtcp_pkt_sent_count_(0), initial_(true), ssrc_(ssrc), remote_ssrc_(remote_ssrc),
-    num_receivers_(0),
     ipv6_(false),
     socket_address_({}),
     socket_address_ipv6_({}),
@@ -442,9 +441,17 @@ rtp_error_t uvgrtp::rtcp_internal::add_initial_participant(uint32_t clock_rate)
 rtp_error_t uvgrtp::rtcp_internal::add_participant(uint32_t ssrc)
 {
     std::lock_guard<std::mutex> prtcp_lock(runner_mutex_);
-    if (active_)
+    if (!active_)
     {
-        if (num_receivers_ == MAX_SUPPORTED_PARTICIPANTS)
+        /* Callers dereference participants_[ssrc] after a successful return */
+        return RTP_NOT_READY;
+    }
+    else
+    {
+        /* Use the current number of participants. A counter that was only ever incremented meant that
+         * after MAX_SUPPORTED_PARTICIPANTS joins (even if they had left via BYE or timeout) no new
+         * participant could ever be added. */
+        if (participants_.size() >= MAX_SUPPORTED_PARTICIPANTS)
         {
             UVG_LOG_ERROR("Maximum number of RTCP participants reached.");
             // TODO: Support more participants by sending multiple messages at the same time
@@ -462,7 +469,6 @@ rtp_error_t uvgrtp::rtcp_internal::add_participant(uint32_t ssrc)
             participants_[ssrc] = std::move(initial_participants_.back());
             initial_participants_.pop_back();
         }
-        num_receivers_++;
 
         participants_[ssrc]->rr_frame = nullptr;
         participants_[ssrc]->sr_frame = nullptr;
@@ -1063,6 +1069,11 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
     {
       uint32_t sender_ssrc = frame->header.ssrc;
 
+      if (participants_.size() >= MAX_SUPPORTED_PARTICIPANTS) {
+        UVG_LOG_WARN("Maximum number of RTCP participants reached, ignoring SSRC %lu", (unsigned long)sender_ssrc);
+        return RTP_GENERIC_ERROR;
+      }
+
       if ((ret = add_initial_participant(clock_rate_)) != RTP_OK) {
         return ret;
       }
@@ -1420,9 +1431,14 @@ rtp_error_t uvgrtp::rtcp_internal::handle_receiver_report_packet(uint8_t* buffer
         /* First add the participant to the initial_participants vector */
         /* Second one moves it from initial_participants to participants_ */
         // TODO: There should be probation? is it already implemented?
-        add_initial_participant(clock_rate_);
-
-        add_participant(frame->ssrc);
+        if (participants_.size() >= MAX_SUPPORTED_PARTICIPANTS ||
+            add_initial_participant(clock_rate_) != RTP_OK ||
+            add_participant(frame->ssrc) != RTP_OK)
+        {
+            UVG_LOG_WARN("Could not add RTCP participant %lu, ignoring RR", (unsigned long)frame->ssrc);
+            delete frame;
+            return RTP_GENERIC_ERROR;
+        }
     }
 
     read_reports(buffer, read_ptr, packet_end, frame->header.count, frame->ssrc, frame->report_blocks);
@@ -1468,7 +1484,12 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sender_report_packet(uint8_t* buffer, 
     if (!is_participant(frame->ssrc))
     {
         UVG_LOG_INFO("Got an SR from a previously unknown participant SSRC %lu", frame->ssrc);
-        add_participant(frame->ssrc);
+        if (add_participant(frame->ssrc) != RTP_OK)
+        {
+            UVG_LOG_WARN("Could not add RTCP participant %lu, ignoring SR", (unsigned long)frame->ssrc);
+            delete frame;
+            return RTP_GENERIC_ERROR;
+        }
     }
 
     participants_[frame->ssrc]->stats.sr_ts = uvgrtp::clock::ntp::now();
@@ -1517,7 +1538,11 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sdes_packet(uint8_t* packet, size_t& r
     if (!is_participant(sender_ssrc))
     {
         UVG_LOG_INFO("Got an SDES packet from a previously unknown participant SSRC %lu", sender_ssrc);
-        add_participant(sender_ssrc);
+        if (add_participant(sender_ssrc) != RTP_OK)
+        {
+            UVG_LOG_WARN("Could not add RTCP participant %lu, ignoring SDES", (unsigned long)sender_ssrc);
+            return RTP_GENERIC_ERROR;
+        }
     }
 
     auto frame = new uvgrtp::frame::rtcp_sdes_packet;
@@ -1689,7 +1714,12 @@ rtp_error_t uvgrtp::rtcp_internal::handle_app_packet(uint8_t* packet, size_t& re
     if (!is_participant(frame->ssrc))
     {
         UVG_LOG_WARN("Got an APP packet from an unknown participant");
-        add_participant(frame->ssrc);
+        if (add_participant(frame->ssrc) != RTP_OK)
+        {
+            UVG_LOG_WARN("Could not add RTCP participant %lu, ignoring APP", (unsigned long)frame->ssrc);
+            delete frame;
+            return RTP_GENERIC_ERROR;
+        }
     }
 
     // copy app name and application-dependent data from network packet to RTCP structures

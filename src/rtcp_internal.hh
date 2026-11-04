@@ -580,7 +580,6 @@ namespace uvgrtp {
         uint32_t rtp_ts_start_;
 
         std::map<uint32_t, std::unique_ptr<rtcp_participant>> participants_;
-        uint8_t num_receivers_; // maximum is 32 at the moment (5 bits)
         bool ipv6_;
 
         // [Thong]
