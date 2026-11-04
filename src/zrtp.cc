@@ -658,21 +658,25 @@ rtp_error_t uvgrtp::zrtp::responder_finalize_session()
             UVG_LOG_DEBUG("Confirm2 found");
 
             if (confirm.parse_msg(conf2_, session_) != RTP_OK) {
-                UVG_LOG_ERROR("Failed to parse Confirm2 Message!");
-                continue;
+                /* Discard the invalid message so that a valid retransmission can still be accepted.
+                 * Previously this did "continue" without clearing conf2_, which re-parsed the same
+                 * message forever in a busy loop, bypassing the timeout below. */
+                UVG_LOG_ERROR("Failed to parse Confirm2 Message, discarding it!");
+                conf2_ = nullptr;
             }
+            else {
+                rtp_error_t ret = RTP_OK;
+                if ((ret = validate_session()) != RTP_OK) {
+                    UVG_LOG_ERROR("Mismatch on one of the received MACs/Hashes, session cannot continue");
+                    return ret;
+                }
 
-            rtp_error_t ret = RTP_OK;
-            if ((ret = validate_session()) != RTP_OK) {
-                UVG_LOG_ERROR("Mismatch on one of the received MACs/Hashes, session cannot continue");
-                return ret;
+                /* TODO: send in a loop? */
+                confack.send_msg(local_socket_, remote_addr_, remote_ip6_addr_);
+                UVG_LOG_DEBUG("ConfACK sent");
+
+                return RTP_OK;
             }
-
-            /* TODO: send in a loop? */
-            confack.send_msg(local_socket_, remote_addr_, remote_ip6_addr_);
-            UVG_LOG_DEBUG("ConfACK sent");
-
-            return RTP_OK;
         }
 
         long int next_sendslot = i * interval;
