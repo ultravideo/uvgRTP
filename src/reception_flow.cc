@@ -182,7 +182,12 @@ rtp_error_t uvgrtp::reception_flow::stop()
     if (!active_) {
         return RTP_OK;
     }
-    should_stop_ = true;
+    {
+        /* Take the wait mutex so the processing thread is either waiting (and gets this
+         * notification) or has not yet checked the predicate (and sees should_stop_). */
+        std::lock_guard<std::mutex> wlg(wait_mtx_);
+        should_stop_ = true;
+    }
     process_cond_.notify_all();
 
     if (receiver_ != nullptr && receiver_->joinable())
@@ -518,7 +523,13 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
                 last_ring_write_index_ = next_write_index;
             }
 
-            // start processing the packets by waking the processing thread
+            /* Start processing the packets by waking the processing thread. Locking the wait mutex
+             * (only for an instant) prevents a lost wakeup: without it the notification could be sent
+             * after the processing thread checked for packets but before it started waiting, and the
+             * packet would not be processed until another packet arrives. */
+            {
+                std::lock_guard<std::mutex> wlg(wait_mtx_);
+            }
             process_cond_.notify_one();
         }
     }
@@ -533,14 +544,20 @@ void uvgrtp::reception_flow::receiver(std::shared_ptr<uvgrtp::socket> socket)
 
 void uvgrtp::reception_flow::process_packet(int rce_flags)
 {
-    std::unique_lock<std::mutex> lk(wait_mtx_);
-
     int processed_packets = 0;
 
     while (!should_stop_)
     {
-        // go to sleep waiting for something to process
-        process_cond_.wait(lk); 
+        /* Go to sleep until there is something to process. The predicate makes this robust against
+         * spurious wakeups and against packets that arrived before this thread started waiting
+         * (previously such a packet was only processed when the next one arrived). The mutex is only
+         * held while waiting, so the receiver thread is never blocked by packet processing. */
+        {
+            std::unique_lock<std::mutex> lk(wait_mtx_);
+            process_cond_.wait(lk, [this] {
+                return should_stop_ || ring_read_index_ != last_ring_write_index_;
+            });
+        }
 
         if (should_stop_)
         {
