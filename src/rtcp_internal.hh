@@ -457,7 +457,7 @@ namespace uvgrtp {
             uvgrtp::frame::rtcp_header& header);
         rtp_error_t handle_sdes_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
             uvgrtp::frame::rtcp_header& header, uint32_t sender_ssrc);
-        rtp_error_t handle_bye_packet(uint8_t* buffer, size_t& read_ptr,
+        rtp_error_t handle_bye_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
             uvgrtp::frame::rtcp_header& header);
         rtp_error_t handle_app_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
             uvgrtp::frame::rtcp_header& header);

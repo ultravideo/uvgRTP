@@ -1277,7 +1277,7 @@ rtp_error_t uvgrtp::rtcp_internal::handle_incoming_packet(void* args, int rce_fl
             break;
 
         case uvgrtp::frame::RTCP_FT_BYE:
-            ret = handle_bye_packet(buffer, read_ptr, header);
+            ret = handle_bye_packet(buffer, read_ptr, packet_end, header);
             break;
 
         case uvgrtp::frame::RTCP_FT_APP:
@@ -1398,6 +1398,12 @@ void uvgrtp::rtcp_internal::read_ssrc(const uint8_t* buffer, size_t& read_ptr, u
 rtp_error_t uvgrtp::rtcp_internal::handle_receiver_report_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
     uvgrtp::frame::rtcp_header& header)
 {
+    if (read_ptr + SSRC_CSRC_SIZE > packet_end)
+    {
+        UVG_LOG_WARN("Received RTCP RR is too small to contain the sender SSRC");
+        return RTP_INVALID_VALUE;
+    }
+
     auto frame = new uvgrtp::frame::rtcp_receiver_report;
     frame->header = header;
     read_ssrc(buffer, read_ptr, frame->ssrc);
@@ -1448,6 +1454,14 @@ rtp_error_t uvgrtp::rtcp_internal::handle_receiver_report_packet(uint8_t* buffer
 rtp_error_t uvgrtp::rtcp_internal::handle_sender_report_packet(uint8_t* buffer, size_t& read_ptr, size_t packet_end,
     uvgrtp::frame::rtcp_header& header)
 {
+    /* The SSRC and the 20-byte sender info are mandatory, and the length field (packet_end) must cover them.
+     * Without this check the sender info was read from whatever followed the packet in the buffer. */
+    if (read_ptr + SSRC_CSRC_SIZE + SENDER_INFO_SIZE > packet_end)
+    {
+        UVG_LOG_WARN("Received RTCP SR is too small to contain the sender info");
+        return RTP_INVALID_VALUE;
+    }
+
     auto frame = new uvgrtp::frame::rtcp_sender_report;
     frame->header = header;
     read_ssrc(buffer, read_ptr, frame->ssrc);
@@ -1618,14 +1632,19 @@ rtp_error_t uvgrtp::rtcp_internal::handle_sdes_packet(uint8_t* packet, size_t& r
     return RTP_OK;
 }
 
-rtp_error_t uvgrtp::rtcp_internal::handle_bye_packet(uint8_t* packet, size_t& read_ptr,
+rtp_error_t uvgrtp::rtcp_internal::handle_bye_packet(uint8_t* packet, size_t& read_ptr, size_t packet_end,
     uvgrtp::frame::rtcp_header& header)
 {
-    (void)header;
-
     uint8_t sc = header.count;
     for (size_t i = 0; i < sc; ++i)
     {
+        /* The source count is independent of the length field, make sure the SSRC is inside the packet */
+        if (read_ptr + SSRC_CSRC_SIZE > packet_end)
+        {
+            UVG_LOG_WARN("RTCP BYE source count exceeds the packet length");
+            return RTP_INVALID_VALUE;
+        }
+
         uint32_t ssrc = 0;
         read_ssrc(packet, read_ptr, ssrc);
 
