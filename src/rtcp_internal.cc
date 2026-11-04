@@ -1381,7 +1381,9 @@ void uvgrtp::rtcp_internal::read_reports(const uint8_t* buffer, size_t& read_ptr
             uvgrtp::frame::rtcp_report_block report;
             report.ssrc = ntohl(*(uint32_t*)&buffer[read_ptr + 0]);
             report.fraction = (ntohl(*(uint32_t*)&buffer[read_ptr + 4])) >> 24;
-            report.lost = (ntohl(*(int32_t*)&buffer[read_ptr + 4])) & 0xfffffd;
+            /* cumulative number of packets lost: 24-bit signed integer (RFC 3550 section 6.4.1) */
+            uint32_t lost_field = ntohl(*(uint32_t*)&buffer[read_ptr + 4]) & 0xffffff;
+            report.lost = (lost_field & 0x800000) ? (int32_t)(lost_field | 0xff000000) : (int32_t)lost_field;
             report.last_seq = ntohl(*(uint32_t*)&buffer[read_ptr + 8]);
             report.jitter = ntohl(*(uint32_t*)&buffer[read_ptr + 12]);
             report.lsr = ntohl(*(uint32_t*)&buffer[read_ptr + 16]);
@@ -2101,22 +2103,24 @@ rtp_error_t uvgrtp::rtcp_internal::generate_report()
         // only add report blocks if we have received data from them
         if (p.second->stats.received_rtp_packet)
         {
-            uint32_t dropped_packets = p.second->stats.lost_pkts;
 
             /* RFC3550 page 83, Appendix A.3 */
             /* Determine number of packets lost and expected */
             uint32_t extended_max = ((p.second->stats.cycles) << 16) + p.second->stats.max_seq;
             uint32_t expected = extended_max - p.second->stats.base_seq + 1;
 
-            /* Calculate number of packets lost */
-            uint32_t lost = expected - p.second->stats.received_pkts;
-            // clamp lost at 0x7fffff for positive loss and 0x800000 for negative loss
-            if (lost > 8388608) { // TODO: Lost is never read after this
-                lost = 8388608;
+            /* Calculate number of packets lost. This is a signed 24-bit field: clamp to
+             * [-0x800000, 0x7fffff] (duplicates can make it negative). The previous clamp always
+             * produced 0x7fffff/0x800000 and its result was not used; lost_pkts was sent instead
+             * without masking, so a value above 0xffffff overwrote the fraction lost byte. */
+            int64_t lost = (int64_t)(int32_t)(expected - p.second->stats.received_pkts);
+            if (lost > 0x7fffff) {
+                lost = 0x7fffff;
             }
-            else if (lost < 8388607) {
-                lost = 8388607;
+            else if (lost < -0x800000) {
+                lost = -0x800000;
             }
+            uint32_t dropped_packets = (uint32_t)lost & 0xffffff;
             uint32_t expected_interval = expected - p.second->stats.expected_prior;
             p.second->stats.expected_prior = expected;
             uint32_t received_interval = p.second->stats.received_pkts - p.second->stats.received_prior;

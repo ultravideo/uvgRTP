@@ -109,7 +109,7 @@ bool uvgrtp::construct_report_block(uint8_t* frame, size_t& ptr, uint32_t ssrc, 
     uint32_t lsr, uint32_t dlsr)
 {
     SET_NEXT_FIELD_32(frame, ptr, htonl(ssrc));
-    SET_NEXT_FIELD_32(frame, ptr, htonl(uint32_t(fraction << 24) | dropped_packets));
+    SET_NEXT_FIELD_32(frame, ptr, htonl(uint32_t(fraction) << 24 | (dropped_packets & 0xffffff)));
     SET_NEXT_FIELD_32(frame, ptr, htonl(uint32_t(seq_cycles) << 16 | max_seq));
     SET_NEXT_FIELD_32(frame, ptr, htonl(jitter));
     SET_NEXT_FIELD_32(frame, ptr, htonl(lsr));
