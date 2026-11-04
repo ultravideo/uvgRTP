@@ -192,7 +192,7 @@ namespace uvgrtp {
             std::unordered_map<uint32_t, receive_pkt_hook> hooks_;
 
             std::mutex flow_mutex_;
-            bool should_stop_;
+            std::atomic<bool> should_stop_;
 
             std::unique_ptr<std::thread> receiver_;
             std::unique_ptr<std::thread> processor_;

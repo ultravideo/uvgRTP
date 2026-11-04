@@ -107,6 +107,15 @@ namespace uvgrtp {
 
         private:
 
+            /* Variants of the public functions that expect conf_mutex_ to be held by the caller.
+             * All of the maps below are accessed from the threads that create and destroy media
+             * streams concurrently (e.g. two streams of a session set up from two threads), so every
+             * access must happen under conf_mutex_. The mutex is not recursive, so functions that
+             * already hold it must call these instead of the public ones. */
+            std::shared_ptr<uvgrtp::socket> create_new_socket_unlocked(int type, uint16_t port, int rce_flags);
+            rtp_error_t bind_socket_unlocked(std::shared_ptr<uvgrtp::socket> soc, uint16_t port);
+            bool is_port_in_use_unlocked(uint16_t port);
+
             // protect maps
             std::mutex conf_mutex_;
 

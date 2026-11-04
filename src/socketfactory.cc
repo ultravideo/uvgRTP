@@ -74,6 +74,12 @@ rtp_error_t uvgrtp::socketfactory::set_local_interface(std::string local_addr)
 
 std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int type, uint16_t port, int rce_flags)
 {
+    std::lock_guard<std::mutex> lg(conf_mutex_);
+    return create_new_socket_unlocked(type, port, rce_flags);
+}
+
+std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket_unlocked(int type, uint16_t port, int rce_flags)
+{
     rtp_error_t ret = RTP_OK;
     std::shared_ptr<uvgrtp::socket> socket = std::make_shared<uvgrtp::socket>(rce_flags);
 
@@ -96,7 +102,7 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int typ
 #endif
 
         if (port != 0) {
-            bind_socket(socket, port);
+            bind_socket_unlocked(socket, port);
         }
 
         // If the socket is a type 2 (non-RTCP) socket, install a reception_flow
@@ -118,6 +124,12 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::create_new_socket(int typ
 
 rtp_error_t uvgrtp::socketfactory::bind_socket(std::shared_ptr<uvgrtp::socket> soc, uint16_t port)
 {
+    std::lock_guard<std::mutex> lg(conf_mutex_);
+    return bind_socket_unlocked(soc, port);
+}
+
+rtp_error_t uvgrtp::socketfactory::bind_socket_unlocked(std::shared_ptr<uvgrtp::socket> soc, uint16_t port)
+{
     rtp_error_t ret = RTP_OK;
     sockaddr_in6 bind_addr6;
     sockaddr_in bind_addr;
@@ -132,7 +144,7 @@ rtp_error_t uvgrtp::socketfactory::bind_socket(std::shared_ptr<uvgrtp::socket> s
             UVG_LOG_INFO("The used address %s is a multicast address", local_address_.c_str());
             ret = soc->bind_ip6(bind_addr6);
         }
-        else if (!is_port_in_use(port)) {
+        else if (!is_port_in_use_unlocked(port)) {
             ret = soc->bind_ip6(bind_addr6);
         }
     }
@@ -142,7 +154,7 @@ rtp_error_t uvgrtp::socketfactory::bind_socket(std::shared_ptr<uvgrtp::socket> s
             UVG_LOG_INFO("The used address %s is a multicast address", local_address_.c_str());
             ret = soc->bind(bind_addr);
         }
-        else if (!is_port_in_use(port)) {
+        else if (!is_port_in_use_unlocked(port)) {
             ret = soc->bind(bind_addr);
         }
     }
@@ -159,7 +171,7 @@ rtp_error_t uvgrtp::socketfactory::bind_socket_anyip(std::shared_ptr<uvgrtp::soc
     rtp_error_t ret = RTP_OK;
     std::lock_guard<std::mutex> lg(conf_mutex_);
 
-    if (!is_port_in_use(port)) {
+    if (!is_port_in_use_unlocked(port)) {
 
         if (ipv6_address_) {
             sockaddr_in6 bind_addr6 = uvgrtp::socket::create_ip6_sockaddr_any(port);
@@ -183,7 +195,7 @@ std::shared_ptr<uvgrtp::socket> uvgrtp::socketfactory::get_socket_ptr(int type, 
     if (ptr != port_to_socket_.end()) {
         return ptr->second;
     }
-    return create_new_socket(type, port, rce_flags);
+    return create_new_socket_unlocked(type, port, rce_flags);
 }
 
 std::shared_ptr<uvgrtp::reception_flow> uvgrtp::socketfactory::get_reception_flow_ptr(std::shared_ptr<uvgrtp::socket> socket) 
@@ -199,6 +211,7 @@ std::shared_ptr<uvgrtp::reception_flow> uvgrtp::socketfactory::get_reception_flo
 
 std::shared_ptr<uvgrtp::rtcp_reader> uvgrtp::socketfactory::install_rtcp_reader(uint16_t port)
 {
+    std::lock_guard<std::mutex> lg(conf_mutex_);
     std::shared_ptr<uvgrtp::rtcp_reader> reader = std::shared_ptr<uvgrtp::rtcp_reader>(new uvgrtp::rtcp_reader());
     rtcp_readers_to_ports_[reader] = port;
     return reader;
@@ -206,6 +219,7 @@ std::shared_ptr<uvgrtp::rtcp_reader> uvgrtp::socketfactory::install_rtcp_reader(
 
 std::shared_ptr <uvgrtp::rtcp_reader> uvgrtp::socketfactory::get_rtcp_reader(uint16_t port)
 {
+    std::lock_guard<std::mutex> lg(conf_mutex_);
     for (auto& p : rtcp_readers_to_ports_) {
         if (p.second == port) {
             return p.first;
@@ -220,6 +234,12 @@ bool uvgrtp::socketfactory::get_ipv6() const
 }
 
 bool uvgrtp::socketfactory::is_port_in_use(uint16_t port)
+{
+    std::lock_guard<std::mutex> lg(conf_mutex_);
+    return is_port_in_use_unlocked(port);
+}
+
+bool uvgrtp::socketfactory::is_port_in_use_unlocked(uint16_t port)
 {
     if (port_to_socket_.find(port) == port_to_socket_.end()) {
         return false;

@@ -17,6 +17,7 @@
 #include <thread>
 #include <functional>
 #include <mutex>
+#include <atomic>
 
 
 namespace uvgrtp {
@@ -72,7 +73,7 @@ namespace uvgrtp {
 
             void rtcp_report_reader();
 
-            bool active_;
+            std::atomic<bool> active_;
             std::shared_ptr<uvgrtp::socket> socket_;
             std::map<std::shared_ptr<std::atomic<uint32_t>>, uvgrtp::rtcp_internal*> rtcps_map_;
             std::unique_ptr<std::thread> report_reader_;

@@ -41,8 +41,10 @@ rtp_error_t uvgrtp::rtcp_reader::start()
     if (active_) {
         return RTP_OK;
     }
-    report_reader_.reset(new std::thread(&uvgrtp::rtcp_reader::rtcp_report_reader, this));
+    /* active_ must be set before the thread exists: the reader loop checks it first thing and
+     * would otherwise exit immediately if it is scheduled before this function continues */
     active_ = true;
+    report_reader_.reset(new std::thread(&uvgrtp::rtcp_reader::rtcp_report_reader, this));
     return RTP_OK;
 }
 
