@@ -65,6 +65,14 @@ rtp_error_t uvgrtp::srtp::recv_packet_handler(void* args, int rce_flags, uint8_t
 
     /* Calculate authentication tag for the packet and compare it against the one we received */
     if (srtp->authenticate_rtp()) {
+        /* The authentication tag is carried at the end of the RTP payload. The RTP parser may have
+         * already shrunk payload_len (CSRCs, header extension, padding), so the datagram size alone
+         * does not guarantee that the payload is large enough to hold the tag. */
+        if (frame->payload_len < UVG_AUTH_TAG_LENGTH) {
+            UVG_LOG_ERROR("Received SRTP packet whose payload is too small to contain the authentication tag");
+            return RTP_GENERIC_ERROR;
+        }
+
         uint8_t digest[10] = { 0 };
         auto hmac_sha1     = uvgrtp::crypto::hmac::sha1(remote_ctx->auth_key, UVG_HMAC_KEY_LENGTH);
 
