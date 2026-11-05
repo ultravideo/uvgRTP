@@ -3,7 +3,9 @@
 #include <gtest/gtest.h>
 #include "uvgrtp/lib.hh"
 
+#include <atomic>
 #include <chrono>
+#include <thread>
 
 class Test_receiver;
 
@@ -41,6 +43,10 @@ inline void set_nal_unit(uint8_t* frame, size_t& pos, bool zero_prefix, uint8_t 
 
 inline void v3c_rtp_hook(void* arg, uvgrtp::frame::rtp_frame* frame);
 
+/* Upper bound for waiting until all frames of a test round have been received. Only reached when
+ * a test is failing; under valgrind and on slow CI machines reassembly can take several seconds. */
+constexpr int TEST_RECEIVE_TIMEOUT_MS = 30000;
+
 class Test_receiver
 {
 public:
@@ -49,19 +55,39 @@ public:
         expectedPackets_(expectedPackets)
     {}
 
+    Test_receiver(const Test_receiver& other) :
+        receivedPackets_(other.receivedPackets_.load()),
+        expectedPackets_(other.expectedPackets_)
+    {}
+
+    /* Called from the uvgRTP reception thread */
     void receive()
     {
         ++receivedPackets_;
     }
 
+    /* Wait until all expected frames have been received (or the timeout expires). Waiting for a fixed
+     * time made the tests flaky: a frame that was still being reassembled when the time ran out was
+     * counted in the next round instead (e.g. 9/10 followed by 11/10). */
+    void waitForAll(int timeout_ms = TEST_RECEIVE_TIMEOUT_MS)
+    {
+        auto start = std::chrono::steady_clock::now();
+        while (receivedPackets_ < expectedPackets_ &&
+               std::chrono::duration_cast<std::chrono::milliseconds>(
+                   std::chrono::steady_clock::now() - start).count() < timeout_ms)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }
+
     void gotAll()
     {
-        EXPECT_EQ(receivedPackets_, expectedPackets_);
+        EXPECT_EQ(receivedPackets_.load(), expectedPackets_);
     }
 
 private:
 
-    int receivedPackets_;
+    std::atomic<int> receivedPackets_;
     int expectedPackets_;
 };
 
@@ -209,9 +235,16 @@ inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets
 
         send_packets(std::move(test_packet), size, sess, sender, packets, interval_ms, false, rtp_flags);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(100 + size/500));
-
+        tester->waitForAll();
         tester->gotAll();
+
+        /* Detach the tester before deleting it so that a late frame cannot use it */
+        if (format == RTP_FORMAT_ATLAS) {
+            add_hook(nullptr, receiver, v3c_rtp_hook);
+        }
+        else {
+            add_hook(nullptr, receiver, rtp_receive_hook);
+        }
         delete tester;
     }
 }
@@ -245,9 +278,11 @@ inline void test_packet_size(std::unique_ptr<uint8_t[]> test_packet, int packets
 
         send_packets(std::move(test_packet), size, sess, sender, packets, interval_ms, false, rtp_flags);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(50 + size / 500));
-
+        for (auto& tester : testers) tester.waitForAll();
         for (auto& tester : testers) tester.gotAll();
+
+        /* Detach the testers before they go out of scope so that a late frame cannot use them */
+        for (auto receiver : receivers) add_hook(nullptr, receiver, rtp_receive_hook);
     }
 }
 
