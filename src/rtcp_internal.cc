@@ -1124,7 +1124,10 @@ rtp_error_t uvgrtp::rtcp_internal::recv_packet_handler_common(void* arg, int rce
     
         if ((ret = rtcp->update_participant_seq(frame->header.ssrc, frame->header.seq)) != RTP_OK) {
             if (ret == RTP_NOT_READY) {
-                return RTP_OK;
+                /* Source is still on probation (RFC 3550 A.1), so its statistics
+                 * are not valid yet. The packet itself is still media that has a
+                 * destination, so pass it on instead of consuming it here. */
+                return RTP_PKT_NOT_HANDLED;
             }
             else {
                 UVG_LOG_WARN("Failed to update participant. SSRC: %u, seq: %u, payload size: %zu B",
