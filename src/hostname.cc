@@ -10,6 +10,7 @@
 #include <cstring>
 #include <limits.h>
 #include <errno.h>
+#include <pwd.h>
 #endif
 
 #define NAME_MAXLEN 512
@@ -60,11 +61,18 @@ std::string uvgrtp::hostname::get_username()
 #else
     char username[NAME_MAXLEN];
 
-    if (getlogin_r(username, NAME_MAXLEN) != 0) {
-        UVG_LOG_ERROR("%s", strerror(errno));
-        return "";
-    }
+    if (getlogin_r(username, NAME_MAXLEN) == 0)
+        return std::string(username);
 
-    return std::string(username);
+    /* getlogin_r() fails without a controlling terminal (daemons, containers,
+     * services), so fall back to the user of the process */
+    struct passwd pwd;
+    struct passwd *result = nullptr;
+
+    if (getpwuid_r(geteuid(), &pwd, username, NAME_MAXLEN, &result) == 0 && result)
+        return std::string(result->pw_name);
+
+    UVG_LOG_DEBUG("Could not determine username, CNAME will use a random string");
+    return "";
 #endif
 }
